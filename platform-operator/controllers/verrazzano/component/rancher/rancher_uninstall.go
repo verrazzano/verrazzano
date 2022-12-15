@@ -113,7 +113,12 @@ func (m *postUninstallMonitorType) isRunning() bool {
 	return m.running
 }
 
-// postUninstall removes the objects after the Helm uninstall process finishes
+// postUninstall - Rancher component post-uninstall
+//
+// This uses the Rancher system tool for uninstall, which blocks the uninstallation process. So, we launch the
+// uninstall operation in a goroutine and requeue to check back later.
+// On subsequent callbacks, we check the status of the goroutine with the 'monitor' object, and postUninstall
+// returns or requeues accordingly.
 func postUninstall(ctx spi.ComponentContext, monitor postUninstallMonitor) error {
 	if monitor.isRunning() {
 		// Check the result
@@ -130,7 +135,7 @@ func postUninstall(ctx spi.ComponentContext, monitor postUninstallMonitor) error
 			return nil
 		}
 		// if we were unsuccessful, reset and drop through to try again
-		ctx.Log().Debug("Error during rancher post-uninstall, retrying")
+		ctx.Log().Debug("Error during Rancher post-uninstall, retrying")
 	}
 
 	return forkPostUninstallFunc(ctx, monitor)
@@ -174,6 +179,7 @@ func (m *postUninstallMonitorType) run(args postUninstallRoutineParams) {
 }
 
 // invokeRancherSystemToolAndCleanup - responsible for the actual deletion of resources
+// This calls the Rancher uninstall tool, which blocks.
 func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	// List all the namespaces that need to be cleaned from Rancher components
 	nsList := corev1.NamespaceList{}

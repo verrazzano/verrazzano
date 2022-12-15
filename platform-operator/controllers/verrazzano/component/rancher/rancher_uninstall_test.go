@@ -81,7 +81,7 @@ func TestPostUninstall(t *testing.T) {
 
 // TestBackgroundPostUninstallCompletedSuccessfully tests the post uninstall process for Rancher
 // GIVEN a call to postUninstall
-// WHEN the monitor goroutine failed to successfully complete
+// WHEN the goroutine is not finished running, but has a successful result in the monitor and no error
 // THEN postUninstall returns nil without calling the forkPostUninstall function
 func TestBackgroundPostUninstallCompletedSuccessfully(t *testing.T) {
 	a := assert.New(t)
