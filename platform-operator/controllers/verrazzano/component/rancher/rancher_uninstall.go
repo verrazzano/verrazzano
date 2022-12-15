@@ -58,9 +58,11 @@ var rancherSystemNS = []string{
 
 // create func vars for unit tests
 type forkPostUninstallFuncSig func(ctx spi.ComponentContext, monitor postUninstallMonitor) error
+
 var forkPostUninstallFunc forkPostUninstallFuncSig = forkPostUninstall
 
 type postUninstallFuncSig func(ctx spi.ComponentContext) error
+
 var postUninstallFunc postUninstallFuncSig = invokeRancherSystemToolAndCleanup
 
 // postUninstallRoutineParams - Used to pass args to the postUninstall goroutine
