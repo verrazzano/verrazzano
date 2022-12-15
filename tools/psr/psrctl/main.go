@@ -5,11 +5,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/manifest"
 	"os"
 
 	"github.com/spf13/pflag"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/root"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/manifest"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )

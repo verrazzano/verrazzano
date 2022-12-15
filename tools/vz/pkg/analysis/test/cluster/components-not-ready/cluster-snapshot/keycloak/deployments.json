@@ -1,0 +1,53 @@
+{
+  "metadata": {
+    "resourceVersion": "8681"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "mysql",
+        "namespace": "keycloak",
+        "uid": "b4c86c7d-3ee2-40c6-a9a9-fde05204ae04",
+        "resourceVersion": "8427",
+        "generation": 1,
+        "creationTimestamp": "2022-12-05T05:30:54Z",
+        "labels": {
+          "app": "mysql",
+          "app.kubernetes.io/managed-by": "Helm",
+          "chart": "mysql-1.6.9",
+          "heritage": "Helm",
+          "release": "mysql"
+        },
+        "annotations": {
+          "deployment.kubernetes.io/revision": "1",
+          "meta.helm.sh/release-name": "mysql",
+          "meta.helm.sh/release-namespace": "keycloak"
+        }
+      },
+      "status": {
+        "observedGeneration": 1,
+        "replicas": 1,
+        "updatedReplicas": 1,
+        "unavailableReplicas": 1,
+        "conditions": [
+          {
+            "type": "Available",
+            "status": "False",
+            "lastUpdateTime": "2022-12-05T05:30:54Z",
+            "lastTransitionTime": "2022-12-05T05:30:54Z",
+            "reason": "MinimumReplicasUnavailable",
+            "message": "Deployment does not have minimum availability."
+          },
+          {
+            "type": "Progressing",
+            "status": "False",
+            "lastUpdateTime": "2022-12-05T06:03:01Z",
+            "lastTransitionTime": "2022-12-05T06:03:01Z",
+            "reason": "ProgressDeadlineExceeded",
+            "message": "ReplicaSet \"mysql-56b9fcc88f\" has timed out progressing."
+          }
+        ]
+      }
+    }
+  ]
+}

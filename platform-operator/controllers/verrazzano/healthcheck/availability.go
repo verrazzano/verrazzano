@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package status
+package healthcheck
 
 import (
 	"context"
@@ -58,6 +58,10 @@ func (p *HealthChecker) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazza
 		Components: map[string]vzapi.ComponentAvailability{},
 	}
 	for _, component := range components {
+		// If component is not in the metricsMap, move on to the next component
+		if metricsexporter.IsNonMetricComponent(component.Name()) {
+			continue
+		}
 		// If status is not fully initialized, do not check availability
 		componentStatus, ok := vz.Status.Components[component.Name()]
 		if !ok {
@@ -73,7 +77,7 @@ func (p *HealthChecker) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazza
 				countAvailable++
 			}
 			// update the component availability metric
-			err := metricsexporter.SetComponentAvailabilityMetric(component.Name(), a.available, isEnabled)
+			err := metricsexporter.SetComponentAvailabilityMetric(component.GetJSONName(), a.available, isEnabled)
 			if err != nil {
 				return nil, err
 			}

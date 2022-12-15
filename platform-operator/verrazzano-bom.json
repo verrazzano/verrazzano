@@ -234,11 +234,6 @@
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
-              "image": "prometheus",
-              "tag": "v2.38.0-20221103235927-b3e1d8ed",
-              "helmFullImageKey": "monitoringOperator.prometheusImage"
-            },
-            {
               "image": "opensearch",
               "tag": "1.2.3-20221128202334-b9a03fdef55",
               "helmFullImageKey": "monitoringOperator.esImage"
@@ -450,7 +445,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v15.0.2-20221010100849-3c526fbe0f",
+              "tag": "v15.0.2-20221214054602-c01654ffed",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
