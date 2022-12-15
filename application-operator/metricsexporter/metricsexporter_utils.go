@@ -100,134 +100,134 @@ func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 	return map[metricName]*SimpleCounterMetric{
 		AppconfigReconcileCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_appconfig_successful_reconcile_total",
+				Name: "vz_application_operator_appconfig_successful_reconcile_total",
 				Help: "Tracks how many times a the appconfig reconcile process is successful"}),
 		},
 		AppconfigReconcileError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_appconfig_error_reconcile_total",
+				Name: "vz_application_operator_appconfig_error_reconcile_total",
 				Help: "Tracks how many times a the appconfig reconcile process has failed"}),
 		},
 		CohworkloadReconcileCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_cohworkload_error_reconcile_total",
+				Name: "vz_application_operator_cohworkload_error_reconcile_total",
 				Help: "Tracks how many times a the cohworkload reconcile process has failed"}),
 		},
 		CohworkloadReconcileError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_cohworkload_error_reconcile_total",
+				Name: "vz_application_operator_cohworkload_error_reconcile_total",
 				Help: "Tracks how many times a the cohworkload reconcile process has failed"}),
 		},
 		HelidonReconcileCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_helidonworkload_success_reconcile_total",
+				Name: "vz_application_operator_helidonworkload_success_reconcile_total",
 				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
 		},
 		HelidonReconcileError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_helidonworkload_error_reconcile_total",
+				Name: "vz_application_operator_helidonworkload_error_reconcile_total",
 				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
 		},
 		IngresstraitReconcileCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_ingresstrait_success_reconcile_total",
+				Name: "vz_application_operator_ingresstrait_success_reconcile_total",
 				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
 		},
 		IngresstraitReconcileError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_ingresstrait_error_reconcile_total",
+				Name: "vz_application_operator_ingresstrait_error_reconcile_total",
 				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
 		},
 		AppconfigHandleCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_appconfig_handle_total",
+				Name: "vz_application_operator_appconfig_handle_total",
 				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
 		},
 		AppconfigHandleError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_appconfig_error_handle_total",
+				Name: "vz_application_operator_appconfig_error_handle_total",
 				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
 		},
 		IstioHandleCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_istio_handle_total",
+				Name: "vz_application_operator_istio_handle_total",
 				Help: "Tracks how many times a the ingresstrait reconcile process has been successful"}),
 		},
 		IstioHandleError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_istio_error_handle_total",
+				Name: "vz_application_operator_istio_error_handle_total",
 				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
 		},
 		LabelerPodHandleCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_labelerPod_handle_total",
+				Name: "vz_application_operator_labelerPod_handle_total",
 				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
 		},
 		LabelerPodHandleError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_labelerpod_error_handle_total",
+				Name: "vz_application_operator_labelerpod_error_handle_total",
 				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
 		},
 		BindingUpdaterHandleCounter: {
 
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_bindingupdater_handle_total",
+				Name: "vz_application_operator_bindingupdater_handle_total",
 				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
 		},
 		BindingUpdaterHandleError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_bindingupdater_error_handle_total",
+				Name: "vz_application_operator_bindingupdater_error_handle_total",
 				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
 		},
 		MultiClusterAppconfigPodHandleCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_multiclusterappconfig_handle_total",
+				Name: "vz_application_operator_multiclusterappconfig_handle_total",
 				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
 		},
 		MultiClusterAppconfigPodHandleError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_multiclusterappconfig_error_handle_total",
+				Name: "vz_application_operator_multiclusterappconfig_error_handle_total",
 				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
 		},
 		MultiClusterCompHandleCounter: {
 
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_multiclustercomp_handle_total",
+				Name: "vz_application_operator_multiclustercomp_handle_total",
 				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
 		},
 		MultiClusterCompHandleError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_multiclustercomp_error_handle_total",
+				Name: "vz_application_operator_multiclustercomp_error_handle_total",
 				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
 		},
 		MultiClusterConfigmapHandleCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_multiclustercomp_handle_total",
+				Name: "vz_application_operator_multiclustercomp_handle_total",
 				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
 		},
 		MultiClusterConfigmapHandleError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_multiclustercomp_error_handle_total",
+				Name: "vz_application_operator_multiclustercomp_error_handle_total",
 				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
 		},
 		MultiClusterSecretHandleCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_multiclustersecret_handle_total",
+				Name: "vz_application_operator_multiclustersecret_handle_total",
 				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
 		},
 		MultiClusterSecretHandleError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_multiclustersecret_error_handle_total",
+				Name: "vz_application_operator_multiclustersecret_error_handle_total",
 				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
 		},
 		VzProjHandleCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_vzproj_handle_total",
+				Name: "vz_application_operator_vzproj_handle_total",
 				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
 		},
 		VzProjHandleError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_vzproj_error_handle_total",
+				Name: "vz_application_operator_vzproj_error_handle_total",
 				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
 		},
 	}
@@ -238,79 +238,79 @@ func initDurationMetricMap() map[metricName]*DurationMetrics {
 	return map[metricName]*DurationMetrics{
 		AppconfigReconcileDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
-				Name: "vao_appconfig_reconcile_duration",
+				Name: "vz_application_operator_appconfig_reconcile_duration",
 				Help: "The duration in seconds of vao reconcile process",
 			}),
 		},
 		CohworkloadReconcileDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
-				Name: "vao_cohworkload_reconcile_duration",
+				Name: "vz_application_operator_cohworkload_reconcile_duration",
 				Help: "The duration in seconds of vao Cohworkload reconcile process",
 			}),
 		},
 		HelidonReconcileDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
-				Name: "vao_helidon_reconcile_duration",
+				Name: "vz_application_operator_helidon_reconcile_duration",
 				Help: "The duration in seconds of vao Helidon reconcile process",
 			}),
 		},
 		IngresstraitReconcileDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
-				Name: "vao_ingresstrait_reconcile_duration",
+				Name: "vz_application_operator_ingresstrait_reconcile_duration",
 				Help: "The duration in seconds of vao Ingresstrait reconcile process",
 			}),
 		},
 		AppconfigHandleDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
-				Name: "vao_appconfig_handle_duration",
+				Name: "vz_application_operator_appconfig_handle_duration",
 				Help: "The duration in seconds of vao Ingresstrait reconcile process",
 			}),
 		},
 		IstioHandleDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
-				Name: "vao_istio_handle_duration",
+				Name: "vz_application_operator_istio_handle_duration",
 				Help: "The duration in seconds of vao Ingresstrait handle process",
 			}),
 		},
 		LabelerPodHandleDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
-				Name: "vao_labelerpod_handle_duration",
+				Name: "vz_application_operator_labelerpod_handle_duration",
 				Help: "The duration in seconds of vao Ingresstrait hanlde process",
 			}),
 		},
 		MultiClusterConfigmapHandleDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
-				Name: "vao_multiclusterconfigmap_handle_duration",
+				Name: "vz_application_operator_multiclusterconfigmap_handle_duration",
 				Help: "The duration in seconds of vao Ingresstrait handle process",
 			}),
 		},
 		MultiClusterAppconfigPodHandleDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
-				Name: "vao_multiclusterappconfig_handle_duration",
+				Name: "vz_application_operator_multiclusterappconfig_handle_duration",
 				Help: "The duration in seconds of vao Ingresstrait reconcile process",
 			}),
 		},
 		MultiClusterCompHandleDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
-				Name: "vao_multiclustercomp_handle_duration",
+				Name: "vz_application_operator_multiclustercomp_handle_duration",
 				Help: "The duration in seconds of vao Ingresstrait reconcile process",
 			}),
 		},
 		MultiClusterSecretHandleDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
-				Name: "vao_multiclustersecret_handle_duration",
+				Name: "vz_application_operator_multiclustersecret_handle_duration",
 				Help: "The duration in seconds of vao Ingresstrait reconcile process",
 			}),
 		},
 		VzProjHandleDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
-				Name: "vao_vzproj_handle_duration",
+				Name: "vz_application_operator_vzproj_handle_duration",
 				Help: "The duration in seconds of vao Ingresstrait reconcile process",
 			}),
 		},
 		BindingUpdaterHandleDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
-				Name: "vao_bindingupdater_handle_duration",
+				Name: "vz_application_operator_bindingupdater_handle_duration",
 				Help: "The duration in seconds of vao Ingresstrait reconcile process",
 			}),
 		},
