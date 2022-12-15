@@ -35,3 +35,30 @@ webhooks:
     admissionReviewVersions:
       - v1beta1
       - v1
+  - name: verrazzano-mysql-statefulset.verrazzano.io
+    namespaceSelector:
+      matchExpressions:
+        - {key: istio-injection, operator: In, values: [enabled]}
+        - {key: verrazzano.io/namespace, operator: NotIn, values: [kube-system]}
+    clientConfig:
+      service:
+        name: {{ .Values.name }}-webhook
+        namespace: {{ .Values.namespace }}
+        path: "/mysql-statefulset-annotate"
+    rules:
+      - apiGroups:
+          - apps
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - statefulsets
+    sideEffects: None
+    failurePolicy: Fail
+    matchPolicy: Exact
+    timeoutSeconds: 30
+    admissionReviewVersions:
+      - v1beta1
+      - v1
