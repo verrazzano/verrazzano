@@ -1,6 +1,9 @@
+// Copyright (c) 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,17 +12,25 @@ import (
 )
 
 const (
-	VersionForInstall        = "versionForInstall"
-	InterimVersionForUpgrade = "interimVersionForUpgrade"
+	VersionForInstall        = "install-version"
+	InterimVersionForUpgrade = "interim-version"
+)
+
+var (
+	workspace          string
+	versionType        string
+	excludeReleaseTags []string
 )
 
 func main() {
-	//Parse command line arguments to extract workspace and derive versionType
-	workspace, versionType := parseCliArguments()
+
+	//Parse command line arguments
+	parseCliArgs()
 
 	//Extract release tags from git tag command.
 	releaseTags := getReleaseTags(workspace)
 
+	fmt.Println(releaseTags)
 	if versionType == InterimVersionForUpgrade {
 		interimRelease := getInterimRelease(releaseTags)
 		fmt.Print(interimRelease)
@@ -27,35 +38,55 @@ func main() {
 		installRelease := getInstallRelease(releaseTags)
 		fmt.Print(installRelease)
 	} else {
-		fmt.Errorf("invalid command line argument for derive version type")
+		fmt.Printf("invalid command line argument for derive version type \n")
 	}
 }
 
-func parseCliArguments() (string, string) {
-	var workspace, versionType string
-
-	if len(os.Args) > 2 {
-		// Receive working directory as a command line argument.
-		workspace = os.Args[1]
-		// Receive version type such as interimVersionForUpgrade or versionForInstall argument
-		versionType = os.Args[2]
-	} else {
-		fmt.Errorf("no command cline arguments were specified")
+func parseCliArgs() {
+	help := false
+	flag.BoolVar(&help, "help", false, "Display usage help")
+	flag.Parse()
+	if help {
+		printUsage()
+		os.Exit(0)
 	}
-	return workspace, versionType
+
+	if len(flag.Args()) < 1 {
+		fmt.Printf("\nno command line arguments were specified\n")
+		printUsage()
+		os.Exit(1)
+	}
+
+	if len(flag.Args()) > 0 {
+		// Receive working directory as a command line argument.
+		workspace = flag.Arg(0)
+		// Receive version type such as interimVersionForUpgrade or versionForInstall argument
+		versionType = flag.Arg(1)
+	} else {
+		fmt.Printf("no worspace path and version type line arguments were specified\n")
+		os.Exit(1)
+	}
+
+	if len(flag.Args()) > 2 {
+		for index, arg := range flag.Args() {
+			if index > 1 {
+				excludeReleaseTags = append(excludeReleaseTags, arg)
+			}
+		}
+	}
 }
 
 func getReleaseTags(workspace string) []string {
 	// Change the working directory to the verrazzano workspace
 	err := os.Chdir(workspace)
 	if err != nil {
-		fmt.Errorf("unable to change the current working directory %v", err)
+		fmt.Printf("\nunable to change the current working directory %v", err.Error())
 	}
 	// Execute git tag command.
 	cmd := exec.Command("git", "tag")
 	out, err := cmd.Output()
 	if err != nil {
-		fmt.Errorf("unable to execute git tag command %v", err)
+		fmt.Printf("\nunable to execute git tag command %v", err.Error())
 	}
 
 	// Split the output by newline and store it in a slice
@@ -63,12 +94,26 @@ func getReleaseTags(workspace string) []string {
 
 	// Extract release tags from gitTags
 	var releaseTags []string
+
 	for _, tag := range gitTags {
 		if strings.HasPrefix(tag, "v") && !strings.HasPrefix(tag, "v0") {
-			releaseTags = append(releaseTags, tag)
+			// Exclude the release tags if tag exists in excludeReleaseTags
+			if !DoesTagExistsInExcludeList(tag) {
+				releaseTags = append(releaseTags, tag)
+			}
 		}
 	}
 	return releaseTags
+}
+
+// DoesTagExistsInExcludeList returns true if the tag exists in excludeReleasetag
+func DoesTagExistsInExcludeList(releaseTag string) bool {
+	for _, excludeTag := range excludeReleaseTags {
+		if excludeTag == releaseTag {
+			return true
+		}
+	}
+	return false
 }
 
 func getInterimRelease(releaseTags []string) string {
@@ -170,7 +215,23 @@ func getInstallRelease(releaseTags []string) string {
 func parseInt(s string) int {
 	n, err := strconv.Atoi(s)
 	if err != nil {
-		fmt.Errorf("unable to convert the given string to int %s, %v", s, err)
+		fmt.Printf("\nunable to convert the given string to int %s, %v", s, err.Error())
 	}
 	return n
+}
+
+// printUsage Prints the help for this program
+func printUsage() {
+	usageString := `
+
+go run derive_upgrade_version.go [args] workspace version-type exclude-releases
+
+Args:
+	[workspace]  Uses the workspace path to retrieve the list of release tags using git tag command
+	[version-type]     Specify version to derive
+	[exclude-releases] list of release tags to exclude 
+Options:
+	--help	prints usage
+`
+	fmt.Print(usageString)
 }

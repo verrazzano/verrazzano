@@ -32,6 +32,9 @@ pipeline {
                         defaultValue: 'nip.io',
                         description: 'This is the wildcard DNS domain',
                         trim: true)
+        string (name: 'EXCLUDE_RELEASES',
+                defaultValue: "v1.0.0, v1.0.1, v1.0.2, v1.0.3, v1.0.4, v1.1.0, v1.1.1, v1.1.2",
+                description: 'This is to exclude the specified releases from upgrade tests.', trim: true)
         string (name: 'TAGGED_TESTS',
                 defaultValue: '',
                 description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
@@ -101,8 +104,10 @@ pipeline {
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                    VERSION_FOR_INSTALL = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} versionForInstall").trim()
-                    INTERIM_UPGRADE_VERSION = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} interimVersionForUpgrade").trim()
+                    def excludeReleases = params.EXCLUDE_RELEASES
+                    def excludeReleasesList = excludeReleases.trim().split('\\s*,\\s*')
+                    VERSION_FOR_INSTALL = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} install-version ${excludeReleasesList}").trim()
+                    INTERIM_UPGRADE_VERSION = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} interim-version ${excludeReleasesList}").trim()
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
                     def currentCommitHash = env.GIT_COMMIT
