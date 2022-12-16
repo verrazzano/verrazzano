@@ -64,7 +64,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "vpo_component_health_count",
+          "expr": "vz_platform_operator_component_health_total",
           "format": "time_series",
           "interval": "",
           "legendFormat": "",
@@ -122,7 +122,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "vpo_component_enabled_count",
+          "expr": "vz_platform_operator_component_enabled_total",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -190,7 +190,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "(vpo_component_health_count/vpo_component_enabled_count)*100",
+          "expr": "(vz_platform_operator_component_health_total/vz_platform_operator_component_enabled_total)*100",
           "format": "time_series",
           "interval": "",
           "legendFormat": "",
@@ -282,7 +282,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "vpo_component_health",
+          "expr": "vz_platform_operator_component_health",
           "interval": "",
           "legendFormat": "{{component}}",
           "refId": "A"

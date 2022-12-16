@@ -6,7 +6,7 @@ package reconcileresults
 import (
 	"reflect"
 
-	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
+	oamrt "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
