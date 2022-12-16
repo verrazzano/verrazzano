@@ -26,6 +26,8 @@ const (
 	apiServerServicePort = 443
 )
 
+var apiServerIPs = []string{"1.2.3.4"}
+
 // TestCreateNetworkPolicies tests creating network policies for the operator.
 // GIVEN a call to CreateOrUpdateNetworkPolicies
 // WHEN the network policies do not exist
@@ -78,7 +80,7 @@ func TestCreateNetworkPolicies(t *testing.T) {
 	err := mockClient.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoInstallNamespace, Name: networkPolicyPodName}, netPolicy)
 	asserts.NoError(err)
 
-	expectedNetPolicies := newNetworkPolicies(apiServerIP, apiServerPort, apiServerServiceIP, apiServerServicePort)
+	expectedNetPolicies := newNetworkPolicies(apiServerIPs, apiServerPort, apiServerServiceIP, apiServerServicePort)
 	var expectedSpecs []netv1.NetworkPolicySpec
 	for _, netpol := range expectedNetPolicies {
 		expectedSpecs = append(expectedSpecs, netpol.Spec)
@@ -129,7 +131,7 @@ func TestUpdateNetworkPolicies(t *testing.T) {
 		})
 
 	// make an existing network policy and change the API server IP
-	existingNetPolicies := newNetworkPolicies("1.1.1.1", apiServerPort, "10.10.0.1", apiServerServicePort)
+	existingNetPolicies := newNetworkPolicies([]string{"1.1.1.1"}, apiServerPort, "10.10.0.1", apiServerServicePort)
 	for _, netpol := range existingNetPolicies {
 		err := mockClient.Create(context.TODO(), netpol)
 		if err != nil {
@@ -147,7 +149,7 @@ func TestUpdateNetworkPolicies(t *testing.T) {
 	err := mockClient.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoInstallNamespace, Name: networkPolicyPodName}, netPolicy)
 	asserts.NoError(err)
 
-	expectedNetPolicies := newNetworkPolicies(apiServerIP, apiServerPort, apiServerServiceIP, apiServerServicePort)
+	expectedNetPolicies := newNetworkPolicies(apiServerIPs, apiServerPort, apiServerServiceIP, apiServerServicePort)
 	var expectedSpecs []netv1.NetworkPolicySpec
 	for _, netpol := range expectedNetPolicies {
 		expectedSpecs = append(expectedSpecs, netpol.Spec)

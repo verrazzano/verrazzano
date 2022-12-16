@@ -40,7 +40,7 @@ const (
 // CreateOrUpdateNetworkPolicies creates or updates network policies for the platform operator to
 // limit network ingress and egress.
 func CreateOrUpdateNetworkPolicies(clientset kubernetes.Interface, client client.Client) ([]controllerutil.OperationResult, []error) {
-	ip, port, err := getAPIServerIPAndPort(clientset)
+	ipList, port, err := getAPIServerIPsAndPort(clientset)
 	var opResults []controllerutil.OperationResult
 	var errors []error
 	if err != nil {
@@ -56,7 +56,7 @@ func CreateOrUpdateNetworkPolicies(clientset kubernetes.Interface, client client
 		return opResults, errors
 	}
 
-	netPolicies := newNetworkPolicies(ip, port, serviceIP, servicePort)
+	netPolicies := newNetworkPolicies(ipList, port, serviceIP, servicePort)
 	for _, netPolicy := range netPolicies {
 		objKey := &netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: netPolicy.ObjectMeta.Name, Namespace: netPolicy.ObjectMeta.Namespace}}
 
@@ -88,22 +88,26 @@ func getAPIServerServiceIPAndPort(clientset kubernetes.Interface) (string, int32
 	return "", 0, fmt.Errorf("unable to find a host and port for the kubernetes API server service")
 }
 
-// getAPIServerIPAndPort returns the IP address and port of the Kubernetes API server.
-func getAPIServerIPAndPort(clientset kubernetes.Interface) (string, int32, error) {
+// getAPIServerIPsAndPort returns an IP address list and port of the Kubernetes API server.
+func getAPIServerIPsAndPort(clientset kubernetes.Interface) ([]string, int32, error) {
 	endpoints, err := clientset.CoreV1().Endpoints(corev1.NamespaceDefault).Get(context.TODO(), apiServerEndpointName, metav1.GetOptions{})
 	if err != nil {
-		return "", 0, err
+		return nil, 0, err
 	}
 
 	if len(endpoints.Subsets) > 0 && len(endpoints.Subsets[0].Addresses) > 0 && len(endpoints.Subsets[0].Ports) > 0 {
-		return endpoints.Subsets[0].Addresses[0].IP, endpoints.Subsets[0].Ports[0].Port, nil
+		var ipList []string
+		for _, address := range endpoints.Subsets[0].Addresses {
+			ipList = append(ipList, address.IP)
+		}
+		return ipList, endpoints.Subsets[0].Ports[0].Port, nil
 	}
 
-	return "", 0, fmt.Errorf("unable to find a host and port for the kubernetes API server")
+	return nil, 0, fmt.Errorf("unable to find a host and port for the kubernetes API server")
 }
 
 // newNetworkPolicy returns a populated NetworkPolicy with ingress and egress rules for this operator.
-func newNetworkPolicies(apiServerIP string, apiServerPort int32, apiServerServiceIP string, apiServerServicePort int32) []*netv1.NetworkPolicy {
+func newNetworkPolicies(apiServerIPs []string, apiServerPort int32, apiServerServiceIP string, apiServerServicePort int32) []*netv1.NetworkPolicy {
 	tcpProtocol := corev1.ProtocolTCP
 	udpProtocol := corev1.ProtocolUDP
 	dnsPort := intstr.FromInt(53)
@@ -111,9 +115,20 @@ func newNetworkPolicies(apiServerIP string, apiServerPort int32, apiServerServic
 	webhookPort := intstr.FromInt(9443)
 	metricsPort := intstr.FromInt(9100)
 	apiPort := intstr.FromInt(int(apiServerPort))
-	apiServerCidr := apiServerIP + "/32"
 	apiServicePort := intstr.FromInt(int(apiServerServicePort))
 	apiServiceCidr := apiServerServiceIP + "/32"
+
+	var apiServerCIDRs []netv1.NetworkPolicyPeer
+	for _, ip := range apiServerIPs {
+		cidr := ip + "/32"
+		netPolicyPeer := netv1.NetworkPolicyPeer{
+			IPBlock: &netv1.IPBlock{
+				CIDR: cidr,
+			},
+		}
+		apiServerCIDRs = append(apiServerCIDRs, netPolicyPeer)
+	}
+
 	vponetpol := &netv1.NetworkPolicy{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: networkPolicyAPIVersion,
@@ -169,13 +184,7 @@ func newNetworkPolicies(apiServerIP string, apiServerPort int32, apiServerServic
 							Port:     &apiPort,
 						},
 					},
-					To: []netv1.NetworkPolicyPeer{
-						{
-							IPBlock: &netv1.IPBlock{
-								CIDR: apiServerCidr,
-							},
-						},
-					},
+					To: apiServerCIDRs,
 				},
 				{
 					// egress to the Nginx ingress controller (so we can register the cluster with Rancher)
@@ -306,13 +315,7 @@ func newNetworkPolicies(apiServerIP string, apiServerPort int32, apiServerServic
 							Port:     &apiPort,
 						},
 					},
-					To: []netv1.NetworkPolicyPeer{
-						{
-							IPBlock: &netv1.IPBlock{
-								CIDR: apiServerCidr,
-							},
-						},
-					},
+					To: apiServerCIDRs,
 				},
 				{
 					// egress to the kubernetes API server
