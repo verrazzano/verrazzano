@@ -70,12 +70,6 @@ func setBashFunc(f bashFuncSig) {
 	bashFunc = f
 }
 
-type installMonitorType struct {
-	running  bool
-	resultCh chan bool
-	inputCh  chan installRoutineParams
-}
-
 // installRoutineParams - Used to pass args to the install goroutine
 type installRoutineParams struct {
 	overrides     string
