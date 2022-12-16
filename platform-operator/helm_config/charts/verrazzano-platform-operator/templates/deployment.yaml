@@ -71,12 +71,24 @@ spec:
           resources:
             requests:
               memory: 72Mi
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
       volumes:
         - name: varlog
           hostPath:
             path: /var/log
             type: ""
       serviceAccountName: {{ .Values.name }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 999
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -139,7 +151,19 @@ spec:
             - containerPort: 9443
               name: webhook
               protocol: TCP
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
       volumes:
         - name: webhook-certs
           emptyDir: {}
       serviceAccountName: {{ .Values.name }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 999
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
