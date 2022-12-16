@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package istio
+package restart
 
 import (
 	"context"
@@ -28,7 +28,7 @@ const (
 )
 
 // TestRestartAllWorkloadTypesWithOldProxy tests the RestartComponents method for the following use case
-// GIVEN a request to RestartComponents passing DoesPodContainOldIstioSidecar
+// GIVEN a request to RestartComponents passing DoesPodHaveOutdatedImages
 // WHEN where the fake client has deployments, statefulsets, and daemonsets that need to be restarted
 // THEN the workloads have the restart annotation with the Verrazzano CR generation as the value
 func TestRestartAllWorkloadTypesWithOldProxy(t *testing.T) {
@@ -43,7 +43,7 @@ func TestRestartAllWorkloadTypesWithOldProxy(t *testing.T) {
 	k8sutil.SetFakeClient(clientSet)
 
 	namespaces := []string{constants.VerrazzanoSystemNamespace}
-	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, DoesPodContainOldIstioSidecar)
+	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, &OutdatedSidecarPodMatcher{})
 
 	// Validate the results
 	asserts.NoError(err)
@@ -79,7 +79,7 @@ func TestNoRestartAllWorkloadTypesWithNoProxy(t *testing.T) {
 	k8sutil.SetFakeClient(clientSet)
 
 	namespaces := []string{constants.VerrazzanoSystemNamespace}
-	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, DoesPodContainNoIstioSidecar)
+	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, &NoIstioSidecarMatcher{})
 
 	// Validate the results
 	asserts.NoError(err)
@@ -100,7 +100,7 @@ func TestNoRestartAllWorkloadTypesWithNoProxy(t *testing.T) {
 }
 
 // TestNoRestartAllWorkloadTypesNoOldProxy tests the RestartComponents method for the following use case
-// GIVEN a request to RestartComponents a component passing DoesPodContainOldIstioSidecar
+// GIVEN a request to RestartComponents a component passing DoesPodHaveOutdatedImages
 // WHEN where the fake client has deployments, statefulsets, and daemonsets that do not need to be restarted
 // THEN the workloads should not have the restart annotation with the Verrazzano CR generation as the value
 func TestNoRestartAllWorkloadTypesNoOldProxy(t *testing.T) {
@@ -115,7 +115,7 @@ func TestNoRestartAllWorkloadTypesNoOldProxy(t *testing.T) {
 	k8sutil.SetFakeClient(clientSet)
 
 	namespaces := []string{constants.VerrazzanoSystemNamespace}
-	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, DoesPodContainOldIstioSidecar)
+	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, &OutdatedSidecarPodMatcher{})
 
 	// Validate the results
 	asserts.NoError(err)
@@ -148,7 +148,7 @@ func TestNoRestartAllWorkloadTypesWithProxy(t *testing.T) {
 	k8sutil.SetFakeClient(clientSet)
 
 	namespaces := []string{constants.VerrazzanoSystemNamespace}
-	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, DoesPodContainNoIstioSidecar)
+	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, &NoIstioSidecarMatcher{})
 
 	// Validate the results
 	asserts.NoError(err)
@@ -193,7 +193,7 @@ func TestNoRestartAllWorkloadTypesWithOAMPod(t *testing.T) {
 	k8sutil.SetFakeClient(clientSet)
 
 	namespaces := []string{constants.VerrazzanoSystemNamespace}
-	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, DoesPodContainNoIstioSidecar)
+	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, &NoIstioSidecarMatcher{})
 
 	// Validate the results
 	asserts.NoError(err)

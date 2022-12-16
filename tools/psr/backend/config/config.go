@@ -55,6 +55,7 @@ const (
 	WorkerTypeOpsRestart    = "ops-restart"
 	WorkerTypeHTTPGet       = "http-get"
 	WorkerTypeReceiveAlerts = "prom-alerts"
+	WorkerTypeWlsScale      = "wls-scale"
 )
 
 const (

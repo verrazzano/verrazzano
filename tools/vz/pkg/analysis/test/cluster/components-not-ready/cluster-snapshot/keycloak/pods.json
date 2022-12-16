@@ -1,0 +1,55 @@
+{
+  "metadata": {
+    "resourceVersion": "8693"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "mysql-56b9fcc88f-87tvn",
+        "generateName": "mysql-56b9fcc88f-",
+        "namespace": "keycloak",
+        "uid": "32565d1b-8d2d-4dfc-98d5-63fce3727ddb",
+        "resourceVersion": "8426",
+        "creationTimestamp": "2022-12-05T05:53:00Z",
+        "labels": {
+          "app": "mysql",
+          "istio.io/rev": "default",
+          "pod-template-hash": "56b9fcc88f",
+          "release": "mysql",
+          "security.istio.io/tlsMode": "istio",
+          "service.istio.io/canonical-name": "mysql",
+          "service.istio.io/canonical-revision": "latest"
+        },
+        "annotations": {
+          "kubectl.kubernetes.io/default-container": "mysql",
+          "kubectl.kubernetes.io/default-logs-container": "mysql",
+          "sidecar.istio.io/status": "{\"initContainers\":[\"istio-init\"],\"containers\":[\"istio-proxy\"],\"volumes\":[\"istio-envoy\",\"istio-data\",\"istio-podinfo\",\"istio-token\",\"istiod-ca-cert\"],\"imagePullSecrets\":[\"verrazzano-container-registry\"]}"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "ReplicaSet",
+            "name": "mysql-56b9fcc88f",
+            "uid": "a7e4a6db-d29c-411c-a8c1-73743377e839",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ]
+      },
+      "status": {
+        "phase": "Pending",
+        "conditions": [
+          {
+            "type": "PodScheduled",
+            "status": "False",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2022-12-05T06:03:00Z",
+            "reason": "SchedulerError",
+            "message": "running PreBind plugin \"VolumeBinding\": binding volumes: timed out waiting for the condition"
+          }
+        ],
+        "qosClass": "Burstable"
+      }
+    }
+  ]
+}
