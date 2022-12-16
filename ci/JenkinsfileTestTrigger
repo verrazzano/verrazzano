@@ -513,5 +513,3 @@ def getLatestReleaseVersion() {
     echo "gitTags = ${gitTags}"
     return gitTags.pop()
 }
-
-// added for test - will remove
