@@ -6,6 +6,7 @@ package rancher
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"testing"
 	"time"
 
@@ -26,19 +27,6 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
-
-type fakeMonitor struct {
-	result  bool
-	err     error
-	running bool
-}
-
-func (f *fakeMonitor) run(args postUninstallRoutineParams) {}
-func (f *fakeMonitor) checkResult() (bool, error)          { return f.result, f.err }
-func (f *fakeMonitor) reset()                              {}
-func (f *fakeMonitor) isRunning() bool                     { return f.running }
-
-var _ postUninstallMonitor = &fakeMonitor{}
 
 var nonRanNSName = "local-not-rancher"
 var rancherNSName = "local"
@@ -69,12 +57,12 @@ func TestPostUninstall(t *testing.T) {
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
 
 	expectedErr := ctrlerrors.RetryableError{Source: ComponentName}
-	forkPostUninstallFunc = func(_ spi.ComponentContext, _ postUninstallMonitor) error {
+	forkPostUninstallFunc = func(_ spi.ComponentContext, _ common.Monitor) error {
 		return expectedErr
 	}
 	defer func() { forkPostUninstallFunc = forkPostUninstall }()
 
-	monitor := &fakeMonitor{result: true, running: false}
+	monitor := &common.FakeMonitorType{Result: true, Running: false}
 	err := postUninstall(ctx, monitor)
 	a.Equal(expectedErr, err, "Uninstall returned an unexpected error")
 }
@@ -94,13 +82,13 @@ func TestBackgroundPostUninstallCompletedSuccessfully(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
 
-	forkPostUninstallFunc = func(_ spi.ComponentContext, _ postUninstallMonitor) error {
+	forkPostUninstallFunc = func(_ spi.ComponentContext, _ common.Monitor) error {
 		a.Fail("Unexpected call to forkPostUninstall() function")
 		return nil
 	}
 	defer func() { forkPostUninstallFunc = forkPostUninstall }()
 
-	monitor := &fakeMonitor{result: true, running: true}
+	monitor := &common.FakeMonitorType{Result: true, Running: true}
 	err := postUninstall(ctx, monitor)
 	a.NoError(err)
 }
@@ -122,13 +110,13 @@ func TestBackgroundPostUninstallRetryOnFailure(t *testing.T) {
 
 	forkFuncCalled := false
 	expectedErr := ctrlerrors.RetryableError{Source: ComponentName}
-	forkPostUninstallFunc = func(_ spi.ComponentContext, _ postUninstallMonitor) error {
+	forkPostUninstallFunc = func(_ spi.ComponentContext, _ common.Monitor) error {
 		forkFuncCalled = true
 		return expectedErr
 	}
 	defer func() { forkPostUninstallFunc = forkPostUninstall }()
 
-	monitor := &fakeMonitor{result: false, running: true}
+	monitor := &common.FakeMonitorType{Result: false, Running: true}
 	err := postUninstall(ctx, monitor)
 	a.True(forkFuncCalled)
 	a.Equal(expectedErr, err, "Uninstall returned an unexpected error")
@@ -154,11 +142,11 @@ func Test_forkPostUninstallSuccess(t *testing.T) {
 	}
 	defer func() { postUninstallFunc = invokeRancherSystemToolAndCleanup }()
 
-	var monitor = &postUninstallMonitorType{}
+	var monitor = &common.MonitorType{ComponentName: ComponentName}
 	err := forkPostUninstall(ctx, monitor)
 	a.Equal(ctrlerrors.RetryableError{Source: ComponentName}, err)
 	for i := 0; i < 100; i++ {
-		result, retryError := monitor.checkResult()
+		result, retryError := monitor.CheckResult()
 		if retryError != nil {
 			t.Log("Waiting for result...")
 			time.Sleep(100 * time.Millisecond)
@@ -191,11 +179,11 @@ func Test_forkPostUninstallFailure(t *testing.T) {
 	}
 	defer func() { postUninstallFunc = invokeRancherSystemToolAndCleanup }()
 
-	var monitor = &postUninstallMonitorType{}
+	var monitor = &common.MonitorType{ComponentName: ComponentName}
 	err := forkPostUninstall(ctx, monitor)
 	a.Equal(ctrlerrors.RetryableError{Source: ComponentName}, err)
 	for i := 0; i < 100; i++ {
-		result, retryError := monitor.checkResult()
+		result, retryError := monitor.CheckResult()
 		if retryError != nil {
 			t.Log("Waiting for result...")
 			time.Sleep(100 * time.Millisecond)

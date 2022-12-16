@@ -75,7 +75,7 @@ type rancherComponent struct {
 	helm.HelmComponent
 
 	// internal monitor object for running the Rancher uninstall tool in the background
-	monitor postUninstallMonitor
+	monitor common.Monitor
 }
 
 var certificates = []types.NamespacedName{
@@ -129,7 +129,7 @@ func NewComponent() spi.Component {
 			},
 			GetInstallOverridesFunc: GetOverrides,
 		},
-		monitor: &postUninstallMonitorType{},
+		monitor: &common.MonitorType{ComponentName: ComponentName},
 	}
 }
 

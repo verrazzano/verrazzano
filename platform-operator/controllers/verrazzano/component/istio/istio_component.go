@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
 	"path/filepath"
 	"strings"
@@ -114,7 +115,7 @@ type istioComponent struct {
 	InjectedSystemNamespaces []string
 
 	// Internal monitor object for peforming `istioctl` operations in the background
-	monitor installMonitor
+	monitor common.Monitor
 }
 
 // Namespace returns the component namespace
@@ -194,7 +195,7 @@ func NewComponent() spi.Component {
 	return istioComponent{
 		ValuesFile:               filepath.Join(config.GetHelmOverridesDir(), "istio-cr.yaml"),
 		InjectedSystemNamespaces: config.GetInjectedSystemNamespaces(),
-		monitor:                  &installMonitorType{},
+		monitor:                  &common.MonitorType{ComponentName: ComponentName},
 	}
 }
 

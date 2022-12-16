@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"os"
 	"os/exec"
 	"strings"
@@ -126,23 +127,6 @@ var installCR = &installv1alpha1.Verrazzano{
 func testCR() *installv1alpha1.Verrazzano {
 	return installCR.DeepCopy()
 }
-
-type fakeMonitor struct {
-	result  bool
-	err     error
-	running bool
-}
-
-func (f *fakeMonitor) run(args installRoutineParams) {
-}
-
-func (f *fakeMonitor) checkResult() (bool, error) { return f.result, f.err }
-
-func (f *fakeMonitor) reset() {}
-
-func (f *fakeMonitor) isRunning() bool { return f.running }
-
-var _ installMonitor = &fakeMonitor{}
 
 // TestAppendOverrideFilesInOrder tests if the override files are appended in reverse order
 // GIVEN a component
@@ -266,11 +250,11 @@ func TestInstall(t *testing.T) {
 
 	comp := istioComponent{
 		ValuesFile: "test-values-file.yaml",
-		monitor:    &fakeMonitor{result: true, running: false},
+		monitor:    &common.FakeMonitorType{Result: true, Running: false},
 	}
 
 	expectedErr := spi2.RetryableError{Source: ComponentName}
-	forkInstallFunc = func(_ spi.ComponentContext, _ installMonitor, _ string, _ []string) error {
+	forkInstallFunc = func(_ spi.ComponentContext, _ common.Monitor, _ string, _ []string) error {
 		return expectedErr
 	}
 	defer func() { forkInstallFunc = forkInstall }()
@@ -296,7 +280,7 @@ func TestBackgroundInstallCompletedSuccessfully(t *testing.T) {
 		ValuesFile: "test-values-file.yaml",
 	}
 
-	forkInstallFunc = func(_ spi.ComponentContext, _ installMonitor, _ string, _ []string) error {
+	forkInstallFunc = func(_ spi.ComponentContext, _ common.Monitor, _ string, _ []string) error {
 		a.Fail("Unexpected call to forkInstall() function")
 		return nil
 	}
@@ -307,7 +291,7 @@ func TestBackgroundInstallCompletedSuccessfully(t *testing.T) {
 	setInstallFunc(fakeInstall)
 	setBashFunc(fakeBash)
 
-	comp.monitor = &fakeMonitor{result: true, running: true}
+	comp.monitor = &common.FakeMonitorType{Result: true, Running: true}
 	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, nil, false))
 	a.NoError(err)
 }
@@ -326,18 +310,17 @@ func TestBackgroundInstallRetryOnFailure(t *testing.T) {
 
 	forkFuncCalled := false
 	expectedErr := spi2.RetryableError{Source: ComponentName}
-	forkInstallFunc = func(_ spi.ComponentContext, _ installMonitor, _ string, _ []string) error {
+	forkInstallFunc = func(_ spi.ComponentContext, _ common.Monitor, _ string, _ []string) error {
 		forkFuncCalled = true
 		return expectedErr
 	}
 	defer func() { forkInstallFunc = forkInstall }()
-
 	config.SetDefaultBomFilePath(testBomFilePath)
 	istio.SetCmdRunner(fakeRunner{})
 	setInstallFunc(fakeInstall)
 	setBashFunc(fakeBash)
 
-	comp.monitor = &fakeMonitor{result: false, running: true}
+	comp.monitor = &common.FakeMonitorType{Result: false, Running: true}
 
 	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, nil, false))
 	a.True(forkFuncCalled)
@@ -371,11 +354,11 @@ func Test_forkInstallSuccess(t *testing.T) {
 
 	setBashFunc(fakeBash)
 
-	var monitor installMonitor = &installMonitorType{}
+	var monitor common.Monitor = &common.MonitorType{ComponentName: ComponentName}
 	err := forkInstall(spi.NewFakeContext(getIstioInstallMock(t), installCR, nil, false), monitor, expectedOverridesString, expectedOverridesFiles)
 	a.Equal(spi2.RetryableError{Source: ComponentName}, err)
 	for i := 0; i < 100; i++ {
-		result, retryError := monitor.checkResult()
+		result, retryError := monitor.CheckResult()
 		if retryError != nil {
 			t.Log("Waiting for result...")
 			time.Sleep(100 * time.Millisecond)
@@ -411,11 +394,11 @@ func Test_forkInstallFailure(t *testing.T) {
 
 	setBashFunc(fakeBash)
 
-	var monitor installMonitor = &installMonitorType{}
+	var monitor common.Monitor = &common.MonitorType{}
 	err := forkInstall(spi.NewFakeContext(getIstioInstallMock(t), installCR, nil, false), monitor, "myoverride=true", []string{comp.ValuesFile, "istio-overrides.yaml"})
 	a.Equal(spi2.RetryableError{Source: ComponentName}, err)
 	for i := 0; i < 100; i++ {
-		result, retryError := monitor.checkResult()
+		result, retryError := monitor.CheckResult()
 		if retryError != nil {
 			t.Log("Waiting for result...")
 			time.Sleep(100 * time.Millisecond)
