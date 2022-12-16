@@ -252,6 +252,11 @@ spec:
     kibana:
       enabled: true
       replicas: 1
+      plugins:
+        enabled: true
+        installList:
+          - plugin1
+          - plugin2
     oam:
       enabled: true
       overrides:
