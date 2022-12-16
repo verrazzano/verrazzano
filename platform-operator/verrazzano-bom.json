@@ -478,7 +478,7 @@
           "images": [
             {
               "image": "prometheus-operator",
-              "tag": "v0.59.1-20221103170209-f37505b5",
+              "tag": "v0.59.1-20221205224311-fb82ffaa",
               "helmFullImageKey": "prometheusOperator.image.repository",
               "helmTagKey": "prometheusOperator.image.tag"
             },
@@ -496,7 +496,7 @@
           "images": [
             {
               "image": "prometheus-config-reloader",
-              "tag": "v0.59.1-20221103170209-f37505b5",
+              "tag": "v0.59.1-20221205224311-fb82ffaa",
               "helmFullImageKey": "prometheusOperator.prometheusConfigReloader.image.repository",
               "helmTagKey": "prometheusOperator.prometheusConfigReloader.image.tag"
             }
