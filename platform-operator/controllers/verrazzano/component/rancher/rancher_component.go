@@ -4,6 +4,7 @@
 package rancher
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -26,6 +28,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -587,22 +591,20 @@ func configureUISettings(ctx spi.ComponentContext) error {
 
 // checkExistingRancher checks if there is already an existing Rancher or not
 func checkExistingRancher(vz runtime.Object) error {
-	/*
-		if !vzcr.IsRancherEnabled(vz) {
-			return nil
-		}
-		client, err := k8sutil.GetCoreV1Func()
-		if err != nil {
-			return err
-		}
-		ns, err := client.Namespaces().List(context.TODO(), metav1.ListOptions{})
-		if err != nil && !kerrs.IsNotFound(err) {
-			return err
-		}
-		if err = common.CheckExistingNamespace(ns.Items, isRancherNamespace); err != nil {
-			return err
-		}
-	*/
+	if !vzcr.IsRancherEnabled(vz) {
+		return nil
+	}
+	client, err := k8sutil.GetCoreV1Func()
+	if err != nil {
+		return err
+	}
+	ns, err := client.Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil && !kerrs.IsNotFound(err) {
+		return err
+	}
+	if err = common.CheckExistingNamespace(ns.Items, isRancherNamespace); err != nil {
+		return err
+	}
 	return nil
 }
 
