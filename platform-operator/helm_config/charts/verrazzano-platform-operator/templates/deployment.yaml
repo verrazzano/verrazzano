@@ -77,11 +77,6 @@ spec:
             capabilities:
               drop:
                 - ALL
-      volumes:
-        - name: varlog
-          hostPath:
-            path: /var/log
-            type: ""
       serviceAccountName: {{ .Values.name }}
       securityContext:
         runAsUser: 1000
