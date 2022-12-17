@@ -19,7 +19,7 @@ func TestMonitorType_IsRunning(t *testing.T) {
 	m := &MonitorType{ComponentName: fakeCompName}
 	c := make(chan int)
 	operation := func() error {
-		_ = <-c
+		<-c
 		return nil
 	}
 
@@ -39,7 +39,7 @@ func TestMonitorType_CheckResultWhileRunning(t *testing.T) {
 	m := &MonitorType{ComponentName: fakeCompName}
 	c := make(chan int)
 	operation := func() error {
-		_ = <-c
+		<-c
 		return nil
 	}
 
