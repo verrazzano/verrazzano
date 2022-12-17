@@ -27,13 +27,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.1.1-20221108082245-a57d726fb",
+              "tag": "v1.1.1-20221205221956-31c1f6101",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "v1.1.1-20221108082245-a57d726fb",
+              "tag": "v1.1.1-20221205221956-31c1f6101",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -50,24 +50,24 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "v1.7.1-1-20220721154822-a55857d4",
+              "tag": "v1.7.1-20221212223004-d7589309",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "v1.7.1-1-20220721154822-a55857d4",
+              "tag": "v1.7.1-20221212223004-d7589309",
               "helmFullImageKey": "extraArgs[0]"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "v1.7.1-1-20220721154822-a55857d4",
+              "tag": "v1.7.1-20221212223004-d7589309",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "v1.7.1-1-20220721154822-a55857d4",
+              "tag": "v1.7.1-20221212223004-d7589309",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
@@ -84,7 +84,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.10.2-20220722144739-7bae1b96",
+              "tag": "v0.10.2-20221116113317-462c11cc",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -102,12 +102,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.13.5-1-20221103131708-70a481e9",
+              "tag": "1.13.5-20221201192634-e4b6897b",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.13.5-1-20221103131708-70a481e9",
+              "tag": "1.13.5-20221201192634-e4b6897b",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -181,18 +181,18 @@
           "images": [
             {
               "image": "node-exporter",
-              "tag": "v1.3.1",
+              "tag": "v1.3.1-20221130233213-2bb925b2",
               "helmFullImageKey": "nodeExporter.imageName",
               "helmTagKey": "nodeExporter.imageVersion"
             },
             {
               "image": "proxyv2",
-              "tag": "1.13.5-1-20221103131708-70a481e9",
+              "tag": "1.13.5-20221201192634-e4b6897b",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.14.5-20220721170525-12c063f",
+              "tag": "v1.14.5-20221208053759-f85741b",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
@@ -203,7 +203,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.1.1-20221108082245-a57d726fb",
+              "tag": "v1.1.1-20221205221956-31c1f6101",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             }
@@ -226,17 +226,17 @@
             },
             {
               "image": "proxyv2",
-              "tag": "1.13.5-1-20221103131708-70a481e9",
+              "tag": "1.13.5-20221201192634-e4b6897b",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
               "image": "grafana",
-              "tag": "v7.5.15",
+              "tag": "v7.5.15-20221201174442-29cb9f56",
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
               "image": "prometheus",
-              "tag": "v2.34.0-1",
+              "tag": "v2.34.0-20221205144021-d0a9304a",
               "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
@@ -256,7 +256,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.1.1-20221108082245-a57d726fb",
+              "tag": "v1.1.1-20221205221956-31c1f6101",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             }
           ]
@@ -293,7 +293,7 @@
           "images": [
             {
               "image": "oam-kubernetes-runtime",
-              "tag": "v0.3.0-20221013061514-f30c668",
+              "tag": "v0.3.0-20221214204807-58eac96",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -365,7 +365,7 @@
           "images": [
             {
               "image": "kiali",
-              "tag": "v1.42.0-20220809183027-16c3e409",
+              "tag": "v1.42.0-20221203021205-80d3a112",
               "helmFullImageKey": "deployment.image_name",
               "helmTagKey": "deployment.image_version"
             }
@@ -438,13 +438,13 @@
           "images": [
             {
               "image": "prometheus-operator",
-              "tag": "v0.55.1",
+              "tag": "v0.55.1-20221205224323-3af6e09b",
               "helmFullImageKey": "prometheusOperator.image.repository",
               "helmTagKey": "prometheusOperator.image.tag"
             },
             {
               "image": "kube-webhook-certgen",
-              "tag": "v1.1.1-20221108082245-a57d726fb",
+              "tag": "v1.1.1-20221205221956-31c1f6101",
               "helmFullImageKey": "prometheusOperator.admissionWebhooks.patch.image.repository",
               "helmTagKey": "prometheusOperator.admissionWebhooks.patch.image.tag"
             }
@@ -456,7 +456,7 @@
           "images": [
             {
               "image": "prometheus-config-reloader",
-              "tag": "v0.55.1",
+              "tag": "v0.55.1-20221205224323-3af6e09b",
               "helmFullImageKey": "prometheusOperator.prometheusConfigReloader.image.repository",
               "helmTagKey": "prometheusOperator.prometheusConfigReloader.image.tag"
             }
@@ -468,7 +468,7 @@
           "images": [
             {
               "image": "alertmanager",
-              "tag": "v0.24.0",
+              "tag": "v0.24.0-20221206192620-fb73d30f",
               "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
               "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
             }
@@ -480,7 +480,7 @@
           "images": [
             {
               "image": "prometheus",
-              "tag": "v2.34.0-1",
+              "tag": "v2.34.0-20221205144021-d0a9304a",
               "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
               "helmTagKey": "prometheus.prometheusSpec.image.tag"
             }
@@ -497,7 +497,7 @@
           "images": [
             {
               "image": "prometheus-adapter",
-              "tag": "v0.9.1-20220725190037-de39a05e",
+              "tag": "v0.9.1-20221205223816-ed53ffa2",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -514,7 +514,7 @@
           "images": [
             {
               "image": "kube-state-metrics",
-              "tag": "v2.4.2",
+              "tag": "v2.4.2-20221206161215-cd4d6126",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -531,7 +531,7 @@
           "images": [
             {
               "image": "prometheus-pushgateway",
-              "tag": "v1.4.2",
+              "tag": "v1.4.2-20221130235227-3af6d83b",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -548,7 +548,7 @@
           "images": [
             {
               "image": "node-exporter",
-              "tag": "v1.3.1",
+              "tag": "v1.3.1-20221130233213-2bb925b2",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -565,7 +565,7 @@
           "images": [
             {
               "image": "jaeger-operator",
-              "tag": "1.32.0"
+              "tag": "1.32.0-20221208172929-23392897"
             }
           ]
         },
@@ -575,7 +575,7 @@
           "images": [
             {
               "image": "jaeger-agent",
-              "tag": "1.32.0"
+              "tag": "1.32.0-20221208174011-b9a1681b"
             }
           ]
         },
@@ -585,7 +585,7 @@
           "images": [
             {
               "image": "jaeger-collector",
-              "tag": "1.32.0"
+              "tag": "1.32.0-20221208174011-b9a1681b"
             }
           ]
         },
@@ -595,7 +595,7 @@
           "images": [
             {
               "image": "jaeger-query",
-              "tag": "1.32.0"
+              "tag": "1.32.0-20221208174011-b9a1681b"
             }
           ]
         },
@@ -605,7 +605,7 @@
           "images": [
             {
               "image": "jaeger-ingester",
-              "tag": "1.32.0"
+              "tag": "1.32.0-20221208174011-b9a1681b"
             }
           ]
         }
