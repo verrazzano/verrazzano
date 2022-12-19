@@ -143,7 +143,8 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {
-						return pkg.ScrapeTargetsHealthy(namespace)
+						var componentNames = []string{"hello-helidon-component"}
+						return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, helloHelidon, componentNames))
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 			)

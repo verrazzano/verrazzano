@@ -180,23 +180,32 @@ func MetricsExist(metricsName, key, value string) bool {
 }
 
 // ScrapeTargetsHealthy validates the health of the scrape targets for the given namespace
-func ScrapeTargetsHealthy(namespace string) bool {
+func ScrapeTargetsHealthy(scrapePools []string) bool {
 	targets, err := ScrapeTargets()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting scrape targets: %v", err))
 		return false
 	}
 	isHealthy := false
-	for _, target := range targets {
-		targetScrapePool := Jq(target, "scrapePool").(string)
-		if strings.Contains(targetScrapePool, namespace) {
-			// If any of the target health is not "up" return false
-			if Jq(target, "health") != "up" {
+	for _, scrapePool := range scrapePools {
+		found := false
+		for _, target := range targets {
+			targetScrapePool := Jq(target, "scrapePool").(string)
+			if strings.Contains(targetScrapePool, scrapePool) {
+				found = true
+				// If any of the target health is not "up" return false
+				if Jq(target, "health") != "up" {
+					Log(Error, fmt.Sprintf("target with scrapePool %s and scrapeURL %s is not ready with health %s", Jq(target, "scrapePool"), Jq(target, "scrapeUrl"), Jq(target, "health")))
+					return isHealthy
+				}
+			}
+			// If target with scrapePool not found, then return false
+			if !found {
 				Log(Error, fmt.Sprintf("target with scrapePool %s and scrapeURL %s is not ready with health %s", Jq(target, "scrapePool"), Jq(target, "scrapeUrl"), Jq(target, "health")))
 				return isHealthy
 			}
+			isHealthy = true
 		}
-		isHealthy = true
 	}
 	return isHealthy
 }
@@ -343,33 +352,13 @@ func GetServiceMonitor(namespace, name string) (*promoperapi.ServiceMonitor, err
 	return serviceMonitor, nil
 }
 
-// ScrapeTargetsHealthy validates the health of the scrape targets for the given scrapePools
-func ScrapeTargetsHealthy(scrapePools []string) (bool, error) {
-	targets, err := ScrapeTargets()
-	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting scrape targets: %v", err))
-		return false, err
+func GetScrapePools(namespace, appName string, componentNames []string) []string {
+	var scrapePools []string
+	for _, comp := range componentNames {
+		scrapePool := "serviceMonitor" + namespace + GetAppServiceMonitorName(namespace, appName, comp)
+		scrapePools = append(scrapePools, scrapePool)
+		Log(Info, fmt.Sprintf("scrapePool %s for %s", scrapePool, appName))
 	}
-	for _, scrapePool := range scrapePools {
-		found := false
-		for _, target := range targets {
-			targetScrapePool := Jq(target, "scrapePool").(string)
-			if strings.Contains(targetScrapePool, scrapePool) {
-				found = true
-				// If any of the target health is not "up" return false
-				health := Jq(target, "health")
-				if health != "up" {
-					scrapeURL := Jq(target, "scrapeUrl").(string)
-					Log(Error, fmt.Sprintf("target with scrapePool %s and scrapeURL %s is not ready with health %s", targetScrapePool, scrapeURL, health))
-					return false, fmt.Errorf("target with scrapePool %s and scrapeURL %s is not healthy", targetScrapePool, scrapeURL)
-				}
-			}
-		}
-		// If target with scrapePool not found, then return false and error
-		if !found {
-			Log(Error, fmt.Sprintf("target with scrapePool %s is not found", scrapePool))
-			return false, fmt.Errorf("target with scrapePool %s not found", scrapePool)
-		}
-	}
-	return true, nil
+	return scrapePools
+
 }
