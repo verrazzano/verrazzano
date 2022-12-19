@@ -6,6 +6,7 @@ package authz
 import (
 	"fmt"
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	"net/http"
 	"time"
 
@@ -59,9 +60,9 @@ var afterSuite = t.AfterSuiteFunc(func() {
 		dump.ExecuteBugReport(fooNamespace, barNamespace, noIstioNamespace)
 	}
 	start := time.Now()
-	undeployFooApplication()
-	undeployBarApplication()
-	undeployNoIstioApplication()
+	//undeployFooApplication()
+	//undeployBarApplication()
+	//undeployNoIstioApplication()
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
