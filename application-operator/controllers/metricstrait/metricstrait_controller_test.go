@@ -19,7 +19,7 @@ import (
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
+	oamrt "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"

@@ -13,6 +13,11 @@ spec:
           indexPattern: verrazzano-system
         - name: p2
           indexPattern: verrazzano-app*
+      plugins:
+        enabled: true
+        installList:
+          - plugin1
+          - plugin2
       nodes:
         - name: es-master
           replicas: 3

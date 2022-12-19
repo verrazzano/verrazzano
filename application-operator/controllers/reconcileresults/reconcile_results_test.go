@@ -5,7 +5,7 @@ package reconcileresults
 
 import (
 	"fmt"
-	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
+	oamrt "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
