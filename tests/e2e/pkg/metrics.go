@@ -199,13 +199,13 @@ func ScrapeTargetsHealthy(scrapePools []string) bool {
 					return isHealthy
 				}
 			}
-			// If target with scrapePool not found, then return false
-			if !found {
-				Log(Error, fmt.Sprintf("target with scrapePool %s and scrapeURL %s is not ready with health %s", Jq(target, "scrapePool"), Jq(target, "scrapeUrl"), Jq(target, "health")))
-				return isHealthy
-			}
-			isHealthy = true
 		}
+		// If target with scrapePool not found, then return false
+		if !found {
+			Log(Error, fmt.Sprintf("target with scrapePool %s is not found", scrapePool))
+			return isHealthy
+		}
+		isHealthy = true
 	}
 	return isHealthy
 }
