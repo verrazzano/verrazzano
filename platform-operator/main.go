@@ -175,12 +175,7 @@ func main() {
 		}
 
 		log.Debug("Creating or updating network policies")
-		_, netPolErrors := netpolicy.CreateOrUpdateNetworkPolicies(client)
-		if len(netPolErrors) > 0 {
-			log.Errorf("Failed to create or update network policies: %v", netPolErrors)
-			os.Exit(1)
-		}
-
+		_, err = netpolicy.CreateOrUpdateNetworkPolicies(client)
 		if err != nil {
 			log.Errorf("Failed to create or update network policies: %v", err)
 			os.Exit(1)

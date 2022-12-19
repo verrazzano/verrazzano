@@ -26,21 +26,17 @@ func TestCreateNetworkPolicies(t *testing.T) {
 	mockClient := ctrlfake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	// create the network policy
-	opResult, errors := CreateOrUpdateNetworkPolicies(mockClient)
-	asserts.Empty(errors)
-	asserts.Contains(opResult, controllerutil.OperationResultCreated)
+	opResult, err := CreateOrUpdateNetworkPolicies(mockClient)
+	asserts.NoError(err)
+	asserts.Equal(controllerutil.OperationResultCreated, opResult)
 
 	// fetch the policy and make sure the spec matches what we expect
 	netPolicy := &netv1.NetworkPolicy{}
-	err := mockClient.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoInstallNamespace, Name: networkPolicyPodName}, netPolicy)
+	err = mockClient.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoInstallNamespace, Name: networkPolicyPodName}, netPolicy)
 	asserts.NoError(err)
 
-	expectedNetPolicies := newNetworkPolicies()
-	var expectedSpecs []netv1.NetworkPolicySpec
-	for _, netpol := range expectedNetPolicies {
-		expectedSpecs = append(expectedSpecs, netpol.Spec)
-	}
-	asserts.Contains(expectedSpecs, netPolicy.Spec)
+	expectedNetPolicy := newNetworkPolicy()
+	asserts.Equal(expectedNetPolicy.Spec, netPolicy.Spec)
 }
 
 // TestUpdateNetworkPolicies tests updating network policies for the operator.
@@ -102,19 +98,15 @@ func TestUpdateNetworkPolicies(t *testing.T) {
 	mockClient := ctrlfake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(netpol).Build()
 
 	// this call should update the network policy
-	opResult, errors := CreateOrUpdateNetworkPolicies(mockClient)
-	asserts.Empty(errors)
-	asserts.Contains(opResult, controllerutil.OperationResultUpdated)
+	opResult, err := CreateOrUpdateNetworkPolicies(mockClient)
+	asserts.NoError(err)
+	asserts.Equal(controllerutil.OperationResultUpdated, opResult)
 
 	// fetch the policy and make sure the spec matches what we expect
 	netPolicy := &netv1.NetworkPolicy{}
-	err := mockClient.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoInstallNamespace, Name: networkPolicyPodName}, netPolicy)
+	err = mockClient.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoInstallNamespace, Name: networkPolicyPodName}, netPolicy)
 	asserts.NoError(err)
 
-	expectedNetPolicies := newNetworkPolicies()
-	var expectedSpecs []netv1.NetworkPolicySpec
-	for _, netpol := range expectedNetPolicies {
-		expectedSpecs = append(expectedSpecs, netpol.Spec)
-	}
-	asserts.Contains(expectedSpecs, netPolicy.Spec)
+	expectedNetPolicy := newNetworkPolicy()
+	asserts.Equal(expectedNetPolicy.Spec, netPolicy.Spec)
 }

@@ -18,7 +18,6 @@ const (
 	networkPolicyAPIVersion  = "networking.k8s.io/v1"
 	networkPolicyKind        = "NetworkPolicy"
 	networkPolicyPodName     = "verrazzano-platform-operator"
-	networkPolicyPodName2    = "verrazzano-platform-operator-webhook"
 	podAppLabel              = "app"
 	verrazzanoNamespaceLabel = "verrazzano.io/namespace"
 	appNameLabel             = "app.kubernetes.io/name"
@@ -26,35 +25,25 @@ const (
 
 // CreateOrUpdateNetworkPolicies creates or updates network policies for the platform operator to
 // limit network ingress.
-func CreateOrUpdateNetworkPolicies(client client.Client) ([]controllerutil.OperationResult, []error) {
-	var opResults []controllerutil.OperationResult
-	var errors []error
+func CreateOrUpdateNetworkPolicies(client client.Client) (controllerutil.OperationResult, error) {
+	netPolicy := newNetworkPolicy()
+	objKey := &netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: netPolicy.ObjectMeta.Name, Namespace: netPolicy.ObjectMeta.Namespace}}
 
-	netPolicies := newNetworkPolicies()
-	for _, netPolicy := range netPolicies {
-		objKey := &netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: netPolicy.ObjectMeta.Name, Namespace: netPolicy.ObjectMeta.Namespace}}
+	opResult, err := controllerutil.CreateOrUpdate(context.TODO(), client, objKey, func() error {
+		netPolicy.Spec.DeepCopyInto(&objKey.Spec)
+		return nil
+	})
 
-		opResult, err := controllerutil.CreateOrUpdate(context.TODO(), client, objKey, func() error {
-			netPolicy.Spec.DeepCopyInto(&objKey.Spec)
-			return nil
-		})
-		opResults = append(opResults, opResult)
-		if err != nil {
-			errors = append(errors, err)
-		}
-
-	}
-
-	return opResults, errors
+	return opResult, err
 }
 
 // newNetworkPolicy returns a populated NetworkPolicy with ingress rules for this operator.
-func newNetworkPolicies() []*netv1.NetworkPolicy {
+func newNetworkPolicy() *netv1.NetworkPolicy {
 	tcpProtocol := corev1.ProtocolTCP
 	webhookPort := intstr.FromInt(9443)
 	metricsPort := intstr.FromInt(9100)
 
-	vponetpol := &netv1.NetworkPolicy{
+	return &netv1.NetworkPolicy{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: networkPolicyAPIVersion,
 			Kind:       networkPolicyKind,
@@ -74,52 +63,7 @@ func newNetworkPolicies() []*netv1.NetworkPolicy {
 			},
 			Ingress: []netv1.NetworkPolicyIngressRule{
 				{
-					From: []netv1.NetworkPolicyPeer{
-						{
-							NamespaceSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									verrazzanoNamespaceLabel: constants.VerrazzanoMonitoringNamespace,
-								},
-							},
-							PodSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									appNameLabel: constants.PrometheusStorageLabelValue,
-								},
-							},
-						},
-					},
-					// ingress from Prometheus server for scraping metrics
-					Ports: []netv1.NetworkPolicyPort{
-						{
-							Protocol: &tcpProtocol,
-							Port:     &metricsPort,
-						},
-					},
-				},
-			},
-		},
-	}
-	webhooknetpol := &netv1.NetworkPolicy{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: networkPolicyAPIVersion,
-			Kind:       networkPolicyKind,
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.VerrazzanoInstallNamespace,
-			Name:      networkPolicyPodName2,
-		},
-		Spec: netv1.NetworkPolicySpec{
-			PodSelector: metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					podAppLabel: networkPolicyPodName2,
-				},
-			},
-			PolicyTypes: []netv1.PolicyType{
-				netv1.PolicyTypeIngress,
-			},
-			Ingress: []netv1.NetworkPolicyIngressRule{
-				{
-					// ingress from the kubernetes API server and other services
+					// ingress from kubernetes API server for webhooks
 					Ports: []netv1.NetworkPolicyPort{
 						{
 							Protocol: &tcpProtocol,
@@ -150,9 +94,6 @@ func newNetworkPolicies() []*netv1.NetworkPolicy {
 						},
 					},
 				},
-			},
-		},
+			}},
 	}
-	netpols := []*netv1.NetworkPolicy{vponetpol, webhooknetpol}
-	return netpols
 }
