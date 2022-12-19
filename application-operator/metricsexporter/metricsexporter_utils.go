@@ -111,7 +111,7 @@ func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 		CohworkloadReconcileCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_cohworkload_successful_reconcile_total",
-				Help: "Tracks how many times the cohworkload reconcile process  has been successful"}),
+				Help: "Tracks how many times the cohworkload reconcile process has been successful"}),
 		},
 		CohworkloadReconcileError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
@@ -121,7 +121,7 @@ func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 		HelidonReconcileCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_helidonworkload_successful_reconcile_total",
-				Help: "Tracks how many times the helidonworkload reconcile process  has been successful"}),
+				Help: "Tracks how many times the helidonworkload reconcile process has been successful"}),
 		},
 		HelidonReconcileError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
@@ -211,7 +211,7 @@ func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 		MultiClusterSecretHandleCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_multiclustersecret_handle_total",
-				Help: "Tracks how many times the multicluster secret handle process has failed"}),
+				Help: "Tracks how many times the multicluster secret handle process has been successful"}),
 		},
 		MultiClusterSecretHandleError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
