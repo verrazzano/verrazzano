@@ -87,7 +87,19 @@ spec:
             - --zap-log-level=info
             - --zap-devel=false
             - --namespace={{ .Release.Namespace }}
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
       serviceAccountName: {{ .Values.monitoringOperator.name }}
       volumes:
         - name: cert-volume
           emptyDir: {}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 999
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault

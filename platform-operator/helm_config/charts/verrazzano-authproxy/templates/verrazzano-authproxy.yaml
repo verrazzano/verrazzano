@@ -127,6 +127,12 @@ spec:
         volumeMounts:
         - mountPath: /api-config
           name: api-config
+        securityContext:
+          privileged: false
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
       - image: {{ .Values.metricsImageName }}:{{ .Values.metricsImageVersion }}
         imagePullPolicy: {{ .Values.pullPolicy }}
         name: verrazzano-authproxy-metrics
@@ -156,7 +162,19 @@ spec:
             port: http-metrics
           failureThreshold: 3
           periodSeconds: 3
+        securityContext:
+          privileged: false
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
       serviceAccountName: {{ .Values.name }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 999
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
 ---
 apiVersion: v1
 kind: Service

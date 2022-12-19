@@ -23,6 +23,12 @@ spec:
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           image: {{ .Values.image }}
           command: [ 'sh', '-c', "/usr/local/bin/wait4webhook.sh" ]
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
       {{- if .Values.affinity }}
       affinity: {{ toYaml .Values.affinity | nindent 8 }}
       {{- end }}
@@ -52,10 +58,22 @@ spec:
               value: {{ .Values.istioProxyImage }}
             - name: WEBLOGIC_MONITORING_EXPORTER_IMAGE
               value: {{ .Values.weblogicMonitoringExporterImage }}
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
       volumes:
         - name: webhook-certs
           emptyDir: {}
       serviceAccountName: {{ .Values.name }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 999
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -117,8 +135,19 @@ spec:
               value: {{ .Values.istioProxyImage }}
             - name: WEBLOGIC_MONITORING_EXPORTER_IMAGE
               value: {{ .Values.weblogicMonitoringExporterImage }}
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
       volumes:
         - name: webhook-certs
           emptyDir: {}
       serviceAccountName: {{ .Values.name }}
-
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 999
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
