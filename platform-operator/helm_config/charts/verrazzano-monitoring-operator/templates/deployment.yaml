@@ -47,6 +47,8 @@ spec:
               value: {{ .Values.monitoringOperator.istioProxyImage }}
             - name: GRAFANA_IMAGE
               value: {{ .Values.monitoringOperator.grafanaImage }}
+            - name: K8S_SIDECAR_IMAGE
+              value: {{ .Values.monitoringOperator.k8sSidecarImage }}
             - name: PROMETHEUS_IMAGE
               value: {{ .Values.monitoringOperator.prometheusImage }}
             - name: PROMETHEUS_INIT_IMAGE

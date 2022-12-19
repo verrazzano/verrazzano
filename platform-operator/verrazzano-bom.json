@@ -211,7 +211,7 @@
     },
     {
       "name": "verrazzano-monitoring-operator",
-      "version": "1.3.0",
+      "version": "1.5.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -219,7 +219,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.5.0-20221209063223-6242ffe",
+              "tag": "v1.5.0-20221216155330-1c103b2",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -232,6 +232,11 @@
               "image": "grafana",
               "tag": "v7.5.17-20221219045426-a0a26f9b",
               "helmFullImageKey": "monitoringOperator.grafanaImage"
+            },
+            {
+              "image": "k8s-sidecar",
+              "tag": "v1.15.0-20221214165047-8dce2733",
+              "helmFullImageKey": "monitoringOperator.k8sSidecarImage"
             },
             {
               "image": "opensearch",
