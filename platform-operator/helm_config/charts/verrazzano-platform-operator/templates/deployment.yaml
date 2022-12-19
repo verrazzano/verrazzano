@@ -64,10 +64,6 @@ spec:
             - name: IMAGE_PULL_SECRETS
               value: {{ join "," .Values.global.imagePullSecrets }}
             {{- end }}
-          volumeMounts:
-            - name: varlog
-              mountPath: /var/log
-              readOnly: true
           resources:
             requests:
               memory: 72Mi
