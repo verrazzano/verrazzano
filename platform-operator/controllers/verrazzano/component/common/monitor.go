@@ -61,7 +61,6 @@ func (m *MonitorType) Run(operation BackgroundFunc) {
 	go func(outputChan chan bool) {
 		// The function will execute once, sending true on success, false on failure to the channel reader
 		err := operation()
-		defer func() { m.running = false }()
 		if err != nil {
 			outputChan <- false
 			return

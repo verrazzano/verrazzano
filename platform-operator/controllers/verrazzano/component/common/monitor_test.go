@@ -25,6 +25,8 @@ func TestMonitorType_IsRunning(t *testing.T) {
 		return nil
 	}
 
+	a.False(m.IsRunning())
+
 	m.Run(operation)
 	a.True(m.IsRunning())
 
@@ -34,7 +36,8 @@ func TestMonitorType_IsRunning(t *testing.T) {
 	// block until the operation says it's finished
 	<-finished
 
-	a.False(m.IsRunning())
+	// even after the operation is finished, the monitor should still be "running" unless reset
+	a.True(m.IsRunning())
 }
 
 func TestMonitorType_CheckResultWhileRunning(t *testing.T) {
@@ -110,10 +113,12 @@ func TestMonitorType_Reset(t *testing.T) {
 
 	res, _ := m.CheckResult()
 	a.True(res)
+	a.True(m.IsRunning())
 
 	m.Reset()
 	res, _ = m.CheckResult()
 	a.False(res)
+	a.False(m.IsRunning())
 }
 
 func TestMonitorType_ResetWhileRunning(t *testing.T) {
@@ -128,6 +133,7 @@ func TestMonitorType_ResetWhileRunning(t *testing.T) {
 
 	m.Run(operation)
 	a.True(m.IsRunning())
+
 	m.Reset()
 	a.False(m.IsRunning())
 	blocker <- 0
