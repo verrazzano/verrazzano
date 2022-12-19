@@ -5,23 +5,16 @@ package netpolicy
 
 import (
 	"context"
-	"testing"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8sfake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-)
-
-const (
-	apiServerIP   = "1.2.3.4"
-	apiServerPort = 6443
+	"testing"
 )
 
 // TestCreateNetworkPolicies tests creating network policies for the operator.
@@ -30,23 +23,24 @@ const (
 // THEN the network policies are created
 func TestCreateNetworkPolicies(t *testing.T) {
 	asserts := assert.New(t)
-	mockClient := ctrlfake.NewFakeClientWithScheme(k8scheme.Scheme)
-
-	// mock the clientset with a kubernetes API server endpoint
-	mockClientset := k8sfake.NewSimpleClientset(makeKubeAPIServerEndpoint())
+	mockClient := ctrlfake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	// create the network policy
-	opResult, err := CreateOrUpdateNetworkPolicies(mockClientset, mockClient)
-	asserts.NoError(err)
-	asserts.Equal(controllerutil.OperationResultCreated, opResult)
+	opResult, errors := CreateOrUpdateNetworkPolicies(mockClient)
+	asserts.Empty(errors)
+	asserts.Contains(opResult, controllerutil.OperationResultCreated)
 
 	// fetch the policy and make sure the spec matches what we expect
 	netPolicy := &netv1.NetworkPolicy{}
-	err = mockClient.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoInstallNamespace, Name: networkPolicyPodName}, netPolicy)
+	err := mockClient.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoInstallNamespace, Name: networkPolicyPodName}, netPolicy)
 	asserts.NoError(err)
 
-	expectedNetPolicy := newNetworkPolicy(apiServerIP, apiServerPort)
-	asserts.Equal(expectedNetPolicy.Spec, netPolicy.Spec)
+	expectedNetPolicies := newNetworkPolicies()
+	var expectedSpecs []netv1.NetworkPolicySpec
+	for _, netpol := range expectedNetPolicies {
+		expectedSpecs = append(expectedSpecs, netpol.Spec)
+	}
+	asserts.Contains(expectedSpecs, netPolicy.Spec)
 }
 
 // TestUpdateNetworkPolicies tests updating network policies for the operator.
@@ -55,84 +49,72 @@ func TestCreateNetworkPolicies(t *testing.T) {
 // THEN the network policies are updated
 func TestUpdateNetworkPolicies(t *testing.T) {
 	asserts := assert.New(t)
-	mockClient := ctrlfake.NewFakeClientWithScheme(k8scheme.Scheme)
-
-	// mock the clientset with a kubernetes API server endpoint
-	mockClientset := k8sfake.NewSimpleClientset(makeKubeAPIServerEndpoint())
-
-	// make an existing network policy and change the API server IP
-	existingNetPolicy := newNetworkPolicy("1.1.1.1", apiServerPort)
-	mockClient.Create(context.TODO(), existingNetPolicy)
-
-	// this call should update the network policy
-	opResult, err := CreateOrUpdateNetworkPolicies(mockClientset, mockClient)
-	asserts.NoError(err)
-	asserts.Equal(controllerutil.OperationResultUpdated, opResult)
-
-	// fetch the policy and make sure the spec matches what we expect
-	netPolicy := &netv1.NetworkPolicy{}
-	err = mockClient.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoInstallNamespace, Name: networkPolicyPodName}, netPolicy)
-	asserts.NoError(err)
-
-	expectedNetPolicy := newNetworkPolicy(apiServerIP, apiServerPort)
-	asserts.Equal(expectedNetPolicy.Spec, netPolicy.Spec)
-}
-
-// TestNetworkPoliciesFailures tests failure cases attempting to create or update
-// the operator network policies.
-func TestNetworkPoliciesFailures(t *testing.T) {
-	asserts := assert.New(t)
-	mockClient := ctrlfake.NewFakeClientWithScheme(k8scheme.Scheme)
-
-	// GIVEN a call to CreateOrUpdateNetworkPolicies
-	// WHEN there is no Kubernetes API server endpoint found
-	// THEN we expect an error
-
-	// mock the clientset, no kuberetes API server endpoints exist
-	mockClientset := k8sfake.NewSimpleClientset()
-
-	// this call should fail
-	_, err := CreateOrUpdateNetworkPolicies(mockClientset, mockClient)
-	asserts.Error(err)
-
-	// GIVEN a call to CreateOrUpdateNetworkPolicies
-	// WHEN there is a Kubernetes API server endpoint
-	// AND it does not contain any IP addresses or ports
-	// THEN we expect an error
-
-	emptyEndpoints := &corev1.Endpoints{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      apiServerEndpointName,
-			Namespace: corev1.NamespaceDefault,
+	port := intstr.FromInt(9100)
+	netpol := &netv1.NetworkPolicy{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: networkPolicyAPIVersion,
+			Kind:       networkPolicyKind,
 		},
-	}
-	mockClientset = k8sfake.NewSimpleClientset(emptyEndpoints)
-
-	// this call should fail
-	_, err = CreateOrUpdateNetworkPolicies(mockClientset, mockClient)
-	asserts.Error(err)
-}
-
-// makeKubeAPIServerEndpoint returns a populated corev1.Endpoints struct with the kubernetes API server IP and port
-func makeKubeAPIServerEndpoint() *corev1.Endpoints {
-	return &corev1.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      apiServerEndpointName,
-			Namespace: corev1.NamespaceDefault,
+			Namespace: constants.VerrazzanoInstallNamespace,
+			Name:      networkPolicyPodName,
 		},
-		Subsets: []corev1.EndpointSubset{
-			{
-				Addresses: []corev1.EndpointAddress{
-					{
-						IP: apiServerIP,
+		Spec: netv1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					podAppLabel: networkPolicyPodName,
+				},
+			},
+			PolicyTypes: []netv1.PolicyType{
+				netv1.PolicyTypeIngress,
+				netv1.PolicyTypeEgress,
+			},
+			Egress: []netv1.NetworkPolicyEgressRule{
+				{
+					Ports: []netv1.NetworkPolicyPort{
+						{
+							Port: &port,
+						},
 					},
 				},
-				Ports: []corev1.EndpointPort{
-					{
-						Port: apiServerPort,
+			},
+			Ingress: []netv1.NetworkPolicyIngressRule{
+				{
+					From: []netv1.NetworkPolicyPeer{
+						{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									verrazzanoNamespaceLabel: constants.VerrazzanoMonitoringNamespace,
+								},
+							},
+							PodSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									appNameLabel: constants.PrometheusStorageLabelValue,
+								},
+							},
+						},
 					},
 				},
 			},
 		},
 	}
+
+	mockClient := ctrlfake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(netpol).Build()
+
+	// this call should update the network policy
+	opResult, errors := CreateOrUpdateNetworkPolicies(mockClient)
+	asserts.Empty(errors)
+	asserts.Contains(opResult, controllerutil.OperationResultUpdated)
+
+	// fetch the policy and make sure the spec matches what we expect
+	netPolicy := &netv1.NetworkPolicy{}
+	err := mockClient.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoInstallNamespace, Name: networkPolicyPodName}, netPolicy)
+	asserts.NoError(err)
+
+	expectedNetPolicies := newNetworkPolicies()
+	var expectedSpecs []netv1.NetworkPolicySpec
+	for _, netpol := range expectedNetPolicies {
+		expectedSpecs = append(expectedSpecs, netpol.Spec)
+	}
+	asserts.Contains(expectedSpecs, netPolicy.Spec)
 }
