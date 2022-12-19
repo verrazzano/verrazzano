@@ -5,10 +5,10 @@ package common
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"testing"
-	"time"
 )
 
 var fakeCompName = "fake-component-name"
@@ -17,18 +17,22 @@ func TestMonitorType_IsRunning(t *testing.T) {
 	a := assert.New(t)
 
 	m := &MonitorType{ComponentName: fakeCompName}
-	c := make(chan int)
+	blocker := make(chan int)
+	finished := make(chan int)
 	operation := func() error {
-		<-c
+		defer func() { finished <- 0 }()
+		<-blocker
 		return nil
 	}
 
 	m.Run(operation)
 	a.True(m.IsRunning())
 
-	// send to the channel, and wait a short while for the goroutine to finish
-	c <- 0
-	time.Sleep(10 * time.Millisecond)
+	// send to the channel to unblock operation
+	blocker <- 0
+
+	// block until the operation says it's finished
+	<-finished
 
 	a.False(m.IsRunning())
 }
@@ -37,9 +41,9 @@ func TestMonitorType_CheckResultWhileRunning(t *testing.T) {
 	a := assert.New(t)
 
 	m := &MonitorType{ComponentName: fakeCompName}
-	c := make(chan int)
+	blocker := make(chan int)
 	operation := func() error {
-		<-c
+		<-blocker
 		return nil
 	}
 
@@ -47,7 +51,7 @@ func TestMonitorType_CheckResultWhileRunning(t *testing.T) {
 	res, err := m.CheckResult()
 	a.Equal(false, res)
 	a.Equal(ctrlerrors.RetryableError{Source: fakeCompName}, err)
-	c <- 0
+	blocker <- 0
 }
 
 func TestMonitorType_CheckResult(t *testing.T) {
@@ -62,20 +66,18 @@ func TestMonitorType_CheckResult(t *testing.T) {
 		{
 			success:        true,
 			expectedResult: true,
-			expectedError:  nil,
 		},
 		{
 			success:        false,
 			expectedResult: false,
-			expectedError:  fmt.Errorf(errMsg),
 		},
 	}
 
 	for _, tt := range tests {
 		m := &MonitorType{ComponentName: fakeCompName}
-		c := make(chan int)
+		finished := make(chan int)
 		operation := func() error {
-			defer func() { c <- 0 }()
+			defer func() { finished <- 0 }()
 			if tt.success {
 				return nil
 			}
@@ -84,11 +86,11 @@ func TestMonitorType_CheckResult(t *testing.T) {
 
 		// Run the background goroutine, and block until it returns
 		m.Run(operation)
-		<-c
+		<-finished
 
 		res, err := m.CheckResult()
 		a.Equal(tt.expectedResult, res)
-		a.Equal(tt.expectedError, err)
+		a.Equal(nil, err)
 	}
 }
 
@@ -96,15 +98,15 @@ func TestMonitorType_Reset(t *testing.T) {
 	a := assert.New(t)
 
 	m := &MonitorType{ComponentName: fakeCompName}
-	c := make(chan int)
+	finished := make(chan int)
 	operation := func() error {
-		defer func() { c <- 0 }()
+		defer func() { finished <- 0 }()
 		return nil
 	}
 
 	// Run the background goroutine, and block until it returns
 	m.Run(operation)
-	<-c
+	<-finished
 
 	res, _ := m.CheckResult()
 	a.True(res)
@@ -118,9 +120,9 @@ func TestMonitorType_ResetWhileRunning(t *testing.T) {
 	a := assert.New(t)
 
 	m := &MonitorType{ComponentName: fakeCompName}
-	c := make(chan int)
+	blocker := make(chan int)
 	operation := func() error {
-		<-c
+		<-blocker
 		return nil
 	}
 
@@ -128,7 +130,7 @@ func TestMonitorType_ResetWhileRunning(t *testing.T) {
 	a.True(m.IsRunning())
 	m.Reset()
 	a.False(m.IsRunning())
-	c <- 0
+	blocker <- 0
 }
 
 func TestFakeMonitorType_CheckResult(t *testing.T) {
