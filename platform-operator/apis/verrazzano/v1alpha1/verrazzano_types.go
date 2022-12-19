@@ -408,6 +408,9 @@ type ElasticsearchComponent struct {
 	// +patchMergeKey=name
 	// +patchStrategy=merge,retainKeys
 	Nodes []OpenSearchNode `json:"nodes,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
+	// Enable to add 3rd Party / Custom plugins not offered in the default OpenSearch image
+	// +optional
+	Plugins vmov1.OpenSearchPlugins `json:"plugins,omitempty"`
 }
 
 //OpenSearchNode specifies a node group in the OpenSearch cluster
@@ -428,6 +431,9 @@ type KibanaComponent struct {
 	// +optional
 	Enabled  *bool  `json:"enabled,omitempty"`
 	Replicas *int32 `json:"replicas,omitempty"`
+	// Enable to add 3rd Party / Custom plugins not offered in the default OpenSearch-Dashboard image
+	// +optional
+	Plugins vmov1.OpenSearchDashboardsPlugins `json:"plugins,omitempty"`
 }
 
 // KubeStateMetricsComponent specifies the kube-state-metrics configuration.
