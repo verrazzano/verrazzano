@@ -5,12 +5,14 @@ package opensearch
 
 import (
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 const (
@@ -88,6 +90,9 @@ func newOpenSearch(effectiveCR, actualCR *vzapi.Verrazzano, storage *common.Reso
 	for _, policy := range opensearchComponent.Policies {
 		opensearch.Policies = append(opensearch.Policies, *policy.DeepCopy())
 	}
+
+	// Set the OpenSearch Plugins to the VMI
+	opensearch.Plugins = opensearchComponent.Plugins
 
 	// Set the values in the OpenSearch object from the Verrazzano component InstallArgs
 	if err := populateOpenSearchFromInstallArgs(opensearch, opensearchComponent); err != nil {
