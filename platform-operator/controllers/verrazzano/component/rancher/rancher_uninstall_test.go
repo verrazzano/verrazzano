@@ -6,9 +6,11 @@ package rancher
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"testing"
 	"time"
+
+	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
+	fakemonitor "github.com/verrazzano/verrazzano/platform-operator/internal/monitor/fake"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -57,12 +59,12 @@ func TestPostUninstall(t *testing.T) {
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
 
 	expectedErr := ctrlerrors.RetryableError{Source: ComponentName}
-	forkPostUninstallFunc = func(_ spi.ComponentContext, _ common.Monitor) error {
+	forkPostUninstallFunc = func(_ spi.ComponentContext, _ monitor.BackgroundProcessMonitor) error {
 		return expectedErr
 	}
 	defer func() { forkPostUninstallFunc = forkPostUninstall }()
 
-	monitor := &common.FakeMonitorType{Result: true, Running: false}
+	monitor := &fakemonitor.FakeBackgroundProcessMonitorType{Result: true, Running: false}
 	err := postUninstall(ctx, monitor)
 	a.Equal(expectedErr, err, "Uninstall returned an unexpected error")
 }
@@ -82,13 +84,13 @@ func TestBackgroundPostUninstallCompletedSuccessfully(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
 
-	forkPostUninstallFunc = func(_ spi.ComponentContext, _ common.Monitor) error {
+	forkPostUninstallFunc = func(_ spi.ComponentContext, _ monitor.BackgroundProcessMonitor) error {
 		a.Fail("Unexpected call to forkPostUninstall() function")
 		return nil
 	}
 	defer func() { forkPostUninstallFunc = forkPostUninstall }()
 
-	monitor := &common.FakeMonitorType{Result: true, Running: true}
+	monitor := &fakemonitor.FakeBackgroundProcessMonitorType{Result: true, Running: true}
 	err := postUninstall(ctx, monitor)
 	a.NoError(err)
 }
@@ -110,13 +112,13 @@ func TestBackgroundPostUninstallRetryOnFailure(t *testing.T) {
 
 	forkFuncCalled := false
 	expectedErr := ctrlerrors.RetryableError{Source: ComponentName}
-	forkPostUninstallFunc = func(_ spi.ComponentContext, _ common.Monitor) error {
+	forkPostUninstallFunc = func(_ spi.ComponentContext, _ monitor.BackgroundProcessMonitor) error {
 		forkFuncCalled = true
 		return expectedErr
 	}
 	defer func() { forkPostUninstallFunc = forkPostUninstall }()
 
-	monitor := &common.FakeMonitorType{Result: false, Running: true}
+	monitor := &fakemonitor.FakeBackgroundProcessMonitorType{Result: false, Running: true}
 	err := postUninstall(ctx, monitor)
 	a.True(forkFuncCalled)
 	a.Equal(expectedErr, err, "Uninstall returned an unexpected error")
@@ -142,7 +144,7 @@ func Test_forkPostUninstallSuccess(t *testing.T) {
 	}
 	defer func() { postUninstallFunc = invokeRancherSystemToolAndCleanup }()
 
-	var monitor = &common.MonitorType{ComponentName: ComponentName}
+	var monitor = &monitor.BackgroundProcessMonitorType{ComponentName: ComponentName}
 	err := forkPostUninstall(ctx, monitor)
 	a.Equal(ctrlerrors.RetryableError{Source: ComponentName}, err)
 	for i := 0; i < 100; i++ {
@@ -179,7 +181,7 @@ func Test_forkPostUninstallFailure(t *testing.T) {
 	}
 	defer func() { postUninstallFunc = invokeRancherSystemToolAndCleanup }()
 
-	var monitor = &common.MonitorType{ComponentName: ComponentName}
+	var monitor = &monitor.BackgroundProcessMonitorType{ComponentName: ComponentName}
 	err := forkPostUninstall(ctx, monitor)
 	a.Equal(ctrlerrors.RetryableError{Source: ComponentName}, err)
 	for i := 0; i < 100; i++ {

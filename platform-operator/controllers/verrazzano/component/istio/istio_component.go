@@ -6,10 +6,10 @@ package istio
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
 	"path/filepath"
 	"strings"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
@@ -29,6 +29,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -115,7 +116,7 @@ type istioComponent struct {
 	InjectedSystemNamespaces []string
 
 	// Internal monitor object for peforming `istioctl` operations in the background
-	monitor common.Monitor
+	monitor monitor.BackgroundProcessMonitor
 }
 
 // Namespace returns the component namespace
@@ -195,7 +196,7 @@ func NewComponent() spi.Component {
 	return istioComponent{
 		ValuesFile:               filepath.Join(config.GetHelmOverridesDir(), "istio-cr.yaml"),
 		InjectedSystemNamespaces: config.GetInjectedSystemNamespaces(),
-		monitor:                  &common.MonitorType{ComponentName: ComponentName},
+		monitor:                  &monitor.BackgroundProcessMonitorType{ComponentName: ComponentName},
 	}
 }
 

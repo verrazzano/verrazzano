@@ -27,6 +27,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -75,7 +76,7 @@ type rancherComponent struct {
 	helm.HelmComponent
 
 	// internal monitor object for running the Rancher uninstall tool in the background
-	monitor common.Monitor
+	monitor monitor.BackgroundProcessMonitor
 }
 
 var certificates = []types.NamespacedName{
@@ -129,7 +130,7 @@ func NewComponent() spi.Component {
 			},
 			GetInstallOverridesFunc: GetOverrides,
 		},
-		monitor: &common.MonitorType{ComponentName: ComponentName},
+		monitor: &monitor.BackgroundProcessMonitorType{ComponentName: ComponentName},
 	}
 }
 

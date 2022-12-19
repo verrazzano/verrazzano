@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package common
+package monitor
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ var fakeCompName = "fake-component-name"
 func TestMonitorType_IsRunning(t *testing.T) {
 	a := assert.New(t)
 
-	m := &MonitorType{ComponentName: fakeCompName}
+	m := &BackgroundProcessMonitorType{ComponentName: fakeCompName}
 	blocker := make(chan int)
 	finished := make(chan int)
 	operation := func() error {
@@ -43,7 +43,7 @@ func TestMonitorType_IsRunning(t *testing.T) {
 func TestMonitorType_CheckResultWhileRunning(t *testing.T) {
 	a := assert.New(t)
 
-	m := &MonitorType{ComponentName: fakeCompName}
+	m := &BackgroundProcessMonitorType{ComponentName: fakeCompName}
 	blocker := make(chan int)
 	operation := func() error {
 		<-blocker
@@ -77,7 +77,7 @@ func TestMonitorType_CheckResult(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		m := &MonitorType{ComponentName: fakeCompName}
+		m := &BackgroundProcessMonitorType{ComponentName: fakeCompName}
 		finished := make(chan int)
 		operation := func() error {
 			defer func() { finished <- 0 }()
@@ -100,7 +100,7 @@ func TestMonitorType_CheckResult(t *testing.T) {
 func TestMonitorType_Reset(t *testing.T) {
 	a := assert.New(t)
 
-	m := &MonitorType{ComponentName: fakeCompName}
+	m := &BackgroundProcessMonitorType{ComponentName: fakeCompName}
 	finished := make(chan int)
 	operation := func() error {
 		defer func() { finished <- 0 }()
@@ -119,27 +119,4 @@ func TestMonitorType_Reset(t *testing.T) {
 	res, _ = m.CheckResult()
 	a.False(res)
 	a.False(m.IsRunning())
-}
-func TestFakeMonitorType_CheckResult(t *testing.T) {
-	a := assert.New(t)
-
-	f := &FakeMonitorType{Result: true, Err: nil}
-	res, err := f.CheckResult()
-	a.True(res)
-	a.NoError(err)
-
-	f = &FakeMonitorType{Result: false, Err: fmt.Errorf("an unexpected error")}
-	res, err = f.CheckResult()
-	a.False(res)
-	a.Error(err)
-}
-
-func TestFakeMonitorType_IsRunning(t *testing.T) {
-	a := assert.New(t)
-
-	f := &FakeMonitorType{Running: true}
-	a.True(f.IsRunning())
-
-	f = &FakeMonitorType{Running: false}
-	a.False(f.IsRunning())
 }

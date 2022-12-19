@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"os"
 	"os/exec"
 	"strings"
@@ -27,6 +26,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
+	fakemonitor "github.com/verrazzano/verrazzano/platform-operator/internal/monitor/fake"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	istiosec "istio.io/api/security/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -250,11 +251,11 @@ func TestInstall(t *testing.T) {
 
 	comp := istioComponent{
 		ValuesFile: "test-values-file.yaml",
-		monitor:    &common.FakeMonitorType{Result: true, Running: false},
+		monitor:    &fakemonitor.FakeBackgroundProcessMonitorType{Result: true, Running: false},
 	}
 
 	expectedErr := spi2.RetryableError{Source: ComponentName}
-	forkInstallFunc = func(_ spi.ComponentContext, _ common.Monitor, _ string, _ []string) error {
+	forkInstallFunc = func(_ spi.ComponentContext, _ monitor.BackgroundProcessMonitor, _ string, _ []string) error {
 		return expectedErr
 	}
 	defer func() { forkInstallFunc = forkInstall }()
@@ -280,7 +281,7 @@ func TestBackgroundInstallCompletedSuccessfully(t *testing.T) {
 		ValuesFile: "test-values-file.yaml",
 	}
 
-	forkInstallFunc = func(_ spi.ComponentContext, _ common.Monitor, _ string, _ []string) error {
+	forkInstallFunc = func(_ spi.ComponentContext, _ monitor.BackgroundProcessMonitor, _ string, _ []string) error {
 		a.Fail("Unexpected call to forkInstall() function")
 		return nil
 	}
@@ -291,7 +292,7 @@ func TestBackgroundInstallCompletedSuccessfully(t *testing.T) {
 	setInstallFunc(fakeInstall)
 	setBashFunc(fakeBash)
 
-	comp.monitor = &common.FakeMonitorType{Result: true, Running: true}
+	comp.monitor = &fakemonitor.FakeBackgroundProcessMonitorType{Result: true, Running: true}
 	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, nil, false))
 	a.NoError(err)
 }
@@ -310,7 +311,7 @@ func TestBackgroundInstallRetryOnFailure(t *testing.T) {
 
 	forkFuncCalled := false
 	expectedErr := spi2.RetryableError{Source: ComponentName}
-	forkInstallFunc = func(_ spi.ComponentContext, _ common.Monitor, _ string, _ []string) error {
+	forkInstallFunc = func(_ spi.ComponentContext, _ monitor.BackgroundProcessMonitor, _ string, _ []string) error {
 		forkFuncCalled = true
 		return expectedErr
 	}
@@ -320,7 +321,7 @@ func TestBackgroundInstallRetryOnFailure(t *testing.T) {
 	setInstallFunc(fakeInstall)
 	setBashFunc(fakeBash)
 
-	comp.monitor = &common.FakeMonitorType{Result: false, Running: true}
+	comp.monitor = &fakemonitor.FakeBackgroundProcessMonitorType{Result: false, Running: true}
 
 	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, nil, false))
 	a.True(forkFuncCalled)
@@ -354,7 +355,7 @@ func Test_forkInstallSuccess(t *testing.T) {
 
 	setBashFunc(fakeBash)
 
-	var monitor common.Monitor = &common.MonitorType{ComponentName: ComponentName}
+	var monitor monitor.BackgroundProcessMonitor = &monitor.BackgroundProcessMonitorType{ComponentName: ComponentName}
 	err := forkInstall(spi.NewFakeContext(getIstioInstallMock(t), installCR, nil, false), monitor, expectedOverridesString, expectedOverridesFiles)
 	a.Equal(spi2.RetryableError{Source: ComponentName}, err)
 	for i := 0; i < 100; i++ {
@@ -394,7 +395,7 @@ func Test_forkInstallFailure(t *testing.T) {
 
 	setBashFunc(fakeBash)
 
-	var monitor common.Monitor = &common.MonitorType{}
+	var monitor monitor.BackgroundProcessMonitor = &monitor.BackgroundProcessMonitorType{ComponentName: ComponentName}
 	err := forkInstall(spi.NewFakeContext(getIstioInstallMock(t), installCR, nil, false), monitor, "myoverride=true", []string{comp.ValuesFile, "istio-overrides.yaml"})
 	a.Equal(spi2.RetryableError{Source: ComponentName}, err)
 	for i := 0; i < 100; i++ {

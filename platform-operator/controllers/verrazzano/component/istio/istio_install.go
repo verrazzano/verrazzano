@@ -6,9 +6,10 @@ package istio
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
 	"os"
 	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -20,6 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	istiosec "istio.io/api/security/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -50,7 +52,7 @@ type installFuncSig func(log vzlog.VerrazzanoLogger, imageOverridesString string
 
 var installFunc installFuncSig = istio.Install
 
-type forkInstallFuncSig func(compContext spi.ComponentContext, monitor common.Monitor, overrideStrings string, files []string) error
+type forkInstallFuncSig func(compContext spi.ComponentContext, monitor monitor.BackgroundProcessMonitor, overrideStrings string, files []string) error
 
 var forkInstallFunc forkInstallFuncSig = forkInstall
 
@@ -160,7 +162,7 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 }
 
 // forkInstall - istioctl install blocks, fork it into the background
-func forkInstall(compContext spi.ComponentContext, monitor common.Monitor, overrideStrings string, files []string) error {
+func forkInstall(compContext spi.ComponentContext, monitor monitor.BackgroundProcessMonitor, overrideStrings string, files []string) error {
 	log := compContext.Log()
 	log.Debugf("Creating background install goroutine for Istio")
 	// clone the parameters

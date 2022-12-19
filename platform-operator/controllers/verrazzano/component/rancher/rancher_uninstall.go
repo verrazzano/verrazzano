@@ -17,8 +17,8 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	admv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -58,7 +58,7 @@ var rancherSystemNS = []string{
 }
 
 // create func vars for unit tests
-type forkPostUninstallFuncSig func(ctx spi.ComponentContext, monitor common.Monitor) error
+type forkPostUninstallFuncSig func(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error
 
 var forkPostUninstallFunc forkPostUninstallFuncSig = forkPostUninstall
 
@@ -72,7 +72,7 @@ var postUninstallFunc postUninstallFuncSig = invokeRancherSystemToolAndCleanup
 // uninstall operation in a goroutine and requeue to check back later.
 // On subsequent callbacks, we check the status of the goroutine with the 'monitor' object, and postUninstall
 // returns or requeues accordingly.
-func postUninstall(ctx spi.ComponentContext, monitor common.Monitor) error {
+func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
 	if monitor.IsRunning() {
 		// Check the result
 		succeeded, err := monitor.CheckResult()
@@ -95,7 +95,7 @@ func postUninstall(ctx spi.ComponentContext, monitor common.Monitor) error {
 }
 
 // forkPostUninstall - the Rancher uninstall system tool blocks, so fork it to the background
-func forkPostUninstall(ctx spi.ComponentContext, monitor common.Monitor) error {
+func forkPostUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
 	ctx.Log().Debugf("Creating background post-uninstall goroutine for Rancher")
 
 	monitor.Run(
