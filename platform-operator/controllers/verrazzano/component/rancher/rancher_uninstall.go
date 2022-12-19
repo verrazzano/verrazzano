@@ -6,11 +6,13 @@ package rancher
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/os"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	osexec "os/exec"
 	"regexp"
 	"strings"
+
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/os"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -54,8 +56,131 @@ var rancherSystemNS = []string{
 	"local",
 }
 
-// postUninstall removes the objects after the Helm uninstall process finishes
-func postUninstall(ctx spi.ComponentContext) error {
+// create func vars for unit tests
+type forkPostUninstallFuncSig func(ctx spi.ComponentContext, monitor postUninstallMonitor) error
+
+var forkPostUninstallFunc forkPostUninstallFuncSig = forkPostUninstall
+
+type postUninstallFuncSig func(ctx spi.ComponentContext) error
+
+var postUninstallFunc postUninstallFuncSig = invokeRancherSystemToolAndCleanup
+
+// postUninstallRoutineParams - Used to pass args to the postUninstall goroutine
+type postUninstallRoutineParams struct {
+	ctx spi.ComponentContext
+}
+
+// uninstallMonitor - Represents a monitor object used by the component to monitor a background goroutine used for running
+// rancher uninstall operations asynchronously.
+type postUninstallMonitor interface {
+	// checkResult - Checks for a result from the install goroutine; returns either the result of the operation, or an error indicating
+	// the install is still in progress
+	checkResult() (bool, error)
+	// reset - Resets the monitor and closes any open channels
+	reset()
+	// isRunning - returns true of the monitor/goroutine are active
+	isRunning() bool
+	// run - Run the install with the specified args
+	run(args postUninstallRoutineParams)
+}
+
+type postUninstallMonitorType struct {
+	running  bool
+	resultCh chan bool
+	inputCh  chan postUninstallRoutineParams
+}
+
+// checkResult - checks for a result from the goroutine
+// - returns false and a retry error if it's still running, or the result from the channel and nil if an answer was received
+func (m *postUninstallMonitorType) checkResult() (bool, error) {
+	select {
+	case result := <-m.resultCh:
+		return result, nil
+	default:
+		return false, ctrlerrors.RetryableError{Source: ComponentName}
+	}
+}
+
+// reset - reset the monitor and close the channel
+func (m *postUninstallMonitorType) reset() {
+	m.running = false
+	close(m.resultCh)
+	close(m.inputCh)
+}
+
+// isRunning - returns true of the monitor/goroutine are active
+func (m *postUninstallMonitorType) isRunning() bool {
+	return m.running
+}
+
+// postUninstall - Rancher component post-uninstall
+//
+// This uses the Rancher system tool for uninstall, which blocks the uninstallation process. So, we launch the
+// uninstall operation in a goroutine and requeue to check back later.
+// On subsequent callbacks, we check the status of the goroutine with the 'monitor' object, and postUninstall
+// returns or requeues accordingly.
+func postUninstall(ctx spi.ComponentContext, monitor postUninstallMonitor) error {
+	if monitor.isRunning() {
+		// Check the result
+		succeeded, err := monitor.checkResult()
+		if err != nil {
+			// Not finished yet, requeue
+			ctx.Log().Progress("Component Rancher waiting to finish post-uninstall in the background")
+			return err
+		}
+		// reset on success or failure
+		monitor.reset()
+		// If it's not finished running, requeue
+		if succeeded {
+			return nil
+		}
+		// if we were unsuccessful, reset and drop through to try again
+		ctx.Log().Debug("Error during Rancher post-uninstall, retrying")
+	}
+
+	return forkPostUninstallFunc(ctx, monitor)
+}
+
+// forkPostUninstall - the Rancher uninstall system tool blocks, so fork it to the background
+func forkPostUninstall(ctx spi.ComponentContext, monitor postUninstallMonitor) error {
+	ctx.Log().Debugf("Creating background post-uninstall goroutine for Rancher")
+
+	monitor.run(
+		postUninstallRoutineParams{
+			ctx: ctx,
+		},
+	)
+
+	return ctrlerrors.RetryableError{Source: ComponentName}
+}
+
+// run - run the Rancher uninstall in another goroutine
+func (m *postUninstallMonitorType) run(args postUninstallRoutineParams) {
+	m.running = true
+	m.resultCh = make(chan bool, 2)
+	m.inputCh = make(chan postUninstallRoutineParams, 2)
+
+	go func(inputCh chan postUninstallRoutineParams, outputCh chan bool) {
+		// The function will execute once, sending true on success, false on failure to the channel reader
+		// Read inputs
+		args := <-inputCh
+		ctx := args.ctx
+
+		err := postUninstallFunc(ctx)
+		if err != nil {
+			outputCh <- false
+			return
+		}
+
+		outputCh <- true
+	}(m.inputCh, m.resultCh)
+
+	m.inputCh <- args
+}
+
+// invokeRancherSystemToolAndCleanup - responsible for the actual deletion of resources
+// This calls the Rancher uninstall tool, which blocks.
+func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	// List all the namespaces that need to be cleaned from Rancher components
 	nsList := corev1.NamespaceList{}
 	err := ctx.Client().List(context.TODO(), &nsList)
