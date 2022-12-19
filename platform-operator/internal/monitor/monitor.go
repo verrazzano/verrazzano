@@ -24,7 +24,7 @@ type BackgroundProcessMonitor interface {
 // BackgroundFunc - the operation to be called in the background goroutine
 type BackgroundFunc func() error
 
-// BackgroundProcessMonitorType - a monitor. &BackgroundProcessMonitorType acts as an implementation of Monitor
+// BackgroundProcessMonitorType - a monitor. &BackgroundProcessMonitorType acts as an implementation of BackgroundProcessMonitor
 type BackgroundProcessMonitorType struct {
 	ComponentName string
 	running       bool
@@ -48,7 +48,7 @@ func (m *BackgroundProcessMonitorType) Reset() {
 	close(m.resultCh)
 }
 
-// IsRunning - returns true of the monitor/goroutine are active
+// IsRunning - returns true if the monitor/goroutine are active
 func (m *BackgroundProcessMonitorType) IsRunning() bool {
 	return m.running
 }
@@ -69,5 +69,5 @@ func (m *BackgroundProcessMonitorType) Run(operation BackgroundFunc) {
 	}(m.resultCh)
 }
 
-// Check that &BackgroundProcessMonitorType implements Monitor
+// Check that &BackgroundProcessMonitorType implements BackgroundProcessMonitor
 var _ BackgroundProcessMonitor = &BackgroundProcessMonitorType{}

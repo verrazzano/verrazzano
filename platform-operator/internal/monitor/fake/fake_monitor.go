@@ -17,5 +17,5 @@ func (f *FakeBackgroundProcessMonitorType) Reset()                              
 func (f *FakeBackgroundProcessMonitorType) IsRunning() bool                      { return f.Running }
 func (f *FakeBackgroundProcessMonitorType) Run(operation monitor.BackgroundFunc) {}
 
-// Check that &FakeMonitorType implements Monitor
+// Check that &FakeMonitorType implements BackgroundProcessMonitor
 var _ monitor.BackgroundProcessMonitor = &FakeBackgroundProcessMonitorType{}
