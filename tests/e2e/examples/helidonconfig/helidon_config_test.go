@@ -181,7 +181,8 @@ var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {
-						return pkg.ScrapeTargetsHealthy(namespace)
+						var componentNames = []string{"helidon-config-component"}
+						return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "helidon-config-appconf", componentNames))
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 			)

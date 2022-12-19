@@ -40,6 +40,7 @@ var (
 		"bobbys-helidon-stock-application",
 		"robert-helidon",
 		"mysql"}
+	appName = "bobs-books"
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -269,7 +270,8 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {
-						return pkg.ScrapeTargetsHealthy(namespace)
+						var componentNames = []string{"bobby-coh", "bobby-helidon", "bobby-wls", "bobs-mysql-deployment", "bobs-mysql-service", "bobs-orders-wls", "robert-coh", "robert-helidon"}
+						return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "bob-books", componentNames))
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 			)
