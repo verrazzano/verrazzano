@@ -20,13 +20,13 @@ import (
 )
 
 const (
-	apiServerIP          = "1.2.3.4"
+	apiServerIP          = "127.2.3.4"
 	apiServerPort        = 6443
-	apiServerServiceIP   = "10.96.0.1"
+	apiServerServiceIP   = "127.96.0.1"
 	apiServerServicePort = 443
 )
 
-var apiServerIPs = []string{"1.2.3.4"}
+var apiServerIPs = []string{"127.2.3.4"}
 
 // TestCreateNetworkPolicies tests creating network policies for the operator.
 // GIVEN a call to CreateOrUpdateNetworkPolicies
@@ -131,7 +131,7 @@ func TestUpdateNetworkPolicies(t *testing.T) {
 		})
 
 	// make an existing network policy and change the API server IP
-	existingNetPolicies := newNetworkPolicies([]string{"1.1.1.1"}, apiServerPort, "10.10.0.1", apiServerServicePort)
+	existingNetPolicies := newNetworkPolicies([]string{"127.1.1.1"}, apiServerPort, "127.10.0.1", apiServerServicePort)
 	for _, netpol := range existingNetPolicies {
 		err := mockClient.Create(context.TODO(), netpol)
 		if err != nil {
