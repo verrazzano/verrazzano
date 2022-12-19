@@ -64,7 +64,7 @@ func TestPostUninstall(t *testing.T) {
 	}
 	defer func() { forkPostUninstallFunc = forkPostUninstall }()
 
-	monitor := &fakemonitor.FakeBackgroundProcessMonitorType{Result: true, Running: false}
+	monitor := &fakemonitor.BackgroundProcessMonitorType{Result: true, Running: false}
 	err := postUninstall(ctx, monitor)
 	a.Equal(expectedErr, err, "Uninstall returned an unexpected error")
 }
@@ -90,7 +90,7 @@ func TestBackgroundPostUninstallCompletedSuccessfully(t *testing.T) {
 	}
 	defer func() { forkPostUninstallFunc = forkPostUninstall }()
 
-	monitor := &fakemonitor.FakeBackgroundProcessMonitorType{Result: true, Running: true}
+	monitor := &fakemonitor.BackgroundProcessMonitorType{Result: true, Running: true}
 	err := postUninstall(ctx, monitor)
 	a.NoError(err)
 }
@@ -118,7 +118,7 @@ func TestBackgroundPostUninstallRetryOnFailure(t *testing.T) {
 	}
 	defer func() { forkPostUninstallFunc = forkPostUninstall }()
 
-	monitor := &fakemonitor.FakeBackgroundProcessMonitorType{Result: false, Running: true}
+	monitor := &fakemonitor.BackgroundProcessMonitorType{Result: false, Running: true}
 	err := postUninstall(ctx, monitor)
 	a.True(forkFuncCalled)
 	a.Equal(expectedErr, err, "Uninstall returned an unexpected error")

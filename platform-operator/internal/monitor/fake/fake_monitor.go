@@ -5,17 +5,17 @@ package fake
 
 import "github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 
-// FakeMonitorType - a fake monitor object, useful for unit testing.
-type FakeBackgroundProcessMonitorType struct {
+// BackgroundProcessMonitorType - a fake monitor object.
+type BackgroundProcessMonitorType struct {
 	Result  bool
 	Err     error
 	Running bool
 }
 
-func (f *FakeBackgroundProcessMonitorType) CheckResult() (bool, error)           { return f.Result, f.Err }
-func (f *FakeBackgroundProcessMonitorType) Reset()                               {}
-func (f *FakeBackgroundProcessMonitorType) IsRunning() bool                      { return f.Running }
-func (f *FakeBackgroundProcessMonitorType) Run(operation monitor.BackgroundFunc) {}
+func (f *BackgroundProcessMonitorType) CheckResult() (bool, error)           { return f.Result, f.Err }
+func (f *BackgroundProcessMonitorType) Reset()                               {}
+func (f *BackgroundProcessMonitorType) IsRunning() bool                      { return f.Running }
+func (f *BackgroundProcessMonitorType) Run(operation monitor.BackgroundFunc) {}
 
-// Check that &FakeMonitorType implements BackgroundProcessMonitor
-var _ monitor.BackgroundProcessMonitor = &FakeBackgroundProcessMonitorType{}
+// Check that &BackgroundProcessMonitorType implements BackgroundProcessMonitor
+var _ monitor.BackgroundProcessMonitor = &BackgroundProcessMonitorType{}

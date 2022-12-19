@@ -251,7 +251,7 @@ func TestInstall(t *testing.T) {
 
 	comp := istioComponent{
 		ValuesFile: "test-values-file.yaml",
-		monitor:    &fakemonitor.FakeBackgroundProcessMonitorType{Result: true, Running: false},
+		monitor:    &fakemonitor.BackgroundProcessMonitorType{Result: true, Running: false},
 	}
 
 	expectedErr := spi2.RetryableError{Source: ComponentName}
@@ -292,7 +292,7 @@ func TestBackgroundInstallCompletedSuccessfully(t *testing.T) {
 	setInstallFunc(fakeInstall)
 	setBashFunc(fakeBash)
 
-	comp.monitor = &fakemonitor.FakeBackgroundProcessMonitorType{Result: true, Running: true}
+	comp.monitor = &fakemonitor.BackgroundProcessMonitorType{Result: true, Running: true}
 	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, nil, false))
 	a.NoError(err)
 }
@@ -321,7 +321,7 @@ func TestBackgroundInstallRetryOnFailure(t *testing.T) {
 	setInstallFunc(fakeInstall)
 	setBashFunc(fakeBash)
 
-	comp.monitor = &fakemonitor.FakeBackgroundProcessMonitorType{Result: false, Running: true}
+	comp.monitor = &fakemonitor.BackgroundProcessMonitorType{Result: false, Running: true}
 
 	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, nil, false))
 	a.True(forkFuncCalled)
