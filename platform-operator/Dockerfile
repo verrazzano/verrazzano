@@ -61,4 +61,4 @@ COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/platform-op
 
 USER 1000
 
-ENTRYPOINT ["/usr/local/bin/verrazzano-platform-operator"]
+ENTRYPOINT ["/verrazzano/run.sh"]

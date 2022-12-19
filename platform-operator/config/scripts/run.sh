@@ -5,19 +5,13 @@
 #
 
 function create-kubeconfig {
-  # Get the name of the secret containing the certificate for accessing the cluster
-  default_secret=$(kubectl get serviceaccount default -o json | jq -r '.secrets[].name')
-
-  # Get the certificate for accessing the kubernetes cluster
-  default_cert=$(kubectl get secret $default_secret -o json | jq -r '.data."ca.crt"')
-
   # Get the endpoint for the kubernetes master server
   # The sed command is to strip out color escape sequences
-  master_server=$(kubectl cluster-info | grep master | awk '{ print $6 }' | sed $'s/\e\\[[0-9;:]*[a-zA-Z]//g' )
+  master_server=$(kubectl cluster-info | grep plane | awk '{ print $7 }' | sed $'s/\e\\[[0-9;:]*[a-zA-Z]//g' )
 
   # Create a kubeconfig for the pod
   cp /verrazzano/config/kubeconfig-template $VERRAZZANO_KUBECONFIG
-  sed -i -e "s|CERTIFICATE|$default_cert|g" -e "s|SERVER_ADDRESS|$master_server|g" $VERRAZZANO_KUBECONFIG
+  sed -i -e "s|SERVER_ADDRESS|$master_server|g" $VERRAZZANO_KUBECONFIG
   export KUBECONFIG=$VERRAZZANO_KUBECONFIG
   chmod 600 ${KUBECONFIG}
   ls -l ${KUBECONFIG}
