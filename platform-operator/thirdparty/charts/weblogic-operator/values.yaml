@@ -1,10 +1,10 @@
-# Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2018, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 # serviceAccount specifies the name of the ServiceAccount in the operator's namespace that the
 # operator will use to make requests to the Kubernetes API server.
 # The customer is responsible for creating the ServiceAccount in the same namespace as this Helm release.
-# If not specified, the operator will use the Helm release namespace's 'default' ServiceAccount.
+# If not specified, the the operator will use the Helm release namespace's 'default' ServiceAccount.
 serviceAccount: "default"
 
 # domainNamespaceSelectionStrategy specifies how the operator will select the set of namespaces
@@ -63,7 +63,7 @@ domainNamespaces:
 enableClusterRoleBinding: false
 
 # image specifies the container image containing the operator.
-image: "ghcr.io/oracle/weblogic-kubernetes-operator:3.4.3"
+image: "ghcr.io/oracle/weblogic-kubernetes-operator:3.4.4"
 
 # imagePullPolicy specifies the image pull policy for the operator's container image.
 imagePullPolicy: IfNotPresent
