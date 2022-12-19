@@ -229,8 +229,8 @@
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
-              "image": "grafana-jenkins",
-              "tag": "v7.5.17-20221215115347-5da365c9",
+              "image": "grafana",
+              "tag": "v7.5.17-20221219045426-a0a26f9b",
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
