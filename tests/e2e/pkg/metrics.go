@@ -355,7 +355,7 @@ func GetServiceMonitor(namespace, name string) (*promoperapi.ServiceMonitor, err
 func GetScrapePools(namespace, appName string, componentNames []string) []string {
 	var scrapePools []string
 	for _, comp := range componentNames {
-		scrapePool := "serviceMonitor" + namespace + GetAppServiceMonitorName(namespace, appName, comp)
+		scrapePool := "serviceMonitor/" + namespace + "/" + GetAppServiceMonitorName(namespace, appName, comp)
 		scrapePools = append(scrapePools, scrapePool)
 		Log(Info, fmt.Sprintf("scrapePool %s for %s", scrapePool, appName))
 	}
