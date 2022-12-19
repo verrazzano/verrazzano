@@ -9,7 +9,7 @@ kind: ConfigMapList
 items:
   {{- range $path, $_ :=  .Files.Glob  "**/*.json" }}
   {{- $fileName := base $path }}
-  {{- $cmName := trimSuffix ".json" $fileName | replace "_" "-" }}
+  {{- $cmName := trimPrefix "dashboards/" $path | trimSuffix ".json" | replace "/" "-" | replace "_" "-" }}
 - apiVersion: v1
   kind: ConfigMap
   metadata:

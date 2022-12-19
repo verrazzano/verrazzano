@@ -8,13 +8,6 @@ include ../make/retry.mk
 SCRIPT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../build
 TOOLS_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../tools
 
-# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
-ifeq (,$(shell go env GOBIN))
-GOBIN=$(shell go env GOPATH)/bin
-else
-GOBIN=$(shell go env GOBIN)
-endif
-
 NAME:=verrazzano-platform-operator
 REPO_NAME:=verrazzano-platform-operator
 
@@ -63,7 +56,6 @@ endif
 DIST_DIR:=dist
 GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
-GO_BINDATA_VERSION ?= v3.1.3
 
 CRD_PATH=helm_config/charts/verrazzano-platform-operator/crds
 
@@ -88,7 +80,7 @@ uninstall-crds:
 # Go build related tasks
 #
 .PHONY: go-build
-go-build: assets
+go-build:
 	$(GO) build \
 		-ldflags "${GO_LDFLAGS}" \
 		-o out/$(shell uname)_$(shell uname -m)/verrazzano-platform-operator \
@@ -114,32 +106,6 @@ mock-gen:
 	mockgen -destination=mocks/component_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi ComponentContext,ComponentInfo,ComponentInstaller,ComponentUpgrader,Component
 	mockgen -destination=mocks/controller_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
 	mockgen -destination=mocks/runtime_controller_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/controller Controller
-
-# find or download go-bindata
-# download go-bindata if necessary
-.PHONY: go-bindata
-go-bindata:
-ifeq (, $(shell command -v go-bindata))
-	$(GO) install github.com/go-bindata/go-bindata/v3/go-bindata@${GO_BINDATA_VERSION}
-	$(eval GO_BINDATA=$(GOBIN)/go-bindata)
-else
-	$(eval GO_BINDATA=$(shell command -v go-bindata))
-endif
-	@{ \
-	set -eu; \
-	ACTUAL_GO_BINDATA_VERSION=$$(${GO_BINDATA} --version | head -1 | awk '{print $$2}') ; \
-	if [ "v$${ACTUAL_GO_BINDATA_VERSION}" != "${GO_BINDATA_VERSION}" ] ; then \
-		echo  "Bad go-bindata version $${ACTUAL_GO_BINDATA_VERSION}, please install ${GO_BINDATA_VERSION}" ; \
-		exit 1; \
-	fi ; \
-	}
-
-.PHONY: assets
-assets: go-bindata
-	$(GO_BINDATA) -modtime 1647457998 -pkg grafana -o generated_assets.go ./manifests/dashboards/...
-	echo '// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.' | cat - generated_assets.go > tmp && mv tmp generated_assets.go
-	echo '// Copyright (C) 2022, Oracle and/or its affiliates.' | cat - generated_assets.go > tmp && mv tmp generated_assets.go
-	mv ./generated_assets.go ./controllers/verrazzano/component/grafana/
 
 #
 # Docker-related tasks
