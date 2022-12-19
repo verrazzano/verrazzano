@@ -120,25 +120,6 @@ func TestMonitorType_Reset(t *testing.T) {
 	a.False(res)
 	a.False(m.IsRunning())
 }
-
-func TestMonitorType_ResetWhileRunning(t *testing.T) {
-	a := assert.New(t)
-
-	m := &MonitorType{ComponentName: fakeCompName}
-	blocker := make(chan int)
-	operation := func() error {
-		<-blocker
-		return nil
-	}
-
-	m.Run(operation)
-	a.True(m.IsRunning())
-
-	m.Reset()
-	a.False(m.IsRunning())
-	blocker <- 0
-}
-
 func TestFakeMonitorType_CheckResult(t *testing.T) {
 	a := assert.New(t)
 
