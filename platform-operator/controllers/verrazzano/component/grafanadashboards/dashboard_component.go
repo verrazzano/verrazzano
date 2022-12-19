@@ -40,8 +40,7 @@ type grafanaDashboardsComponent struct {
 	helm.HelmComponent
 }
 
-// NewComponent returns a new networkPoliciesComponent
-// The network policies helm chart can use the same overrides as verrazznoa
+// NewComponent returns a new grafanaDashboardsComponent
 func NewComponent() spi.Component {
 	return grafanaDashboardsComponent{
 		helm.HelmComponent{
