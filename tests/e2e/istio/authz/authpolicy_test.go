@@ -90,6 +90,7 @@ func deployFooApplication() {
 		if err != nil {
 			return err
 		}
+		update.ValidatePods(sleepWorkloadName, labelPodName, fooNamespace, 1, false)
 		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
@@ -99,6 +100,7 @@ func deployFooApplication() {
 		if err != nil {
 			return err
 		}
+		update.ValidatePods(springBackWorkloadName, labelPodName, fooNamespace, 1, false)
 		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
@@ -108,6 +110,7 @@ func deployFooApplication() {
 		if err != nil {
 			return err
 		}
+		update.ValidatePods(springFrontWorkloadName, labelPodName, fooNamespace, 1, false)
 		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
@@ -136,6 +139,7 @@ func deployBarApplication() {
 		if err != nil {
 			return err
 		}
+		update.ValidatePods(sleepWorkloadName, labelPodName, barNamespace, 1, false)
 		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
@@ -145,6 +149,7 @@ func deployBarApplication() {
 		if err != nil {
 			return err
 		}
+		update.ValidatePods(springBackWorkloadName, labelPodName, barNamespace, 1, false)
 		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
@@ -154,6 +159,7 @@ func deployBarApplication() {
 		if err != nil {
 			return err
 		}
+		update.ValidatePods(springFrontWorkloadName, labelPodName, barNamespace, 1, false)
 		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
@@ -182,6 +188,7 @@ func deployNoIstioApplication() {
 		if err != nil {
 			return err
 		}
+		update.ValidatePods(sleepWorkloadName, "app", noIstioNamespace, 1, false)
 		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
@@ -191,6 +198,7 @@ func deployNoIstioApplication() {
 		if err != nil {
 			return err
 		}
+		update.ValidatePods(springBackWorkloadName, labelPodName, noIstioNamespace, 1, false)
 		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
@@ -200,6 +208,7 @@ func deployNoIstioApplication() {
 		if err != nil {
 			return err
 		}
+		update.ValidatePods(springFrontWorkloadName, labelPodName, noIstioNamespace, 1, false)
 		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
