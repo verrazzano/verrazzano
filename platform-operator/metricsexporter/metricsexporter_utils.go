@@ -5,11 +5,15 @@ package metricsexporter
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafanadashboards"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
@@ -20,8 +24,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
-	"net/http"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -148,13 +150,13 @@ func initSimpleCounterMetricMap() map[metricName]*SimpleCounterMetric {
 	return map[metricName]*SimpleCounterMetric{
 		ReconcileCounter: {
 			prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vpo_reconcile_counter",
+				Name: "vz_platform_operator_reconcile_total",
 				Help: "The number of times the reconcile function has been called in the verrazzano-platform-operator",
 			}),
 		},
 		ReconcileError: {
 			prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vpo_error_reconcile_counter",
+				Name: "vz_platform_operator_error_reconcile_total",
 				Help: "The number of times the reconcile function has returned an error in the verrazzano-platform-operator",
 			}),
 		},
@@ -200,7 +202,7 @@ func initMetricComponentMap() map[metricName]*MetricsComponent {
 func initComponentHealthMetrics() *ComponentHealth {
 	return &ComponentHealth{
 		available: prometheus.NewGaugeVec(prometheus.GaugeOpts{
-			Name: "vpo_component_health",
+			Name: "vz_platform_operator_component_health",
 			Help: "Is component enabled and available",
 		}, []string{"component"}),
 	}
@@ -211,13 +213,13 @@ func initSimpleGaugeMetricMap() map[metricName]*SimpleGaugeMetric {
 	return map[metricName]*SimpleGaugeMetric{
 		AvailableComponents: {
 			metric: prometheus.NewGauge(prometheus.GaugeOpts{
-				Name: "vpo_component_health_count",
+				Name: "vz_platform_operator_component_health_total",
 				Help: "The number of currently available Verrazzano components",
 			}),
 		},
 		EnabledComponents: {
 			metric: prometheus.NewGauge(prometheus.GaugeOpts{
-				Name: "vpo_component_enabled_count",
+				Name: "vz_platform_operator_component_enabled_total",
 				Help: "The number of currently enabled Verrazzano components",
 			}),
 		},
@@ -229,7 +231,7 @@ func initDurationMetricMap() map[metricName]*DurationMetric {
 	return map[metricName]*DurationMetric{
 		ReconcileDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
-				Name: "vpo_reconcile_duration",
+				Name: "vz_platform_operator_reconcile_duration",
 				Help: "The duration in seconds of vpo reconcile process",
 			}),
 		},
@@ -286,7 +288,7 @@ func registerMetricsHandlersHelper() error {
 				errorObserved = err
 			}
 		} else {
-			//if a metric is registered, delete it from the failed metrics map so that it is not retried
+			// if a metric is registered, delete it from the failed metrics map so that it is not retried
 			delete(MetricsExp.internalConfig.failedMetrics, metric)
 		}
 	}
@@ -295,8 +297,8 @@ func registerMetricsHandlersHelper() error {
 
 // This function registers the metrics and provides error handling
 func registerMetricsHandlers(log *zap.SugaredLogger) {
-	initializeFailedMetricsArray() //Get list of metrics to register initially
-	//loop until there is no error in registering
+	initializeFailedMetricsArray() // Get list of metrics to register initially
+	// loop until there is no error in registering
 	for err := registerMetricsHandlersHelper(); err != nil; err = registerMetricsHandlersHelper() {
 		log.Errorf("Failed to register metrics for VPO %v \n", err)
 		time.Sleep(time.Second)
@@ -369,7 +371,7 @@ func AnalyzeVerrazzanoResourceMetrics(log vzlog.VerrazzanoLogger, cr vzapi.Verra
 
 // This function initializes the allMetrics array
 func InitializeAllMetricsArray() {
-	//loop through all metrics declarations in metric maps
+	// loop through all metrics declarations in metric maps
 	for _, value := range MetricsExp.internalData.simpleCounterMetricMap {
 		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.metric)
 	}
@@ -441,8 +443,9 @@ func SetComponentAvailabilityMetric(name string, availability vzapi.ComponentAva
 
 func IsNonMetricComponent(componentName string) bool {
 	var nonMetricComponents = map[string]bool{
-		vmo.ComponentName:             true,
-		networkpolicies.ComponentName: true,
+		vmo.ComponentName:               true,
+		networkpolicies.ComponentName:   true,
+		grafanadashboards.ComponentName: true,
 	}
 	return nonMetricComponents[componentName]
 }

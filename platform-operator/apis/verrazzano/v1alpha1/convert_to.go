@@ -9,8 +9,6 @@ import (
 
 	"github.com/Jeffail/gabs/v2"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	operatorv1alpha1 "istio.io/api/operator/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -19,6 +17,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 	"sigs.k8s.io/yaml"
+
+	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 )
 
 const (
@@ -295,6 +296,7 @@ func convertOpenSearchToV1Beta1(src *ElasticsearchComponent) (*v1beta1.OpenSearc
 		Enabled:  src.Enabled,
 		Policies: src.Policies,
 		Nodes:    nodes,
+		Plugins:  src.Plugins,
 	}, nil
 }
 
@@ -621,6 +623,7 @@ func convertOSDToV1Beta1(src *KibanaComponent) *v1beta1.OpenSearchDashboardsComp
 	return &v1beta1.OpenSearchDashboardsComponent{
 		Enabled:  src.Enabled,
 		Replicas: src.Replicas,
+		Plugins:  src.Plugins,
 	}
 }
 

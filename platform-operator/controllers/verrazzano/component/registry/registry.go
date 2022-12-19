@@ -15,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafanadashboards"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
@@ -72,6 +73,7 @@ func InitRegistry() {
 		opensearch.NewComponent(),
 		opensearchdashboards.NewComponent(),
 		grafana.NewComponent(),
+		grafanadashboards.NewComponent(),
 		authproxy.NewComponent(),
 		coherence.NewComponent(),
 		mysqloperator.NewComponent(), // mysqloperator needs to be upgraded before mysql

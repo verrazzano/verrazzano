@@ -840,6 +840,17 @@ spec:
                               type: object
                           type: object
                         type: array
+                      plugins:
+                        properties:
+                          enabled:
+                            type: boolean
+                          installList:
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - enabled
+                        type: object
                       policies:
                         items:
                           properties:
@@ -2745,6 +2756,17 @@ spec:
                     properties:
                       enabled:
                         type: boolean
+                      plugins:
+                        properties:
+                          enabled:
+                            type: boolean
+                          installList:
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - enabled
+                        type: object
                       replicas:
                         format: int32
                         type: integer
@@ -5718,6 +5740,17 @@ spec:
                               type: object
                           type: object
                         type: array
+                      plugins:
+                        properties:
+                          enabled:
+                            type: boolean
+                          installList:
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - enabled
+                        type: object
                       policies:
                         items:
                           properties:
@@ -5749,6 +5782,17 @@ spec:
                     properties:
                       enabled:
                         type: boolean
+                      plugins:
+                        properties:
+                          enabled:
+                            type: boolean
+                          installList:
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - enabled
+                        type: object
                       replicas:
                         format: int32
                         type: integer
