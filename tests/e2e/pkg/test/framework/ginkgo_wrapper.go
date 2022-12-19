@@ -72,7 +72,22 @@ func (t *TestFramework) BeforeEach(args ...interface{}) bool {
 
 // It wraps Ginkgo It to emit a metric
 func (t *TestFramework) It(text string, args ...interface{}) bool {
-	return ginkgo.It(text, t.makeItArgs(args...)...)
+	return ginkgo.It(text, t.MakeGinkgoArgs(args...)...)
+}
+
+func (t *TestFramework) WhenMeetsConditionFunc(condition string, conditionFunc func() (bool, error)) func(string, ...interface{}) bool {
+	return func(text string, args ...interface{}) bool {
+		met, err := conditionFunc()
+		if err != nil {
+			t.Logs.Errorf("Error checking condition %s: %v", condition, err)
+			return false
+		}
+		if !met {
+			t.Logs.Infof("Skipping test because condition is not met: %s", condition)
+			return true
+		}
+		return ginkgo.It(text, t.MakeGinkgoArgs(args...)...)
+	}
 }
 
 func (t *TestFramework) ItMinimumVersion(text string, version string, kubeconfigPath string, args ...interface{}) bool {
@@ -85,10 +100,10 @@ func (t *TestFramework) ItMinimumVersion(text string, version string, kubeconfig
 		t.Logs.Infof("Skipping test because Verrazzano version is less than %s", version)
 		return true
 	}
-	return ginkgo.It(text, t.makeItArgs(args...)...)
+	return ginkgo.It(text, t.MakeGinkgoArgs(args...)...)
 }
 
-func (t *TestFramework) makeItArgs(args ...interface{}) []interface{} {
+func (t *TestFramework) MakeGinkgoArgs(args ...interface{}) []interface{} {
 	body := getFunctionBodyPos(len(args)-1, args...)
 	f := func() {
 		metrics.Emit(t.Metrics) // Starting point metric
