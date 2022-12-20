@@ -5,13 +5,9 @@
 #
 
 function create-kubeconfig {
-  # Get the endpoint for the kubernetes master server
-  # The sed command is to strip out color escape sequences
-  master_server=$(kubectl cluster-info | grep "control plane" | awk '{ print $7 }' | sed $'s/\e\\[[0-9;:]*[a-zA-Z]//g' )
-
-  # Create a kubeconfig for the pod
+  # Create a kubeconfig file for the pod. The kubeconfig is needed by the Rancher uninstall tool so we create a
+  # bare minimum kubeconfig to satisfy Rancher.
   cp /verrazzano/config/kubeconfig-template $VERRAZZANO_KUBECONFIG
-  sed -i -e "s|SERVER_ADDRESS|$master_server|g" $VERRAZZANO_KUBECONFIG
   export KUBECONFIG=$VERRAZZANO_KUBECONFIG
   chmod 600 ${KUBECONFIG}
   ls -l ${KUBECONFIG}
