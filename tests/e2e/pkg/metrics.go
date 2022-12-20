@@ -6,6 +6,7 @@ package pkg
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -180,11 +181,11 @@ func MetricsExist(metricsName, key, value string) bool {
 }
 
 // ScrapeTargetsHealthy validates the health of the scrape targets for the given namespace
-func ScrapeTargetsHealthy(scrapePools []string) bool {
+func ScrapeTargetsHealthy(scrapePools []string) (bool, error) {
 	targets, err := ScrapeTargets()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting scrape targets: %v", err))
-		return false
+		return false, err
 	}
 	isHealthy := false
 	for _, scrapePool := range scrapePools {
@@ -195,19 +196,20 @@ func ScrapeTargetsHealthy(scrapePools []string) bool {
 				found = true
 				// If any of the target health is not "up" return false
 				if Jq(target, "health") != "up" {
-					Log(Error, fmt.Sprintf("target with scrapePool %s and scrapeURL %s is not ready with health %s", Jq(target, "scrapePool"), Jq(target, "scrapeUrl"), Jq(target, "health")))
-					return isHealthy
+					scrapeURL := Jq(target, "scrapeUrl").(string)
+					Log(Error, fmt.Sprintf("target with scrapePool %s and scrapeURL %s is not ready with health %s", targetScrapePool, scrapeURL, Jq(target, "scrapeUrl"), Jq(target, "health")))
+					return isHealthy, errors.New("target with scrapePool" + targetScrapePool + "and scrapeURL" + scrapeURL + "is not healthy")
 				}
 			}
 		}
-		// If target with scrapePool not found, then return false
+		// If target with scrapePool not found, then return false and error
 		if !found {
 			Log(Error, fmt.Sprintf("target with scrapePool %s is not found", scrapePool))
-			return isHealthy
+			return isHealthy, errors.New("target with scrapePool" + scrapePool + "not found")
 		}
 		isHealthy = true
 	}
-	return isHealthy
+	return isHealthy, nil
 }
 
 // ListUnhealthyScrapeTargets lists all the scrape targets that are unhealthy
@@ -357,7 +359,6 @@ func GetScrapePools(namespace, appName string, componentNames []string) []string
 	for _, comp := range componentNames {
 		scrapePool := "serviceMonitor/" + namespace + "/" + GetAppServiceMonitorName(namespace, appName, comp)
 		scrapePools = append(scrapePools, scrapePool)
-		Log(Info, fmt.Sprintf("ScrapePool %s for %s", scrapePool, appName))
 	}
 	return scrapePools
 
