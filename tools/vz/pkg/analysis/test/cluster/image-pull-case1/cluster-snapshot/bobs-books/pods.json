@@ -3795,7 +3795,7 @@
                 "deletionTimestamp": "2021-03-15T19:43:23Z",
                 "deletionGracePeriodSeconds": 40,
                 "labels": {
-                    "app.oam.dev/component": "bobs-orders-wls",
+                    "app.oam.dev/component": "bobs-bookstore",
                     "app.oam.dev/name": "bobs-books",
                     "istio.io/rev": "default",
                     "security.istio.io/tlsMode": "istio",
@@ -3819,7 +3819,7 @@
                     {
                         "apiVersion": "weblogic.oracle/v8",
                         "kind": "Domain",
-                        "name": "bobs-orders-wls",
+                        "name": "bobs-bookstore",
                         "uid": "f61289c9-dc32-4bf2-a965-c60987c9b68b",
                         "controller": true
                     }
@@ -4021,7 +4021,7 @@
                         "env": [
                             {
                                 "name": "LOG_PATH",
-                                "value": "/scratch/logs/bobs-orders-wls/AdminServer.log"
+                                "value": "/scratch/logs/bobs-bookstore/AdminServer.log"
                             },
                             {
                                 "name": "FLUENTD_CONF",
@@ -4213,7 +4213,7 @@
                             },
                             {
                                 "name": "LOG_HOME",
-                                "value": "/scratch/logs/bobs-orders-wls"
+                                "value": "/scratch/logs/bobs-bookstore"
                             },
                             {
                                 "name": "SERVER_OUT_IN_POD_LOG",
@@ -4703,7 +4703,7 @@
                 "deletionTimestamp": "2021-03-15T19:43:23Z",
                 "deletionGracePeriodSeconds": 40,
                 "labels": {
-                    "app.oam.dev/component": "bobs-orders-wls",
+                    "app.oam.dev/component": "bobs-bookstore",
                     "app.oam.dev/name": "bobs-books",
                     "istio.io/rev": "default",
                     "security.istio.io/tlsMode": "istio",
@@ -4728,7 +4728,7 @@
                     {
                         "apiVersion": "weblogic.oracle/v8",
                         "kind": "Domain",
-                        "name": "bobs-orders-wls",
+                        "name": "bobs-bookstore",
                         "uid": "f61289c9-dc32-4bf2-a965-c60987c9b68b",
                         "controller": true
                     }
@@ -4930,7 +4930,7 @@
                         "env": [
                             {
                                 "name": "LOG_PATH",
-                                "value": "/scratch/logs/bobs-orders-wls/managed-server1.log"
+                                "value": "/scratch/logs/bobs-bookstore/managed-server1.log"
                             },
                             {
                                 "name": "FLUENTD_CONF",
@@ -5117,7 +5117,7 @@
                             },
                             {
                                 "name": "LOG_HOME",
-                                "value": "/scratch/logs/bobs-orders-wls"
+                                "value": "/scratch/logs/bobs-bookstore"
                             },
                             {
                                 "name": "SERVER_OUT_IN_POD_LOG",

@@ -103,6 +103,8 @@ rules:
     resources:
       - domains
       - domains/status
+      - clusters
+      - clusters/status
     verbs:
       - get
       - list
@@ -141,6 +143,7 @@ rules:
       - weblogic.oracle
     resources:
       - domains
+      - clusters
     verbs:
       - create
       - update
