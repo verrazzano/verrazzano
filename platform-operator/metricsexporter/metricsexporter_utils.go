@@ -332,6 +332,7 @@ func registerMetricsHandlers(log *zap.SugaredLogger) {
 	}
 	// register component health metrics vector
 	MetricsExp.internalConfig.registry.MustRegister(MetricsExp.internalData.componentHealth.available)
+	MetricsExp.internalConfig.registry.MustRegister(MetricsExp.internalData.componentInstallDuration.installDuration)
 }
 
 // This function initializes the failedMetrics array
