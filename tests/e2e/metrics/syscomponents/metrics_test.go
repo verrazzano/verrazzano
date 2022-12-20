@@ -35,9 +35,9 @@ const (
 	vmoCounterMetric               = "vmo_deployment_update_total"
 	vmoGaugeMetric                 = "vmo_work_queue_size"
 	vmoTimestampMetric             = "vmo_configmap_last_successful_timestamp"
-	vaoSuccessCountMetric          = "vao_appconfig_successful_reconcile_total"
-	vaoFailCountMetric             = "vao_appconfig_error_reconcile_total"
-	vaoDurationCountMetric         = "vao_appconfig_reconcile_duration_count"
+	vaoSuccessCountMetric          = "vz_application_operator_appconfig_successful_reconcile_total"
+	vaoFailCountMetric             = "vz_application_operator_appconfig_error_reconcile_total"
+	vaoDurationCountMetric         = "vz_application_operator_appconfig_reconcile_duration_count"
 	esClusterStatusMetric          = "es_cluster_status"
 
 	// Namespaces used for validating envoy stats
@@ -90,6 +90,7 @@ var excludePodsVS = []string{
 	"verrazzano-monitoring-operator",
 	"verrazzano-cluster-operator",
 	"verrazzano-operator",
+	"weblogic-operator-webhook",
 }
 
 // List of pods to be excluded from istio-system namespace for envoy-stats as they do not have envoy

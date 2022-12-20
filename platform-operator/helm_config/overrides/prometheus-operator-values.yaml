@@ -3,6 +3,14 @@
 
 grafana:
   enabled: false
+  forceDeployDashboards: true
+  namespaceOverride: verrazzano-system
+  sidecar:
+    dashboards:
+      label: grafana_dashboard
+      labelValue: "1"
+      annotations:
+        k8s-sidecar-target-directory: "Prometheus Operator"
 nodeExporter:
   enabled: false
 kubeStateMetrics:
