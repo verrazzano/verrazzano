@@ -281,7 +281,7 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 			t.It("Verify all scrape targets are healthy for the application", func() {
 				pkg.Concurrently(
 					func() {
-						Eventually(func() bool {
+						Eventually(func() (bool, error) {
 							var componentNames = []string{"carts", "catalog", "orders", "payment", "shipping", "users"}
 							return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "sockshop-appconf", componentNames))
 						}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())

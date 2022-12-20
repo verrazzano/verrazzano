@@ -180,7 +180,7 @@ var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 		t.It("Verify all scrape targets are healthy for the application", func() {
 			pkg.Concurrently(
 				func() {
-					Eventually(func() bool {
+					Eventually(func() (bool, error) {
 						var componentNames = []string{"helidon-config-component"}
 						return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "helidon-config-appconf", componentNames))
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
