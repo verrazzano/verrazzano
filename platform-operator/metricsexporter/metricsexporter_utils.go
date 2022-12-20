@@ -289,13 +289,13 @@ func SetComponentInstallDurationMetric(componentName metricName, totalDuration i
 	if err != nil {
 		return err
 	}
-	MetricsExp.internalData.componentHealth.SetInstallDuration(compMetric.metricName, totalDuration)
+	MetricsExp.internalData.componentInstallDuration.SetInstallDuration(compMetric.metricName, totalDuration)
 	return nil
 }
 
 // This member function returns the simpleGaugeMetric that holds the upgrade time for a component
-func (c *ComponentHealth) SetInstallDuration(name string, totalDuration int64) (prometheus.Gauge, error) {
-	metric, err := c.available.GetMetricWithLabelValues(name)
+func (c *ComponentInstallDuration) SetInstallDuration(name string, totalDuration int64) (prometheus.Gauge, error) {
+	metric, err := c.installDuration.GetMetricWithLabelValues(name)
 	if err != nil {
 		return nil, err
 	}
