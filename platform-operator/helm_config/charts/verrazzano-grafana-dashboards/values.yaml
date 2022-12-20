@@ -3,7 +3,7 @@
 name: grafana
 namespace: verrazzano-system
 enabled: true
-foldersFromFiles: false
+foldersFromFiles: true
 
 provider:
   name: verrazzano-dashboard-provider
