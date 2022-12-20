@@ -134,6 +134,14 @@ func (c argoCDComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
+// PreInstall applies the Application Operator CRDs
+func (c argoCDComponent) PreInstall(ctx spi.ComponentContext) error {
+	if err := common.ApplyCRDYaml(ctx, config.GetHelmAppOpChartsDir()); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreInstall(ctx)
+}
+
 //Install
 /* Installs the Helm chart, and patches the resulting objects
 - ensure Helm chart is installed

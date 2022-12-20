@@ -303,7 +303,7 @@ spec:
     weblogicOperator:
       enabled: true
     argocd:
-      enabled: true
+      enabled: false
   defaultVolumeSource:
     emptyDir: {}
   environmentName: default

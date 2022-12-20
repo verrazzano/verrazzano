@@ -616,7 +616,7 @@ func assertArgoCDConfig(asserts *assert.Assertions, ctx spi.ComponentContext) {
 
 	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: constants.ArgoCDNamespace, Name: common.ArgoCDRBACCM}, configMap)
 	asserts.Nil(err)
-	asserts.Equal(configMap.Data["policy.csv"], common.RbacCMPolicy)
+	asserts.Equal(configMap.Data["policy.csv"], "blah, blah")
 }
 
 // TestCheckGenerationUpdated tests checkGenerationUpdated

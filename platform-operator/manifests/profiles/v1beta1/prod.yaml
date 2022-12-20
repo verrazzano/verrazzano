@@ -45,5 +45,3 @@ spec:
                 resources:
                   requests:
                     memory: "128Mi"
-    argocd:
-      enabled: true
