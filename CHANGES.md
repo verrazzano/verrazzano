@@ -5,6 +5,11 @@ Fixes:
 - Fixed Fluentd configuration to prevent duplication of logs in OpenSearch on Fluentd restarts or upgrade.
 - Fixed WebLogic Grafana dashboards to get the service label value correctly and display data properly.
 
+Component version updates:
+
+- Grafana v7.5.17
+
+
 ### v1.4.2
 Fixes:
 
