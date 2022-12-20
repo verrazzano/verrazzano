@@ -297,6 +297,7 @@ spec:
 {{- end }}
 ---
 # Network policy for Rancher cluster agent
+# - always create this policy in case the target cluster is intended to be a managed cluster
 # Ingress: deny all
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
