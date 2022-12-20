@@ -9,7 +9,7 @@ kind: ConfigMapList
 items:
   {{- range $path, $_ :=  .Files.Glob  "**/*.json" }}
   {{- $fileName := base $path }}
-  {{- $cmName := trimPrefix "dashboards/" $path | trimSuffix ".json" | replace "/" "-" | replace "_" "-" }}
+  {{- $cmName := trimPrefix "dashboards/" $path | trimSuffix ".json" | replace "/" "-" | replace "_" "-" | replace " " "-" | lower }}
 - apiVersion: v1
   kind: ConfigMap
   metadata:
@@ -22,7 +22,7 @@ items:
 # directory of the JSON file in the Helm chart
 {{- $subdir := trimSuffix $fileName $path | trimSuffix "/" | base }}
     annotations:
-      k8s-sidecar-target-directory: {{ $subdir }}
+      k8s-sidecar-target-directory: "{{ $subdir }}"
 {{- end }}
   data:
     {{ $fileName }}: |- {{ $.Files.Get $path | nindent 6 }}
