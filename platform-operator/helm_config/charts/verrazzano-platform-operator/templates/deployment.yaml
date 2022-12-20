@@ -27,12 +27,6 @@ spec:
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           image: {{ .Values.image }}
           command: [ 'sh', '-c', "/verrazzano/platform-operator/scripts/wait4webhook.sh" ]
-          securityContext:
-            privileged: false
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
       {{- if .Values.affinity }}
       affinity: {{ toYaml .Values.affinity | nindent 8 }}
       {{- end }}
@@ -128,12 +122,6 @@ spec:
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
-          securityContext:
-            privileged: false
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
       containers:
         - name: webhook-run
           image: {{ .Values.image }}
