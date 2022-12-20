@@ -339,8 +339,10 @@
           "name": "weblogic-operator",
           "images": [
             {
+              "registry": "phx.ocir.io",
+              "repository": "weblogick8s",
               "image": "weblogic-kubernetes-operator",
-              "tag": "4.0.4",
+              "tag": "nightly-main",
               "helmFullImageKey": "image"
             },
             {
