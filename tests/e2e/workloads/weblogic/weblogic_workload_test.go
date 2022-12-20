@@ -212,8 +212,8 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {
-						var componentNames = []string{""}
-						return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "wls", componentNames))
+						var scrapePools = []string{"weblogic-workload"}
+						return pkg.ScrapeTargetsHealthy(scrapePools)
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 			)
