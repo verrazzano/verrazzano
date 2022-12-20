@@ -27,6 +27,7 @@ type data struct {
 	metricsComponentMap      map[metricName]*MetricsComponent
 	componentHealth          *ComponentHealth
 	componentInstallDuration *ComponentInstallDuration
+	componentUpgradeDuration *ComponentUpgradeDuration
 }
 type SimpleCounterMetric struct {
 	metric prometheus.Counter
@@ -108,6 +109,10 @@ type ComponentHealth struct {
 
 type ComponentInstallDuration struct {
 	installDuration *prometheus.GaugeVec
+}
+
+type ComponentUpgradeDuration struct {
+	upgradeDuration *prometheus.GaugeVec
 }
 
 // This member function returns the simpleGaugeMetric that holds the upgrade time for a component
