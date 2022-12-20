@@ -357,7 +357,7 @@ func GetScrapePools(namespace, appName string, componentNames []string) []string
 	for _, comp := range componentNames {
 		scrapePool := "serviceMonitor/" + namespace + "/" + GetAppServiceMonitorName(namespace, appName, comp)
 		scrapePools = append(scrapePools, scrapePool)
-		Log(Info, fmt.Sprintf("scrapePool %s for %s", scrapePool, appName))
+		Log(Info, fmt.Sprintf("ScrapePool %s for %s", scrapePool, appName))
 	}
 	return scrapePools
 
