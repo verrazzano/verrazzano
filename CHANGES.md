@@ -19,7 +19,7 @@ Component version updates:
 - cert-manager v1.9.1
 - Prometheus Adapter for Kubernetes Metrics APIs v0.10.0
 - Grafana v7.5.17
-- WebLogic Kubernetes Operator v4.0.3
+- WebLogic Kubernetes Operator v4.0.4
 - WebLogic Monitoring Exporter v2.1.0
 
 Components added:
