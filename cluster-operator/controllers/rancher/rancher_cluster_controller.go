@@ -6,6 +6,9 @@ package rancher
 import (
 	"context"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"time"
 
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -45,6 +48,13 @@ var gvk = schema.GroupVersionKind{
 	Kind:    "Cluster",
 }
 
+var (
+	reconcileTimeMetric = promauto.NewSummary(prometheus.SummaryOpts{
+		Name: "vz_cluster_operator_reconcile_cluster_duration_seconds",
+		Help: "The duration of the reconcile process for cluster objects",
+	})
+)
+
 func CattleClusterClientObject() client.Object {
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(gvk)
@@ -61,6 +71,10 @@ func (r *RancherClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // Reconcile is the main controller reconcile function
 func (r *RancherClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.Log.Debugf("Reconciling Rancher cluster: %v", req.NamespacedName)
+
+	// Time the reconcile process and set the metric with the elapsed time
+	startTime := time.Now()
+	go reconcileTimeMetric.Observe(time.Since(startTime).Seconds())
 
 	cluster := &unstructured.Unstructured{}
 	cluster.SetGroupVersionKind(gvk)
