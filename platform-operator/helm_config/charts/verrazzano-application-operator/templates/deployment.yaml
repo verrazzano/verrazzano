@@ -107,6 +107,12 @@ spec:
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/certs
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
       containers:
         - name: {{ .Values.name }}-webhook
           image: {{ .Values.image }}
