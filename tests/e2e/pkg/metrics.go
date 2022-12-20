@@ -197,7 +197,7 @@ func ScrapeTargetsHealthy(scrapePools []string) (bool, error) {
 				// If any of the target health is not "up" return false
 				if Jq(target, "health") != "up" {
 					scrapeURL := Jq(target, "scrapeUrl").(string)
-					Log(Error, fmt.Sprintf("target with scrapePool %s and scrapeURL %s is not ready with health %s", targetScrapePool, scrapeURL, Jq(target, "scrapeUrl"), Jq(target, "health")))
+					Log(Error, fmt.Sprintf("target with scrapePool %s and scrapeURL %s is not ready with health %s", targetScrapePool, scrapeURL, Jq(target, "health")))
 					return isHealthy, errors.New("target with scrapePool" + targetScrapePool + "and scrapeURL" + scrapeURL + "is not healthy")
 				}
 			}
