@@ -32,10 +32,10 @@ func ValidatePods(deployName string, labelName string, nameSpace string, expecte
 			}
 		}
 		if runningPods != expectedPodsRunning {
-			return fmt.Errorf("expect %d running pods, but got %d", expectedPodsRunning, runningPods)
+			return fmt.Errorf("Deployment name %s: expect %d running pods, but got %d", deployName, expectedPodsRunning, runningPods)
 		}
 		if pendingPods != hasPending {
-			return fmt.Errorf("expect pending pods %t, but got %t", hasPending, pendingPods)
+			return fmt.Errorf("Deployment name %s: expect pending pods %t, but got %t", deployName, hasPending, pendingPods)
 		}
 		return nil
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get correct number of running and pending pods")
