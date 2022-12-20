@@ -73,6 +73,9 @@ type envVar struct {
 
 type rancherComponent struct {
 	helm.HelmComponent
+
+	// internal monitor object for running the Rancher uninstall tool in the background
+	monitor postUninstallMonitor
 }
 
 var certificates = []types.NamespacedName{
@@ -126,6 +129,7 @@ func NewComponent() spi.Component {
 			},
 			GetInstallOverridesFunc: GetOverrides,
 		},
+		monitor: &postUninstallMonitorType{},
 	}
 }
 
@@ -442,7 +446,7 @@ func (r rancherComponent) PostUninstall(ctx spi.ComponentContext) error {
 		ctx.Log().Debug("Rancher postUninstall dry run")
 		return nil
 	}
-	return postUninstall(ctx)
+	return postUninstall(ctx, r.monitor)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
