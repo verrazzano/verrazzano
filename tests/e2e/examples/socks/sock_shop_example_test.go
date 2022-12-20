@@ -271,38 +271,22 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 		}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("For all those leg lovers out there.")))
 	})
 
-	// Verify Prometheus scraped metrics
+	// Verify all the scrape targets are healthy
 	t.Context("Metrics", Label("f:observability.monitoring.prom"), func() {
 		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 		if err != nil {
 			Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 		}
-		// Coherence metric fix available only from 1.3.0
 		if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath); ok {
-			t.It("Retrieve Prometheus scraped metrics", func() {
-				if getVariant() == "helidon" {
-					pkg.Concurrently(
-						func() {
-							Eventually(appMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
-						},
-					)
-				} else if getVariant() == "spring" {
-					pkg.Concurrently(
-						func() {
-							Eventually(func() bool {
-								return springMetricExists("carts")
-							}, waitTimeout, pollingInterval).Should(BeTrue())
-						},
-					)
-				} else if getVariant() == "micronaut" {
-					pkg.Concurrently(
-						func() {
-							Eventually(func() bool {
-								return micronautMetricExists("carts")
-							}, waitTimeout, pollingInterval).Should(BeTrue())
-						},
-					)
-				}
+			t.It("Verify all scrape targets are healthy for the application", func() {
+				pkg.Concurrently(
+					func() {
+						Eventually(func() bool {
+							var componentNames = []string{"carts", "catalog", "orders", "payment", "shipping", "users"}
+							return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "sockshop-appconf", componentNames))
+						}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					},
+				)
 			})
 		}
 	})
