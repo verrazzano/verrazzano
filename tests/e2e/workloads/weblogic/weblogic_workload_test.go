@@ -211,9 +211,9 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 		t.It("Verify all scrape targets are healthy for the application", func() {
 			pkg.Concurrently(
 				func() {
-					Eventually(func() bool {
-						var scrapePools = []string{namespace}
-						return pkg.ScrapeTargetsHealthy(scrapePools)
+					Eventually(func() (bool, error) {
+						var componentNames = []string{"hello-domain"}
+						return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "hello-appconf", componentNames))
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 			)
