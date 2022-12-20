@@ -19,7 +19,7 @@ fi
 
 namespace=$1
 for type in ${TYPES} ; do
-  if [ "$type" == "CustomResourceDefinition"  ] || [ "$type" == "APIService" ]; then
+  if [ "$type" == "CustomResourceDefinition"  ] || [ "$type" == "APIService" ] || [ "$type" == "ValidatingWebhookConfiguration" ]; then
     if [ "${INCLUDE_CRDS}" != true ]; then
       continue
     fi
