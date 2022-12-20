@@ -240,12 +240,12 @@
             },
             {
               "image": "opensearch",
-              "tag": "1.2.3-20221128202334-b9a03fdef55",
+              "tag": "2.3.0-20221201055859-aa8cdda4ea0",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "1.2.0-20221011085109-c206c8b25f",
+              "tag": "2.3.0-20221206112501-acc83ce515",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
