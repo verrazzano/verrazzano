@@ -103,11 +103,12 @@ func RequiredInitialization() {
 	MetricsExp = MetricsExporter{
 		internalConfig: initConfiguration(),
 		internalData: data{
-			simpleCounterMetricMap: initSimpleCounterMetricMap(),
-			simpleGaugeMetricMap:   initSimpleGaugeMetricMap(),
-			durationMetricMap:      initDurationMetricMap(),
-			metricsComponentMap:    initMetricComponentMap(),
-			componentHealth:        initComponentHealthMetrics(),
+			simpleCounterMetricMap:   initSimpleCounterMetricMap(),
+			simpleGaugeMetricMap:     initSimpleGaugeMetricMap(),
+			durationMetricMap:        initDurationMetricMap(),
+			metricsComponentMap:      initMetricComponentMap(),
+			componentHealth:          initComponentHealthMetrics(),
+			componentInstallDuration: initComponentInstallDurationMetrics(),
 		},
 	}
 	// initialize component availability metric to false
@@ -128,7 +129,6 @@ func newMetricsComponent(name string) *MetricsComponent {
 	return &MetricsComponent{
 		metricName: name,
 		latestInstallDuration: &SimpleGaugeMetric{
-
 			metric: prometheus.NewGauge(prometheus.GaugeOpts{
 				Name: fmt.Sprintf("vz_%s_install_duration_seconds", name),
 				Help: fmt.Sprintf("The duration of the latest installation of the %s component in seconds", name),
@@ -205,6 +205,15 @@ func initComponentHealthMetrics() *ComponentHealth {
 	}
 }
 
+func initComponentInstallDurationMetrics() *ComponentInstallDuration {
+	return &ComponentInstallDuration{
+		installDuration: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "vz_platform_operator_component_install_duration_seconds",
+			Help: "Is component enabled and available",
+		}, []string{"component"}),
+	}
+}
+
 // This function initializes the simpleGaugeMetricMap for the metricsExporter object
 func initSimpleGaugeMetricMap() map[metricName]*SimpleGaugeMetric {
 	return map[metricName]*SimpleGaugeMetric{
@@ -270,7 +279,28 @@ func metricParserHelperFunction(log vzlog.VerrazzanoLogger, componentName metric
 		upgradeDurationMetricForComponent := MetricsExp.internalData.metricsComponentMap[componentName].getUpgradeDuration()
 		upgradeDurationMetricForComponent.Set(float64(totalDuration))
 	}
+	SetComponentInstallDurationMetric(componentName, totalDuration)
 
+}
+
+// SetComponentAvailabilityMetric updates the components availability status metric
+func SetComponentInstallDurationMetric(componentName metricName, totalDuration int64) error {
+	compMetric, err := GetMetricComponent(componentName)
+	if err != nil {
+		return err
+	}
+	MetricsExp.internalData.componentHealth.SetInstallDuration(compMetric.metricName, totalDuration)
+	return nil
+}
+
+// This member function returns the simpleGaugeMetric that holds the upgrade time for a component
+func (c *ComponentHealth) SetInstallDuration(name string, totalDuration int64) (prometheus.Gauge, error) {
+	metric, err := c.available.GetMetricWithLabelValues(name)
+	if err != nil {
+		return nil, err
+	}
+	metric.Set(float64(totalDuration))
+	return metric, nil
 }
 
 // This function is a helper function that assists in registering metrics
