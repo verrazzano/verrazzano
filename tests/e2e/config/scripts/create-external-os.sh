@@ -18,7 +18,7 @@ fi
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
 # This corresponds to OpenSearch 2.3.0
-OPENSEARCH_CHART_VERSION="2.5.0"
+OPENSEARCH_CHART_VERSION="2.6.0"
 
 # Install OpenSearch
 helm repo add opensearch https://opensearch-project.github.io/helm-charts/
