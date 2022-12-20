@@ -8,7 +8,8 @@ Fixes:
 Component version updates:
 
 - Grafana v7.5.17
-
+- WebLogic Kubernetes Operator v3.4.4
+- WebLogic Monitoring Exporter v2.1.0
 
 ### v1.4.2
 Fixes:
