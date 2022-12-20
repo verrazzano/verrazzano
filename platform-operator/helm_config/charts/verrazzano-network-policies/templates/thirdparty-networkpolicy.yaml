@@ -295,7 +295,6 @@ spec:
           protocol: TCP
 
 {{- end }}
-{{- if .Values.rancher.enabled }}
 ---
 # Network policy for Rancher cluster agent
 # Ingress: deny all
@@ -311,6 +310,7 @@ spec:
       app: cattle-cluster-agent
   policyTypes:
     - Ingress
+{{- if .Values.rancher.enabled }}
 ---
 # Network policy for Rancher UI/API
 # Ingress: allow nginx ingress
