@@ -19,7 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const fooNamespace string = "foo"
@@ -60,9 +59,6 @@ var afterSuite = t.AfterSuiteFunc(func() {
 		dump.ExecuteBugReport(fooNamespace, barNamespace, noIstioNamespace)
 	}
 	start := time.Now()
-	//undeployFooApplication()
-	//undeployBarApplication()
-	//undeployNoIstioApplication()
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
@@ -210,162 +206,6 @@ func deployNoIstioApplication() {
 	update.ValidatePods(sleepWorkloadName, "app", noIstioNamespace, 1, false)
 	update.ValidatePods(springFrontWorkloadName, labelPodName, noIstioNamespace, 1, false)
 	update.ValidatePods(springBackWorkloadName, labelPodName, noIstioNamespace, 1, false)
-}
-
-func undeployFooApplication() {
-	t.Logs.Info("Undeploy Auth Policy Application in foo namespace")
-
-	t.Logs.Info("Delete application")
-	Eventually(func() error {
-		file, err := pkg.FindTestDataFile("testdata/istio/authz/foo/istio-securitytest-app.yaml")
-		if err != nil {
-			return err
-		}
-		return resource.DeleteResourceFromFile(file, t.Logs)
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	t.Logs.Info("Delete components")
-	Eventually(func() error {
-		file, err := pkg.FindTestDataFile("testdata/istio/authz/foo/sleep-comp.yaml")
-		if err != nil {
-			return err
-		}
-		return resource.DeleteResourceFromFile(file, t.Logs)
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	Eventually(func() error {
-		file, err := pkg.FindTestDataFile("testdata/istio/authz/foo/springboot-backend.yaml")
-		if err != nil {
-			return err
-		}
-		return resource.DeleteResourceFromFile(file, t.Logs)
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	Eventually(func() error {
-		file, err := pkg.FindTestDataFile("testdata/istio/authz/foo/springboot-frontend.yaml")
-		if err != nil {
-			return err
-		}
-		return resource.DeleteResourceFromFile(file, t.Logs)
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	Eventually(func() (bool, error) {
-		return pkg.PodsNotRunning(fooNamespace, expectedPods)
-	}, waitTimeout, shortPollingInterval).Should(BeTrue(), fmt.Sprintf("Pods in namespace %s stuck terminating!", fooNamespace))
-
-	t.Logs.Info("Delete namespace")
-	Eventually(func() error {
-		return pkg.DeleteNamespace(fooNamespace)
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	Eventually(func() bool {
-		_, err := pkg.GetNamespace(fooNamespace)
-		return err != nil && errors.IsNotFound(err)
-	}, waitTimeout, shortPollingInterval).Should(BeTrue())
-}
-
-func undeployBarApplication() {
-	t.Logs.Info("Undeploy Auth Policy Application in bar namespace")
-
-	t.Logs.Info("Delete application")
-	Eventually(func() error {
-		file, err := pkg.FindTestDataFile("testdata/istio/authz/bar/istio-securitytest-app.yaml")
-		if err != nil {
-			return err
-		}
-		return resource.DeleteResourceFromFile(file, t.Logs)
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	t.Logs.Info("Delete components")
-	Eventually(func() error {
-		file, err := pkg.FindTestDataFile("testdata/istio/authz/bar/sleep-comp.yaml")
-		if err != nil {
-			return err
-		}
-		return resource.DeleteResourceFromFile(file, t.Logs)
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	Eventually(func() error {
-		file, err := pkg.FindTestDataFile("testdata/istio/authz/bar/springboot-backend.yaml")
-		if err != nil {
-			return err
-		}
-		return resource.DeleteResourceFromFile(file, t.Logs)
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	Eventually(func() error {
-		file, err := pkg.FindTestDataFile("testdata/istio/authz/bar/springboot-frontend.yaml")
-		if err != nil {
-			return err
-		}
-		return resource.DeleteResourceFromFile(file, t.Logs)
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	Eventually(func() (bool, error) {
-		return pkg.PodsNotRunning(barNamespace, expectedPods)
-	}, waitTimeout, shortPollingInterval).Should(BeTrue(), fmt.Sprintf("Pods in namespace %s stuck terminating!", barNamespace))
-
-	t.Logs.Info("Delete namespace")
-	Eventually(func() error {
-		return pkg.DeleteNamespace(barNamespace)
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	Eventually(func() bool {
-		_, err := pkg.GetNamespace(barNamespace)
-		return err != nil && errors.IsNotFound(err)
-	}, waitTimeout, shortPollingInterval).Should(BeTrue())
-}
-
-func undeployNoIstioApplication() {
-	t.Logs.Info("Undeploy Auth Policy Application in noistio namespace")
-
-	t.Logs.Info("Delete application")
-	Eventually(func() error {
-		file, err := pkg.FindTestDataFile("testdata/istio/authz/noistio/istio-securitytest-app.yaml")
-		if err != nil {
-			return err
-		}
-		return resource.DeleteResourceFromFile(file, t.Logs)
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	t.Logs.Info("Delete components")
-	Eventually(func() error {
-		file, err := pkg.FindTestDataFile("testdata/istio/authz/noistio/sleep-comp.yaml")
-		if err != nil {
-			return err
-		}
-		return resource.DeleteResourceFromFile(file, t.Logs)
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	Eventually(func() error {
-		file, err := pkg.FindTestDataFile("testdata/istio/authz/noistio/springboot-backend.yaml")
-		if err != nil {
-			return err
-		}
-		return resource.DeleteResourceFromFile(file, t.Logs)
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	Eventually(func() error {
-		file, err := pkg.FindTestDataFile("testdata/istio/authz/noistio/springboot-frontend.yaml")
-		if err != nil {
-			return err
-		}
-		return resource.DeleteResourceFromFile(file, t.Logs)
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	Eventually(func() (bool, error) {
-		return pkg.PodsNotRunning(noIstioNamespace, expectedPods)
-	}, waitTimeout, shortPollingInterval).Should(BeTrue(), fmt.Sprintf("Pods in namespace %s stuck terminating!", noIstioNamespace))
-
-	t.Logs.Info("Delete namespace")
-	Eventually(func() error {
-		return pkg.DeleteNamespace(noIstioNamespace)
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	Eventually(func() bool {
-		_, err := pkg.GetNamespace(noIstioNamespace)
-		return err != nil && errors.IsNotFound(err)
-	}, waitTimeout, shortPollingInterval).Should(BeTrue())
 }
 
 var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
