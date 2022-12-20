@@ -2,7 +2,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 name: grafana
 namespace: verrazzano-system
-enabled: false
+enabled: true
 foldersFromFiles: false
 
 provider:

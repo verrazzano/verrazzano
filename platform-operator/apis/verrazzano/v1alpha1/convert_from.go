@@ -4,8 +4,9 @@
 package v1alpha1
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 )
 
 // ConvertFrom converts from v1beta1.Verrazzano to v1alpha1.Verrazzano
@@ -219,6 +220,7 @@ func convertOpenSearchFromV1Beta1(in *v1beta1.OpenSearchComponent) *Elasticsearc
 		Enabled:  in.Enabled,
 		Policies: in.Policies,
 		Nodes:    convertOSNodesFromV1Beta1(in.Nodes),
+		Plugins:  in.Plugins,
 	}
 }
 
@@ -413,6 +415,7 @@ func convertOSDFromV1Beta1(in *v1beta1.OpenSearchDashboardsComponent) *KibanaCom
 	return &KibanaComponent{
 		Enabled:  in.Enabled,
 		Replicas: in.Replicas,
+		Plugins:  in.Plugins,
 	}
 }
 
