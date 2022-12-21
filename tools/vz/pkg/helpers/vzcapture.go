@@ -128,6 +128,22 @@ func GetPodList(client clipkg.Client, appLabel, appName, namespace string) ([]co
 	return podList.Items, nil
 }
 
+// GetPodListAll returns list of pods in the given namespace
+// Will be used to fetch all namespaces in customer
+func GetPodListAll(client clipkg.Client, namespace string) ([]corev1.Pod, error) {
+	podList := corev1.PodList{}
+	err := client.List(
+		context.TODO(),
+		&podList,
+		&clipkg.ListOptions{
+			Namespace: namespace,
+		})
+	if err != nil {
+		return nil, fmt.Errorf("an error while listing pods: %s", err.Error())
+	}
+	return podList.Items, nil
+}
+
 // CaptureVZResource captures Verrazzano resources as a JSON file
 func CaptureVZResource(captureDir string, vz v1beta1.VerrazzanoList, vzHelper VZHelper) error {
 	var vzRes = filepath.Join(captureDir, constants.VzResource)
@@ -259,7 +275,7 @@ func captureWorkLoads(kubeClient kubernetes.Interface, namespace, captureDir str
 }
 
 // captureLog captures the log from the pod in the captureDir
-func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, captureDir string, vzHelper VZHelper) error {
+func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, captureDir string, vzHelper VZHelper, duration int64) error {
 	podName := pod.Name
 	if len(podName) == 0 {
 		return nil
@@ -282,16 +298,18 @@ func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, c
 
 	// Capture logs for both init containers and containers
 	var cs []corev1.Container
+	var podLogOptions corev1.PodLogOptions
+	if duration != 0 {
+		podLogOptions.SinceSeconds = &duration
+	}
 	cs = append(cs, pod.Spec.InitContainers...)
 	cs = append(cs, pod.Spec.Containers...)
-
 	// Write the log from all the containers to a single file, with lines differentiating the logs from each of the containers
 	for _, c := range cs {
 		writeToFile := func(contName string) error {
-			podLog, err := kubeClient.CoreV1().Pods(namespace).GetLogs(podName, &corev1.PodLogOptions{
-				Container:                    contName,
-				InsecureSkipTLSVerifyBackend: true,
-			}).Stream(context.TODO())
+			podLogOptions.Container = contName
+			podLogOptions.InsecureSkipTLSVerifyBackend = true
+			podLog, err := kubeClient.CoreV1().Pods(namespace).GetLogs(podName, &podLogOptions).Stream(context.TODO())
 			if err != nil {
 				LogError(fmt.Sprintf("An error occurred while reading the logs from pod %s: %s\n", podName, err.Error()))
 				return nil

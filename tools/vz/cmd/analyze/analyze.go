@@ -104,7 +104,8 @@ func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		helpers.SetIsLiveCluster()
 
 		// Capture cluster snapshot
-		err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, reportDirectory, moreNS, vzHelper)
+
+		err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, reportDirectory, moreNS, vzHelper, true, 0)
 
 		if err != nil {
 			return fmt.Errorf(err.Error())

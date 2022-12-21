@@ -52,6 +52,8 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().StringP(constants.BugReportFileFlagName, constants.BugReportFileFlagShort, constants.BugReportFileFlagValue, constants.BugReportFileFlagUsage)
 	cmd.PersistentFlags().StringSliceP(constants.BugReportIncludeNSFlagName, constants.BugReportIncludeNSFlagShort, []string{}, constants.BugReportIncludeNSFlagUsage)
 	cmd.PersistentFlags().BoolP(constants.VerboseFlag, constants.VerboseFlagShorthand, constants.VerboseFlagDefault, constants.VerboseFlagUsage)
+	cmd.PersistentFlags().BoolP(constants.BugReportLogFlagName, constants.BugReportLogFlagNameShort, constants.BugReportLogFlagDefault, constants.BugReportLogFlagNameUsage)
+	cmd.PersistentFlags().DurationP(constants.BugReportTimeFlagName, constants.BugReportTimeFlagNameShort, constants.BugReportTimeFlagDefaultTime, constants.BugReportTimeFlagNameUsage)
 	return cmd
 }
 
@@ -101,6 +103,24 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	if err != nil {
 		return fmt.Errorf("an error occurred while reading values for the flag --include-namespaces: %s", err.Error())
 	}
+	// If customer namespaces pods logs need to be included using --include-logs
+	isPodLog, err := cmd.PersistentFlags().GetBool(constants.BugReportLogFlagName)
+	if err != nil {
+		return fmt.Errorf("an error occurred while reading values for the flag --include-logs: %s", err.Error())
+	}
+
+	//  Flag which will read duration for customer pods logs --duration
+	durationString, err := cmd.PersistentFlags().GetDuration(constants.BugReportTimeFlagName)
+	if err != nil {
+		return fmt.Errorf("an error occurred while reading values for the flag --duration: %s", err.Error())
+	}
+	durationValue := int64(durationString.Seconds())
+	if err != nil {
+		return fmt.Errorf("an error occurred,invalid value --duration: %s", err.Error())
+	}
+	if durationValue < 0 {
+		return fmt.Errorf("an error occurred, invalid duration can't be less than 1s: %d", durationValue)
+	}
 
 	// Create a temporary directory to place the cluster data
 	bugReportDir, err := os.MkdirTemp("", constants.BugReportDir)
@@ -117,7 +137,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	helpers.SetVerboseOutput(isVerbose)
 
 	// Capture cluster snapshot
-	err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, bugReportDir, moreNS, vzHelper)
+	err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, bugReportDir, moreNS, vzHelper, isPodLog, durationValue)
 	if err != nil {
 		os.Remove(bugReportFile)
 		return fmt.Errorf(err.Error())

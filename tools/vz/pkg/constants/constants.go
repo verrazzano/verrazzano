@@ -124,6 +124,7 @@ const (
 
 // Constants for bug report
 const (
+	BugReportLogFlagDefault   = false
 	BugReportFileFlagName     = "report-file"
 	BugReportFileFlagValue    = ""
 	BugReportFileFlagShort    = "r"
@@ -175,12 +176,21 @@ const (
 	BugReportRoot = "cluster-snapshot"
 
 	// Label for application
-	AppLabel    = "app"
-	K8SAppLabel = "k8s-app"
-
+	AppLabel               = "app"
+	K8SAppLabel            = "k8s-app"
+	K8sAppLabelExternalDNS = "app.kubernetes.io/name"
 	// Message prefix for bug-report and live cluster analysis
 	BugReportMsgPrefix = "Capturing "
 	AnalysisMsgPrefix  = "Analyzing "
+
+	// Flags for  Customer namespace logs support
+	BugReportLogFlagName         = "include-logs"
+	BugReportLogFlagNameShort    = "l"
+	BugReportLogFlagNameUsage    = "collect logs from pods"
+	BugReportTimeFlagName        = "duration"
+	BugReportTimeFlagNameShort   = "d"
+	BugReportTimeFlagDefaultTime = 0
+	BugReportTimeFlagNameUsage   = "time period of logs in seconds e.g 300"
 )
 
 // Constants for cluster operations

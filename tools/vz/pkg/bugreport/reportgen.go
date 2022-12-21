@@ -40,7 +40,7 @@ type ErrorsChannel struct {
 }
 
 // CaptureClusterSnapshot selectively captures the resources from the cluster, useful to analyze the issue.
-func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, client clipkg.Client, bugReportDir string, moreNS []string, vzHelper pkghelpers.VZHelper) error {
+func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, client clipkg.Client, bugReportDir string, moreNS []string, vzHelper pkghelpers.VZHelper, isPodLog bool, duration int64) error {
 
 	// Create a file to capture the standard out to a file
 	stdOutFile, err := os.OpenFile(filepath.Join(bugReportDir, constants.BugReportOut), os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
@@ -91,7 +91,6 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 
 	// Get the list of namespaces based on the failed components and value specified by flag --include-namespaces
 	nsList, additionalNS := collectNamespaces(kubeClient, moreNS, vz, vzHelper)
-
 	var msgPrefix string
 	if pkghelpers.GetIsLiveCluster() {
 		msgPrefix = constants.AnalysisMsgPrefix
@@ -100,9 +99,11 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	}
 	// Print initial message to console output only
 	fmt.Fprintf(vzHelper.GetOutputStream(), msgPrefix+"resources from the cluster ...\n")
-
+	if err != nil {
+		panic(err)
+	}
 	// Capture list of resources from verrazzano-install and verrazzano-system namespaces
-	err = captureResources(client, kubeClient, bugReportDir, vz, vzHelper, nsList)
+	err = captureResources(client, kubeClient, bugReportDir, vz, vzHelper, nsList, duration)
 	if err != nil {
 		pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the Verrazzano resources: %s", err.Error()))
 	}
@@ -116,6 +117,12 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 		if err := pkghelpers.CaptureOAMResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
 			pkghelpers.LogError(fmt.Sprintf("There is an error in capturing the resources : %s", err.Error()))
 		}
+		if isPodLog {
+			err = captureResourcesCustom(client, kubeClient, bugReportDir, vzHelper, additionalNS, duration)
+			if err != nil {
+				pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the logs: %s", err.Error()))
+			}
+		}
 		if err := pkghelpers.CaptureMultiClusterResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
 			pkghelpers.LogError(fmt.Sprintf("There is an error in capturing the multi-cluster resources : %s", err.Error()))
 		}
@@ -123,20 +130,19 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	return nil
 }
 
-// captureResources captures the resources from various namespaces, resources are collected in parallel as appropriate
-func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bugReportDir string, vz v1beta1.VerrazzanoList, vzHelper pkghelpers.VZHelper, namespaces []string) error {
-
+func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bugReportDir string, vz v1beta1.VerrazzanoList, vzHelper pkghelpers.VZHelper, namespaces []string, duration int64) error {
 	// List of pods to collect the logs
 	vpoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
 	vaoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoApplicationOperator, vzconstants.VerrazzanoSystemNamespace)
 	vmoPod, _ := pkghelpers.GetPodList(client, constants.K8SAppLabel, constants.VerrazzanoMonitoringOperator, vzconstants.VerrazzanoSystemNamespace)
-
-	// Define WaitGroups for the parallel executions
+	externaldnsPod, _ := pkghelpers.GetPodList(client, constants.K8sAppLabelExternalDNS, vzconstants.ExternalDNS, vzconstants.CertManager)
 	wgCount := 3 + len(namespaces)
 	if len(vz.Items) > 0 {
 		wgCount++
 	}
-
+	if len(externaldnsPod) > 0 && vz.Items[0].Spec.Components.DNS != nil && vz.Items[0].Spec.Components.DNS.OCI != nil {
+		wgCount++
+	}
 	wg := &sync.WaitGroup{}
 	wg.Add(wgCount)
 
@@ -149,10 +155,12 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bug
 		go captureVZResource(wg, evr, vz, bugReportDir, vzHelper)
 	}
 
-	go captureLogs(wg, ecl, kubeClient, vpoPod, vzconstants.VerrazzanoInstallNamespace, bugReportDir, vzHelper)
-	go captureLogs(wg, ecl, kubeClient, vaoPod, vzconstants.VerrazzanoSystemNamespace, bugReportDir, vzHelper)
-	go captureLogs(wg, ecl, kubeClient, vmoPod, vzconstants.VerrazzanoSystemNamespace, bugReportDir, vzHelper)
-
+	go captureLogs(wg, ecl, kubeClient, vpoPod, vzconstants.VerrazzanoInstallNamespace, bugReportDir, vzHelper, duration)
+	go captureLogs(wg, ecl, kubeClient, vaoPod, vzconstants.VerrazzanoSystemNamespace, bugReportDir, vzHelper, duration)
+	go captureLogs(wg, ecl, kubeClient, vmoPod, vzconstants.VerrazzanoSystemNamespace, bugReportDir, vzHelper, duration)
+	if vz.Items[0].Spec.Components.DNS != nil && vz.Items[0].Spec.Components.DNS.OCI != nil {
+		go captureLogs(wg, ecl, kubeClient, externaldnsPod, vzconstants.CertManager, bugReportDir, vzHelper, duration)
+	}
 	for _, ns := range namespaces {
 		go captureK8SResources(wg, ecr, kubeClient, ns, bugReportDir, vzHelper)
 	}
@@ -161,7 +169,41 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bug
 	close(ecl)
 	close(ecr)
 	close(evr)
+	// Report errors (if any), in collecting the logs from various pods
+	for err := range evr {
+		return fmt.Errorf("an error occurred while capturing the Verrazzano resource, error: %s", err.ErrorMessage)
+	}
 
+	// Report errors (if any), in collecting the logs from various pods
+	for err := range ecl {
+		return fmt.Errorf("an error occurred while capturing the log for pod: %s, error: %s", err.PodName, err.ErrorMessage)
+	}
+
+	// Report errors (if any), in collecting resources from various namespaces
+	for err := range ecr {
+		return fmt.Errorf("an error occurred while capturing the resource, error: %s", err.ErrorMessage)
+	}
+	return nil
+}
+
+func captureResourcesCustom(client clipkg.Client, kubeClient kubernetes.Interface, bugReportDir string, vzHelper pkghelpers.VZHelper, namespaces []string, duration int64) error {
+
+	wgCount := len(namespaces)
+	wg := &sync.WaitGroup{}
+	wg.Add(wgCount)
+	// Define channels to get the errors
+	evr := make(chan ErrorsChannel, 1)
+	ecr := make(chan ErrorsChannel, 1)
+	ecl := make(chan ErrorsChannelLogs, 1)
+	for _, ns := range namespaces {
+		podList, _ := pkghelpers.GetPodListAll(client, ns)
+		go captureLogsAll(wg, ecl, kubeClient, podList, ns, bugReportDir, vzHelper, duration)
+	}
+
+	wg.Wait()
+	close(ecl)
+	close(ecr)
+	close(evr)
 	// Report errors (if any), in collecting the logs from various pods
 	for err := range evr {
 		return fmt.Errorf("an error occurred while capturing the Verrazzano resource, error: %s", err.ErrorMessage)
@@ -189,17 +231,18 @@ func captureVZResource(wg *sync.WaitGroup, ec chan ErrorsChannel, vz v1beta1.Ver
 }
 
 // captureLogs collects the logs from platform operator, application operator and monitoring operator in parallel
-func captureLogs(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient kubernetes.Interface, pods []corev1.Pod, namespace, bugReportDir string, vzHelper pkghelpers.VZHelper) {
+func captureLogs(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient kubernetes.Interface, pods []corev1.Pod, namespace, bugReportDir string, vzHelper pkghelpers.VZHelper, duration int64) {
 	defer wg.Done()
 	if len(pods) == 0 {
 		return
 	}
 	// This won't work when there are more than one pods for the same app label
 	pkghelpers.LogMessage(fmt.Sprintf("log from pod %s in %s namespace ...\n", pods[0].Name, namespace))
-	err := pkghelpers.CapturePodLog(kubeClient, pods[0], namespace, bugReportDir, vzHelper)
+	err := pkghelpers.CapturePodLog(kubeClient, pods[0], namespace, bugReportDir, vzHelper, duration)
 	if err != nil {
 		ec <- ErrorsChannelLogs{PodName: pods[0].Name, ErrorMessage: err.Error()}
 	}
+
 }
 
 // captureK8SResources captures Kubernetes workloads, pods, events, ingresses and services from the list of namespaces in parallel
@@ -237,4 +280,21 @@ func collectNamespaces(kubeClient kubernetes.Interface, includedNS []string, vz 
 	// Remove the duplicates from nsList
 	nsList = pkghelpers.RemoveDuplicate(nsList)
 	return nsList, additionalNS
+}
+
+// capture customer namespace pods logs without filtering
+func captureLogsAll(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient kubernetes.Interface, pods []corev1.Pod, namespace, bugReportDir string, vzHelper pkghelpers.VZHelper, duration int64) {
+	{
+		defer wg.Done()
+		if len(pods) == 0 {
+			return
+		}
+		for index := range pods {
+			pkghelpers.LogMessage(fmt.Sprintf("log from pod %s in %s namespace ...\n", pods[index].Name, namespace))
+			err := pkghelpers.CapturePodLog(kubeClient, pods[index], namespace, bugReportDir, vzHelper, duration)
+			if err != nil {
+				ec <- ErrorsChannelLogs{PodName: pods[index].Name, ErrorMessage: err.Error()}
+			}
+		}
+	}
 }
