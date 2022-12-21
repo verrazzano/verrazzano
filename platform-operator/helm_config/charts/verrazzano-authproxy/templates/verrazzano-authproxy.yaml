@@ -170,8 +170,8 @@ spec:
               - ALL
       serviceAccountName: {{ .Values.name }}
       securityContext:
-        runAsUser: 1000
-        runAsGroup: 999
+        runAsUser: 101  # nginx container user
+        runAsGroup: 101 # nginx container group
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
