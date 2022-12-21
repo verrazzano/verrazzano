@@ -1,0 +1,31 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: verrazzano-cluster-operator
+  namespace: {{ .monitoringNamespace }}
+  labels:
+    release: prometheus-operator
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ .systemNamespace }}
+  selector:
+    matchLabels:
+      app: verrazzano-cluster-operator
+  endpoints:
+    - relabelings:
+        - sourceLabels:
+            - __meta_kubernetes_service_name
+            - __meta_kubernetes_endpoint_port_name
+          regex: verrazzano-cluster-operator;http-metric
+          action: keep
+        - sourceLabels:
+            - __meta_kubernetes_service_label_app
+          targetLabel: app
+        - action: replace
+          targetLabel: verrazzano_cluster
+          replacement: local
+      enableHttp2: false
