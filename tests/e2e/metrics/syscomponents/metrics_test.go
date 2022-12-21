@@ -13,7 +13,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
@@ -32,10 +31,10 @@ const (
 	sidecarInjectionRequests       = "sidecar_injection_requests_total"
 	prometheusTargetIntervalLength = "prometheus_target_interval_length_seconds"
 	envoyStatsRecentLookups        = "envoy_server_stats_recent_lookups"
-	vmoFunctionMetric              = "vz_monitoring_operator_reconcile_total"
-	vmoCounterMetric               = "vz_monitoring_operator_deployment_update_total"
-	vmoGaugeMetric                 = "vz_monitoring_operator_work_queue_size"
-	vmoTimestampMetric             = "vz_monitoring_operator_configmap_last_successful_timestamp"
+	vmoFunctionMetric              = "vmo_reconcile_total"
+	vmoCounterMetric               = "vmo_deployment_update_total"
+	vmoGaugeMetric                 = "vmo_work_queue_size"
+	vmoTimestampMetric             = "vmo_configmap_last_successful_timestamp"
 	vaoSuccessCountMetric          = "vz_application_operator_appconfig_successful_reconcile_total"
 	vaoFailCountMetric             = "vz_application_operator_appconfig_error_reconcile_total"
 	vaoDurationCountMetric         = "vz_application_operator_appconfig_reconcile_duration_count"
