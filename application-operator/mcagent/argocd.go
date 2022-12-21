@@ -26,7 +26,7 @@ func (s *Syncer) createArgoCDServiceAccount() error {
 
 	_, err := controllerruntime.CreateOrUpdate(s.Context, s.LocalClient, &serviceAccount, func() error {
 		mutateServiceAccount(serviceAccount)
-		s.Log.Infof("createArgoCDServiceAccount: ArgoCD ServiceAccount created successfully")
+		s.Log.Debugf("createArgoCDServiceAccount: ArgoCD ServiceAccount created successfully")
 		return nil
 	})
 	return err
@@ -40,7 +40,7 @@ func (s *Syncer) createArgoCDSecret(secretData []byte) error {
 	// Create or update on the local cluster
 	_, err := controllerruntime.CreateOrUpdate(s.Context, s.LocalClient, &secret, func() error {
 		mutateArgoCDSecret(secret, secretData)
-		s.Log.Infof("createArgoCDSecret: ArgoCD secret created successfully")
+		s.Log.Debugf("createArgoCDSecret: ArgoCD secret created successfully")
 		return nil
 	})
 	return err
@@ -51,7 +51,7 @@ func (s *Syncer) createArgoCDRole() error {
 
 	_, err := controllerruntime.CreateOrUpdate(s.Context, s.LocalClient, &role, func() error {
 		mutateClusterRole(role)
-		s.Log.Infof("createArgoCDRole: ArgoCD Role created successfully")
+		s.Log.Debugf("createArgoCDRole: ArgoCD Role created successfully")
 		return nil
 	})
 	return err
@@ -62,7 +62,7 @@ func (s *Syncer) createArgoCDRoleBinding() error {
 
 	_, err := controllerruntime.CreateOrUpdate(s.Context, s.LocalClient, &binding, func() error {
 		mutateRoleBinding(binding)
-		s.Log.Infof("createArgoCDRoleBinding: ArgoCD Rolebinding created successfully")
+		s.Log.Debugf("createArgoCDRoleBinding: ArgoCD Rolebinding created successfully")
 		return nil
 	})
 	return err
