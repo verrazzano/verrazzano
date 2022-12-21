@@ -54,11 +54,11 @@ var (
 		Help: "The duration of the reconcile process for cluster objects",
 	})
 	reconcileErrorCount = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "vz_cluster_operator_reconcile_errors_total",
+		Name: "vz_cluster_operator_reconcile_cluster_error_total",
 		Help: "The amount of errors encountered in the reconcile process",
 	})
 	reconcileSuccessCount = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "vz_cluster_operator_reconcile_success_total",
+		Name: "vz_cluster_operator_reconcile_cluster_success_total",
 		Help: "The number of times the reconcile process succeeded",
 	})
 )

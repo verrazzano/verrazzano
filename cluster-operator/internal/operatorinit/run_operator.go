@@ -172,7 +172,12 @@ func watchCattleClustersCRD(cancel context.CancelFunc, client apiextv1.Apiextens
 func startMetricsServer(log *zap.SugaredLogger) {
 	// Start up the Prometheus Metrics Exporter server to emit operator metrics
 	http.Handle("/metrics", promhttp.Handler())
-	for err := http.ListenAndServe(":9100", nil); err != nil; err = http.ListenAndServe(":9100", nil) {
+	server := &http.Server{
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		Addr:         ":9100",
+	}
+	for err := server.ListenAndServe(); err != nil; err = server.ListenAndServe() {
 		log.Debugf("Failed to start the metrics server on port 9100: %v", err)
 		time.Sleep(10 * time.Second)
 	}
