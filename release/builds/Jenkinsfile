@@ -289,6 +289,16 @@ pipeline {
                           -bn ${OCI_OS_BUCKET} --destination-bucket ${OCI_OS_BUCKET} \
                           --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/verrazzano_periodic-commit.txt \
                           --destination-object-name ${CLEAN_BRANCH_NAME}/verrazzano_${params.TARGET_VERSION}-commit.txt
+
+                        oci --region ${OCI_OS_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
+                          -bn ${OCI_OS_BUCKET} --destination-bucket ${OCI_OS_BUCKET} \
+                          --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/generated-verrazzano-bom.json \
+                          --destination-object-name ${CLEAN_BRANCH_NAME}/verrazzano_${params.TARGET_VERSION}-bom.json
+
+                        oci --region ${OCI_OS_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
+                          -bn ${OCI_OS_BUCKET} --destination-bucket ${OCI_OS_BUCKET} \
+                          --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/operator.yaml \
+                          --destination-object-name ${CLEAN_BRANCH_NAME}/verrazzano_${params.TARGET_VERSION}-platform-operator.yaml
                     """
                 }
             }
