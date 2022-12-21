@@ -38,7 +38,7 @@ const (
 	vaoSuccessCountMetric          = "vz_application_operator_appconfig_successful_reconcile_total"
 	vaoFailCountMetric             = "vz_application_operator_appconfig_error_reconcile_total"
 	vaoDurationCountMetric         = "vz_application_operator_appconfig_reconcile_duration_count"
-	esClusterStatusMetric          = "es_cluster_status"
+	esClusterStatusMetric          = "opensearch_cluster_status"
 
 	// Namespaces used for validating envoy stats
 	verrazzanoSystemNamespace = "verrazzano-system"
@@ -90,6 +90,7 @@ var excludePodsVS = []string{
 	"verrazzano-monitoring-operator",
 	"verrazzano-cluster-operator",
 	"verrazzano-operator",
+	"weblogic-operator-webhook",
 }
 
 // List of pods to be excluded from istio-system namespace for envoy-stats as they do not have envoy
@@ -143,7 +144,7 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 		})
 
 		if !pkg.IsManagedClusterProfile() {
-			t.ItMinimumVersion("Verify sample OpenSearch metrics can be queried from Prometheus", "1.3.0", kubeConfig, func() {
+			t.ItMinimumVersion("Verify sample OpenSearch metrics can be queried from Prometheus", "1.5.0", kubeConfig, func() {
 				eventuallyMetricsContainLabels(esClusterStatusMetric, map[string]string{
 					container: esMaster,
 				})

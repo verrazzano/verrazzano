@@ -426,7 +426,7 @@ type OpenSearchComponent struct {
 	// +patchMergeKey=name
 	// +patchStrategy=merge,retainKeys
 	Nodes []OpenSearchNode `json:"nodes,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
-	// A list of <a href="https://opensearch.org/docs/1.2/im-plugin/ism/index/">Index State Management</a> policies
+	// A list of <a href="https://opensearch.org/docs/2.3/im-plugin/ism/index/">Index State Management</a> policies
 	// to enable on OpenSearch.
 	// +optional
 	Policies []vmov1.IndexManagementPolicy `json:"policies,omitempty"`

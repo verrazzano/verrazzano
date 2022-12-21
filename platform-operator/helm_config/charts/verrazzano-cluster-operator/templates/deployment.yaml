@@ -25,6 +25,12 @@ spec:
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           image: {{ .Values.image }}
           command: [ 'sh', '-c', "/usr/local/bin/wait4webhook.sh" ]
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
       {{- if .Values.affinity }}
       affinity: {{ toYaml .Values.affinity | nindent 8 }}
       {{- end }}
@@ -45,6 +51,12 @@ spec:
           - containerPort: 9100
             name: http-metric
             protocol: TCP
+        securityContext:
+          privileged: false
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
       serviceAccountName: {{ .Values.name }}
       volumes:
         - name: cluster-selector
@@ -54,6 +66,12 @@ spec:
             - key: selector.yaml
               path: selector.yaml
             optional: true
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 999
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -96,6 +114,12 @@ spec:
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/certs
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
       containers:
         - name: webhook-run
           image: {{ .Values.image }}
@@ -116,7 +140,19 @@ spec:
             - containerPort: 9443
               name: webhook
               protocol: TCP
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
       volumes:
         - name: webhook-certs
           emptyDir: {}
       serviceAccountName: {{ .Values.name }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 999
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault

@@ -178,6 +178,7 @@ rules:
       - weblogic.oracle
     resources:
       - domains
+      - clusters
     verbs:
       - '*'
 ---

@@ -4,12 +4,13 @@ package files
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/log"
-	"go.uber.org/zap"
 	"os"
 	"regexp"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/log"
+	"go.uber.org/zap"
 )
 
 // TestGetMatchingFilesGood Tests that we can find the expected set of files with a matching expression

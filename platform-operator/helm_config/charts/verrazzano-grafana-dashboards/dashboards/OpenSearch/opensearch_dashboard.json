@@ -106,7 +106,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(es_cluster_status{cluster=\"system\"})/count(es_cluster_status{cluster=\"system\"})",
+          "expr": "sum(opensearch_cluster_status{cluster=\"system\"})/count(opensearch_cluster_status{cluster=\"system\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -173,7 +173,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(es_cluster_nodes_number{verrazzano_cluster=\"local\"})/count(es_cluster_nodes_number{verrazzano_cluster=\"local\"})",
+          "expr": "sum(opensearch_cluster_nodes_number{verrazzano_cluster=\"local\"})/count(opensearch_cluster_nodes_number{verrazzano_cluster=\"local\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -242,7 +242,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(es_cluster_datanodes_number{verrazzano_cluster=\"local\"})/count(es_cluster_datanodes_number{verrazzano_cluster=\"local\"})",
+          "expr": "sum(opensearch_cluster_datanodes_number{verrazzano_cluster=\"local\"})/count(opensearch_cluster_datanodes_number{verrazzano_cluster=\"local\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -299,7 +299,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "count(es_index_replicas_number{verrazzano_cluster=\"local\"})",
+          "expr": "count(opensearch_index_replicas_number{verrazzano_cluster=\"local\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -368,7 +368,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(es_cluster_pending_tasks_number{verrazzano_cluster=\"local\"})/count(es_cluster_pending_tasks_number{verrazzano_cluster=\"local\"})",
+          "expr": "sum(opensearch_cluster_pending_tasks_number{verrazzano_cluster=\"local\"})/count(opensearch_cluster_pending_tasks_number{verrazzano_cluster=\"local\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -439,7 +439,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(es_cluster_shards_number{cluster=\"system\", type=\"active\"})",
+          "expr": "sum(opensearch_cluster_shards_number{cluster=\"system\", type=\"active\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -498,7 +498,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(es_cluster_shards_number{cluster=\"system\", type=\"active_primary\"})",
+          "expr": "sum(opensearch_cluster_shards_number{cluster=\"system\", type=\"active_primary\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -561,7 +561,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(es_cluster_shards_number{cluster=\"system\", type=\"relocating\"})",
+          "expr": "sum(opensearch_cluster_shards_number{cluster=\"system\", type=\"relocating\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -624,7 +624,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(es_cluster_shards_number{cluster=\"system\", type=\"initializing\"})",
+          "expr": "sum(opensearch_cluster_shards_number{cluster=\"system\", type=\"initializing\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -687,7 +687,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(es_cluster_shards_number{cluster=\"system\", type=\"unassigned\"})",
+          "expr": "sum(opensearch_cluster_shards_number{cluster=\"system\", type=\"unassigned\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -757,7 +757,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "count(es_index_replicas_number{cluster=\"system\"})",
+          "expr": "count(opensearch_index_replicas_number{cluster=\"system\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -851,7 +851,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "es_indices_store_size_bytes{cluster=\"system\"}",
+          "expr": "opensearch_indices_store_size_bytes{cluster=\"system\"}",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -947,7 +947,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(es_indices_merges_total_docs_count{cluster=\"system\"})",
+          "expr": "sum(opensearch_indices_merges_total_docs_count{cluster=\"system\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -1041,7 +1041,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rate(es_indices_indexing_index_count{cluster=\"system\"}[1h])",
+          "expr": "rate(opensearch_indices_indexing_index_count{cluster=\"system\"}[1h])",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -1135,7 +1135,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "es_process_file_descriptors_max_number{cluster=\"system\"}",
+          "expr": "opensearch_process_file_descriptors_max_number{cluster=\"system\"}",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -1231,7 +1231,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(es_index_shards_number{cluster=\"system\",type=\"active\"}) by (index)",
+          "expr": "sum(opensearch_index_shards_number{cluster=\"system\",type=\"active\"}) by (index)",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -1327,14 +1327,14 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max((1 - (es_fs_path_available_bytes /es_fs_path_total_bytes))* 100)",
+          "expr": "max((1 - (opensearch_fs_path_available_bytes /opensearch_fs_path_total_bytes))* 100)",
           "interval": "",
           "legendFormat": "current_disk_watermark",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "max(es_cluster_routing_allocation_disk_watermark_low_pct{cluster=\"system\"})",
+          "expr": "max(opensearch_cluster_routing_allocation_disk_watermark_low_pct{cluster=\"system\"})",
           "hide": false,
           "interval": "",
           "legendFormat": "disk_watermark_low_pct",
@@ -1342,7 +1342,7 @@
         },
         {
           "exemplar": true,
-          "expr": "max(es_cluster_routing_allocation_disk_watermark_high_pct{cluster=\"system\"})",
+          "expr": "max(opensearch_cluster_routing_allocation_disk_watermark_high_pct{cluster=\"system\"})",
           "hide": false,
           "interval": "",
           "legendFormat": "disk_watermark_high_pct",
@@ -1350,7 +1350,7 @@
         },
         {
           "exemplar": true,
-          "expr": "max(es_cluster_routing_allocation_disk_watermark_flood_stage_pct{cluster=\"system\"})",
+          "expr": "max(opensearch_cluster_routing_allocation_disk_watermark_flood_stage_pct{cluster=\"system\"})",
           "hide": false,
           "interval": "",
           "legendFormat": "disk_watermark_flood_stage_pct",
@@ -1447,7 +1447,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rate(es_indices_search_fetch_count{cluster=\"system\"}[1h])",
+          "expr": "rate(opensearch_indices_search_fetch_count{cluster=\"system\"}[1h])",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -1885,7 +1885,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "avg_over_time(es_jvm_mem_heap_used_bytes{instance=~\".*:9200\", verrazzano_cluster=\"local\"}[15m])",
+          "expr": "avg_over_time(opensearch_jvm_mem_heap_used_bytes{instance=~\".*:9200\", verrazzano_cluster=\"local\"}[15m])",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -1983,7 +1983,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(es_threadpool_threads_number{verrazzano_cluster=\"local\", name!=\"management\", type=\"active\"}) by (name)",
+          "expr": "sum(opensearch_threadpool_threads_number{verrazzano_cluster=\"local\", name!=\"management\", type=\"active\"}) by (name)",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -2081,7 +2081,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "irate(es_jvm_gc_collection_time_seconds{verrazzano_cluster=\"local\"}[5m])",
+          "expr": "irate(opensearch_jvm_gc_collection_time_seconds{verrazzano_cluster=\"local\"}[5m])",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
