@@ -305,6 +305,21 @@ pipeline {
                     }
                 }
 
+                stage('Verify Tools Analysis') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-tools"
+                    }
+                    steps {
+                        runGinkgoRandomize('verify-tools')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
                 stage('Run Acceptance Tests Infra') {
                     parallel {
                         stage('verify-scripts') {
