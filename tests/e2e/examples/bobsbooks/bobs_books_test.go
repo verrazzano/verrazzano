@@ -26,6 +26,17 @@ const (
 	longPollingInterval      = 20 * time.Second
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
+
+	// application specific constants
+	robertCoh        = "robert-coh"
+	bobsBookStore    = "bobs-bookstore"
+	robertsCoherence = "roberts-coherence"
+
+	// various labels
+	k8sLabelDomainUID     = "kubernetes.labels.weblogic_domainUID"
+	k8sLabelWLServerName  = "kubernetes.labels.weblogic_serverName"
+	k8sPodName            = "kubernetes.pod_name"
+	k8sLabelContainerName = "kubernetes.container_name"
 )
 
 var (
@@ -270,7 +281,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 			pkg.Concurrently(
 				func() {
 					Eventually(func() (bool, error) {
-						var componentNames = []string{"bobby-coh", "bobby-helidon", "bobby-wls", "bobs-mysql-deployment", "bobs-mysql-service", "bobs-orders-wls", "robert-coh", "robert-helidon"}
+						var componentNames = []string{"bobby-coh", "bobby-helidon", "bobby-wls", "bobs-mysql-deployment", "bobs-mysql-service", "bobs-orders-wls", robertCoh, "robert-helidon"}
 						return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "bob-books", componentNames))
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
@@ -313,10 +324,10 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				t.It("Verify recent bobbys-front-end-adminserver log record exists", func() {
 					Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
-							"kubernetes.labels.weblogic_domainUID":  "bobbys-front-end",
-							"kubernetes.labels.weblogic_serverName": "AdminServer",
-							"kubernetes.pod_name":                   "bobbys-front-end-adminserver",
-							"kubernetes.container_name":             "weblogic-server",
+							k8sLabelDomainUID:     "bobbys-front-end",
+							k8sLabelWLServerName:  "AdminServer",
+							k8sPodName:            "bobbys-front-end-adminserver",
+							k8sLabelContainerName: "weblogic-server",
 						})
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 				})
@@ -328,10 +339,10 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				t.It("Verify recent bobbys-front-end-adminserver log record exists", func() {
 					Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
-							"kubernetes.labels.weblogic_domainUID":  "bobbys-front-end",
-							"kubernetes.labels.weblogic_serverName": "AdminServer",
-							"kubernetes.pod_name":                   "bobbys-front-end-adminserver",
-							"kubernetes.container_name":             "fluentd-stdout-sidecar",
+							k8sLabelDomainUID:     "bobbys-front-end",
+							k8sLabelWLServerName:  "AdminServer",
+							k8sPodName:            "bobbys-front-end-adminserver",
+							k8sLabelContainerName: "fluentd-stdout-sidecar",
 						})
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 				})
@@ -343,10 +354,10 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				t.It("Verify recent bobbys-front-end-managed-server1 log record exists", func() {
 					Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
-							"kubernetes.labels.weblogic_domainUID":  "bobbys-front-end",
-							"kubernetes.labels.weblogic_serverName": "managed-server1",
-							"kubernetes.pod_name":                   "bobbys-front-end-managed-server1",
-							"kubernetes.container_name":             "weblogic-server",
+							k8sLabelDomainUID:     "bobbys-front-end",
+							k8sLabelWLServerName:  "managed-server1",
+							k8sPodName:            "bobbys-front-end-managed-server1",
+							k8sLabelContainerName: "weblogic-server",
 						})
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 				})
@@ -395,8 +406,8 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
 								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
-								{Key: "kubernetes.labels.weblogic_domainUID", Value: "bobbys-front-end"},
-								{Key: "kubernetes.labels.weblogic_serverName", Value: "managed-server1"},
+								{Key: k8sLabelDomainUID, Value: "bobbys-front-end"},
+								{Key: k8sLabelWLServerName, Value: "managed-server1"},
 								{Key: "messageID", Value: "BEA-"},         //matches BEA-*
 								{Key: "message", Value: "Tunneling Ping"}, //"Tunneling Ping" in last line
 								{Key: "serverName", Value: "bobbys-front-end-managed-server1"},
@@ -448,10 +459,10 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				t.It("Verify recent bobs-bookstore-adminserver log record exists", func() {
 					Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
-							"kubernetes.labels.weblogic_domainUID":  "bobs-bookstore",
-							"kubernetes.labels.weblogic_serverName": "AdminServer",
-							"kubernetes.pod_name":                   "bobs-bookstore-adminserver",
-							"kubernetes.container_name":             "weblogic-server",
+							k8sLabelDomainUID:     bobsBookStore,
+							k8sLabelWLServerName:  "AdminServer",
+							k8sPodName:            "bobs-bookstore-adminserver",
+							k8sLabelContainerName: "weblogic-server",
 						})
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 				})
@@ -463,10 +474,10 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				t.It("Verify recent bobs-bookstore-adminserver log record exists", func() {
 					Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
-							"kubernetes.labels.weblogic_domainUID":  "bobs-bookstore",
-							"kubernetes.labels.weblogic_serverName": "AdminServer",
-							"kubernetes.pod_name":                   "bobs-bookstore-adminserver",
-							"kubernetes.container_name":             "fluentd-stdout-sidecar",
+							k8sLabelDomainUID:     bobsBookStore,
+							k8sLabelWLServerName:  "AdminServer",
+							k8sPodName:            "bobs-bookstore-adminserver",
+							k8sLabelContainerName: "fluentd-stdout-sidecar",
 						})
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 				})
@@ -478,10 +489,10 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				t.It("Verify recent bobs-bookstore-managed-server1 log record exists", func() {
 					Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
-							"kubernetes.labels.weblogic_domainUID":  "bobs-bookstore",
-							"kubernetes.labels.weblogic_serverName": "managed-server1",
-							"kubernetes.pod_name":                   "bobs-bookstore-managed-server1",
-							"kubernetes.container_name":             "weblogic-server",
+							k8sLabelDomainUID:     bobsBookStore,
+							k8sLabelWLServerName:  "managed-server1",
+							k8sPodName:            "bobs-bookstore-managed-server1",
+							k8sLabelContainerName: "weblogic-server",
 						})
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 				})
@@ -495,8 +506,8 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
 								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
-								{Key: "kubernetes.labels.weblogic_domainUID", Value: "bobs-bookstore"},
-								{Key: "kubernetes.labels.weblogic_serverName", Value: "managed-server1"},
+								{Key: k8sLabelDomainUID, Value: bobsBookStore},
+								{Key: k8sLabelWLServerName, Value: "managed-server1"},
 								{Key: "messageID", Value: "BEA-"},                //matches BEA-*
 								{Key: "message", Value: "Admin Traffic Enabled"}, //"Admin Traffic Enabled" in last line
 								{Key: "serverName", Value: "bobs-bookstore-managed-server1"},
@@ -530,10 +541,10 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				t.It("Verify recent roberts-coherence-0 log record exists", func() {
 					Eventually(func() bool {
 						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-							"kubernetes.labels.coherenceCluster":                "roberts-coherence",
-							"kubernetes.labels.app_oam_dev\\/component.keyword": "robert-coh",
-							"kubernetes.pod_name":                               "roberts-coherence-0",
-							"kubernetes.container_name.keyword":                 "coherence",
+							"kubernetes.labels.coherenceCluster":                robertsCoherence,
+							"kubernetes.labels.app_oam_dev\\/component.keyword": robertCoh,
+							k8sPodName:                          "roberts-coherence-0",
+							"kubernetes.container_name.keyword": "coherence",
 						})
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 				})
@@ -546,13 +557,13 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 					Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
-								{Key: "kubernetes.labels.app_oam_dev/component", Value: "robert-coh"},
-								{Key: "kubernetes.labels.coherenceCluster", Value: "roberts-coherence"},
-								{Key: "kubernetes.pod_name", Value: "roberts-coherence-0"},
+								{Key: "kubernetes.labels.app_oam_dev/component", Value: robertCoh},
+								{Key: "kubernetes.labels.coherenceCluster", Value: robertsCoherence},
+								{Key: k8sPodName, Value: "roberts-coherence-0"},
 								{Key: "product", Value: "Oracle Coherence"},
-								{Key: "kubernetes.container_name", Value: "fluentd-stdout-sidecar"}},
+								{Key: k8sLabelContainerName, Value: "fluentd-stdout-sidecar"}},
 							[]pkg.Match{ //MustNot
-								{Key: "kubernetes.container_name", Value: "coherence"}})
+								{Key: k8sLabelContainerName, Value: "coherence"}})
 					}, 5*time.Minute, 10*time.Second).Should(BeTrue(), "Expected to find a systemd log record")
 				})
 			},
@@ -564,11 +575,11 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 					Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
-								{Key: "kubernetes.labels.coherenceCluster", Value: "roberts-coherence"},
-								{Key: "kubernetes.pod_name", Value: "roberts-coherence-1"},
+								{Key: "kubernetes.labels.coherenceCluster", Value: robertsCoherence},
+								{Key: k8sPodName, Value: "roberts-coherence-1"},
 								{Key: "kubernetes.container_name.keyword", Value: "coherence"}},
 							[]pkg.Match{ //MustNot
-								{Key: "kubernetes.container_name", Value: "fluentd-stdout-sidecar"},
+								{Key: k8sLabelContainerName, Value: "fluentd-stdout-sidecar"},
 							})
 					}, 5*time.Minute, 10*time.Second).Should(BeTrue(), "Expected to find a systemd log record")
 
@@ -582,10 +593,10 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 					Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
-								{Key: "kubernetes.labels.coherenceCluster", Value: "roberts-coherence"},
-								{Key: "kubernetes.pod_name", Value: "roberts-coherence-1"},
+								{Key: "kubernetes.labels.coherenceCluster", Value: robertsCoherence},
+								{Key: k8sPodName, Value: "roberts-coherence-1"},
 								{Key: "product", Value: "Oracle Coherence"},
-								{Key: "kubernetes.container_name", Value: "fluentd-stdout-sidecar"}},
+								{Key: k8sLabelContainerName, Value: "fluentd-stdout-sidecar"}},
 							[]pkg.Match{})
 					}, 5*time.Minute, 10*time.Second).Should(BeTrue(), "Expected to find a systemd log record")
 				})
@@ -602,7 +613,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 								{Key: "kubernetes.labels.coherenceCluster", Value: "bobbys-coherence"},
 								{Key: "coherence.cluster.name", Value: "bobbys-coherence"},
 								{Key: "product", Value: "Oracle Coherence"},
-								{Key: "kubernetes.container_name", Value: "fluentd-stdout-sidecar"}},
+								{Key: k8sLabelContainerName, Value: "fluentd-stdout-sidecar"}},
 							[]pkg.Match{})
 					}, 5*time.Minute, 10*time.Second).Should(BeTrue(), "Expected to find a systemd log record")
 				})
