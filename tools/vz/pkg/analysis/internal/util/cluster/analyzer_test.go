@@ -4,11 +4,12 @@ package cluster
 
 import (
 	"errors"
+	"strings"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/log"
 	"go.uber.org/zap"
-	"strings"
-	"testing"
 )
 
 // TestRunAnalysisBad Tests the main RunAnalysis function

@@ -6,11 +6,12 @@ package cluster
 
 import (
 	"fmt"
+	"os"
+	"regexp"
+
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"go.uber.org/zap"
-	"os"
-	"regexp"
 )
 
 // TBD: Overall the intention/design is that we could execute analysis in parallel if we want to do that in the

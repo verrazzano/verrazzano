@@ -11,6 +11,7 @@ spec:
     kind: VerrazzanoWebLogicWorkload
     spec:
       template:
+        apiVersion: weblogic.oracle/v9
         metadata:
           name: todo-domain
         spec:
@@ -18,9 +19,6 @@ spec:
             adminChannelPortForwardingEnabled: true
           domainUID: tododomain
           domainHome: /u01/domains/tododomain
-          auxiliaryImageVolumes:
-            - name: auxiliaryImageVolume1
-              mountPath: /auxiliary
           image: container-registry.oracle.com/middleware/weblogic:12.2.1.4
           imagePullSecrets:
             - name: tododomain-repo-credentials
@@ -32,10 +30,10 @@ spec:
           configuration:
             introspectorJobActiveDeadlineSeconds: 900
             model:
+              auxiliaryImages:
+                - image: container-registry.oracle.com/verrazzano/example-todo:20211129200415-ae4e89e
               configMap: tododomain-jdbc-config
               domainType: WLS
-              modelHome: /auxiliary/models
-              wdtInstallHome: /auxiliary/weblogic-deploy
               runtimeEncryptionSecret: tododomain-runtime-encrypt-secret
             secrets:
               - tododomain-jdbc-tododb
@@ -43,9 +41,6 @@ spec:
             labels:
               app: todo-domain
               version: v1
-            auxiliaryImages:
-                - image: container-registry.oracle.com/verrazzano/example-todo:20211129200415-ae4e89e
-                  volume: auxiliaryImageVolume1
             env:
               - name: JAVA_OPTIONS
                 value: "-Dweblogic.StdoutDebugEnabled=false"
