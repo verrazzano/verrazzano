@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -178,6 +179,28 @@ func MetricsExist(metricsName, key, value string) bool {
 	return MetricsExistInCluster(metricsName, m, kubeconfigPath)
 }
 
+// ScrapeTargetsHealthy validates the health of the scrape targets for the given namespace
+func ScrapeTargetsHealthy(namespace string) bool {
+	targets, err := ScrapeTargets()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting scrape targets: %v", err))
+		return false
+	}
+	isHealthy := false
+	for _, target := range targets {
+		targetScrapePool := Jq(target, "scrapePool").(string)
+		if strings.Contains(targetScrapePool, namespace) {
+			// If any of the target health is not "up" return false
+			if Jq(target, "health") != "up" {
+				Log(Error, fmt.Sprintf("target with scrapePool %s and scrapeURL %s is not ready with health %s", Jq(target, "scrapePool"), Jq(target, "scrapeUrl"), Jq(target, "health")))
+				return isHealthy
+			}
+		}
+		isHealthy = true
+	}
+	return isHealthy
+}
+
 // ListUnhealthyScrapeTargets lists all the scrape targets that are unhealthy
 func ListUnhealthyScrapeTargets() {
 	targets, err := ScrapeTargets()
@@ -187,7 +210,7 @@ func ListUnhealthyScrapeTargets() {
 	}
 	for _, target := range targets {
 		if Jq(target, "health") != "up" {
-			Log(Info, fmt.Sprintf("target: %s is not ready", Jq(target, "scrapeUrl")))
+			Log(Info, fmt.Sprintf("target with scrapePool %s and scrapeURL %s is not ready with health %s", Jq(target, "scrapePool"), Jq(target, "scrapeUrl"), Jq(target, "health")))
 		}
 	}
 }

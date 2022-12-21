@@ -261,60 +261,15 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		})
 	})
 	t.Context("Metrics.", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
-		// Verify application Prometheus scraped metrics
+		// Verify application Prometheus scraped targets
 		// GIVEN a deployed Bob's Books application
 		// WHEN the application configuration uses a default metrics trait
-		// THEN confirm that metrics are being collected
-		t.It("Retrieve application Prometheus scraped metrics", func() {
+		// THEN confirm that all the scrape targets are healthy
+		t.It("Verify all scrape targets are healthy for the application", func() {
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "bobbys-helidon-stock-application")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "robert-helidon")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "bobby-helidon")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "robert-helidon")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", "bobbys-front-end")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", "bobs-bookstore")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", "bobbys-front-end")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", "bobs-bookstore")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("vendor:coherence_cluster_size", "coherenceCluster", "bobbys-coherence")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("vendor:coherence_cluster_size", "coherenceCluster", "roberts-coherence")
+						return pkg.ScrapeTargetsHealthy(namespace)
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 			)
@@ -328,31 +283,6 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				func() {
 					Eventually(func() bool {
 						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobbys-helidon-stock-application")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "robert-helidon")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobbys-front-end")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobs-bookstore")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("envoy_cluster_http2_pending_send_bytes", "pod_name", "bobbys-front-end-adminserver")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("envoy_cluster_http2_pending_send_bytes", "pod_name", "bobs-bookstore-adminserver")
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 			)
