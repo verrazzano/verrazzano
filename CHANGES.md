@@ -23,6 +23,9 @@ Component version updates:
 - WebLogic Monitoring Exporter v2.1.0
 - OpenSearch v2.3.0
 - OpenSearch Dashboards v2.3.0
+- Istio v1.15.1
+- Jaeger v1.37.0
+- Kiali v1.57.1
 
 Components added:
 - MySQL Operator 8.0.30-2.0.6
