@@ -28,7 +28,9 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 	t.Context("During Analysis", func() {
 		t.It("Doesn't Have Image Pull Not Found Issue", func() {
-			Eventually(testClusterImageIssues("ImagePullNotFound"), waitTimeout, pollingInterval).Should(BeFalse())
+			Eventually(func() bool {
+				return testClusterImageIssues("ImagePullNotFound")
+			}, waitTimeout, pollingInterval).Should(BeFalse())
 		})
 	})
 })
