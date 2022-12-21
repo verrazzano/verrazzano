@@ -21,6 +21,8 @@ Component version updates:
 - Grafana v7.5.17
 - WebLogic Kubernetes Operator v4.0.4
 - WebLogic Monitoring Exporter v2.1.0
+- OpenSearch v2.3.0
+- OpenSearch Dashboards v2.3.0
 
 Components added:
 - MySQL Operator 8.0.30-2.0.6
