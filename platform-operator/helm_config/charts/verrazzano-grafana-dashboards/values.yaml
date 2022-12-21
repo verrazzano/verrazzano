@@ -12,3 +12,5 @@ provider:
 dashboards:
   labelName: "grafana_dashboard"
   labelValue: "1"
+
+istioEnabled: true

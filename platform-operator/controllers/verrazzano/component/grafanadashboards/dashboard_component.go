@@ -53,6 +53,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			InstallBeforeUpgrade:      true,
+			AppendOverridesFunc:       AppendOverrides,
 		},
 	}
 }
