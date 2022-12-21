@@ -148,7 +148,6 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 
 	t.It("Check for unexpected CRDs", func() {
 		var unexpectedCRDs []string
-		//var crdsFound = make(map[string]bool)
 		for _, crd := range crds.Items {
 			// Anything other than these CRDs being checked are unexpected after an uninstall
 			if strings.HasSuffix(crd.Name, "projectcalico.org") ||
@@ -162,25 +161,13 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 				strings.HasSuffix(crd.Name, "mysql.oracle.com") ||
 				strings.HasSuffix(crd.Name, "zalando.org") ||
 				strings.HasSuffix(crd.Name, "metallb.io") ||
-				//strings.HasSuffix(crd.Name, "weblogic.oracle") ||
+				strings.HasSuffix(crd.Name, "weblogic.oracle") ||
 				strings.HasSuffix(crd.Name, "coherence.oracle.com") {
-				unexpectedCRDs = append(unexpectedCRDs, crd.Name)
-				//crdsFound[crd.Name] = true
 				continue
 			}
-			//crdsFound[crd.Name] = false
+			unexpectedCRDs = append(unexpectedCRDs, crd.Name)
 		}
 		Expect(unexpectedCRDs).To(BeEmpty())
-		//unexpectedCrd := false
-		//for key, value := range crdsFound {
-		//	if value == false {
-		//		unexpectedCrd = true
-		//		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected CRD was found: %s", key))
-		//	}
-		//}
-		//if unexpectedCrd {
-		//	Fail("Unexpected CRDs were found in the cluster")
-		//}
 	})
 })
 
