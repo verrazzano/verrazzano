@@ -167,7 +167,7 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 			}
 			unexpectedCRDs = append(unexpectedCRDs, crd.Name)
 		}
-		Expect(unexpectedCRDs).To(BeEmpty())
+		Expect(unexpectedCRDs).To(BeEmpty(), "Found unexpected CRDs remaining after uninstall")
 	})
 })
 
