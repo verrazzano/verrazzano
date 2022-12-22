@@ -10,5 +10,5 @@ import (
 
 func TestSecurity(test *testing.T) {
 	t.RegisterFailHandler()
-	ginkgo.RunSpecs(test, "Verrazzano Suite")
+	ginkgo.RunSpecs(test, "Security Suite")
 }
