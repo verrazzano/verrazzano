@@ -4,7 +4,6 @@
 package opensearch
 
 import (
-	//"errors"
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -12,7 +11,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -204,19 +202,6 @@ func (o opensearchComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzan
 	// Do not allow any updates to storage settings via the volumeClaimSpecTemplates/defaultVolumeSource
 	if err := common.CompareStorageOverridesV1Beta1(old, new, ComponentJSONName); err != nil {
 		return err
-	}
-	if old.Spec.Components.OpenSearch != nil && new.Spec.Components.OpenSearch != nil {
-		opensearchOld := old.Spec.Components.OpenSearch
-		opensearchNew := new.Spec.Components.OpenSearch
-
-		numNodesold, _ := GetNodeRoleCounts(opensearchOld)
-		numNodesnew, totalNodesNew := GetNodeRoleCounts(opensearchNew)
-
-		for role, replicas := range numNodesold {
-			if role != vmov1.IngestRole && replicas > 2*numNodesnew[role] && totalNodesNew > int32(1) {
-				return fmt.Errorf("The number of %v nodes can't be scaled by more than half at once", role)
-			}
-		}
 	}
 	// Reject edits that duplicate names of install args or node groups
 	return validateNoDuplicatedConfiguration(new)
