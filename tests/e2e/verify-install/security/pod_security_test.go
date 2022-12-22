@@ -17,8 +17,8 @@ import (
 var t = framework.NewTestFramework("security")
 
 const (
-	waitTimeout     = 3 * time.Minute
-	pollingInterval = 5 * time.Second
+	waitTimeout     = 1 * time.Minute
+	pollingInterval = 2 * time.Second
 )
 
 var skipPods = map[string][]string{
@@ -61,44 +61,51 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 	for ns := range skipPods {
 		t.ItMinimumVersion(fmt.Sprintf("for pods in namespace %s", ns), "1.5.0", kubeconfigPath, func() {
 			var podList *corev1.PodList
+
 			Eventually(func() (*corev1.PodList, error) {
 				podList, err := clientset.CoreV1().Pods(ns).List(context.TODO(), v1.ListOptions{})
 				return podList, err
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
-		})
 
+			pods := podList.Items
+			for _, pod := range pods {
+				if shouldSkipPod(pod.Name, ns) {
+					continue
+				}
+				Expect(expectPodSecurityForNamespace(&pod)).To(BeTrue())
+			}
+		})
 	}
 })
 
-func ExpectPodSecurityForNamespace(ns string, podList *corev1.PodList) error {
-	pods := podList.Items
-	for _, pod := range pods {
-		if shouldSkipPod(pod.Name, ns) {
-			continue
-		}
-		// ensure hostpath is not set
-		for _, vol := range pod.Spec.Volumes {
-			if vol.HostPath != nil {
-				return fmt.Errorf("Pod Security not configured for pod %, HostPath is set, HostPath = %s  Type = %s",
-					pod.Name, vol.HostPath.Path, *vol.HostPath.Type)
-			}
-		}
-		// ensure pod SecurityContext set correctly
-		if err := ensurePodSecurityContext(pod.Spec.SecurityContext, pod.Name); err != nil {
-			return err
-		}
-		for _, container := range pod.Spec.Containers {
-			if err := ensureContainerSecurityContext(container.SecurityContext, pod.Name, container.Name); err != nil {
-				return err
-			}
-		}
-		for _, initContainer := range pod.Spec.InitContainers {
-			if err := ensureContainerSecurityContext(initContainer.SecurityContext, pod.Name, initContainer.Name); err != nil {
-				return err
-			}
+func expectPodSecurityForNamespace(pod *corev1.Pod) bool {
+	// ensure hostpath is not set
+	for _, vol := range pod.Spec.Volumes {
+		if vol.HostPath != nil {
+			t.Logs.Errorf("Pod Security not configured for pod %, HostPath is set, HostPath = %s  Type = %s",
+				pod.Name, vol.HostPath.Path, *vol.HostPath.Type)
+			return false
 		}
 	}
-	return nil
+	// ensure pod SecurityContext set correctly
+	if err := ensurePodSecurityContext(pod.Spec.SecurityContext, pod.Name); err != nil {
+		t.Logs.Error(err)
+		return false
+	}
+	for _, container := range pod.Spec.Containers {
+		if err := ensureContainerSecurityContext(container.SecurityContext, pod.Name, container.Name); err != nil {
+			t.Logs.Error(err)
+			return false
+		}
+	}
+	for _, initContainer := range pod.Spec.InitContainers {
+		if err := ensureContainerSecurityContext(initContainer.SecurityContext, pod.Name, initContainer.Name); err != nil {
+			t.Logs.Error(err)
+			return false
+		}
+	}
+
+	return true
 }
 
 func ensurePodSecurityContext(sc *corev1.PodSecurityContext, podName string) error {
