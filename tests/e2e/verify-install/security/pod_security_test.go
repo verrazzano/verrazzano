@@ -73,14 +73,14 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 				if shouldSkipPod(pod.Name, ns) {
 					continue
 				}
-				Expect(expectPodSecurityForNamespace(&pod)).To(BeTrue())
+				Expect(expectPodSecurityForNamespace(pod)).To(BeTrue())
 			}
 		})
 		t.Logs.Infof("Pod security verified for namespace %s", ns)
 	}
 })
 
-func expectPodSecurityForNamespace(pod *corev1.Pod) bool {
+func expectPodSecurityForNamespace(pod corev1.Pod) bool {
 	// ensure hostpath is not set
 	for _, vol := range pod.Spec.Volumes {
 		if vol.HostPath != nil {
