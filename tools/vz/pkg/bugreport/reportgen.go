@@ -140,7 +140,7 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bug
 	if len(vz.Items) > 0 {
 		wgCount++
 	}
-	if len(externaldnsPod) > 0 && vz.Items[0].Spec.Components.DNS != nil && vz.Items[0].Spec.Components.DNS.OCI != nil {
+	if len(externaldnsPod) > 0 {
 		wgCount++
 	}
 	wg := &sync.WaitGroup{}
@@ -158,7 +158,7 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bug
 	go captureLogs(wg, ecl, kubeClient, vpoPod, vzconstants.VerrazzanoInstallNamespace, bugReportDir, vzHelper, duration)
 	go captureLogs(wg, ecl, kubeClient, vaoPod, vzconstants.VerrazzanoSystemNamespace, bugReportDir, vzHelper, duration)
 	go captureLogs(wg, ecl, kubeClient, vmoPod, vzconstants.VerrazzanoSystemNamespace, bugReportDir, vzHelper, duration)
-	if vz.Items[0].Spec.Components.DNS != nil && vz.Items[0].Spec.Components.DNS.OCI != nil {
+	if len(externaldnsPod) > 0 {
 		go captureLogs(wg, ecl, kubeClient, externaldnsPod, vzconstants.CertManager, bugReportDir, vzHelper, duration)
 	}
 	for _, ns := range namespaces {
