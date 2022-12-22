@@ -38,14 +38,12 @@ func (v *RequirementsValidatorV1beta1) InjectDecoder(d *admission.Decoder) error
 // Handle performs validation of the Verrazzano prerequisites based on the profiled used.
 func (v *RequirementsValidatorV1beta1) Handle(ctx context.Context, req admission.Request) admission.Response {
 	var log = zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, RequirementsWebhook)
-
 	log.Infof("Processing Requirements validator webhook")
 	vz := &v1beta1.Verrazzano{}
 	err := v.decoder.Decode(req, vz)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
-
 	if vz.ObjectMeta.DeletionTimestamp.IsZero() {
 		switch req.Operation {
 		case k8sadmission.Create:
@@ -66,12 +64,10 @@ func validateRequirementsV1beta1(log *zap.SugaredLogger, client client.Client, v
 	response := admission.Allowed("")
 	warnings := getWarningArrayWithOSv1beta1(vz)
 	if errs := vzchecks.PrerequisiteCheck(client, vzchecks.ProfileType(vz.Spec.Profile)); len(errs) > 0 {
-
 		for _, err := range errs {
 			log.Warnf(err.Error())
 			warnings = append(warnings, err.Error())
 		}
-
 	}
 	if len(warnings) > 0 {
 		return admission.Allowed("").WithWarnings(warnings...)
@@ -81,7 +77,6 @@ func validateRequirementsV1beta1(log *zap.SugaredLogger, client client.Client, v
 func validateUpdateForNodesv1beta1(log *zap.SugaredLogger, client client.Client, oldvz v1beta1.Verrazzano, newvz *v1beta1.Verrazzano) admission.Response {
 	response := admission.Allowed("")
 	warnings := getWarningArrayWithOSv1beta1(newvz)
-
 	if newvz.Spec.Components.OpenSearch != nil && oldvz.Spec.Components.OpenSearch != nil {
 		opensearchNew := newvz.Spec.Components.OpenSearch
 		opensearchOld := oldvz.Spec.Components.OpenSearch
@@ -96,7 +91,6 @@ func validateUpdateForNodesv1beta1(log *zap.SugaredLogger, client client.Client,
 			}
 		}
 	}
-
 	if errs := vzchecks.PrerequisiteCheck(client, vzchecks.ProfileType(newvz.Spec.Profile)); len(errs) > 0 {
 		for _, err := range errs {
 			log.Warnf(err.Error())

@@ -39,14 +39,12 @@ func (v *RequirementsValidatorV1alpha1) InjectDecoder(d *admission.Decoder) erro
 // Handle performs validation of the Verrazzano prerequisites based on the profiled used.
 func (v *RequirementsValidatorV1alpha1) Handle(ctx context.Context, req admission.Request) admission.Response {
 	var log = zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, RequirementsWebhook)
-
 	log.Infof("Processing requirements validator webhook")
 	vz := &v1alpha1.Verrazzano{}
 	err := v.decoder.Decode(req, vz)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
-
 	if vz.ObjectMeta.DeletionTimestamp.IsZero() {
 		switch req.Operation {
 		case k8sadmission.Create:
@@ -128,15 +126,12 @@ func getWarningArrayWithOS(vz *v1alpha1.Verrazzano) []string {
 				if numberNodes[vmov1.DataRole] < 2 {
 					dataStr := "Number of data nodes should be at least 2 in a multi node cluster"
 					warnings = append(warnings, dataStr)
-
 				}
 				if numberNodes[vmov1.IngestRole] < 1 {
 					ingestStr := "Number of ingest nodes should be at least 1 in a multi node cluster"
 					warnings = append(warnings, ingestStr)
-
 				}
 			}
-
 		}
 	}
 	return warnings
