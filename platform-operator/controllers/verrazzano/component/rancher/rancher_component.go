@@ -603,15 +603,16 @@ func configureUISettings(ctx spi.ComponentContext) error {
 func checkExistingRancher(vz runtime.Object) error {
 	if !vzcr.IsRancherEnabled(vz) {
 		return nil
-	} else {
-		provisioned, err := isClusterProvisionedByRancher()
-		if err != nil {
-			return err
-		}
-		if provisioned {
-			return fmt.Errorf("Rancher cannot be installed on a cluster provisioned by Rancher. Disable Rancher and rerun.")
-		}
 	}
+
+	provisioned, err := isClusterProvisionedByRancher()
+	if err != nil {
+		return err
+	}
+	if provisioned {
+		return fmt.Errorf("cluster provisioned by Rancher cannot have Rancher installed. Disable Rancher and rerun")
+	}
+
 	client, err := k8sutil.GetCoreV1Func()
 	if err != nil {
 		return err
