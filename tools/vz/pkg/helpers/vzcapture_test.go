@@ -201,7 +201,7 @@ func TestCapturePodLog(t *testing.T) {
 				Image: "dummimage:notag",
 			},
 		},
-	}}, constants.VerrazzanoInstall, captureDir, rc, 0)
+	}}, constants.VerrazzanoInstall, captureDir, rc, 300)
 	assert.NoError(t, err)
 }
 
@@ -359,7 +359,7 @@ func cleanupFile(t *testing.T, file *os.File) {
 	}
 }
 
-// TestGetPodList tests the functionality to return the list of all pods
+// TestGetPodListAll tests the functionality to return the list of all pods
 func TestGetPodListAll(t *testing.T) {
 	nsName := "test"
 	podLength := 5
