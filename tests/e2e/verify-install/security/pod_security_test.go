@@ -6,6 +6,8 @@ package security
 import (
 	"context"
 	"fmt"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"strings"
 	"time"
 
@@ -39,6 +41,26 @@ var skipPods = map[string][]string{
 
 var skipContainers = []string{"istio-proxy"}
 var skipInitContainers = []string{"istio-init"}
+
+type securityContextExceptions struct {
+	podPrefix  string
+	exceptions map[string]corev1.SecurityContext
+}
+
+var containerSecurityExceptions = map[string][]securityContextExceptions{
+	"verrazzano-system": {
+		{
+			podPrefix: "verrazzano-authproxy",
+			exceptions: map[string]corev1.SecurityContext{
+				"verrazzano-authproxy": {
+					Capabilities: &corev1.Capabilities{
+						Add: []corev1.Capability{corev1.Capability("NET_BIND_SERVICE")},
+					},
+				},
+			},
+		},
+	},
+}
 
 var (
 	clientset *kubernetes.Clientset
@@ -75,14 +97,14 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 				if shouldSkipPod(pod.Name, ns) {
 					continue
 				}
-				Expect(expectPodSecurityForNamespace(pod)).To(Not(HaveOccurred()))
+				Expect(expectPodSecurityForNamespace(ns, pod)).To(Not(HaveOccurred()))
 			}
 		})
 		t.Logs.Infof("Pod security verified for namespace %s", ns)
 	}
 })
 
-func expectPodSecurityForNamespace(pod corev1.Pod) error {
+func expectPodSecurityForNamespace(ns string, pod corev1.Pod) error {
 	// ensure hostpath is not set
 	for _, vol := range pod.Spec.Volumes {
 		if vol.HostPath != nil {
@@ -101,7 +123,7 @@ func expectPodSecurityForNamespace(pod corev1.Pod) error {
 		if shouldSkipContainer(container.Name, skipContainers) {
 			continue
 		}
-		if err := ensureContainerSecurityContext(container.SecurityContext, pod.Name, container.Name); err != nil {
+		if err := ensureContainerSecurityContext(container.SecurityContext, ns, pod.Name, container.Name); err != nil {
 			return err
 		}
 	}
@@ -111,7 +133,7 @@ func expectPodSecurityForNamespace(pod corev1.Pod) error {
 		if shouldSkipContainer(initContainer.Name, skipInitContainers) {
 			continue
 		}
-		if err := ensureContainerSecurityContext(initContainer.SecurityContext, pod.Name, initContainer.Name); err != nil {
+		if err := ensureContainerSecurityContext(initContainer.SecurityContext, ns, pod.Name, initContainer.Name); err != nil {
 			return err
 		}
 	}
@@ -138,7 +160,9 @@ func ensurePodSecurityContext(sc *corev1.PodSecurityContext, podName string) err
 	return nil
 }
 
-func ensureContainerSecurityContext(sc *corev1.SecurityContext, podName, containerName string) error {
+func lessFunc(a, b string) bool { return a < b }
+
+func ensureContainerSecurityContext(sc *corev1.SecurityContext, namespace, podName, containerName string) error {
 	if sc == nil {
 		return fmt.Errorf("SecurityContext is nil for pod %s, container %s", podName, containerName)
 	}
@@ -169,8 +193,31 @@ func ensureContainerSecurityContext(sc *corev1.SecurityContext, podName, contain
 	if !dropCapabilityFound {
 		return fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, Missing `Drop -ALL` capabilities", podName, containerName)
 	}
-
+	if len(sc.Capabilities.Add) > 0 {
+		exceptions, foundExceptions := findExceptions(namespace, podName, containerName)
+		if !foundExceptions {
+			return fmt.Errorf("found unexpected ADD capabilities: %v", sc.Capabilities.Add)
+		}
+		diff := cmp.Diff(sc.Capabilities.Add, exceptions.Capabilities.Add, cmpopts.SortSlices(lessFunc))
+		if diff != "" {
+			return fmt.Errorf("unexpected capabilities added to container %s in pod %s: %s", containerName, podName, diff)
+		}
+	}
 	return nil
+}
+
+func findExceptions(namespace string, podName string, containerName string) (corev1.SecurityContext, bool) {
+	podExceptionsList, podExceptionsFound := containerSecurityExceptions[namespace]
+	if !podExceptionsFound {
+		return corev1.SecurityContext{}, false
+	}
+	for _, podExceptions := range podExceptionsList {
+		if strings.HasPrefix(podName, podExceptions.podPrefix) {
+			exceptions, foundContainer := podExceptions.exceptions[containerName]
+			return exceptions, foundContainer
+		}
+	}
+	return corev1.SecurityContext{}, false
 }
 
 func shouldSkipPod(podName, ns string) bool {
