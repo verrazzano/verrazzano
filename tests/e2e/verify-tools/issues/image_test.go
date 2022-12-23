@@ -19,6 +19,11 @@ var (
 	pollingInterval = 10 * time.Second
 )
 
+const (
+	ImagePullNotFound string = "ImagePullNotFound"
+	ImagePullBackOff  string = "ImagePullBackOff"
+)
+
 var t = framework.NewTestFramework("Vz Tools Analysis Image Issues")
 var _ = BeforeSuite(beforeSuite)
 var _ = t.AfterEach(func() {})
@@ -32,7 +37,12 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 	t.Context("During Analysis", func() {
 		t.It("Doesn't Have Image Pull Not Found Issue", func() {
 			Eventually(func() bool {
-				return testClusterImageIssues("ImagePullNotFound")
+				return testClusterImageIssues(ImagePullNotFound)
+			}, waitTimeout, pollingInterval).Should(BeFalse())
+		})
+		t.It("Doesn't Have Image Pull Back Off Issue", func() {
+			Eventually(func() bool {
+				return testClusterImageIssues(ImagePullBackOff)
 			}, waitTimeout, pollingInterval).Should(BeFalse())
 		})
 	})
@@ -78,8 +88,11 @@ func populateClusterImageIssues(installedNamespace string) {
 		if len(pod.Status.InitContainerStatuses) > 0 {
 			for _, initContainerStatus := range pod.Status.InitContainerStatuses {
 				if initContainerStatus.State.Waiting != nil {
-					if initContainerStatus.State.Waiting.Reason == "ImagePullNotFound" {
-						clusterImageIssues["ImagePullNotFound"] = true
+					if initContainerStatus.State.Waiting.Reason == ImagePullNotFound {
+						clusterImageIssues[ImagePullNotFound] = true
+					}
+					if initContainerStatus.State.Waiting.Reason == ImagePullBackOff {
+						clusterImageIssues[ImagePullBackOff] = true
 					}
 				}
 			}
@@ -87,8 +100,11 @@ func populateClusterImageIssues(installedNamespace string) {
 		if len(pod.Status.ContainerStatuses) > 0 {
 			for _, containerStatus := range pod.Status.ContainerStatuses {
 				if containerStatus.State.Waiting != nil {
-					if containerStatus.State.Waiting.Reason == "ImagePullNotFound" {
-						clusterImageIssues["ImagePullNotFound"] = true
+					if containerStatus.State.Waiting.Reason == ImagePullNotFound {
+						clusterImageIssues[ImagePullNotFound] = true
+					}
+					if containerStatus.State.Waiting.Reason == ImagePullBackOff {
+						clusterImageIssues[ImagePullBackOff] = true
 					}
 				}
 			}
