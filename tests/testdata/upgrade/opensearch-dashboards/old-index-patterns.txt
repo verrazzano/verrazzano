@@ -5,5 +5,3 @@
 verrazzano-namespace-kube-system
 verrazzano-namespace-bobs-books
 verrazzano-namespace-k*,verrazzano-namespace-socks-shop
-verrazzano-application*
-verrazzano-system
