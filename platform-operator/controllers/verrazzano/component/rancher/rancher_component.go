@@ -6,10 +6,8 @@ package rancher
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strconv"
-
+	"github.com/gertd/go-pluralize"
+	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -32,8 +30,15 @@ import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
+	"os"
+	"path/filepath"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strconv"
+	"strings"
 )
 
 // ComponentName is the name of the component
@@ -598,6 +603,14 @@ func configureUISettings(ctx spi.ComponentContext) error {
 func checkExistingRancher(vz runtime.Object) error {
 	if !vzcr.IsRancherEnabled(vz) {
 		return nil
+	} else {
+		provisioned, err := isClusterProvisionedByRancher()
+		if err != nil {
+			return err
+		}
+		if provisioned {
+			return fmt.Errorf("Rancher cannot be installed on a cluster provisioned by Rancher. Disable Rancher and rerun.")
+		}
 	}
 	client, err := k8sutil.GetCoreV1Func()
 	if err != nil {
@@ -611,6 +624,54 @@ func checkExistingRancher(vz runtime.Object) error {
 		return err
 	}
 	return nil
+}
+
+func isClusterProvisionedByRancher() (bool, error) {
+	client, err := k8sutil.GetCoreV1Func()
+	if err != nil {
+		return false, err
+	}
+
+	ns, err := client.Namespaces().Get(context.TODO(), "local", metav1.GetOptions{})
+	if kerrs.IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	config, err := ctrl.GetConfig()
+	if err != nil {
+		return false, err
+	}
+	dynClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return false, err
+	}
+
+	for _, ownerRef := range ns.OwnerReferences {
+		group, version := controllers.ConvertAPIVersionToGroupAndVersion(ownerRef.APIVersion)
+		if group == "management.cattle.io" && ownerRef.Kind == "Cluster" {
+			resource := schema.GroupVersionResource{
+				Group:    group,
+				Version:  version,
+				Resource: pluralize.NewClient().Plural(strings.ToLower(ownerRef.Kind)),
+			}
+			u, err := dynClient.Resource(resource).Namespace("").Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
+			if err != nil {
+				return false, err
+			}
+
+			labels := u.GetLabels()
+			_, ok := labels["provider.cattle.io"]
+			if ok {
+				return true, nil
+			}
+			return false, nil
+		}
+	}
+
+	return false, nil
 }
 
 // createOrUpdateRancherUser create or update the new Rancher user mapped to Keycloak user verrazzano
