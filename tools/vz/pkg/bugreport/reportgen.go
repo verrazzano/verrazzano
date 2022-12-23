@@ -99,9 +99,6 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	}
 	// Print initial message to console output only
 	fmt.Fprintf(vzHelper.GetOutputStream(), msgPrefix+"resources from the cluster ...\n")
-	if err != nil {
-		panic(err)
-	}
 	// Capture list of resources from verrazzano-install and verrazzano-system namespaces
 	err = captureResources(client, kubeClient, bugReportDir, vz, vzHelper, nsList, duration)
 	if err != nil {

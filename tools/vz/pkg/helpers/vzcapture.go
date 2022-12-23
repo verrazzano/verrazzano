@@ -129,7 +129,7 @@ func GetPodList(client clipkg.Client, appLabel, appName, namespace string) ([]co
 }
 
 // GetPodListAll returns list of pods in the given namespace
-// Will be used to fetch all namespaces in customer
+// Will be used to fetch all pods in customer namespace
 func GetPodListAll(client clipkg.Client, namespace string) ([]corev1.Pod, error) {
 	podList := corev1.PodList{}
 	err := client.List(

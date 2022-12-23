@@ -5,7 +5,9 @@ package helpers
 
 import (
 	"bytes"
+	"fmt"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -355,4 +357,33 @@ func cleanupFile(t *testing.T, file *os.File) {
 	if err := file.Close(); err != nil {
 		t.Fatalf("RemoveAll failed: %v", err)
 	}
+}
+
+// TestGetPodList tests the functionality to return the list of all pods
+func TestGetPodListAll(t *testing.T) {
+	nsName := "test"
+	podLength := 5
+	var podList = []client.Object{}
+	for i := 0; i < podLength; i++ {
+		podList = append(podList, &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      nsName + fmt.Sprint(i),
+				Namespace: nsName,
+				Labels:    map[string]string{"name": "myapp"},
+			},
+		})
+	}
+	//  GIVEN a k8s cluster with no pods,
+	//	WHEN I call functions to get the list of pods in the k8s cluster,
+	//	THEN expect it to be an empty list.
+	pods, err := GetPodListAll(fake.NewClientBuilder().Build(), nsName)
+	assert.NoError(t, err)
+	assert.Empty(t, pods)
+
+	//  GIVEN a k8s cluster with 5 pods,
+	//	WHEN I call functions to get the list of pods in the k8s cluster without label,
+	//	THEN expect it to be list all pods.
+	pods, err = GetPodListAll(fake.NewClientBuilder().WithObjects(podList...).Build(), nsName)
+	assert.NoError(t, err)
+	assert.Equal(t, podLength, len(pods))
 }
