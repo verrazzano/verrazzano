@@ -22,8 +22,8 @@ import (
 var t = framework.NewTestFramework("security")
 
 const (
-	waitTimeout     = 1 * time.Minute
-	pollingInterval = 2 * time.Second
+	waitTimeout     = 3 * time.Minute
+	pollingInterval = 5 * time.Second
 )
 
 var skipPods = map[string][]string{
@@ -46,9 +46,8 @@ var (
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
-	var err error
 	Eventually(func() (*kubernetes.Clientset, error) {
-		clientset, err = k8sutil.GetKubernetesClientset()
+		clientset, err := k8sutil.GetKubernetesClientset()
 		return clientset, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 })
@@ -76,47 +75,48 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 				if shouldSkipPod(pod.Name, ns) {
 					continue
 				}
-				Expect(expectPodSecurityForNamespace(pod)).To(BeTrue())
+				Expect(expectPodSecurityForNamespace(pod)).To(Not(HaveOccurred()))
 			}
 		})
 		t.Logs.Infof("Pod security verified for namespace %s", ns)
 	}
 })
 
-func expectPodSecurityForNamespace(pod corev1.Pod) bool {
+func expectPodSecurityForNamespace(pod corev1.Pod) error {
 	// ensure hostpath is not set
 	for _, vol := range pod.Spec.Volumes {
 		if vol.HostPath != nil {
-			t.Logs.Errorf("Pod Security not configured for pod %, HostPath is set, HostPath = %s  Type = %s",
+			return fmt.Errorf("Pod Security not configured for pod %, HostPath is set, HostPath = %s  Type = %s",
 				pod.Name, vol.HostPath.Path, *vol.HostPath.Type)
-			return false
 		}
 	}
+
 	// ensure pod SecurityContext set correctly
 	if err := ensurePodSecurityContext(pod.Spec.SecurityContext, pod.Name); err != nil {
-		t.Logs.Error(err)
-		return false
+		return err
 	}
+
+	// ensure container SecurityContext set correctly
 	for _, container := range pod.Spec.Containers {
 		if shouldSkipContainer(container.Name, skipContainers) {
 			continue
 		}
 		if err := ensureContainerSecurityContext(container.SecurityContext, pod.Name, container.Name); err != nil {
-			t.Logs.Error(err)
-			return false
+			return err
 		}
 	}
+
+	// ensure init container SecurityContext set correctly
 	for _, initContainer := range pod.Spec.InitContainers {
 		if shouldSkipContainer(initContainer.Name, skipInitContainers) {
 			continue
 		}
 		if err := ensureContainerSecurityContext(initContainer.SecurityContext, pod.Name, initContainer.Name); err != nil {
-			t.Logs.Error(err)
-			return false
+			return err
 		}
 	}
 
-	return true
+	return nil
 }
 
 func ensurePodSecurityContext(sc *corev1.PodSecurityContext, podName string) error {
