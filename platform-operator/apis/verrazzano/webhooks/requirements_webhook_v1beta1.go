@@ -53,7 +53,7 @@ func (v *RequirementsValidatorV1beta1) Handle(ctx context.Context, req admission
 			if err := v.decoder.DecodeRaw(req.OldObject, &oldVz); err != nil {
 				return admission.Errored(http.StatusBadRequest, errors.Wrap(err, "unable to decode existing Verrazzano object"))
 			}
-			return validateUpdateForNodesv1beta1(log, v.client, oldVz, vz)
+			return validateUpdatev1beta1(log, v.client, oldVz, vz)
 		}
 	}
 	return admission.Allowed("")
@@ -62,7 +62,7 @@ func (v *RequirementsValidatorV1beta1) Handle(ctx context.Context, req admission
 // validateRequirementsV1alpha1 presents the user with a warning if the prerequisite checks are not met.
 func validateRequirementsV1beta1(log *zap.SugaredLogger, client client.Client, vz *v1beta1.Verrazzano) admission.Response {
 	response := admission.Allowed("")
-	warnings := getWarningArrayWithOSv1beta1(vz)
+	warnings := getWarningArrayv1beta1(vz)
 	if errs := vzchecks.PrerequisiteCheck(client, vzchecks.ProfileType(vz.Spec.Profile)); len(errs) > 0 {
 		for _, err := range errs {
 			log.Warnf(err.Error())
@@ -74,15 +74,15 @@ func validateRequirementsV1beta1(log *zap.SugaredLogger, client client.Client, v
 	}
 	return response
 }
-func validateUpdateForNodesv1beta1(log *zap.SugaredLogger, client client.Client, oldvz v1beta1.Verrazzano, newvz *v1beta1.Verrazzano) admission.Response {
+func validateUpdatev1beta1(log *zap.SugaredLogger, client client.Client, oldvz v1beta1.Verrazzano, newvz *v1beta1.Verrazzano) admission.Response {
 	response := admission.Allowed("")
-	warnings := getWarningArrayWithOSv1beta1(newvz)
+	warnings := getWarningArrayv1beta1(newvz)
 	if newvz.Spec.Components.OpenSearch != nil && oldvz.Spec.Components.OpenSearch != nil {
 		opensearchNew := newvz.Spec.Components.OpenSearch
 		opensearchOld := oldvz.Spec.Components.OpenSearch
 
-		numNodesold, _ := GetNodeRoleCounts(opensearchOld)
-		numNodesnew, totalNodesNew := GetNodeRoleCounts(opensearchNew)
+		numNodesold, _ := getNodeRoleCounts(opensearchOld)
+		numNodesnew, totalNodesNew := getNodeRoleCounts(opensearchNew)
 
 		for role, replicas := range numNodesold {
 			if role != vmov1.IngestRole && replicas > 2*numNodesnew[role] && totalNodesNew > int32(1) {
@@ -103,11 +103,11 @@ func validateUpdateForNodesv1beta1(log *zap.SugaredLogger, client client.Client,
 	return response
 }
 
-func getWarningArrayWithOSv1beta1(vz *v1beta1.Verrazzano) []string {
+func getWarningArrayv1beta1(vz *v1beta1.Verrazzano) []string {
 	var warnings []string
 	if vz.Spec.Components.OpenSearch != nil {
 		opensearch := vz.Spec.Components.OpenSearch
-		numberNodes, totalNode := GetNodeRoleCounts(opensearch)
+		numberNodes, totalNode := getNodeRoleCounts(opensearch)
 		if totalNode > int32(1) {
 			if numberNodes[vmov1.MasterRole] < 3 {
 				masterStr := "Number of master nodes should be at least 3 in a multi node cluster"
@@ -126,7 +126,7 @@ func getWarningArrayWithOSv1beta1(vz *v1beta1.Verrazzano) []string {
 	return warnings
 }
 
-func GetNodeRoleCounts(opensearch *v1beta1.OpenSearchComponent) (map[vmov1.NodeRole]int32, int32) {
+func getNodeRoleCounts(opensearch *v1beta1.OpenSearchComponent) (map[vmov1.NodeRole]int32, int32) {
 	numberNodes := make(map[vmov1.NodeRole]int32)
 	totalNodes := int32(0)
 	for _, group := range opensearch.Nodes {
