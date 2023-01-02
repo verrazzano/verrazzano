@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"os"
+	"regexp"
 )
 
 type LogMessage struct {
@@ -50,4 +51,23 @@ func FilterLogsByLevelComponent(level string, component string, allMessages []Lo
 		}
 	}
 	return filteredLogs, nil
+}
+
+// ConvertToLogMessage reads the install log and creates a list of LogMessage
+func SearchLogMessage(path, searchtext string) (string, error) {
+	isMatchFound := ""
+	readFile, err := os.Open(path)
+	if err != nil {
+		return isMatchFound, err
+	}
+	defer readFile.Close()
+	scanner := bufio.NewScanner(readFile)
+	r, err := regexp.Compile(searchtext)
+	for scanner.Scan() {
+		if r.MatchString(scanner.Text()) {
+			isMatchFound = scanner.Text()
+			break
+		}
+	}
+	return isMatchFound, nil
 }

@@ -58,6 +58,7 @@ var RunbookLinks = map[string][]string{
 	IngressShapeInvalid:       {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/ingressinvalidshape"},
 	IstioIngressPrivateSubnet: {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/istioloadbalancercreation"},
 	NginxIngressPrivateSubnet: {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/nginxloadbalancercreation"},
+	ExternalDNSConfigureIssue: {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/externaldnsconfiguration"},
 }
 
 // KnownActions are Standard Action types
@@ -79,6 +80,7 @@ var KnownActions = map[string]Action{
 	IngressShapeInvalid:       {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IngressShapeInvalid][0])},
 	IstioIngressPrivateSubnet: {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IstioIngressPrivateSubnet][0])},
 	NginxIngressPrivateSubnet: {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[NginxIngressPrivateSubnet][0])},
+	ExternalDNSConfigureIssue: {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[ExternalDNSConfigureIssue][0])},
 }
 
 func getConsultRunbookAction(summaryF string, runbookLink string) string {
