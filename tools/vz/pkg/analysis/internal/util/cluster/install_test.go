@@ -28,4 +28,5 @@ func TestAnalyzeVerrazzanoResource(t *testing.T) {
 	assert.NoError(t, AnalyzeVerrazzanoResource(logger, "../../../test/cluster/insufficient-mem/cluster-snapshot", &issueReporter))
 	assert.NoError(t, AnalyzeVerrazzanoResource(logger, "../../../test/cluster/istio-ingress-ip-not-found/cluster-snapshot", &issueReporter))
 	assert.NoError(t, AnalyzeVerrazzanoResource(logger, "../../../test/cluster/pending-pods/cluster-snapshot", &issueReporter))
+	assert.NoError(t, AnalyzeVerrazzanoResource(logger, "../../../test/cluster/external-dns-issue/cluster-snapshot", &issueReporter))
 }
