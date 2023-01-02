@@ -53,7 +53,8 @@ func FilterLogsByLevelComponent(level string, component string, allMessages []Lo
 	return filteredLogs, nil
 }
 
-// ConvertToLogMessage reads the install log and creates a list of LogMessage
+// Search for regex match in file path and return the line  if found
+// else return empty
 func SearchLogMessage(path, searchtext string) (string, error) {
 	isMatchFound := ""
 	readFile, err := os.Open(path)
