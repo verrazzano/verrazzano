@@ -236,3 +236,5 @@ const RancherBackupNamesSpace = "cattle-resources-system"
 
 // VerrazzanoManagedKey indicates the label key to the Verrazzano managed namespaces
 const VerrazzanoManagedKey = "verrazzano.io/namespace"
+
+const ExternalDnsNamespace = "cert-manager"
