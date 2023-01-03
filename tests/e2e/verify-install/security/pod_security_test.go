@@ -6,6 +6,7 @@ package security
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"strings"
 	"time"
 
@@ -45,10 +46,19 @@ var skipInitContainers = []string{"istio-init"}
 
 var (
 	clientset *kubernetes.Clientset
-	err       error
 )
 
+var isMinVersion150 bool
+
 var beforeSuite = t.BeforeSuiteFunc(func() {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+	isMinVersion150, err = pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
+	if err != nil {
+		Fail(fmt.Sprintf("Error checking Verrazzano version: %s", err.Error()))
+	}
 	Eventually(func() (*kubernetes.Clientset, error) {
 		clientset, err = k8sutil.GetKubernetesClientset()
 		return clientset, err
@@ -60,36 +70,36 @@ var _ = BeforeSuite(beforeSuite)
 var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func() {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-	}
-	for ns := range skipPods {
-		ns := ns // needed to avoid the spec closure from capturing and retaining the last key in the map; see Ginkgo docs
-		t.ItMinimumVersion(fmt.Sprintf("Chek security for pods in namespace %s", ns), "1.5.0", kubeconfigPath, func() {
-			var podList *corev1.PodList
-			Eventually(func() (*corev1.PodList, error) {
-				var err error
-				podList, err = clientset.CoreV1().Pods(ns).List(context.TODO(), v1.ListOptions{})
-				return podList, err
-			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+	testFunc := func(ns string) {
+		if !isMinVersion150 {
+			t.Logs.Infof("Skipping test, minimum version requirement of v1.5.0 not met")
+			return
+		}
+		var podList *corev1.PodList
+		Eventually(func() (*corev1.PodList, error) {
+			var err error
+			podList, err = clientset.CoreV1().Pods(ns).List(context.TODO(), v1.ListOptions{})
+			return podList, err
+		}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-			var errors []error
-			pods := podList.Items
-			for _, pod := range pods {
-				t.Logs.Infof("Checking pod %s/%s", ns, pod.Name)
-				if shouldSkipPod(pod.Name, ns) {
-					continue
-				}
-				errors = append(errors, expectPodSecurityForNamespace(ns, pod)...)
+		var errors []error
+		pods := podList.Items
+		for _, pod := range pods {
+			t.Logs.Infof("Checking pod %s/%s", ns, pod.Name)
+			if shouldSkipPod(pod.Name, ns) {
+				continue
 			}
-			Expect(errors).To(BeEmpty())
-		})
-		t.Logs.Infof("Pod security verified for namespace %s", ns)
+			errors = append(errors, expectPodSecurityForNamespace(pod)...)
+		}
+		Expect(errors).To(BeEmpty())
 	}
+	t.DescribeTable("Check pod security in system namespaces", testFunc,
+		Entry("Checking pod security in verrazzano-install", "verrazzano-install"),
+		Entry("Checking pod security in verrazzano-system", "verrazzano-system"),
+	)
 })
 
-func expectPodSecurityForNamespace(ns string, pod corev1.Pod) []error {
+func expectPodSecurityForNamespace(pod corev1.Pod) []error {
 	var errors []error
 	// ensure hostpath is not set
 	for _, vol := range pod.Spec.Volumes {
