@@ -605,7 +605,7 @@ func checkExistingRancher(vz runtime.Object) error {
 		return nil
 	}
 
-	provisioned, err := isClusterProvisionedByRancher()
+	provisioned, err := IsClusterProvisionedByRancher()
 	if err != nil {
 		return err
 	}
@@ -627,13 +627,15 @@ func checkExistingRancher(vz runtime.Object) error {
 	return nil
 }
 
-func isClusterProvisionedByRancher() (bool, error) {
+// IsClusterProvisionedByRancher checks if the Kubernetes cluster was provisioned by Rancher.
+func IsClusterProvisionedByRancher() (bool, error) {
 	client, err := k8sutil.GetCoreV1Func()
 	if err != nil {
 		return false, err
 	}
 
-	ns, err := client.Namespaces().Get(context.TODO(), "local", metav1.GetOptions{})
+	// Check for the "local" namespace.
+	ns, err := client.Namespaces().Get(context.TODO(), ClusterLocal, metav1.GetOptions{})
 	if kerrs.IsNotFound(err) {
 		return false, nil
 	}
@@ -650,9 +652,10 @@ func isClusterProvisionedByRancher() (bool, error) {
 		return false, err
 	}
 
+	// Find the management.cattle.io Cluster resource and check if the provider.cattle.io label exists.
 	for _, ownerRef := range ns.OwnerReferences {
 		group, version := controllers.ConvertAPIVersionToGroupAndVersion(ownerRef.APIVersion)
-		if group == "management.cattle.io" && ownerRef.Kind == "Cluster" {
+		if group == common.APIGroupRancherManagement && ownerRef.Kind == ClusterKind {
 			resource := schema.GroupVersionResource{
 				Group:    group,
 				Version:  version,
@@ -664,7 +667,7 @@ func isClusterProvisionedByRancher() (bool, error) {
 			}
 
 			labels := u.GetLabels()
-			_, ok := labels["provider.cattle.io"]
+			_, ok := labels[ProviderCattleIoLabel]
 			if ok {
 				return true, nil
 			}

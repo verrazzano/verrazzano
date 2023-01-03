@@ -99,6 +99,8 @@ const (
 	NodeDriverOCI                     = "oci"
 	ClusterLocal                      = "local"
 	AuthConfigLocal                   = "local"
+	ClusterKind                       = "Cluster"
+	ProviderCattleIoLabel             = "provider.cattle.io"
 	UserVerrazzano                    = "u-verrazzano"
 	UserVerrazzanoDescription         = "Verrazzano Admin"
 	GlobalRoleBindingVerrazzanoPrefix = "grb-"
