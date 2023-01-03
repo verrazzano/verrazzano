@@ -57,6 +57,7 @@ var MetricsExp MetricsExporter
 type metricName string
 
 const (
+	component                                 = "component"
 	ReconcileCounter               metricName = "reconcile counter"
 	ReconcileError                 metricName = "reconcile error"
 	ReconcileDuration              metricName = "reconcile duration"
@@ -202,7 +203,7 @@ func initComponentHealthMetrics() *ComponentHealth {
 		available: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "vz_platform_operator_component_health",
 			Help: "Is component enabled and available",
-		}, []string{"component"}),
+		}, []string{component}),
 	}
 }
 
@@ -211,7 +212,7 @@ func initComponentInstallDurationMetrics() *ComponentInstallDuration {
 		installDuration: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "vz_platform_operator_component_install_duration_seconds",
 			Help: "The duration of the latest installation of each component in seconds",
-		}, []string{"component"}),
+		}, []string{component}),
 	}
 }
 
@@ -219,8 +220,8 @@ func initComponentUpgradeDurationMetrics() *ComponentUpgradeDuration {
 	return &ComponentUpgradeDuration{
 		upgradeDuration: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "vz_platform_operator_component_upgrade_duration_seconds",
-			Help: "The duration of the latest installation of each component in seconds",
-		}, []string{"component"}),
+			Help: "The duration of the latest upgrade of each component in seconds",
+		}, []string{component}),
 	}
 }
 
