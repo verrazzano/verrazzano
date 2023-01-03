@@ -168,10 +168,10 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 			eventuallyMetricsContainLabels("vz_platform_operator_error_reconcile_total", map[string]string{})
 		})
 		t.ItMinimumVersion("Verify VPO install metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
-			eventuallyMetricsContainLabels("vz_ingressNGINX_install_duration_seconds", map[string]string{})
+			eventuallyMetricsContainLabels("vz_platform_operator_component_install_duration_seconds", map[string]string{})
 		})
 		t.ItMinimumVersion("Verify VPO upgrade counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
-			eventuallyMetricsContainLabels("vz_ingressNGINX_upgrade_duration_seconds", map[string]string{})
+			eventuallyMetricsContainLabels("vz_platform_operator_component_upgrade_duration_seconds", map[string]string{})
 		})
 
 		t.ItMinimumVersion("Verify VMO function metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
