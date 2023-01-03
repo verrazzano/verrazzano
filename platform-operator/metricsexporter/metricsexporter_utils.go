@@ -419,9 +419,6 @@ func InitializeAllMetricsArray() {
 	for _, value := range MetricsExp.internalData.simpleGaugeMetricMap {
 		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.metric)
 	}
-	//for _, value := range MetricsExp.internalData.metricsComponentMap {
-	//	MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.latestInstallDuration.metric, value.latestUpgradeDuration.metric)
-	//}
 }
 
 // This function returns an empty struct of type configuration
