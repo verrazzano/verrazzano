@@ -45,4 +45,3 @@ spec:
                 resources:
                   requests:
                     memory: "128Mi"
-

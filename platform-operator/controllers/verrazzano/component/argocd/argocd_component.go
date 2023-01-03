@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package argocd
@@ -99,7 +99,7 @@ func NewComponent() spi.Component {
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
-		return kvs, ctx.Log().ErrorNewErr("Failed to get the BOM file for the cert-manager image overrides: ", err)
+		return nil, err
 	}
 	images, err := bomFile.BuildImageOverrides("argocd")
 	if err != nil {
@@ -120,7 +120,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	return kvs, nil
 }
 
-// IsEnabled ArgoCD is always enabled on admin clusters,
+// IsEnabled ArgoCD is disabled by default on admin clusters,
 // and is not enabled by default on managed clusters
 func (c argoCDComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzcr.IsArgoCDEnabled(effectiveCR)
