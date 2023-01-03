@@ -260,8 +260,6 @@ func TestAnalyzeVerrazzanoResourceMetrics(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			AnalyzeVerrazzanoResourceMetrics(testLog, tt.vzcr)
-			_, err := GetMetricComponent(grafanaMetricName)
-			assert.NoError(err)
 			grafanaInstallMetric, err := MetricsExp.internalData.componentInstallDuration.installDuration.GetMetricWithLabelValues(grafana.ComponentJSONName)
 			assert.NoError(err)
 			assert.Equal(tt.expectedValueForInstallMetric, testutil.ToFloat64(grafanaInstallMetric))

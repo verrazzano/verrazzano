@@ -24,7 +24,6 @@ type data struct {
 	simpleCounterMetricMap   map[metricName]*SimpleCounterMetric
 	simpleGaugeMetricMap     map[metricName]*SimpleGaugeMetric
 	durationMetricMap        map[metricName]*DurationMetric
-	metricsComponentMap      map[metricName]*MetricsComponent
 	componentHealth          *ComponentHealth
 	componentInstallDuration *ComponentInstallDuration
 	componentUpgradeDuration *ComponentUpgradeDuration
@@ -85,10 +84,6 @@ func (d *DurationMetric) TimerStart() {
 // This function stops the timer and record the Duration since the last call to TimerStart
 func (d *DurationMetric) TimerStop() {
 	d.timer.ObserveDuration()
-}
-
-type MetricsComponent struct {
-	metricName string
 }
 
 type ComponentHealth struct {

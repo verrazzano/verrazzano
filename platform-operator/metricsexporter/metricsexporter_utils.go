@@ -8,46 +8,16 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafanadashboards"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
-	promnodeexporter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/nodeexporter"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/pushgateway"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
-
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
-	promadapter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/adapter"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/kubestatemetrics"
-	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancherbackup"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafanadashboards"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -57,41 +27,12 @@ var MetricsExp MetricsExporter
 type metricName string
 
 const (
-	component                                 = "component"
-	ReconcileCounter               metricName = "reconcile counter"
-	ReconcileError                 metricName = "reconcile error"
-	ReconcileDuration              metricName = "reconcile duration"
-	AvailableComponents            metricName = "available components"
-	EnabledComponents              metricName = "enabled components"
-	authproxyMetricName            metricName = authproxy.ComponentJSONName
-	oamMetricName                  metricName = oam.ComponentJSONName
-	appoperMetricName              metricName = appoper.ComponentJSONName
-	istioMetricName                metricName = istio.ComponentJSONName
-	weblogicMetricName             metricName = weblogic.ComponentJSONName
-	nginxMetricName                metricName = nginx.ComponentJSONName
-	certmanagerMetricName          metricName = certmanager.ComponentJSONName
-	clusterOperatorMetricName      metricName = clusteroperator.ComponentJSONName
-	externaldnsMetricName          metricName = externaldns.ComponentJSONName
-	rancherMetricName              metricName = rancher.ComponentJSONName
-	verrazzanoMetricName           metricName = verrazzano.ComponentJSONName
-	opensearchMetricName           metricName = opensearch.ComponentJSONName
-	opensearchdashboardsMetricName metricName = opensearchdashboards.ComponentJSONName
-	grafanaMetricName              metricName = grafana.ComponentJSONName
-	coherenceMetricName            metricName = coherence.ComponentJSONName
-	mysqlMetricName                metricName = mysql.ComponentJSONName
-	mysqlOperatorMetricName        metricName = mysqloperator.ComponentJSONName
-	keycloakMetricname             metricName = keycloak.ComponentJSONName
-	kialiMetricName                metricName = kiali.ComponentJSONName
-	promoperatorMetricname         metricName = promoperator.ComponentJSONName
-	promadapterMetricname          metricName = promadapter.ComponentJSONName
-	kubestatemmetricsMetricName    metricName = kubestatemetrics.ComponentJSONName
-	pushgatewayMetricName          metricName = pushgateway.ComponentJSONName
-	promnodeexporterMetricname     metricName = promnodeexporter.ComponentJSONName
-	jaegeroperatorMetricName       metricName = jaegeroperator.ComponentJSONName
-	consoleMetricName              metricName = console.ComponentJSONName
-	fluentdMetricName              metricName = fluentd.ComponentJSONName
-	veleroMetricName               metricName = velero.ComponentJSONName
-	rancherBackupMetricName        metricName = rancherbackup.ComponentJSONName
+	component                      = "component"
+	ReconcileCounter    metricName = "reconcile counter"
+	ReconcileError      metricName = "reconcile error"
+	ReconcileDuration   metricName = "reconcile duration"
+	AvailableComponents metricName = "available components"
+	EnabledComponents   metricName = "enabled components"
 )
 
 func init() {
@@ -107,15 +48,17 @@ func RequiredInitialization() {
 			simpleCounterMetricMap:   initSimpleCounterMetricMap(),
 			simpleGaugeMetricMap:     initSimpleGaugeMetricMap(),
 			durationMetricMap:        initDurationMetricMap(),
-			metricsComponentMap:      initMetricComponentMap(),
 			componentHealth:          initComponentHealthMetrics(),
 			componentInstallDuration: initComponentInstallDurationMetrics(),
 			componentUpgradeDuration: initComponentUpgradeDurationMetrics(),
 		},
 	}
 	// initialize component availability metric to false
-	for _, metricComponent := range MetricsExp.internalData.metricsComponentMap {
-		MetricsExp.internalData.componentHealth.SetComponentHealth(metricComponent.metricName, false, false)
+	for _, component := range registry.GetComponents() {
+		if IsNonMetricComponent(component.Name()) {
+			continue
+		}
+		MetricsExp.internalData.componentHealth.SetComponentHealth(component.GetJSONName(), false, false)
 	}
 
 }
@@ -124,13 +67,6 @@ func RequiredInitialization() {
 func RegisterMetrics(log *zap.SugaredLogger) {
 	InitializeAllMetricsArray()
 	go registerMetricsHandlers(log)
-}
-
-// This function returns a pointer to a new MetricComponent Object
-func newMetricsComponent(name string) *MetricsComponent {
-	return &MetricsComponent{
-		metricName: name,
-	}
 }
 
 // This function initializes the simpleCounterMetricMap for the metricsExporter object
@@ -148,41 +84,6 @@ func initSimpleCounterMetricMap() map[metricName]*SimpleCounterMetric {
 				Help: "The number of times the reconcile function has returned an error in the verrazzano-platform-operator",
 			}),
 		},
-	}
-}
-
-// This function initializes the metricComponentMap for the metricsExporter object
-func initMetricComponentMap() map[metricName]*MetricsComponent {
-	return map[metricName]*MetricsComponent{
-		authproxyMetricName:            newMetricsComponent(authproxy.ComponentJSONName),
-		oamMetricName:                  newMetricsComponent(oam.ComponentJSONName),
-		appoperMetricName:              newMetricsComponent(appoper.ComponentJSONName),
-		istioMetricName:                newMetricsComponent(istio.ComponentJSONName),
-		weblogicMetricName:             newMetricsComponent(weblogic.ComponentJSONName),
-		nginxMetricName:                newMetricsComponent(nginx.ComponentJSONName),
-		certmanagerMetricName:          newMetricsComponent(certmanager.ComponentJSONName),
-		clusterOperatorMetricName:      newMetricsComponent(clusteroperator.ComponentJSONName),
-		externaldnsMetricName:          newMetricsComponent(externaldns.ComponentJSONName),
-		rancherMetricName:              newMetricsComponent(rancher.ComponentJSONName),
-		verrazzanoMetricName:           newMetricsComponent(verrazzano.ComponentJSONName),
-		opensearchMetricName:           newMetricsComponent(opensearch.ComponentJSONName),
-		opensearchdashboardsMetricName: newMetricsComponent(opensearchdashboards.ComponentJSONName),
-		grafanaMetricName:              newMetricsComponent(grafana.ComponentJSONName),
-		coherenceMetricName:            newMetricsComponent(coherence.ComponentJSONName),
-		mysqlMetricName:                newMetricsComponent(mysql.ComponentJSONName),
-		mysqlOperatorMetricName:        newMetricsComponent(mysqloperator.ComponentJSONName),
-		keycloakMetricname:             newMetricsComponent(keycloak.ComponentJSONName),
-		kialiMetricName:                newMetricsComponent(kiali.ComponentJSONName),
-		promoperatorMetricname:         newMetricsComponent(promoperator.ComponentJSONName),
-		promadapterMetricname:          newMetricsComponent(promadapter.ComponentJSONName),
-		kubestatemmetricsMetricName:    newMetricsComponent(kubestatemetrics.ComponentJSONName),
-		pushgatewayMetricName:          newMetricsComponent(pushgateway.ComponentJSONName),
-		promnodeexporterMetricname:     newMetricsComponent(promnodeexporter.ComponentJSONName),
-		jaegeroperatorMetricName:       newMetricsComponent(jaegeroperator.ComponentJSONName),
-		consoleMetricName:              newMetricsComponent(console.ComponentJSONName),
-		fluentdMetricName:              newMetricsComponent(fluentd.ComponentJSONName),
-		veleroMetricName:               newMetricsComponent(velero.ComponentJSONName),
-		rancherBackupMetricName:        newMetricsComponent(rancherbackup.ComponentJSONName),
 	}
 }
 
@@ -247,12 +148,7 @@ func initDurationMetricMap() map[metricName]*DurationMetric {
 // If the start time is greater than the completion time, the metric will not be set
 // After this check, the function calculates the duration time and tries to set the metric of the component
 // If the component's name is not in the metric map, an error will be raised to prevent a seg fault
-func metricParserHelperFunction(log vzlog.VerrazzanoLogger, componentName metricName, startTime string, completionTime string, typeofOperation string) {
-	_, ok := MetricsExp.internalData.metricsComponentMap[componentName]
-	if !ok {
-		log.Errorf("Component %s does not have metrics in the metrics map", componentName)
-		return
-	}
+func metricParserHelperFunction(log vzlog.VerrazzanoLogger, componentName string, startTime string, completionTime string, typeofOperation string) {
 	startInSeconds, err := time.Parse(time.RFC3339, startTime)
 	if err != nil {
 		log.Errorf("Error in parsing start time %s for operation %s for component %s", startTime, typeofOperation, componentName)
@@ -286,12 +182,8 @@ func metricParserHelperFunction(log vzlog.VerrazzanoLogger, componentName metric
 	}
 }
 
-func SetComponentInstallDurationMetric(componentName metricName, totalDuration int64) error {
-	compMetric, err := GetMetricComponent(componentName)
-	if err != nil {
-		return err
-	}
-	metric, err := MetricsExp.internalData.componentInstallDuration.installDuration.GetMetricWithLabelValues(compMetric.metricName)
+func SetComponentInstallDurationMetric(componentName string, totalDuration int64) error {
+	metric, err := MetricsExp.internalData.componentInstallDuration.installDuration.GetMetricWithLabelValues(componentName)
 	if err != nil {
 		return err
 	}
@@ -299,12 +191,8 @@ func SetComponentInstallDurationMetric(componentName metricName, totalDuration i
 	return nil
 }
 
-func SetComponentUpgradeDurationMetric(componentName metricName, totalDuration int64) error {
-	compMetric, err := GetMetricComponent(componentName)
-	if err != nil {
-		return err
-	}
-	metric, err := MetricsExp.internalData.componentUpgradeDuration.upgradeDuration.GetMetricWithLabelValues(compMetric.metricName)
+func SetComponentUpgradeDurationMetric(componentName string, totalDuration int64) error {
+	metric, err := MetricsExp.internalData.componentUpgradeDuration.upgradeDuration.GetMetricWithLabelValues(componentName)
 	if err != nil {
 		return err
 	}
@@ -399,10 +287,10 @@ func AnalyzeVerrazzanoResourceMetrics(log vzlog.VerrazzanoLogger, cr vzapi.Verra
 		}
 		componentJSONName := component.GetJSONName()
 		if installStartTime != "" && installCompletionTime != "" {
-			metricParserHelperFunction(log, metricName(componentJSONName), installStartTime, installCompletionTime, constants.InstallOperation)
+			metricParserHelperFunction(log, componentJSONName, installStartTime, installCompletionTime, constants.InstallOperation)
 		}
 		if upgradeStartTime != "" && upgradeCompletionTime != "" {
-			metricParserHelperFunction(log, metricName(componentJSONName), upgradeStartTime, upgradeCompletionTime, constants.UpgradeOperation)
+			metricParserHelperFunction(log, componentJSONName, upgradeStartTime, upgradeCompletionTime, constants.UpgradeOperation)
 		}
 	}
 }
@@ -457,22 +345,12 @@ func GetSimpleGaugeMetric(name metricName) (*SimpleGaugeMetric, error) {
 	return gaugeMetric, nil
 }
 
-// This function returns a metricComponent from the metricComponentMap given a metricName
-func GetMetricComponent(name metricName) (*MetricsComponent, error) {
-	metricComponent, ok := MetricsExp.internalData.metricsComponentMap[name]
-	if !ok {
-		return nil, fmt.Errorf("%v not found in metricsComponentMap due to metricName being defined, but not being a key in the map", name)
-	}
-	return metricComponent, nil
-}
-
 // SetComponentAvailabilityMetric updates the components availability status metric
 func SetComponentAvailabilityMetric(name string, availability vzapi.ComponentAvailability, isEnabled bool) error {
-	compMetric, err := GetMetricComponent(metricName(name))
+	_, err := MetricsExp.internalData.componentHealth.SetComponentHealth(name, availability == vzapi.ComponentAvailable, isEnabled)
 	if err != nil {
 		return err
 	}
-	MetricsExp.internalData.componentHealth.SetComponentHealth(compMetric.metricName, availability == vzapi.ComponentAvailable, isEnabled)
 	return nil
 }
 
