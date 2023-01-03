@@ -6,8 +6,6 @@ package security
 import (
 	"context"
 	"fmt"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"strings"
 	"time"
 
@@ -26,6 +24,9 @@ var t = framework.NewTestFramework("security")
 const (
 	waitTimeout     = 3 * time.Minute
 	pollingInterval = 5 * time.Second
+
+	// Only allowed capability in restricted mode
+	capNetBindService = "NET_BIND_SERVICE"
 )
 
 var skipPods = map[string][]string{
@@ -41,26 +42,6 @@ var skipPods = map[string][]string{
 
 var skipContainers = []string{"istio-proxy"}
 var skipInitContainers = []string{"istio-init"}
-
-type securityContextExceptions struct {
-	podPrefix  string
-	exceptions map[string]corev1.SecurityContext
-}
-
-var containerSecurityExceptions = map[string][]securityContextExceptions{
-	"verrazzano-system": {
-		{
-			podPrefix: "verrazzano-authproxy",
-			exceptions: map[string]corev1.SecurityContext{
-				"verrazzano-authproxy": {
-					Capabilities: &corev1.Capabilities{
-						Add: []corev1.Capability{corev1.Capability("NET_BIND_SERVICE")},
-					},
-				},
-			},
-		},
-	},
-}
 
 var (
 	clientset *kubernetes.Clientset
@@ -160,8 +141,6 @@ func ensurePodSecurityContext(sc *corev1.PodSecurityContext, podName string) err
 	return nil
 }
 
-func lessFunc(a, b string) bool { return a < b }
-
 func ensureContainerSecurityContext(sc *corev1.SecurityContext, namespace, podName, containerName string) error {
 	if sc == nil {
 		return fmt.Errorf("SecurityContext is nil for pod %s, container %s", podName, containerName)
@@ -194,30 +173,11 @@ func ensureContainerSecurityContext(sc *corev1.SecurityContext, namespace, podNa
 		return fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, Missing `Drop -ALL` capabilities", podName, containerName)
 	}
 	if len(sc.Capabilities.Add) > 0 {
-		exceptions, foundExceptions := findExceptions(namespace, podName, containerName)
-		if !foundExceptions {
-			return fmt.Errorf("found unexpected ADD capabilities: %v", sc.Capabilities.Add)
-		}
-		diff := cmp.Diff(sc.Capabilities.Add, exceptions.Capabilities.Add, cmpopts.SortSlices(lessFunc))
-		if diff != "" {
-			return fmt.Errorf("unexpected capabilities added to container %s in pod %s: %s", containerName, podName, diff)
+		if len(sc.Capabilities.Add) > 1 || sc.Capabilities.Add[0] != capNetBindService {
+			return fmt.Errorf("only %s capability allowed, found unexpected capabilities added to container %s in pod %s: %v", capNetBindService, containerName, podName, sc.Capabilities.Add)
 		}
 	}
 	return nil
-}
-
-func findExceptions(namespace string, podName string, containerName string) (corev1.SecurityContext, bool) {
-	podExceptionsList, podExceptionsFound := containerSecurityExceptions[namespace]
-	if !podExceptionsFound {
-		return corev1.SecurityContext{}, false
-	}
-	for _, podExceptions := range podExceptionsList {
-		if strings.HasPrefix(podName, podExceptions.podPrefix) {
-			exceptions, foundContainer := podExceptions.exceptions[containerName]
-			return exceptions, foundContainer
-		}
-	}
-	return corev1.SecurityContext{}, false
 }
 
 func shouldSkipPod(podName, ns string) bool {
