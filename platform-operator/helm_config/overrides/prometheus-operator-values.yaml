@@ -22,6 +22,8 @@ prometheus:
       runAsGroup: 65534
       runAsNonRoot: true
       runAsUser: 65534
+      seccompProfile:
+        type: RuntimeDefault
     additionalScrapeConfigsSecret:
       enabled: true
       name: additional-scrape-configs
@@ -55,6 +57,14 @@ prometheusOperator:
       - action: replace
         targetLabel: verrazzano_cluster
         replacement: local
+  securityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    privileged: false
+    capabilities:
+      drop:
+        - ALL
 
 kubelet:
   serviceMonitor:
