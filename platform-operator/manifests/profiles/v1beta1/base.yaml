@@ -240,7 +240,7 @@ spec:
                       weight: 100
               replicas: 1
     kubeStateMetrics:
-      enabled: false
+      enabled: true
     mySQLOperator:
       enabled: true
     oam:
