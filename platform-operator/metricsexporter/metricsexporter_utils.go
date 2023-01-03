@@ -130,18 +130,6 @@ func RegisterMetrics(log *zap.SugaredLogger) {
 func newMetricsComponent(name string) *MetricsComponent {
 	return &MetricsComponent{
 		metricName: name,
-		latestInstallDuration: &SimpleGaugeMetric{
-			metric: prometheus.NewGauge(prometheus.GaugeOpts{
-				Name: fmt.Sprintf("vz_%s_install_duration_seconds", name),
-				Help: fmt.Sprintf("The duration of the latest installation of the %s component in seconds", name),
-			}),
-		},
-		latestUpgradeDuration: &SimpleGaugeMetric{
-			prometheus.NewGauge(prometheus.GaugeOpts{
-				Name: fmt.Sprintf("vz_%s_upgrade_duration_seconds", name),
-				Help: fmt.Sprintf("The duration of the latest upgrade of the %s component in seconds", name),
-			}),
-		},
 	}
 }
 
@@ -283,8 +271,6 @@ func metricParserHelperFunction(log vzlog.VerrazzanoLogger, componentName metric
 	}
 	totalDuration := (completionInSecondsUnix - startInSecondsUnix)
 	if typeofOperation == constants.InstallOperation {
-		installDurationMetricForComponent := MetricsExp.internalData.metricsComponentMap[componentName].getInstallDuration()
-		installDurationMetricForComponent.Set(float64(totalDuration))
 		err := SetComponentInstallDurationMetric(componentName, totalDuration)
 		if err != nil {
 			log.Errorf(err.Error())
@@ -292,8 +278,6 @@ func metricParserHelperFunction(log vzlog.VerrazzanoLogger, componentName metric
 		}
 	}
 	if typeofOperation == constants.UpgradeOperation {
-		upgradeDurationMetricForComponent := MetricsExp.internalData.metricsComponentMap[componentName].getUpgradeDuration()
-		upgradeDurationMetricForComponent.Set(float64(totalDuration))
 		err := SetComponentUpgradeDurationMetric(componentName, totalDuration)
 		if err != nil {
 			log.Errorf(err.Error())
@@ -435,9 +419,9 @@ func InitializeAllMetricsArray() {
 	for _, value := range MetricsExp.internalData.simpleGaugeMetricMap {
 		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.metric)
 	}
-	for _, value := range MetricsExp.internalData.metricsComponentMap {
-		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.latestInstallDuration.metric, value.latestUpgradeDuration.metric)
-	}
+	//for _, value := range MetricsExp.internalData.metricsComponentMap {
+	//	MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.latestInstallDuration.metric, value.latestUpgradeDuration.metric)
+	//}
 }
 
 // This function returns an empty struct of type configuration

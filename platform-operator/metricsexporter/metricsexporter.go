@@ -88,19 +88,7 @@ func (d *DurationMetric) TimerStop() {
 }
 
 type MetricsComponent struct {
-	metricName            string
-	latestInstallDuration *SimpleGaugeMetric
-	latestUpgradeDuration *SimpleGaugeMetric
-}
-
-// This member function returns the simpleGaugeMetric that holds the install time for a component
-func (m *MetricsComponent) getInstallDuration() *SimpleGaugeMetric {
-	return m.latestInstallDuration
-}
-
-// This member function returns the simpleGaugeMetric that holds the upgrade time for a component
-func (m *MetricsComponent) getUpgradeDuration() *SimpleGaugeMetric {
-	return m.latestUpgradeDuration
+	metricName string
 }
 
 type ComponentHealth struct {
