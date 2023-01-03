@@ -6,7 +6,10 @@ package rancher
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,6 +48,21 @@ var gvk = schema.GroupVersionKind{
 	Kind:    "Cluster",
 }
 
+var (
+	reconcileTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "vz_cluster_operator_reconcile_cluster_duration_seconds",
+		Help: "The duration of the reconcile process for cluster objects",
+	})
+	reconcileErrorCount = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "vz_cluster_operator_reconcile_cluster_error_total",
+		Help: "The amount of errors encountered in the reconcile process",
+	})
+	reconcileSuccessCount = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "vz_cluster_operator_reconcile_cluster_success_total",
+		Help: "The number of times the reconcile process succeeded",
+	})
+)
+
 func CattleClusterClientObject() client.Object {
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(gvk)
@@ -62,15 +80,21 @@ func (r *RancherClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *RancherClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.Log.Debugf("Reconciling Rancher cluster: %v", req.NamespacedName)
 
+	// Time the reconcile process and set the metric with the elapsed time
+	startTime := time.Now()
+	defer reconcileTimeMetric.Set(time.Since(startTime).Seconds())
+
 	cluster := &unstructured.Unstructured{}
 	cluster.SetGroupVersionKind(gvk)
 	err := r.Get(context.TODO(), req.NamespacedName, cluster)
 	if err != nil && !errors.IsNotFound(err) {
+		reconcileSuccessCount.Inc()
 		return ctrl.Result{}, err
 	}
 
 	if errors.IsNotFound(err) {
 		r.Log.Debugf("Rancher cluster %v not found, nothing to do", req.NamespacedName)
+		reconcileSuccessCount.Inc()
 		return ctrl.Result{}, nil
 	}
 
@@ -78,19 +102,29 @@ func (r *RancherClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if !cluster.GetDeletionTimestamp().IsZero() {
 		if vzstring.SliceContainsString(cluster.GetFinalizers(), finalizerName) {
 			if err := r.deleteVMC(cluster); err != nil {
+				reconcileErrorCount.Inc()
 				return ctrl.Result{}, err
 			}
 		}
-		return ctrl.Result{}, r.removeFinalizer(cluster)
+
+		if err := r.removeFinalizer(cluster); err != nil {
+			reconcileErrorCount.Inc()
+			return ctrl.Result{}, err
+		}
+		reconcileSuccessCount.Inc()
+		return ctrl.Result{}, nil
+
 	}
 
 	// add a finalizer to the Rancher cluster if it doesn't already exist
 	if err := r.ensureFinalizer(cluster); err != nil {
+		reconcileErrorCount.Inc()
 		return ctrl.Result{}, err
 	}
 
 	if !r.ClusterSyncEnabled {
 		r.Log.Debug("Cluster sync is disabled, skipping VMC creation")
+		reconcileSuccessCount.Inc()
 		return ctrl.Result{}, nil
 	}
 
@@ -101,6 +135,7 @@ func (r *RancherClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		selector, err = metav1.LabelSelectorAsSelector(r.ClusterSelector)
 		if err != nil {
 			r.Log.Errorf("Error parsing cluster label selector: %v", err)
+			reconcileErrorCount.Inc()
 			return ctrl.Result{}, err
 		}
 	}
@@ -108,10 +143,12 @@ func (r *RancherClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if selector == nil || selector.Matches(l) {
 		// ensure the VMC exists
 		if err = r.ensureVMC(cluster); err != nil {
+			reconcileErrorCount.Inc()
 			return ctrl.Result{}, err
 		}
 	}
 
+	reconcileSuccessCount.Inc()
 	return ctrl.Result{}, nil
 }
 
