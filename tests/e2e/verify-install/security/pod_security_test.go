@@ -65,7 +65,7 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
 	for ns := range skipPods {
-		ns := ns
+		ns := ns // needed to avoid the spec closure from capturing and retaining the last key in the map; see Ginkgo docs
 		t.ItMinimumVersion(fmt.Sprintf("Chek security for pods in namespace %s", ns), "1.5.0", kubeconfigPath, func() {
 			var podList *corev1.PodList
 			var err error
