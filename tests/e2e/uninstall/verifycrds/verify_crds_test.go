@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -145,7 +147,7 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 	})
 
 	t.It("Check for unexpected CRDs", func() {
-		var crdsFound = make(map[string]bool)
+		var unexpectedCRDs []string
 		for _, crd := range crds.Items {
 			// Anything other than these CRDs being checked are unexpected after an uninstall
 			if strings.HasSuffix(crd.Name, "projectcalico.org") ||
@@ -159,24 +161,13 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 				strings.HasSuffix(crd.Name, "mysql.oracle.com") ||
 				strings.HasSuffix(crd.Name, "zalando.org") ||
 				strings.HasSuffix(crd.Name, "metallb.io") ||
-				crd.Name == "domains.weblogic.oracle" ||
-				crd.Name == "coherence.coherence.oracle.com" {
-				crdsFound[crd.Name] = true
+				strings.HasSuffix(crd.Name, "weblogic.oracle") ||
+				strings.HasSuffix(crd.Name, "coherence.oracle.com") {
 				continue
 			}
-			crdsFound[crd.Name] = false
+			unexpectedCRDs = append(unexpectedCRDs, crd.Name)
 		}
-
-		unexpectedCrd := false
-		for key, value := range crdsFound {
-			if value == false {
-				unexpectedCrd = true
-				pkg.Log(pkg.Error, fmt.Sprintf("Unexpected CRD was found: %s", key))
-			}
-		}
-		if unexpectedCrd {
-			Fail("Unexpected CRDs were found in the cluster")
-		}
+		Expect(unexpectedCRDs).To(BeEmpty(), "Found unexpected CRDs remaining after uninstall")
 	})
 })
 
