@@ -1,9 +1,10 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package validator
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -32,6 +33,8 @@ func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
 	k8sutil.GetAppsV1Func = func(_ ...vzlog.VerrazzanoLogger) (appsv1Cli.AppsV1Interface, error) {
 		return k8sfake.NewSimpleClientset().AppsV1(), nil
 	}
+	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
+
 	tests := []struct {
 		name           string
 		vz             *vzapi.Verrazzano
@@ -64,6 +67,7 @@ func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
 		config.TestProfilesDir = ""
 		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
 		k8sutil.GetAppsV1Func = k8sutil.GetAppsV1Client
+		k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
 	}()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -87,6 +91,7 @@ func TestComponentValidatorImpl_ValidateInstallV1Beta1(t *testing.T) {
 	k8sutil.GetAppsV1Func = func(_ ...vzlog.VerrazzanoLogger) (appsv1Cli.AppsV1Interface, error) {
 		return k8sfake.NewSimpleClientset().AppsV1(), nil
 	}
+	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
 	tests := []struct {
 		name           string
 		vz             *vzapibeta.Verrazzano
@@ -120,6 +125,7 @@ func TestComponentValidatorImpl_ValidateInstallV1Beta1(t *testing.T) {
 		config.TestProfilesDir = ""
 		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
 		k8sutil.GetAppsV1Func = k8sutil.GetAppsV1Client
+		k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
 	}()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

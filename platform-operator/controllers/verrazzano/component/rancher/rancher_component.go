@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -33,9 +33,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
 	"path/filepath"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strconv"
 	"strings"
@@ -605,7 +605,16 @@ func checkExistingRancher(vz runtime.Object) error {
 		return nil
 	}
 
-	provisioned, err := IsClusterProvisionedByRancher()
+	client, err := k8sutil.GetCoreV1Func()
+	if err != nil {
+		return err
+	}
+	dynClient, err := k8sutil.GetDynamicClientFunc()
+	if err != nil {
+		return err
+	}
+
+	provisioned, err := IsClusterProvisionedByRancher(client, dynClient)
 	if err != nil {
 		return err
 	}
@@ -613,10 +622,6 @@ func checkExistingRancher(vz runtime.Object) error {
 		return fmt.Errorf("cluster provisioned by Rancher cannot have Rancher installed. Disable Rancher and rerun")
 	}
 
-	client, err := k8sutil.GetCoreV1Func()
-	if err != nil {
-		return err
-	}
 	ns, err := client.Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil && !kerrs.IsNotFound(err) {
 		return err
@@ -628,26 +633,12 @@ func checkExistingRancher(vz runtime.Object) error {
 }
 
 // IsClusterProvisionedByRancher checks if the Kubernetes cluster was provisioned by Rancher.
-func IsClusterProvisionedByRancher() (bool, error) {
-	client, err := k8sutil.GetCoreV1Func()
-	if err != nil {
-		return false, err
-	}
-
+func IsClusterProvisionedByRancher(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) {
 	// Check for the "local" namespace.
 	ns, err := client.Namespaces().Get(context.TODO(), ClusterLocal, metav1.GetOptions{})
 	if kerrs.IsNotFound(err) {
 		return false, nil
 	}
-	if err != nil {
-		return false, err
-	}
-
-	config, err := ctrl.GetConfig()
-	if err != nil {
-		return false, err
-	}
-	dynClient, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return false, err
 	}
