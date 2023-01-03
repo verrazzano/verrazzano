@@ -263,8 +263,10 @@ func TestAnalyzeVerrazzanoResourceMetrics(t *testing.T) {
 			_, err := GetMetricComponent(grafanaMetricName)
 			assert.NoError(err)
 			grafanaInstallMetric, err := MetricsExp.internalData.componentInstallDuration.installDuration.GetMetricWithLabelValues(grafana.ComponentJSONName)
+			assert.NoError(err)
 			assert.Equal(tt.expectedValueForInstallMetric, testutil.ToFloat64(grafanaInstallMetric))
 			grafanaUpgradeMetric, err := MetricsExp.internalData.componentUpgradeDuration.upgradeDuration.GetMetricWithLabelValues(grafana.ComponentJSONName)
+			assert.NoError(err)
 			assert.Equal(tt.expectedValueForUpdateMetric, testutil.ToFloat64(grafanaUpgradeMetric))
 		})
 	}
