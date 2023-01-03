@@ -42,11 +42,12 @@ var skipInitContainers = []string{"istio-init"}
 
 var (
 	clientset *kubernetes.Clientset
+	err       error
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	Eventually(func() (*kubernetes.Clientset, error) {
-		clientset, err := k8sutil.GetKubernetesClientset()
+		clientset, err = k8sutil.GetKubernetesClientset()
 		return clientset, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 })
