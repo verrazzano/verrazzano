@@ -85,7 +85,7 @@ func expectPodSecurityForNamespace(pod corev1.Pod) error {
 	// ensure hostpath is not set
 	for _, vol := range pod.Spec.Volumes {
 		if vol.HostPath != nil {
-			return fmt.Errorf("Pod Security not configured for pod %, HostPath is set, HostPath = %s  Type = %s",
+			return fmt.Errorf("Pod Security not configured for pod %s, HostPath is set, HostPath = %s  Type = %s",
 				pod.Name, vol.HostPath.Path, *vol.HostPath.Type)
 		}
 	}
