@@ -4,17 +4,16 @@
 package validator
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"testing"
-
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapibeta "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	appsv1Cli "k8s.io/client-go/kubernetes/typed/apps/v1"
 	corev1Cli "k8s.io/client-go/kubernetes/typed/core/v1"
+	"testing"
 )
 
 var disabled = false

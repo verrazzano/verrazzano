@@ -312,18 +312,30 @@ func (r rancherComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) 
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	// Block all changes for now, particularly around storage changes
+	// Do not allow disabling of component
 	if r.IsEnabled(old) && !r.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	if !r.IsEnabled(old) && r.IsEnabled(new) {
+		err := CheckClusterProvisionedByRancher()
+		if err != nil {
+			return err
+		}
 	}
 	return r.HelmComponent.ValidateUpdate(old, new)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (r rancherComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	// Block all changes for now, particularly around storage changes
+	// Do not allow disabling of component
 	if r.IsEnabled(old) && !r.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	if !r.IsEnabled(old) && r.IsEnabled(new) {
+		err := CheckClusterProvisionedByRancher()
+		if err != nil {
+			return err
+		}
 	}
 	return r.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }
@@ -605,21 +617,14 @@ func checkExistingRancher(vz runtime.Object) error {
 		return nil
 	}
 
-	client, err := k8sutil.GetCoreV1Func()
-	if err != nil {
-		return err
-	}
-	dynClient, err := k8sutil.GetDynamicClientFunc()
+	err := CheckClusterProvisionedByRancher()
 	if err != nil {
 		return err
 	}
 
-	provisioned, err := IsClusterProvisionedByRancher(client, dynClient)
+	client, err := k8sutil.GetCoreV1Func()
 	if err != nil {
 		return err
-	}
-	if provisioned {
-		return fmt.Errorf("cluster provisioned by Rancher cannot have Rancher installed. Disable Rancher and rerun")
 	}
 
 	ns, err := client.Namespaces().List(context.TODO(), metav1.ListOptions{})
@@ -632,8 +637,30 @@ func checkExistingRancher(vz runtime.Object) error {
 	return nil
 }
 
-// IsClusterProvisionedByRancher checks if the Kubernetes cluster was provisioned by Rancher.
-func IsClusterProvisionedByRancher(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) {
+// CheckClusterProvisionedByRancher checks if the Kubernetes cluster was provisioned by Rancher.
+func CheckClusterProvisionedByRancher() error {
+	client, err := k8sutil.GetCoreV1Func()
+	if err != nil {
+		return err
+	}
+	dynClient, err := k8sutil.GetDynamicClientFunc()
+	if err != nil {
+		return err
+	}
+
+	provisioned, err := isClusterProvisioned(client, dynClient)
+	if err != nil {
+		return err
+	}
+	if provisioned {
+		return fmt.Errorf("cluster provisioned by Rancher cannot have Rancher installed. Disable Rancher and rerun")
+	}
+
+	return nil
+}
+
+// isClusterProvisioned checks if the Kubernetes cluster was provisioned by Rancher.
+func isClusterProvisioned(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) {
 	// Check for the "local" namespace.
 	ns, err := client.Namespaces().Get(context.TODO(), ClusterLocal, metav1.GetOptions{})
 	if kerrs.IsNotFound(err) {
