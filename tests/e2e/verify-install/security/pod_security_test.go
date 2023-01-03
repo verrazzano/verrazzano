@@ -65,7 +65,8 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
 	for ns := range skipPods {
-		t.ItMinimumVersion(fmt.Sprintf("for pods in namespace %s", ns), "1.5.0", kubeconfigPath, func() {
+		ns := ns
+		t.ItMinimumVersion(fmt.Sprintf("Chek security for pods in namespace %s", ns), "1.5.0", kubeconfigPath, func() {
 			var podList *corev1.PodList
 			var err error
 			Eventually(func() (*corev1.PodList, error) {
@@ -75,6 +76,7 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 
 			pods := podList.Items
 			for _, pod := range pods {
+				t.Logs.Infof("Checking pod %s/%s", ns, pod.Name)
 				if shouldSkipPod(pod.Name, ns) {
 					continue
 				}
