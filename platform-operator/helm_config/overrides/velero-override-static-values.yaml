@@ -8,6 +8,18 @@ podAnnotations:
 restic:
   annotations:
     traffic.sidecar.istio.io/excludeOutboundPorts: "443"
+  podSecurityContext:
+    runAsGroup: 999
+    runAsNonRoot: true
+    runAsUser: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+      add: []
+    readOnlyRootFilesystem: true
 metrics:
   serviceMonitor:
     enabled: true
@@ -23,7 +35,19 @@ deployRestic: true
 snapshotsEnabled: false
 upgradeCRDs: false
 configMaps:
- restic-restore-action-config:
-   labels:
-     velero.io/plugin-config: ""
-     velero.io/restic: RestoreItemAction
+  restic-restore-action-config:
+    labels:
+      velero.io/plugin-config: ""
+      velero.io/restic: RestoreItemAction
+podSecurityContext:
+  runAsGroup: 999
+  runAsNonRoot: true
+  runAsUser: 1000
+  seccompProfile:
+    type: RuntimeDefault
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+    add: []
+  readOnlyRootFilesystem: true
