@@ -43,6 +43,8 @@ var skipPods = map[string][]string{
 		"alertmanager",
 		"pushgateway",
 		"kube-state-metrics",
+		"prometheus-adapter",
+		"jaeger-operator",
 	},
 }
 
