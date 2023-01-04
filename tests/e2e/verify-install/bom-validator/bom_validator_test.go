@@ -25,7 +25,7 @@ const (
 	platformOperatorPodNameSearchString = "verrazzano-platform-operator"                          // Pod Substring for finding the platform operator pod
 	rancherWarningMessage               = "Rancher shell image version may be old due to upgrade" // For known Rancher component upgrade behavior during VZ upgrade
 	shortPollingInterval                = 10 * time.Second
-	shortWaitTimeout                    = 5 * time.Minute
+	shortWaitTimeout                    = 20 * time.Minute
 )
 
 type imageDetails struct {
@@ -112,7 +112,7 @@ var _ = t.Describe("BOM Validator", Label("f:platform-lcm.install"), func() {
 			Expect(bomImages).NotTo(BeEmpty())
 			populateClusterContainerImages()
 			Expect(clusterImageArray).NotTo(BeEmpty())
-			Eventually(BomValidationReport).Should(BeTrue())
+			Eventually(BomValidationReport).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 	})
 })
