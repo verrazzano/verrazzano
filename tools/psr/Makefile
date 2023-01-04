@@ -96,7 +96,7 @@ kind-load-image: docker-build
 	kind load docker-image --name kind ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
 
 .PHONY: run-example-oam
-run-example-oam: kind-load-image
+run-example-oam:
 	helm upgrade --install psr manifests/charts/worker --set imageName=${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
 
 .PHONY: run-example-k8s
