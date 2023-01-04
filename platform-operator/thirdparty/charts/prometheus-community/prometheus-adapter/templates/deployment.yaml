@@ -91,6 +91,7 @@ spec:
             drop: ["all"]
           readOnlyRootFilesystem: true
           runAsNonRoot: true
+          privileged: false
           {{- if .Values.runAsUser }}
           runAsUser: {{ .Values.runAsUser }}
           {{- end }}

@@ -3,3 +3,10 @@
 
 prometheus:
   url: http://prometheus-operator-kube-p-prometheus
+
+podSecurityContext:
+  runAsGroup: 10001
+  runAsNonRoot: true
+  runAsUser: 10001
+  seccompProfile:
+    type: RuntimeDefault
