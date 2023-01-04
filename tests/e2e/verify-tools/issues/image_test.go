@@ -4,13 +4,13 @@
 package issues
 
 import (
+	"fmt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"log"
+	"os/exec"
+	"strings"
 	"time"
 )
 
@@ -28,86 +28,52 @@ var t = framework.NewTestFramework("Vz Tools Analysis Image Issues")
 var _ = BeforeSuite(beforeSuite)
 var _ = t.AfterEach(func() {})
 var clusterImageIssues = make(map[string]bool)
+var clusterPodStatus = make(map[string][]corev1.Pod)
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
-	hopClusterImageIssues()
 })
 
 var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 	t.Context("During Analysis", func() {
-		t.It("Doesn't Have Image Pull Not Found Issue", func() {
-			Eventually(func() bool {
-				return testClusterImageIssues(ImagePullNotFound)
-			}, waitTimeout, pollingInterval).Should(BeFalse())
-		})
+		out, err := RunVzAnalyze()
+		if err != nil {
+			Fail(err.Error())
+		}
+		fmt.Println("11111111 \n", out)
+		out, err = InjectIssues(ImagePullNotFound)
+		if err != nil {
+			Fail(err.Error())
+		}
+		fmt.Println("22222222 \n", out)
+		out, err = RunVzAnalyze()
+		if err != nil {
+			Fail(err.Error())
+		}
+		fmt.Println("33333333 \n", out)
 		t.It("Doesn't Have Image Pull Back Off Issue", func() {
 			Eventually(func() bool {
-				return testClusterImageIssues(ImagePullBackOff)
-			}, waitTimeout, pollingInterval).Should(BeFalse())
+				return testIssues(out,"ImagePullBackOff")
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 })
 
-func testClusterImageIssues(issueType string) bool {
-	if _, ok := clusterImageIssues[issueType]; ok {
+func InjectIssues(issueType string) (string, error) {
+	cmd := exec.Command("kubectl", "apply", "-f", "issue.yaml")
+	out, err := cmd.Output()
+	return string(out), err
+}
+
+func testIssues(out, issueType string) bool {
+	if strings.Contains(out, issueType) {
 		return true
 	}
 	return false
 }
 
-func hopClusterImageIssues() {
-	for _, installedNamespace := range getAllNamespaces() {
-		populateClusterImageIssues(installedNamespace)
-	}
+func RunVzAnalyze() (string, error) {
+	cmd := exec.Command("vz", "analyze")
+	out, err := cmd.Output()
+	return string(out), err
 }
 
-// Return all installed cluster namespaces
-func getAllNamespaces() []string {
-	namespaces, err := pkg.ListNamespaces(metav1.ListOptions{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	var clusterNamespaces []string
-	for _, namespaceItem := range namespaces.Items {
-		clusterNamespaces = append(clusterNamespaces, namespaceItem.Name)
-	}
-	return clusterNamespaces
-}
-
-func populateClusterImageIssues(installedNamespace string) {
-	podsList, err := pkg.ListPods(installedNamespace, metav1.ListOptions{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	for _, pod := range podsList.Items {
-		podLabels := pod.GetLabels()
-		_, ok := podLabels["job-name"]
-		if pod.Status.Phase != corev1.PodRunning && ok {
-			continue
-		}
-		if len(pod.Status.InitContainerStatuses) > 0 {
-			for _, initContainerStatus := range pod.Status.InitContainerStatuses {
-				if initContainerStatus.State.Waiting != nil {
-					if initContainerStatus.State.Waiting.Reason == ImagePullNotFound {
-						clusterImageIssues[ImagePullNotFound] = true
-					}
-					if initContainerStatus.State.Waiting.Reason == ImagePullBackOff {
-						clusterImageIssues[ImagePullBackOff] = true
-					}
-				}
-			}
-		}
-		if len(pod.Status.ContainerStatuses) > 0 {
-			for _, containerStatus := range pod.Status.ContainerStatuses {
-				if containerStatus.State.Waiting != nil {
-					if containerStatus.State.Waiting.Reason == ImagePullNotFound {
-						clusterImageIssues[ImagePullNotFound] = true
-					}
-					if containerStatus.State.Waiting.Reason == ImagePullBackOff {
-						clusterImageIssues[ImagePullBackOff] = true
-					}
-				}
-			}
-		}
-	}
-}
