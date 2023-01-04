@@ -10,6 +10,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -23,6 +24,8 @@ import (
 const (
 	platformOperatorPodNameSearchString = "verrazzano-platform-operator"                          // Pod Substring for finding the platform operator pod
 	rancherWarningMessage               = "Rancher shell image version may be old due to upgrade" // For known Rancher component upgrade behavior during VZ upgrade
+	shortPollingInterval                = 10 * time.Second
+	shortWaitTimeout                    = 5 * time.Minute
 )
 
 type imageDetails struct {
@@ -93,15 +96,22 @@ var t = framework.NewTestFramework("BOM validator")
 
 var _ = t.Describe("BOM Validator", Label("f:platform-lcm.install"), func() {
 	t.Context("Post VZ Installations", func() {
-		t.It("Has Successful BOM Validation Report", func() {
+
+		t.It("Has successfully validated kubeConfig", func() {
 			Eventually(validateKubeConfig).Should(BeTrue())
+		})
+
+		t.It("Has Successfully scanned cluster images with Bom", func() {
+			Eventually(scanClusterImagesWithBom).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
+		})
+
+		t.It("Has Successful BOM Validation Report", func() {
 			getBOM()
 			Expect(vBom.Components).NotTo(BeNil())
 			populateBomContainerImagesMap()
 			Expect(bomImages).NotTo(BeEmpty())
 			populateClusterContainerImages()
 			Expect(clusterImageArray).NotTo(BeEmpty())
-			Eventually(scanClusterImagesWithBom).Should(BeTrue())
 			Eventually(BomValidationReport).Should(BeTrue())
 		})
 	})
