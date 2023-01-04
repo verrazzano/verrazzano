@@ -485,13 +485,13 @@ func analyzeExternalDNS(log *zap.SugaredLogger, clusterRoot string, issueReporte
 	// We should get only one pod file, use the first element rather than going through the slice
 	logFile := allPodFiles[0]
 	for index := range errorMessagesRegex {
-		status, err := files.SearchLogMessage(logFile, errorMessagesRegex[index])
+		status, err := files.SearchFile(log, logFile, regexp.MustCompile(errorMessagesRegex[index]), nil)
 		if err != nil {
 			return
 		}
 		if len(status) > 0 {
 			messages := make(StringSlice, 1)
-			messages[0] = status
+			messages[0] = status[0].MatchedText
 			servFiles := make(StringSlice, 1)
 			issueReporter.AddKnownIssueMessagesFiles(report.ExternalDNSConfigureIssue, clusterRoot, messages, servFiles)
 		}

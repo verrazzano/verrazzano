@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"os"
-	"regexp"
 )
 
 type LogMessage struct {
@@ -51,27 +50,4 @@ func FilterLogsByLevelComponent(level string, component string, allMessages []Lo
 		}
 	}
 	return filteredLogs, nil
-}
-
-// Search for regex match in file path and return the line  if found
-// else return empty
-func SearchLogMessage(path, searchtext string) (string, error) {
-	isMatchFound := ""
-	readFile, err := os.Open(path)
-	if err != nil {
-		return isMatchFound, err
-	}
-	defer readFile.Close()
-	scanner := bufio.NewScanner(readFile)
-	r, err := regexp.Compile(searchtext)
-	if err != nil {
-		return isMatchFound, err
-	}
-	for scanner.Scan() {
-		if r.MatchString(scanner.Text()) {
-			isMatchFound = scanner.Text()
-			break
-		}
-	}
-	return isMatchFound, nil
 }
