@@ -34,7 +34,7 @@ configMaps:
       velero.io/plugin-config: ""
       velero.io/restic: RestoreItemAction
 podSecurityContext:
-  runAsGroup: 999
+  runAsGroup: 65534
   runAsNonRoot: true
   runAsUser: 1000
   seccompProfile:
