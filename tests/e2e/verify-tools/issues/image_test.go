@@ -4,11 +4,15 @@
 package issues
 
 import (
+	"context"
 	"fmt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	k8util "github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"os/exec"
 	"strings"
 	"time"
@@ -40,7 +44,7 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 			Fail(err.Error())
 		}
 		fmt.Println("11111111 \n", out)
-		out, err = InjectIssues(ImagePullNotFound)
+		out, err = InjectIssues()
 		if err != nil {
 			Fail(err.Error())
 		}
@@ -55,15 +59,38 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 				return testIssues(out,"ImagePullBackOff")
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
+		out, err = RevertIssues()
+		if err != nil {
+			Fail(err.Error())
+		}
+		fmt.Println("44444444 \n", out)
+
+		c, err := k8util.GetKubernetesClientset()
+		if err != nil {
+			Fail(err.Error())
+		}
+		deploymentsClient := c.ExtensionsV1beta1().Deployments("verrazzano-system")
+		patch := []byte(`{"spec":{"template":{"spec":{"containers":[{"image":"ghcr.io/oracle/coherence-operator:3.YY","name":"coherence-operator"}]}}}}`)
+		res, err := deploymentsClient.Patch(context.TODO(),"coherence-operator", types.MergePatchType, patch,  v1.PatchOptions{}, "")
+		if err != nil {
+			Fail(err.Error())
+		}
+		fmt.Println(res)
 	})
 })
 
-func InjectIssues(issueType string) (string, error) {
+func InjectIssues() (string, error) {
 	cmd := exec.Command("kubectl", "apply", "-f", "issue.yaml")
 	out, err := cmd.Output()
 	return string(out), err
 }
 
+func RevertIssues() (string, error) {
+	cmd := exec.Command("kubectl", "apply", "-f", "revertIssues.yaml")
+	out, err := cmd.Output()
+	return string(out), err
+
+}
 func testIssues(out, issueType string) bool {
 	if strings.Contains(out, issueType) {
 		return true
