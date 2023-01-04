@@ -6,15 +6,14 @@ package security
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -82,10 +81,12 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 			return podList, err
 		}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
+		t.Logs.Debugf("Podlist length: %v", len(podList.Items))
+
 		var errors []error
 		pods := podList.Items
 		for _, pod := range pods {
-			t.Logs.Infof("Checking pod %s/%s", ns, pod.Name)
+			t.Logs.Debugf("Checking pod %s/%s", ns, pod.Name)
 			if shouldSkipPod(pod.Name, ns) {
 				continue
 			}
