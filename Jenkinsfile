@@ -392,6 +392,50 @@ pipeline {
             }
         }
 
+        stage('vz analyze tool') {
+                    when {
+                        allOf {
+                            not { buildingTag() }
+                            anyOf {
+                                branch 'master';
+                                branch 'release-*';
+                                expression {SKIP_ACCEPTANCE_TESTS == false};
+                            }
+                        }
+                    }
+
+                    environment {
+                        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+                    }
+
+                    steps {
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "verrazzano-analyze-tool-test/${BRANCH_NAME.replace("/", "%2F")}",
+                                    parameters: [
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                        string(name: 'CRD_API_VERSION', value: params.CRD_API_VERSION),
+                                        booleanParam(name: 'RUN_SLOW_TESTS', value: params.RUN_SLOW_TESTS),
+                                        booleanParam(name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', value: params.DUMP_K8S_CLUSTER_ON_SUCCESS),
+                                        booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: params.CREATE_CLUSTER_USE_CALICO),
+                                        string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
+                                    ], wait: true
+                            }
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                SKIP_TRIGGERED_TESTS = true
+                            }
+                        }
+                    }
+                }
+
         stage('Triggered Tests') {
             when {
                 allOf {
