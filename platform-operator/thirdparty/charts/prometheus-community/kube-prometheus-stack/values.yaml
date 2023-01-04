@@ -2774,13 +2774,7 @@ prometheus:
 
     ## Containers allows injecting additional containers. This is meant to allow adding an authentication proxy to a Prometheus pod.
     ## if using proxy extraContainer update targetPort with proxy container port
-    containers:
-      - name: prometheus
-        securityContext:
-          privileged: false
-      - name: config-reloader
-        securityContext:
-          privileged: false
+    containers: []
     # containers:
     # - name: oauth-proxy
     #   image: quay.io/oauth2-proxy/oauth2-proxy:v7.3.0
@@ -2796,10 +2790,7 @@ prometheus:
 
     ## InitContainers allows injecting additional initContainers. This is meant to allow doing some changes
     ## (permissions, dir tree) on mounted volumes before starting prometheus
-    initContainers:
-      - name: init-config-reloader
-        securityContext:
-          privileged: false
+    initContainers: []
 
     ## PortName to use for Prometheus.
     ##

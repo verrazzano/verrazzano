@@ -38,6 +38,17 @@ prometheus:
         - kube-state-metrics
         - prometheus-pushgateway
     scrapeInterval: 20s
+    containers:
+      - name: prometheus
+        securityContext:
+          privileged: false
+      - name: config-reloader
+        securityContext:
+          privileged: false
+    initContainers:
+      - name: init-config-reloader
+        securityContext:
+          privileged: false
   serviceMonitor:
     relabelings:
       - action: replace
