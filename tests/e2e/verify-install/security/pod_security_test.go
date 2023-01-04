@@ -46,7 +46,7 @@ var skipPods = map[string][]string{
 	},
 }
 
-var skipContainers = []string{"istio-proxy"}
+var skipContainers = []string{}
 var skipInitContainers = []string{"istio-init"}
 
 var (
