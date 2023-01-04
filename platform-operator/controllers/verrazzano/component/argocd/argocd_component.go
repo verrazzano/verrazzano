@@ -5,6 +5,8 @@ package argocd
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -23,7 +25,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 )
 
 // ComponentName is the name of the component

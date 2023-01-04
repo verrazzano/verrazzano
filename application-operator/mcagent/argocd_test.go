@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -36,7 +37,7 @@ func scheme() *runtime.Scheme {
 func TestCreateArgoCDResources(t *testing.T) {
 	log := zap.S().With("test")
 
-	adminClient := fake.NewClientBuilder().WithScheme(scheme()).WithObjects().Build()
+	adminClient := fake.NewClientBuilder().WithScheme(scheme()).Build()
 	localClient := fake.NewClientBuilder().WithScheme(scheme()).Build()
 	// Make the request
 	s := &Syncer{
@@ -48,10 +49,10 @@ func TestCreateArgoCDResources(t *testing.T) {
 	}
 	// Verify the associated k8s resources got created on local cluster
 	assert.NoError(t, s.createArgocdResources([]byte("foobar")))
-	err := s.LocalClient.Get(s.Context, types.NamespacedName{Name: serviceAccountName, Namespace: kubeSystemNamespace}, &corev1.ServiceAccount{})
+	err := s.LocalClient.Get(s.Context, types.NamespacedName{Name: serviceAccountName, Namespace: constants.KubeSystem}, &corev1.ServiceAccount{})
 	assert.NoError(t, err)
 
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: secName, Namespace: kubeSystemNamespace}, &corev1.Secret{})
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: secName, Namespace: constants.KubeSystem}, &corev1.Secret{})
 	assert.NoError(t, err)
 
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: clusterRoleName}, &rbacv1.ClusterRole{})

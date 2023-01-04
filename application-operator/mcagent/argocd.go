@@ -4,6 +4,7 @@
 package mcagent
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -11,7 +12,6 @@ import (
 )
 
 const (
-	kubeSystemNamespace    = "kube-system"
 	caCrtKey               = "ca.crt"
 	serviceAccountName     = "argocd-manager"
 	secName                = "argocd-manager-token"
@@ -22,7 +22,7 @@ const (
 func (s *Syncer) createArgoCDServiceAccount() error {
 	var serviceAccount corev1.ServiceAccount
 	serviceAccount.Name = serviceAccountName
-	serviceAccount.Namespace = kubeSystemNamespace
+	serviceAccount.Namespace = constants.KubeSystem
 
 	_, err := controllerruntime.CreateOrUpdate(s.Context, s.LocalClient, &serviceAccount, func() error {
 		mutateServiceAccount(serviceAccount)
@@ -35,7 +35,7 @@ func (s *Syncer) createArgoCDServiceAccount() error {
 func (s *Syncer) createArgoCDSecret(secretData []byte) error {
 	var secret corev1.Secret
 	secret.Name = secName
-	secret.Namespace = kubeSystemNamespace
+	secret.Namespace = constants.KubeSystem
 
 	// Create or update on the local cluster
 	_, err := controllerruntime.CreateOrUpdate(s.Context, s.LocalClient, &secret, func() error {
@@ -87,6 +87,8 @@ func mutateArgoCDSecret(secret corev1.Secret, secretData []byte) {
 	}
 }
 
+// mutateClusterRole is providing complete priveleges to all resources in the managed cluster
+// Reason being that argocd needs to install applications and resources across the cluster in all the namespaces
 func mutateClusterRole(role rbacv1.ClusterRole) {
 	role.Rules = []rbacv1.PolicyRule{
 		{
@@ -107,7 +109,7 @@ func mutateRoleBinding(binding rbacv1.ClusterRoleBinding) {
 		{
 			Kind:      "ServiceAccount",
 			Name:      serviceAccountName,
-			Namespace: kubeSystemNamespace,
+			Namespace: constants.KubeSystem,
 		},
 	}
 }

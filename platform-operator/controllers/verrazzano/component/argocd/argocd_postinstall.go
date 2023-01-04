@@ -6,6 +6,8 @@ package argocd
 import (
 	"context"
 	"fmt"
+	"time"
+
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -17,7 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/yaml"
-	"time"
 )
 
 type OIDCConfig struct {

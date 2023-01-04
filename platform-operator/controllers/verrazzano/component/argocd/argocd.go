@@ -5,6 +5,7 @@ package argocd
 
 import (
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -17,10 +18,9 @@ import (
 // Constants for Kubernetes resource names
 const (
 	defaultSecretNamespace = "cert-manager"
-	defaultVerrazzanoName  = "verrazzano-ca-certificate-secret"
 )
 
-// GetOverrides returns the install overrides from v1beta1.Verrazzano CR
+// GetOverrides returns the install overrides from either v1alpha1 or v1beta1.Verrazzano CR
 func GetOverrides(object runtime.Object) interface{} {
 	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
 		if effectiveCR.Spec.Components.ArgoCD != nil {

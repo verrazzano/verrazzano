@@ -4,8 +4,11 @@
 package argocd
 
 import (
+	"testing"
+
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	admv1 "k8s.io/api/admissionregistration/v1"
@@ -15,7 +18,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	v12 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"testing"
 )
 
 var (
@@ -24,7 +26,7 @@ var (
 			EnvironmentName: "DefaultCA",
 			Components: vzapi.ComponentSpec{
 				CertManager: &vzapi.CertManagerComponent{Certificate: vzapi.Certificate{CA: vzapi.CA{
-					SecretName:               defaultVerrazzanoName,
+					SecretName:               constants.DefaultVerrazzanoCASecretName,
 					ClusterResourceNamespace: defaultSecretNamespace,
 				}}},
 				DNS: &vzapi.DNSComponent{
