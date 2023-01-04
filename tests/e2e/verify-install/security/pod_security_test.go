@@ -44,7 +44,7 @@ var skipPods = map[string][]string{
 		"pushgateway",
 		"kube-state-metrics",
 		"prometheus-adapter",
-		"jaeger-operator",
+		"jaeger",
 	},
 }
 
