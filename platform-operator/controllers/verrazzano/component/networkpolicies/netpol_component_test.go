@@ -28,6 +28,9 @@ var veleroEnabledCR = &vzapi.Verrazzano{
 			Velero: &vzapi.VeleroComponent{
 				Enabled: &enabled,
 			},
+			ArgoCD: &vzapi.ArgoCDComponent{
+				Enabled: &enabled,
+			},
 		},
 	},
 }
