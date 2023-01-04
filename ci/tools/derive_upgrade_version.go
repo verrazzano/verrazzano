@@ -16,19 +16,20 @@ const (
 	InterimVersionForUpgrade = "interim-version"
 )
 
-var (
-	workspace          string
-	versionType        string
-	excludeReleaseTags []string
-)
-
 func main() {
 
-	//Parse command line arguments
-	parseCliArgs()
+	//Parse command line arguments to extract params
+	help := false
+	flag.BoolVar(&help, "help", false, "Display usage help")
+	flag.Parse()
+	if help {
+		printUsage()
+		os.Exit(0)
+	}
+	workspace, versionType, excludeReleaseTags := parseCliArgs(flag.Args())
 
 	//Extract release tags from git tag command.
-	releaseTags := getReleaseTags(workspace)
+	releaseTags := getReleaseTags(workspace, excludeReleaseTags)
 	if versionType == InterimVersionForUpgrade {
 		interimRelease := getInterimRelease(releaseTags)
 		fmt.Print(interimRelease)
@@ -40,41 +41,37 @@ func main() {
 	}
 }
 
-func parseCliArgs() {
-	help := false
-	flag.BoolVar(&help, "help", false, "Display usage help")
-	flag.Parse()
-	if help {
-		printUsage()
-		os.Exit(0)
-	}
+func parseCliArgs(args []string) (string, string, []string) {
+	var workspace, versionType string
+	var excludeReleaseTags []string
 
-	if len(flag.Args()) < 1 {
+	if len(args) < 1 {
 		fmt.Printf("\nno command line arguments were specified\n")
 		printUsage()
 		os.Exit(1)
 	}
 
-	if len(flag.Args()) > 0 {
+	if len(args) > 0 {
 		// Receive working directory as a command line argument.
-		workspace = flag.Arg(0)
+		workspace = args[0]
 		// Receive version type such as interimVersionForUpgrade or versionForInstall argument
-		versionType = flag.Arg(1)
+		versionType = args[1]
 	} else {
 		fmt.Printf("no worspace path and version type line arguments were specified\n")
 		os.Exit(1)
 	}
 
-	if len(flag.Args()) > 2 {
-		for index, arg := range flag.Args() {
+	if len(args) > 2 {
+		for index, arg := range args {
 			if index > 1 {
 				excludeReleaseTags = append(excludeReleaseTags, arg)
 			}
 		}
 	}
+	return workspace, versionType, excludeReleaseTags
 }
 
-func getReleaseTags(workspace string) []string {
+func getReleaseTags(workspace string, excludeReleaseTags []string) []string {
 	// Change the working directory to the verrazzano workspace
 	err := os.Chdir(workspace)
 	if err != nil {
@@ -96,7 +93,7 @@ func getReleaseTags(workspace string) []string {
 	for _, tag := range gitTags {
 		if strings.HasPrefix(tag, "v") && !strings.HasPrefix(tag, "v0") {
 			// Exclude the release tags if tag exists in excludeReleaseTags
-			if !DoesTagExistsInExcludeList(tag) {
+			if !DoesTagExistsInExcludeList(tag, excludeReleaseTags) {
 				releaseTags = append(releaseTags, tag)
 			}
 		}
@@ -105,7 +102,7 @@ func getReleaseTags(workspace string) []string {
 }
 
 // DoesTagExistsInExcludeList returns true if the tag exists in excludeReleasetag
-func DoesTagExistsInExcludeList(releaseTag string) bool {
+func DoesTagExistsInExcludeList(releaseTag string, excludeReleaseTags []string) bool {
 	for _, excludeTag := range excludeReleaseTags {
 		if excludeTag == releaseTag {
 			return true
