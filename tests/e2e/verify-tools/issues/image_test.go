@@ -40,7 +40,7 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 			Fail(err.Error())
 		}
 		fmt.Println("11111111 \n", out)
-		out, err = InjectIssues(ImagePullNotFound)
+		out, err = InjectIssues()
 		if err != nil {
 			Fail(err.Error())
 		}
@@ -55,15 +55,26 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 				return testIssues(out,"ImagePullBackOff")
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
+		out, err = RevertIssues()
+		if err != nil {
+			Fail(err.Error())
+		}
+		fmt.Println("44444444 \n", out)
 	})
 })
 
-func InjectIssues(issueType string) (string, error) {
+func InjectIssues() (string, error) {
 	cmd := exec.Command("kubectl", "apply", "-f", "issue.yaml")
 	out, err := cmd.Output()
 	return string(out), err
 }
 
+func RevertIssues() (string, error) {
+	cmd := exec.Command("kubectl", "apply", "-f", "revertIssues.yaml")
+	out, err := cmd.Output()
+	return string(out), err
+
+}
 func testIssues(out, issueType string) bool {
 	if strings.Contains(out, issueType) {
 		return true
