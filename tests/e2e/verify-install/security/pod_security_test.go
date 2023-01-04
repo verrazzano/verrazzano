@@ -30,7 +30,9 @@ const (
 )
 
 var skipPods = map[string][]string{
-	"verrazzano-install": {},
+	"verrazzano-install": {
+		"mysql",
+	},
 	"verrazzano-system": {
 		"coherence-operator",
 		"fluentd",
