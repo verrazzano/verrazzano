@@ -87,7 +87,7 @@ func mutateArgoCDSecret(secret corev1.Secret, secretData []byte) {
 	}
 }
 
-// mutateClusterRole is providing complete priveleges to all resources in the managed cluster
+// mutateClusterRole is providing complete privileges to all resources in the managed cluster
 // Reason being that argocd needs to install applications and resources across the cluster in all the namespaces
 func mutateClusterRole(role rbacv1.ClusterRole) {
 	role.Rules = []rbacv1.PolicyRule{
