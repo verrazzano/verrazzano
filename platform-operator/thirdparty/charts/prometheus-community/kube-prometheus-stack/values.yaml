@@ -2778,6 +2778,9 @@ prometheus:
       - name: prometheus
         securityContext:
           privileged: false
+      - name: config-reloader
+        securityContext:
+          privileged: false
     # containers:
     # - name: oauth-proxy
     #   image: quay.io/oauth2-proxy/oauth2-proxy:v7.3.0
@@ -2793,7 +2796,10 @@ prometheus:
 
     ## InitContainers allows injecting additional initContainers. This is meant to allow doing some changes
     ## (permissions, dir tree) on mounted volumes before starting prometheus
-    initContainers: []
+    initContainers:
+      - name: init-config-reloader
+        securityContext:
+          privileged: false
 
     ## PortName to use for Prometheus.
     ##
