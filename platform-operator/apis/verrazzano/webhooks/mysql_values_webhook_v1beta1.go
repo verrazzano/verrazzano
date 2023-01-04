@@ -52,7 +52,6 @@ func (v *MysqlValuesValidatorV1beta1) Handle(ctx context.Context, req admission.
 			return v.validateMysqlValuesV1beta1(log, oldVz, vz)
 		}
 	}
-	log.Debugf("Admission allowed")
 	return admission.Allowed("")
 }
 
@@ -60,9 +59,8 @@ func (v *MysqlValuesValidatorV1beta1) Handle(ctx context.Context, req admission.
 func (v *MysqlValuesValidatorV1beta1) validateMysqlValuesV1beta1(log *zap.SugaredLogger, oldVz v1beta1.Verrazzano, newVz *v1beta1.Verrazzano) admission.Response {
 	response := admission.Allowed("")
 	versionToCompare := getVersion(oldVz.Status.Version, newVz.Spec.Version, v.BomVersion)
-	log.Debugf("Min version required %s, version to compare: %s", MinVersion, versionToCompare)
 	if isMinVersion(versionToCompare, MinVersion) {
-		log.Info("Validating v1beta1 MySQL values")
+		log.Debugf("Validating v1beta1 MySQL values")
 		if newVz.Spec.Components.Keycloak != nil {
 			newMySQLOverrides := newVz.Spec.Components.Keycloak.MySQL.ValueOverrides
 			for _, override := range newMySQLOverrides {
