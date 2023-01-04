@@ -317,9 +317,12 @@ func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	if !r.IsEnabled(old) && r.IsEnabled(new) {
-		err := CheckClusterProvisionedByRancher()
+		provisioned, err := IsClusterProvisionedByRancher()
 		if err != nil {
 			return err
+		}
+		if provisioned {
+			return fmt.Errorf("cluster provisioned by Rancher cannot have Rancher installed")
 		}
 	}
 	return r.HelmComponent.ValidateUpdate(old, new)
@@ -332,9 +335,12 @@ func (r rancherComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, 
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	if !r.IsEnabled(old) && r.IsEnabled(new) {
-		err := CheckClusterProvisionedByRancher()
+		provisioned, err := IsClusterProvisionedByRancher()
 		if err != nil {
 			return err
+		}
+		if provisioned {
+			return fmt.Errorf("cluster provisioned by Rancher cannot have Rancher installed")
 		}
 	}
 	return r.HelmComponent.ValidateUpdateV1Beta1(old, new)
@@ -617,9 +623,12 @@ func checkExistingRancher(vz runtime.Object) error {
 		return nil
 	}
 
-	err := CheckClusterProvisionedByRancher()
+	provisioned, err := IsClusterProvisionedByRancher()
 	if err != nil {
 		return err
+	}
+	if provisioned {
+		return fmt.Errorf("cluster provisioned by Rancher cannot have Rancher installed. Disable Rancher and rerun")
 	}
 
 	client, err := k8sutil.GetCoreV1Func()
@@ -637,30 +646,22 @@ func checkExistingRancher(vz runtime.Object) error {
 	return nil
 }
 
-// CheckClusterProvisionedByRancher checks if the Kubernetes cluster was provisioned by Rancher.
-func CheckClusterProvisionedByRancher() error {
+// IsClusterProvisionedByRancher checks if the Kubernetes cluster was provisioned by Rancher.
+func IsClusterProvisionedByRancher() (bool, error) {
 	client, err := k8sutil.GetCoreV1Func()
 	if err != nil {
-		return err
+		return false, err
 	}
 	dynClient, err := k8sutil.GetDynamicClientFunc()
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	provisioned, err := isClusterProvisioned(client, dynClient)
-	if err != nil {
-		return err
-	}
-	if provisioned {
-		return fmt.Errorf("cluster provisioned by Rancher cannot have Rancher installed. Disable Rancher and rerun")
-	}
-
-	return nil
+	return checkClusterProvisioned(client, dynClient)
 }
 
-// isClusterProvisioned checks if the Kubernetes cluster was provisioned by Rancher.
-func isClusterProvisioned(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) {
+// checkClusterProvisioned checks if the Kubernetes cluster was provisioned by Rancher.
+func checkClusterProvisioned(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) {
 	// Check for the "local" namespace.
 	ns, err := client.Namespaces().Get(context.TODO(), ClusterLocal, metav1.GetOptions{})
 	if kerrs.IsNotFound(err) {
