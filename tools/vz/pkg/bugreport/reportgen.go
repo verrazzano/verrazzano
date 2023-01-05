@@ -111,18 +111,7 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 
 	// Capture OAM resources from the namespaces specified using --include-namespaces
 	if len(additionalNS) > 0 {
-		if err := pkghelpers.CaptureOAMResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
-			pkghelpers.LogError(fmt.Sprintf("There is an error in capturing the resources : %s", err.Error()))
-		}
-		if isPodLog {
-			err = captureResourcesCustom(client, kubeClient, bugReportDir, vzHelper, additionalNS, duration)
-			if err != nil {
-				pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the logs: %s", err.Error()))
-			}
-		}
-		if err := pkghelpers.CaptureMultiClusterResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
-			pkghelpers.LogError(fmt.Sprintf("There is an error in capturing the multi-cluster resources : %s", err.Error()))
-		}
+		checkadditionalResources(client, kubeClient, dynamicClient, vzHelper, bugReportDir, additionalNS, isPodLog, duration)
 	}
 	return nil
 }
@@ -293,5 +282,20 @@ func captureLogsAll(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient ku
 				ec <- ErrorsChannelLogs{PodName: pods[index].Name, ErrorMessage: err.Error()}
 			}
 		}
+	}
+}
+
+// checkadditionalResources will capture additional resources with logs with duration.
+func checkadditionalResources(client clipkg.Client, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, vzHelper pkghelpers.VZHelper, bugReportDir string, additionalNS []string, isPodLog bool, duration int64) {
+	if err := pkghelpers.CaptureOAMResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
+		pkghelpers.LogError(fmt.Sprintf("There is an error in capturing the resources : %s", err.Error()))
+	}
+	if isPodLog {
+		if err := captureResourcesCustom(client, kubeClient, bugReportDir, vzHelper, additionalNS, duration); err != nil {
+			pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the logs: %s", err.Error()))
+		}
+	}
+	if err := pkghelpers.CaptureMultiClusterResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
+		pkghelpers.LogError(fmt.Sprintf("There is an error in capturing the multi-cluster resources : %s", err.Error()))
 	}
 }
