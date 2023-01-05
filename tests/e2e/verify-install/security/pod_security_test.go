@@ -43,7 +43,6 @@ var skipPods = map[string][]string{
 	"verrazzano-monitoring": {
 		"node-exporter",
 		"alertmanager",
-		"pushgateway",
 		"kube-state-metrics",
 		"prometheus-adapter",
 		"jaeger",
