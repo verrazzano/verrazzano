@@ -56,7 +56,6 @@ func OverrideGetComponentsFn(fnType GetCompoentsFnType) {
 // ResetGetComponentsFn Restores the GetComponents implementation to the default if it's been overridden for testing
 func ResetGetComponentsFn() {
 	getComponentsFn = getComponents
-	getComponentsMap = make(map[string]spi.Component)
 }
 
 func InitRegistry() {
