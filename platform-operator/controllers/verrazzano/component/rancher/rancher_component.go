@@ -609,6 +609,8 @@ func checkExistingRancher(vz runtime.Object) error {
 	if err != nil {
 		return err
 	}
+	// If the k8s cluster was provisioned by Rancher then don't check for Rancher namespaces.
+	// A Rancher provisioned cluster will have Rancher namespaces.
 	if provisioned {
 		return nil
 	}
