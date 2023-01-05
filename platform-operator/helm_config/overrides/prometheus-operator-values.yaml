@@ -56,20 +56,21 @@ prometheus:
         replacement: local
 alertmanager:
   enabled: false
-  securityContext:
-    fsGroup: 65534
-    runAsGroup: 65534
-    runAsNonRoot: true
-    runAsUser: 65534
-    seccompProfile:
-      type: RuntimeDefault
-  containers:
-    - name: prometheus
-      securityContext:
-        privileged: false
-    - name: config-reloader
-      securityContext:
-        privileged: false
+  alertmanagerSpec:
+    securityContext:
+      fsGroup: 65534
+      runAsGroup: 65534
+      runAsNonRoot: true
+      runAsUser: 65534
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+      - name: prometheus
+        securityContext:
+          privileged: false
+      - name: config-reloader
+        securityContext:
+          privileged: false
 prometheusOperator:
   admissionWebhooks:
     enabled: true
