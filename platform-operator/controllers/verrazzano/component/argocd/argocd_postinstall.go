@@ -187,7 +187,7 @@ func GetRootCA(ctx spi.ComponentContext) ([]byte, error) {
 	return secret.Data[common.ArgoCDCACert], nil
 }
 
-// Use the CR generation so that we only restart the workloads once
+// buildRestartAnnotationString returns the current time for annotating deployment to restart the pod
 func buildRestartAnnotationString(time time.Time) string {
 	return time.String()
 }
