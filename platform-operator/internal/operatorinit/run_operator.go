@@ -73,7 +73,7 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 	}
 
 	// Setup MySQL checker
-	mysqlCheck, err := mysqlcheck.NewMySQLChecker(mgr.GetClient(), time.Duration(config.HealthCheckPeriodSeconds)*time.Second)
+	mysqlCheck, err := mysqlcheck.NewMySQLChecker(mgr.GetClient(), time.Duration(config.MySQLCheckPeriodSeconds)*time.Second)
 	if err != nil {
 		return errors.Wrap(err, "Failed starting MySQLChecker")
 	}

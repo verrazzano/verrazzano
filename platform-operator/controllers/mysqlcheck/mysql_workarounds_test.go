@@ -244,7 +244,7 @@ func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	assert.NoError(t, err)
 
 	err = mysqlCheck.RepairMySQLPodStuckDeleting()
-	assert.Error(t, err)
+	assert.NoError(t, err)
 	assert.False(t, getInitialTimeMySQLPodsStuckChecked().IsZero())
 
 	// Call with MySQL pods being deleted and timer expired, expect mysql-operator pod to be deleted

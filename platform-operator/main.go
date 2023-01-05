@@ -87,6 +87,8 @@ func main() {
 	flag.BoolVar(&helm.Debug, "helm-debug", helm.Debug, "Add the --debug flag to helm commands")
 	flag.Int64Var(&config.HealthCheckPeriodSeconds, "health-check-period", config.HealthCheckPeriodSeconds,
 		"Health check period seconds; set to 0 to disable health checks")
+	flag.Int64Var(&config.MySQLCheckPeriodSeconds, "mysql-check-period", config.MySQLCheckPeriodSeconds,
+		"MySQL check period seconds; set to 0 to disable MySQL checks")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}

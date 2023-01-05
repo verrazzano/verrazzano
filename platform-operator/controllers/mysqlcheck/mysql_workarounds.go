@@ -252,7 +252,7 @@ func (mc *MySQLChecker) RepairMySQLPodStuckDeleting() error {
 		if getInitialTimeMySQLPodsStuckChecked().IsZero() {
 			setInitialTimeMySQLPodsStuckChecked(time.Now())
 			mc.log.Progressf("Waiting for MySQL pods to terminate in namespace %s", componentNamespace)
-			return ctrlerrors.RetryableError{}
+			return nil
 		}
 
 		// Initiate repair only if time to wait period has been exceeded
@@ -263,7 +263,7 @@ func (mc *MySQLChecker) RepairMySQLPodStuckDeleting() error {
 			}
 		} else {
 			// Keep trying until no pods deleting or time expires
-			return ctrlerrors.RetryableError{}
+			return nil
 		}
 	}
 

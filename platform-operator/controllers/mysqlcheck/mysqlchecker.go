@@ -50,22 +50,26 @@ func NewMySQLChecker(c clipkg.Client, tick time.Duration) (*MySQLChecker, error)
 
 // Start starts the MySQLChecker if it is not already running.
 // It is safe to call Start multiple times, additional goroutines will not be created
-func (p *MySQLChecker) Start() {
-	if p.shutdown != nil {
+func (mc *MySQLChecker) Start() {
+	if mc.shutdown != nil {
 		// already running, so nothing to do
 		return
 	}
-	p.shutdown = make(chan int, channelBufferSize)
+	mc.shutdown = make(chan int, channelBufferSize)
 
 	// goroutine updates availability every p.tickTime. If a shutdown signal is received (or channel is closed),
 	// the goroutine returns.
 	go func() {
-		ticker := time.NewTicker(p.tickTime)
+		var err error
+		ticker := time.NewTicker(mc.tickTime)
 		for {
 			select {
 			case <-ticker.C:
-				// timer event causes availability update
-			case <-p.shutdown:
+				// timer event causes MySQL checks
+				if err = mc.RepairMySQLPodStuckDeleting(); err != nil {
+					mc.log.ErrorfThrottled("Failed to repair MySQL pods stuck terminating: %v", err)
+				}
+			case <-mc.shutdown:
 				// shutdown event causes termination
 				ticker.Stop()
 				return
