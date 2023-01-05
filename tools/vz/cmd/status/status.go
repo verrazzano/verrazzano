@@ -36,6 +36,9 @@ Verrazzano Status
   Namespace: {{.verrazzano_namespace}}
   Version: {{.verrazzano_version}}
   State: {{.verrazzano_state}}
+{{- if .verrazzano_available_components }}
+  Available Components: {{.verrazzano_available_components}}
+{{- end }}
   Profile: {{.install_profile}}
   Access Endpoints:
 {{- if .console_url}}
@@ -167,10 +170,11 @@ func runCmdStatus(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 
 	// Report the status information
 	templateValues := map[string]string{
-		"verrazzano_name":      vz.Name,
-		"verrazzano_namespace": vz.Namespace,
-		"verrazzano_version":   vz.Status.Version,
-		"verrazzano_state":     string(vz.Status.State),
+		"verrazzano_name":                 vz.Name,
+		"verrazzano_namespace":            vz.Namespace,
+		"verrazzano_version":              vz.Status.Version,
+		"verrazzano_state":                string(vz.Status.State),
+		"verrazzano_available_components": getAvailableComponents(vz.Status.Available),
 	}
 	if vz.Spec.Profile == "" {
 		templateValues["install_profile"] = string(vzapi.Prod)
@@ -186,6 +190,13 @@ func runCmdStatus(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	fmt.Fprintf(vzHelper.GetOutputStream(), result)
 
 	return nil
+}
+
+func getAvailableComponents(available *string) string {
+	if available == nil {
+		return ""
+	}
+	return *available
 }
 
 // addAccessEndpoints - add access endpoints to the display output

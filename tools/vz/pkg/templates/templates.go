@@ -9,7 +9,7 @@ import (
 )
 
 // ApplyTemplate - apply the replacement parameters to the specified template content
-func ApplyTemplate(templateContent string, params map[string]string) (string, error) {
+func ApplyTemplate(templateContent string, params interface{}) (string, error) {
 
 	// Parse the template file
 	testTemplate, err := template.New("cli").Parse(templateContent)
