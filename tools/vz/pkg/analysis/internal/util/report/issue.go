@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package report handles reporting
@@ -114,6 +114,7 @@ const (
 	IngressShapeInvalid       = "IngressShapeInvalid"
 	IstioIngressPrivateSubnet = "IstioIngressPrivateSubnet"
 	NginxIngressPrivateSubnet = "NginxIngressPrivateSubnet"
+	ExternalDNSConfigureIssue = "ExternalDNSConfigureIssue"
 )
 
 // NOTE: How we are handling the issues/actions/reporting is still very much evolving here. Currently supplying some
@@ -140,6 +141,7 @@ var knownIssues = map[string]Issue{
 	IngressShapeInvalid:       {Type: IngressShapeInvalid, Summary: "Verrazzano install failed as the shape provided for NGINX Ingress Controller is invalid", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressShapeInvalid]}},
 	IstioIngressPrivateSubnet: {Type: IstioIngressPrivateSubnet, Summary: "Failed to create LoadBalancer for Istio Ingress Gateway", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IstioIngressPrivateSubnet]}},
 	NginxIngressPrivateSubnet: {Type: NginxIngressPrivateSubnet, Summary: "Failed to create LoadBalancer for Nginx Ingress Controller", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[NginxIngressPrivateSubnet]}},
+	ExternalDNSConfigureIssue: {Type: ExternalDNSConfigureIssue, Summary: "Failed to setup DNS configuration", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ExternalDNSConfigureIssue]}},
 }
 
 // NewKnownIssueSupportingData adds a known issue
