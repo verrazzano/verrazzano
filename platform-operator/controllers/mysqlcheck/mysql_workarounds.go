@@ -27,6 +27,7 @@ const (
 	mySQLDComponentName = "mysqld"
 	helmReleaseName     = "mysql"
 	componentNamespace  = "keycloak"
+	componentName       = "mysql"
 )
 
 var (
@@ -85,8 +86,8 @@ func setLastTimeReadinessGateRepairStarted(time time.Time) {
 	lastTimeReadinessGateRepairStarted = time
 }
 
-// resetLastTimeReadinessGateRepairStarted sets the time struct
-func resetLastTimeReadinessGateRepairStarted() {
+// ResetLastTimeReadinessGateRepairStarted sets the time struct
+func ResetLastTimeReadinessGateRepairStarted() {
 	lastTimeReadinessGateRepairStarted = time.Time{}
 }
 
@@ -146,12 +147,12 @@ func RepairMySQLPodsWaitingReadinessGates(ctx spi.ComponentContext) error {
 		return err
 	}
 	if podsWaiting {
-		if err = restartMySQLOperator(ctx); err != nil {
+		if err = restartMySQLOperator(ctx.Log(), ctx.Client()); err != nil {
 			return err
 		}
 
 		// Clear the timer
-		resetLastTimeReadinessGateRepairStarted()
+		ResetLastTimeReadinessGateRepairStarted()
 	}
 	return nil
 }
@@ -227,10 +228,10 @@ func getInnoDBCluster(ctx spi.ComponentContext) (*unstructured.Unstructured, err
 
 // RepairMySQLPodStuckDeleting - temporary workaround to repair issue where a MySQL pod
 // can be stuck terminating (e.g. during uninstall).  The workaround is to recycle the mysql-operator
-func RepairMySQLPodStuckDeleting(ctx spi.ComponentContext) error {
+func (mc *MySQLChecker) RepairMySQLPodStuckDeleting() error {
 	// Check if any MySQL pods are in the process of terminating
 	selector := metav1.LabelSelectorRequirement{Key: mySQLComponentLabel, Operator: metav1.LabelSelectorOpIn, Values: []string{mySQLDComponentName}}
-	podList := k8sready.GetPodsList(ctx.Log(), ctx.Client(), types.NamespacedName{Namespace: componentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{selector}})
+	podList := k8sready.GetPodsList(mc.log, mc.client, types.NamespacedName{Namespace: componentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{selector}})
 	if podList == nil || len(podList.Items) == 0 {
 		// No MySQL pods found, assume they have finished deleting
 		resetInitialTimeMySQLPodsStuckChecked()
@@ -250,14 +251,14 @@ func RepairMySQLPodStuckDeleting(ctx spi.ComponentContext) error {
 		// First time through start a timer
 		if getInitialTimeMySQLPodsStuckChecked().IsZero() {
 			setInitialTimeMySQLPodsStuckChecked(time.Now())
-			ctx.Log().Progressf("Waiting for MySQL pods to terminate in namespace %s", componentNamespace)
+			mc.log.Progressf("Waiting for MySQL pods to terminate in namespace %s", componentNamespace)
 			return ctrlerrors.RetryableError{}
 		}
 
 		// Initiate repair only if time to wait period has been exceeded
 		expiredTime := getInitialTimeMySQLPodsStuckChecked().Add(5 * time.Minute)
 		if time.Now().After(expiredTime) {
-			if err := restartMySQLOperator(ctx); err != nil {
+			if err := restartMySQLOperator(mc.log, mc.client); err != nil {
 				return err
 			}
 		} else {
@@ -272,15 +273,15 @@ func RepairMySQLPodStuckDeleting(ctx spi.ComponentContext) error {
 }
 
 // restartMySQLOperator - restart the MySQL Operator pod
-func restartMySQLOperator(ctx spi.ComponentContext) error {
-	ctx.Log().Info("Restarting the mysql-operator to see if it will repair stuck MySQL components")
+func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
+	log.Info("Restarting the mysql-operator to see if it will repair stuck MySQL components")
 
-	operPod, err := getMySQLOperatorPod(ctx.Log(), ctx.Client())
+	operPod, err := getMySQLOperatorPod(log, client)
 	if err != nil {
 		return fmt.Errorf("Failed restarting the mysql-operator to repair MySQL pods stuck deleting: %v", err)
 	}
 
-	if err = ctx.Client().Delete(context.TODO(), operPod, &clipkg.DeleteOptions{}); err != nil {
+	if err = client.Delete(context.TODO(), operPod, &clipkg.DeleteOptions{}); err != nil {
 		return err
 	}
 	return nil

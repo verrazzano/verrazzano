@@ -6,12 +6,15 @@ package mysqlcheck
 import (
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const channelBufferSize = 100
+const (
+	controllerName    = "MySQLChecker"
+	channelBufferSize = 100
+)
 
 // MySQLChecker polls Verrazzano component availability every tickTime, and writes status updates to a secret
 // It is the job of the Verrazzano controller to read availability status from the secret when updating
@@ -21,16 +24,28 @@ const channelBufferSize = 100
 type MySQLChecker struct {
 	client   clipkg.Client
 	tickTime time.Duration
-	logger   *zap.SugaredLogger
+	log      vzlog.VerrazzanoLogger
 	shutdown chan int // The channel on which shutdown signals are sent/received
 }
 
-func NewMySQLChecker(c clipkg.Client, tick time.Duration) *MySQLChecker {
+func NewMySQLChecker(c clipkg.Client, tick time.Duration) (*MySQLChecker, error) {
+	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
+		Name:           helmReleaseName,
+		Namespace:      componentNamespace,
+		ID:             controllerName,
+		Generation:     0,
+		ControllerName: controllerName,
+	})
+	if err != nil {
+		zap.S().Errorf("Failed to create resource logger for %s: %v", controllerName, err)
+		return nil, err
+	}
+
 	return &MySQLChecker{
 		client:   c,
 		tickTime: tick,
-		logger:   zap.S().With(log.FieldController, "mysqlcheck"),
-	}
+		log:      log,
+	}, nil
 }
 
 // Start starts the MySQLChecker if it is not already running.

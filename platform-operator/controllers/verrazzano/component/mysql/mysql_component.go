@@ -6,7 +6,6 @@ package mysql
 import (
 	"fmt"
 	"path/filepath"
-	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -14,6 +13,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -42,8 +42,6 @@ const ComponentJSONName = "mysql"
 
 // mysqlComponent represents an MySQL component
 type mysqlComponent struct {
-	LastTimeReadinessGateRepairStarted *time.Time
-
 	helm.HelmComponent
 }
 
@@ -88,7 +86,7 @@ func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
 		ready := c.isMySQLReady(context)
 		if ready {
 			// Once ready, zero out the timestamp
-			*c.LastTimeReadinessGateRepairStarted = time.Time{}
+			mysqlcheck.ResetLastTimeReadinessGateRepairStarted()
 		}
 		return ready
 	}
