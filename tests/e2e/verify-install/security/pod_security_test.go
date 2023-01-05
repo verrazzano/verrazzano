@@ -30,7 +30,9 @@ const (
 )
 
 var skipPods = map[string][]string{
-	"verrazzano-install": {},
+	"verrazzano-install": {
+		"mysql",
+	},
 	"verrazzano-system": {
 		"coherence-operator",
 		"fluentd",
@@ -44,6 +46,9 @@ var skipPods = map[string][]string{
 		"kube-state-metrics",
 		"prometheus-adapter",
 		"jaeger",
+	},
+	"verrazzano-backup": {
+		"restic",
 	},
 }
 
@@ -105,6 +110,7 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 		Entry("Checking pod security in verrazzano-install", "verrazzano-install"),
 		Entry("Checking pod security in verrazzano-system", "verrazzano-system"),
 		Entry("Checking pod security in verrazzano-monitoring", "verrazzano-monitoring"),
+		Entry("Checking pod security in verrazzano-backup", "verrazzano-backup"),
 	)
 })
 

@@ -1,0 +1,685 @@
+{
+  "metadata": {
+    "resourceVersion": "8664157"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "coherence-operator-585df65cdc",
+        "namespace": "verrazzano-system",
+        "uid": "4160f2b1-a94b-4675-950e-97675b489adb",
+        "resourceVersion": "4727452",
+        "generation": 1,
+        "creationTimestamp": "2022-12-09T08:19:41Z",
+        "labels": {
+          "app.kubernetes.io/component": "manager",
+          "app.kubernetes.io/created-by": "controller-manager",
+          "app.kubernetes.io/instance": "coherence-operator-manager",
+          "app.kubernetes.io/managed-by": "helm",
+          "app.kubernetes.io/name": "coherence-operator",
+          "app.kubernetes.io/part-of": "coherence-operator",
+          "app.kubernetes.io/version": "3.2.9",
+          "control-plane": "coherence",
+          "pod-template-hash": "585df65cdc"
+        },
+        "annotations": {
+          "deployment.kubernetes.io/desired-replicas": "3",
+          "deployment.kubernetes.io/max-replicas": "4",
+          "deployment.kubernetes.io/revision": "1",
+          "meta.helm.sh/release-name": "coherence-operator",
+          "meta.helm.sh/release-namespace": "verrazzano-system"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "name": "coherence-operator",
+            "uid": "c445e2d0-551e-4b88-8851-8f66e875886a",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ],
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "apps/v1",
+            "time": "2022-12-09T08:19:41Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:deployment.kubernetes.io/desired-replicas": {},
+                  "f:deployment.kubernetes.io/max-replicas": {},
+                  "f:deployment.kubernetes.io/revision": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app.kubernetes.io/component": {},
+                  "f:app.kubernetes.io/created-by": {},
+                  "f:app.kubernetes.io/instance": {},
+                  "f:app.kubernetes.io/managed-by": {},
+                  "f:app.kubernetes.io/name": {},
+                  "f:app.kubernetes.io/part-of": {},
+                  "f:app.kubernetes.io/version": {},
+                  "f:control-plane": {},
+                  "f:pod-template-hash": {}
+                },
+                "f:ownerReferences": {
+                  ".": {},
+                  "k:{\"uid\":\"c445e2d0-551e-4b88-8851-8f66e875886a\"}": {}
+                }
+              },
+              "f:spec": {
+                "f:replicas": {},
+                "f:selector": {},
+                "f:template": {
+                  "f:metadata": {
+                    "f:labels": {
+                      ".": {},
+                      "f:app.kubernetes.io/component": {},
+                      "f:app.kubernetes.io/created-by": {},
+                      "f:app.kubernetes.io/instance": {},
+                      "f:app.kubernetes.io/managed-by": {},
+                      "f:app.kubernetes.io/name": {},
+                      "f:app.kubernetes.io/part-of": {},
+                      "f:app.kubernetes.io/version": {},
+                      "f:control-plane": {},
+                      "f:pod-template-hash": {}
+                    }
+                  },
+                  "f:spec": {
+                    "f:affinity": {
+                      ".": {},
+                      "f:podAntiAffinity": {
+                        ".": {},
+                        "f:preferredDuringSchedulingIgnoredDuringExecution": {}
+                      }
+                    },
+                    "f:containers": {
+                      "k:{\"name\":\"manager\"}": {
+                        ".": {},
+                        "f:args": {},
+                        "f:command": {},
+                        "f:env": {
+                          ".": {},
+                          "k:{\"name\":\"CERT_TYPE\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"COHERENCE_IMAGE\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"OPERATOR_IMAGE\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"OPERATOR_NAME\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:valueFrom": {
+                              ".": {},
+                              "f:fieldRef": {}
+                            }
+                          },
+                          "k:{\"name\":\"OPERATOR_NAMESPACE\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:valueFrom": {
+                              ".": {},
+                              "f:fieldRef": {}
+                            }
+                          },
+                          "k:{\"name\":\"RACK_LABEL\"}": {
+                            ".": {},
+                            "f:name": {}
+                          },
+                          "k:{\"name\":\"SERVICE_NAME\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"SITE_LABEL\"}": {
+                            ".": {},
+                            "f:name": {}
+                          },
+                          "k:{\"name\":\"WATCH_NAMESPACE\"}": {
+                            ".": {},
+                            "f:name": {}
+                          },
+                          "k:{\"name\":\"WEBHOOK_SECRET\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"WEBHOOK_SERVICE\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          }
+                        },
+                        "f:image": {},
+                        "f:imagePullPolicy": {},
+                        "f:livenessProbe": {
+                          ".": {},
+                          "f:failureThreshold": {},
+                          "f:httpGet": {
+                            ".": {},
+                            "f:path": {},
+                            "f:port": {},
+                            "f:scheme": {}
+                          },
+                          "f:initialDelaySeconds": {},
+                          "f:periodSeconds": {},
+                          "f:successThreshold": {},
+                          "f:timeoutSeconds": {}
+                        },
+                        "f:name": {},
+                        "f:ports": {
+                          ".": {},
+                          "k:{\"containerPort\":8000,\"protocol\":\"TCP\"}": {
+                            ".": {},
+                            "f:containerPort": {},
+                            "f:name": {},
+                            "f:protocol": {}
+                          },
+                          "k:{\"containerPort\":8080,\"protocol\":\"TCP\"}": {
+                            ".": {},
+                            "f:containerPort": {},
+                            "f:name": {},
+                            "f:protocol": {}
+                          },
+                          "k:{\"containerPort\":8088,\"protocol\":\"TCP\"}": {
+                            ".": {},
+                            "f:containerPort": {},
+                            "f:name": {},
+                            "f:protocol": {}
+                          },
+                          "k:{\"containerPort\":9443,\"protocol\":\"TCP\"}": {
+                            ".": {},
+                            "f:containerPort": {},
+                            "f:name": {},
+                            "f:protocol": {}
+                          }
+                        },
+                        "f:readinessProbe": {
+                          ".": {},
+                          "f:failureThreshold": {},
+                          "f:httpGet": {
+                            ".": {},
+                            "f:path": {},
+                            "f:port": {},
+                            "f:scheme": {}
+                          },
+                          "f:initialDelaySeconds": {},
+                          "f:periodSeconds": {},
+                          "f:successThreshold": {},
+                          "f:timeoutSeconds": {}
+                        },
+                        "f:resources": {},
+                        "f:terminationMessagePath": {},
+                        "f:terminationMessagePolicy": {},
+                        "f:volumeMounts": {
+                          ".": {},
+                          "k:{\"mountPath\":\"/tmp/k8s-webhook-server/serving-certs\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {},
+                            "f:readOnly": {}
+                          }
+                        }
+                      }
+                    },
+                    "f:dnsPolicy": {},
+                    "f:restartPolicy": {},
+                    "f:schedulerName": {},
+                    "f:securityContext": {},
+                    "f:serviceAccount": {},
+                    "f:serviceAccountName": {},
+                    "f:terminationGracePeriodSeconds": {},
+                    "f:volumes": {
+                      ".": {},
+                      "k:{\"name\":\"cert\"}": {
+                        ".": {},
+                        "f:name": {},
+                        "f:secret": {
+                          ".": {},
+                          "f:defaultMode": {},
+                          "f:secretName": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "apps/v1",
+            "time": "2022-12-09T08:20:04Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:availableReplicas": {},
+                "f:fullyLabeledReplicas": {},
+                "f:observedGeneration": {},
+                "f:readyReplicas": {},
+                "f:replicas": {}
+              }
+            },
+            "subresource": "status"
+          }
+        ]
+      },
+      "spec": {
+        "replicas": 3,
+        "selector": {
+          "matchLabels": {
+            "control-plane": "coherence",
+            "pod-template-hash": "585df65cdc"
+          }
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "app.kubernetes.io/component": "manager",
+              "app.kubernetes.io/created-by": "controller-manager",
+              "app.kubernetes.io/instance": "coherence-operator-manager",
+              "app.kubernetes.io/managed-by": "helm",
+              "app.kubernetes.io/name": "coherence-operator",
+              "app.kubernetes.io/part-of": "coherence-operator",
+              "app.kubernetes.io/version": "3.2.9",
+              "control-plane": "coherence",
+              "pod-template-hash": "585df65cdc"
+            }
+          },
+          "spec": {
+            "volumes": [
+              {
+                "name": "cert",
+                "secret": {
+                  "secretName": "coherence-webhook-server-cert",
+                  "defaultMode": 420
+                }
+              }
+            ],
+            "containers": [
+              {
+                "name": "manager",
+                "image": "ghcr.io/oracle/coherence-operator:3.2.9",
+                "command": [
+                  "/files/runner"
+                ],
+                "args": [
+                  "operator",
+                  "--enable-leader-election"
+                ],
+                "ports": [
+                  {
+                    "name": "operator",
+                    "containerPort": 8000,
+                    "protocol": "TCP"
+                  },
+                  {
+                    "name": "webhook-server",
+                    "containerPort": 9443,
+                    "protocol": "TCP"
+                  },
+                  {
+                    "name": "metrics",
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  },
+                  {
+                    "name": "health",
+                    "containerPort": 8088,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "OPERATOR_NAMESPACE",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.namespace"
+                      }
+                    }
+                  },
+                  {
+                    "name": "OPERATOR_NAME",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.name"
+                      }
+                    }
+                  },
+                  {
+                    "name": "WEBHOOK_SERVICE",
+                    "value": "coherence-operator-webhook"
+                  },
+                  {
+                    "name": "WEBHOOK_SECRET",
+                    "value": "coherence-webhook-server-cert"
+                  },
+                  {
+                    "name": "SERVICE_NAME",
+                    "value": "coherence-operator-rest"
+                  },
+                  {
+                    "name": "CERT_TYPE",
+                    "value": "self-signed"
+                  },
+                  {
+                    "name": "COHERENCE_IMAGE",
+                    "value": "ghcr.io/oracle/coherence-ce:22.06.1"
+                  },
+                  {
+                    "name": "RACK_LABEL"
+                  },
+                  {
+                    "name": "SITE_LABEL"
+                  },
+                  {
+                    "name": "OPERATOR_IMAGE",
+                    "value": "ghcr.io/oracle/coherence-operator:3.2.9"
+                  },
+                  {
+                    "name": "WATCH_NAMESPACE"
+                  }
+                ],
+                "resources": {},
+                "volumeMounts": [
+                  {
+                    "name": "cert",
+                    "readOnly": true,
+                    "mountPath": "/tmp/k8s-webhook-server/serving-certs"
+                  }
+                ],
+                "livenessProbe": {
+                  "httpGet": {
+                    "path": "/healthz",
+                    "port": "health",
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 10,
+                  "timeoutSeconds": 1,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "failureThreshold": 3
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "path": "/readyz",
+                    "port": "health",
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 10,
+                  "timeoutSeconds": 1,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "failureThreshold": 3
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "imagePullPolicy": "IfNotPresent"
+              }
+            ],
+            "restartPolicy": "Always",
+            "terminationGracePeriodSeconds": 10,
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccountName": "coherence-operator",
+            "serviceAccount": "coherence-operator",
+            "securityContext": {},
+            "affinity": {
+              "podAntiAffinity": {
+                "preferredDuringSchedulingIgnoredDuringExecution": [
+                  {
+                    "weight": 50,
+                    "podAffinityTerm": {
+                      "labelSelector": {
+                        "matchLabels": {
+                          "app.kubernetes.io/instance": "coherence-operator-manager",
+                          "app.kubernetes.io/name": "coherence-operator",
+                          "app.kubernetes.io/version": "3.2.9",
+                          "control-plane": "coherence"
+                        }
+                      },
+                      "topologyKey": "topology.kubernetes.io/zone"
+                    }
+                  },
+                  {
+                    "weight": 10,
+                    "podAffinityTerm": {
+                      "labelSelector": {
+                        "matchLabels": {
+                          "app.kubernetes.io/instance": "coherence-operator-manager",
+                          "app.kubernetes.io/name": "coherence-operator",
+                          "app.kubernetes.io/version": "3.2.9",
+                          "control-plane": "coherence"
+                        }
+                      },
+                      "topologyKey": "oci.oraclecloud.com/fault-domain"
+                    }
+                  },
+                  {
+                    "weight": 1,
+                    "podAffinityTerm": {
+                      "labelSelector": {
+                        "matchLabels": {
+                          "app.kubernetes.io/instance": "coherence-operator-manager",
+                          "app.kubernetes.io/name": "coherence-operator",
+                          "app.kubernetes.io/version": "3.2.9",
+                          "control-plane": "coherence"
+                        }
+                      },
+                      "topologyKey": "kubernetes.io/hostname"
+                    }
+                  }
+                ]
+              }
+            },
+            "schedulerName": "default-scheduler"
+          }
+        }
+      },
+      "status": {
+        "replicas": 3,
+        "fullyLabeledReplicas": 3,
+        "readyReplicas": 3,
+        "availableReplicas": 3,
+        "observedGeneration": 1
+      }
+    },
+    {
+      "metadata": {
+        "name": "oam-kubernetes-runtime-576648575",
+        "namespace": "verrazzano-system",
+        "uid": "0c3b77ef-ab7b-4468-9189-33c19d239b37",
+        "resourceVersion": "3221688",
+        "generation": 1,
+        "creationTimestamp": "2022-12-09T08:19:26Z",
+        "labels": {
+          "app.kubernetes.io/instance": "oam-kubernetes-runtime",
+          "app.kubernetes.io/name": "oam-kubernetes-runtime",
+          "pod-template-hash": "576648575"
+        },
+        "annotations": {
+          "deployment.kubernetes.io/desired-replicas": "1",
+          "deployment.kubernetes.io/max-replicas": "2",
+          "deployment.kubernetes.io/revision": "1",
+          "meta.helm.sh/release-name": "oam-kubernetes-runtime",
+          "meta.helm.sh/release-namespace": "verrazzano-system"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "name": "oam-kubernetes-runtime",
+            "uid": "fe5a1092-a0ab-49de-975e-913bb4bc3d76",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ],
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "apps/v1",
+            "time": "2022-12-09T08:19:26Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:deployment.kubernetes.io/desired-replicas": {},
+                  "f:deployment.kubernetes.io/max-replicas": {},
+                  "f:deployment.kubernetes.io/revision": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app.kubernetes.io/instance": {},
+                  "f:app.kubernetes.io/name": {},
+                  "f:pod-template-hash": {}
+                },
+                "f:ownerReferences": {
+                  ".": {},
+                  "k:{\"uid\":\"fe5a1092-a0ab-49de-975e-913bb4bc3d76\"}": {}
+                }
+              },
+              "f:spec": {
+                "f:replicas": {},
+                "f:selector": {},
+                "f:template": {
+                  "f:metadata": {
+                    "f:labels": {
+                      ".": {},
+                      "f:app.kubernetes.io/instance": {},
+                      "f:app.kubernetes.io/name": {},
+                      "f:pod-template-hash": {}
+                    }
+                  },
+                  "f:spec": {
+                    "f:containers": {
+                      "k:{\"name\":\"oam-kubernetes-runtime\"}": {
+                        ".": {},
+                        "f:args": {},
+                        "f:image": {},
+                        "f:imagePullPolicy": {},
+                        "f:name": {},
+                        "f:resources": {
+                          ".": {},
+                          "f:requests": {
+                            ".": {},
+                            "f:cpu": {},
+                            "f:memory": {}
+                          }
+                        },
+                        "f:securityContext": {},
+                        "f:terminationMessagePath": {},
+                        "f:terminationMessagePolicy": {}
+                      }
+                    },
+                    "f:dnsPolicy": {},
+                    "f:restartPolicy": {},
+                    "f:schedulerName": {},
+                    "f:securityContext": {},
+                    "f:serviceAccount": {},
+                    "f:serviceAccountName": {},
+                    "f:terminationGracePeriodSeconds": {}
+                  }
+                }
+              }
+            }
+          },
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "apps/v1",
+            "time": "2022-12-14T08:17:16Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:availableReplicas": {},
+                "f:fullyLabeledReplicas": {},
+                "f:observedGeneration": {},
+                "f:readyReplicas": {},
+                "f:replicas": {}
+              }
+            },
+            "subresource": "status"
+          }
+        ]
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app.kubernetes.io/instance": "oam-kubernetes-runtime",
+            "app.kubernetes.io/name": "oam-kubernetes-runtime",
+            "pod-template-hash": "576648575"
+          }
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "app.kubernetes.io/instance": "oam-kubernetes-runtime",
+              "app.kubernetes.io/name": "oam-kubernetes-runtime",
+              "pod-template-hash": "576648575"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "oam-kubernetes-runtime",
+                "image": "ghcr.io/verrazzano/oam-kubernetes-runtime:v0.3.0-20221013061514-f30c668",
+                "args": [
+                  "--metrics-addr=:8080",
+                  "--enable-leader-election"
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "20Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "imagePullPolicy": "Always",
+                "securityContext": {}
+              }
+            ],
+            "restartPolicy": "Always",
+            "terminationGracePeriodSeconds": 10,
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccountName": "oam-kubernetes-runtime",
+            "serviceAccount": "oam-kubernetes-runtime",
+            "securityContext": {},
+            "schedulerName": "default-scheduler"
+          }
+        }
+      },
+      "status": {
+        "replicas": 1,
+        "fullyLabeledReplicas": 1,
+        "readyReplicas": 1,
+        "availableReplicas": 1,
+        "observedGeneration": 1
+      }
+    }
+  ]
+}
