@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package common
@@ -7,6 +7,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/dynamic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,6 +16,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
+	dynfake "k8s.io/client-go/dynamic/fake"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	appsv1Cli "k8s.io/client-go/kubernetes/typed/apps/v1"
 	corev1Cli "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -34,6 +36,13 @@ func MockGetAppsV1(objects ...runtime.Object) func(_ ...vzlog.VerrazzanoLogger) 
 	}
 }
 
+// MockDynamicClient mocks GetDynamicClient function
+func MockDynamicClient(objects ...runtime.Object) func() (dynamic.Interface, error) {
+	return func() (dynamic.Interface, error) {
+		return dynfake.NewSimpleDynamicClient(runtime.NewScheme(), objects...), nil
+	}
+}
+
 func MkSvc(ns, name string) *corev1.Service {
 	svc := &corev1.Service{}
 	svc.Namespace = ns
@@ -49,11 +58,12 @@ func MkDep(ns, name string) *appsv1.Deployment {
 }
 
 type ValidateInstallTest struct {
-	Name      string
-	Vz        *vzapi.Verrazzano
-	Corev1Cli func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error)
-	Appsv1Cli func(_ ...vzlog.VerrazzanoLogger) (appsv1Cli.AppsV1Interface, error)
-	WantErr   string
+	Name       string
+	Vz         *vzapi.Verrazzano
+	Corev1Cli  func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error)
+	Appsv1Cli  func(_ ...vzlog.VerrazzanoLogger) (appsv1Cli.AppsV1Interface, error)
+	DynamicCli func() (dynamic.Interface, error)
+	WantErr    string
 }
 
 // RunValidateInstallTest runs ValidateInstallTests
@@ -61,6 +71,7 @@ func RunValidateInstallTest(t *testing.T, newComp func() spi.Component, tests ..
 	resetGetClients := func() {
 		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
 		k8sutil.GetAppsV1Func = k8sutil.GetAppsV1Client
+		k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
 	}
 	defer resetGetClients()
 	assertErr := func(wantErr string, err error) {
@@ -75,6 +86,7 @@ func RunValidateInstallTest(t *testing.T, newComp func() spi.Component, tests ..
 		t.Run(tt.Name, func(t *testing.T) {
 			k8sutil.GetCoreV1Func = tt.Corev1Cli
 			k8sutil.GetAppsV1Func = tt.Appsv1Cli
+			k8sutil.GetDynamicClientFunc = tt.DynamicCli
 			c := newComp()
 			assertErr(tt.WantErr, c.ValidateInstall(tt.Vz))
 			vzV1Beta1 := &v1beta1.Verrazzano{}
