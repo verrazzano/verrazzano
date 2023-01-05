@@ -65,7 +65,7 @@ alertmanager:
       seccompProfile:
         type: RuntimeDefault
     containers:
-      - name: prometheus
+      - name: alertmanager
         securityContext:
           privileged: false
       - name: config-reloader
