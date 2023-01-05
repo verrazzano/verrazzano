@@ -67,31 +67,7 @@ var _ = AfterSuite(afterSuite)
 
 var t = framework.NewTestFramework("mysql-backup")
 
-// func CreateInnoDBBackupObject() error  creates mysql operator backup CR starting the backup process
-func CreateInnoDBBackupObjectWithS3() error {
-	var b bytes.Buffer
-	template, _ := template.New("mysql-backup").Parse(common.InnoDBBackupS3)
-	data := common.InnoDBBackupObject{
-		InnoDBBackupName:                  common.BackupMySQLName,
-		InnoDBNamespaceName:               constants.KeycloakNamespace,
-		InnoDBClusterName:                 common.InnoDBClusterName,
-		InnoDBBackupProfileName:           common.BackupResourceName,
-		InnoDBBackupObjectStoreBucketName: common.OciBucketName,
-		InnoDBBackupCredentialsName:       common.VeleroMySQLSecretName,
-		InnoDBBackupStorageName:           common.BackupMySQLStorageName,
-		InnoDBObjectStorageNamespaceName:  common.OciNamespaceName,
-		InnoDBBackupRegion:                common.BackupRegion,
-	}
-	template.Execute(&b, data)
-	err := common.DynamicSSA(context.TODO(), b.String(), t.Logs)
-	if err != nil {
-		t.Logs.Errorf("Error creating innodb backup object", zap.Error(err))
-		return err
-	}
-
-	return nil
-}
-
+// func CreateInnoDBBackupObjectWithOci() creates mysql operator backup resource to start the backup.
 func CreateInnoDBBackupObjectWithOci() error {
 	var b bytes.Buffer
 	template, _ := template.New("mysql-backup").Parse(common.InnoDBBackupOci)

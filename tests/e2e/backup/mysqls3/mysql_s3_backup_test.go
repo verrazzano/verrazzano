@@ -67,7 +67,7 @@ var _ = AfterSuite(afterSuite)
 
 var t = framework.NewTestFramework("mysql-backup")
 
-// func CreateInnoDBBackupObject() error  creates mysql operator backup CR starting the backup process
+// func CreateInnoDBBackupObjectWithS3() creates mysql operator backup resource to start the backup.
 func CreateInnoDBBackupObjectWithS3() error {
 	var b bytes.Buffer
 	template, _ := template.New("mysql-backup").Parse(common.InnoDBBackupS3)
