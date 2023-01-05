@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/log"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -23,14 +22,7 @@ type MySQLChecker struct {
 	client   clipkg.Client
 	tickTime time.Duration
 	logger   *zap.SugaredLogger
-	status   *AvailabilityStatus // Last known AvailabilityStatus
-	shutdown chan int            // The channel on which shutdown signals are sent/received
-}
-
-type AvailabilityStatus struct {
-	Components map[string]vzapi.ComponentAvailability
-	Available  string
-	Verrazzano *vzapi.Verrazzano
+	shutdown chan int // The channel on which shutdown signals are sent/received
 }
 
 func NewMySQLChecker(c clipkg.Client, tick time.Duration) *MySQLChecker {
@@ -74,28 +66,4 @@ func (p *MySQLChecker) Pause() {
 		close(p.shutdown)
 		p.shutdown = nil
 	}
-}
-
-func (a *AvailabilityStatus) merge(vz *vzapi.Verrazzano) {
-	for component := range a.Components {
-		if comp, ok := vz.Status.Components[component]; ok {
-			available := a.Components[component]
-			comp.Available = &available
-		}
-	}
-	vz.Status.Available = &a.Available
-}
-
-func (a *AvailabilityStatus) needsUpdate() bool {
-	if a.Verrazzano == nil {
-		return true
-	}
-	for component := range a.Components {
-		if comp, ok := a.Verrazzano.Status.Components[component]; ok {
-			if comp.Available == nil || *comp.Available != a.Components[component] {
-				return true
-			}
-		}
-	}
-	return a.Verrazzano.Status.Available == nil || *a.Verrazzano.Status.Available != a.Available
 }
