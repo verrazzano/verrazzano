@@ -245,6 +245,8 @@ spec:
                               app.kubernetes.io/instance: mysql-innodbcluster-mysql-mysql-server
                               app.kubernetes.io/name: mysql-innodbcluster-mysql-server
                           topologyKey: kubernetes.io/hostname
+    kubeStateMetrics:
+      enabled: true
     mySQLOperator:
       enabled: true
     kibana:
