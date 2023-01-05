@@ -1160,9 +1160,9 @@ func TestIsPrometheusComponentsEnabled(t *testing.T) {
 //	THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default)
 func TestIsArgoCDEnabled(t *testing.T) {
 	asserts := assert.New(t)
-	asserts.True(IsArgoCDEnabled(nil))
-	asserts.True(IsArgoCDEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
-	asserts.True(IsArgoCDEnabled(
+	asserts.False(IsArgoCDEnabled(nil))
+	asserts.False(IsArgoCDEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.False(IsArgoCDEnabled(
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				ArgoCD: &vzapi.ArgoCDComponent{},
