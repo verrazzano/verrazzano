@@ -36,9 +36,6 @@ var (
 		Kind:    "InnoDBCluster",
 	}
 
-	// Last time the MySQL StatefulSet was ready
-	lastTimeStatefulSetReady time.Time
-
 	// The start of the timer for determining if an IC object is stuck terminating
 	initialTimeICUninstallChecked time.Time
 
