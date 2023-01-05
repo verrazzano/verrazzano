@@ -644,11 +644,8 @@ func IsClusterProvisionedByRancher() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if provisioned {
-		return true, nil
-	}
 
-	return false, nil
+	return provisioned, nil
 }
 
 // checkClusterProvisioned checks if the Kubernetes cluster was provisioned by Rancher.
