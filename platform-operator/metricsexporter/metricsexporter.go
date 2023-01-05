@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package metricsexporter
@@ -21,11 +21,12 @@ type configuration struct {
 }
 
 type data struct {
-	simpleCounterMetricMap map[metricName]*SimpleCounterMetric
-	simpleGaugeMetricMap   map[metricName]*SimpleGaugeMetric
-	durationMetricMap      map[metricName]*DurationMetric
-	metricsComponentMap    map[metricName]*MetricsComponent
-	componentHealth        *ComponentHealth
+	simpleCounterMetricMap   map[metricName]*SimpleCounterMetric
+	simpleGaugeMetricMap     map[metricName]*SimpleGaugeMetric
+	durationMetricMap        map[metricName]*DurationMetric
+	componentHealth          *ComponentHealth
+	componentInstallDuration *ComponentInstallDuration
+	componentUpgradeDuration *ComponentUpgradeDuration
 }
 type SimpleCounterMetric struct {
 	metric prometheus.Counter
@@ -85,28 +86,20 @@ func (d *DurationMetric) TimerStop() {
 	d.timer.ObserveDuration()
 }
 
-type MetricsComponent struct {
-	metricName            string
-	latestInstallDuration *SimpleGaugeMetric
-	latestUpgradeDuration *SimpleGaugeMetric
-}
-
-// This member function returns the simpleGaugeMetric that holds the install time for a component
-func (m *MetricsComponent) getInstallDuration() *SimpleGaugeMetric {
-	return m.latestInstallDuration
-}
-
-// This member function returns the simpleGaugeMetric that holds the upgrade time for a component
-func (m *MetricsComponent) getUpgradeDuration() *SimpleGaugeMetric {
-	return m.latestUpgradeDuration
-}
-
 type ComponentHealth struct {
 	available *prometheus.GaugeVec
 }
 
+type ComponentInstallDuration struct {
+	installDuration *prometheus.GaugeVec
+}
+
+type ComponentUpgradeDuration struct {
+	upgradeDuration *prometheus.GaugeVec
+}
+
 // This member function returns the simpleGaugeMetric that holds the upgrade time for a component
-func (c *ComponentHealth) SetComponentHealth(name string, availability bool, isEnabled bool) (prometheus.Gauge, error) {
+func (c *ComponentHealth) SetComponentHealth(JSONname string, availability bool, isEnabled bool) (prometheus.Gauge, error) {
 	//isEnabled : true => 0, isEnabled : false => -1
 	enabledVal := -1
 	if isEnabled {
@@ -119,7 +112,7 @@ func (c *ComponentHealth) SetComponentHealth(name string, availability bool, isE
 	}
 	//setting : enabled and available => 1, enabled and unavailable => 0, disabled = > -1
 	setting := enabledVal + availableVal
-	metric, err := c.available.GetMetricWithLabelValues(name)
+	metric, err := c.available.GetMetricWithLabelValues(JSONname)
 	if err != nil {
 		return nil, err
 	}

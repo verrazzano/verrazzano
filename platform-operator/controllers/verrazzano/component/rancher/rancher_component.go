@@ -316,15 +316,6 @@ func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 	if r.IsEnabled(old) && !r.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	if !r.IsEnabled(old) && r.IsEnabled(new) {
-		provisioned, err := IsClusterProvisionedByRancher()
-		if err != nil {
-			return err
-		}
-		if provisioned {
-			return fmt.Errorf("cluster provisioned by Rancher cannot have Rancher installed")
-		}
-	}
 	return r.HelmComponent.ValidateUpdate(old, new)
 }
 
@@ -333,15 +324,6 @@ func (r rancherComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, 
 	// Do not allow disabling of component
 	if r.IsEnabled(old) && !r.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
-	}
-	if !r.IsEnabled(old) && r.IsEnabled(new) {
-		provisioned, err := IsClusterProvisionedByRancher()
-		if err != nil {
-			return err
-		}
-		if provisioned {
-			return fmt.Errorf("cluster provisioned by Rancher cannot have Rancher installed")
-		}
 	}
 	return r.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }
@@ -627,10 +609,11 @@ func checkExistingRancher(vz runtime.Object) error {
 	if err != nil {
 		return err
 	}
+	// If the k8s cluster was provisioned by Rancher then don't check for Rancher namespaces.
+	// A Rancher provisioned cluster will have Rancher namespaces.
 	if provisioned {
-		return fmt.Errorf("cluster provisioned by Rancher cannot have Rancher installed. Disable Rancher and rerun")
+		return nil
 	}
-
 	client, err := k8sutil.GetCoreV1Func()
 	if err != nil {
 		return err
@@ -657,7 +640,12 @@ func IsClusterProvisionedByRancher() (bool, error) {
 		return false, err
 	}
 
-	return checkClusterProvisioned(client, dynClient)
+	provisioned, err := checkClusterProvisioned(client, dynClient)
+	if err != nil {
+		return false, err
+	}
+
+	return provisioned, nil
 }
 
 // checkClusterProvisioned checks if the Kubernetes cluster was provisioned by Rancher.
