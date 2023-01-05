@@ -12,7 +12,7 @@ grafana:
       annotations:
         k8s-sidecar-target-directory: "Prometheus Operator"
 nodeExporter:
-  enabled: false
+  enabled: true
 kubeStateMetrics:
   enabled: false
 prometheus:
