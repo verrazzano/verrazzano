@@ -307,7 +307,7 @@ type ComponentSpec struct {
 	// +optional
 	ApplicationOperator *ApplicationOperatorComponent `json:"applicationOperator,omitempty"`
 
-	// ArgoCD configuration
+	// Argo CD configuration
 	// +optional
 	ArgoCD *ArgoCDComponent `json:"argocd,omitempty"`
 

@@ -297,7 +297,7 @@ type ComponentSpec struct {
 	// +optional
 	ApplicationOperator *ApplicationOperatorComponent `json:"applicationOperator,omitempty"`
 
-	// ArgoCD configuration
+	// Argo CD configuration
 	// +optional
 	ArgoCD *ArgoCDComponent `json:"argocd,omitempty"`
 
@@ -850,7 +850,7 @@ type RancherComponent struct {
 	KeycloakAuthEnabled *bool `json:"keycloakAuthEnabled,omitempty"`
 }
 
-// ArgoCDComponent specifies the ArgoCD configuration
+// ArgoCDComponent specifies the Argo CD configuration
 type ArgoCDComponent struct {
 	// +optional
 	Enabled          *bool `json:"enabled,omitempty"`

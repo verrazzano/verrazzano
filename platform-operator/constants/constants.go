@@ -116,7 +116,7 @@ const KeycloakNamespace = "keycloak"
 // KeycloakIngress - the name of the ingress for Keycloak console and api
 const KeycloakIngress = "keycloak"
 
-// ArgoCDNamespace - the name of the ArgoCD namespace
+// ArgoCDNamespace - the name of the Argo CD namespace
 const ArgoCDNamespace = "argocd"
 
 // ArgoCDIngress - the name of the ingress for Argo CD

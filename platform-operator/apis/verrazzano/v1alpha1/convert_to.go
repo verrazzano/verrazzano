@@ -117,6 +117,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		CertManager:            ConvertCertManagerToV1Beta1(src.CertManager),
 		CoherenceOperator:      convertCoherenceOperatorToV1Beta1(src.CoherenceOperator),
 		ApplicationOperator:    convertApplicationOperatorToV1Beta1(src.ApplicationOperator),
+		ArgoCD:                 convertArgoCDToV1Beta1(src.ArgoCD),
 		AuthProxy:              authProxyComponent,
 		OAM:                    convertOAMToV1Beta1(src.OAM),
 		Console:                convertConsoleToV1Beta1(src.Console),
@@ -142,7 +143,6 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		RancherBackup:          convertRancherBackupToV1Beta1(src.RancherBackup),
 		WebLogicOperator:       convertWeblogicOperatorToV1Beta1(src.WebLogicOperator),
 		Velero:                 convertVeleroToV1Beta1(src.Velero),
-		ArgoCD:                 convertArgoCDToV1Beta1(src.ArgoCD),
 		Verrazzano:             verrazzanoComponent,
 	}, nil
 }

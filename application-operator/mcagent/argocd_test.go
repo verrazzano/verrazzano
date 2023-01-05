@@ -5,8 +5,9 @@ package mcagent
 
 import (
 	"context"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
@@ -31,7 +32,7 @@ func scheme() *runtime.Scheme {
 // TestCreateArgoCDResources tests the synchronization method for the following use case.
 // GIVEN a request to create the k8s resources
 //
-//	containing argocd k8s resources
+//	containing Argo CD k8s resources
 //
 // WHEN the new object exists
 // THEN ensure that the k8s resources (SA, secret, cluster role, role bindings are created)
@@ -66,7 +67,7 @@ func TestCreateArgoCDResources(t *testing.T) {
 // TestCreateExistingArgoCDResources tests the synchronization method for the following use case.
 // GIVEN a request to create the k8s resources with one or more of the resources already exists
 //
-//	containing argocd k8s resources
+//	containing Argo CD k8s resources
 //
 // WHEN the new object exists
 // THEN ensure that the k8s resources (SA, secret, cluster role, role bindings are created)

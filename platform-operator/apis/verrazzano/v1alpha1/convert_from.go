@@ -94,6 +94,7 @@ func convertVerrazzanoInstanceFromV1Beta1(instance *v1beta1.InstanceInfo) *Insta
 		return nil
 	}
 	return &InstanceInfo{
+		ArgoCDURL:     instance.ArgoCDURL,
 		ConsoleURL:    instance.ConsoleURL,
 		KeyCloakURL:   instance.KeyCloakURL,
 		RancherURL:    instance.RancherURL,
@@ -103,7 +104,6 @@ func convertVerrazzanoInstanceFromV1Beta1(instance *v1beta1.InstanceInfo) *Insta
 		PrometheusURL: instance.PrometheusURL,
 		KialiURL:      instance.KialiURL,
 		JaegerURL:     instance.JaegerURL,
-		ArgoCDURL:     instance.ArgoCDURL,
 	}
 }
 

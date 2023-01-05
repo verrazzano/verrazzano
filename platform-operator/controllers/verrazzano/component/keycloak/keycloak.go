@@ -884,7 +884,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 			return err
 		}
 
-		// Creating argocd client
+		// Creating Argo CD client
 		err = createOrUpdateClient(ctx, cfg, cli, "argocd", argocdClientTmpl, argocdClientUrisTemplate, true)
 		if err != nil {
 			return err
@@ -1691,7 +1691,7 @@ type (
 	DefaultArgoClientSecretProvider struct{}
 )
 
-// GetClientSecret returns the secret from argocd client in Keycloak
+// GetClientSecret returns the secret from Argo CD client in Keycloak
 func (p DefaultArgoClientSecretProvider) GetClientSecret(ctx spi.ComponentContext) (string, error) {
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
@@ -1717,7 +1717,7 @@ func (p DefaultArgoClientSecretProvider) GetClientSecret(ctx spi.ComponentContex
 	}
 
 	if id == "" {
-		ctx.Log().Debugf("GetArgoCDClientSecretFromKeycloak: argocd client does not exist")
+		ctx.Log().Debugf("GetArgoCDClientSecretFromKeycloak: Argo CD client does not exist")
 		return "", nil
 	}
 

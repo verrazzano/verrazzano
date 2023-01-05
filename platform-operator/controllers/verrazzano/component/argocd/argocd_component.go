@@ -51,7 +51,7 @@ func NewComponent() spi.Component {
 		HelmComponent: helm.HelmComponent{
 			ReleaseName:               common.ArgoCDName,
 			JSONName:                  ComponentJSONName,
-			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), common.ArgoCDName),
+			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), "argo-cd"),
 			ChartNamespace:            ComponentNamespace,
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
