@@ -51,11 +51,13 @@ var getComponentsMap map[string]spi.Component
 // OverrideGetComponentsFn Allows overriding the set of registry components for testing purposes
 func OverrideGetComponentsFn(fnType GetCompoentsFnType) {
 	getComponentsFn = fnType
+	getComponentsMap = make(map[string]spi.Component)
 }
 
 // ResetGetComponentsFn Restores the GetComponents implementation to the default if it's been overridden for testing
 func ResetGetComponentsFn() {
 	getComponentsFn = getComponents
+	getComponentsMap = make(map[string]spi.Component)
 }
 
 func InitRegistry() {
