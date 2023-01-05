@@ -55,7 +55,6 @@ Verrazzano Status
 {{- if .AvailableComponents }}
   Available Components: {{.AvailableComponents}}
 {{- end }}
-  Profile: {{.Profile}}
   Access Endpoints:
 {{- range $key, $value := .Endpoints }}
     {{ $key }}: {{ $value }}

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package k8sutil
@@ -176,6 +176,22 @@ func GetAppsV1Client(log ...vzlog.VerrazzanoLogger) (appsv1.AppsV1Interface, err
 		return nil, err
 	}
 	return goClient.AppsV1(), nil
+}
+
+// GetDynamicClientFunc is the function to return the Dynamic Interface
+var GetDynamicClientFunc = GetDynamicClient
+
+// GetDynamicClient returns the Dynamic Interface
+func GetDynamicClient() (dynamic.Interface, error) {
+	config, err := controllerruntime.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	dynClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return dynClient, nil
 }
 
 // GetIstioClientset returns the clientset object for Istio
