@@ -1,7 +1,7 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package mysql
+package mysqls3
 
 import (
 	"bytes"
@@ -58,7 +58,7 @@ var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	start := time.Now()
-	cleanUpVelero()
+	cleanUpSuite()
 	os.Remove(common.MySQLBackupHelmFileName)
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
@@ -81,28 +81,6 @@ func CreateInnoDBBackupObjectWithS3() error {
 		InnoDBBackupStorageName:           common.BackupMySQLStorageName,
 		InnoDBObjectStorageNamespaceName:  common.OciNamespaceName,
 		InnoDBBackupRegion:                common.BackupRegion,
-	}
-	template.Execute(&b, data)
-	err := common.DynamicSSA(context.TODO(), b.String(), t.Logs)
-	if err != nil {
-		t.Logs.Errorf("Error creating innodb backup object", zap.Error(err))
-		return err
-	}
-
-	return nil
-}
-
-func CreateInnoDBBackupObjectWithOci() error {
-	var b bytes.Buffer
-	template, _ := template.New("mysql-backup").Parse(common.InnoDBBackupOci)
-	data := common.InnoDBBackupObject{
-		InnoDBBackupName:                  common.BackupMySQLName,
-		InnoDBNamespaceName:               constants.KeycloakNamespace,
-		InnoDBClusterName:                 common.InnoDBClusterName,
-		InnoDBBackupProfileName:           common.BackupResourceName,
-		InnoDBBackupObjectStoreBucketName: common.OciBucketName,
-		InnoDBBackupCredentialsName:       common.VeleroMySQLSecretName,
-		InnoDBBackupStorageName:           common.BackupMySQLStorageName,
 	}
 	template.Execute(&b, data)
 	err := common.DynamicSSA(context.TODO(), b.String(), t.Logs)
@@ -179,24 +157,17 @@ func MySQLRestore() error {
 
 	var cmd common.BashCommand
 	var cmdArgs []string
+
+	s3EndPoint := fmt.Sprintf("https://%s.compat.objectstorage.%s.oraclecloud.com", common.OciNamespaceName, common.BackupRegion)
 	cmdArgs = append(cmdArgs, "helm", "install", mysqlChartName, vzMySQLChartPath)
 	cmdArgs = append(cmdArgs, "--namespace", constants.KeycloakNamespace)
 	cmdArgs = append(cmdArgs, "--set", "initDB.dump.name=alpha")
-	cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.ociObjectStorage.prefix=%s/%s", common.BackupMySQLStorageName, backupFolderName))
-	cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.ociObjectStorage.bucketName=%s", common.OciBucketName))
-	cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.ociObjectStorage.credentials=%s", common.VeleroMySQLSecretName))
+	cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.s3.prefix=%s/%s", common.BackupMySQLStorageName, backupFolderName))
+	cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.s3.bucketName=%s", common.OciBucketName))
+	cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.s3.config=%s", common.VeleroMySQLSecretName))
+	cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.s3.endpoint=%s", s3EndPoint))
+	cmdArgs = append(cmdArgs, "--set", "initDB.dump.s3.profile=default")
 	cmdArgs = append(cmdArgs, "--values", common.MySQLBackupHelmFileName)
-
-	//s3EndPoint := fmt.Sprintf("https://%s.compat.objectstorage.%s.oraclecloud.com", common.OciNamespaceName, common.BackupRegion)
-	//cmdArgs = append(cmdArgs, "helm", "install", mysqlChartName, vzMySQLChartPath)
-	//cmdArgs = append(cmdArgs, "--namespace", constants.KeycloakNamespace)
-	//cmdArgs = append(cmdArgs, "--set", "initDB.dump.name=alpha")
-	//cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.s3.prefix=%s/%s", common.BackupMySQLStorageName, backupFolderName))
-	//cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.s3.bucketName=%s", common.OciBucketName))
-	//cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.s3.config=%s", common.VeleroMySQLSecretName))
-	//cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.s3.endpoint=%s", s3EndPoint))
-	//cmdArgs = append(cmdArgs, "--set", "initDB.dump.s3.profile=default")
-	//cmdArgs = append(cmdArgs, "--values", common.MySQLBackupHelmFileName)
 
 	cmd.CommandArgs = cmdArgs
 
@@ -377,12 +348,8 @@ func backupPrerequisites() {
 		return BackupMySQLValues()
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
-	//Eventually(func() error {
-	//	return common.CreateMySQLCredentialsSecretFromFile(constants.KeycloakNamespace, common.VeleroMySQLSecretName, t.Logs)
-	//}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
-
 	Eventually(func() error {
-		return common.CreateMySQLCredentialsSecretFromUserPrincipal(constants.KeycloakNamespace, common.VeleroMySQLSecretName, t.Logs)
+		return common.CreateMySQLCredentialsSecretFromFile(constants.KeycloakNamespace, common.VeleroMySQLSecretName, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Create a sample keycloak user")
@@ -392,7 +359,7 @@ func backupPrerequisites() {
 
 }
 
-func cleanUpVelero() {
+func cleanUpSuite() {
 	t.Logs.Info("Cleanup backup and restore objects")
 
 	t.Logs.Info("Cleanup backup object")
@@ -416,7 +383,7 @@ var _ = t.Describe("MySQL Backup and Restore,", Label("f:platform-verrazzano.mys
 	t.Context("MySQL backup operator", func() {
 		WhenMySQLOpInstalledIt("MySQL backup triggered", func() {
 			Eventually(func() error {
-				return CreateInnoDBBackupObjectWithOci()
+				return CreateInnoDBBackupObjectWithS3()
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 
