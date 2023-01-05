@@ -40,6 +40,9 @@ var skipPods = map[string][]string{
 		"vmi-system",
 		"weblogic-operator",
 	},
+	"verrazzano-backup": {
+		"restic",
+	},
 }
 
 var skipContainers = []string{"istio-proxy"}
@@ -99,6 +102,7 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 	t.DescribeTable("Check pod security in system namespaces", testFunc,
 		Entry("Checking pod security in verrazzano-install", "verrazzano-install"),
 		Entry("Checking pod security in verrazzano-system", "verrazzano-system"),
+		Entry("Checking pod security in verrazzano-backup", "verrazzano-backup"),
 	)
 })
 
