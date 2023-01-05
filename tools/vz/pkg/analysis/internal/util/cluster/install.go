@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package cluster handles cluster analysis
@@ -8,6 +8,7 @@ import (
 	encjson "encoding/json"
 	"fmt"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -93,7 +94,7 @@ func analyzeVerrazzanoInstallIssue(log *zap.SugaredLogger, clusterRoot string, i
 	// Because NGINX depends on the Istio Component, we should verify its service external IP exists
 	// before verifying that the NGINX service is in good standing
 	analyzeIstioIngressService(log, clusterRoot, issueReporter)
-
+	analyzeExternalDNS(log, clusterRoot, issueReporter)
 	podFile := files.FindFileInNamespace(clusterRoot, ingressNginx, podsJSON)
 
 	podList, err := GetPodList(log, podFile)
@@ -467,4 +468,32 @@ func getUniqueNamespaces(log *zap.SugaredLogger, compsNoMessages []string) []str
 	}
 	uniqueNamespaces = helpers.RemoveDuplicate(uniqueNamespaces)
 	return uniqueNamespaces
+}
+
+func analyzeExternalDNS(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) {
+	errorMessagesRegex := []string{}
+	errorMessagesRegex = append(errorMessagesRegex, `.*level=error.*"getting zones: listing zones in.*Service error:NotAuthorizedOrNotFound.*`)
+	externalDnslogRegExp := regexp.MustCompile(constants.ExternalDNSNamespace + `/external-dns-.*/logs.txt`)
+	allPodFiles, err := files.GetMatchingFiles(log, clusterRoot, externalDnslogRegExp)
+	if err != nil {
+		return
+	}
+
+	if len(allPodFiles) < 1 {
+		return
+	}
+	// We should get only one pod file, use the first element rather than going through the slice
+	logFile := allPodFiles[0]
+	for index := range errorMessagesRegex {
+		status, err := files.SearchFile(log, logFile, regexp.MustCompile(errorMessagesRegex[index]), nil)
+		if err != nil {
+			return
+		}
+		if len(status) > 0 {
+			messages := make(StringSlice, 1)
+			messages[0] = status[0].MatchedText
+			servFiles := make(StringSlice, 1)
+			issueReporter.AddKnownIssueMessagesFiles(report.ExternalDNSConfigureIssue, clusterRoot, messages, servFiles)
+		}
+	}
 }
