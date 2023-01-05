@@ -41,7 +41,6 @@ var skipPods = map[string][]string{
 		"weblogic-operator",
 	},
 	"verrazzano-monitoring": {
-		"node-exporter",
 		"kube-state-metrics",
 		"jaeger",
 	},
