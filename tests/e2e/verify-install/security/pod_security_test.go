@@ -44,7 +44,6 @@ var skipPods = map[string][]string{
 		"node-exporter",
 		"alertmanager",
 		"kube-state-metrics",
-		"prometheus-adapter",
 		"jaeger",
 	},
 	"verrazzano-backup": {
