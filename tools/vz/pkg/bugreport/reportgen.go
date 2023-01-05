@@ -39,8 +39,14 @@ type ErrorsChannel struct {
 	ErrorMessage string `json:"errorMessage"`
 }
 
+type PodLogs struct {
+	IsPodLog bool
+	Duration int64
+}
+
 // CaptureClusterSnapshot selectively captures the resources from the cluster, useful to analyze the issue.
-func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, client clipkg.Client, bugReportDir string, moreNS []string, vzHelper pkghelpers.VZHelper, isPodLog bool, duration int64) error {
+// func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, client clipkg.Client, bugReportDir string, moreNS []string, vzHelper pkghelpers.VZHelper, isPodLog bool, duration int64) error {
+func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, client clipkg.Client, bugReportDir string, moreNS []string, vzHelper pkghelpers.VZHelper, podLogs PodLogs) error {
 
 	// Create a file to capture the standard out to a file
 	stdOutFile, err := os.OpenFile(filepath.Join(bugReportDir, constants.BugReportOut), os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
@@ -100,7 +106,7 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	// Print initial message to console output only
 	fmt.Fprintf(vzHelper.GetOutputStream(), msgPrefix+"resources from the cluster ...\n")
 	// Capture list of resources from verrazzano-install and verrazzano-system namespaces
-	err = captureResources(client, kubeClient, bugReportDir, vz, vzHelper, nsList, duration)
+	err = captureResources(client, kubeClient, bugReportDir, vz, vzHelper, nsList, podLogs.Duration)
 	if err != nil {
 		pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the Verrazzano resources: %s", err.Error()))
 	}
@@ -111,7 +117,7 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 
 	// Capture OAM resources from the namespaces specified using --include-namespaces
 	if len(additionalNS) > 0 {
-		checkadditionalResources(client, kubeClient, dynamicClient, vzHelper, bugReportDir, additionalNS, isPodLog, duration)
+		checkadditionalResources(client, kubeClient, dynamicClient, vzHelper, bugReportDir, additionalNS, podLogs)
 	}
 	return nil
 }
@@ -286,12 +292,12 @@ func captureLogsAll(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient ku
 }
 
 // checkadditionalResources will capture additional resources with logs with duration.
-func checkadditionalResources(client clipkg.Client, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, vzHelper pkghelpers.VZHelper, bugReportDir string, additionalNS []string, isPodLog bool, duration int64) {
+func checkadditionalResources(client clipkg.Client, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, vzHelper pkghelpers.VZHelper, bugReportDir string, additionalNS []string, podLogs PodLogs) {
 	if err := pkghelpers.CaptureOAMResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
 		pkghelpers.LogError(fmt.Sprintf("There is an error in capturing the resources : %s", err.Error()))
 	}
-	if isPodLog {
-		if err := captureResourcesCustom(client, kubeClient, bugReportDir, vzHelper, additionalNS, duration); err != nil {
+	if podLogs.IsPodLog {
+		if err := captureResourcesCustom(client, kubeClient, bugReportDir, vzHelper, additionalNS, podLogs.Duration); err != nil {
 			pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the logs: %s", err.Error()))
 		}
 	}
