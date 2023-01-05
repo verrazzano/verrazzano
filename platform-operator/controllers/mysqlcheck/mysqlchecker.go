@@ -80,9 +80,9 @@ func (mc *MySQLChecker) Start() {
 
 // Pause pauses the MySQLChecker if it was running.
 // It is safe to call Pause multiple times
-func (p *MySQLChecker) Pause() {
-	if p.shutdown != nil {
-		close(p.shutdown)
-		p.shutdown = nil
+func (mc *MySQLChecker) Pause() {
+	if mc.shutdown != nil {
+		close(mc.shutdown)
+		mc.shutdown = nil
 	}
 }
