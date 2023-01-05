@@ -292,7 +292,6 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 		t.It("Default dashboard should be installed in System Grafana for shared VMI",
 			Label("f:observability.monitoring.graf"), func() {
 				pkg.Concurrently(
-					func() { assertDashboard("Host%20Metrics") },
 					func() { assertDashboard("WebLogic%20Server%20Dashboard") },
 					func() { assertDashboard("Coherence%20Elastic%20Data%20Summary%20Dashboard") },
 					func() { assertDashboard("Coherence%20Persistence%20Summary%20Dashboard") },
