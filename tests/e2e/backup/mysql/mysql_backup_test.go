@@ -92,6 +92,7 @@ func CreateInnoDBBackupObjectWithOci() error {
 
 // func CreateInnoDBBackupObjectWithS3() creates mysql operator backup resource to start the backup.
 func CreateInnoDBBackupObjectWithS3() error {
+	t.Logs.Infof("Starting MySQL backup with S3")
 	var b bytes.Buffer
 	template, _ := template.New("mysql-backup").Parse(common.InnoDBBackupS3)
 	data := common.InnoDBBackupObject{
@@ -181,7 +182,8 @@ func MySQLRestore() error {
 	var cmd common.BashCommand
 	var cmdArgs []string
 
-	if common.MySQLBackupMode == "s3" {
+	if strings.ToLower(common.MySQLBackupMode) == "s3" {
+		t.Logs.Infof("Starting MySQL restore with S3")
 		s3EndPoint := fmt.Sprintf("https://%s.compat.objectstorage.%s.oraclecloud.com", common.OciNamespaceName, common.BackupRegion)
 		cmdArgs = append(cmdArgs, "helm", "install", mysqlChartName, vzMySQLChartPath)
 		cmdArgs = append(cmdArgs, "--namespace", constants.KeycloakNamespace)
@@ -380,7 +382,7 @@ func backupPrerequisites() {
 		return BackupMySQLValues()
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
-	if common.MySQLBackupMode == "s3" {
+	if strings.ToLower(common.MySQLBackupMode) == "s3" {
 		Eventually(func() error {
 			return common.CreateMySQLCredentialsSecretFromFile(constants.KeycloakNamespace, common.VeleroMySQLSecretName, t.Logs)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
@@ -420,9 +422,15 @@ var _ = t.Describe("MySQL Backup and Restore,", Label("f:platform-verrazzano.mys
 
 	t.Context("MySQL backup operator", func() {
 		WhenMySQLOpInstalledIt("MySQL backup triggered", func() {
-			Eventually(func() error {
-				return CreateInnoDBBackupObjectWithOci()
-			}, waitTimeout, pollingInterval).Should(BeNil())
+			if strings.ToLower(common.MySQLBackupMode) == "s3" {
+				Eventually(func() error {
+					return CreateInnoDBBackupObjectWithS3()
+				}, waitTimeout, pollingInterval).Should(BeNil())
+			} else {
+				Eventually(func() error {
+					return CreateInnoDBBackupObjectWithOci()
+				}, waitTimeout, pollingInterval).Should(BeNil())
+			}
 		})
 
 		WhenMySQLOpInstalledIt("Check backup progress after mysql backup object was created", func() {

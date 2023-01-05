@@ -279,6 +279,7 @@ func CreateCredentialsSecretFromFile(namespace string, name string, log *zap.Sug
 
 // CreateMySQLCredentialsSecretFromFile creates opaque secret from a file
 func CreateMySQLCredentialsSecretFromFile(namespace string, name string, log *zap.SugaredLogger) error {
+	log.Infof("Creating MySQL secret for S3 backup")
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		log.Errorf("Failed to get clientset with error: %v", err)
