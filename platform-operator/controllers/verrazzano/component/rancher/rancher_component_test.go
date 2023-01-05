@@ -895,8 +895,6 @@ func TestValidateUpdate(t *testing.T) {
 		name    string
 		old     *vzapi.Verrazzano
 		new     *vzapi.Verrazzano
-		un      *unstructured.Unstructured
-		ns      *corev1.Namespace
 		wantErr bool
 	}{
 		{
@@ -928,37 +926,6 @@ func TestValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "enableClusterNotProvisionedByRancher",
-			old: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Rancher: &vzapi.RancherComponent{
-							Enabled: &disabled,
-						},
-					},
-				},
-			},
-			new:     &vzapi.Verrazzano{},
-			ns:      getLocalNamespaceNotProvisioned(),
-			wantErr: false,
-		},
-		{
-			name: "enableClusterProvisionedByRancher",
-			old: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Rancher: &vzapi.RancherComponent{
-							Enabled: &disabled,
-						},
-					},
-				},
-			},
-			new:     &vzapi.Verrazzano{},
-			un:      getLocalClusterManagementCattleIo(),
-			ns:      getLocalNamespaceProvisioned(),
-			wantErr: true,
-		},
-		{
 			name:    "no change",
 			old:     &vzapi.Verrazzano{},
 			new:     &vzapi.Verrazzano{},
@@ -967,21 +934,6 @@ func TestValidateUpdate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resetGetClients := func() {
-				k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
-				k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
-			}
-			defer resetGetClients()
-			if tt.ns != nil {
-				k8sutil.GetCoreV1Func = common.MockGetCoreV1(tt.ns)
-			} else {
-				k8sutil.GetCoreV1Func = common.MockGetCoreV1()
-			}
-			if tt.un != nil {
-				k8sutil.GetDynamicClientFunc = common.MockDynamicClient(tt.un)
-			} else {
-				k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
-			}
 			c := NewComponent()
 			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
@@ -996,8 +948,6 @@ func TestValidateUpdateV1beta1(t *testing.T) {
 		name    string
 		old     *v1beta1.Verrazzano
 		new     *v1beta1.Verrazzano
-		un      *unstructured.Unstructured
-		ns      *corev1.Namespace
 		wantErr bool
 	}{
 		{
@@ -1029,37 +979,6 @@ func TestValidateUpdateV1beta1(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "enableClusterNotProvisionedByRancher",
-			old: &v1beta1.Verrazzano{
-				Spec: v1beta1.VerrazzanoSpec{
-					Components: v1beta1.ComponentSpec{
-						Rancher: &v1beta1.RancherComponent{
-							Enabled: &disabled,
-						},
-					},
-				},
-			},
-			new:     &v1beta1.Verrazzano{},
-			ns:      getLocalNamespaceNotProvisioned(),
-			wantErr: false,
-		},
-		{
-			name: "enableClusterProvisionedByRancher",
-			old: &v1beta1.Verrazzano{
-				Spec: v1beta1.VerrazzanoSpec{
-					Components: v1beta1.ComponentSpec{
-						Rancher: &v1beta1.RancherComponent{
-							Enabled: &disabled,
-						},
-					},
-				},
-			},
-			new:     &v1beta1.Verrazzano{},
-			un:      getLocalClusterManagementCattleIo(),
-			ns:      getLocalNamespaceProvisioned(),
-			wantErr: true,
-		},
-		{
 			name:    "no change",
 			old:     &v1beta1.Verrazzano{},
 			new:     &v1beta1.Verrazzano{},
@@ -1068,21 +987,6 @@ func TestValidateUpdateV1beta1(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resetGetClients := func() {
-				k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
-				k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
-			}
-			defer resetGetClients()
-			if tt.ns != nil {
-				k8sutil.GetCoreV1Func = common.MockGetCoreV1(tt.ns)
-			} else {
-				k8sutil.GetCoreV1Func = common.MockGetCoreV1()
-			}
-			if tt.un != nil {
-				k8sutil.GetDynamicClientFunc = common.MockDynamicClient(tt.un)
-			} else {
-				k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
-			}
 			c := NewComponent()
 			if err := c.ValidateUpdateV1Beta1(tt.old, tt.new); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
@@ -1267,7 +1171,7 @@ func TestValidateInstall(t *testing.T) {
 		},
 		common.ValidateInstallTest{
 			Name:       "ClusterProvisionedByRancher",
-			WantErr:    "Disable Rancher and rerun",
+			WantErr:    "",
 			Appsv1Cli:  common.MockGetAppsV1(),
 			Corev1Cli:  common.MockGetCoreV1(getLocalNamespaceProvisioned()),
 			DynamicCli: common.MockDynamicClient(getLocalClusterManagementCattleIo()),
