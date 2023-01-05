@@ -65,6 +65,7 @@ func GatherInfo() {
 	OciCliUser = os.Getenv("OCI_CLI_USER")
 	OciCliFingerprint = os.Getenv("OCI_CLI_FINGERPRINT")
 	OciCliKeyFile = os.Getenv("OCI_CLI_KEY_FILE")
+	MySQLBackupMode = os.Getenv("MYSQL_BACKUP_MODE")
 }
 
 // GetRancherURL fetches the elastic search URL from the cluster

@@ -638,4 +638,5 @@ var (
 	OciCliFingerprint           string
 	OciCliKeyFile               string
 	KeyCloakReplicaCount        int32
+	MySQLBackupMode             string
 )

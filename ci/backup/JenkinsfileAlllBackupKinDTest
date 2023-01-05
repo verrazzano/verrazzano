@@ -386,13 +386,13 @@ pipeline {
                 expression {params.MYSQL_BACKUP_OCI == true}
             }
             environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysqloci"
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
             }
             steps {
                 echoAllPodInfo()
                 println("Checking all pods in namespace keycloak are ready before start of test")
                 waitForPodsToBeUp("keycloak")
-                runGinkgoRandomize('backup/mysqloci')
+                runGinkgoRandomize('backup/mysql')
                 println("Checking all pods in namespace keycloak are ready after completion of test")
                 waitForPodsToBeUp("keycloak")
             }
@@ -414,13 +414,14 @@ pipeline {
                 expression {params.MYSQL_BACKUP_S3 == true}
             }
             environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysqls3"
+                MYSQL_BACKUP_MODE = "s3"
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
             }
             steps {
                 echoAllPodInfo()
                 println("Checking all pods in namespace keycloak are ready before start of test")
                 waitForPodsToBeUp("keycloak")
-                runGinkgoRandomize('backup/mysqls3')
+                runGinkgoRandomize('backup/mysql')
                 println("Checking all pods in namespace keycloak are ready after completion of test")
                 waitForPodsToBeUp("keycloak")
             }
