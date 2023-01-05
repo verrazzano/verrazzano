@@ -59,6 +59,9 @@ func RequiredInitialization() {
 			continue
 		}
 		MetricsExp.internalData.componentHealth.SetComponentHealth(component.GetJSONName(), false, false)
+		SetComponentInstallDurationMetric(component.GetJSONName(), 0)
+		SetComponentUpgradeDurationMetric(component.GetJSONName(), 0)
+
 	}
 
 }
@@ -182,8 +185,8 @@ func metricParserHelperFunction(log vzlog.VerrazzanoLogger, componentName string
 	}
 }
 
-func SetComponentInstallDurationMetric(componentName string, totalDuration int64) error {
-	metric, err := MetricsExp.internalData.componentInstallDuration.installDuration.GetMetricWithLabelValues(componentName)
+func SetComponentInstallDurationMetric(JSONName string, totalDuration int64) error {
+	metric, err := MetricsExp.internalData.componentInstallDuration.installDuration.GetMetricWithLabelValues(JSONName)
 	if err != nil {
 		return err
 	}
@@ -191,8 +194,8 @@ func SetComponentInstallDurationMetric(componentName string, totalDuration int64
 	return nil
 }
 
-func SetComponentUpgradeDurationMetric(componentName string, totalDuration int64) error {
-	metric, err := MetricsExp.internalData.componentUpgradeDuration.upgradeDuration.GetMetricWithLabelValues(componentName)
+func SetComponentUpgradeDurationMetric(JSONName string, totalDuration int64) error {
+	metric, err := MetricsExp.internalData.componentUpgradeDuration.upgradeDuration.GetMetricWithLabelValues(JSONName)
 	if err != nil {
 		return err
 	}
@@ -346,8 +349,8 @@ func GetSimpleGaugeMetric(name metricName) (*SimpleGaugeMetric, error) {
 }
 
 // SetComponentAvailabilityMetric updates the components availability status metric
-func SetComponentAvailabilityMetric(name string, availability vzapi.ComponentAvailability, isEnabled bool) error {
-	_, err := MetricsExp.internalData.componentHealth.SetComponentHealth(name, availability == vzapi.ComponentAvailable, isEnabled)
+func SetComponentAvailabilityMetric(JSONname string, availability vzapi.ComponentAvailability, isEnabled bool) error {
+	_, err := MetricsExp.internalData.componentHealth.SetComponentHealth(JSONname, availability == vzapi.ComponentAvailable, isEnabled)
 	if err != nil {
 		return err
 	}
