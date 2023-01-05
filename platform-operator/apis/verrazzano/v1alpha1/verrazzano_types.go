@@ -127,6 +127,8 @@ type VolumeClaimSpecTemplate struct {
 
 // InstanceInfo details of installed Verrazzano instance maintained in status field.
 type InstanceInfo struct {
+	// ArgoCDURL The Argo CD UI URL for this Verrazzano installation
+	ArgoCDURL *string `json:"argocdUrl,omitempty"`
 	// The Console URL for this Verrazzano installation.
 	ConsoleURL *string `json:"consoleUrl,omitempty"`
 	// The OpenSearch URL for this Verrazzano installation.
@@ -135,8 +137,6 @@ type InstanceInfo struct {
 	GrafanaURL *string `json:"grafanaUrl,omitempty"`
 	// The Jaeger UI URL for this Verrazzano installation.
 	JaegerURL *string `json:"jaegerUrl,omitempty"`
-	// ArgoCDURL The Argo CD UI URL for this Verrazzano installation
-	ArgoCDURL *string `json:"argocdUrl,omitempty"`
 	// The KeyCloak URL for this Verrazzano installation.
 	KeyCloakURL *string `json:"keyCloakUrl,omitempty"`
 	// The Kiali URL for this Verrazzano installation.
@@ -307,6 +307,10 @@ type ComponentSpec struct {
 	// +optional
 	ApplicationOperator *ApplicationOperatorComponent `json:"applicationOperator,omitempty"`
 
+	// ArgoCD configuration
+	// +optional
+	ArgoCD *ArgoCDComponent `json:"argocd,omitempty"`
+
 	// The AuthProxy component configuration.
 	// +optional
 	AuthProxy *AuthProxyComponent `json:"authProxy,omitempty"`
@@ -415,10 +419,6 @@ type ComponentSpec struct {
 	// The Verrazzano component configuration.
 	// +optional
 	Verrazzano *VerrazzanoComponent `json:"verrazzano,omitempty"`
-
-	// ArgoCD configuration
-	// +optional
-	ArgoCD *ArgoCDComponent `json:"argocd,omitempty"`
 
 	// The WebLogic Kubernetes Operator component configuration.
 	// +optional
