@@ -34,7 +34,7 @@ const ComponentName = common.ArgoCDName
 const ComponentNamespace = constants.ArgoCDNamespace
 
 // ComponentJSONName is the json name of the verrazzano component in CRD
-const ComponentJSONName = "argocd"
+const ComponentJSONName = "argoCd"
 
 type argoCDComponent struct {
 	keycloak.ArgoClientSecretProvider

@@ -16,5 +16,5 @@ spec:
       enabled: false
     kiali:
       enabled: false
-    argocd:
+    argoCd:
       enabled: false

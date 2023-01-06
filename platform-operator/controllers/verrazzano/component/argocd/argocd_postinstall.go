@@ -34,7 +34,7 @@ type OIDCConfig struct {
 func patchArgoCDSecret(component argoCDComponent, ctx spi.ComponentContext) error {
 	clientSecret, err := component.ArgoClientSecretProvider.GetClientSecret(ctx)
 	if err != nil {
-		ctx.Log().ErrorfNewErr("failed configuring keycloak as OIDC provider for argocd, unable to fetch argocd client secret: %s", err)
+		ctx.Log().ErrorfNewErr("failed configuring keycloak as OIDC provider for Argo CD, unable to fetch Argo CD client secret: %s", err)
 		return err
 	}
 
@@ -53,11 +53,11 @@ func patchArgoCDSecret(component argoCDComponent, ctx spi.ComponentContext) erro
 
 		return nil
 	}); err != nil {
-		ctx.Log().ErrorfNewErr("Failed to patch the Argocd secret argocd-secret: %s", err)
+		ctx.Log().ErrorfNewErr("Failed to patch the Argo CD secret argocd-secret: %s", err)
 		return err
 	}
 
-	ctx.Log().Debugf("patchArgoCDSecret: ArgoCD secret operation result: %v", err)
+	ctx.Log().Debugf("patchArgoCDSecret: Argo CD secret operation result: %v", err)
 	return nil
 }
 
@@ -81,7 +81,7 @@ func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Getting ArgoCD TLS root CA")
 	caCert, err := GetRootCA(ctx)
 	if err != nil {
-		ctx.Log().ErrorfNewErr("Failed to get ArgoCD TLS root CA: %v", err)
+		ctx.Log().ErrorfNewErr("Failed to get Argo CD TLS root CA: %v", err)
 		return err
 	}
 
@@ -121,11 +121,11 @@ func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 
 		return nil
 	}); err != nil {
-		ctx.Log().ErrorfNewErr("Failed to patch the Argocd configmap argocd-cm: %s", err)
+		ctx.Log().ErrorfNewErr("Failed to patch the Argo CD configmap argocd-cm: %s", err)
 		return err
 	}
 
-	ctx.Log().Debugf("patchArgoCDConfigMap: ArgoCD cm operation result: %v", err)
+	ctx.Log().Debugf("patchArgoCDConfigMap: Argo CD cm operation result: %v", err)
 	return nil
 }
 
@@ -149,11 +149,11 @@ func patchArgoCDRbacConfigMap(ctx spi.ComponentContext) error {
 		rbaccm.Data["policy.csv"] = policyString
 		return nil
 	}); err != nil {
-		ctx.Log().ErrorfNewErr("Failed to patch the argocd configmap argocd-rbac-cm: %s", err)
+		ctx.Log().ErrorfNewErr("Failed to patch the Argo CD configmap argocd-rbac-cm: %s", err)
 		return err
 	}
 
-	ctx.Log().Debugf("patchArgoCDRbacConfigMap: ArgoCD rbac cm operation result: %v", err)
+	ctx.Log().Debugf("patchArgoCDRbacConfigMap: Argo CD rbac cm operation result: %v", err)
 	return nil
 }
 
@@ -179,7 +179,7 @@ func restartArgoCDServerDeploy(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// GetRootCA gets the root CA certificate from the argocd TLS secret. If the secret does not exist, we
+// GetRootCA gets the root CA certificate from the Argo CD TLS secret. If the secret does not exist, we
 // return a nil slice.
 func GetRootCA(ctx spi.ComponentContext) ([]byte, error) {
 	secret := &corev1.Secret{}

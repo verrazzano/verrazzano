@@ -118,7 +118,7 @@ type VolumeClaimSpecTemplate struct {
 // InstanceInfo details of the installed Verrazzano instance maintained in status field.
 type InstanceInfo struct {
 	// ArgoCDURL The Argo CD UI URL for this Verrazzano installation
-	ArgoCDURL *string `json:"argocdUrl,omitempty"`
+	ArgoCDURL *string `json:"argoCdUrl,omitempty"`
 	// The Console URL for this Verrazzano installation.
 	ConsoleURL *string `json:"consoleUrl,omitempty"`
 	// The Grafana URL for this Verrazzano installation.
@@ -299,7 +299,7 @@ type ComponentSpec struct {
 
 	// Argo CD configuration
 	// +optional
-	ArgoCD *ArgoCDComponent `json:"argocd,omitempty"`
+	ArgoCD *ArgoCDComponent `json:"argoCd,omitempty"`
 
 	// The AuthProxy component configuration.
 	// +optional

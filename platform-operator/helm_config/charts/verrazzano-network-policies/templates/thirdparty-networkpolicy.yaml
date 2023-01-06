@@ -364,9 +364,9 @@ spec:
         - port: 9443
           protocol: TCP
 {{- end }}
-{{- if .Values.argocd.enabled}}
+{{- if .Values.argoCd.enabled}}
 ---
-# Network policy for ArgoCD UI/API
+# Network policy for Argo CD UI/API
 # Ingress: allow nginx ingress
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
