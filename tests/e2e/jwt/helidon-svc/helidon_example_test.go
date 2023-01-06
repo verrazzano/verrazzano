@@ -149,14 +149,10 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			if skipVerify {
 				Skip(skipVerifications)
 			}
-			pkg.Concurrently(
-				func() {
-					Eventually(func() (bool, error) {
-						var componentNames = []string{"hello-helidon-component"}
-						return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "hello-helidon", componentNames))
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
-				},
-			)
+			Eventually(func() (bool, error) {
+				var componentNames = []string{"hello-helidon-component"}
+				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "hello-helidon", componentNames))
+			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
 	})
 
