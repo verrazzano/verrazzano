@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package oam
@@ -28,6 +28,7 @@ const (
 	compConfiguration = "tests/testdata/test-applications/oam/oam-comp.yaml"
 
 	pvcName = "test-pvc"
+	pvName  = "test-pv"
 )
 
 var (
@@ -74,8 +75,23 @@ var _ = t.Describe("An OAM application is deployed", Label("f:app-lcm.oam"), fun
 				return volumeClaimExists(pvcName)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
+
+		t.It("The persistent volume exists", func() {
+			Eventually(func() (bool, error) {
+				return pvExists(pvName)
+			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+		})
 	})
 })
+
+func pvExists(name string) (bool, error) {
+	volumes, err := pkg.GetPersistentVolumes()
+	if err != nil {
+		return false, err
+	}
+	_, ok := volumes[name]
+	return ok, nil
+}
 
 // volumeClaimExists checks if the persistent volume claim with the specified name exists
 // in the test namespace
