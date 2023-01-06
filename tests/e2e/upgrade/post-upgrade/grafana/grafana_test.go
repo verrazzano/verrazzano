@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-        . "github.com/onsi/ginkgo/v2"
-        . "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
@@ -51,7 +51,7 @@ var _ = t.Describe("Post Upgrade Grafana Dashboard", Label("f:observability.logg
 		kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 		Expect(err).To(BeNil(), fmt.Sprintf(pkg.KubeConfigErrorFmt, err))
 		systemHealthDashboardExists, err := pkg.IsVerrazzanoMinVersion("1.5.0", kubeConfigPath)
-                Expect(err).To(BeNil(), fmt.Sprintf("could not find verrazzzano min version: %v", err))
+		Expect(err).To(BeNil(), fmt.Sprintf("could not find verrazzzano min version: %v", err))
 		if systemHealthDashboardExists {
 			pkg.TestSystemHealthGrafanaDashboard(pollingInterval, waitTimeout)
 		}
