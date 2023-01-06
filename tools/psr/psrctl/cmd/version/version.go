@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/templates"
 	"os"
+	"regexp"
 	capiversion "sigs.k8s.io/cluster-api/version"
 )
 
@@ -65,7 +66,12 @@ func runCmdVersion(vzHelper helpers.VZHelper) error {
 }
 
 func GetEffectiveDocsVersion() string {
-	return os.Getenv("USE_V8O_DOC_STAGE")
+	if os.Getenv("USE_V8O_DOC_STAGE") != "" {
+		return os.Getenv("USE_V8O_DOC_STAGE")
+	}
+	var re = regexp.MustCompile(`(?m)(\d.\d)(.*)`)
+	s := re.FindAllStringSubmatch(cliVersion, -1)[0][1] //This will get the group 1 of 1st match which is "1.4.0" to "1.4"
+	return fmt.Sprintf("v%s", s)                        //return v1.4 by appending prefex 'v'
 }
 
 func GetCLIVersion() string {
