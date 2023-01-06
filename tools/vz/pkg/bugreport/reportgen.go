@@ -49,7 +49,6 @@ type Pods struct {
 }
 
 // CaptureClusterSnapshot selectively captures the resources from the cluster, useful to analyze the issue.
-// func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, client clipkg.Client, bugReportDir string, moreNS []string, vzHelper pkghelpers.VZHelper, isPodLog bool, duration int64) error {
 func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, client clipkg.Client, bugReportDir string, moreNS []string, vzHelper pkghelpers.VZHelper, podLogs PodLogs) error {
 
 	// Create a file to capture the standard out to a file

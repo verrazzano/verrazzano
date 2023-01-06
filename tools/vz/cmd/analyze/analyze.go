@@ -9,7 +9,6 @@ import (
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis"
 	vzbugreport "github.com/verrazzano/verrazzano/tools/vz/pkg/bugreport"
-	//vzreportgen "github.com/verrazzano/verrazzano/tools/vz/pkg/bugreport"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"os"
@@ -105,11 +104,11 @@ func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		helpers.SetIsLiveCluster()
 
 		// Capture cluster snapshot
-		logs := vzbugreport.PodLogs{
+		podLogs := vzbugreport.PodLogs{
 			IsPodLog: true,
 			Duration: int64(0),
 		}
-		err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, reportDirectory, moreNS, vzHelper, logs)
+		err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, reportDirectory, moreNS, vzHelper, podLogs)
 
 		if err != nil {
 			return fmt.Errorf(err.Error())
