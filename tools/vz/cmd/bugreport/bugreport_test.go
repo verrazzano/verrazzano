@@ -467,7 +467,7 @@ func cleanupFile(t *testing.T, file *os.File) {
 
 // TestBugReportSuccess
 // GIVEN a CLI bug-report command
-// WHEN I call cmd.Execute with include logs of  customer namespace and duration
+// WHEN I call cmd.Execute with include logs of  additional namespace and duration
 // THEN expect the command to show the resources captured in the standard output and create the bug report file
 func TestBugReportSuccessWithDuration(t *testing.T) {
 	c := getClientWithVZWatch()

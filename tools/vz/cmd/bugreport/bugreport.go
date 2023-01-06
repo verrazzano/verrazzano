@@ -42,8 +42,14 @@ The flag --include-namespaces accepts comma-separated values and can be specifie
    a. vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2,ns3
    b. vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2 --include-namespaces ns3
 
-The values specified for the flag --include-namespaces are case-sensitive.
-The duration flag supports values in seconds, minutes, hours e.g 300s, 60m, 2h etc.
+* The values specified for the flag --include-namespaces are case-sensitive.
+* The flag --duration supports value in seconds, minutes and hours, in one of the following formats:
+	a. --duration 300s
+	b. --duration 60m
+	c. --duration 2h
+
+Note: a) When --include-logs will be used, then it is necessary to pass additional namespace.
+      b) --duration flag can only with --include-logs flag.
 `
 )
 
@@ -111,13 +117,13 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	if err != nil {
 		return fmt.Errorf("an error occurred while reading values for the flag --include-namespaces: %s", err.Error())
 	}
-	// If customer namespaces pods logs need to be included using --include-logs
+	// If additional namespaces pods logs needs to be capture using flag --include-logs
 	isPodLog, err := cmd.PersistentFlags().GetBool(constants.BugReportLogFlagName)
 	if err != nil {
 		return fmt.Errorf("an error occurred while reading values for the flag --include-logs: %s", err.Error())
 	}
 
-	//  Flag which will read duration for customer pods logs --duration
+	// If additional namespaces pods logs needs to be capture using flag with duration --duration
 	durationString, err := cmd.PersistentFlags().GetDuration(constants.BugReportTimeFlagName)
 	if err != nil {
 		return fmt.Errorf("an error occurred while reading values for the flag --duration: %s", err.Error())
