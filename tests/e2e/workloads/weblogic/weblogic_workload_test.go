@@ -209,14 +209,10 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 		// WHEN the application configuration uses a default metrics trait
 		// THEN confirm that all the scrape targets are healthy
 		t.It("Verify all scrape targets are healthy for the application", func() {
-			pkg.Concurrently(
-				func() {
-					Eventually(func() (bool, error) {
-						var componentNames = []string{"hello-domain"}
-						return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "hello-appconf", componentNames))
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
-				},
-			)
+			Eventually(func() (bool, error) {
+				var componentNames = []string{"hello-domain"}
+				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "hello-appconf", componentNames))
+			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
 
 		// Verify Istio Prometheus scraped metrics

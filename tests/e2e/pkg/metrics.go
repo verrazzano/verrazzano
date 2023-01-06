@@ -180,14 +180,13 @@ func MetricsExist(metricsName, key, value string) bool {
 	return MetricsExistInCluster(metricsName, m, kubeconfigPath)
 }
 
-// ScrapeTargetsHealthy validates the health of the scrape targets for the given namespace
+// ScrapeTargetsHealthy validates the health of the scrape targets for the given scrapePools
 func ScrapeTargetsHealthy(scrapePools []string) (bool, error) {
 	targets, err := ScrapeTargets()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting scrape targets: %v", err))
 		return false, err
 	}
-	isHealthy := false
 	for _, scrapePool := range scrapePools {
 		found := false
 		for _, target := range targets {
@@ -198,18 +197,17 @@ func ScrapeTargetsHealthy(scrapePools []string) (bool, error) {
 				if Jq(target, "health") != "up" {
 					scrapeURL := Jq(target, "scrapeUrl").(string)
 					Log(Error, fmt.Sprintf("target with scrapePool %s and scrapeURL %s is not ready with health %s", targetScrapePool, scrapeURL, Jq(target, "health")))
-					return isHealthy, errors.New("target with scrapePool" + targetScrapePool + "and scrapeURL" + scrapeURL + "is not healthy")
+					return false, errors.New("target with scrapePool" + targetScrapePool + "and scrapeURL" + scrapeURL + "is not healthy")
 				}
 			}
 		}
 		// If target with scrapePool not found, then return false and error
 		if !found {
 			Log(Error, fmt.Sprintf("target with scrapePool %s is not found", scrapePool))
-			return isHealthy, errors.New("target with scrapePool" + scrapePool + "not found")
+			return false, errors.New("target with scrapePool" + scrapePool + "not found")
 		}
-		isHealthy = true
 	}
-	return isHealthy, nil
+	return true, nil
 }
 
 // ListUnhealthyScrapeTargets lists all the scrape targets that are unhealthy
