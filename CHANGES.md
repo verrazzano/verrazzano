@@ -4,6 +4,13 @@ Fixes:
 - Fixed a bug that resulted in user applications restarting during upgrade from a previous Verrazzano release.
 - Fixed Fluentd configuration to prevent duplication of logs in OpenSearch on Fluentd restarts or upgrade.
 - Fixed WebLogic Grafana dashboards to get the service label value correctly and display data properly.
+- Fixed i/o timeout errors installing Verrazzano on a RKE2 cluster.
+
+Component version updates:
+
+- Grafana v7.5.17
+- WebLogic Kubernetes Operator v3.4.4
+- WebLogic Monitoring Exporter v2.1.0
 
 ### v1.4.2
 Fixes:
