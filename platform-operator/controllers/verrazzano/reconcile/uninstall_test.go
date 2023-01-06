@@ -586,7 +586,7 @@ func TestDeleteNamespaces(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(nameSpaces...).Build()
 
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.deleteNamespaces(vzlog.DefaultLogger())
+	result, err := reconciler.deleteNamespaces(vzlog.DefaultLogger(), false)
 
 	// Validate the results
 	asserts.NoError(err)
