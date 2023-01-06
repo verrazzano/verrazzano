@@ -12,7 +12,7 @@ grafana:
       annotations:
         k8s-sidecar-target-directory: "Prometheus Operator"
 nodeExporter:
-  enabled: false
+  enabled: true
 kubeStateMetrics:
   enabled: false
 prometheus:
@@ -56,6 +56,21 @@ prometheus:
         replacement: local
 alertmanager:
   enabled: false
+  alertmanagerSpec:
+    securityContext:
+      fsGroup: 65534
+      runAsGroup: 65534
+      runAsNonRoot: true
+      runAsUser: 65534
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+      - name: alertmanager
+        securityContext:
+          privileged: false
+      - name: config-reloader
+        securityContext:
+          privileged: false
 prometheusOperator:
   admissionWebhooks:
     enabled: true
