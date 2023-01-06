@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
@@ -19,7 +19,7 @@ fi
 
 namespace=$1
 for type in ${TYPES} ; do
-  if [ "$type" == "CustomResourceDefinition"  ] || [ "$type" == "APIService" ]; then
+  if [ "$type" == "CustomResourceDefinition"  ] || [ "$type" == "APIService" ] || [ "$type" == "ValidatingWebhookConfiguration" ]; then
     if [ "${INCLUDE_CRDS}" != true ]; then
       continue
     fi

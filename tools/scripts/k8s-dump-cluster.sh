@@ -199,6 +199,7 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify get ApplicationConfiguration -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/application-configurations.json || true
         kubectl --insecure-skip-tls-verify get Component -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/components.json || true
         kubectl --insecure-skip-tls-verify get domains.weblogic.oracle -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/weblogic-domains.json || true
+        kubectl --insecure-skip-tls-verify get clusters.weblogic.oracle -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/weblogic-clusters.json || true
         kubectl --insecure-skip-tls-verify get IngressTrait -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/ingress-traits.json || true
         kubectl --insecure-skip-tls-verify get Coherence -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/coherence.json || true
         kubectl --insecure-skip-tls-verify get gateway -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/gateways.json || true
@@ -228,6 +229,7 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify get orders.acme.cert-manager.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/acme-orders.json || true
         kubectl --insecure-skip-tls-verify get statefulsets -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/statefulsets.json || true
         kubectl --insecure-skip-tls-verify get secrets -n $NAMESPACE -o json |jq 'del(.items[].data)' 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/secrets.json || true
+        kubectl --insecure-skip-tls-verify get serviceaccounts -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/serviceaccounts.json || true
         kubectl --insecure-skip-tls-verify get certificates -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/certificates.json || true
         kubectl --insecure-skip-tls-verify get MetricsTrait -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/metrics-traits.json || true
         kubectl --insecure-skip-tls-verify get servicemonitor -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/service-monitors.json || true
@@ -236,6 +238,10 @@ function dump_extra_details_per_namespace() {
     fi
   done <$CAPTURE_DIR/cluster-snapshot/namespace_list.out
   rm $CAPTURE_DIR/cluster-snapshot/namespace_list.out
+}
+
+function gather_cronological_events() {
+  find $CAPTURE_DIR/cluster-snapshot -name events.json -print0 | xargs -0 cat | jq '.items[] | [.firstTimestamp, .lastTimestamp, .reason, .message] | @csv' | sort > $CAPTURE_DIR/cluster-snapshot/cronological-event-messages.csv || true
 }
 
 function full_k8s_cluster_snapshot() {
@@ -269,6 +275,8 @@ function full_k8s_cluster_snapshot() {
     if kubectl get ns verrazzano-monitoring 2>&1 > /dev/null ; then
       kubectl get secret prometheus-prometheus-operator-kube-p-prometheus -n verrazzano-monitoring -o json | jq -r '.data["prometheus.yaml.gz"]' | base64 -d | gunzip > $CAPTURE_DIR/cluster-snapshot/prom-scrape-config.yaml || true
     fi
+    # Gather event messages in crhonological order
+    gather_cronological_events
   else
     echo "Failed to dump cluster, verify kubectl has access to the cluster"
   fi

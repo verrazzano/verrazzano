@@ -6,6 +6,7 @@ package mcagent
 import (
 	"context"
 	"fmt"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"time"
 
@@ -164,7 +165,9 @@ func (s *Syncer) updateVMCStatus() error {
 		return fmt.Errorf("Failed to get api prometheus host for vmc %s with error %v", vmcName, err)
 	}
 
-	vmc.Status.PrometheusHost = prometheusHost
+	if prometheusHost != "" {
+		vmc.Status.PrometheusHost = prometheusHost
+	}
 
 	// update status of VMC
 	return s.AdminClient.Status().Update(s.Context, &vmc)
@@ -299,6 +302,9 @@ func (s *Syncer) GetPrometheusHost() (string, error) {
 	ingress := &networkingv1.Ingress{}
 	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.VzPrometheusIngress, Namespace: constants.VerrazzanoSystemNamespace}, ingress)
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", nil
+		}
 		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", constants.VerrazzanoSystemNamespace, constants.VzPrometheusIngress, err)
 	}
 	return ingress.Spec.Rules[0].Host, nil

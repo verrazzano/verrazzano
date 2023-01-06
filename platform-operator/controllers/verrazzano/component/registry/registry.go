@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package registry
@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafanadashboards"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
@@ -45,14 +46,18 @@ var getComponentsFn = getComponents
 
 var componentsRegistry []spi.Component
 
+var getComponentsMap map[string]spi.Component
+
 // OverrideGetComponentsFn Allows overriding the set of registry components for testing purposes
 func OverrideGetComponentsFn(fnType GetCompoentsFnType) {
 	getComponentsFn = fnType
+	getComponentsMap = make(map[string]spi.Component)
 }
 
 // ResetGetComponentsFn Restores the GetComponents implementation to the default if it's been overridden for testing
 func ResetGetComponentsFn() {
 	getComponentsFn = getComponents
+	getComponentsMap = make(map[string]spi.Component)
 }
 
 func InitRegistry() {
@@ -71,6 +76,7 @@ func InitRegistry() {
 		opensearch.NewComponent(),
 		opensearchdashboards.NewComponent(),
 		grafana.NewComponent(),
+		grafanadashboards.NewComponent(),
 		authproxy.NewComponent(),
 		coherence.NewComponent(),
 		mysqloperator.NewComponent(), // mysqloperator needs to be upgraded before mysql
@@ -89,6 +95,7 @@ func InitRegistry() {
 		rancherbackup.NewComponent(),
 		clusteroperator.NewComponent(),
 	}
+	getComponentsMap = make(map[string]spi.Component)
 }
 
 // GetComponents returns the list of components that are installable and upgradeable.
@@ -107,12 +114,19 @@ func getComponents() []spi.Component {
 }
 
 func FindComponent(componentName string) (bool, spi.Component) {
-	for _, comp := range GetComponents() {
-		if comp.Name() == componentName {
-			return true, comp
+	// check if component is in map of looked up components
+	existingComponent, ok := getComponentsMap[componentName]
+	if !ok {
+		for _, newComponent := range GetComponents() {
+			if newComponent.Name() == componentName {
+				getComponentsMap[componentName] = newComponent
+				return true, newComponent
+			}
 		}
+		// Component is not in registry
+		return false, nil
 	}
-	return false, nil
+	return true, existingComponent
 }
 
 // ComponentDependenciesMet Checks if the declared dependencies for the component are ready and available; this is

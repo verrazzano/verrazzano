@@ -4,6 +4,7 @@ package cluster
 
 import (
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/log"
 	corev1 "k8s.io/api/core/v1"
 	"testing"
 )
@@ -44,4 +45,14 @@ func TestPodConditionMessage(t *testing.T) {
 			assert.Equal(t, tt.message, msg)
 		})
 	}
+}
+
+// Analyze Pod Issues with variety of cluster roots
+// Expect No Error for each analysis
+func TestAnalyzePodIssues(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+	assert.NoError(t, AnalyzePodIssues(logger, "../../../test/cluster/problem-pods/cluster-snapshot"))
+	assert.NoError(t, AnalyzePodIssues(logger, "../../../test/cluster/pending-pods/cluster-snapshot"))
+	assert.NoError(t, AnalyzePodIssues(logger, "../../../test/cluster/problem-pods-install/cluster-snapshot"))
+	assert.NoError(t, AnalyzePodIssues(logger, "../../../test/cluster/insufficient-mem/cluster-snapshot"))
 }

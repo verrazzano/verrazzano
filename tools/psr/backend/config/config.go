@@ -54,17 +54,20 @@ const (
 	WorkerTypeOpsScale      = "ops-scale"
 	WorkerTypeOpsRestart    = "ops-restart"
 	WorkerTypeHTTPGet       = "http-get"
-	WorkerTypeReceiveAlerts = "http-alerts"
+	WorkerTypeReceiveAlerts = "prom-alerts"
+	WorkerTypeWlsScale      = "wls-scale"
 )
 
 const (
-	UnlimitedWorkerLoops = -1
+	UnlimitedWorkerLoops    = -1
+	UnlimitedWorkerDuration = -1 * time.Second
 )
 
 var PsrEnv = osenv.NewEnv()
 
 type CommonConfig struct {
 	WorkerType        string
+	PsrDuration       time.Duration
 	LoopSleepNanos    time.Duration
 	NumLoops          int64
 	WorkerThreadCount int
@@ -76,6 +79,7 @@ type CommonConfig struct {
 func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 	dd := []osenv.EnvVarDesc{
 		{Key: PsrWorkerType, DefaultVal: "", Required: true},
+		{Key: PsrDuration, DefaultVal: "-1s", Required: false},
 		{Key: PsrLoopSleep, DefaultVal: "1s", Required: false},
 		{Key: PsrNumLoops, DefaultVal: "-1", Required: false},
 		{Key: PsrWorkerThreadCount, DefaultVal: "1", Required: false},
@@ -84,6 +88,15 @@ func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 	}
 	if err := PsrEnv.LoadFromEnv(dd); err != nil {
 		return CommonConfig{}, err
+	}
+
+	duration, err := time.ParseDuration(PsrEnv.GetEnv(PsrDuration))
+	if err != nil {
+		return CommonConfig{}, log.ErrorfNewErr("Error parsing worker duration: %v", err)
+	}
+	// Negative values are not allowed, -1s represents no duration timeout
+	if duration < 0 {
+		duration = UnlimitedWorkerDuration
 	}
 
 	sleepDuration, err := time.ParseDuration(PsrEnv.GetEnv(PsrLoopSleep))
@@ -111,6 +124,7 @@ func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 
 	return CommonConfig{
 		WorkerType:        PsrEnv.GetEnv(PsrWorkerType),
+		PsrDuration:       duration,
 		LoopSleepNanos:    sleepDuration,
 		NumLoops:          int64(numLoops),
 		WorkerThreadCount: threadCount,

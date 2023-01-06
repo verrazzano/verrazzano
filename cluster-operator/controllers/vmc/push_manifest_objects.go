@@ -5,7 +5,7 @@ package vmc
 
 import (
 	clusterapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
-	rancherutil "github.com/verrazzano/verrazzano/pkg/rancher"
+	"github.com/verrazzano/verrazzano/pkg/rancherutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -16,10 +16,10 @@ import (
 func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(vmc *clusterapi.VerrazzanoManagedCluster) (bool, error) {
 	clusterID := vmc.Status.RancherRegistration.ClusterID
 	if len(clusterID) == 0 {
-		r.log.Debugf("Waiting to push manifest objects, Rancher ClusterID not found in the VMC %s/%s status", vmc.GetNamespace(), vmc.GetName())
+		r.log.Progressf("Waiting to push manifest objects, Rancher ClusterID not found in the VMC %s/%s status", vmc.GetNamespace(), vmc.GetName())
 		return false, nil
 	}
-	rc, err := rancherutil.NewRancherConfig(r.Client, false, r.log)
+	rc, err := rancherutil.NewVerrazzanoClusterRancherConfig(r.Client, r.log)
 	if err != nil || rc == nil {
 		return false, err
 	}

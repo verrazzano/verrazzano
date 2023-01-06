@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -99,6 +99,8 @@ const (
 	NodeDriverOCI                     = "oci"
 	ClusterLocal                      = "local"
 	AuthConfigLocal                   = "local"
+	ClusterKind                       = "Cluster"
+	ProviderCattleIoLabel             = "provider.cattle.io"
 	UserVerrazzano                    = "u-verrazzano"
 	UserVerrazzanoDescription         = "Verrazzano Admin"
 	GlobalRoleBindingVerrazzanoPrefix = "grb-"
@@ -563,7 +565,7 @@ func CreateOrUpdateRoleTemplate(ctx spi.ComponentContext, role string) error {
 	data[RoleTemplateAttributeBuiltin] = false
 	data[RoleTemplateAttributeContext] = "cluster"
 	caser := cases.Title(language.English)
-	data[RoleTemplateAttributeDisplayName] = caser.String(strings.Replace(role, "-", " ", 1))
+	data[RoleTemplateAttributeDisplayName] = caser.String(strings.Replace(role, "-", " ", -1))
 	data[RoleTemplateAttributeExternal] = true
 	data[RoleTemplateAttributeHidden] = true
 	if clusterRole.Rules != nil && len(clusterRole.Rules) > 0 {

@@ -4,6 +4,7 @@
 def DOCKER_IMAGE_TAG
 def SUSPECT_LIST = ""
 def VERRAZZANO_DEV_VERSION = ""
+def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 def tarfilePrefix=""
 def storeLocation=""
 
@@ -27,8 +28,23 @@ pipeline {
     }
 
     parameters {
-        booleanParam (description: 'Whether to perform a scan of the built images', name: 'PERFORM_SCAN', defaultValue: false)
-        booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: false)
+        choice (name: 'KUBERNETES_CLUSTER_VERSION', description: 'Kubernetes Version for KinD Cluster', choices: [ "1.24", "1.23", "1.22", "1.21" ])
+        string (name: 'VZ_BRANCH_TO_USE', defaultValue: 'master', trim: true, description: 'This is the name of the Verrazzano product branch to use for testing the PSR tooling; CURRENT means using the working branch')
+        string (name: 'VERRAZZANO_OPERATOR_IMAGE', defaultValue: 'NONE', trim: true, description: 'Uses a specific Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the latest operator.yaml from related Verrazzano repo branch will be used to create Verrazzano platform operator manifest')
+        string (name: 'KIND_NODE_COUNT', defaultValue: '3', trim: true, description: 'Number of nodes for the KIND cluster for smoke testing')
+        booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
+        booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
+        booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+
+        booleanParam (name: 'PERFORM_SCAN', defaultValue: false, description: 'Whether to perform a scan of the built images')
+        booleanParam (name: 'FAIL_IF_COVERAGE_DECREASED', defaultValue: false, description: 'Whether to fail build if UT coverage number decreases lower than its release-* coverage from object storage. This defaults to true, meaning Any non release-*/master branch will fail if its coverage is lower. This can be disabled so that jobs only WARN when coverage drops but not fail.')
+        booleanParam (name: 'UPLOAD_UNIT_TEST_COVERAGE', defaultValue: false, description: 'Whether to write the UT coverage number to object storage. This always occurs for release-*/master branches. Defaults to true, but it can be disabled to not always upload.')
+        booleanParam (name: 'SKIP_BUILD', defaultValue: false, description: "Skip the PSR tool and Worker builds")
+        booleanParam (name: 'SKIP_TEST', defaultValue: false, description: "Skip the psrctl scenario validation tests")
+        booleanParam (name: 'VZ_TEST_DEBUG', defaultValue: true, description: "Enables debug of Verrazzano installation scripts")
+        string (name: 'TAGGED_TESTS', defaultValue: '', trim: true, description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:')
+        string (name: 'INCLUDED_TESTS', defaultValue: '.*', description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*', trim: true)
+        string (name: 'EXCLUDED_TESTS', defaultValue: '_excluded_test', description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test', trim: true)
     }
 
     environment {
@@ -39,13 +55,14 @@ pipeline {
         DOCKER_PSR_BACKEND_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_PSR_BACKEND_PUBLISH_IMAGE_NAME : env.DOCKER_PSR_BRANCH_BACKEND_IMAGE_NAME}"
 
         GOPATH = '/home/opc/go'
-        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano/verrazzano"
-        PSR_PATH = "${GO_REPO_PATH}/tools/psr"
+        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
+        VZ_ROOT="${GO_REPO_PATH}/verrazzano"
+        PSR_PATH = "${VZ_ROOT}/tools/psr"
 
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_EMAIL = credentials('github-packages-email')
         DOCKER_REGISTRY = 'ghcr.io'
-        DOCKER_REPO = 'verrazzano'
+        DOCKER_REPO = "verrazzano"
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
 
@@ -64,7 +81,6 @@ pipeline {
         OCI_OS_REGION="us-phoenix-1"
 
         // used to emit metrics
-        PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
 
         OCIR_SCAN_COMPARTMENT = credentials('ocir-scan-compartment')
@@ -72,6 +88,19 @@ pipeline {
         OCIR_SCAN_REGISTRY = credentials('ocir-scan-registry')
         OCIR_SCAN_REPOSITORY_PATH = credentials('ocir-scan-repository-path')
         DOCKER_SCAN_CREDS = credentials('v8odev-ocir')
+
+        // Environment variable for Verrazzano CLI executable
+        VZ_COMMAND="${WORKSPACE}/vz"
+
+        // used to generate Ginkgo test reports
+        TEST_REPORT = "test-report.xml"
+        TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
+
+        KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
+        VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
+        WILDCARD_DNS_DOMAIN = "nip.io"
+
+        PSR_COMMAND = "${VZ_ROOT}/psrctl"
     }
 
     stages {
@@ -110,6 +139,7 @@ pipeline {
                 moveContentToGoRepoPath()
 
                 script {
+                    EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
                     // Create the image tag
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
@@ -120,6 +150,12 @@ pipeline {
                         env.VERRAZZANO_VERSION = "${env.VERRAZZANO_VERSION}-${env.BUILD_NUMBER}+${SHORT_COMMIT_HASH}"
                     }
                     DOCKER_IMAGE_TAG = "v${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
+
+                    env.VZ_TEST_BRANCH = params.VZ_BRANCH_TO_USE
+                    if (params.VZ_BRANCH_TO_USE == "CURRENT") {
+                        env.VZ_TEST_BRANCH = env.BRANCH_NAME
+                    }
+                    echo "VZ_TEST_BRANCH: ${env.VZ_TEST_BRANCH}"
 
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
@@ -137,6 +173,9 @@ pipeline {
         stage('Parallel Build, Test, and Compliance') {
             parallel {
                 stage('Build PSR CLI and Save Binaries') {
+                    when {
+                        expression {params.SKIP_BUILD == false}
+                    }
                     environment {
                       DOCKER_REPO="${DOCKER_REPO}"
                       DOCKER_REGISTRY="${DOCKER_REGISTRY}"
@@ -159,7 +198,12 @@ pipeline {
                 }
 
                 stage('Build PSR Images and Save Generated Files') {
-                    when { not { buildingTag() } }
+                    when {
+                       allOf {
+                          not { buildingTag() }
+                          expression {params.SKIP_BUILD == false}
+                       }
+                    }
                     environment {
                       DOCKER_REPO="${DOCKER_REPO}"
                       DOCKER_REGISTRY="${DOCKER_REGISTRY}"
@@ -168,28 +212,18 @@ pipeline {
                     }
                     steps {
                         script {
-                            VZ_BUILD_METRIC = metricJobName('psrbuild')
-                            metricTimerStart("${VZ_BUILD_METRIC}")
                             buildImages("${DOCKER_IMAGE_TAG}")
-                        }
-                    }
-                    post {
-                        failure {
-                            script {
-                                METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '0')
-                            }
-                        }
-                        success {
-                            echo "Saving generated files"
-                            script {
-                                METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '1')
-                            }
                         }
                     }
                 }
 
                 stage('Quality, Compliance Checks, and Unit Tests') {
-                    when { not { buildingTag() } }
+                    when {
+                       allOf {
+                          not { buildingTag() }
+                          expression {params.SKIP_BUILD == false}
+                       }
+                    }
                     steps {
                         sh """
                             cd ${PSR_PATH}
@@ -202,7 +236,7 @@ pipeline {
                                 cd ${PSR_PATH}
                                 cp coverage.html ${WORKSPACE}
                                 cp coverage.xml ${WORKSPACE}
-                                ${GO_REPO_PATH}/build/copy-junit-output.sh ${WORKSPACE}
+                                ${VZ_ROOT}/build/copy-junit-output.sh ${WORKSPACE}
                              """
                             cobertura(coberturaReportFile: 'coverage.xml',
                                     enableNewApi: true,
@@ -216,8 +250,8 @@ pipeline {
                                     lineCoverageTargets: '68, 68, 68',
                                     packageCoverageTargets: '100, 0, 0',
                             )
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/*${TEST_REPORT}', allowEmptyArchive: true
+                            junit testResults: 'tests/**/*.xml', allowEmptyResults: true
                         }
                     }
                 }
@@ -238,16 +272,59 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: '**/scanning-report*.json', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '**/scanning-report*.json,**/*${TEST_REPORT}', allowEmptyArchive: true
                }
+            }
+        }
+
+        stage('Scenario Tests') {
+            when {
+                allOf {
+                    expression {params.SKIP_BUILD == false}
+                    expression {params.SKIP_TEST == false}
+                }
+            }
+            environment {
+                DOCKER_REPO="${env.DOCKER_REGISTRY}"
+                KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
+                OCI_OS_BUCKET="${env.OCI_OS_BUCKET}"
+                OCI_OS_LOCATION="${env.VZ_TEST_BRANCH}"
+                KIND_NODE_COUNT="${env.KIND_NODE_COUNT}"
+                PSR_COMMAND="${env.PSR_COMMAND}"
+                CREATE_CLUSTER_USE_CALICO="${params.CREATE_CLUSTER_USE_CALICO}"
+            }
+            steps {
+                script {
+                    runMakeCommand("all")
+                }
+            }
+            post {
+                success {
+                    script {
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                            dumpK8sCluster('psr-tests-success-cluster-snapshot')
+                        }
+                    }
+                }
+                failure {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('psr-tests-failure-cluster-snapshot')
+                        }
+                        postFailureProcessing()
+                    }
+                }
+                cleanup {
+                    runMakeCommand("cleanup")
+                }
             }
         }
     }
 
     post {
         always {
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**', allowEmptyArchive: true
-            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+            archiveArtifacts artifacts: "**/scanning-report*.json,**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
+            junit testResults: 'tests/**/*.xml', allowEmptyResults: true
         }
         failure {
             sh """
@@ -265,10 +342,16 @@ pipeline {
             }
         }
         cleanup {
-            metricBuildDuration()
             deleteDir()
         }
     }
+}
+
+def runMakeCommand(makeTarget) {
+    sh """
+       cd ${VZ_ROOT}/ci/psr
+       make -I ${VZ_ROOT}/ci/make ${makeTarget}
+    """
 }
 
 // Called in Stage CLI steps
@@ -276,8 +359,8 @@ def buildCLI() {
     sh """
         cd ${PSR_PATH}
         make go-build-cli
-        ${GO_REPO_PATH}/ci/scripts/save_psr_tooling.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
-        #cp out/linux_amd64/psrctl ${GO_REPO_PATH}/psrctl
+        ${VZ_ROOT}/ci/scripts/save_psr_tooling.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
+        cp out/linux_amd64/psrctl ${PSR_COMMAND}
     """
 }
 
@@ -294,7 +377,7 @@ def buildImages(dockerImageTag) {
 // REVIEW: seems redundant with the save_psr_tooling script?
 def saveCLIExecutables() {
     sh """
-        cd ${GO_REPO_PATH}/tools/psr
+        cd ${VZ_ROOT}/tools/psr
         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/psrctl-linux-amd64.tar.gz --file $WORKSPACE/psrctl-linux-amd64.tar.gz
         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/psrctl-linux-amd64.tar.gz --file $WORKSPACE/psrctl-linux-amd64.tar.gz
         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/psrctl-linux-amd64.tar.gz.sha256 --file $WORKSPACE/psrctl-linux-amd64.tar.gz.sha256
@@ -302,26 +385,36 @@ def saveCLIExecutables() {
     """
 }
 
-// Called in many parallel stages of Stage Run Acceptance Tests
-def runGinkgoRandomize(testSuitePath) {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        sh """
-            cd ${GO_REPO_PATH}/tests/e2e
-            ginkgo -p --randomize-all -v --keep-going --no-color ${testSuitePath}/...
-            ../../build/copy-junit-output.sh ${WORKSPACE}
-        """
+def dumpK8sCluster(dumpDirectory) {
+    sh """
+        ${VZ_ROOT}/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
+    """
+}
+
+def postFailureProcessing() {
+    sh """
+        curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
+    """
+    archiveArtifacts artifacts: '**/build-console-output.log,**/*${TEST_REPORT}', allowEmptyArchive: true
+    sh """
+        curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
+        rm archive.zip
+    """
+    script {
+        if (env.BRANCH_NAME == "master" || env.BRANCH_NAME ==~ "release-.*" || env.BRANCH_NAME ==~ "mark/*") {
+            slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
+        }
     }
 }
 
-// Called in many parallel stages of Stage Run Acceptance Tests
-def runGinkgo(testSuitePath) {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        sh """
-            cd ${GO_REPO_PATH}/tests/e2e
-            ginkgo -v --keep-going --no-color ${testSuitePath}/...
-            ../../build/copy-junit-output.sh ${WORKSPACE}
-        """
+def getEffectiveDumpOnSuccess() {
+    def effectiveValue = params.DUMP_K8S_CLUSTER_ON_SUCCESS
+    if (FORCE_DUMP_K8S_CLUSTER_ON_SUCCESS.equals("true") && (env.BRANCH_NAME.equals("master"))) {
+        effectiveValue = true
+        echo "Forcing dump on success based on global override setting"
     }
+    return effectiveValue
 }
 
 def isPagerDutyEnabled() {
@@ -336,9 +429,9 @@ def isPagerDutyEnabled() {
 // Called in Stage Clean workspace and checkout steps
 def moveContentToGoRepoPath() {
     sh """
-        rm -rf ${GO_REPO_PATH}
-        mkdir -p ${GO_REPO_PATH}
-        tar cf - . | (cd ${GO_REPO_PATH}/ ; tar xf -)
+        rm -rf ${VZ_ROOT}
+        mkdir -p ${VZ_ROOT}
+        tar cf - . | (cd ${VZ_ROOT}/ ; tar xf -)
     """
 }
 
@@ -457,73 +550,4 @@ def getSuspectList(commitList, userMappings) {
     }
     echo "returning suspect list: ${retValue}"
     return retValue
-}
-
-def metricJobName(stageName) {
-    job = env.JOB_NAME.split("/")[0]
-    job = '_' + job.replaceAll('-','_')
-    if (stageName) {
-        job = job + '_' + stageName
-    }
-    return job
-}
-
-def metricTimerStart(metricName) {
-    def timerStartName = "${metricName}_START"
-    env."${timerStartName}" = sh(returnStdout: true, script: "date +%s").trim()
-}
-
-// Construct the set of labels/dimensions for the metrics
-def getMetricLabels() {
-    def buildNumber = String.format("%010d", env.BUILD_NUMBER.toInteger())
-    labels = 'build_number=\\"' + "${buildNumber}"+'\\",' +
-             'jenkins_build_number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
-             'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
-             'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\"'
-    return labels
-}
-
-def metricTimerEnd(metricName, status) {
-    def timerStartName = "${metricName}_START"
-    def timerEndName   = "${metricName}_END"
-    env."${timerEndName}" = sh(returnStdout: true, script: "date +%s").trim()
-    if (params.EMIT_METRICS) {
-        long x = env."${timerStartName}" as long;
-        long y = env."${timerEndName}" as long;
-        def dur = (y-x)
-        labels = getMetricLabels()
-        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
-            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${metricName} ${env.GIT_BRANCH} $labels ${status} ${dur}")
-            echo "emit prometheus metrics: $EMIT"
-            return EMIT
-        }
-    } else {
-        return ''
-    }
-}
-
-// Emit the metrics indicating the duration and result of the build
-def metricBuildDuration() {
-    def status = "${currentBuild.currentResult}".trim()
-    long duration = "${currentBuild.duration}" as long;
-    long durationInSec = (duration/1000)
-    testMetric = metricJobName('')
-    def metricValue = "-1"
-    statusLabel = status.substring(0,1)
-    if (status.equals("SUCCESS")) {
-        metricValue = "1"
-    } else if (status.equals("FAILURE")) {
-        metricValue = "0"
-    } else {
-        // Consider every other status as a single label
-        statusLabel = "A"
-    }
-    if (params.EMIT_METRICS) {
-        labels = getMetricLabels()
-        labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
-        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
-            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
-            echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
-        }
-    }
 }

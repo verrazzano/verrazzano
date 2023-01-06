@@ -170,7 +170,6 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
                         }
@@ -188,7 +187,6 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
                         }
@@ -205,7 +203,6 @@ pipeline {
                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                       booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                    ], wait: true
                            }
                        }
@@ -290,7 +287,6 @@ pipeline {
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                     string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                     string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                 ], wait: true
                         }
                     }
@@ -304,7 +300,6 @@ pipeline {
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                     string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                     string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                 ], wait: true
                         }
                     }
@@ -580,11 +575,16 @@ pipeline {
                 } else {
                     println("Cannot copy ${verrazzanoImagesFile} from the project ${verrazzanoImagesJobProjectName} - no build number is available to copy from.")
                 }
-                sh """
-                    # Update the last periodic commit
-                    echo "git-commit=${env.GIT_COMMIT}" > commit-used.txt
-                    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${LAST_PERIODIC_OS_LOCATION} --file commit-used.txt
-                """
+                if (!periodicsUpToDate && !periodicsUpToDateFailed) {
+                    sh """
+                        # Update the last periodic commit
+                        echo "git-commit=${env.GIT_COMMIT}" > commit-used.txt
+                        cat commit-used.txt
+                        oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${LAST_PERIODIC_OS_LOCATION} --file commit-used.txt
+                    """
+                } else {
+                    println("Skipping update of the last periodic commit used. This run was marked UP-TO-DATE so it is already there")
+                }
             }
             archiveArtifacts artifacts: "**/prerelease_validation.out,**/release_status.out,**/${verrazzanoImagesFile},**/${verrazzanoDistributionsFile}", allowEmptyArchive: true
         }
@@ -805,7 +805,7 @@ def isAlertingEnabled() {
 def releaseValidationChecks() {
     def built = build job: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}",
         parameters: [
-            string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
+            string(name: 'COMMIT_TO_USE', value: env.GIT_COMMIT)
         ], wait: true, propagate: false
     println("Result of verrazzano-prerelease-check is ${built.result}")
     dir ("${WORKSPACE}") {
