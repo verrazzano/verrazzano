@@ -25,6 +25,8 @@ const (
 	explicitReplicas    = uint32(3)
 	waitTimeout         = 20 * time.Minute
 	pollingInterval     = 10 * time.Second
+
+	verrazzanoAuthproxyDeployment = "verrazzano-authproxy"
 )
 
 type AuthProxyReplicasModifier struct {
@@ -159,7 +161,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 			cr := update.GetCR()
 
 			expectedRunning := int32(1)
-			deployment, err := pkg.GetDeployment(constants.VerrazzanoSystemNamespace, constants.VerrazzanoAuthproxy)
+			deployment, err := pkg.GetDeployment(constants.VerrazzanoSystemNamespace, verrazzanoAuthproxyDeployment)
 			gomega.Expect(err).To(gomega.BeNil())
 			if deployment.Spec.Replicas != nil {
 				expectedRunning = *deployment.Spec.Replicas
