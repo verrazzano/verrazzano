@@ -85,9 +85,10 @@ var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.loggi
 	// WHEN a GET call is made  to Grafana with the system dashboard UID,
 	// THEN the dashboard metadata of the corresponding testDashboard is returned.
 	t.It("Get details of the system Grafana Dashboard", func() {
-		kubeConfigPath, err := pkg.GetKubeConfigLocation()
+		kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 		Expect(err).To(BeNil(), fmt.Sprintf(pkg.KubeConfigErrorFmt, err))
-		systemHealthDashboardExists := pkg.IsVerrazzanoMinVersion("1.5.0", kubeConfigPath)
+		systemHealthDashboardExists, err := pkg.IsVerrazzanoMinVersion("1.5.0", kubeConfigPath)
+		Expect(err).To(BeNil(), fmt.Sprintf("could not find verrazzzano min version: %v", err))
 		if systemHealthDashboardExists {
 			pkg.TestSystemHealthGrafanaDashboard(pollingInterval, waitTimeout)
 		}
