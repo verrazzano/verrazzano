@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package reconcile
@@ -83,6 +83,10 @@ var UninstallTrackerMap = make(map[string]*UninstallTracker)
 // reconcileUninstall will Uninstall a Verrazzano installation
 func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	log.Oncef("Uninstalling Verrazzano %s/%s", cr.Namespace, cr.Name)
+	rancherProvisioned, err := rancher.IsClusterProvisionedByRancher()
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	tracker := getUninstallTracker(cr)
 	done := false
 	for !done {
@@ -91,6 +95,12 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			tracker.vzState = vzStateUninstallRancherLocal
 
 		case vzStateUninstallRancherLocal:
+			// Don't remove Rancher local namespace if cluster was provisioned by Rancher (for example RKE2).  Removing
+			// will cause cluster corruption.
+			if rancherProvisioned {
+				tracker.vzState = vzStateUninstallMC
+				continue
+			}
 			// If Rancher is installed, then delete local cluster
 			found, comp := registry.FindComponent(rancher.ComponentName)
 			if !found {
@@ -136,7 +146,7 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			if err != nil {
 				return ctrl.Result{}, err
 			}
-			result, err := r.uninstallCleanup(spiCtx)
+			result, err := r.uninstallCleanup(spiCtx, rancherProvisioned)
 			if err != nil || !result.IsZero() {
 				return result, err
 			}
@@ -281,7 +291,7 @@ func (r *Reconciler) isManagedCluster(log vzlog.VerrazzanoLogger) (bool, error) 
 }
 
 // uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individual component uninstalls
-func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) (ctrl.Result, error) {
+func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext, rancherProvisioned bool) (ctrl.Result, error) {
 	if err := r.deleteIstioCARootCert(ctx); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -292,16 +302,9 @@ func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) (ctrl.Result, er
 
 	// Run Rancher Post Uninstall explicitly to delete any remaining Rancher resources; this may be needed in case
 	// the uninstall was interrupted during uninstall, or if the cluster is a managed cluster where Rancher is not
-	// installed explicitly.  Do not delete Rancher resources if the cluster was provisioned by Rancher since that
-	// will corrupt the cluster.
-	rancherProvisioned, err := rancher.IsClusterProvisionedByRancher()
-	if err != nil {
+	// installed explicitly.
+	if err := r.runRancherPostInstall(ctx); err != nil {
 		return ctrl.Result{}, err
-	}
-	if !rancherProvisioned {
-		if err := r.runRancherPostInstall(ctx); err != nil {
-			return ctrl.Result{}, err
-		}
 	}
 	return r.deleteNamespaces(ctx.Log(), rancherProvisioned)
 }
@@ -361,7 +364,7 @@ func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger, rancherProvisi
 	// Load a set of all component namespaces plus shared namespaces
 	nsSet := make(map[string]bool)
 	for _, comp := range registry.GetComponents() {
-		// Don't delete the cattle-system namespace if cluster was provisioned by Rancher
+		// Don't delete the rancher component namespace if cluster was provisioned by Rancher.
 		if rancherProvisioned && comp.Namespace() == rancher.ComponentNamespace {
 			continue
 		}

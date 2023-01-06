@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package reconcile
@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -74,12 +75,21 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 	compName := comp.Name()
 	compContext := spiCtx.Init(compName).Operation(vzconst.UninstallOperation)
 	compLog := compContext.Log()
+	rancherProvisioned, err := rancher.IsClusterProvisionedByRancher()
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	for UninstallContext.state != compStateUninstallEnd {
 		switch UninstallContext.state {
 		case compStateUninstallStart:
 			// Check if operator based uninstall is supported
 			if !comp.IsOperatorUninstallSupported() {
+				UninstallContext.state = compStateUninstallEnd
+				continue
+			}
+			if comp.Name() == rancher.ComponentName && rancherProvisioned {
+				compLog.Once("Cluster wasprovisioned by Rancher. Rancher components will not be uninstalled.")
 				UninstallContext.state = compStateUninstallEnd
 				continue
 			}

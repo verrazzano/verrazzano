@@ -446,7 +446,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// postUninstall handles the deletion of all Rancher resources after the Helm uninstall
+// PostUninstall handles the deletion of all Rancher resources after the Helm uninstall
 func (r rancherComponent) PostUninstall(ctx spi.ComponentContext) error {
 	if ctx.IsDryRun() {
 		ctx.Log().Debug("Rancher postUninstall dry run")
