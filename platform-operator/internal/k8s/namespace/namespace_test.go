@@ -5,8 +5,9 @@ package namespace
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"

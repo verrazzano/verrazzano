@@ -49,10 +49,10 @@ func getScheme() *runtime.Scheme {
 	return scheme
 }
 
-// TestBuildArgoCDDNSNames asserts if the generated DNS name for ArgoCD is correct.
+// TestBuildArgoCDDNSNames asserts if the generated DNS name for Argo CD is correct.
 func TestBuildArgoCDDNSNames(t *testing.T) {
-	// GIVEN a Verrazzano CR with Jaeger Component enabled,
-	// WHEN we call the buildJaegerHostnameForDomain function,
+	// GIVEN a Verrazzano CR with Argo CD Component enabled,
+	// WHEN we call the buildArgoCDHostNameForDomain function,
 	// THEN correct FQDN for ArgoCD is returned.
 	argoCDDNSName := buildArgoCDHostNameForDomain("default.nip.io")
 	assert.Equal(t, "argocd.default.nip.io", argoCDDNSName)

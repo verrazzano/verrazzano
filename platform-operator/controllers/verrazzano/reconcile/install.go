@@ -5,6 +5,7 @@ package reconcile
 
 import (
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"

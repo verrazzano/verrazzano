@@ -32,7 +32,6 @@ type OIDCConfig struct {
 
 // patchArgoCDSecret
 func patchArgoCDSecret(component argoCDComponent, ctx spi.ComponentContext) error {
-	//component := NewComponent().(argoCDComponent)
 	clientSecret, err := component.ArgoClientSecretProvider.GetClientSecret(ctx)
 	if err != nil {
 		ctx.Log().ErrorfNewErr("failed configuring keycloak as OIDC provider for argocd, unable to fetch argocd client secret: %s", err)
@@ -59,15 +58,23 @@ func patchArgoCDSecret(component argoCDComponent, ctx spi.ComponentContext) erro
 	}
 
 	ctx.Log().Debugf("patchArgoCDSecret: ArgoCD secret operation result: %v", err)
-	return err
+	return nil
 }
 
 // patchArgoCDConfigMap
 func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 	c := ctx.Client()
-	keycloakIngress, _ := k8sutil.GetURLForIngress(c, "keycloak", "keycloak", "https")
+	keycloakIngress, err := k8sutil.GetURLForIngress(c, "keycloak", "keycloak", "https")
+	if err != nil {
+		ctx.Log().ErrorfNewErr("failed getting the Keycloak Ingress URL: %s", err)
+		return err
+	}
 
-	argoCDURL, _ := k8sutil.GetURLForIngress(c, "argocd-server", "argocd", "https")
+	argoCDURL, err := k8sutil.GetURLForIngress(c, "argocd-server", "argocd", "https")
+	if err != nil {
+		ctx.Log().ErrorfNewErr("failed getting the Argo CD Ingress URL: %s", err)
+		return err
+	}
 
 	keycloakURL := fmt.Sprintf("%s/%s", keycloakIngress, "auth/realms/verrazzano-system")
 
@@ -119,7 +126,7 @@ func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 	}
 
 	ctx.Log().Debugf("patchArgoCDConfigMap: ArgoCD cm operation result: %v", err)
-	return err
+	return nil
 }
 
 // patchArgoCDRbacConfigMap
@@ -147,7 +154,7 @@ func patchArgoCDRbacConfigMap(ctx spi.ComponentContext) error {
 	}
 
 	ctx.Log().Debugf("patchArgoCDRbacConfigMap: ArgoCD rbac cm operation result: %v", err)
-	return err
+	return nil
 }
 
 // restartArgoCDServerDeploy restarts the argocd server deployment

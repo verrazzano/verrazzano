@@ -43,6 +43,11 @@ import (
 const testBomFile = "../../../verrazzano-bom.json"
 const fakeCompReleaseName = "verrazzano-authproxy"
 
+// auth config for Argo CD
+const (
+	KeyCloakOIDCConfig = "clientID: argocd\nclientSecret: $oidc.keycloak.clientSecret\nissuer: https://keycloak/auth/realms/verrazzano-system\nname: Keycloak\nrequestedScopes:\n- openid\n- profile\n- email\n- groups\nrootCA: test-ca-argocd\n"
+)
+
 var (
 	namespace                = "verrazzano"
 	name                     = "test-verrazzano"
@@ -499,7 +504,7 @@ func createArgoCDCM() corev1.ConfigMap {
 		},
 		Data: map[string]string{
 			"url":         "https://argocd",
-			"oidc.config": common.KeyCloakOIDCConfig,
+			"oidc.config": KeyCloakOIDCConfig,
 		},
 	}
 }
@@ -612,7 +617,7 @@ func assertArgoCDConfig(asserts *assert.Assertions, ctx spi.ComponentContext) {
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: constants.ArgoCDNamespace, Name: common.ArgoCDCM}, configMap)
 	asserts.Nil(err)
 	asserts.Equal(configMap.Data["url"], fmt.Sprintf("https://%s", common.ArgoCDName))
-	asserts.Equal(configMap.Data["oidc.config"], common.KeyCloakOIDCConfig)
+	asserts.Equal(configMap.Data["oidc.config"], KeyCloakOIDCConfig)
 
 	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: constants.ArgoCDNamespace, Name: common.ArgoCDRBACCM}, configMap)
 	asserts.Nil(err)

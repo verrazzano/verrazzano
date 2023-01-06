@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -101,7 +102,36 @@ func TestPatchArgoCDConfigMap(t *testing.T) {
 			Namespace: constants.ArgoCDNamespace,
 		},
 	}
-	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(configMap, secret).Build()
+
+	keycloakIngress := &networkingv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "keycloak",
+			Namespace: constants.KeycloakNamespace,
+		},
+		Spec: networkingv1.IngressSpec{
+			Rules: []networkingv1.IngressRule{
+				{
+					Host: "keycloak",
+				},
+			},
+		},
+	}
+
+	argoCDIngress := &networkingv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.ArgoCDIngress,
+			Namespace: constants.ArgoCDNamespace,
+		},
+		Spec: networkingv1.IngressSpec{
+			Rules: []networkingv1.IngressRule{
+				{
+					Host: "keycloak",
+				},
+			},
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(configMap, secret, keycloakIngress, argoCDIngress).Build()
 	ctx := spi.NewFakeContext(fakeClient, vz, nil, false)
 	assert.NoError(t, patchArgoCDConfigMap(ctx))
 }

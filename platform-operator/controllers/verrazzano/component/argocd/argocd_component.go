@@ -33,7 +33,7 @@ const ComponentName = common.ArgoCDName
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.ArgoCDNamespace
 
-// ComponentJSONName is the josn name of the verrazzano component in CRD
+// ComponentJSONName is the json name of the verrazzano component in CRD
 const ComponentJSONName = "argocd"
 
 type argoCDComponent struct {
@@ -133,14 +133,6 @@ func (c argoCDComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isArgoCDReady(ctx)
 	}
 	return false
-}
-
-// PreInstall applies the Application Operator CRDs
-func (c argoCDComponent) PreInstall(ctx spi.ComponentContext) error {
-	if err := common.ApplyCRDYaml(ctx, config.GetHelmAppOpChartsDir()); err != nil {
-		return err
-	}
-	return c.HelmComponent.PreInstall(ctx)
 }
 
 //Install

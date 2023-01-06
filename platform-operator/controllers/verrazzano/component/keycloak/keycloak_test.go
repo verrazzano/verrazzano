@@ -1693,10 +1693,10 @@ func TestGetRancherClientSecretFromKeycloak(t *testing.T) {
 	}
 }
 
-// TestGetArgoCDClientSecretFromKeycloak tests getting rancher client secrets
+// TestGetArgoCDClientSecretFromKeycloak tests getting Argo CD client secrets
 // GIVEN a client, and a k8s environment
-// WHEN I call GetRancherClientSecretFromKeycloak
-// THEN returns an rancher client secret, otherwise returning an error if the environment is invalid
+// WHEN I call TestGetArgoCDClientSecretFromKeycloak
+// THEN returns an Argo CD client secret, otherwise returning an error if the environment is invalid
 func TestGetArgoCDClientSecretFromKeycloak(t *testing.T) {
 	loginSecret := createTestLoginSecret()
 	k8sutil.ClientConfig = fakeRESTConfig
@@ -1740,14 +1740,14 @@ func TestGetArgoCDClientSecretFromKeycloak(t *testing.T) {
 			fakeGetArgoCDClientSecretFromKeycloakGetClientsFails,
 		},
 		{
-			"should not fail when rancher client id does not exist",
+			"should  fail when Argo CD client id does not exist",
 			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
-			false,
+			true,
 			"",
 			fakeGetArgoCDClientSecretFromKeycloakNoArgoCDClient,
 		},
 		{
-			"should fail when fetching client secret fails",
+			"should fail when fetching Argo CD client secret ",
 			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
 			true,
 			"",

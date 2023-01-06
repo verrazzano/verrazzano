@@ -1718,7 +1718,8 @@ func (p DefaultArgoClientSecretProvider) GetClientSecret(ctx spi.ComponentContex
 
 	if id == "" {
 		ctx.Log().Debugf("GetArgoCDClientSecretFromKeycloak: Argo CD client does not exist")
-		return "", nil
+		err = errors.New("Argo CD client does not exist")
+		return "", err
 	}
 
 	var clientSecret KeycloakClientSecret

@@ -23,8 +23,3 @@ const (
 	ArgoCDRepoServer               = "argocd-repo-server"
 	ArgoCDServer                   = "argocd-server"
 )
-
-// auth config
-const (
-	KeyCloakOIDCConfig = "clientID: argocd\nclientSecret: $oidc.keycloak.clientSecret\nissuer: https://keycloak/auth/realms/verrazzano-system\nname: Keycloak\nrequestedScopes:\n- openid\n- profile\n- email\n- groups\nrootCA: test-ca-argocd\n"
-)
