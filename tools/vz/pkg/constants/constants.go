@@ -190,7 +190,7 @@ const (
 	BugReportTimeFlagName        = "duration"
 	BugReportTimeFlagNameShort   = "d"
 	BugReportTimeFlagDefaultTime = 0
-	BugReportTimeFlagNameUsage   = "time period of logs in seconds, mintues, hours e.g 300s, 60m, 2h"
+	BugReportTimeFlagNameUsage   = "Time period of logs in seconds, minutes, hours e.g 300s, 60m, 2h"
 )
 
 // Constants for cluster operations
