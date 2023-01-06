@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
@@ -65,6 +65,7 @@ func GatherInfo() {
 	OciCliUser = os.Getenv("OCI_CLI_USER")
 	OciCliFingerprint = os.Getenv("OCI_CLI_FINGERPRINT")
 	OciCliKeyFile = os.Getenv("OCI_CLI_KEY_FILE")
+	MySQLBackupMode = os.Getenv("MYSQL_BACKUP_MODE")
 }
 
 // GetRancherURL fetches the elastic search URL from the cluster
@@ -278,6 +279,7 @@ func CreateCredentialsSecretFromFile(namespace string, name string, log *zap.Sug
 
 // CreateMySQLCredentialsSecretFromFile creates opaque secret from a file
 func CreateMySQLCredentialsSecretFromFile(namespace string, name string, log *zap.SugaredLogger) error {
+	log.Infof("Creating MySQL secret for S3 backup")
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		log.Errorf("Failed to get clientset with error: %v", err)
