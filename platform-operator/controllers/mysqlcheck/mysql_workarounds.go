@@ -262,7 +262,7 @@ func (mc *MySQLChecker) RepairMySQLPodStuckDeleting() error {
 				return err
 			}
 		} else {
-			// Keep trying until no pods deleting or time expires
+			// Keep trying until no pods deleting or timer expires
 			return nil
 		}
 	}
