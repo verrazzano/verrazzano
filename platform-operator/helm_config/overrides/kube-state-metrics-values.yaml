@@ -1,12 +1,7 @@
-# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 # Enable adding a release label for kube-prometheus-stack scraping (see kube-state-metrics chart templates/_helpers.tpl)
 releaseLabel: true
 customLabels:
   sidecar.istio.io/inject: "false"
-prometheus:
-  monitor:
-    honorLabels: true
-metricLabelsAllowlist:
-  - deployments=[app.oam.dev/name,app.oam.dev/component]

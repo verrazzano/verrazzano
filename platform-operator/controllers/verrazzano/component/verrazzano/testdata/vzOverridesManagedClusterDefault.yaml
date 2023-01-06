@@ -1,4 +1,4 @@
-# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 config:
   dnsSuffix: 11.22.33.44.nip.io
@@ -31,7 +31,7 @@ prometheusOperator:
 prometheusAdapter:
   enabled: false
 kubeStateMetrics:
-  enabled: true
+  enabled: false
 prometheusPushgateway:
   enabled: false
 prometheusNodeExporter:

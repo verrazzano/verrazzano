@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vmi_test
@@ -292,6 +292,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 		t.It("Default dashboard should be installed in System Grafana for shared VMI",
 			Label("f:observability.monitoring.graf"), func() {
 				pkg.Concurrently(
+					func() { assertDashboard("Host%20Metrics") },
 					func() { assertDashboard("WebLogic%20Server%20Dashboard") },
 					func() { assertDashboard("Coherence%20Elastic%20Data%20Summary%20Dashboard") },
 					func() { assertDashboard("Coherence%20Persistence%20Summary%20Dashboard") },
