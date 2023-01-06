@@ -403,6 +403,9 @@ pipeline {
             when {
                 expression {params.MYSQL_BACKUP_S3 == true}
             }
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
+            }
             steps {
                 script {
                     if (params.MYSQL_BACKUP_S3 == true) {
@@ -413,12 +416,7 @@ pipeline {
                     } else {
                        println("Running tests with OCI user creds")
                     }
-                }
-            }
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
-            }
-            steps {
+                } 
                 echoAllPodInfo()
                 println("Checking all pods in namespace keycloak are ready before start of test")
                 waitForPodsToBeUp("keycloak")
