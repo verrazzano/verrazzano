@@ -278,14 +278,10 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		// WHEN the application configuration uses a default metrics trait
 		// THEN confirm that all the scrape targets are healthy
 		t.It("Verify all scrape targets are healthy for the application", func() {
-			pkg.Concurrently(
-				func() {
-					Eventually(func() (bool, error) {
-						var componentNames = []string{"bobby-coh", "bobby-helidon", "bobby-wls", "bobs-mysql-deployment", "bobs-mysql-service", "bobs-orders-wls", robertCoh, "robert-helidon"}
-						return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "bob-books", componentNames))
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
-				},
-			)
+			Eventually(func() (bool, error) {
+				var componentNames = []string{"bobby-coh", "bobby-helidon", "bobby-wls", "bobs-mysql-deployment", "bobs-mysql-service", "bobs-orders-wls", robertCoh, "robert-helidon"}
+				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "bob-books", componentNames))
+			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
 		// Verify Istio Prometheus scraped metrics
 		// GIVEN a deployed Bob's Books application
