@@ -69,7 +69,7 @@ pipeline {
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
         booleanParam (description: 'Whether to persist object store bucket', name: 'DELETE_BUCKET', defaultValue: true)
-        booleanParam (description: 'Whether to execute MySQL backup tests with OCI credentials', name: 'MYSQL_BACKUP_OCI', defaultValue: false)
+        booleanParam (description: 'Whether to execute MySQL backup tests', name: 'MYSQL_BACKUP', defaultValue: true)
         booleanParam (description: 'Whether to execute MySQL backup tests with S3 API', name: 'MYSQL_BACKUP_S3', defaultValue: true)
         booleanParam (description: 'Whether to execute OpenSearch backup tests', name: 'OPENSEARCH_BACKUP', defaultValue: true)
         booleanParam (description: 'Whether to execute Rancher backup tests', name: 'RANCHER_BACKUP', defaultValue: true)
@@ -399,44 +399,24 @@ pipeline {
             }
         }
 
-        stage('mysql operator backup and restore with S3') {
+        stage('mysql operator backup and restore') {
             when {
                 expression {params.MYSQL_BACKUP_S3 == true}
             }
-            environment {
-                MYSQL_BACKUP_MODE = "s3"
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
-            }
-            steps {
-                echoAllPodInfo()
-                println("Checking all pods in namespace keycloak are ready before start of test")
-                waitForPodsToBeUp("keycloak")
-                runGinkgoRandomize('backup/mysql')
-                println("Checking all pods in namespace keycloak are ready after completion of test")
-                waitForPodsToBeUp("keycloak")
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-                failure {
-                    script {
-                        dumpK8sCluster('mysql-backup-restore-cluster-dump')
+            script {
+                if (params.MYSQL_BACKUP_S3 == true) {
+                    environment {
+                        println("Running tests with S3 API")
+                        MYSQL_BACKUP_MODE = "s3"
                     }
+                } else {
+                   println("Running tests with OCI user creds")
                 }
-            }
-        }
-
-        stage('mysql operator backup and restore with OCI credentials') {
-            when {
-                expression {params.MYSQL_BACKUP_OCI == true}
             }
             environment {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
             }
             steps {
-                cleanupBucket("${OCI_OS_BUCKET_NAME}")
                 echoAllPodInfo()
                 println("Checking all pods in namespace keycloak are ready before start of test")
                 waitForPodsToBeUp("keycloak")
@@ -512,11 +492,6 @@ def deleteBucket(bucketName) {
     """
 }
 
-def cleanupBucket(bucketName) {
-  sh """
-    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object bulk-delete -bn ${bucketName} --force
-  """
-}
 
 def waitForPodsToBeUp(namespace) {
     sh """
