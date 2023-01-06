@@ -385,14 +385,16 @@ pipeline {
             when {
                 expression {params.MYSQL_BACKUP == true}
             }
-            script {
-                if (params.MYSQL_BACKUP_S3 == true) {
-                    environment {
-                        println("Running tests with S3 API")
-                        MYSQL_BACKUP_MODE = "s3"
+            steps {
+                script {
+                    if (params.MYSQL_BACKUP_S3 == true) {
+                        environment {
+                            println("Running tests with S3 API")
+                            MYSQL_BACKUP_MODE = "s3"
+                        }
+                    } else {
+                       println("Running tests with OCI user creds")
                     }
-                } else {
-                   println("Running tests with OCI user creds")
                 }
             }
             environment {
