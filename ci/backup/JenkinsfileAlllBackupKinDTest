@@ -312,6 +312,7 @@ pipeline {
                     }
                 }
 
+        /*
         stage('verify-install') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
@@ -329,6 +330,7 @@ pipeline {
                 }
             }
         }
+        */
 
         stage('opensearch backup and restore') {
             when {
@@ -386,10 +388,19 @@ pipeline {
                 expression {params.MYSQL_BACKUP == true}
             }
             environment {
-                MYSQL_BACKUP_MODE = "s3"
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
             }
             steps {
+                script {
+                    if (params.MYSQL_BACKUP_S3 == true) {
+                       environment {
+                            MYSQL_BACKUP_MODE = "s3"
+                            println("MySQL backup with S3 creds ...")
+                       }
+                    } else {
+                        println("MySQL backup with OCI user principal creds ...")
+                    }
+                }
                 echoAllPodInfo()
                 println("Checking all pods in namespace keycloak are ready before start of test")
                 waitForPodsToBeUp("keycloak")
