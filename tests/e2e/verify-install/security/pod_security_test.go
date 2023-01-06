@@ -41,7 +41,6 @@ var skipPods = map[string][]string{
 		"weblogic-operator",
 	},
 	"verrazzano-monitoring": {
-		"kube-state-metrics",
 		"jaeger",
 	},
 	"verrazzano-backup": {
@@ -53,11 +52,19 @@ var skipContainers = []string{}
 var skipInitContainers = []string{"istio-init"}
 
 type podExceptions struct {
-	allowHostPath bool
+	allowHostPath    bool
+	allowHostNetwork bool
+	allowHostPID     bool
+	allowHostPort    bool
 }
 
 var exceptionPods = map[string]podExceptions{
-	"node-exporter": {allowHostPath: true},
+	"node-exporter": {
+		allowHostPath:    true,
+		allowHostNetwork: true,
+		allowHostPID:     true,
+		allowHostPort:    true,
+	},
 }
 
 var (
@@ -122,13 +129,37 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 func expectPodSecurityForNamespace(pod corev1.Pod) []error {
 	var errors []error
 
+	// get pod exceptions
 	isException, exception := isExceptionPod(pod)
+
+	// ensure hostpath is not set unless it is an exception
 	if !isException || !exception.allowHostPath {
-		// ensure hostpath is not set
 		for _, vol := range pod.Spec.Volumes {
 			if vol.HostPath != nil {
 				errors = append(errors, fmt.Errorf("Pod Security not configured for pod %s, HostPath is set, HostPath = %s  Type = %s",
 					pod.Name, vol.HostPath.Path, *vol.HostPath.Type))
+			}
+		}
+	}
+
+	// ensure hostnetwork is not set unless it is an exception
+	if pod.Spec.HostNetwork && (!isException || !exception.allowHostNetwork) {
+		errors = append(errors, fmt.Errorf("Pod Security not configured for pod %s, HostNetwork is set", pod.Name))
+	}
+
+	// ensure hostPID is not set unless it is an exception
+	if pod.Spec.HostPID && (!isException || !exception.allowHostPID) {
+		errors = append(errors, fmt.Errorf("Pod Security not configured for pod %s, HostPID is set", pod.Name))
+	}
+
+	// ensure host port is not set unless it is an exception
+	if !isException || !exception.allowHostPort {
+		for _, container := range pod.Spec.Containers {
+			for _, port := range container.Ports {
+				if port.HostPort != 0 {
+					errors = append(errors, fmt.Errorf("Pod Security not configured for pod %s, HostPort is set, HostPort = %v",
+						pod.Name, port.HostPort))
+				}
 			}
 		}
 	}
