@@ -1,11 +1,11 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def GIT_COMMIT_TO_USE
 def LAST_CLEAN_PERIODIC_COMMIT
 def VERRAZZANO_DEV_VERSION
 
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge_1_2" : "VM.Standard2.8_1_2"
+def agentLabel = "1.2-large"
 def TESTS_FAILED = false
 def tarfilePrefix="verrazzano_periodic"
 def storeLocation=""
