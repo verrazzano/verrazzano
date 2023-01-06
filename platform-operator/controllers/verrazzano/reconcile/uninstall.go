@@ -303,8 +303,10 @@ func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext, rancherProvision
 	// Run Rancher Post Uninstall explicitly to delete any remaining Rancher resources; this may be needed in case
 	// the uninstall was interrupted during uninstall, or if the cluster is a managed cluster where Rancher is not
 	// installed explicitly.
-	if err := r.runRancherPostInstall(ctx); err != nil {
-		return ctrl.Result{}, err
+	if !rancherProvisioned {
+		if err := r.runRancherPostInstall(ctx); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 	return r.deleteNamespaces(ctx.Log(), rancherProvisioned)
 }
