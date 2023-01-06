@@ -4,6 +4,9 @@
 package log
 
 import (
+	"os"
+	"time"
+
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -11,7 +14,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime/pkg/log"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"time"
 )
 
 const timeFormat = "2006-01-02T15:04:05.000Z"
@@ -112,4 +114,19 @@ func BuildZapLoggerWithLevel(callerSkip int, level zapcore.Level) (*zap.SugaredL
 	}
 	l := logger.WithOptions(zap.AddCallerSkip(callerSkip))
 	return l.Sugar(), nil
+}
+
+// GetDebugEnabledLogger Mostly useful for getting a debug enabled logger for unit tests
+func GetDebugEnabledLogger() *zap.SugaredLogger {
+	atom := zap.NewAtomicLevel()
+	encoderCfg := zap.NewProductionEncoderConfig()
+	encoderCfg.TimeKey = ""
+	logger := zap.New(zapcore.NewCore(
+		zapcore.NewJSONEncoder(encoderCfg),
+		zapcore.Lock(os.Stdout),
+		atom,
+	))
+	defer logger.Sync()
+	atom.SetLevel(zap.DebugLevel)
+	return logger.Sugar()
 }

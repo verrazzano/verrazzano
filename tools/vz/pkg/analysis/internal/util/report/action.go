@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package report handles reporting
@@ -58,6 +58,7 @@ var RunbookLinks = map[string][]string{
 	IngressShapeInvalid:       {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/ingressinvalidshape"},
 	IstioIngressPrivateSubnet: {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/istioloadbalancercreation"},
 	NginxIngressPrivateSubnet: {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/nginxloadbalancercreation"},
+	ExternalDNSConfigureIssue: {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/externaldnsconfiguration"},
 }
 
 // KnownActions are Standard Action types
@@ -79,6 +80,7 @@ var KnownActions = map[string]Action{
 	IngressShapeInvalid:       {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IngressShapeInvalid][0])},
 	IstioIngressPrivateSubnet: {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IstioIngressPrivateSubnet][0])},
 	NginxIngressPrivateSubnet: {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[NginxIngressPrivateSubnet][0])},
+	ExternalDNSConfigureIssue: {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[ExternalDNSConfigureIssue][0])},
 }
 
 func getConsultRunbookAction(summaryF string, runbookLink string) string {

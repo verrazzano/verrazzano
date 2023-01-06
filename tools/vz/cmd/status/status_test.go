@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package status
@@ -21,25 +21,27 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+var (
+	name          = "verrazzano"
+	namespace     = "test"
+	version       = "1.2.3"
+	consoleURL    = "https://verrazzano.default.10.107.141.8.nip.io"
+	keycloakURL   = "https://keycloak.default.10.107.141.8.nip.io"
+	rancherURL    = "https://rancher.default.10.107.141.8.nip.io"
+	osURL         = "https://elasticsearch.vmi.system.10.107.141.8.nip.io"
+	osdURL        = "https://kibana.vmi.system.10.107.141.8.nip.io"
+	grafanaURL    = "https://grafana.vmi.system.10.107.141.8.nip.io"
+	prometheusURL = "https://prometheus.vmi.system.10.107.141.8.nip.io"
+	kialiURL      = "https://kiali.vmi.system.10.107.141.8.nip.io"
+	jaegerURL     = "https://jaeger.default.10.107.141.8.nip.io"
+)
+
 // TestStatusCmd tests the status command
 // GIVEN an environment with a single VZ resource
 //
 //	WHEN I run the command vz status
 //	THEN expect a successful status report
 func TestStatusCmd(t *testing.T) {
-	name := "verrazzano"
-	namespace := "test"
-	version := "1.2.3"
-	consoleURL := "https://verrazzano.default.10.107.141.8.nip.io"
-	keycloakURL := "https://keycloak.default.10.107.141.8.nip.io"
-	rancherURL := "https://rancher.default.10.107.141.8.nip.io"
-	osURL := "https://elasticsearch.vmi.system.10.107.141.8.nip.io"
-	osdURL := "https://kibana.vmi.system.10.107.141.8.nip.io"
-	grafanaURL := "https://grafana.vmi.system.10.107.141.8.nip.io"
-	prometheusURL := "https://prometheus.vmi.system.10.107.141.8.nip.io"
-	kialiURL := "https://kiali.vmi.system.10.107.141.8.nip.io"
-	jaegerURL := "https://jaeger.default.10.107.141.8.nip.io"
-
 	vz := v1beta1.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
@@ -67,24 +69,6 @@ func TestStatusCmd(t *testing.T) {
 		},
 	}
 
-	// Template map for status command output
-	templateMap := map[string]string{
-		"verrazzano_name":      name,
-		"verrazzano_namespace": namespace,
-		"verrazzano_version":   version,
-		"verrazzano_state":     string(vzapi.VzStateReconciling),
-		"console_url":          consoleURL,
-		"keycloak_url":         keycloakURL,
-		"rancher_url":          rancherURL,
-		"os_url":               osURL,
-		"osd_url":              osdURL,
-		"grafana_url":          grafanaURL,
-		"prometheus_url":       prometheusURL,
-		"kiali_url":            kialiURL,
-		"jaeger_url":           jaegerURL,
-		"install_profile":      string(vzapi.Dev),
-	}
-
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(&vz).Build()
 
 	// Send the command output to a byte buffer
@@ -99,7 +83,19 @@ func TestStatusCmd(t *testing.T) {
 	err := statusCmd.Execute()
 	assert.NoError(t, err)
 	result := buf.String()
-	expectedResult, err := templates.ApplyTemplate(statusOutputTemplate, templateMap)
+
+	templateInput := TemplateInput{
+		Endpoints:           getEndpoints(vz.Status.VerrazzanoInstance),
+		Components:          getComponents(vz.Status.Components),
+		ComponentsEnabled:   false,
+		Name:                name,
+		Namespace:           namespace,
+		Version:             version,
+		State:               string(vzapi.VzStateReconciling),
+		Profile:             string(vzapi.Dev),
+		AvailableComponents: getAvailableComponents(vz.Status.Available),
+	}
+	expectedResult, err := templates.ApplyTemplate(statusOutputTemplate, templateInput)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedResult, result)
 }
@@ -110,19 +106,6 @@ func TestStatusCmd(t *testing.T) {
 //	WHEN I run the command vz status
 //	THEN expect a successful status report
 func TestStatusCmdDefaultProfile(t *testing.T) {
-	name := "verrazzano"
-	namespace := "test"
-	version := "1.2.3"
-	consoleURL := "https://verrazzano.default.10.107.141.8.nip.io"
-	keycloakURL := "https://keycloak.default.10.107.141.8.nip.io"
-	rancherURL := "https://rancher.default.10.107.141.8.nip.io"
-	osURL := "https://elasticsearch.vmi.system.10.107.141.8.nip.io"
-	osdURL := "https://kibana.vmi.system.10.107.141.8.nip.io"
-	grafanaURL := "https://grafana.vmi.system.10.107.141.8.nip.io"
-	prometheusURL := "https://prometheus.vmi.system.10.107.141.8.nip.io"
-	kialiURL := "https://kiali.vmi.system.10.107.141.8.nip.io"
-	jaegerURL := "https://jaeger.default.10.107.141.8.nip.io"
-
 	vz := v1beta1.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
@@ -147,24 +130,6 @@ func TestStatusCmdDefaultProfile(t *testing.T) {
 		},
 	}
 
-	// Template map for status command output
-	templateMap := map[string]string{
-		"verrazzano_name":      name,
-		"verrazzano_namespace": namespace,
-		"verrazzano_version":   version,
-		"verrazzano_state":     string(vzapi.VzStateReconciling),
-		"console_url":          consoleURL,
-		"keycloak_url":         keycloakURL,
-		"rancher_url":          rancherURL,
-		"os_url":               osURL,
-		"osd_url":              osdURL,
-		"grafana_url":          grafanaURL,
-		"prometheus_url":       prometheusURL,
-		"kiali_url":            kialiURL,
-		"jaeger_url":           jaegerURL,
-		"install_profile":      string(vzapi.Prod),
-	}
-
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(&vz).Build()
 
 	// Send the command output to a byte buffer
@@ -179,7 +144,18 @@ func TestStatusCmdDefaultProfile(t *testing.T) {
 	err := statusCmd.Execute()
 	assert.NoError(t, err)
 	result := buf.String()
-	expectedResult, err := templates.ApplyTemplate(statusOutputTemplate, templateMap)
+	templateInput := TemplateInput{
+		Endpoints:           getEndpoints(vz.Status.VerrazzanoInstance),
+		Components:          getComponents(vz.Status.Components),
+		ComponentsEnabled:   false,
+		Name:                name,
+		Namespace:           namespace,
+		Version:             version,
+		State:               string(vzapi.VzStateReconciling),
+		Profile:             string(vzapi.Prod),
+		AvailableComponents: getAvailableComponents(vz.Status.Available),
+	}
+	expectedResult, err := templates.ApplyTemplate(statusOutputTemplate, templateInput)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedResult, result)
 }
