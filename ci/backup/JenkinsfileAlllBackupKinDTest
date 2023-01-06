@@ -418,6 +418,7 @@ pipeline {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
             }
             steps {
+                cleanupBucket("${OCI_OS_BUCKET_NAME}")
                 echoAllPodInfo()
                 println("Checking all pods in namespace keycloak are ready before start of test")
                 waitForPodsToBeUp("keycloak")
@@ -518,6 +519,12 @@ def deleteBucket(bucketName) {
     sh """
         OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os bucket delete -bn ${bucketName} --empty --force
     """
+}
+
+def cleanupBucket(bucketName) {
+  sh """
+    OCI_CLI_AUTH="instance_principal" oci os object bulk-delete -bn ${bucketName} --force
+  """
 }
 
 def waitForPodsToBeUp(namespace) {

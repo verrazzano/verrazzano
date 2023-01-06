@@ -149,10 +149,10 @@ pipeline {
         OCI_OS_BUCKET_NAME = "bucket-${OCI_OS_BUCKET_ID}"
         BACKUP_OPENSEARCH = "backup-opensearch-${OCI_OS_BUCKET_ID}"
         BACKUP_RANCHER = "backup-rancher-${OCI_OS_BUCKET_ID}"
-        BACKUP_MYSQL = "backup-mysql-${OCI_OS_BUCKET_ID}"
         BACKUP_RESOURCE = "vz-hook-resource-${OCI_OS_BUCKET_ID}"
         RESTORE_OPENSEARCH = "restore-opensearch-${OCI_OS_BUCKET_ID}"
         RESTORE_RANCHER = "restore-rancher-${OCI_OS_BUCKET_ID}"
+        BACKUP_MYSQL = "backup-mysql-${OCI_OS_BUCKET_ID}"
         RESTORE_MYSQL = "restore-mysql-${OCI_OS_BUCKET_ID}"
         BACKUP_OPENSEARCH_STORAGE = "storage-opensearch-${OCI_OS_BUCKET_ID}"
         BACKUP_MYSQL_STORAGE = "storage-mysql-${OCI_OS_BUCKET_ID}"
@@ -248,7 +248,7 @@ pipeline {
             }
         }
 
-         stage('Create bucket') {
+        stage('Create bucket') {
              steps {
                 createBucket("${OCI_OS_BUCKET_NAME}")
              }
@@ -436,6 +436,7 @@ pipeline {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
             }
             steps {
+                cleanupBucket("${OCI_OS_BUCKET_NAME}")
                 echoAllPodInfo()
                 println("Checking all pods in namespace keycloak are ready before start of test")
                 waitForPodsToBeUp("keycloak")
@@ -509,6 +510,12 @@ def deleteBucket(bucketName) {
     sh """
         OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os bucket delete -bn ${bucketName} --empty --force
     """
+}
+
+def cleanupBucket(bucketName) {
+  sh """
+    OCI_CLI_AUTH="instance_principal" oci os object bulk-delete -bn ${bucketName} --force
+  """
 }
 
 def waitForPodsToBeUp(namespace) {
