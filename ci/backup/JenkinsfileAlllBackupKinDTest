@@ -330,7 +330,7 @@ pipeline {
                 }
             }
         }
-
+        */
 
         stage('opensearch backup and restore') {
             when {
@@ -382,7 +382,7 @@ pipeline {
                 }
             }
         }
-        */
+
 
         stage('mysql operator backup and restore with OCI user principal') {
             when {
