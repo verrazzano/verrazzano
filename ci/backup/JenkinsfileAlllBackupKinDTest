@@ -312,7 +312,6 @@ pipeline {
                     }
                 }
 
-        /*
         stage('verify-install') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
@@ -330,7 +329,6 @@ pipeline {
                 }
             }
         }
-        */
 
         stage('opensearch backup and restore') {
             when {
@@ -428,7 +426,7 @@ pipeline {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
             }
             steps {
-                println("MySQL backup with S3 creds ...")
+                println("MySQL backup with S3 credentials ...")
                 echoAllPodInfo()
                 println("Checking all pods in namespace keycloak are ready before start of test")
                 waitForPodsToBeUp("keycloak")
