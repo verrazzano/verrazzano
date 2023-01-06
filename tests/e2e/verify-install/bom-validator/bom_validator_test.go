@@ -94,27 +94,32 @@ var clusterImageWarnings = make(map[string]string)      // Map of image names no
 
 var t = framework.NewTestFramework("BOM validator")
 
+var _ = BeforeSuite(beforeSuite)
+
 var _ = t.Describe("BOM Validator", Label("f:platform-lcm.install"), func() {
 	t.Context("Post VZ Installations", func() {
 
-		t.It("Has successfully validated kubeConfig", func() {
-			Eventually(validateKubeConfig).Should(BeTrue())
+		t.It("Has bom images associated with it's tags", func() {
+			Expect(vBom.Components).NotTo(BeNil())
 		})
 
 		t.It("Has Successfully scanned cluster images with Bom", func() {
+			populateBomContainerImagesMap()
 			Eventually(scanClusterImagesWithBom).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 
 		t.It("Has Successful BOM Validation Report", func() {
-			getBOM()
-			Expect(vBom.Components).NotTo(BeNil())
-			populateBomContainerImagesMap()
 			Expect(bomImages).NotTo(BeEmpty())
 			populateClusterContainerImages()
 			Expect(clusterImageArray).NotTo(BeEmpty())
 			Eventually(BomValidationReport).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 	})
+})
+
+var beforeSuite = t.BeforeSuiteFunc(func() {
+	validateKubeConfig()
+	getBOM()
 })
 
 // Validate that KubeConfig is valued. This will point to the cluster being validated
@@ -161,7 +166,7 @@ func getBOM() {
 }
 
 // Populate BOM images into Hashmap bomImages
-// bomImages contains a map of "image" in the BOM to validate an image found in an allowed namespace exists in the BOM
+// contains a map of "image" in the BOM to validate an image found in an allowed namespace exists in the BOM
 func populateBomContainerImagesMap() {
 	for _, component := range vBom.Components {
 		for _, subcomponent := range component.Subcomponents {
