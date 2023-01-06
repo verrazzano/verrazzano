@@ -366,9 +366,9 @@ func cleanupLatestSecret(context spi.ComponentContext, h HelmComponent, isInstal
 		return
 	}
 
-	context.Log().Progressf("Deleting secret %s", filteredHelmSecrets[0])
+	context.Log().Progressf("Deleting secret %s/%s", filteredHelmSecrets[0].Namespace, filteredHelmSecrets[0].Name)
 	if err := context.Client().Delete(ctx.TODO(), &filteredHelmSecrets[0]); err != nil {
-		context.Log().Errorf("Error deleting secret %s", filteredHelmSecrets[0])
+		context.Log().Errorf("Error deleting secret %s/%s", filteredHelmSecrets[0].Namespace, filteredHelmSecrets[0].Name)
 	}
 }
 

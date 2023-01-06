@@ -1,0 +1,85 @@
+{
+  "metadata": {
+    "resourceVersion": "8693"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller",
+        "namespace": "ingress-nginx",
+        "uid": "9701a1a8-48d2-43cb-9cb8-c18c0c165db2",
+        "resourceVersion": "1683",
+        "creationTimestamp": "2022-12-05T05:30:51Z",
+        "labels": {
+          "app.kubernetes.io/component": "controller",
+          "app.kubernetes.io/instance": "ingress-controller",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "ingress-nginx",
+          "app.kubernetes.io/version": "0.46.0",
+          "helm.sh/chart": "ingress-nginx-3.30.0"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "ingress-controller",
+          "meta.helm.sh/release-namespace": "ingress-nginx"
+        }
+      },
+      "status": {
+        "loadBalancer": {
+          "ingress": [
+            {
+              "ip": "2b111992ddf06436c7d263ab114423553eb0e6db9c38f430a2dc85385848a42c"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller-metrics",
+        "namespace": "ingress-nginx",
+        "uid": "8312c7fa-4bec-47e6-ac87-1487cd2e2a3b",
+        "resourceVersion": "1675",
+        "creationTimestamp": "2022-12-05T05:30:51Z",
+        "labels": {
+          "app.kubernetes.io/component": "controller",
+          "app.kubernetes.io/instance": "ingress-controller",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "ingress-nginx",
+          "app.kubernetes.io/version": "0.46.0",
+          "helm.sh/chart": "ingress-nginx-3.30.0"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "ingress-controller",
+          "meta.helm.sh/release-namespace": "ingress-nginx"
+        }
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-defaultbackend",
+        "namespace": "ingress-nginx",
+        "uid": "fd2784cb-ea77-4605-8408-e9d391f67314",
+        "resourceVersion": "1677",
+        "creationTimestamp": "2022-12-05T05:30:51Z",
+        "labels": {
+          "app.kubernetes.io/component": "default-backend",
+          "app.kubernetes.io/instance": "ingress-controller",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "ingress-nginx",
+          "app.kubernetes.io/version": "0.46.0",
+          "helm.sh/chart": "ingress-nginx-3.30.0"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "ingress-controller",
+          "meta.helm.sh/release-namespace": "ingress-nginx"
+        }
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    }
+  ]
+}

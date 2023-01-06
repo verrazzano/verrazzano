@@ -5,6 +5,7 @@ package keycloak
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"os/exec"
@@ -81,7 +82,7 @@ var _ = t.AfterEach(func() {
 var afterSuite = t.AfterSuiteFunc(func() {
 	start := time.Now()
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteBugReport()
+		dump.ExecuteBugReport()
 	}
 	createConfigMap()
 	metrics.Emit(t.Metrics.With("after_suite_elapsed_time", time.Since(start).Milliseconds()))

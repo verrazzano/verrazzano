@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package constants
@@ -137,6 +137,9 @@ const VerrazzanoVersion1_3_0 = "1.3.0"
 // VerrazzanoVersion1_4_0 is the Verrazzano version string for 1.4.0
 const VerrazzanoVersion1_4_0 = "1.4.0"
 
+// VerrazzanoVersion1_5_0 is the Verrazzano version string for 1.5.0
+const VerrazzanoVersion1_5_0 = "1.5.0"
+
 // UpgradeRetryVersion is the restart version annotation field
 const UpgradeRetryVersion = "verrazzano.io/upgrade-retry-version"
 
@@ -233,3 +236,5 @@ const RancherBackupNamesSpace = "cattle-resources-system"
 
 // VerrazzanoManagedKey indicates the label key to the Verrazzano managed namespaces
 const VerrazzanoManagedKey = "verrazzano.io/namespace"
+
+const ExternalDNSNamespace = "cert-manager"

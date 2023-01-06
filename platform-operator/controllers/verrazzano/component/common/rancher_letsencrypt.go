@@ -6,6 +6,7 @@ package common
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"io"
 	"net/http"
 
@@ -75,6 +76,10 @@ func useAdditionalCAs(acme vzapi.Acme) bool {
 }
 
 func ProcessAdditionalCertificates(log vzlog.VerrazzanoLogger, cli client.Client, vz *vzapi.Verrazzano) error {
+	// Skip updating Rancher certificates if Rancher is disabled.
+	if !vzcr.IsRancherEnabled(vz) {
+		return nil
+	}
 	cm := vz.Spec.Components.CertManager
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

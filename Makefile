@@ -93,12 +93,12 @@ unit-test-coverage:
 	${SCRIPT_DIR}/coverage.sh html
 
 .PHONY: unit-test-coverage-ratcheting
-get-unit-test-coverage-master-release:
+unit-test-coverage-ratcheting:
 	${SCRIPT_DIR}/coverage-number-comparison.sh
 
 .PHONY: unit-test
 unit-test:
-	go test $$(go list ./... | grep -Ev /tests/e2e)
+	go test $$(go list ./... | grep -Ev "/tests/e2e|/tools/psr")
 
 #
 #  Compliance check targets

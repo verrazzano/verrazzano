@@ -50,15 +50,7 @@ func (t *TestFramework) initDumpDirectoryIfNecessary() {
 
 // AfterEach wraps Ginkgo AfterEach to emit a metric
 func (t *TestFramework) AfterEach(args ...interface{}) bool {
-	if args == nil {
-		ginkgo.Fail("Unsupported args type - expected non-nil")
-	}
-
-	body := args[0]
-	if !isBodyFunc(body) {
-		ginkgo.Fail("Unsupported body type - expected function")
-	}
-
+	body := getFunctionBody(args...)
 	f := func() {
 		metrics.Emit(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
 		reflect.ValueOf(body).Call([]reflect.Value{})
@@ -70,42 +62,32 @@ func (t *TestFramework) AfterEach(args ...interface{}) bool {
 
 // BeforeEach wraps Ginkgo BeforeEach to emit a metric
 func (t *TestFramework) BeforeEach(args ...interface{}) bool {
-	if args == nil {
-		ginkgo.Fail("Unsupported args type - expected non-nil")
-	}
-
-	body := args[0]
-	if !isBodyFunc(body) {
-		ginkgo.Fail("Unsupported body type - expected function")
-	}
-
+	body := getFunctionBody(args...)
 	f := func() {
-
 		reflect.ValueOf(body).Call([]reflect.Value{})
-
 	}
 	args[0] = f
-
 	return ginkgo.BeforeEach(args...)
 }
 
 // It wraps Ginkgo It to emit a metric
 func (t *TestFramework) It(text string, args ...interface{}) bool {
-	if args == nil {
-		ginkgo.Fail("Unsupported args type - expected non-nil")
-	}
-	body := args[len(args)-1]
-	if !isBodyFunc(body) {
-		ginkgo.Fail("Unsupported body type - expected function")
-	}
-	f := func() {
-		metrics.Emit(t.Metrics) // Starting point metric
-		reflect.ValueOf(body).Call([]reflect.Value{})
-	}
+	return ginkgo.It(text, t.MakeGinkgoArgs(args...)...)
+}
 
-	args[len(args)-1] = ginkgo.Offset(1)
-	args = append(args, f)
-	return ginkgo.It(text, args...)
+func (t *TestFramework) WhenMeetsConditionFunc(condition string, conditionFunc func() (bool, error)) func(string, ...interface{}) bool {
+	return func(text string, args ...interface{}) bool {
+		met, err := conditionFunc()
+		if err != nil {
+			t.Logs.Errorf("Error checking condition %s: %v", condition, err)
+			return false
+		}
+		if !met {
+			t.Logs.Infof("Skipping test because condition is not met: %s", condition)
+			return true
+		}
+		return ginkgo.It(text, t.MakeGinkgoArgs(args...)...)
+	}
 }
 
 func (t *TestFramework) ItMinimumVersion(text string, version string, kubeconfigPath string, args ...interface{}) bool {
@@ -118,18 +100,24 @@ func (t *TestFramework) ItMinimumVersion(text string, version string, kubeconfig
 		t.Logs.Infof("Skipping test because Verrazzano version is less than %s", version)
 		return true
 	}
-	return t.It(text, args...)
+	return ginkgo.It(text, t.MakeGinkgoArgs(args...)...)
+}
+
+func (t *TestFramework) MakeGinkgoArgs(args ...interface{}) []interface{} {
+	body := getFunctionBodyPos(len(args)-1, args...)
+	f := func() {
+		metrics.Emit(t.Metrics) // Starting point metric
+		reflect.ValueOf(body).Call([]reflect.Value{})
+	}
+
+	args[len(args)-1] = ginkgo.Offset(1)
+	args = append(args, f)
+	return args
 }
 
 // Describe wraps Ginkgo Describe to emit a metric
 func (t *TestFramework) Describe(text string, args ...interface{}) bool {
-	if args == nil {
-		ginkgo.Fail("Unsupported args type - expected non-nil")
-	}
-	body := args[len(args)-1]
-	if !isBodyFunc(body) {
-		ginkgo.Fail("Unsupported body type - expected function")
-	}
+	body := getFunctionBodyPos(len(args)-1, args...)
 	f := func() {
 		metrics.Emit(t.Metrics)
 		reflect.ValueOf(body).Call([]reflect.Value{})
@@ -142,13 +130,7 @@ func (t *TestFramework) Describe(text string, args ...interface{}) bool {
 
 // DescribeTable - wrapper function for Ginkgo DescribeTable
 func (t *TestFramework) DescribeTable(text string, args ...interface{}) bool {
-	if args == nil {
-		ginkgo.Fail("Unsupported args type - expected non-nil")
-	}
-	body := args[0]
-	if !isBodyFunc(body) {
-		ginkgo.Fail("Unsupported body type - expected function")
-	}
+	body := getFunctionBody(args...)
 	funcType := reflect.TypeOf(body)
 	f := reflect.MakeFunc(funcType, func(args []reflect.Value) (results []reflect.Value) {
 		metrics.Emit(t.Metrics)
@@ -160,7 +142,7 @@ func (t *TestFramework) DescribeTable(text string, args ...interface{}) bool {
 	return ginkgo.DescribeTable(text, args...)
 }
 
-// BeforeSuiteFunc wrap a function to be called with ginkgo.BeforeSuite. ginkgo.BeforeSuite
+// BeforeSuiteFunc wrap a function to be called with ginkgo.BeforeSuiteFunc. ginkgo.BeforeSuiteFunc
 // // hard codes the call stack location, which requires calling it from the package level.
 func (t *TestFramework) BeforeSuiteFunc(body func()) func() {
 	t.failIfNilBody(body)
@@ -171,7 +153,7 @@ func (t *TestFramework) BeforeSuiteFunc(body func()) func() {
 	return f
 }
 
-// AfterSuiteFunc wrap a function to be called with ginkgo.AfterSuite. ginkgo.AfterSuite
+// AfterSuiteFunc wrap a function to be called with ginkgo.AfterSuiteFunc. ginkgo.AfterSuiteFunc
 // hard codes the call stack location, which requires calling it from the package level.
 func (t *TestFramework) AfterSuiteFunc(body func()) func() {
 	t.failIfNilBody(body)
@@ -253,4 +235,23 @@ func (t *TestFramework) failIfNilBody(body func()) {
 	if body == nil {
 		ginkgo.Fail("Unsupported body type - expected non-nil")
 	}
+}
+
+func failIfNotFunction(body interface{}) {
+	if !isBodyFunc(body) {
+		ginkgo.Fail("Unsupported body type - expected function")
+	}
+}
+
+func getFunctionBodyPos(pos int, args ...interface{}) interface{} {
+	if args == nil {
+		ginkgo.Fail("Unsupported args type - expected non-nil")
+	}
+	body := args[pos]
+	failIfNotFunction(body)
+	return body
+}
+
+func getFunctionBody(args ...interface{}) interface{} {
+	return getFunctionBodyPos(0, args...)
 }

@@ -10,3 +10,7 @@ dependencies:
     repository: file://../opensearch
     version: 0.1.0
     condition: opensearch.enabled
+  - name: prometheus
+    repository: file://../prometheus
+    version: 0.1.0
+    condition: prometheus.enabled

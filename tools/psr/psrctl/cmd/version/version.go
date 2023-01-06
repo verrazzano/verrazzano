@@ -5,6 +5,9 @@ package version
 
 import (
 	"fmt"
+	"os"
+	"regexp"
+
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"

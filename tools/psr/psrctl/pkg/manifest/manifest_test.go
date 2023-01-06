@@ -4,12 +4,13 @@
 package manifest
 
 import (
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-// TestEmbeddedManifests tests the CreatePsrTempDir and NewPsrManifests functions
+// TestEmbeddedManifests tests the createPsrTempDir and newPsrManifests functions
 // GIVEN a binary with the embedded manifests
 //
 //	WHEN the PsrManifest is created

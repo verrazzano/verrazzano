@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"go.uber.org/zap"
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 )
@@ -319,6 +320,36 @@ func GetAllSourcesFilteredIssues(log *zap.SugaredLogger, includeInfo bool, minCo
 	return filtered
 }
 
+// ClearReports clears the reports map, only for unit tests
+func ClearReports() {
+	reportMutex.Lock()
+	reports = make(map[string][]Issue)
+	reportMutex.Unlock()
+}
+
+// compare two structs are same or not
+func isEqualStructs(s1, s2 any) bool {
+	return reflect.DeepEqual(s1, s2)
+}
+
+// filter out duplicate issues
+func deDuplicateIssues(reportIssues []Issue) []Issue {
+	var deDuplicates = make([]Issue, 0, len(reportIssues))
+	for _, i1 := range reportIssues {
+		issueVisited := false
+		for _, i2 := range deDuplicates {
+			if isEqualStructs(i1, i2) {
+				issueVisited = true
+				break
+			}
+		}
+		if !issueVisited {
+			deDuplicates = append(deDuplicates, i1)
+		}
+	}
+	return deDuplicates
+}
+
 func filterReportIssues(log *zap.SugaredLogger, reportIssues []Issue, includeInfo bool, minConfidence int, minImpact int) (filtered []Issue) {
 	filtered = make([]Issue, 0, len(reportIssues))
 	for _, issue := range reportIssues {
@@ -329,5 +360,5 @@ func filterReportIssues(log *zap.SugaredLogger, reportIssues []Issue, includeInf
 		}
 		filtered = append(filtered, issue)
 	}
-	return filtered
+	return deDuplicateIssues(filtered)
 }

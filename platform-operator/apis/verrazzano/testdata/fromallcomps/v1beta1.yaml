@@ -269,6 +269,11 @@ spec:
     opensearchDashboards:
       enabled: true
       replicas: 1
+      plugins:
+        enabled: true
+        installList:
+          - plugin1
+          - plugin2
     prometheus:
       enabled: true
     prometheusAdapter:

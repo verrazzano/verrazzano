@@ -5,11 +5,15 @@ package scenario
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 )
 
+var UninstallFunc = helmcli.Uninstall
+
 // StopScenarioByID stops a running scenario specified by the scenario ID
-func (m ScenarioMananger) StopScenarioByID(ID string) (string, error) {
+func (m ScenarioMananger) StopScenarioByID(ID string, vzHelper helpers.VZHelper) (string, error) {
 	cm, err := m.getConfigMapByID(ID)
 	if err != nil {
 		return "", err
@@ -21,9 +25,9 @@ func (m ScenarioMananger) StopScenarioByID(ID string) (string, error) {
 	// Delete Helm releases
 	for _, h := range sc.HelmReleases {
 		if m.Verbose {
-			fmt.Printf("Uninstalling Helm release %s/%s\n", h.Namespace, h.Name)
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Uninstalling Helm release %s/%s\n", h.Namespace, h.Name)
 		}
-		_, stderr, err := helmcli.Uninstall(m.Log, h.Name, h.Namespace, m.DryRun)
+		_, stderr, err := UninstallFunc(m.Log, h.Name, h.Namespace, m.DryRun)
 		if err != nil {
 			return string(stderr), err
 		}

@@ -1,5 +1,6 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package operatorinit
 
 import (
@@ -9,8 +10,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
@@ -34,8 +35,8 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 	metricsexporter.StartMetricsServer(log)
 
 	// Set up the reconciler
-	statusUpdater := status.NewStatusUpdater(mgr.GetClient())
-	healthCheck := status.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(config.HealthCheckPeriodSeconds)*time.Second)
+	statusUpdater := healthcheck.NewStatusUpdater(mgr.GetClient())
+	healthCheck := healthcheck.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(config.HealthCheckPeriodSeconds)*time.Second)
 	reconciler := reconcile.Reconciler{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),

@@ -1,0 +1,28 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+==== START logs for container helm of pod cattle-system/helm-operation-d2p4w ====
+helm upgrade --force-adopt=true --history-max=5 --install=true --namespace=cattle-fleet-system --reset-values=true --timeout=5m0s --values=/home/shell/helm/values-fleet-100.0.3-up0.3.9.yaml --version=100.0.3+up0.3.9 --wait=true fleet /home/shell/helm/fleet-100.0.3-up0.3.9.tgz
+Release "fleet" does not exist. Installing it now.
+creating 15 resource(s)
+beginning wait for 15 resources with timeout of 5m0s
+Deployment is not ready: cattle-fleet-system/gitjob. 0 out of 1 expected pods are ready
+Deployment is not ready: cattle-fleet-system/gitjob. 0 out of 1 expected pods are ready
+Deployment is not ready: cattle-fleet-system/gitjob. 0 out of 1 expected pods are ready
+Deployment is not ready: cattle-fleet-system/gitjob. 0 out of 1 expected pods are ready
+Deployment is not ready: cattle-fleet-system/gitjob. 0 out of 1 expected pods are ready
+NAME: fleet
+LAST DEPLOYED: Thu Jun 16 10:25:24 2022
+NAMESPACE: cattle-fleet-system
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+
+---------------------------------------------------------------------
+SUCCESS: helm upgrade --force-adopt=true --history-max=5 --install=true --namespace=cattle-fleet-system --reset-values=true --timeout=5m0s --values=/home/shell/helm/values-fleet-100.0.3-up0.3.9.yaml --version=100.0.3+up0.3.9 --wait=true fleet /home/shell/helm/fleet-100.0.3-up0.3.9.tgz
+---------------------------------------------------------------------
+==== END logs for container helm of pod cattle-system/helm-operation-d2p4w ====
+==== START logs for container proxy of pod cattle-system/helm-operation-d2p4w ====
+W0616 10:25:23.540781       7 proxy.go:162] Request filter disabled, your proxy is vulnerable to XSRF attacks, please be cautious
+Starting to serve on REDACTED-IP4-ADDRESS:8001
+Terminated
+==== END logs for container proxy of pod cattle-system/helm-operation-d2p4w ====

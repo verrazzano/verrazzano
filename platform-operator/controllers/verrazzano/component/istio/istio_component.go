@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
+
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
@@ -27,6 +29,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -113,7 +116,7 @@ type istioComponent struct {
 	InjectedSystemNamespaces []string
 
 	// Internal monitor object for peforming `istioctl` operations in the background
-	monitor installMonitor
+	monitor monitor.BackgroundProcessMonitor
 }
 
 // Namespace returns the component namespace
@@ -193,7 +196,7 @@ func NewComponent() spi.Component {
 	return istioComponent{
 		ValuesFile:               filepath.Join(config.GetHelmOverridesDir(), "istio-cr.yaml"),
 		InjectedSystemNamespaces: config.GetInjectedSystemNamespaces(),
-		monitor:                  &installMonitorType{},
+		monitor:                  &monitor.BackgroundProcessMonitorType{ComponentName: ComponentName},
 	}
 }
 
@@ -447,7 +450,7 @@ func (i istioComponent) GetDependencies() []string {
 func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {
 	if vzcr.IsApplicationOperatorEnabled(context.ActualCR()) {
 		context.Log().Infof("Stop WebLogic domains that have the old Envoy sidecar where istio version skew is more than 2 minor versions")
-		if err := StopDomainsUsingOldEnvoy(context.Log(), context.Client()); err != nil {
+		if err := restart.StopDomainsUsingOldEnvoy(context.Log(), context.Client()); err != nil {
 			return err
 		}
 	}

@@ -43,6 +43,7 @@ pipeline {
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         PERIODIC_JOB_PROJECT_NAME = 'verrazzano-periodic-triggered-tests'
+        OBJECT_STORAGE_NS = credentials('oci-os-namespace')
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_CLI_AUTH="api_key"
         OCI_CLI_TENANCY = credentials('oci-tenancy')
@@ -119,6 +120,7 @@ pipeline {
                 TICKET_SERVICE_USERNAME = credentials('ticket-service-username')
                 TICKET_SERVICE_PASSWORD = credentials('ticket-service-password')
                 OCI_OS_BUCKET="verrazzano-builds"
+                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                 OCI_CLI_AUTH="api_key"
                 OCI_CLI_TENANCY = credentials('oci-tenancy')
                 OCI_CLI_USER = credentials('oci-user-ocid')
@@ -126,9 +128,23 @@ pipeline {
                 OCI_CLI_KEY_FILE = credentials('oci-api-key')
                 OCI_CLI_REGION = "us-phoenix-1"
                 OCI_REGION = "${env.OCI_CLI_REGION}"
+                RELEASE_VERSION = "${params.RELEASE_VERSION}"
+                VERRAZZANO_RELEASE_PREFIX = "verrazzano-${VERRAZZANO_DEV_VERSION}"
+                VERRAZZANO_LITE_BUNDLE = "${VERRAZZANO_RELEASE_PREFIX}-lite.zip"
+                VERRAZZANO_FULL_BUNDLE = "${VERRAZZANO_RELEASE_PREFIX}.zip"
+                VZ_LITE = "vz-lite"
+                VZ_FULL = "vz-full"
             }
             steps {
                 script {
+                    sh """
+                        cd ${WORKSPACE}
+                        echo "Ensuring release artifacts exist for the specified commit id."
+                        echo "The commit here should correspond to the commit id from a successful periodic test run which produced artifacts which can be released"
+                        ./release/scripts/get_release_artifacts.sh ${CLEAN_BRANCH_NAME} ${SHORT_COMMIT_HASH} ${VERRAZZANO_FULL_BUNDLE} ${VZ_FULL} "VERIFY-ONLY"
+                        ./release/scripts/get_release_artifacts.sh ${CLEAN_BRANCH_NAME} ${SHORT_COMMIT_HASH} ${VERRAZZANO_LITE_BUNDLE} ${VZ_LITE} "VERIFY-ONLY"
+                    """
+
                     sh """
                         set +e
                         cd ${WORKSPACE}

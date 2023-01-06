@@ -84,7 +84,6 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
-        booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
         booleanParam (description: 'Force execution of the tests even if up-to-date', name: 'FORCE', defaultValue: false)
         booleanParam (description: 'Skip test execution (for debugging)', name: 'DRY_RUN', defaultValue: false)
         booleanParam (description: 'Run KinD Based DNS tests ', name: 'KIND_DNS_TESTS', defaultValue: true)
@@ -200,7 +199,6 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
                         }
@@ -221,7 +219,6 @@ pipeline {
                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                       booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                    ], wait: true
                             }
                         }
@@ -243,7 +240,6 @@ pipeline {
                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                       booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                    ], wait: true
                            }
                        }
@@ -266,7 +262,6 @@ pipeline {
                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                       booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                    ], wait: true
                            }
                        }
@@ -286,7 +281,6 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
                         }
@@ -330,7 +324,6 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
                         }
@@ -352,7 +345,6 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
                         }
@@ -375,7 +367,6 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
                         }
@@ -399,7 +390,6 @@ pipeline {
                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                       booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                    ], wait: true
                            }
                        }
@@ -422,7 +412,6 @@ pipeline {
                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                       booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                    ], wait: true
                            }
                        }
@@ -446,7 +435,6 @@ pipeline {
                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                       booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                    ], wait: true
                            }
                        }
@@ -474,7 +462,6 @@ pipeline {
                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                       booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                    ], wait: true
                            }
                        }
@@ -497,7 +484,6 @@ pipeline {
                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                       booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                    ], wait: true
                            }
                        }
@@ -520,7 +506,6 @@ pipeline {
                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                       booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                    ], wait: true
                            }
                        }
@@ -546,7 +531,6 @@ pipeline {
                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                       booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                    ], wait: true
                            }
                        }
@@ -569,7 +553,6 @@ pipeline {
                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                       booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                    ], wait: true
                            }
                        }
@@ -593,7 +576,6 @@ pipeline {
                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                       booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                    ], wait: true
                            }
                        }

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -6,10 +6,8 @@ package rancher
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strconv"
-
+	"github.com/gertd/go-pluralize"
+	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -27,12 +25,20 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"os"
+	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strconv"
+	"strings"
 )
 
 // ComponentName is the name of the component
@@ -73,6 +79,9 @@ type envVar struct {
 
 type rancherComponent struct {
 	helm.HelmComponent
+
+	// internal monitor object for running the Rancher uninstall tool in the background
+	monitor monitor.BackgroundProcessMonitor
 }
 
 var certificates = []types.NamespacedName{
@@ -126,6 +135,7 @@ func NewComponent() spi.Component {
 			},
 			GetInstallOverridesFunc: GetOverrides,
 		},
+		monitor: &monitor.BackgroundProcessMonitorType{ComponentName: ComponentName},
 	}
 }
 
@@ -226,17 +236,11 @@ func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.K
 		return kvs, ctx.Log().ErrorfNewErr("Failed to get the bom file for the Rancher image overrides: %v", err)
 	}
 
-	// Set the Rancher default registry, if registry overrides are not present
-	registry := os.Getenv(constants.RegistryOverrideEnvVar)
-	if registry == "" {
-		kvs = append(kvs, bom.KeyValue{Key: systemDefaultRegistryKey, Value: bomFile.GetRegistry()})
-	}
-
+	registryOverride := os.Getenv(constants.RegistryOverrideEnvVar)
 	subcomponent, err := bomFile.GetSubcomponent(rancherImageSubcomponent)
 	if err != nil {
 		return kvs, ctx.Log().ErrorfNewErr("Failed to get the subcomponent %s from the bom: %v", rancherImageSubcomponent, err)
 	}
-	repo := subcomponent.Repository
 	images := subcomponent.Images
 
 	var envList []envVar
@@ -246,7 +250,15 @@ func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.K
 		if !ok {
 			continue
 		}
-		fullImageName := fmt.Sprintf("%s/%s", repo, image.ImageName)
+
+		// if there is a registry override set, it will be communicated to Rancher using the "systemDefaultRegistry" helm value,
+		// otherwise we prepend the image here with the registry value from the BOM
+		var registry = ""
+		if registryOverride == "" {
+			registry = bomFile.ResolveRegistry(subcomponent, image) + "/"
+		}
+
+		fullImageName := fmt.Sprintf("%s%s/%s", registry, subcomponent.Repository, image.ImageName)
 		// For the shell image, we need to combine to one env var
 		if image.ImageName == cattleShellImageName {
 			envList = append(envList, envVar{Name: imEnvVar, Value: fmt.Sprintf("%s:%s", fullImageName, image.ImageTag), SetString: false})
@@ -300,7 +312,7 @@ func (r rancherComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) 
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	// Block all changes for now, particularly around storage changes
+	// Do not allow disabling of component
 	if r.IsEnabled(old) && !r.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
@@ -309,7 +321,7 @@ func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (r rancherComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	// Block all changes for now, particularly around storage changes
+	// Do not allow disabling of component
 	if r.IsEnabled(old) && !r.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
@@ -440,7 +452,7 @@ func (r rancherComponent) PostUninstall(ctx spi.ComponentContext) error {
 		ctx.Log().Debug("Rancher postUninstall dry run")
 		return nil
 	}
-	return postUninstall(ctx)
+	return postUninstall(ctx, r.monitor)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
@@ -510,10 +522,6 @@ func ConfigureAuthProviders(ctx spi.ComponentContext) error {
 			return err
 		}
 
-		if err := createOrUpdateVZClusterUser(ctx); err != nil {
-			return err
-		}
-
 		if err := createOrUpdateRoleTemplates(ctx); err != nil {
 			return err
 		}
@@ -529,7 +537,7 @@ func ConfigureAuthProviders(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// createOrUpdateRoleTemplates creates or updates the verrazzano-admin, verrazzano-monitor, and verrazzano-cluster-user RoleTemplates
+// createOrUpdateRoleTemplates creates or updates the verrazzano-admin and verrazzano-monitor RoleTemplates
 func createOrUpdateRoleTemplates(ctx spi.ComponentContext) error {
 	if err := CreateOrUpdateRoleTemplate(ctx, VerrazzanoAdminRoleName); err != nil {
 		return err
@@ -596,10 +604,21 @@ func checkExistingRancher(vz runtime.Object) error {
 	if !vzcr.IsRancherEnabled(vz) {
 		return nil
 	}
+
+	provisioned, err := IsClusterProvisionedByRancher()
+	if err != nil {
+		return err
+	}
+	// If the k8s cluster was provisioned by Rancher then don't check for Rancher namespaces.
+	// A Rancher provisioned cluster will have Rancher namespaces.
+	if provisioned {
+		return nil
+	}
 	client, err := k8sutil.GetCoreV1Func()
 	if err != nil {
 		return err
 	}
+
 	ns, err := client.Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil && !kerrs.IsNotFound(err) {
 		return err
@@ -608,6 +627,62 @@ func checkExistingRancher(vz runtime.Object) error {
 		return err
 	}
 	return nil
+}
+
+// IsClusterProvisionedByRancher checks if the Kubernetes cluster was provisioned by Rancher.
+func IsClusterProvisionedByRancher() (bool, error) {
+	client, err := k8sutil.GetCoreV1Func()
+	if err != nil {
+		return false, err
+	}
+	dynClient, err := k8sutil.GetDynamicClientFunc()
+	if err != nil {
+		return false, err
+	}
+
+	provisioned, err := checkClusterProvisioned(client, dynClient)
+	if err != nil {
+		return false, err
+	}
+
+	return provisioned, nil
+}
+
+// checkClusterProvisioned checks if the Kubernetes cluster was provisioned by Rancher.
+func checkClusterProvisioned(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) {
+	// Check for the "local" namespace.
+	ns, err := client.Namespaces().Get(context.TODO(), ClusterLocal, metav1.GetOptions{})
+	if kerrs.IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	// Find the management.cattle.io Cluster resource and check if the provider.cattle.io label exists.
+	for _, ownerRef := range ns.OwnerReferences {
+		group, version := controllers.ConvertAPIVersionToGroupAndVersion(ownerRef.APIVersion)
+		if group == common.APIGroupRancherManagement && ownerRef.Kind == ClusterKind {
+			resource := schema.GroupVersionResource{
+				Group:    group,
+				Version:  version,
+				Resource: pluralize.NewClient().Plural(strings.ToLower(ownerRef.Kind)),
+			}
+			u, err := dynClient.Resource(resource).Namespace("").Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
+			if err != nil {
+				return false, err
+			}
+
+			labels := u.GetLabels()
+			_, ok := labels[ProviderCattleIoLabel]
+			if ok {
+				return true, nil
+			}
+			return false, nil
+		}
+	}
+
+	return false, nil
 }
 
 // createOrUpdateRancherUser create or update the new Rancher user mapped to Keycloak user verrazzano

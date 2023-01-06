@@ -24,7 +24,24 @@ const (
 	imagePullPollingInterval = 30 * time.Second
 	waitTimeout              = 10 * time.Minute
 	pollingInterval          = 30 * time.Second
+
+	OperatorCondition = "Jaeger Operator Enabled"
 )
+
+func IsJaegerEnabled() (bool, error) {
+	kubeconfig, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		return false, err
+	}
+	if pkg.IsJaegerOperatorEnabled(kubeconfig) {
+		supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfig)
+		if err != nil {
+			return false, err
+		}
+		return supported, nil
+	}
+	return false, nil
+}
 
 func WhenJaegerOperatorEnabledIt(t *framework.TestFramework, text string, args ...interface{}) {
 	kubeconfig, err := k8sutil.GetKubeConfigLocation()

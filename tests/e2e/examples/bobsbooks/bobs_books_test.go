@@ -5,6 +5,7 @@ package bobsbooks
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -71,12 +72,12 @@ var _ = t.AfterEach(func() {
 var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		// bobbys frontend
-		pkg.CaptureContainerLogs(namespace, "bobbys-front-end-adminserver", "weblogic-server", "/scratch/logs/bobbys-front-end")
-		pkg.CaptureContainerLogs(namespace, "bobbys-front-end-managed-server1", "weblogic-server", "/scratch/logs/bobbys-front-end")
+		dump.CaptureContainerLogs(namespace, "bobbys-front-end-adminserver", "weblogic-server", "/scratch/logs/bobbys-front-end")
+		dump.CaptureContainerLogs(namespace, "bobbys-front-end-managed-server1", "weblogic-server", "/scratch/logs/bobbys-front-end")
 		// Bobs Bookstore
-		pkg.CaptureContainerLogs(namespace, "bobs-bookstore-adminserver", "weblogic-server", "/scratch/logs/bobs-orders-wls")
-		pkg.CaptureContainerLogs(namespace, "bobs-bookstore-managed-server1", "weblogic-server", "/scratch/logs/bobs-orders-wls")
-		pkg.ExecuteBugReport(namespace)
+		dump.CaptureContainerLogs(namespace, "bobs-bookstore-adminserver", "weblogic-server", "/scratch/logs/bobs-bookstore")
+		dump.CaptureContainerLogs(namespace, "bobs-bookstore-managed-server1", "weblogic-server", "/scratch/logs/bobs-bookstore")
+		dump.ExecuteBugReport(namespace)
 	}
 	if !skipUndeploy {
 		undeployBobsBooksExample()
@@ -341,7 +342,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobs-orders-wls")
+						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobs-bookstore")
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {

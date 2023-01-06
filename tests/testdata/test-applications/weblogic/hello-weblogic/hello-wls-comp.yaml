@@ -11,6 +11,7 @@ spec:
     kind: VerrazzanoWebLogicWorkload
     spec:
       template:
+        apiVersion: weblogic.oracle/v9
         metadata:
           name: hello-domain
         spec:
@@ -18,9 +19,6 @@ spec:
             adminChannelPortForwardingEnabled: true
           domainUID: hellodomain
           domainHome: /u01/domains/hellodomain
-          auxiliaryImageVolumes:
-            - name: auxiliaryImageVolume1
-              mountPath: /auxiliary
           image: container-registry.oracle.com/middleware/weblogic:12.2.1.4
           imagePullSecrets:
             - name: hellodomain-repo-credentials
@@ -32,17 +30,14 @@ spec:
           configuration:
             introspectorJobActiveDeadlineSeconds: 900
             model:
+              auxiliaryImages:
+                - image: ghcr.io/verrazzano/weblogic-app:1.0.0-1-20220319111617-b157b52a
               domainType: WLS
-              modelHome: /auxiliary/models
-              wdtInstallHome: /auxiliary/weblogic-deploy
               runtimeEncryptionSecret: hellodomain-runtime-encrypt-secret
           serverPod:
             labels:
               app: hello-domain
               version: v1
-            auxiliaryImages:
-                - image: ghcr.io/verrazzano/weblogic-app:1.0.0-1-20220319111617-b157b52a
-                  volume: auxiliaryImageVolume1
             env:
               - name: JAVA_OPTIONS
                 value: "-Dweblogic.StdoutDebugEnabled=false"

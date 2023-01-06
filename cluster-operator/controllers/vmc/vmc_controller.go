@@ -9,10 +9,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/rancherutil"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -47,8 +50,28 @@ type bindingParams struct {
 	serviceAccountName string
 }
 
+var (
+	reconcileTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "vz_cluster_operator_reconcile_vmc_duration_seconds",
+		Help: "The duration of the reconcile process for cluster objects",
+	})
+	reconcileErrorCount = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "vz_cluster_operator_reconcile_vmc_error_total",
+		Help: "The amount of errors encountered in the reconcile process",
+	})
+	reconcileSuccessCount = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "vz_cluster_operator_reconcile_vmc_success_total",
+		Help: "The number of times the reconcile process succeeded",
+	})
+)
+
 func (r *VerrazzanoManagedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	// Time the reconcile process and set the metric with the elapsed time
+	startTime := time.Now()
+	defer reconcileTimeMetric.Set(time.Since(startTime).Seconds())
+
 	if ctx == nil {
+		reconcileErrorCount.Inc()
 		return ctrl.Result{}, goerrors.New("context cannot be nil")
 	}
 	cr := &clustersv1alpha1.VerrazzanoManagedCluster{}
@@ -56,8 +79,10 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(ctx context.Context, req 
 		// If the resource is not found, that means all of the finalizers have been removed,
 		// and the Verrazzano resource has been deleted, so there is nothing left to do.
 		if errors.IsNotFound(err) {
+			reconcileSuccessCount.Inc()
 			return reconcile.Result{}, nil
 		}
+		reconcileErrorCount.Inc()
 		zap.S().Errorf("Failed to fetch VerrazzanoManagedCluster resource: %v", err)
 		return newRequeueWithDelay(), nil
 	}
@@ -71,6 +96,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(ctx context.Context, req 
 		ControllerName: "multicluster",
 	})
 	if err != nil {
+		reconcileErrorCount.Inc()
 		zap.S().Errorf("Failed to create controller logger for VerrazzanoManagedCluster controller", err)
 	}
 
@@ -78,18 +104,21 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(ctx context.Context, req 
 	log.Oncef("Reconciling Verrazzano resource %v", req.NamespacedName)
 	res, err := r.doReconcile(ctx, log, cr)
 	if vzctrl.ShouldRequeue(res) {
+		reconcileSuccessCount.Inc()
 		return res, nil
 	}
 
 	// Never return an error since it has already been logged and we don't want the
 	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
 	if err != nil {
+		reconcileErrorCount.Inc()
 		return newRequeueWithDelay(), nil
 	}
 
 	// The resource has been reconciled.
 	log.Oncef("Successfully reconciled VerrazzanoManagedCluster resource %v", req.NamespacedName)
 
+	reconcileSuccessCount.Inc()
 	return ctrl.Result{}, nil
 }
 
@@ -173,6 +202,13 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 		if syncedCert {
 			r.setStatusConditionManagedCARetrieved(vmc, corev1.ConditionTrue, "Managed cluster CA cert retrieved successfully")
 		}
+	}
+
+	log.Debugf("Updating Rancher ClusterRoleBindingTemplate for VMC %s", vmc.Name)
+	err = r.updateRancherClusterRoleBindingTemplate(vmc)
+	if err != nil {
+		r.handleError(ctx, vmc, "Failed to update Rancher ClusterRoleBindingTemplate", err, log)
+		return newRequeueWithDelay(), err
 	}
 
 	log.Debugf("Pushing the Manifest objects for VMC %s", vmc.Name)
@@ -337,7 +373,7 @@ func (r *VerrazzanoManagedClusterReconciler) deleteClusterFromRancher(ctx contex
 		return nil
 	}
 
-	rc, err := newRancherConfig(r.Client, r.log)
+	rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.log)
 	if err != nil {
 		msg := "Failed to create Rancher API client"
 		r.updateRancherStatus(ctx, vmc, clustersv1alpha1.DeleteFailed, clusterID, msg)

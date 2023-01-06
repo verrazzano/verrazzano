@@ -664,7 +664,6 @@ pipeline {
             """
         }
         cleanup {
-            emitJobMetrics()
             deleteDir()
         }
     }
@@ -826,14 +825,4 @@ def listHelmReleases(customMessage) {
         helm list -A
         echo "-----------------------------------------------------"
     """
-}
-
-def emitJobMetrics() {
-    env.JOB_STATUS = "${currentBuild.currentResult}".trim()
-    long duration = "${currentBuild.duration}" as long;
-    env.DURATION = duration
-    long timeInMillis = "${currentBuild.timeInMillis}" as long;
-    long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
-    env.TIME_WAITING = startTimeInMillis-timeInMillis
-    runGinkgoRandomize('jobmetrics')
 }

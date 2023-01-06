@@ -5,6 +5,7 @@ package hotrod
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -36,6 +37,8 @@ var (
 	hotrodServiceName  = fmt.Sprintf("hotrod.%s", generatedNamespace)
 )
 
+var whenJaegerOperatorEnabledIt = t.WhenMeetsConditionFunc(jaeger.OperatorCondition, jaeger.IsJaegerEnabled)
+
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	start = time.Now()
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -59,7 +62,7 @@ var _ = t.AfterEach(func() {
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteBugReport(namespace)
+		dump.ExecuteBugReport(namespace)
 	}
 	// undeploy the application here
 	start := time.Now()
@@ -75,7 +78,7 @@ var _ = t.Describe("Hotrod App with Jaeger Traces", Label("f:jaeger.hotrod-workl
 		// GIVEN the Jaeger Operator is enabled and a sample application is installed,
 		// WHEN we check for traces for that service,
 		// THEN we are able to get the traces
-		jaeger.WhenJaegerOperatorEnabledIt(t, "traces for the hotrod app should be available when queried from Jaeger", func() {
+		whenJaegerOperatorEnabledIt("traces for the hotrod app should be available when queried from Jaeger", func() {
 			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 			if err != nil {
 				Fail(err.Error())
@@ -87,7 +90,7 @@ var _ = t.Describe("Hotrod App with Jaeger Traces", Label("f:jaeger.hotrod-workl
 		// GIVEN the Jaeger Operator component is enabled,
 		// WHEN a sample application is installed,
 		// THEN the traces are found in OpenSearch Backend
-		jaeger.WhenJaegerOperatorEnabledIt(t, "traces for the hotrod app should be available in the OS backend storage.", func() {
+		whenJaegerOperatorEnabledIt("traces for the hotrod app should be available in the OS backend storage.", func() {
 			validatorFn := pkg.ValidateApplicationTracesInOS(start, hotrodServiceName)
 			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
