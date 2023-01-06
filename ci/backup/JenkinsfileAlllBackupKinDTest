@@ -2,7 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
- def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 // def agentLabel = "largeexperimental"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 def ociOsBucketName = UUID.randomUUID().toString().substring(0,6).replace('-','')
@@ -381,14 +381,16 @@ pipeline {
             }
         }
 
-        stage('mysql operator backup and restore with OCI credentials') {
+        stage('mysql operator backup and restore with S3') {
             when {
-                expression {params.MYSQL_BACKUP_OCI == true}
+                expression {params.MYSQL_BACKUP_S3 == true}
             }
             environment {
+                MYSQL_BACKUP_MODE = "s3"
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
             }
             steps {
+                cleanupBucket("${OCI_OS_BUCKET_NAME}")
                 echoAllPodInfo()
                 println("Checking all pods in namespace keycloak are ready before start of test")
                 waitForPodsToBeUp("keycloak")
@@ -409,12 +411,11 @@ pipeline {
             }
         }
 
-        stage('mysql operator backup and restore with S3') {
+        stage('mysql operator backup and restore with OCI credentials') {
             when {
-                expression {params.MYSQL_BACKUP_S3 == true}
+                expression {params.MYSQL_BACKUP_OCI == true}
             }
             environment {
-                MYSQL_BACKUP_MODE = "s3"
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
             }
             steps {

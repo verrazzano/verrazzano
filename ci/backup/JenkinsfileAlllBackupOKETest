@@ -399,14 +399,16 @@ pipeline {
             }
         }
 
-        stage('mysql operator backup and restore with OCI credentials') {
+        stage('mysql operator backup and restore with S3') {
             when {
-                expression {params.MYSQL_BACKUP_OCI == true}
+                expression {params.MYSQL_BACKUP_S3 == true}
             }
             environment {
+                MYSQL_BACKUP_MODE = "s3"
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
             }
             steps {
+                cleanupBucket("${OCI_OS_BUCKET_NAME}")
                 echoAllPodInfo()
                 println("Checking all pods in namespace keycloak are ready before start of test")
                 waitForPodsToBeUp("keycloak")
@@ -427,12 +429,11 @@ pipeline {
             }
         }
 
-        stage('mysql operator backup and restore with S3') {
+        stage('mysql operator backup and restore with OCI credentials') {
             when {
-                expression {params.MYSQL_BACKUP_S3 == true}
+                expression {params.MYSQL_BACKUP_OCI == true}
             }
             environment {
-                MYSQL_BACKUP_MODE = "s3"
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
             }
             steps {
