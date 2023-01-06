@@ -42,7 +42,6 @@ var skipPods = map[string][]string{
 	},
 	"verrazzano-monitoring": {
 		"node-exporter",
-		"alertmanager",
 		"kube-state-metrics",
 		"jaeger",
 	},
