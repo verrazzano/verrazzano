@@ -99,7 +99,7 @@ var _ = BeforeSuite(beforeSuite)
 var _ = t.Describe("BOM Validator", Label("f:platform-lcm.install"), func() {
 	t.Context("Post VZ Installations", func() {
 
-		t.It("Has bom images associated with it's tags", func() {
+		t.It("Has BOM images associated with its tags", func() {
 			Expect(vBom.Components).NotTo(BeNil())
 		})
 
@@ -115,7 +115,7 @@ var _ = t.Describe("BOM Validator", Label("f:platform-lcm.install"), func() {
 })
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
-	validateKubeConfig()
+	Expect(validateKubeConfig()).Should(BeTrue())
 	getBOM()
 })
 
