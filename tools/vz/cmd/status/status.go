@@ -55,9 +55,11 @@ Verrazzano Status
 {{- if .AvailableComponents }}
   Available Components: {{.AvailableComponents}}
 {{- end }}
+{{- if .Endpoints }}
   Access Endpoints:
 {{- range $key, $value := .Endpoints }}
     {{ $key }}: {{ $value }}
+{{- end }}
 {{- end }}
 {{- if .ComponentsEnabled }}
   Components:
@@ -124,6 +126,9 @@ func getProfile(profile v1beta1.ProfileType) string {
 
 func getEndpoints(instance *v1beta1.InstanceInfo) map[string]string {
 	values := map[string]string{}
+	if instance == nil {
+		return values
+	}
 	instanceValue := reflect.Indirect(reflect.ValueOf(instance))
 	instanceType := reflect.TypeOf(instance).Elem()
 	for i := 0; i < instanceType.NumField(); i++ {
