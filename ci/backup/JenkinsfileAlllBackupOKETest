@@ -70,7 +70,7 @@ pipeline {
                 trim: true)
         booleanParam (description: 'Whether to persist object store bucket', name: 'DELETE_BUCKET', defaultValue: true)
         booleanParam (description: 'Whether to execute MySQL backup tests', name: 'MYSQL_BACKUP', defaultValue: true)
-        booleanParam (description: 'Whether to execute MySQL backup tests with S3 API', name: 'MYSQL_BACKUP_S3', defaultValue: true)
+        booleanParam (description: 'Whether to execute MySQL backup tests with S3 API. Default is true. If unchecked user principal creds will be used', name: 'MYSQL_BACKUP_S3', defaultValue: true)
         booleanParam (description: 'Whether to execute OpenSearch backup tests', name: 'OPENSEARCH_BACKUP', defaultValue: true)
         booleanParam (description: 'Whether to execute Rancher backup tests', name: 'RANCHER_BACKUP', defaultValue: true)
     }
