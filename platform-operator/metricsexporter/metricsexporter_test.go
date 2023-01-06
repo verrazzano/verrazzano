@@ -1,9 +1,10 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package metricsexporter
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
@@ -259,12 +260,12 @@ func TestAnalyzeVerrazzanoResourceMetrics(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			AnalyzeVerrazzanoResourceMetrics(testLog, tt.vzcr)
-			grafanaMetricComponentObject, err := GetMetricComponent(grafanaMetricName)
+			grafanaInstallMetric, err := MetricsExp.internalData.componentInstallDuration.installDuration.GetMetricWithLabelValues(grafana.ComponentJSONName)
 			assert.NoError(err)
-			grafanaInstallMetric := grafanaMetricComponentObject.getInstallDuration()
-			assert.Equal(tt.expectedValueForInstallMetric, testutil.ToFloat64(grafanaInstallMetric.Get()))
-			grafanaUpgradeMetric := grafanaMetricComponentObject.getUpgradeDuration()
-			assert.Equal(tt.expectedValueForUpdateMetric, testutil.ToFloat64(grafanaUpgradeMetric.Get()))
+			assert.Equal(tt.expectedValueForInstallMetric, testutil.ToFloat64(grafanaInstallMetric))
+			grafanaUpgradeMetric, err := MetricsExp.internalData.componentUpgradeDuration.upgradeDuration.GetMetricWithLabelValues(grafana.ComponentJSONName)
+			assert.NoError(err)
+			assert.Equal(tt.expectedValueForUpdateMetric, testutil.ToFloat64(grafanaUpgradeMetric))
 		})
 	}
 }
