@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package oam
@@ -55,7 +55,10 @@ func ensureClusterRoles(ctx spi.ComponentContext) error {
 		pvcClusterRole.Rules = []rbacv1.PolicyRule{
 			{
 				APIGroups: []string{""},
-				Resources: []string{corev1.ResourcePersistentVolumeClaims.String()},
+				Resources: []string{
+					corev1.ResourcePersistentVolumeClaims.String(),
+					"persistentvolumes",
+				},
 				Verbs: []string{
 					"create",
 					"delete",
