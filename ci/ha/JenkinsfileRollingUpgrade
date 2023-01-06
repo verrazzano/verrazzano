@@ -345,8 +345,8 @@ pipeline {
                     post {
                         always {
                             sh """
-                                kubectl patch deployment -n hello-helidon hello-helidon-deployment -p '{"spec":{"replicas":3}}' --type=merge
-                                kubectl wait --for=condition=Ready pods --all -n hello-helidon --timeout=300s
+                                kubectl patch deployment -n ${HELIDON_TEST_NAMESPACE} hello-helidon-deployment -p '{"spec":{"replicas":3}}' --type=merge
+                                kubectl wait --for=condition=Ready pods --all -n ${HELIDON_TEST_NAMESPACE} --timeout=300s
                                 kubectl get pods -l app=hello-helidon -A
                             """
                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
