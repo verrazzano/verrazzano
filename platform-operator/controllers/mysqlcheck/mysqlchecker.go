@@ -16,11 +16,8 @@ const (
 	channelBufferSize = 100
 )
 
-// MySQLChecker polls Verrazzano component availability every tickTime, and writes status updates to a secret
-// It is the job of the Verrazzano controller to read availability status from the secret when updating
-// Verrazzano status.
-// The secret containing status is used for synchronization - multiple goroutines writing to the same object
-// will cause performance degrading write conflicts.
+// MySQLChecker periodically checks the state of MySQL related pods and repairs
+// any that are found to be in a stuck state (e.g. terminating, waiting for readiness gates).
 type MySQLChecker struct {
 	client   clipkg.Client
 	tickTime time.Duration
@@ -28,9 +25,10 @@ type MySQLChecker struct {
 	shutdown chan int // The channel on which shutdown signals are sent/received
 }
 
+// NewMySQLChecker - instantiate a MySQLChecker context
 func NewMySQLChecker(c clipkg.Client, tick time.Duration) (*MySQLChecker, error) {
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
-		Name:           helmReleaseName,
+		Name:           componentName,
 		Namespace:      componentNamespace,
 		ID:             controllerName,
 		Generation:     0,
