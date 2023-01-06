@@ -5,8 +5,9 @@ package grafana
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -48,7 +49,7 @@ var _ = t.Describe("Post Upgrade Grafana Dashboard", Label("f:observability.logg
 	// WHEN a GET call is made  to Grafana with the UID of the system dashboard,
 	// THEN the dashboard metadata of the corresponding System dashboard is returned.
 	t.It("Get details of the system Grafana dashboard", func() {
-		pkg.TestSystemGrafanaDashboard(pollingInterval, waitTimeout)
+		pkg.TestSystemHealthGrafanaDashboard(pollingInterval, waitTimeout)
 	})
 
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()

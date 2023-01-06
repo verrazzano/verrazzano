@@ -7,20 +7,22 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+
+	"net/http"
+	"strings"
 
 	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net/http"
-	"strings"
 )
 
 const (
-	grafanaErrMsgFmt         = "Failed to GET Grafana testDashboard: status=%d: body=%s"
-	testDashboardTitle       = "E2ETestDashboard"
-	systemDashboardTitle     = "Host Metrics"
-	openSearchMetricsDbTitle = "OpenSearch Summary Dashboard"
+	grafanaErrMsgFmt           = "Failed to GET Grafana testDashboard: status=%d: body=%s"
+	testDashboardTitle         = "E2ETestDashboard"
+	systemHealthDashboardTitle = "System Health"
+	openSearchMetricsDbTitle   = "OpenSearch Summary Dashboard"
 )
 
 type DashboardMetadata struct {
@@ -160,9 +162,9 @@ func TestOpenSearchGrafanaDashBoard(pollingInterval time.Duration, timeout time.
 	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
 }
 
-func TestSystemGrafanaDashboard(pollingInterval time.Duration, timeout time.Duration) {
-	// UID of system testDashboard, which is created by the VMO on startup.
-	uid := "H0xWYyyik"
+func TestSystemHealthGrafanaDashboard(pollingInterval time.Duration, timeout time.Duration) {
+	// UID of system health dashboard, which is created by the VMO on startup.
+	uid := "Q4BkmcOVk"
 	gomega.Eventually(func() bool {
 		resp, err := GetGrafanaDashboard(uid)
 		if err != nil {
@@ -175,7 +177,7 @@ func TestSystemGrafanaDashboard(pollingInterval time.Duration, timeout time.Dura
 		}
 		body := make(map[string]map[string]string)
 		json.Unmarshal(resp.Body, &body)
-		return strings.Contains(body["dashboard"]["title"], systemDashboardTitle)
+		return strings.Contains(body["dashboard"]["title"], systemHealthDashboardTitle)
 	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
 }
 

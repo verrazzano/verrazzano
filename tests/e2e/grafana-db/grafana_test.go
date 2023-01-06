@@ -7,13 +7,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net/http"
-	"os"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -90,7 +91,7 @@ var _ = t.Describe("Test Grafana Dashboard Persistence", Label("f:observability.
 	// WHEN a GET call is made  to Grafana with the system dashboard UID,
 	// THEN the dashboard metadata of the corresponding testDashboard is returned.
 	It("Get details of the system Grafana Dashboard", func() {
-		pkg.TestSystemGrafanaDashboard(pollingInterval, waitTimeout)
+		pkg.TestSystemHealthGrafanaDashboard(pollingInterval, waitTimeout)
 	})
 
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -154,7 +155,7 @@ var _ = t.Describe("Test Grafana Dashboard Persistence", Label("f:observability.
 	// WHEN a GET call is made  to Grafana with the UID of the system dashboard,
 	// THEN the dashboard metadata of the corresponding System dashboard is returned.
 	It("Get details of the system Grafana dashboard", func() {
-		pkg.TestSystemGrafanaDashboard(pollingInterval, waitTimeout)
+		pkg.TestSystemHealthGrafanaDashboard(pollingInterval, waitTimeout)
 	})
 
 	kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
