@@ -59,7 +59,12 @@ type podExceptions struct {
 }
 
 var exceptionPods = map[string]podExceptions{
-	"node-exporter": {allowHostPath: true},
+	"node-exporter": {
+		allowHostPath:    true,
+		allowHostNetwork: true,
+		allowHostPID:     true,
+		allowHostPort:    true,
+	},
 }
 
 var (
