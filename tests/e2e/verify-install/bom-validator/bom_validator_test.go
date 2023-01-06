@@ -103,13 +103,10 @@ var _ = t.Describe("BOM Validator", Label("f:platform-lcm.install"), func() {
 			Expect(vBom.Components).NotTo(BeNil())
 		})
 
-		t.It("Has Successfully scanned cluster images with Bom", func() {
-			populateBomContainerImagesMap()
-			Eventually(scanClusterImagesWithBom).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
-		})
-
 		t.It("Has Successful BOM Validation Report", func() {
 			Expect(bomImages).NotTo(BeEmpty())
+			populateBomContainerImagesMap()
+			scanClusterImagesWithBom()
 			populateClusterContainerImages()
 			Expect(clusterImageArray).NotTo(BeEmpty())
 			Eventually(BomValidationReport).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
