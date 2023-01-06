@@ -330,7 +330,7 @@ pipeline {
                 }
             }
         }
-        */
+
 
         stage('opensearch backup and restore') {
             when {
@@ -382,25 +382,53 @@ pipeline {
                 }
             }
         }
+        */
 
-        stage('mysql operator backup and restore') {
+        stage('mysql operator backup and restore with OCI user principal') {
             when {
-                expression {params.MYSQL_BACKUP == true}
+                allOf {
+                    expression {params.MYSQL_BACKUP == true}
+                    expression {params.MYSQL_BACKUP_S3 != true}
+                }
             }
             environment {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
             }
             steps {
-                script {
-                    if (params.MYSQL_BACKUP_S3 == true) {
-                       environment {
-                            MYSQL_BACKUP_MODE = "s3"
-                            println("MySQL backup with S3 creds ...")
-                       }
-                    } else {
-                        println("MySQL backup with OCI user principal creds ...")
+                println("MySQL backup with OCI user principal...")
+                echoAllPodInfo()
+                println("Checking all pods in namespace keycloak are ready before start of test")
+                waitForPodsToBeUp("keycloak")
+                runGinkgoRandomize('backup/mysql')
+                println("Checking all pods in namespace keycloak are ready after completion of test")
+                waitForPodsToBeUp("keycloak")
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                failure {
+                    script {
+                        dumpK8sCluster('mysql-backup-restore-cluster-dump')
                     }
                 }
+            }
+        }
+
+        stage('mysql operator backup and restore with S3') {
+            when {
+                allOf {
+                    expression {params.MYSQL_BACKUP == true}
+                    expression {params.MYSQL_BACKUP_S3 == true}
+                }
+            }
+            environment {
+                MYSQL_BACKUP_MODE = "s3"
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
+            }
+            steps {
+                println("MySQL backup with S3 creds ...")
                 echoAllPodInfo()
                 println("Checking all pods in namespace keycloak are ready before start of test")
                 waitForPodsToBeUp("keycloak")
