@@ -12,7 +12,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 
-	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
@@ -86,7 +85,12 @@ var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.loggi
 	// WHEN a GET call is made  to Grafana with the system dashboard UID,
 	// THEN the dashboard metadata of the corresponding testDashboard is returned.
 	t.It("Get details of the system Grafana Dashboard", func() {
-		pkg.TestSystemHealthGrafanaDashboard(pollingInterval, waitTimeout)
+		kubeConfigPath, err := pkg.GetKubeConfigLocation()
+		Expect(err).To(BeNil(), fmt.Sprintf(pkg.KubeConfigErrorFmt, err))
+		systemHealthDashboardExists := pkg.IsVerrazzanoMinVersion("1.5.0", kubeConfigPath)
+		if systemHealthDashboardExists {
+			pkg.TestSystemHealthGrafanaDashboard(pollingInterval, waitTimeout)
+		}
 	})
 
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
