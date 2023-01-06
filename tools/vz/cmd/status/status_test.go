@@ -222,6 +222,32 @@ func TestStatusMultipleVZ(t *testing.T) {
 	assert.Equal(t, "Expected to only find one Verrazzano resource, but found 2", err.Error())
 }
 
+func TestNilInstance(t *testing.T) {
+	vz := v1beta1.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+		Status: v1beta1.VerrazzanoStatus{
+			Version:    version,
+			Conditions: nil,
+			State:      v1beta1.VzStateReconciling,
+			Components: makeVerrazzanoComponentStatusMap(),
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(&vz).Build()
+	// Send the command output to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	statusCmd := NewCmdStatus(rc)
+	assert.NotNil(t, statusCmd)
+	// Run the status command, check for the expected status results to be displayed
+	err := statusCmd.Execute()
+	assert.NoError(t, err)
+}
+
 func makeVerrazzanoComponentStatusMap() v1beta1.ComponentStatusMap {
 	statusMap := make(v1beta1.ComponentStatusMap)
 	for _, comp := range registry.GetComponents() {
