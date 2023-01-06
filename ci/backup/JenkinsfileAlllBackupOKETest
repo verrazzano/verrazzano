@@ -69,7 +69,7 @@ pipeline {
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
         booleanParam (description: 'Whether to persist object store bucket', name: 'DELETE_BUCKET', defaultValue: true)
-        booleanParam (description: 'Whether to execute MySQL backup tests with OCI credentials', name: 'MYSQL_BACKUP_OCI', defaultValue: true)
+        booleanParam (description: 'Whether to execute MySQL backup tests with OCI credentials', name: 'MYSQL_BACKUP_OCI', defaultValue: false)
         booleanParam (description: 'Whether to execute MySQL backup tests with S3 API', name: 'MYSQL_BACKUP_S3', defaultValue: true)
         booleanParam (description: 'Whether to execute OpenSearch backup tests', name: 'OPENSEARCH_BACKUP', defaultValue: true)
         booleanParam (description: 'Whether to execute Rancher backup tests', name: 'RANCHER_BACKUP', defaultValue: true)
@@ -408,7 +408,6 @@ pipeline {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
             }
             steps {
-                cleanupBucket("${OCI_OS_BUCKET_NAME}")
                 echoAllPodInfo()
                 println("Checking all pods in namespace keycloak are ready before start of test")
                 waitForPodsToBeUp("keycloak")
@@ -515,7 +514,7 @@ def deleteBucket(bucketName) {
 
 def cleanupBucket(bucketName) {
   sh """
-    OCI_CLI_AUTH="instance_principal" oci os object bulk-delete -bn ${bucketName} --force
+    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object bulk-delete -bn ${bucketName} --force
   """
 }
 
