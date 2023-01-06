@@ -6,6 +6,8 @@ package reconcile
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"reflect"
 	"testing"
 	"time"
@@ -92,6 +94,13 @@ func TestReconcileUninstalling(t *testing.T) {
 		}
 	})
 	defer registry.ResetGetComponentsFn()
+
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
+	defer func() {
+		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+		k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
+	}()
 
 	vzcr := &vzapi.Verrazzano{
 		ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
@@ -180,6 +189,13 @@ func TestReconcileUninstall(t *testing.T) {
 	})
 
 	defer registry.ResetGetComponentsFn()
+
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
+	defer func() {
+		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+		k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
+	}()
 
 	vzcr := &vzapi.Verrazzano{
 		ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
@@ -336,6 +352,14 @@ func TestUninstallVariations(t *testing.T) {
 				}
 			})
 			defer registry.ResetGetComponentsFn()
+
+			k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+			k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
+			defer func() {
+				k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+				k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
+			}()
+
 			reconciler := newVerrazzanoReconciler(c)
 			result, err := reconciler.reconcileUninstall(vzlog.DefaultLogger(), vzcr)
 			asserts.NoError(err)

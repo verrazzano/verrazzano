@@ -640,12 +640,7 @@ func IsClusterProvisionedByRancher() (bool, error) {
 		return false, err
 	}
 
-	provisioned, err := checkClusterProvisioned(client, dynClient)
-	if err != nil {
-		return false, err
-	}
-
-	return provisioned, nil
+	return checkClusterProvisioned(client, dynClient)
 }
 
 // checkClusterProvisioned checks if the Kubernetes cluster was provisioned by Rancher.

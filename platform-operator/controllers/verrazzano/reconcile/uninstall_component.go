@@ -89,7 +89,7 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 				continue
 			}
 			if comp.Name() == rancher.ComponentName && rancherProvisioned {
-				compLog.Once("Cluster wasprovisioned by Rancher. Rancher components will not be uninstalled.")
+				compLog.Oncef("Cluster was provisioned by Rancher. Component %s will not be uninstalled.", rancher.ComponentName)
 				UninstallContext.state = compStateUninstallEnd
 				continue
 			}
