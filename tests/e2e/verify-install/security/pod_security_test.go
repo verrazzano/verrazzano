@@ -52,6 +52,14 @@ var skipPods = map[string][]string{
 var skipContainers = []string{}
 var skipInitContainers = []string{"istio-init"}
 
+type podExceptions struct {
+	allowHostPath bool
+}
+
+var exceptionPods = map[string]podExceptions{
+	"node-exporter": {allowHostPath: true},
+}
+
 var (
 	clientset *kubernetes.Clientset
 )
@@ -113,11 +121,15 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 
 func expectPodSecurityForNamespace(pod corev1.Pod) []error {
 	var errors []error
-	// ensure hostpath is not set
-	for _, vol := range pod.Spec.Volumes {
-		if vol.HostPath != nil {
-			errors = append(errors, fmt.Errorf("Pod Security not configured for pod %s, HostPath is set, HostPath = %s  Type = %s",
-				pod.Name, vol.HostPath.Path, *vol.HostPath.Type))
+
+	isException, exception := isExceptionPod(pod)
+	if !isException || !exception.allowHostPath {
+		// ensure hostpath is not set
+		for _, vol := range pod.Spec.Volumes {
+			if vol.HostPath != nil {
+				errors = append(errors, fmt.Errorf("Pod Security not configured for pod %s, HostPath is set, HostPath = %s  Type = %s",
+					pod.Name, vol.HostPath.Path, *vol.HostPath.Type))
+			}
 		}
 	}
 
@@ -224,4 +236,13 @@ func shouldSkipContainer(containerName string, skip []string) bool {
 		}
 	}
 	return false
+}
+
+func isExceptionPod(pod corev1.Pod) (bool, podExceptions) {
+	for exceptionPod := range exceptionPods {
+		if strings.Contains(pod.Name, exceptionPod) {
+			return true, exceptionPods[exceptionPod]
+		}
+	}
+	return false, podExceptions{}
 }
