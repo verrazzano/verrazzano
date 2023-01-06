@@ -38,3 +38,23 @@ func TestVersionCmd(t *testing.T) {
 	assert.Regexp(t, `^(BuildDate: )?(\d+\-)?(\d+\-)?(\d+T)?(\d+\:)?(\d+\:)?(\d+Z)$`, build)
 	assert.Regexp(t, `^(GitCommit: )?(\w{40})$`, commit)
 }
+
+func TestGetEffectiveDocsVersion(t *testing.T) {
+	cliVersion = "1.2.3"
+
+	useV8oDoc := os.Getenv("USE_V8O_DOC_STAGE")
+	if useV8oDoc != "" {
+		assert.True(t, GetEffectiveDocsVersion() == useV8oDoc)
+	} else {
+		assert.True(t, GetEffectiveDocsVersion() == "v1.2")
+	}
+
+	// When USE_V8O_DOC_STAGE is set in env manually or by jenkins, use this value
+	t.Setenv("USE_V8O_DOC_STAGE", "devel")
+	useV8oDoc = os.Getenv("USE_V8O_DOC_STAGE")
+	if useV8oDoc != "" {
+		assert.True(t, GetEffectiveDocsVersion() == "devel")
+	} else {
+		assert.True(t, GetEffectiveDocsVersion() == "v1.2")
+	}
+}
