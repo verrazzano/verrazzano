@@ -43,6 +43,10 @@ type PodLogs struct {
 	IsPodLog bool
 	Duration int64
 }
+type Pods struct {
+	Namespace string
+	PodList   []corev1.Pod
+}
 
 // CaptureClusterSnapshot selectively captures the resources from the cluster, useful to analyze the issue.
 // func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, client clipkg.Client, bugReportDir string, moreNS []string, vzHelper pkghelpers.VZHelper, isPodLog bool, duration int64) error {
@@ -147,11 +151,12 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bug
 		go captureVZResource(wg, evr, vz, bugReportDir, vzHelper)
 	}
 
-	go captureLogs(wg, ecl, kubeClient, vpoPod, vzconstants.VerrazzanoInstallNamespace, bugReportDir, vzHelper, duration)
-	go captureLogs(wg, ecl, kubeClient, vaoPod, vzconstants.VerrazzanoSystemNamespace, bugReportDir, vzHelper, duration)
-	go captureLogs(wg, ecl, kubeClient, vmoPod, vzconstants.VerrazzanoSystemNamespace, bugReportDir, vzHelper, duration)
+	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vpoPod, Namespace: vzconstants.VerrazzanoInstallNamespace}, bugReportDir, vzHelper, duration)
+	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vmoPod, Namespace: vzconstants.VerrazzanoSystemNamespace}, bugReportDir, vzHelper, duration)
+	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vaoPod, Namespace: vzconstants.VerrazzanoSystemNamespace}, bugReportDir, vzHelper, duration)
+
 	if len(externaldnsPod) > 0 {
-		go captureLogs(wg, ecl, kubeClient, externaldnsPod, vzconstants.CertManager, bugReportDir, vzHelper, duration)
+		go captureLogs(wg, ecl, kubeClient, Pods{PodList: externaldnsPod, Namespace: vzconstants.CertManager}, bugReportDir, vzHelper, duration)
 	}
 	for _, ns := range namespaces {
 		go captureK8SResources(wg, ecr, kubeClient, ns, bugReportDir, vzHelper)
@@ -189,7 +194,7 @@ func captureResourcesCustom(client clipkg.Client, kubeClient kubernetes.Interfac
 	ecl := make(chan ErrorsChannelLogs, 1)
 	for _, ns := range namespaces {
 		podList, _ := pkghelpers.GetPodListAll(client, ns)
-		go captureLogsAll(wg, ecl, kubeClient, podList, ns, bugReportDir, vzHelper, duration)
+		go captureLogsAll(wg, ecl, kubeClient, Pods{PodList: podList, Namespace: ns}, bugReportDir, vzHelper, duration)
 	}
 
 	wg.Wait()
@@ -223,16 +228,16 @@ func captureVZResource(wg *sync.WaitGroup, ec chan ErrorsChannel, vz v1beta1.Ver
 }
 
 // captureLogs collects the logs from platform operator, application operator and monitoring operator in parallel
-func captureLogs(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient kubernetes.Interface, pods []corev1.Pod, namespace, bugReportDir string, vzHelper pkghelpers.VZHelper, duration int64) {
+func captureLogs(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient kubernetes.Interface, pod Pods, bugReportDir string, vzHelper pkghelpers.VZHelper, duration int64) {
 	defer wg.Done()
-	if len(pods) == 0 {
+	if len(pod.PodList) == 0 {
 		return
 	}
 	// This won't work when there are more than one pods for the same app label
-	pkghelpers.LogMessage(fmt.Sprintf("log from pod %s in %s namespace ...\n", pods[0].Name, namespace))
-	err := pkghelpers.CapturePodLog(kubeClient, pods[0], namespace, bugReportDir, vzHelper, duration)
+	pkghelpers.LogMessage(fmt.Sprintf("log from pod %s in %s namespace ...\n", pod.PodList[0].Name, pod.Namespace))
+	err := pkghelpers.CapturePodLog(kubeClient, pod.PodList[0], pod.Namespace, bugReportDir, vzHelper, duration)
 	if err != nil {
-		ec <- ErrorsChannelLogs{PodName: pods[0].Name, ErrorMessage: err.Error()}
+		ec <- ErrorsChannelLogs{PodName: pod.PodList[0].Name, ErrorMessage: err.Error()}
 	}
 
 }
@@ -275,17 +280,17 @@ func collectNamespaces(kubeClient kubernetes.Interface, includedNS []string, vz 
 }
 
 // capture customer namespace pods logs without filtering
-func captureLogsAll(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient kubernetes.Interface, pods []corev1.Pod, namespace, bugReportDir string, vzHelper pkghelpers.VZHelper, duration int64) {
+func captureLogsAll(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient kubernetes.Interface, pods Pods, bugReportDir string, vzHelper pkghelpers.VZHelper, duration int64) {
 	{
 		defer wg.Done()
-		if len(pods) == 0 {
+		if len(pods.PodList) == 0 {
 			return
 		}
-		for index := range pods {
-			pkghelpers.LogMessage(fmt.Sprintf("log from pod %s in %s namespace ...\n", pods[index].Name, namespace))
-			err := pkghelpers.CapturePodLog(kubeClient, pods[index], namespace, bugReportDir, vzHelper, duration)
+		for index := range pods.PodList {
+			pkghelpers.LogMessage(fmt.Sprintf("log from pod %s in %s namespace ...\n", pods.PodList[index].Name, pods.Namespace))
+			err := pkghelpers.CapturePodLog(kubeClient, pods.PodList[index], pods.Namespace, bugReportDir, vzHelper, duration)
 			if err != nil {
-				ec <- ErrorsChannelLogs{PodName: pods[index].Name, ErrorMessage: err.Error()}
+				ec <- ErrorsChannelLogs{PodName: pods.PodList[index].Name, ErrorMessage: err.Error()}
 			}
 		}
 	}
