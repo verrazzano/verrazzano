@@ -10,3 +10,16 @@ prometheus:
     honorLabels: true
 metricLabelsAllowlist:
   - deployments=[app.oam.dev/name,app.oam.dev/component]
+
+securityContext:
+  seccompProfile:
+    type: RuntimeDefault
+
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  privileged: false
+  readOnlyRootFilesystem: true
