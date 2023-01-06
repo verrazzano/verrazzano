@@ -401,22 +401,13 @@ pipeline {
 
         stage('mysql operator backup and restore') {
             when {
-                expression {params.MYSQL_BACKUP_S3 == true}
+                expression {params.MYSQL_BACKUP == true}
             }
             environment {
+                MYSQL_BACKUP_MODE = "s3"
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
             }
             steps {
-                script {
-                    if (params.MYSQL_BACKUP_S3 == true) {
-                        environment {
-                            println("Running tests with S3 API")
-                            MYSQL_BACKUP_MODE = "s3"
-                        }
-                    } else {
-                       println("Running tests with OCI user creds")
-                    }
-                } 
                 echoAllPodInfo()
                 println("Checking all pods in namespace keycloak are ready before start of test")
                 waitForPodsToBeUp("keycloak")
