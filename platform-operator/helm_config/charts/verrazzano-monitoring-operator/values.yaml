@@ -14,7 +14,7 @@ monitoringOperator:
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
   alertManagerImage: "noimage"
-  esWaitTargetVersion: 1.2.3
+  esWaitTargetVersion: 2.3.0
   oidcAuthEnabled: true
   RequestMemory: 48Mi
 
