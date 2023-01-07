@@ -88,6 +88,17 @@ var certificates = []types.NamespacedName{
 	{Name: "tls-rancher-ingress", Namespace: ComponentNamespace},
 }
 
+type checkClusterProvisionedFuncSig func(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error)
+
+var checkClusterProvisionedFunc checkClusterProvisionedFuncSig = checkClusterProvisioned
+
+func SetCheckClusterProvisionedFunc(newFunc checkClusterProvisionedFuncSig) {
+	checkClusterProvisionedFunc = newFunc
+}
+func SetDefaultCheckClusterProvisionedFunc() {
+	checkClusterProvisionedFunc = checkClusterProvisioned
+}
+
 func NewComponent() spi.Component {
 	return rancherComponent{
 		HelmComponent: helm.HelmComponent{
@@ -640,7 +651,7 @@ func IsClusterProvisionedByRancher() (bool, error) {
 		return false, err
 	}
 
-	return checkClusterProvisioned(client, dynClient)
+	return checkClusterProvisionedFunc(client, dynClient)
 }
 
 // checkClusterProvisioned checks if the Kubernetes cluster was provisioned by Rancher.

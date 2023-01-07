@@ -648,6 +648,14 @@ func TestReconcileUninstall2(t *testing.T) {
 	}
 	defer helm.SetDefaultRunner()
 	config.TestProfilesDir = relativeProfilesDir
+
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
+	defer func() {
+		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+		k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
+	}()
+
 	getMockWithError := func() client.Client {
 		mocker := gomock.NewController(t)
 		mockClient := mocks.NewMockClient(mocker)
