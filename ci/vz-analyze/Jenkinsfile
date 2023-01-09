@@ -1,11 +1,9 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
-// def agentLabel = "largeexperimental"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
-def ociOsBucketName = UUID.randomUUID().toString().substring(0,6).replace('-','')
 
 pipeline {
     options {
@@ -45,6 +43,7 @@ pipeline {
                 description: 'This is the API crd version.',
                 // 1st choice is the default value
                 choices: [ "v1beta1", "v1alpha1"])
+        booleanParam (description: 'Whether to install Verrazzano using examples/ha/ha.yaml and 3 kind nodes (defaults to false)', name: 'INSTALL_HA', defaultValue: false)
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to use a database for Grafana persistence', name: 'USE_DB_FOR_GRAFANA', defaultValue: false)
@@ -68,11 +67,6 @@ pipeline {
         booleanParam (description: 'Whether to run JWT tests', name: 'ENABLE_JWT_TESTING', defaultValue: false)
         booleanParam (description: 'Whether to run slow tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
-        booleanParam (description: 'Whether to persist object store bucket', name: 'DELETE_BUCKET', defaultValue: true)
-        booleanParam (description: 'Whether to execute MySQL backup tests', name: 'MYSQL_BACKUP', defaultValue: true)
-        booleanParam (description: 'Whether to execute MySQL backup tests with S3 API. Default is true. If unchecked user principal creds will be used', name: 'MYSQL_BACKUP_S3', defaultValue: true)
-        booleanParam (description: 'Whether to execute OpenSearch backup tests', name: 'OPENSEARCH_BACKUP', defaultValue: true)
-        booleanParam (description: 'Whether to execute Rancher backup tests', name: 'RANCHER_BACKUP', defaultValue: true)
     }
 
     environment {
@@ -93,9 +87,11 @@ pipeline {
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind-backup-enabled.yaml"
-        INSTALL_PROFILE = "prod"
-        KIND_NODE_COUNT = "3"
+        INSTALL_CONFIG_FILE_KIND_TESTS = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind.yaml"
+        INSTALL_CONFIG_FILE_KIND_HA = "./examples/ha/ha.yaml"
+        INSTALL_CONFIG_FILE_KIND = "${WORKSPACE}/install-verrazzano.yaml"
+        INSTALL_PROFILE = "${params.INSTALL_HA == true ? "prod" : "dev"}"
+        KIND_NODE_COUNT = "${params.INSTALL_HA == true ? "3" : "1"}"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
@@ -117,16 +113,16 @@ pipeline {
 
         // used for console artifact capture on failure
         JENKINS_READ = credentials('jenkins-auditor')
-        // OCI_CLI_AUTH="instance_principal"
+        OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
 
-        // used to emit metrics
+        // used to emit metrics from Ginkgo suites
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "kind"
-        TEST_ENV = "kind_oci_dns"
+        TEST_ENV = "KIND"
         K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
         SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
         SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
@@ -136,33 +132,6 @@ pipeline {
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
-
-        // Backup parameters
-        VELERO_NAMESPACE = "verrazzano-backup"
-        VELERO_SECRET_NAME = "velero-opensearch-backup-creds"
-        VELERO_MYSQL_SECRET_NAME = "velero-mysql-backup-creds"
-        RANCHER_SECRET_NAME = "rancher-backup-creds"
-        OCI_OS_ACCESS_KEY = credentials('velero-key-id')
-        OCI_OS_ACCESS_SECRET_KEY = credentials('velero-key')
-        OCI_OS_COMPARTMENT_ID = credentials('v8o-velero-test')
-        OCI_OS_BUCKET_ID = "${ociOsBucketName}"
-        OCI_OS_BUCKET_NAME = "bucket-${OCI_OS_BUCKET_ID}"
-        BACKUP_OPENSEARCH = "backup-opensearch-${OCI_OS_BUCKET_ID}"
-        BACKUP_RANCHER = "backup-rancher-${OCI_OS_BUCKET_ID}"
-        BACKUP_MYSQL = "backup-mysql-${OCI_OS_BUCKET_ID}"
-        BACKUP_RESOURCE = "vz-hook-resource-${OCI_OS_BUCKET_ID}"
-        RESTORE_OPENSEARCH = "restore-opensearch-${OCI_OS_BUCKET_ID}"
-        RESTORE_RANCHER = "restore-rancher-${OCI_OS_BUCKET_ID}"
-        RESTORE_MYSQL = "restore-mysql-${OCI_OS_BUCKET_ID}"
-        BACKUP_OPENSEARCH_STORAGE = "storage-opensearch-${OCI_OS_BUCKET_ID}"
-        BACKUP_MYSQL_STORAGE = "storage-mysql-${OCI_OS_BUCKET_ID}"
-        BACKUP_REGION  = "us-phoenix-1"
-
-        //OCI parameters
-        OCI_CLI_TENANCY = credentials('oci-tenancy')
-        OCI_CLI_USER = credentials('oci-user-ocid')
-        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
-        OCI_CLI_KEY_FILE = credentials('oci-api-key')
     }
 
     stages {
@@ -246,202 +215,39 @@ pipeline {
             }
         }
 
-        stage('Create bucket') {
-             steps {
-                createBucket("${OCI_OS_BUCKET_NAME}")
-             }
-        }
-
-        stage('Prepare KinD environment') {
+            stage('Verify analyze-tool') {
                     environment {
-                        KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
-                        OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
-                        REALM_USER_PASSWORD = credentials('todo-mysql-password')
-                        REALM_NAME = "test-realm"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-analyze-tool"
                     }
                     steps {
-                        sh """
-                            cd ${GO_REPO_PATH}/verrazzano
-                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN} ${params.USE_DB_FOR_GRAFANA}
-                        """
-                        script {
-                            if (params.ENABLE_JWT_TESTING) {
-                                sh """
-                                    # setup test realm for JWT testing scenarios
-                                    keycloakPassword=\$(kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo)
-                                    sed -i "s|##KEYCLOAK_PASSWORD##|\$keycloakPassword|g" ci/scripts/create_test_realm.sh
-                                    sed -i "s|##REALM_USER_PASSWORD##|${env.REALM_USER_PASSWORD}|g" ci/scripts/create_test_realm.sh
-                                    sed -i "s|##REALM_NAME##|${env.REALM_NAME}|g" ci/scripts/create_test_realm.sh
-                                    kubectl exec keycloak-0 -n keycloak -- /bin/sh -c "`cat ci/scripts/create_test_realm.sh`"
-                                    # setup request authentication policy
-                                    keycloakURI=\$(kubectl get ingress -n keycloak keycloak -o jsonpath="{.spec.rules[0].host}")
-                                    sed -i "s|##KEYCLOAK_URI##|\$keycloakURI|g" tests/testdata/jwt/helidon/test-realm-reqauth.yaml
-                                    jwks=\$(curl -sk https://\$keycloakURI/auth/realms/test-realm/protocol/openid-connect/certs | jq -c 'del(.keys[] | select( .use == "enc"))')
-                                    sed -i "s|##JWKS_KEY##|\$jwks|g" tests/testdata/jwt/helidon/test-realm-reqauth.yaml
-                                    kubectl apply -f tests/testdata/jwt/helidon/test-realm-reqauth.yaml
-                                """
-                            }
-                        }
+                        runGinkgoRandomize('verify-analyze-tool')
                     }
-                    post {
-                        failure {
-                            archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+
+            post {
+                always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
-                        always {
-                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
-                            // enable debug logging of Verrazzano api istio proxy
-                            script {
-                                if (params.ENABLE_API_ENVOY_LOGGING) {
-                                    sh '''
-                                        vz_api_pod=\$(kubectl get pod -n verrazzano-system -l app=verrazzano-authproxy --no-headers -o custom-columns=\":metadata.name\")
-                                        if [ -z "\$vz_api_pod" ]; then
-                                          echo "Could not find verrazzano-authproxy pod, not enabling debug logging"
-                                        else
-                                          kubectl exec \$vz_api_pod -c istio-proxy -n verrazzano-system -- curl -X POST http://localhost:15000/logging?level=debug
-                                        fi
-                                        nginx_ing_pod=\$(kubectl get pod -n ingress-nginx -l app.kubernetes.io/component=controller --no-headers -o custom-columns=\":metadata.name\")
-                                        if [ -z "\$nginx_ing_pod" ]; then
-                                          echo "Could not find nginx ingress controller pod, not enabling debug logging"
-                                        else
-                                          kubectl exec \$nginx_ing_pod -c istio-proxy -n ingress-nginx -- curl -X POST http://localhost:15000/logging?level=debug
-                                        fi
-                                    '''
-                                }
-                            }
+
+                aborted {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('new-kind-acceptance-tests-cluster-snapshot')
                         }
                     }
                 }
-
-        stage('verify-install') {
-            steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    sh """
-                        cd ${WORKSPACE}/tests/e2e
-                        ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
-                    """
-                }
-            }
-            post {
                 failure {
                     script {
-                        dumpK8sCluster('verify-install-cluster-dump')
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('new-kind-acceptance-tests-cluster-snapshot')
+                        }
                     }
                 }
-            }
-        }
-
-        stage('opensearch backup and restore') {
-            when {
-                expression {params.OPENSEARCH_BACKUP == true}
-            }
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/opensearch"
-            }
-            steps {
-                println("Checking all pods in namespace verrazzano-system are ready before start of test")
-                waitForPodsToBeUp("verrazzano-system")
-                runGinkgoRandomize('backup/opensearch')
-                println("Checking all pods in namespace verrazzano-system are ready after test completion")
-                waitForPodsToBeUp("verrazzano-system")
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-                failure {
+                success {
                     script {
-                        dumpK8sCluster('opensearch-backup-restore-cluster-dump')
-                    }
-                }
-            }
-        }
-
-        stage('rancher backup and restore') {
-            when {
-                expression {params.RANCHER_BACKUP == true}
-            }
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/rancher"
-            }
-            steps {
-                echoAllPodInfo()
-                runGinkgoRandomize('backup/rancher')
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-                failure {
-                    script {
-                        dumpK8sCluster('rancher-backup-restore-cluster-dump')
-                    }
-                }
-            }
-        }
-
-
-        stage('mysql operator backup and restore with OCI user principal') {
-            when {
-                allOf {
-                    expression {params.MYSQL_BACKUP == true}
-                    expression {params.MYSQL_BACKUP_S3 != true}
-                }
-            }
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
-            }
-            steps {
-                println("MySQL backup with OCI user principal...")
-                echoAllPodInfo()
-                println("Checking all pods in namespace keycloak are ready before start of test")
-                waitForPodsToBeUp("keycloak")
-                runGinkgoRandomize('backup/mysql')
-                println("Checking all pods in namespace keycloak are ready after completion of test")
-                waitForPodsToBeUp("keycloak")
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-                failure {
-                    script {
-                        dumpK8sCluster('mysql-backup-restore-cluster-dump')
-                    }
-                }
-            }
-        }
-
-        stage('mysql operator backup and restore with S3') {
-            when {
-                allOf {
-                    expression {params.MYSQL_BACKUP == true}
-                    expression {params.MYSQL_BACKUP_S3 == true}
-                }
-            }
-            environment {
-                MYSQL_BACKUP_MODE = "s3"
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
-            }
-            steps {
-                println("MySQL backup with S3 credentials ...")
-                echoAllPodInfo()
-                println("Checking all pods in namespace keycloak are ready before start of test")
-                waitForPodsToBeUp("keycloak")
-                runGinkgoRandomize('backup/mysql')
-                println("Checking all pods in namespace keycloak are ready after completion of test")
-                waitForPodsToBeUp("keycloak")
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-                failure {
-                    script {
-                        dumpK8sCluster('mysql-backup-restore-cluster-dump')
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('new-kind-acceptance-tests-cluster-snapshot')
+                        }
                     }
                 }
             }
@@ -471,14 +277,6 @@ pipeline {
             """
             archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
-            script {
-                if (params.DELETE_BUCKET) {
-                    println("Delete object store bucket.")
-                    deleteBucket("${OCI_OS_BUCKET_NAME}")
-                } else {
-                      println("Object store bucket not deleted!")
-                }
-            }
             deleteCluster()
         }
         failure {
@@ -503,6 +301,7 @@ pipeline {
     }
 }
 
+
 def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
@@ -511,34 +310,10 @@ def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
             fi
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             if [ -d "${testSuitePath}" ]; then
-                ginkgo -vv --progress --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
             fi
         """
     }
-}
-
-def createBucket(bucketName) {
-    sh """
-        OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os bucket create -c ${OCI_OS_COMPARTMENT_ID} --namespace ${OCI_OS_NAMESPACE} --name ${bucketName}
-    """
-}
-
-def deleteBucket(bucketName) {
-    sh """
-        OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os bucket delete -bn ${bucketName} --empty --force
-    """
-}
-
-def waitForPodsToBeUp(namespace) {
-    sh """
-         kubectl wait -n ${namespace} --for=condition=ready pod --all --timeout 10m
-    """
-}
-
-def echoAllPodInfo() {
-    sh """
-         kubectl get pod -A
-    """
 }
 
 def runSocksVariant(variant) {
