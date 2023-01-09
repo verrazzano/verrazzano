@@ -93,7 +93,7 @@ func ResetLastTimeReadinessGateRepairStarted() {
 }
 
 // RepairICStuckDeleting - temporary workaround to repair issue where a InnoDBCluster object
-// can be stuck terminating (e.g. during uninstall).  The workaround is to recycle the mysql-operator
+// can be stuck terminating (e.g. during uninstall).  The workaround is to recycle the mysql-operator.
 func RepairICStuckDeleting(ctx spi.ComponentContext) error {
 	// Get the IC object
 	innoDBCluster, err := getInnoDBCluster(ctx)
@@ -141,7 +141,7 @@ func RepairICStuckDeleting(ctx spi.ComponentContext) error {
 }
 
 // RepairMySQLPodsWaitingReadinessGates - temporary workaround to repair issue were a MySQL pod
-// can be stuck waiting for its readiness gates to be met.
+// can be stuck waiting for its readiness gates to be met.  The workaround is to recycle the mysql-operator.
 func (mc *MySQLChecker) RepairMySQLPodsWaitingReadinessGates() error {
 	podsWaiting, err := mySQLPodsWaitingForReadinessGates(mc.log, mc.client)
 	if err != nil {
@@ -233,7 +233,7 @@ func getInnoDBCluster(ctx spi.ComponentContext) (*unstructured.Unstructured, err
 }
 
 // RepairMySQLPodStuckDeleting - temporary workaround to repair issue where a MySQL pod
-// can be stuck terminating (e.g. during uninstall).  The workaround is to recycle the mysql-operator
+// can be stuck terminating (e.g. during uninstall).  The workaround is to recycle the mysql-operator.
 func (mc *MySQLChecker) RepairMySQLPodStuckDeleting() error {
 	// Check if any MySQL pods are in the process of terminating
 	selector := metav1.LabelSelectorRequirement{Key: mySQLComponentLabel, Operator: metav1.LabelSelectorOpIn, Values: []string{mySQLDComponentName}}
