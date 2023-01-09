@@ -76,13 +76,15 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
 
 	// First time calling, expect timer to get initialized
+	mysqlCheck, err := NewMySQLChecker(fakeCtx.Client(), time.Duration(MySQLCheckPeriodSeconds)*time.Second)
+	assert.NoError(t, err)
 	assert.True(t, getLastTimeReadinessGateRepairStarted().IsZero())
-	err := RepairMySQLPodsWaitingReadinessGates(fakeCtx)
+	err = mysqlCheck.RepairMySQLPodsWaitingReadinessGates()
 	assert.NoError(t, err)
 	assert.False(t, getLastTimeReadinessGateRepairStarted().IsZero())
 
 	// Second time calling, expect no error and mysql-operator pod to still exist
-	err = RepairMySQLPodsWaitingReadinessGates(fakeCtx)
+	err = mysqlCheck.RepairMySQLPodsWaitingReadinessGates()
 	assert.NoError(t, err)
 
 	pod := v1.Pod{}
@@ -92,7 +94,7 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	// Third time calling, set the timer to exceed the expiration time which will force a check of the readiness gates.
 	// The readiness gates will be set to true going into the call, so the mysql-operator should not get recycled.
 	setLastTimeReadinessGateRepairStarted(time.Now().Add(-time.Hour * 2))
-	err = RepairMySQLPodsWaitingReadinessGates(fakeCtx)
+	err = mysqlCheck.RepairMySQLPodsWaitingReadinessGates()
 	assert.NoError(t, err)
 
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
@@ -103,8 +105,10 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	mySQLPod.Status.Conditions = []v1.PodCondition{{Type: "gate1", Status: v1.ConditionTrue}, {Type: "gate2", Status: v1.ConditionFalse}}
 	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLPod, mySQLOperatorPod).Build()
 	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
+	mysqlCheck, err = NewMySQLChecker(fakeCtx.Client(), time.Duration(MySQLCheckPeriodSeconds)*time.Second)
+	assert.NoError(t, err)
 	setLastTimeReadinessGateRepairStarted(time.Now().Add(-time.Hour * 2))
-	err = RepairMySQLPodsWaitingReadinessGates(fakeCtx)
+	err = mysqlCheck.RepairMySQLPodsWaitingReadinessGates()
 	assert.NoError(t, err, fmt.Sprintf("unexpected error: %v", err))
 	assert.True(t, getLastTimeReadinessGateRepairStarted().IsZero())
 
