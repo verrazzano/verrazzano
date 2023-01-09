@@ -88,6 +88,7 @@ var certificates = []types.NamespacedName{
 	{Name: "tls-rancher-ingress", Namespace: ComponentNamespace},
 }
 
+// For use to override during unit tests
 type checkClusterProvisionedFuncSig func(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error)
 
 var checkClusterProvisionedFunc checkClusterProvisionedFuncSig = checkClusterProvisioned
