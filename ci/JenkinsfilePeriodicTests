@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def GIT_COMMIT_TO_USE
@@ -574,11 +574,7 @@ def isPagerDutyEnabled() {
 }
 
 def getCronSchedule() {
-    if (env.BRANCH_NAME.equals("master")) {
-        return "H */2 * * *"
-    } else if (env.BRANCH_NAME.startsWith("release-1")) {
-        return "@daily"
-    }
+    // this and previous release's cron schedule is disabled
     return ""
 }
 
