@@ -4,5 +4,3 @@
 global:
   envVars:
     PSR_WORKER_TYPE: ops-writelogs
-    PSR_LOOP_SLEEP: 50us
-    PSR_NUM_ITERATIONS: 700000
