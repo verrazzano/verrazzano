@@ -9,7 +9,7 @@ def VERRAZZANO_DEV_VERSION = ""
 def tarfilePrefix=""
 def storeLocation=""
 
-def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
+def agentLabel = env.JOB_NAME.contains('master') ? "1.5-large-phx" : "1.5-large"
 
 pipeline {
     options {
@@ -393,7 +393,6 @@ pipeline {
                 }
             }
         }
-
         stage('Triggered Tests') {
             when {
                 allOf {

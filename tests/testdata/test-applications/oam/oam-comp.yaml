@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
@@ -10,9 +10,31 @@ spec:
     kind: PersistentVolumeClaim
     metadata:
       name: test-pvc
+      labels:
+        type: local
     spec:
       accessModes:
         - ReadWriteOnce
       resources:
         requests:
           storage: 1Gi
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: test-pv-component
+spec:
+  workload:
+    apiVersion: v1
+    kind: PersistentVolume
+    metadata:
+      name: test-pv
+      labels:
+        type: local
+    spec:
+      capacity:
+        storage: 10Gi
+      accessModes:
+        - ReadWriteOnce
+      hostPath:
+        path: "/mnt/data"

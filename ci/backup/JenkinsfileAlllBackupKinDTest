@@ -2,8 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
- def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
-// def agentLabel = "largeexperimental"
+def agentLabel = env.JOB_NAME.contains('master') ? "1.5-large-phx" : "1.5-large"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 def ociOsBucketName = UUID.randomUUID().toString().substring(0,6).replace('-','')
 
@@ -70,6 +69,7 @@ pipeline {
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
         booleanParam (description: 'Whether to persist object store bucket', name: 'DELETE_BUCKET', defaultValue: true)
         booleanParam (description: 'Whether to execute MySQL backup tests', name: 'MYSQL_BACKUP', defaultValue: true)
+        booleanParam (description: 'Whether to execute MySQL backup tests with S3 API. Default is true. If unchecked user principal creds will be used', name: 'MYSQL_BACKUP_S3', defaultValue: true)
         booleanParam (description: 'Whether to execute OpenSearch backup tests', name: 'OPENSEARCH_BACKUP', defaultValue: true)
         booleanParam (description: 'Whether to execute Rancher backup tests', name: 'RANCHER_BACKUP', defaultValue: true)
     }
@@ -332,7 +332,7 @@ pipeline {
             }
         }
 
-        stage('opensearch backup') {
+        stage('opensearch backup and restore') {
             when {
                 expression {params.OPENSEARCH_BACKUP == true}
             }
@@ -340,17 +340,16 @@ pipeline {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/opensearch"
             }
             steps {
-                echoAllPodInfo()
+                println("Checking all pods in namespace verrazzano-system are ready before start of test")
                 waitForPodsToBeUp("verrazzano-system")
                 runGinkgoRandomize('backup/opensearch')
-                println("Wait for pods in verrazzano-system to be ready")
+                println("Checking all pods in namespace verrazzano-system are ready after test completion")
                 waitForPodsToBeUp("verrazzano-system")
             }
             post {
                 always {
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
-
                 }
                 failure {
                     script {
@@ -360,7 +359,7 @@ pipeline {
             }
         }
 
-        stage('rancher backup operator') {
+        stage('rancher backup and restore') {
             when {
                 expression {params.RANCHER_BACKUP == true}
             }
@@ -384,18 +383,57 @@ pipeline {
             }
         }
 
-        stage('mysql operator backup') {
+
+        stage('mysql operator backup and restore with OCI user principal') {
             when {
-                expression {params.MYSQL_BACKUP == true}
+                allOf {
+                    expression {params.MYSQL_BACKUP == true}
+                    expression {params.MYSQL_BACKUP_S3 != true}
+                }
             }
             environment {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
             }
             steps {
+                println("MySQL backup with OCI user principal...")
                 echoAllPodInfo()
+                println("Checking all pods in namespace keycloak are ready before start of test")
                 waitForPodsToBeUp("keycloak")
                 runGinkgoRandomize('backup/mysql')
-                println("Wait for pods in keycloak to be ready")
+                println("Checking all pods in namespace keycloak are ready after completion of test")
+                waitForPodsToBeUp("keycloak")
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                failure {
+                    script {
+                        dumpK8sCluster('mysql-backup-restore-cluster-dump')
+                    }
+                }
+            }
+        }
+
+        stage('mysql operator backup and restore with S3') {
+            when {
+                allOf {
+                    expression {params.MYSQL_BACKUP == true}
+                    expression {params.MYSQL_BACKUP_S3 == true}
+                }
+            }
+            environment {
+                MYSQL_BACKUP_MODE = "s3"
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
+            }
+            steps {
+                println("MySQL backup with S3 credentials ...")
+                echoAllPodInfo()
+                println("Checking all pods in namespace keycloak are ready before start of test")
+                waitForPodsToBeUp("keycloak")
+                runGinkgoRandomize('backup/mysql')
+                println("Checking all pods in namespace keycloak are ready after completion of test")
                 waitForPodsToBeUp("keycloak")
             }
             post {

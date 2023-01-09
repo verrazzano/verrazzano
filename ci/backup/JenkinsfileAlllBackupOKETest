@@ -70,6 +70,7 @@ pipeline {
                 trim: true)
         booleanParam (description: 'Whether to persist object store bucket', name: 'DELETE_BUCKET', defaultValue: true)
         booleanParam (description: 'Whether to execute MySQL backup tests', name: 'MYSQL_BACKUP', defaultValue: true)
+        booleanParam (description: 'Whether to execute MySQL backup tests with S3 API. Default is true. If unchecked user principal creds will be used', name: 'MYSQL_BACKUP_S3', defaultValue: true)
         booleanParam (description: 'Whether to execute OpenSearch backup tests', name: 'OPENSEARCH_BACKUP', defaultValue: true)
         booleanParam (description: 'Whether to execute Rancher backup tests', name: 'RANCHER_BACKUP', defaultValue: true)
     }
@@ -148,10 +149,10 @@ pipeline {
         OCI_OS_BUCKET_NAME = "bucket-${OCI_OS_BUCKET_ID}"
         BACKUP_OPENSEARCH = "backup-opensearch-${OCI_OS_BUCKET_ID}"
         BACKUP_RANCHER = "backup-rancher-${OCI_OS_BUCKET_ID}"
-        BACKUP_MYSQL = "backup-mysql-${OCI_OS_BUCKET_ID}"
         BACKUP_RESOURCE = "vz-hook-resource-${OCI_OS_BUCKET_ID}"
         RESTORE_OPENSEARCH = "restore-opensearch-${OCI_OS_BUCKET_ID}"
         RESTORE_RANCHER = "restore-rancher-${OCI_OS_BUCKET_ID}"
+        BACKUP_MYSQL = "backup-mysql-${OCI_OS_BUCKET_ID}"
         RESTORE_MYSQL = "restore-mysql-${OCI_OS_BUCKET_ID}"
         BACKUP_OPENSEARCH_STORAGE = "storage-opensearch-${OCI_OS_BUCKET_ID}"
         BACKUP_MYSQL_STORAGE = "storage-mysql-${OCI_OS_BUCKET_ID}"
@@ -251,7 +252,7 @@ pipeline {
             }
         }
 
-         stage('Create bucket') {
+        stage('Create bucket') {
              steps {
                 createBucket("${OCI_OS_BUCKET_NAME}")
              }
@@ -352,7 +353,7 @@ pipeline {
             }
         }
 
-        stage('opensearch backup') {
+        stage('opensearch backup and restore') {
             when {
                 expression {params.OPENSEARCH_BACKUP == true}
             }
@@ -379,7 +380,7 @@ pipeline {
             }
         }
 
-        stage('rancher backup operator') {
+        stage('rancher backup and restore') {
             when {
                 expression {params.RANCHER_BACKUP == true}
             }
@@ -402,14 +403,51 @@ pipeline {
             }
         }
 
-        stage('mysql operator backup') {
+        stage('mysql operator backup and restore with OCI user principal') {
             when {
-                expression {params.MYSQL_BACKUP == true}
+                allOf {
+                    expression {params.MYSQL_BACKUP == true}
+                    expression {params.MYSQL_BACKUP_S3 != true}
+                }
             }
             environment {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
             }
             steps {
+                println("MySQL backup with OCI user principal...")
+                echoAllPodInfo()
+                println("Checking all pods in namespace keycloak are ready before start of test")
+                waitForPodsToBeUp("keycloak")
+                runGinkgoRandomize('backup/mysql')
+                println("Checking all pods in namespace keycloak are ready after completion of test")
+                waitForPodsToBeUp("keycloak")
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                failure {
+                    script {
+                        dumpK8sCluster('mysql-backup-restore-cluster-dump')
+                    }
+                }
+            }
+        }
+
+        stage('mysql operator backup and restore with S3') {
+            when {
+                allOf {
+                    expression {params.MYSQL_BACKUP == true}
+                    expression {params.MYSQL_BACKUP_S3 == true}
+                }
+            }
+            environment {
+                MYSQL_BACKUP_MODE = "s3"
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
+            }
+            steps {
+                println("MySQL backup with S3 credentials ...")
                 echoAllPodInfo()
                 println("Checking all pods in namespace keycloak are ready before start of test")
                 waitForPodsToBeUp("keycloak")
@@ -484,6 +522,7 @@ def deleteBucket(bucketName) {
         OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os bucket delete -bn ${bucketName} --empty --force
     """
 }
+
 
 def waitForPodsToBeUp(namespace) {
     sh """
