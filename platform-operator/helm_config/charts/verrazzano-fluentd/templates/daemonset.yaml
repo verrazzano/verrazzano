@@ -68,6 +68,8 @@ spec:
 {{- end }}
           image: {{ .Values.logging.fluentdImage }}
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
           ports:
           - containerPort: 24231
             name: http-metrics
