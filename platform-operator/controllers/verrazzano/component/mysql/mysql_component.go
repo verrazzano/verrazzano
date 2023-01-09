@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mysql
@@ -6,7 +6,6 @@ package mysql
 import (
 	"fmt"
 	"path/filepath"
-	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -14,6 +13,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -42,10 +42,6 @@ const ComponentJSONName = "mysql"
 
 // mysqlComponent represents an MySQL component
 type mysqlComponent struct {
-	LastTimeReadinessGateRepairStarted *time.Time
-	initialTimeICUninstallChecked      *time.Time
-	initialTimeMySQLPodsStuckChecked   *time.Time
-
 	helm.HelmComponent
 }
 
@@ -59,9 +55,6 @@ func NewComponent() spi.Component {
 	const MySQLOperatorComponentName = "mysql-operator"
 
 	return mysqlComponent{
-		LastTimeReadinessGateRepairStarted: &lastTimeStatefulSetReady,
-		initialTimeICUninstallChecked:      &initialTimeICUninstallChecked,
-		initialTimeMySQLPodsStuckChecked:   &initialTimeMySQLPodsStuckChecked,
 		HelmComponent: helm.HelmComponent{
 			ReleaseName:               helmReleaseName,
 			JSONName:                  ComponentJSONName,
@@ -93,7 +86,7 @@ func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
 		ready := c.isMySQLReady(context)
 		if ready {
 			// Once ready, zero out the timestamp
-			*c.LastTimeReadinessGateRepairStarted = time.Time{}
+			mysqlcheck.ResetLastTimeReadinessGateRepairStarted()
 		}
 		return ready
 	}
