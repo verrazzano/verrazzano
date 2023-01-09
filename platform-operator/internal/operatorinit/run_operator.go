@@ -7,10 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/mysqlcheck"
-
 	"github.com/pkg/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"

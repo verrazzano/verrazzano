@@ -340,7 +340,7 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/helidon-install"
                     }
                     steps{
-                        runGinkgo("examples/helidon", "--namespace=${HELIDON_TEST_NAMESPACE} --skipUndeploy=true --appconfig=examples/hello-helidon/hello-helidon-app-scaler-trait.yaml")
+                        runGinkgo("examples/helidon", "--namespace=${HELIDON_TEST_NAMESPACE} --skipUndeploy=true --appconfig=examples/hello-helidon/hello-helidon-app.yaml")
                     }
                     post {
                         always {
