@@ -5,4 +5,16 @@
 resources:
   requests:
     cpu: 100m
-    memory: 20Mi
+    memory:
+
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  privileged: false
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
