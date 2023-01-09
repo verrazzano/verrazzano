@@ -7,15 +7,21 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestStart(t *testing.T) {
 	p := newTestMySQLCheck()
+	assert.Nil(t, p.shutdown)
 	p.Start()
+	assert.NotNil(t, p.shutdown)
 	p.Start()
+	assert.NotNil(t, p.shutdown)
 	p.Pause()
+	assert.Nil(t, p.shutdown)
 	p.Pause()
+	assert.Nil(t, p.shutdown)
 }
 
 func newTestMySQLCheck() *MySQLChecker {
