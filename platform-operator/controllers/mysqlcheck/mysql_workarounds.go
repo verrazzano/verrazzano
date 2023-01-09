@@ -141,13 +141,13 @@ func RepairICStuckDeleting(ctx spi.ComponentContext) error {
 
 // RepairMySQLPodsWaitingReadinessGates - temporary workaround to repair issue were a MySQL pod
 // can be stuck waiting for its readiness gates to be met.
-func RepairMySQLPodsWaitingReadinessGates(ctx spi.ComponentContext) error {
-	podsWaiting, err := mySQLPodsWaitingForReadinessGates(ctx)
+func (mc *MySQLChecker) RepairMySQLPodsWaitingReadinessGates() error {
+	podsWaiting, err := mySQLPodsWaitingForReadinessGates(mc.log, mc.client)
 	if err != nil {
 		return err
 	}
 	if podsWaiting {
-		if err = restartMySQLOperator(ctx.Log(), ctx.Client()); err != nil {
+		if err = restartMySQLOperator(mc.log, mc.client); err != nil {
 			return err
 		}
 
@@ -159,7 +159,7 @@ func RepairMySQLPodsWaitingReadinessGates(ctx spi.ComponentContext) error {
 
 // mySQLPodsWaitingForReadinessGates - detect if there are MySQL pods stuck waiting for
 // their readiness gates to be true.
-func mySQLPodsWaitingForReadinessGates(ctx spi.ComponentContext) (bool, error) {
+func mySQLPodsWaitingForReadinessGates(log vzlog.VerrazzanoLogger, client clipkg.Client) (bool, error) {
 	if getLastTimeReadinessGateRepairStarted().IsZero() {
 		setLastTimeReadinessGateRepairStarted(time.Now())
 		return false, nil
@@ -169,10 +169,10 @@ func mySQLPodsWaitingForReadinessGates(ctx spi.ComponentContext) (bool, error) {
 	expiredTime := getLastTimeReadinessGateRepairStarted().Add(5 * time.Minute)
 	if time.Now().After(expiredTime) {
 		// Check if the current not ready state is due to readiness gates not met
-		ctx.Log().Debug("Checking if MySQL not ready due to pods waiting for readiness gates")
+		log.Debug("Checking if MySQL not ready due to pods waiting for readiness gates")
 
 		selector := metav1.LabelSelectorRequirement{Key: mySQLComponentLabel, Operator: metav1.LabelSelectorOpIn, Values: []string{mySQLDComponentName}}
-		podList := k8sready.GetPodsList(ctx.Log(), ctx.Client(), types.NamespacedName{Namespace: componentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{selector}})
+		podList := k8sready.GetPodsList(log, client, types.NamespacedName{Namespace: componentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{selector}})
 		if podList == nil || len(podList.Items) == 0 {
 			return false, fmt.Errorf("Failed checking MySQL readiness gates, no pods found matching selector %s", selector.String())
 		}
