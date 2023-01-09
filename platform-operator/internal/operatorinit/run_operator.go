@@ -9,9 +9,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
