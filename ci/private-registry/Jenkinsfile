@@ -1,11 +1,11 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
 // Pin to PHX for now for testing; tarball is located only in PHX at present, and takes 15+ mins to download to LHR at runtime
 // - at some point, we can either enable bucket replication or have the pipeline push it to more regions
-//def agentLabel = env.JOB_NAME.contains('master') ? "1.5-large-phx" : "1.5-large"
-def agentLabel = "1.5-large-phx"
+//def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
+def agentLabel = "phx-large"
 def ocirRegion = "phx"
 def ocirRegistry = "${ocirRegion}.ocir.io"
 def imageRepoSubPath=""

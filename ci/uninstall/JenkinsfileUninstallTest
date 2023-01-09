@@ -1,8 +1,8 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-def agentLabel = env.JOB_NAME.contains('master') ? "1.5-large-phx" : "1.5-large"
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 pipeline {
