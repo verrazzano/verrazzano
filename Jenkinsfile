@@ -391,7 +391,6 @@ pipeline {
                 }
             }
         }
-
         stage('Triggered Tests') {
             when {
                 allOf {
