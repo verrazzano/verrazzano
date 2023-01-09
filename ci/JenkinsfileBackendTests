@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 import groovy.transform.Field
@@ -7,7 +7,7 @@ import groovy.transform.Field
 def GIT_COMMIT_TO_USE = ""
 @Field
 def LAST_CLEAN_BACKEND_COMMIT = ""
-def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
+def agentLabel = env.JOB_NAME.contains('master') ? "1.4-small-phx" : "1.4-small"
 @Field
 def TESTS_FAILED = false
 @Field
