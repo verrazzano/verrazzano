@@ -5,7 +5,7 @@
 resources:
   requests:
     cpu: 100m
-    memory:
+    memory: 20Mi
 
 podSecurityContext:
   runAsNonRoot: true
