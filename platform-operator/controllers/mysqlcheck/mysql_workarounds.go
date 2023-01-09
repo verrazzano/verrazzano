@@ -184,23 +184,28 @@ func mySQLPodsWaitingForReadinessGates(ctx spi.ComponentContext) (bool, error) {
 			if len(conditions) == 0 {
 				return false, fmt.Errorf("Failed checking MySQL readiness gates, no status conditions found for pod %s/%s", pod.Namespace, pod.Name)
 			}
-			readyCount := 0
-			for _, condition := range conditions {
-				for _, gate := range pod.Spec.ReadinessGates {
-					if condition.Type == gate.ConditionType && condition.Status == v1.ConditionTrue {
-						readyCount++
-						continue
-					}
-				}
-			}
-
-			// All readiness gates must be true
-			if len(pod.Spec.ReadinessGates) != readyCount {
+			if !isPodReadinessGatesReady(pod, conditions) {
 				return true, nil
 			}
 		}
 	}
 	return false, nil
+}
+
+// isPodReadinessGatesReady - return boolean indicating if all readiness gate
+// conditions have been met for the pod
+func isPodReadinessGatesReady(pod v1.Pod, conditions []v1.PodCondition) bool {
+	readyCount := 0
+	for _, condition := range conditions {
+		for _, gate := range pod.Spec.ReadinessGates {
+			if condition.Type == gate.ConditionType && condition.Status == v1.ConditionTrue {
+				readyCount++
+				continue
+			}
+		}
+	}
+	// All readiness gates must be true
+	return len(pod.Spec.ReadinessGates) == readyCount
 }
 
 // getMySQLOperatorPod - return the mysql-operator pod
