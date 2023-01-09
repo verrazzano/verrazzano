@@ -621,11 +621,7 @@ def isPagerDutyEnabled() {
 }
 
 def getCronSchedule() {
-    if (env.BRANCH_NAME.equals("master")) {
-        return "H */2 * * *"
-    } else if (env.BRANCH_NAME.startsWith("release-1")) {
-        return "@daily"
-    }
+    // This release and previous releases are no longer actively supported not running periodically
     return ""
 }
 
