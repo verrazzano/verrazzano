@@ -28,6 +28,7 @@ const (
 	helmReleaseName     = "mysql"
 	componentNamespace  = "keycloak"
 	componentName       = "mysql"
+	repairTimeoutPeriod = 5 * time.Minute
 )
 
 var (
@@ -115,7 +116,7 @@ func RepairICStuckDeleting(ctx spi.ComponentContext) error {
 	}
 
 	// Initiate repair only if time to wait period has been exceeded
-	expiredTime := getInitialTimeICUninstallChecked().Add(5 * time.Minute)
+	expiredTime := getInitialTimeICUninstallChecked().Add(repairTimeoutPeriod)
 	if time.Now().After(expiredTime) {
 		// Restart the mysql-operator to see if it will finish deleting the IC object
 		ctx.Log().Info("Restarting the mysql-operator to see if it will repair InnoDBCluster stuck deleting")
@@ -166,7 +167,7 @@ func mySQLPodsWaitingForReadinessGates(log vzlog.VerrazzanoLogger, client clipkg
 	}
 
 	// Initiate repair only if time to wait period has been exceeded
-	expiredTime := getLastTimeReadinessGateRepairStarted().Add(5 * time.Minute)
+	expiredTime := getLastTimeReadinessGateRepairStarted().Add(repairTimeoutPeriod)
 	if time.Now().After(expiredTime) {
 		// Check if the current not ready state is due to readiness gates not met
 		log.Debug("Checking if MySQL not ready due to pods waiting for readiness gates")
@@ -261,7 +262,7 @@ func (mc *MySQLChecker) RepairMySQLPodStuckDeleting() error {
 		}
 
 		// Initiate repair only if time to wait period has been exceeded
-		expiredTime := getInitialTimeMySQLPodsStuckChecked().Add(5 * time.Minute)
+		expiredTime := getInitialTimeMySQLPodsStuckChecked().Add(repairTimeoutPeriod)
 		if time.Now().After(expiredTime) {
 			if err := restartMySQLOperator(mc.log, mc.client); err != nil {
 				return err
