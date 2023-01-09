@@ -4,7 +4,7 @@
   http://oss.oracle.com/licenses/upl.
 -->
 
-# NGINX Ingress Controller Grafana Dashboards
+# NGINX Ingress Controller Grafana Dashboard
 Obtained from https://github.com/kubernetes/ingress-nginx/tree/controller-v1.3.1/deploy/grafana/dashboards
 
 (i.e. NGINX Ingress Controller v1.3.1)
