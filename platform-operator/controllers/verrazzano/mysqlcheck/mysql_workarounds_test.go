@@ -71,47 +71,40 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 		},
 	}
 
+	// Set up the initial context
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLPod, mySQLOperatorPod).Build()
-	ResetLastTimeReadinessGateRepairStarted()
 	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
-
-	// First time calling, expect timer to get initialized
 	mysqlCheck, err := NewMySQLChecker(fakeCtx.Client(), time.Duration(MySQLCheckPeriodSeconds)*time.Second)
 	assert.NoError(t, err)
-	assert.True(t, getLastTimeReadinessGateRepairStarted().IsZero())
+	assert.True(t, getLastTimeReadinessGateChecked().IsZero())
+
+	// Timer should remain zero when all conditions are true. Expect no error and mysql-operator pod to still exist.
 	err = mysqlCheck.RepairMySQLPodsWaitingReadinessGates()
 	assert.NoError(t, err)
-	assert.False(t, getLastTimeReadinessGateRepairStarted().IsZero())
-
-	// Second time calling, expect no error and mysql-operator pod to still exist
-	err = mysqlCheck.RepairMySQLPodsWaitingReadinessGates()
-	assert.NoError(t, err)
-
+	assert.True(t, getLastTimeReadinessGateChecked().IsZero())
 	pod := v1.Pod{}
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
 	assert.NoError(t, err)
 
-	// Third time calling, set the timer to exceed the expiration time which will force a check of the readiness gates.
-	// The readiness gates will be set to true going into the call, so the mysql-operator should not get recycled.
-	setLastTimeReadinessGateRepairStarted(time.Now().Add(-time.Hour * 2))
-	err = mysqlCheck.RepairMySQLPodsWaitingReadinessGates()
-	assert.NoError(t, err)
-
-	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
-	assert.NoError(t, err)
-
-	// Fourth time calling, set one of the readiness gates to false.  This should force deletion of the mysql-operator pod.
-	// The timer should also get reset.
+	// Set one of the conditions to false
 	mySQLPod.Status.Conditions = []v1.PodCondition{{Type: "gate1", Status: v1.ConditionTrue}, {Type: "gate2", Status: v1.ConditionFalse}}
 	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLPod, mySQLOperatorPod).Build()
 	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
 	mysqlCheck, err = NewMySQLChecker(fakeCtx.Client(), time.Duration(MySQLCheckPeriodSeconds)*time.Second)
 	assert.NoError(t, err)
-	setLastTimeReadinessGateRepairStarted(time.Now().Add(-time.Hour * 2))
+
+	// Expect timer to get started when ond of the conditions is not met.  The mysql-operator pod should still exist.
+	err = mysqlCheck.RepairMySQLPodsWaitingReadinessGates()
+	assert.NoError(t, err)
+	assert.False(t, getLastTimeReadinessGateChecked().IsZero())
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
+	assert.NoError(t, err)
+
+	// Set the last time readiness gate checked to exceed the timeout period.  Expect the mysql-operator to get recycled.
+	setInitialTimeReadinessGateChecked(time.Now().Add(-time.Hour * 2))
 	err = mysqlCheck.RepairMySQLPodsWaitingReadinessGates()
 	assert.NoError(t, err, fmt.Sprintf("unexpected error: %v", err))
-	assert.True(t, getLastTimeReadinessGateRepairStarted().IsZero())
-
+	assert.True(t, getLastTimeReadinessGateChecked().IsZero())
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
 	assert.Error(t, err)
 	assert.True(t, errors.IsNotFound(err))
