@@ -442,15 +442,15 @@
     },
     {
       "name": "keycloak",
-      "version": "15.0.2",
+      "version": "20.0.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "keycloak",
           "images": [
             {
-              "image": "keycloak",
-              "tag": "v15.0.2-20221214054602-c01654ffed",
+              "image": "keycloak-jenkins",
+              "tag": "v20.0.1-20230106091019-31c6bf0aaf",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

@@ -1,4 +1,4 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 # NOTE: The extraInitContainers value is now set in the installation script (4-install-keycloak.sh) so that we can specify the
@@ -17,28 +17,26 @@ extraEnv: |
     value: "2"
   - name: JGROUPS_DISCOVERY_PROTOCOL
     value: JDBC_PING
-  - name: DB_VENDOR
-    value: mysql
-  - name: DB_PORT
-    value: "3306"
-  - name: DB_DATABASE
-    value: keycloak
-  - name: DB_USER
-    value: "keycloak"
-  - name: DB_PASSWORD
-    valueFrom:
-      secretKeyRef:
-        name: mysql-cluster-secret
-        key: userPassword
-  - name: PROXY_ADDRESS_FORWARDING
-    value: "true"
-  - name: KEYCLOAK_USER
+  - name: KC_PROXY
+    value: "passthrough"
+  - name: KEYCLOAK_ADMIN
     value: "keycloakadmin"
-  - name: KEYCLOAK_PASSWORD
+  - name: KEYCLOAK_ADMIN_PASSWORD
     valueFrom:
       secretKeyRef:
         name: keycloak-http
         key: password
+
+dbchecker:
+  enabled: true
+
+database:
+  vendor: mysql
+  port: 3306
+  username: "keycloak"
+  existingSecret: "mysql-cluster-secret"
+  existingSecretKey: "userPassword"
+  database: keycloak
 
 extraVolumes: |
   - name: theme
@@ -79,6 +77,7 @@ ingress:
     nginx.ingress.kubernetes.io/service-upstream: "true"
     nginx.ingress.kubernetes.io/upstream-vhost: "keycloak-http.${namespace}.svc.cluster.local"
     nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
     nginx.ingress.kubernetes.io/session-cookie-conditional-samesite-none: "true"
     nginx.ingress.kubernetes.io/session-cookie-expires: "86400"
     nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
