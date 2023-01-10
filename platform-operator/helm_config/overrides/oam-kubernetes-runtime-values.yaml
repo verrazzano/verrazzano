@@ -8,7 +8,10 @@ resources:
     memory: 20Mi
 
 podSecurityContext:
+  fsGroup: 65532
+  runAsGroup: 65532
   runAsNonRoot: true
+  runAsUser: 65532
   seccompProfile:
     type: RuntimeDefault
 
