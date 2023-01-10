@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package bomvalidator
@@ -10,6 +10,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -23,6 +24,8 @@ import (
 const (
 	platformOperatorPodNameSearchString = "verrazzano-platform-operator"                          // Pod Substring for finding the platform operator pod
 	rancherWarningMessage               = "Rancher shell image version may be old due to upgrade" // For known Rancher component upgrade behavior during VZ upgrade
+	shortPollingInterval                = 10 * time.Second
+	shortWaitTimeout                    = 20 * time.Minute
 )
 
 type imageDetails struct {
@@ -91,20 +94,29 @@ var clusterImageWarnings = make(map[string]string)      // Map of image names no
 
 var t = framework.NewTestFramework("BOM validator")
 
+var _ = BeforeSuite(beforeSuite)
+
 var _ = t.Describe("BOM Validator", Label("f:platform-lcm.install"), func() {
 	t.Context("Post VZ Installations", func() {
-		t.It("Has Successful BOM Validation Report", func() {
-			Eventually(validateKubeConfig).Should(BeTrue())
-			getBOM()
+
+		t.It("Has BOM images associated with its tags", func() {
 			Expect(vBom.Components).NotTo(BeNil())
+		})
+
+		t.It("Has Successful BOM Validation Report", func() {
 			populateBomContainerImagesMap()
 			Expect(bomImages).NotTo(BeEmpty())
+			Expect(scanClusterImagesWithBom()).Should(BeTrue())
 			populateClusterContainerImages()
 			Expect(clusterImageArray).NotTo(BeEmpty())
-			Eventually(scanClusterImagesWithBom).Should(BeTrue())
-			Eventually(BomValidationReport).Should(BeTrue())
+			Eventually(BomValidationReport).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 	})
+})
+
+var beforeSuite = t.BeforeSuiteFunc(func() {
+	Expect(validateKubeConfig()).Should(BeTrue())
+	getBOM()
 })
 
 // Validate that KubeConfig is valued. This will point to the cluster being validated
@@ -151,7 +163,7 @@ func getBOM() {
 }
 
 // Populate BOM images into Hashmap bomImages
-// bomImages contains a map of "image" in the BOM to validate an image found in an allowed namespace exists in the BOM
+// contains a map of "image" in the BOM to validate an image found in an allowed namespace exists in the BOM
 func populateBomContainerImagesMap() {
 	for _, component := range vBom.Components {
 		for _, subcomponent := range component.Subcomponents {

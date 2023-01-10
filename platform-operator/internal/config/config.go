@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package config
@@ -69,6 +69,9 @@ type OperatorConfig struct {
 	// HealthCheckPeriodSeconds period for health check background task in seconds; a value of 0 disables health checks
 	HealthCheckPeriodSeconds int64
 
+	// MySQLCheckPeriodSeconds period for MySQL check background task in seconds; a value of 0 disables MySQL checks
+	MySQLCheckPeriodSeconds int64
+
 	// DryRun Run installs in a dry-run mode
 	DryRun bool
 }
@@ -84,6 +87,7 @@ var instance = OperatorConfig{
 	WebhookValidationEnabled: true,
 	VerrazzanoRootDir:        rootDir,
 	HealthCheckPeriodSeconds: 60,
+	MySQLCheckPeriodSeconds:  60,
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests
