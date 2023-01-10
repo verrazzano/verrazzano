@@ -67,6 +67,9 @@ func (mc *MySQLChecker) Start() {
 				if err = mc.RepairMySQLPodStuckDeleting(); err != nil {
 					mc.log.ErrorfThrottled("Failed to repair MySQL pods stuck terminating: %v", err)
 				}
+				if err = mc.RepairMySQLPodsWaitingReadinessGates(); err != nil {
+					mc.log.ErrorfThrottled("Failed to repair MySQL pods waiting for readiness gates: %v", err)
+				}
 			case <-mc.shutdown:
 				// shutdown event causes termination
 				ticker.Stop()

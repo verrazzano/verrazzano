@@ -36,7 +36,6 @@ var skipPods = map[string][]string{
 	"verrazzano-system": {
 		"coherence-operator",
 		"fluentd",
-		"oam-kubernetes-runtime",
 		"vmi-system",
 		"weblogic-operator",
 	},
