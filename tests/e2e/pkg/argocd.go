@@ -4,12 +4,12 @@
 package pkg
 
 import (
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -39,6 +39,7 @@ func VerifyArgocdApplicationAccess(log *zap.SugaredLogger, kubeConfigPath string
 	var err error
 
 	argocdAdminPassword, err := eventuallyGetArgocdAdminPassword(log)
+	httpClient, err := GetVerrazzanoHTTPClient(kubeConfigPath)
 	if err != nil {
 		log.Error(fmt.Sprintf("Error getting argocd admin password: %v", err))
 		return err
@@ -47,7 +48,7 @@ func VerifyArgocdApplicationAccess(log *zap.SugaredLogger, kubeConfigPath string
 	api := EventuallyGetAPIEndpoint(kubeConfigPath)
 	argocdURL := EventuallyGetURLForIngress(log, api, "argocd", "argocd-server", "https")
 
-	token, err := getArgoCDUserToken(log, argocdURL, "admin", string(argocdAdminPassword))
+	token, err := getArgoCDUserToken(log, argocdURL, "admin", string(argocdAdminPassword), httpClient)
 	if err != nil {
 		log.Error(fmt.Sprintf("Error getting user token from Argocd: %v", err))
 		return err
@@ -87,11 +88,11 @@ func eventuallyGetArgocdAdminPassword(log *zap.SugaredLogger) (string, error) {
 	return string(argocdAdminPassword), nil
 }
 
-func getArgoCDUserToken(log *zap.SugaredLogger, argoCDURL string, username string, password string) (string, error) {
+func getArgoCDUserToken(log *zap.SugaredLogger, argoCDURL string, username string, password string, httpClient *retryablehttp.Client) (string, error) {
 	argoCDLoginURL := fmt.Sprintf("%s/%s", argoCDURL, "api/v1/session")
 	payload := `{"Username": "` + username + `", "Password": "` + password + `"}`
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	response, err := http.Post(argoCDLoginURL, "application/json", strings.NewReader(payload))
+	//http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	response, err := httpClient.Post(argoCDLoginURL, "application/json", strings.NewReader(payload))
 	if err != nil {
 		log.Error(fmt.Sprintf("Error getting argocd admin token: %v", err))
 		return "", err
