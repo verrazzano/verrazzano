@@ -69,6 +69,7 @@ spec:
           image: {{ .Values.logging.fluentdImage }}
           imagePullPolicy: IfNotPresent
           securityContext:
+            privileged: false
             allowPrivilegeEscalation: false
           ports:
           - containerPort: 24231
