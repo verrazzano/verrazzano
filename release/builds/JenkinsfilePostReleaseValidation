@@ -1,0 +1,70 @@
+// Copyright (c) 2023, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+pipeline {
+    options {
+        skipDefaultCheckout true
+        timestamps ()
+    }
+
+    agent {
+       docker {
+            image "${RELEASE_RUNNER_IMAGE}"
+            args "${RELEASE_RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            registryCredentialsId 'ocir-pull-and-push-account'
+            label "internal"
+        }
+    }
+    parameters {
+        string name: 'RELEASE_UTILS_BRANCH', defaultValue: 'master', description: 'Branch or tag or commit to checkout from the release utils repo', trim: true
+        string name: 'IMAGES_TO_PUBLISH_OBJECT_STORE_FILE', description: 'The object store file from which to get the list of images to be published to OCR (if provided, IMAGES_TO_PUBLISH_JOB_NAME and IMAGES_TO_PUBLISH_BUILD are ignored)'
+        string name: 'IMAGES_TO_PUBLISH_JOB_NAME', defaultValue: 'verrazzano-new-oci-dns-acceptance-tests/master', description: 'Jenkins job whose built artifacts includes the list of images to push (needed if an object store location is not available for the images to publish)', trim: true
+        buildSelector name: 'IMAGES_TO_PUBLISH_BUILD', defaultSelector: latestSavedBuild(), description: 'The specific build to get the images to push artifact from (needed if an object store location is not available for the images to publish)'
+        booleanParam (description: 'Indicate whether this is a dry run - no images will be pulled or pushed', name: 'DRY_RUN', defaultValue: false)
+    }
+
+    environment {
+        OCR_CREDS = credentials('ocr-credentials-for-release')
+        OCR_ADMIN_CREDS = credentials('ocr-credentials-for-release')
+        GHCR_CREDS = credentials('github-packages-credentials-rw')
+    }
+
+    stages {
+        
+
+        stage('Get Images') {
+            environment {
+                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                OCI_OS_BUCKET="verrazzano-builds"
+                OCI_CLI_AUTH="api_key"
+                OCI_CLI_TENANCY = credentials('oci-tenancy')
+                OCI_CLI_USER = credentials('oci-user-ocid')
+                OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+                OCI_CLI_KEY_FILE = credentials('oci-api-key')
+                OCI_CLI_REGION = "us-phoenix-1"
+                OCI_REGION = "us-phoenix-1"
+            }
+            steps {
+              script {
+                if (params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE) {
+                  println("Downloading image list from object store")
+                  sh "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE} --file verrazzano_images.txt"
+                } else {
+                  println("Copying image list from provided Jenkins job")
+                  copyArtifacts(projectName: '${IMAGES_TO_PUBLISH_JOB_NAME}',
+                    filter: 'verrazzano_images.txt',
+                    selector: buildParameter('IMAGES_TO_PUBLISH_BUILD'));
+                }
+                sh """
+                    mv verrazzano_images.txt $WORKSPACE/verrazzano-release-utils/scripts
+                    cat $WORKSPACE/verrazzano-release-utils/scripts/verrazzano_images.txt
+                    validate-ocr-images.sh
+                """
+              }
+            }
+        }
+
+    }
+
+}
