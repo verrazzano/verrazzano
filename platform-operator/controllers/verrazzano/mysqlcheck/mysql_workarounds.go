@@ -28,7 +28,7 @@ const (
 	helmReleaseName     = "mysql"
 	componentNamespace  = "keycloak"
 	componentName       = "mysql"
-	repairTimeoutPeriod = 5 * time.Minute
+	repairTimeoutPeriod = 2 * time.Minute
 )
 
 var (
@@ -156,7 +156,7 @@ func (mc *MySQLChecker) RepairMySQLPodsWaitingReadinessGates() error {
 		}
 
 		// Initiate repair only if time to wait period has been exceeded
-		expiredTime := getLastTimeReadinessGateChecked().Add(repairTimeoutPeriod)
+		expiredTime := getLastTimeReadinessGateChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
 			return restartMySQLOperator(mc.log, mc.client, "MySQL pods waiting for readiness gates")
 		}
@@ -259,7 +259,7 @@ func (mc *MySQLChecker) RepairMySQLPodStuckDeleting() error {
 		}
 
 		// Initiate repair only if time to wait period has been exceeded
-		expiredTime := getInitialTimeMySQLPodsStuckChecked().Add(repairTimeoutPeriod)
+		expiredTime := getInitialTimeMySQLPodsStuckChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
 			if err := restartMySQLOperator(mc.log, mc.client, "MySQL pods stuck terminating"); err != nil {
 				return err
