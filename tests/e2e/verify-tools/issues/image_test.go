@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	k8util "github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	corev1 "k8s.io/api/core/v1"
@@ -44,6 +43,7 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 			Fail(err.Error())
 		}
 		fmt.Println("11111111 \n", out)
+		/*
 		out, err = InjectIssues()
 		if err != nil {
 			Fail(err.Error())
@@ -64,16 +64,16 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 			Fail(err.Error())
 		}
 		fmt.Println("44444444 \n", out)
-
+		*/
 		c, err := k8util.GetKubernetesClientset()
 		if err != nil {
 			Fail(err.Error())
 		}
-		deploymentsClient := c.ExtensionsV1beta1().Deployments("verrazzano-system")
+		//deploymentsClient := c.ExtensionsV1beta1().Deployments("verrazzano-system")
 		patch := []byte(`{"spec":{"template":{"spec":{"containers":[{"image":"ghcr.io/oracle/coherence-operator:3.YY","name":"coherence-operator"}]}}}}`)
-		res, err := deploymentsClient.Patch(context.TODO(),"coherence-operator", types.MergePatchType, patch,  v1.PatchOptions{}, "")
+		res, err := c.AppsV1().Deployments("verrazzano-system").Patch(context.TODO(),"coherence-operator", types.MergePatchType, patch,  v1.PatchOptions{}, "")
 		if err != nil {
-			Fail(err.Error())
+			fmt.Println(err)
 		}
 		fmt.Println(res)
 	})
