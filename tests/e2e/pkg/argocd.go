@@ -39,6 +39,9 @@ func VerifyArgocdApplicationAccess(log *zap.SugaredLogger, kubeConfigPath string
 	var err error
 
 	argocdAdminPassword, err := eventuallyGetArgocdAdminPassword(log)
+	if err != nil {
+		return err
+	}
 	httpClient, err := GetVerrazzanoHTTPClient(kubeConfigPath)
 	if err != nil {
 		log.Error(fmt.Sprintf("Error getting argocd admin password: %v", err))
