@@ -6,6 +6,7 @@ package security
 import (
 	"context"
 	"fmt"
+	"k8s.io/utils/strings/slices"
 	"strings"
 	"time"
 
@@ -24,9 +25,6 @@ var t = framework.NewTestFramework("security")
 const (
 	waitTimeout     = 3 * time.Minute
 	pollingInterval = 5 * time.Second
-
-	// Only allowed capability in restricted mode
-	capNetBindService = "NET_BIND_SERVICE"
 )
 
 var skipPods = map[string][]string{
@@ -35,7 +33,6 @@ var skipPods = map[string][]string{
 	},
 	"verrazzano-system": {
 		"coherence-operator",
-		"fluentd",
 		"oam-kubernetes-runtime",
 		"vmi-system",
 		"weblogic-operator",
@@ -51,6 +48,9 @@ var skipPods = map[string][]string{
 var skipContainers = []string{}
 var skipInitContainers = []string{"istio-init"}
 
+// Only allowed capabilities in restricted mode
+var allowedCapabilities = []string{"NET_BIND_SERVICE", "DAC_OVERRIDE"}
+
 type podExceptions struct {
 	allowHostPath    bool
 	allowHostNetwork bool
@@ -64,6 +64,9 @@ var exceptionPods = map[string]podExceptions{
 		allowHostNetwork: true,
 		allowHostPID:     true,
 		allowHostPort:    true,
+	},
+	"fluentd": {
+		allowHostPath: true,
 	},
 }
 
@@ -244,8 +247,8 @@ func ensureContainerSecurityContext(sc *corev1.SecurityContext, podName, contain
 		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, Missing `Drop -ALL` capabilities", podName, containerName))
 	}
 	if len(sc.Capabilities.Add) > 0 {
-		if len(sc.Capabilities.Add) > 1 || sc.Capabilities.Add[0] != capNetBindService {
-			errors = append(errors, fmt.Errorf("only %s capability allowed, found unexpected capabilities added to container %s in pod %s: %v", capNetBindService, containerName, podName, sc.Capabilities.Add))
+		if len(sc.Capabilities.Add) > 1 || !slices.Contains(allowedCapabilities, string(sc.Capabilities.Add[0])) {
+			errors = append(errors, fmt.Errorf("only %v capabilities are allowed, found unexpected capabilities added to container %s in pod %s: %v", allowedCapabilities, containerName, podName, sc.Capabilities.Add))
 		}
 	}
 	return errors

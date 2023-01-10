@@ -24,6 +24,12 @@ spec:
           command: ["/init/init.sh"]
           image: {{ .Values.logging.fluentdImage }}
           imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           volumeMounts:
             - mountPath: /init
               name: {{ .Values.logging.name }}-init
@@ -71,6 +77,11 @@ spec:
           securityContext:
             privileged: false
             allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - DAC_OVERRIDE
           ports:
           - containerPort: 24231
             name: http-metrics
