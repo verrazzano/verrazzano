@@ -6,10 +6,23 @@
 
 # NOTE: The keycloak image now comes from the bill of materials file (verrazzano-bom.json).
 
+command:
+  - "/opt/keycloak/bin/kc.sh"
+  - "--verbose"
+  - "start"
+  - "--http-enabled=true"
+  - "--http-port=8080"
+  - "--hostname-strict=false"
+  - "--hostname-strict-https=false"
+
+fullnameOverride: "keycloak"
+nameOverride: "keycloak"
+
 postgresql:
   enabled: false
 mysql:
   enabled: true
+
 extraEnv: |
   - name: CACHE_OWNERS
     value: "2"
@@ -26,16 +39,19 @@ extraEnv: |
       secretKeyRef:
         name: keycloak-http
         key: password
-
-dbchecker:
-  enabled: true
+  - name: JAVA_OPTS_APPEND
+    value: >-
+      -XX:+UseContainerSupport
+      -XX:MaxRAMPercentage=50.0
+      -Djava.awt.headless=true
+      -Djgroups.dns.query={{ include "keycloak.fullname" . }}-headless
 
 database:
   vendor: mysql
   port: 3306
-  username: "keycloak"
-  existingSecret: "mysql-cluster-secret"
-  existingSecretKey: "userPassword"
+  username: keycloak
+  existingSecret: mysql-cluster-secret
+  existingSecretKey: userPassword
   database: keycloak
 
 extraVolumes: |

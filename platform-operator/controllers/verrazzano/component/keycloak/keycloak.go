@@ -58,7 +58,7 @@ const (
 	viewUsersRole           = "view-users"
 	noRouterAddr            = "mysql-instances"
 	routerAddr              = "mysql"
-	dbHostKey               = "mysql.dbHost"
+	dbHostKey               = "database.hostname"
 	kcAdminScript           = "/opt/keycloak/bin/kcadm.sh"
 )
 
