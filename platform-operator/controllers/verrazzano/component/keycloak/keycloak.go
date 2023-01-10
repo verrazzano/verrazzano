@@ -81,6 +81,15 @@ const kcInitContainerValueTemplate = `
           mountPath: /theme
         - name: cacerts
           mountPath: /cacerts
+      securityContext:
+        allowPrivilegeEscalation: false
+		capabilities:
+        drop:
+          - ALL
+        privileged: false
+        runAsGroup: 0
+        runAsNonRoot: true
+        runAsUser: 1000
 `
 
 const pkceTmpl = `
