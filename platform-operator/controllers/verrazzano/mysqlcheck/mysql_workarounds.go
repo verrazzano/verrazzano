@@ -119,21 +119,7 @@ func RepairICStuckDeleting(ctx spi.ComponentContext) error {
 	// Initiate repair only if time to wait period has been exceeded
 	expiredTime := getInitialTimeICUninstallChecked().Add(repairTimeoutPeriod)
 	if time.Now().After(expiredTime) {
-		// Restart the mysql-operator to see if it will finish deleting the IC object
-		ctx.Log().Info("Restarting the mysql-operator to see if it will repair InnoDBCluster stuck deleting")
-
-		operPod, err := getMySQLOperatorPod(ctx.Log(), ctx.Client())
-		if err != nil {
-			return fmt.Errorf("Failed restarting the mysql-operator to repair InnoDBCluster stuck deleting: %v", err)
-		}
-
-		if err = ctx.Client().Delete(context.TODO(), operPod, &clipkg.DeleteOptions{}); err != nil {
-			return err
-		}
-
-		// Clear the timer
-		resetInitialTimeICUninstallChecked()
-		return nil
+		return restartMySQLOperator(ctx.Log(), ctx.Client(), "InnoDBCluster stuck deleting")
 	}
 
 	ctx.Log().Progressf("Waiting for InnoDBCluster %s/%s to be deleted", componentNamespace, helmReleaseName)
