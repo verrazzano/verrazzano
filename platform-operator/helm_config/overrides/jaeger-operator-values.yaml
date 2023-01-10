@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 rbac:
   # Specifies whether RBAC resources should be created
@@ -13,10 +13,29 @@ jaeger:
       proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
     ingress:
       enabled: false
+      securityContext:
+        runAsGroup: 65534
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
     collector:
       options:
         collector:
           tags: verrazzano_cluster=local
+      securityContext:
+        runAsGroup: 65534
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
+    query:
+      securityContext:
+        runAsGroup: 65534
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
     storage:
       dependencies:
         enabled: false
@@ -27,6 +46,19 @@ jaeger:
         schedule: "55 23 * * *"
         # Number of times to retry before considering the job as failed
         backoffLimit: 2
+        securityContext:
+          runAsGroup: 65534
+          runAsNonRoot: true
+          runAsUser: 65534
+          seccompProfile:
+            type: RuntimeDefault
       options:
         es:
           index-prefix: verrazzano
+
+securityContext:
+  runAsGroup: 65534
+  runAsNonRoot: true
+  runAsUser: 1001
+  seccompProfile:
+    type: RuntimeDefault
