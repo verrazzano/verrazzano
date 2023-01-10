@@ -83,7 +83,7 @@ const kcInitContainerValueTemplate = `
           mountPath: /cacerts
       securityContext:
         allowPrivilegeEscalation: false
-		capabilities:
+        capabilities:
         drop:
           - ALL
         privileged: false
