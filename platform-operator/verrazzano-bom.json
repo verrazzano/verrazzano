@@ -749,6 +749,36 @@
           ]
         }
       ]
+    },
+    {
+      "name": "argocd",
+      "version": "2.5.3",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "argocd",
+          "images": [
+            {
+              "image": "argocd",
+              "tag": "v2.5.3-20221214191504-c922509d",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "redis",
+          "images": [
+            {
+              "image": "redis",
+              "tag": "v6.2.7-20221220011601-26c8b963",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
     }
   ],
   "supportedKubernetesVersions": [
