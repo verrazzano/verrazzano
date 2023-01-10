@@ -88,6 +88,18 @@ var certificates = []types.NamespacedName{
 	{Name: "tls-rancher-ingress", Namespace: ComponentNamespace},
 }
 
+// For use to override during unit tests
+type checkClusterProvisionedFuncSig func(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error)
+
+var checkClusterProvisionedFunc checkClusterProvisionedFuncSig = checkClusterProvisioned
+
+func SetCheckClusterProvisionedFunc(newFunc checkClusterProvisionedFuncSig) {
+	checkClusterProvisionedFunc = newFunc
+}
+func SetDefaultCheckClusterProvisionedFunc() {
+	checkClusterProvisionedFunc = checkClusterProvisioned
+}
+
 func NewComponent() spi.Component {
 	return rancherComponent{
 		HelmComponent: helm.HelmComponent{
@@ -446,7 +458,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// postUninstall handles the deletion of all Rancher resources after the Helm uninstall
+// PostUninstall handles the deletion of all Rancher resources after the Helm uninstall
 func (r rancherComponent) PostUninstall(ctx spi.ComponentContext) error {
 	if ctx.IsDryRun() {
 		ctx.Log().Debug("Rancher postUninstall dry run")
@@ -640,12 +652,7 @@ func IsClusterProvisionedByRancher() (bool, error) {
 		return false, err
 	}
 
-	provisioned, err := checkClusterProvisioned(client, dynClient)
-	if err != nil {
-		return false, err
-	}
-
-	return provisioned, nil
+	return checkClusterProvisionedFunc(client, dynClient)
 }
 
 // checkClusterProvisioned checks if the Kubernetes cluster was provisioned by Rancher.
