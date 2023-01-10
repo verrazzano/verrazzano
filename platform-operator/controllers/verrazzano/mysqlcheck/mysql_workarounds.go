@@ -23,12 +23,13 @@ import (
 )
 
 const (
-	mySQLComponentLabel = "component"
-	mySQLDComponentName = "mysqld"
-	helmReleaseName     = "mysql"
-	componentNamespace  = "keycloak"
-	componentName       = "mysql"
-	repairTimeoutPeriod = 5 * time.Minute
+	mySQLComponentLabel      = "component"
+	mySQLDComponentName      = "mysqld"
+	helmReleaseName          = "mysql"
+	componentNamespace       = "keycloak"
+	componentName            = "mysql"
+	mysqlRouterComponentName = "mysqlrouter"
+	repairTimeoutPeriod      = 5 * time.Minute
 )
 
 var (
@@ -258,6 +259,33 @@ func (mc *MySQLChecker) RepairMySQLPodStuckDeleting() error {
 
 	// Clear the timer
 	resetInitialTimeMySQLPodsStuckChecked()
+	return nil
+}
+
+// RepairMySQLRouterPodsCrashLoopBackoff - repair mysql-router pods stuck in CrashLoopBackoff.
+// The workaround is to delete the pod.
+func (mc *MySQLChecker) RepairMySQLRouterPodsCrashLoopBackoff() error {
+	selector := metav1.LabelSelectorRequirement{Key: mySQLComponentLabel, Operator: metav1.LabelSelectorOpIn, Values: []string{mysqlRouterComponentName}}
+	podList := k8sready.GetPodsList(mc.log, mc.client, types.NamespacedName{Namespace: componentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{selector}})
+	if podList == nil || len(podList.Items) == 0 {
+		// No MySQL pods found
+		return nil
+	}
+
+	for i := range podList.Items {
+		pod := podList.Items[i]
+		for _, container := range pod.Status.ContainerStatuses {
+			if waiting := container.State.Waiting; waiting != nil {
+				if waiting.Reason == "CrashLoopBackOff" {
+					// Terminate the pod
+					mc.log.Infof("Terminating pod %s/%s because it was stuck in CrashLoopBackOff", pod.Namespace, pod.Name)
+					if err := mc.client.Delete(context.TODO(), &pod, &clipkg.DeleteOptions{}); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
 	return nil
 }
 
