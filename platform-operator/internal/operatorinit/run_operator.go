@@ -1,5 +1,6 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package operatorinit
 
 import (
@@ -7,11 +8,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
@@ -35,8 +36,8 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 	metricsexporter.StartMetricsServer(log)
 
 	// Set up the reconciler
-	statusUpdater := status.NewStatusUpdater(mgr.GetClient())
-	healthCheck := status.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(config.HealthCheckPeriodSeconds)*time.Second)
+	statusUpdater := healthcheck.NewStatusUpdater(mgr.GetClient())
+	healthCheck := healthcheck.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(config.HealthCheckPeriodSeconds)*time.Second)
 	reconciler := reconcile.Reconciler{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
@@ -50,14 +51,6 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 	}
 	if config.HealthCheckPeriodSeconds > 0 {
 		healthCheck.Start()
-	}
-
-	// Set up the reconciler for VerrazzanoManagedCluster objects
-	if err = (&clusters.VerrazzanoManagedClusterReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		return errors.Wrap(err, "Failed to setup controller VerrazzanoManagedCluster")
 	}
 
 	// Setup secrets reconciler
@@ -78,10 +71,18 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 		return errors.Wrap(err, "Failed to setup controller VerrazzanoConfigMaps")
 	}
 
+	// Setup MySQL checker
+	mysqlCheck, err := mysqlcheck.NewMySQLChecker(mgr.GetClient(), time.Duration(config.MySQLCheckPeriodSeconds)*time.Second)
+	if err != nil {
+		return errors.Wrap(err, "Failed starting MySQLChecker")
+	}
+	mysqlCheck.Start()
+
 	// +kubebuilder:scaffold:builder
 	log.Info("Starting controller-runtime manager")
 	if err := mgr.Start(controllerruntime.SetupSignalHandler()); err != nil {
 		return errors.Wrap(err, "Failed starting controller-runtime manager: %v")
 	}
+
 	return nil
 }

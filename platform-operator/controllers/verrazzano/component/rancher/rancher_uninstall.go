@@ -5,16 +5,20 @@ package rancher
 
 import (
 	"context"
+	"fmt"
+	osexec "os/exec"
 	"regexp"
 	"strings"
 
-	osexec "os/exec"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/os"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	"github.com/verrazzano/verrazzano/pkg/os"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	admv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -53,10 +57,59 @@ var rancherSystemNS = []string{
 	"local",
 }
 
-// postUninstall removes the objects after the Helm uninstall process finishes
-func postUninstall(ctx spi.ComponentContext) error {
-	ctx.Log().Oncef("Running the Rancher uninstall system tool")
+// create func vars for unit tests
+type forkPostUninstallFuncSig func(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error
 
+var forkPostUninstallFunc forkPostUninstallFuncSig = forkPostUninstall
+
+type postUninstallFuncSig func(ctx spi.ComponentContext) error
+
+var postUninstallFunc postUninstallFuncSig = invokeRancherSystemToolAndCleanup
+
+// postUninstall - Rancher component post-uninstall
+//
+// This uses the Rancher system tool for uninstall, which blocks the uninstallation process. So, we launch the
+// uninstall operation in a goroutine and requeue to check back later.
+// On subsequent callbacks, we check the status of the goroutine with the 'monitor' object, and postUninstall
+// returns or requeues accordingly.
+func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
+	if monitor.IsRunning() {
+		// Check the result
+		succeeded, err := monitor.CheckResult()
+		if err != nil {
+			// Not finished yet, requeue
+			ctx.Log().Progress("Component Rancher waiting to finish post-uninstall in the background")
+			return err
+		}
+		// reset on success or failure
+		monitor.Reset()
+		// If it's not finished running, requeue
+		if succeeded {
+			return nil
+		}
+		// if we were unsuccessful, reset and drop through to try again
+		ctx.Log().Debug("Error during Rancher post-uninstall, retrying")
+	}
+
+	return forkPostUninstallFunc(ctx, monitor)
+}
+
+// forkPostUninstall - the Rancher uninstall system tool blocks, so fork it to the background
+func forkPostUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
+	ctx.Log().Debugf("Creating background post-uninstall goroutine for Rancher")
+
+	monitor.Run(
+		func() error {
+			return postUninstallFunc(ctx)
+		},
+	)
+
+	return ctrlerrors.RetryableError{Source: ComponentName}
+}
+
+// invokeRancherSystemToolAndCleanup - responsible for the actual deletion of resources
+// This calls the Rancher uninstall tool, which blocks.
+func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	// List all the namespaces that need to be cleaned from Rancher components
 	nsList := corev1.NamespaceList{}
 	err := ctx.Client().List(context.TODO(), &nsList)
@@ -67,6 +120,7 @@ func postUninstall(ctx spi.ComponentContext) error {
 	// For Rancher namespaces, run the system tools uninstaller
 	for i, ns := range nsList.Items {
 		if isRancherNamespace(&nsList.Items[i]) {
+			ctx.Log().Infof("Running the Rancher uninstall system tool for namespace %s", ns.Name)
 			args := []string{"remove", "-c", "/home/verrazzano/kubeconfig", "--namespace", ns.Name, "--force"}
 			cmd := osexec.Command(rancherSystemTool, args...) //nolint:gosec //#nosec G204
 			_, stdErr, err := os.DefaultRunner{}.Run(cmd)
@@ -110,13 +164,18 @@ func postUninstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	crds := getCRDList(ctx)
+
+	// Remove any Rancher custom resources that remain
+	removeCRs(ctx, crds)
+
 	// Remove any Rancher CRD finalizers that may be causing CRD deletion to hang
-	removeCRDFinalizers(ctx)
+	removeCRDFinalizers(ctx, crds)
 
 	return nil
 }
 
-// deleteWebhooks takes care of deleting the Webhook resources from Ranncher
+// deleteWebhooks takes care of deleting the Webhook resources from Rancher
 func deleteWebhooks(ctx spi.ComponentContext) error {
 	vwcNames := []string{webhookName, "validating-webhook-configuration"}
 	mwcNames := []string{webhookName, "mutating-webhook-configuration"}
@@ -147,12 +206,49 @@ func deleteWebhooks(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func removeCRDFinalizers(ctx spi.ComponentContext) {
-	crds := v1.CustomResourceDefinitionList{}
-	err := ctx.Client().List(context.TODO(), &crds)
+// getCRDList returns the list of CRDs in the cluster
+func getCRDList(ctx spi.ComponentContext) *v1.CustomResourceDefinitionList {
+	crds := &v1.CustomResourceDefinitionList{}
+	err := ctx.Client().List(context.TODO(), crds)
 	if err != nil {
 		ctx.Log().Errorf("Failed to list CRDs during uninstall: %v", err)
 	}
+
+	return crds
+}
+
+// removeCRs deletes any remaining Rancher cattle.io custom resources
+func removeCRs(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) {
+	ctx.Log().Oncef("Removing Rancher custom resources")
+	for _, crd := range crds.Items {
+		if strings.HasSuffix(crd.Name, ".cattle.io") {
+			for _, version := range crd.Spec.Versions {
+				rancherCRs := unstructured.UnstructuredList{}
+				rancherCRs.SetAPIVersion(fmt.Sprintf("%s/%s", crd.Spec.Group, version.Name))
+				rancherCRs.SetKind(crd.Spec.Names.Kind)
+				err := ctx.Client().List(context.TODO(), &rancherCRs)
+				if err != nil {
+					ctx.Log().Errorf("Failed to list CustomResource %s during uninstall: %v", rancherCRs.GetKind(), err)
+					continue
+				}
+
+				for _, rancherCR := range rancherCRs.Items {
+					cr := rancherCR
+					resource.Resource{
+						Namespace: cr.GetNamespace(),
+						Name:      cr.GetName(),
+						Client:    ctx.Client(),
+						Object:    &cr,
+						Log:       ctx.Log(),
+					}.RemoveFinalizersAndDelete()
+
+				}
+			}
+		}
+	}
+}
+
+func removeCRDFinalizers(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) {
 	var rancherDeletedCRDs []v1.CustomResourceDefinition
 	for _, crd := range crds.Items {
 		if strings.HasSuffix(crd.Name, ".cattle.io") && crd.DeletionTimestamp != nil && !crd.DeletionTimestamp.IsZero() {
@@ -162,7 +258,7 @@ func removeCRDFinalizers(ctx spi.ComponentContext) {
 
 	for _, crd := range rancherDeletedCRDs {
 		ctx.Log().Infof("Removing finalizers from deleted Rancher CRD %s", crd.Name)
-		err = resource.Resource{
+		err := resource.Resource{
 			Name:   crd.Name,
 			Client: ctx.Client(),
 			Object: &v1.CustomResourceDefinition{},

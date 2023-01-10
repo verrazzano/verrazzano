@@ -4,9 +4,12 @@
 package common
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -14,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -191,4 +195,75 @@ func TestCertPool(t *testing.T) {
 	certPool := CertPool(certs)
 	assert.NotNil(t, certPool)
 
+}
+
+// TestRetry tests Retry for a function
+// GIVEN a retryable function
+//
+//	WHEN Retry is called with retryOnError as false and function returns error
+//	THEN Retry should return the same error and not retry
+//	WHEN Retry is called function does not returns error
+//	THEN Retry should retry the function until timeout occurs
+//	WHEN Retry is called with retryOnError as true and function returns error
+//	THEN Retry should retry the function until timeout and return the last error
+//	WHEN Retry is called and function return true with no error
+//	THEN Retry should return no error
+func TestRetry(t *testing.T) {
+	var tests = []struct {
+		testName       string
+		retryable      wait.ConditionFunc
+		backoff        wait.Backoff
+		retryOnError   bool
+		isError        bool
+		isTimeoutError bool
+	}{
+		{
+			"should return error when retryOnError is false and function returns error",
+			func() (bool, error) { return false, fmt.Errorf("") },
+			wait.Backoff{Steps: 1, Duration: 2 * time.Second},
+			false,
+			true,
+			false,
+		},
+		{
+			"should retry until timeout when function does not return error and return timeout error",
+			func() (bool, error) { return false, nil },
+			wait.Backoff{Steps: 1, Duration: 2 * time.Second},
+			false,
+			true,
+			true,
+		},
+		{
+			"should retry until timeout when function return error but retryOnError is true and eventually return the error returned by function",
+			func() (bool, error) { return false, fmt.Errorf("") },
+			wait.Backoff{Steps: 1, Duration: 2 * time.Second},
+			true,
+			true,
+			false,
+		},
+		{
+			"should return no error when condition is met",
+			func() (bool, error) { return true, nil },
+			wait.Backoff{Steps: 1, Duration: 2 * time.Second},
+			true,
+			false,
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			err := Retry(tt.backoff, vzlog.DefaultLogger(), false, tt.retryable)
+			if tt.isError {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+				if tt.isTimeoutError {
+					assert.Equal(t, wait.ErrWaitTimeout.Error(), err)
+				} else {
+					assert.NotEqual(t, wait.ErrWaitTimeout.Error(), err)
+				}
+			}
+		})
+	}
 }

@@ -5,8 +5,6 @@ package constants
 
 import (
 	"time"
-
-	platformOperatorConstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 )
 
 // RestartVersionAnnotation - the annotation used by user to tell Verrazzano application to restart its components
@@ -125,10 +123,10 @@ const TestPrometheusJobScrapeInterval = "0s"
 const TestPrometheusScrapeJob = "test_job"
 
 // Default OpenSearch URL
-const DefaultOpensearchURL = "http://verrazzano-authproxy-elasticsearch:8775"
+const DefaultOpensearchURL = "http://verrazzano-authproxy-opensearch:8775"
 
 // Default Jaeger OpenSearch URL
-const DefaultJaegerOSURL = "http://verrazzano-authproxy-elasticsearch.verrazzano-system:8775"
+const DefaultJaegerOSURL = "http://verrazzano-authproxy-opensearch.verrazzano-system:8775"
 
 // DefaultJaegerSecretName is the Jaeger secret name used by the default Jaeger instance
 // #nosec
@@ -167,73 +165,27 @@ const MysqlBackupMutatingWebhookName = "verrazzano-mysql-backup"
 // MysqlBackupMutatingWebhookPath specifies the path of mysql webhook.
 const MysqlBackupMutatingWebhookPath = "/mysql-backup-job-annotate"
 
+// VerrazzanoClusterRancherName is the name for the Rancher cluster role and secret used to grant permissions to the Verrazzano cluster user
+const VerrazzanoClusterRancherName = "verrazzano-cluster-registrar"
+
+// VerrazzanoClusterRancherUsername is the username in Rancher used to identify the Verrazzano cluster user
+const VerrazzanoClusterRancherUsername = "vz-cluster-reg"
+
 // Components Names
 const (
-	OamKubernetesRuntime          = "oam-kubernetes-runtime"
-	KialiServer                   = "kiali-server"
-	WeblogicOperator              = "weblogic-operator"
-	VerrazzanoAuthproxy           = "verrazzano-authproxy"
-	Istio                         = "istio"
-	ExternalDNS                   = "external-dns"
-	VerrazzanoApplicationOperator = "verrazzano-application-operator"
-	CoherenceOperator             = "coherence-operator"
-	IngressController             = "ingress-controller"
-	IngressDefaultBackend         = "ingress-controller-ingress-nginx-defaultbackend"
-	MySQL                         = "mysql"
-	CertManager                   = "cert-manager"
-	Rancher                       = "rancher"
-	PrometheusPushgateway         = "prometheus-pushgateway"
-	PrometheusAdapter             = "prometheus-adapter"
-	KubeStateMetrics              = "kube-state-metrics"
-	PrometheusNodeExporter        = "prometheus-node-exporter"
-	PrometheusOperator            = "prometheus-operator"
-	Keycloak                      = "keycloak"
-	VerrazzanoMonitoringOperator  = "verrazzano-monitoring-operator"
-	Grafana                       = "grafana"
-	JaegerOperator                = "jaeger-operator"
-	OpensearchDashboards          = "opensearch-dashboards"
-	Opensearch                    = "opensearch"
-	Velero                        = "velero"
-	VerrazzanoConsole             = "verrazzano-console"
-	Verrazzano                    = "verrazzano"
-	Fluentd                       = "fluentd"
-	RancherBackup                 = "rancher-backup"
-	MySQLOperator                 = "mysql-operator"
+	Istio                 = "istio"
+	ExternalDNS           = "external-dns"
+	IngressController     = "ingress-controller"
+	IngressDefaultBackend = "ingress-controller-ingress-nginx-defaultbackend"
+	MySQL                 = "mysql"
+	CertManager           = "cert-manager"
+	Rancher               = "rancher"
+	Keycloak              = "keycloak"
+	Grafana               = "grafana"
+	JaegerOperator        = "jaeger-operator"
+	Opensearch            = "opensearch"
+	Velero                = "velero"
+	Verrazzano            = "verrazzano"
+	Fluentd               = "fluentd"
+	MySQLOperator         = "mysql-operator"
 )
-
-const (
-	RancherFleetSystemNamespace      = "cattle-fleet-system"
-	RancherFleetLocalSystemNamespace = "cattle-fleet-local-system"
-)
-
-var ComponentNameToNamespacesMap = map[string][]string{
-	OamKubernetesRuntime:          {VerrazzanoSystemNamespace},
-	KialiServer:                   {VerrazzanoSystemNamespace},
-	WeblogicOperator:              {VerrazzanoSystemNamespace},
-	VerrazzanoAuthproxy:           {VerrazzanoSystemNamespace},
-	Istio:                         {IstioSystemNamespace},
-	ExternalDNS:                   {CertManagerNamespace},
-	VerrazzanoApplicationOperator: {VerrazzanoSystemNamespace},
-	CoherenceOperator:             {VerrazzanoSystemNamespace},
-	IngressController:             {platformOperatorConstants.IngressNginxNamespace},
-	MySQL:                         {KeycloakNamespace},
-	CertManager:                   {CertManagerNamespace},
-	Rancher:                       {RancherSystemNamespace, RancherFleetSystemNamespace, RancherFleetLocalSystemNamespace},
-	PrometheusPushgateway:         {platformOperatorConstants.VerrazzanoMonitoringNamespace},
-	PrometheusAdapter:             {platformOperatorConstants.VerrazzanoMonitoringNamespace},
-	KubeStateMetrics:              {platformOperatorConstants.VerrazzanoMonitoringNamespace},
-	PrometheusNodeExporter:        {platformOperatorConstants.VerrazzanoMonitoringNamespace},
-	PrometheusOperator:            {platformOperatorConstants.VerrazzanoMonitoringNamespace},
-	Keycloak:                      {KeycloakNamespace},
-	VerrazzanoMonitoringOperator:  {VerrazzanoSystemNamespace},
-	Grafana:                       {VerrazzanoSystemNamespace},
-	JaegerOperator:                {platformOperatorConstants.VerrazzanoMonitoringNamespace},
-	OpensearchDashboards:          {VerrazzanoSystemNamespace},
-	Opensearch:                    {VerrazzanoSystemNamespace},
-	Velero:                        {platformOperatorConstants.VeleroNameSpace},
-	VerrazzanoConsole:             {VerrazzanoSystemNamespace},
-	Verrazzano:                    {VerrazzanoSystemNamespace},
-	Fluentd:                       {VerrazzanoSystemNamespace},
-	RancherBackup:                 {platformOperatorConstants.RancherBackupNamesSpace},
-	MySQLOperator:                 {MySQLOperatorNamespace},
-}

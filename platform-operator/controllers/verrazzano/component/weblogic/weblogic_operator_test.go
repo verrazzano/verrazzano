@@ -24,7 +24,7 @@ import (
 func Test_appendWeblogicOperatorOverrides(t *testing.T) {
 	kvs, err := AppendWeblogicOperatorOverrides(spi.NewFakeContext(nil, nil, nil, false), "weblogic-operator", "verrazzano-system", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 5)
+	assert.Len(t, kvs, 4)
 }
 
 // Test_appendWeblogicOperatorOverridesExtraKVs tests the AppendWeblogicOperatorOverrides fn
@@ -39,7 +39,7 @@ func Test_appendWeblogicOperatorOverridesExtraKVs(t *testing.T) {
 	var err error
 	kvs, err = AppendWeblogicOperatorOverrides(spi.NewFakeContext(nil, nil, nil, false), "weblogic-operator", "verrazzano-system", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 6)
+	assert.Len(t, kvs, 5)
 }
 
 // Test_weblogicOperatorPreInstall tests the WeblogicOperatorPreInstall fn

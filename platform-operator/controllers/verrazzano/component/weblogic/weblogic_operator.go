@@ -38,10 +38,6 @@ func AppendWeblogicOperatorOverrides(_ spi.ComponentContext, _ string, _ string,
 			Key:   "enableClusterRoleBinding",
 			Value: "true",
 		},
-		{
-			Key:   "istioLocalhostBindingsEnabled",
-			Value: "false",
-		},
 	}
 
 	kvs = append(kvs, keyValueOverrides...)

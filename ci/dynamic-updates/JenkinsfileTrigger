@@ -1,0 +1,307 @@
+// Copyright (c) 2023, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
+
+pipeline {
+    options {
+        skipDefaultCheckout true
+        timestamps ()
+    }
+
+    agent {
+       docker {
+            image "${RUNNER_DOCKER_IMAGE}"
+            args "${RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            registryCredentialsId 'ocir-pull-and-push-account'
+            label "${agentLabel}"
+        }
+    }
+
+    parameters {
+        string (name: 'GIT_COMMIT_TO_USE',
+                        defaultValue: 'NONE',
+                        description: 'This is the full git commit hash from the source build to be used for all jobs. A full pipeline specifies a valid commit hash here. NONE can be used for manually triggered jobs, however even for those a commit hash value is preferred to be supplied',
+                        trim: true)
+        string (name: 'VERRAZZANO_OPERATOR_IMAGE',
+                        defaultValue: 'NONE',
+                        description: 'This is for manually testing only where someone needs to use a specific operator image, otherwise the default value of NONE is used',
+                        trim: true)
+        string (name: 'WILDCARD_DNS_DOMAIN',
+                        defaultValue: 'nip.io',
+                        description: 'This is the wildcard DNS domain',
+                        trim: true)
+        string (name: 'TAGGED_TESTS',
+                defaultValue: '',
+                description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
+                trim: true)
+        string (name: 'INCLUDED_TESTS',
+                defaultValue: '.*',
+                description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*',
+                trim: true)
+        string (name: 'EXCLUDED_TESTS',
+                defaultValue: '_excluded_test',
+                description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
+                trim: true)
+        string (name: 'CONSOLE_REPO_BRANCH',
+                defaultValue: '',
+                description: 'The branch to check out after cloning the console repository.',
+                trim: true)
+    }
+
+    environment {
+        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
+        GOPATH = '/home/opc/go'
+        PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
+        SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
+    }
+
+    stages {
+        stage('Clean workspace and checkout') {
+            steps {
+                script {
+                    if (params.GIT_COMMIT_TO_USE == "NONE") {
+                        echo "Specific GIT commit was not specified, use current head"
+                        def scmInfo = checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: env.BRANCH_NAME]],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [],
+                            submoduleCfg: [],
+                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                    } else {
+                        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
+                        def scmInfo = checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: params.GIT_COMMIT_TO_USE]],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [],
+                            submoduleCfg: [],
+                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                        // If the commit we were handed is not what the SCM says we are using, fail
+                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
+                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+                            exit 1
+                        }
+                    }
+                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                }
+
+                script {
+                    def props = readProperties file: '.verrazzano-development-version'
+                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+                    // update the description with some meaningful info
+                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                    def currentCommitHash = env.GIT_COMMIT
+                    def commitList = getCommitList()
+                    withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
+                        def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
+                        SUSPECT_LIST = getSuspectList(commitList, userMappings)
+                        echo "Suspect list: ${SUSPECT_LIST}"
+                    }
+                }
+            }
+        }
+
+        stage ('Kick off dynamic update tests') {
+            parallel {
+                stage ('Post-Update1, Post-Update2, and Nginx/Istio Update Tests') {
+                    steps {
+                        retry (count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                startBuildJob([booleanParam(name: 'RUN_POST_UPDATE1', value: true),
+                                               booleanParam(name: 'RUN_POST_UPDATE2', value: true),
+                                               booleanParam(name: 'RUN_NGINX_ISTIO', value: true)])
+                            }
+                        }
+                    }
+                }
+                stage ('Availability Status, AuthProxy, CertManager, and Fluentd Update Tests') {
+                    steps {
+                        retry (count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                startBuildJob([booleanParam(name: 'RUN_AVAILABILITY_STATUS', value: true),
+                                               booleanParam(name: 'RUN_AUTHPROXY', value: true),
+                                               booleanParam(name: 'RUN_CERT_MANAGER', value: true),
+                                               booleanParam(name: 'RUN_FLUENTD', value: true)])
+                            }
+                        }
+                    }
+                }
+                stage ('API Conversion Udpate, Opensearch Update, Jaeger Update, and Post-install Overrides Tests') {
+                    steps {
+                        retry (count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                startBuildJob([booleanParam(name: 'RUN_API_CONVERSION', value: true),
+                                               booleanParam(name: 'RUN_OPENSEARCH', value: true),
+                                               booleanParam(name: 'RUN_JAEGER', value: true),
+                                               booleanParam(name: 'RUN_POST_INSTALL_OVERRIDES', value: true)])
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    post {
+        failure {
+            script {
+                if (env.JOB_NAME == "verrazzano-dynamic-config-suite/master" || env.JOB_NAME ==~ "verrazzano-dynamic-config-suite/release-1.*") {
+                    if (isPagerDutyEnabled()) {
+                        pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
+                    }
+                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
+                }
+            }
+        }
+    }
+}
+
+def isPagerDutyEnabled() {
+    // this controls whether PD alerts are enabled
+    if (NOTIFY_PAGERDUTY_TRIGGERED_FAILURES.equals("true")) {
+        echo "Pager-Duty notifications enabled via global override setting"
+        return true
+    }
+    return false
+}
+
+// Called in Stage Clean workspace and checkout steps
+@NonCPS
+def getCommitList() {
+    echo "Checking for change sets"
+    def commitList = []
+    def changeSets = currentBuild.changeSets
+    for (int i = 0; i < changeSets.size(); i++) {
+        echo "get commits from change set"
+        def commits = changeSets[i].items
+        for (int j = 0; j < commits.length; j++) {
+            def commit = commits[j]
+            def id = commit.commitId
+            echo "Add commit id: ${id}"
+            commitList.add(id)
+        }
+    }
+    return commitList
+}
+
+def trimIfGithubNoreplyUser(userIn) {
+    if (userIn == null) {
+        echo "Not a github noreply user, not trimming: ${userIn}"
+        return userIn
+    }
+    if (userIn.matches(".*\\+.*@users.noreply.github.com.*")) {
+        def userOut = userIn.substring(userIn.indexOf("+") + 1, userIn.indexOf("@"))
+        return userOut;
+    }
+    if (userIn.matches(".*<.*@users.noreply.github.com.*")) {
+        def userOut = userIn.substring(userIn.indexOf("<") + 1, userIn.indexOf("@"))
+        return userOut;
+    }
+    if (userIn.matches(".*@users.noreply.github.com")) {
+        def userOut = userIn.substring(0, userIn.indexOf("@"))
+        return userOut;
+    }
+    echo "Not a github noreply user, not trimming: ${userIn}"
+    return userIn
+}
+
+def getSuspectList(commitList, userMappings) {
+    def retValue = ""
+    def suspectList = []
+    if (commitList == null || commitList.size() == 0) {
+        echo "No commits to form suspect list"
+    } else {
+        for (int i = 0; i < commitList.size(); i++) {
+            def id = commitList[i]
+            try {
+                def gitAuthor = sh(
+                    script: "git log --format='%ae' '$id^!'",
+                    returnStdout: true
+                ).trim()
+                if (gitAuthor != null) {
+                    def author = trimIfGithubNoreplyUser(gitAuthor)
+                    echo "DEBUG: author: ${gitAuthor}, ${author}, id: ${id}"
+                    if (userMappings.containsKey(author)) {
+                        def slackUser = userMappings.get(author)
+                        if (!suspectList.contains(slackUser)) {
+                            echo "Added ${slackUser} as suspect"
+                            retValue += " ${slackUser}"
+                            suspectList.add(slackUser)
+                        }
+                    } else {
+                        // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
+                        if (!suspectList.contains(author)) {
+                            echo "Added ${author} as suspect"
+                            retValue += " ${author}"
+                            suspectList.add(author)
+                        }
+                    }
+                } else {
+                    echo "No author returned from git"
+                }
+            } catch (Exception e) {
+                echo "INFO: Problem processing commit ${id}, skipping commit: " + e.toString()
+            }
+        }
+    }
+    def startedByUser = "";
+    def causes = currentBuild.getBuildCauses()
+    echo "causes: " + causes.toString()
+    for (cause in causes) {
+        def causeString = cause.toString()
+        echo "current cause: " + causeString
+        def causeInfo = readJSON text: causeString
+        if (causeInfo.userId != null) {
+            startedByUser = causeInfo.userId
+        }
+    }
+
+    if (startedByUser.length() > 0) {
+        echo "Build was started by a user, adding them to the suspect notification list: ${startedByUser}"
+        def author = trimIfGithubNoreplyUser(startedByUser)
+        echo "DEBUG: author: ${startedByUser}, ${author}"
+        if (userMappings.containsKey(author)) {
+            def slackUser = userMappings.get(author)
+            if (!suspectList.contains(slackUser)) {
+                echo "Added ${slackUser} as suspect"
+                retValue += " ${slackUser}"
+                suspectList.add(slackUser)
+            }
+        } else {
+            // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
+            if (!suspectList.contains(author)) {
+               echo "Added ${author} as suspect"
+               retValue += " ${author}"
+               suspectList.add(author)
+            }
+        }
+    } else {
+        echo "Build not started by a user, not adding to notification list"
+    }
+    echo "returning suspect list: ${retValue}"
+    return retValue
+}
+
+def startBuildJob(additionalParams) {
+    def jobParameters = [
+        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+        string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
+        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+    ]
+    jobParameters = jobParameters + additionalParams
+
+    build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
+        parameters: jobParameters, wait: true
+}

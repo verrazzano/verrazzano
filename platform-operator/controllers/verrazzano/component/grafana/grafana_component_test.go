@@ -121,7 +121,7 @@ func TestShouldInstallBeforeUpgrade(t *testing.T) {
 // WHEN we call GetDependencies on the Grafana component
 // THEN the call returns a string array listing all the dependencies of the component
 func TestGetDependencies(t *testing.T) {
-	assert.Equal(t, []string{"verrazzano-network-policies", "verrazzano-monitoring-operator"}, NewComponent().GetDependencies())
+	assert.Equal(t, []string{"verrazzano-network-policies", "verrazzano-monitoring-operator", "verrazzano-grafana-dashboards"}, NewComponent().GetDependencies())
 }
 
 // TestGetJSONName tests the GetJSONName function for the Grafana component
@@ -129,7 +129,7 @@ func TestGetDependencies(t *testing.T) {
 // WHEN we call GetJSONName on the Grafana component
 // THEN the call returns a string showing JSON name of the component
 func TestGetJSONName(t *testing.T) {
-	assert.Equal(t, "grafana", NewComponent().GetJSONName())
+	assert.Equal(t, ComponentJSONName, NewComponent().GetJSONName())
 }
 
 // TestGetMinVerrazzanoVersion tests the GetMinVerrazzanoVersion function for the Grafana component
@@ -752,18 +752,12 @@ func testInstallOrUpgrade(t *testing.T, installOrUpgradeFunc func(spi.ComponentC
 	err := installOrUpgradeFunc(ctx)
 	assert.NoError(t, err)
 
-	// make sure the system dashboards configmap was created
-	dashboardsConfigMap := &v1.ConfigMap{}
-	err = client.Get(context.TODO(), types.NamespacedName{Name: "system-dashboards", Namespace: globalconst.VerrazzanoSystemNamespace}, dashboardsConfigMap)
-	assert.NoError(t, err)
-	assert.Len(t, dashboardsConfigMap.Data, len(dashboardList))
-
 	// make sure the VMI was created and the Grafana config is as expected
 	vmi := &vmov1.VerrazzanoMonitoringInstance{}
 	err = client.Get(context.TODO(), types.NamespacedName{Name: "system", Namespace: globalconst.VerrazzanoSystemNamespace}, vmi)
 	assert.NoError(t, err)
 	assert.True(t, vmi.Spec.Grafana.Enabled)
-	assert.Equal(t, vmi.Spec.Grafana.DashboardsConfigMap, "system-dashboards")
+	assert.Equal(t, vmi.Spec.Grafana.DashboardsConfigMap, "verrazzano-dashboard-provider")
 }
 
 // TestValidateUpdate tests the Grafana component ValidateUpdate function

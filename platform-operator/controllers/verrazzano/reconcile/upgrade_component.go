@@ -97,6 +97,7 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 		case compStatePreUpgrade:
 			compLog.Oncef("Component %s pre-upgrade running", compName)
 			if err := comp.PreUpgrade(compContext); err != nil {
+				compLog.Errorf("Failed pre-upgrade for component %s: %v", compName, err)
 				return ctrl.Result{}, err
 			}
 			upgradeContext.state = compStateUpgrade
@@ -123,6 +124,7 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 		case compStatePostUpgrade:
 			compLog.Oncef("Component %s post-upgrade running", compName)
 			if err := comp.PostUpgrade(compContext); err != nil {
+				compLog.Errorf("Failed post-upgrade for component %s: %v", compName, err)
 				return ctrl.Result{}, err
 			}
 			upgradeContext.state = compStateUpgradeDone

@@ -7,25 +7,33 @@
 set -e
 
 ADDRESS_RANGE=${1:-"172.18.0.230-172.18.0.254"}
-WORKSPACE=${WORKSPACE:-"."}
 
-METALLB_MANIFEST=${WORKSPACE}/metallb.yaml
+# Apply the MetalLB manifest
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml --wait=true
+# Wait for the controller and webhook to become available
+kubectl  rollout status deployment -n metallb-system  controller -w
 
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.11.0/manifests/namespace.yaml
-curl --silent https://raw.githubusercontent.com/metallb/metallb/v0.11.0/manifests/metallb.yaml | sed 's/imagePullPolicy: Always/imagePullPolicy: IfNotPresent/g' > ${METALLB_MANIFEST}
-kubectl apply -f ${METALLB_MANIFEST}
-kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)" || true
+# Create the IPAddressPool for the cluster
 kubectl apply -f - <<-EOF
-apiVersion: v1
-kind: ConfigMap
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
 metadata:
+  name: vzlocalpool
   namespace: metallb-system
-  name: config
-data:
-  config: |
-    address-pools:
-    - name: my-ip-space
-      protocol: layer2
-      addresses:
-      - ${ADDRESS_RANGE}
+spec:
+  addresses:
+  - ${ADDRESS_RANGE}
 EOF
+
+# Create the L2Advertisment resource for the cluster
+kubectl apply -f - <<-EOF
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: vzmetallb
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+  - vzlocalpool
+EOF
+

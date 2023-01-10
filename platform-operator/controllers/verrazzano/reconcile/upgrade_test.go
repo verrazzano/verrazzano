@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package reconcile
@@ -7,12 +7,12 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"math/big"
 	"path/filepath"
 	"testing"
 	"time"
 
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -23,6 +23,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
@@ -55,11 +56,11 @@ const unitTestBomFile = "../../../verrazzano-bom.json"
 // ingress list constants
 const dnsDomain = "myenv.testverrazzano.com"
 const keycloakURL = "keycloak." + dnsDomain
-const esURL = "elasticsearch." + dnsDomain
+const esURL = "opensearch." + dnsDomain
 const promURL = "prometheus." + dnsDomain
 const grafanaURL = "grafana." + dnsDomain
 const kialiURL = "kiali." + dnsDomain
-const kibanaURL = "kibana." + dnsDomain
+const kibanaURL = "osd." + dnsDomain
 const rancherURL = "rancher." + dnsDomain
 const consoleURL = "verrazzano." + dnsDomain
 const jaegerURL = "jaeger." + dnsDomain
@@ -415,6 +416,13 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
+	defer func() {
+		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+		k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
+	}()
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
@@ -550,10 +558,16 @@ func TestUpgradeCompleted(t *testing.T) {
 	localAuthConfig := createLocalAuthConfig()
 	kcSecret := createKeycloakSecret()
 	firstLoginSetting := createFirstLoginSetting()
+	argoCASecret := createCASecret()
+	argoCDConfigMap := createArgoCDCM()
+	argoCDRbacConfigMap := createArgoCDRbacCM()
+	argoCDServerDeploy := createArgoCDServerDeploy()
 	rancherIngress := createIngress(common.CattleSystem, constants.RancherIngress, common.RancherName)
 	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
+	argocdIngress := createIngress(constants.ArgoCDNamespace, constants.ArgoCDIngress, common.ArgoCDName)
 	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
 	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
+	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
 	addExec()
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
@@ -575,8 +589,9 @@ func TestUpgradeCompleted(t *testing.T) {
 			}},
 		rbac.NewServiceAccount(namespace, name, []string{}, nil),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
-		&rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting,
-		&verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole,
+		&rancherIngress, &kcIngress, &argocdIngress, &argoCASecret, &argoCDConfigMap, &argoCDRbacConfigMap, &argoCDServerDeploy,
+		&authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting,
+		&verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole,
 	).Build()
 
 	config.TestProfilesDir = relativeProfilesDir
@@ -647,10 +662,17 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 	localAuthConfig := createLocalAuthConfig()
 	kcSecret := createKeycloakSecret()
 	firstLoginSetting := createFirstLoginSetting()
+	argoCASecret := createCASecret()
+	argoCDConfigMap := createArgoCDCM()
+	argoCDRbacConfigMap := createArgoCDRbacCM()
+	argoCDServerDeploy := createArgoCDServerDeploy()
 	rancherIngress := createIngress(common.CattleSystem, constants.RancherIngress, common.RancherName)
 	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
+	argocdIngress := createIngress(constants.ArgoCDNamespace, constants.ArgoCDIngress, common.ArgoCDName)
 	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
 	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
+	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
+
 	addExec()
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
@@ -672,8 +694,9 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 			}},
 		rbac.NewServiceAccount(namespace, name, []string{}, nil),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
-		&rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting,
-		&verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole,
+		&rancherIngress, &kcIngress, &argocdIngress, &argoCASecret, &argoCDConfigMap, &argoCDRbacConfigMap, &argoCDServerDeploy,
+		&authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting,
+		&verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole,
 	).Build()
 
 	config.TestProfilesDir = relativeProfilesDir
@@ -910,6 +933,7 @@ func TestUpgradeComponent(t *testing.T) {
 	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
 	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
 	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
+	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
 	addExec()
 
 	appConfigList := oamapi.ApplicationConfigurationList{Items: []oamapi.ApplicationConfiguration{}}
@@ -917,7 +941,9 @@ func TestUpgradeComponent(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Namespace: "keycloak", Name: "dump-claim"},
 	}
 
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(&vz, &rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, kcPVC).WithLists(&ingressList, &appConfigList).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).
+		WithObjects(&vz, &rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole, kcPVC).
+		WithLists(&ingressList, &appConfigList).Build()
 
 	// Reconcile upgrade until state is done.  Put guard to prevent infinite loop
 	reconciler := newVerrazzanoReconciler(c)
@@ -1119,6 +1145,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
 	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
 	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
+	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
 	addExec()
 
 	appConfigList := oamapi.ApplicationConfigurationList{Items: []oamapi.ApplicationConfiguration{}}
@@ -1126,7 +1153,9 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Namespace: "keycloak", Name: "dump-claim"},
 	}
 
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(&vz, &rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, kcPVC).WithLists(&ingressList, &appConfigList).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).
+		WithObjects(&vz, &rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole, kcPVC).
+		WithLists(&ingressList, &appConfigList).Build()
 
 	// Reconcile upgrade until state is done.  Put guard to prevent infinite loop
 	reconciler := newVerrazzanoReconciler(c)
@@ -1540,7 +1569,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 			},
 		},
 		&networkingv1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-es-ingest"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-os-ingest"},
 			Spec: networkingv1.IngressSpec{
 				Rules: []networkingv1.IngressRule{
 					{Host: esURL},
@@ -1572,7 +1601,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 			},
 		},
 		&networkingv1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kibana"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-osd"},
 			Spec: networkingv1.IngressSpec{
 				Rules: []networkingv1.IngressRule{
 					{Host: kibanaURL},
@@ -1727,7 +1756,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 			},
 		},
 		&networkingv1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-es-ingest"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-os-ingest"},
 			Spec: networkingv1.IngressSpec{
 				Rules: []networkingv1.IngressRule{
 					{Host: esURL},
@@ -1759,7 +1788,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 			},
 		},
 		&networkingv1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kibana"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-osd"},
 			Spec: networkingv1.IngressSpec{
 				Rules: []networkingv1.IngressRule{
 					{Host: kibanaURL},

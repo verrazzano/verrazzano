@@ -4,11 +4,12 @@ package cluster
 
 import (
 	"errors"
+	"strings"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/log"
 	"go.uber.org/zap"
-	"strings"
-	"testing"
 )
 
 // TestRunAnalysisBad Tests the main RunAnalysis function
@@ -36,6 +37,17 @@ func TestRunAnalysisBadArgs(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+// TestRunAnalysisValidArgs Tests the main RunAnalysis function
+// GIVEN a call to RunAnalysis
+// WHEN with valid inputs
+// THEN no error is returned
+func TestRunAnalysisValidArgs(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+	// Call runAnalysis with an analyzer that passes, we log the info and continue
+	err := RunAnalysis(logger, "../../../test/cluster/cluster-snapshot")
+	assert.Nil(t, err)
+
+}
 func badTestAnalyzer(log *zap.SugaredLogger, clusterRoot string) (err error) {
 	return errors.New("test failure")
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package spi
 
@@ -216,6 +216,7 @@ var devAllDisabledOverride = v1alpha1.Verrazzano{
 	Spec: v1alpha1.VerrazzanoSpec{
 		Profile: "dev",
 		Components: v1alpha1.ComponentSpec{
+			ClusterOperator:   &v1alpha1.ClusterOperatorComponent{Enabled: &falseValue},
 			Console:           &v1alpha1.ConsoleComponent{Enabled: &falseValue},
 			CoherenceOperator: &v1alpha1.CoherenceOperatorComponent{Enabled: &falseValue},
 			Elasticsearch:     &v1alpha1.ElasticsearchComponent{Enabled: &falseValue},
@@ -412,6 +413,7 @@ var managedClusterEnableAllOverride = v1alpha1.Verrazzano{
 			Kibana:        &v1alpha1.KibanaComponent{Enabled: &trueValue},
 			Prometheus:    &v1alpha1.PrometheusComponent{Enabled: &trueValue},
 			Rancher:       &v1alpha1.RancherComponent{Enabled: &trueValue},
+			ArgoCD:        &v1alpha1.ArgoCDComponent{Enabled: &trueValue},
 		},
 	},
 }

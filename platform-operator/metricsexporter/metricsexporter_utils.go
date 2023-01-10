@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package metricsexporter
@@ -14,37 +14,10 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafanadashboards"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
-	promadapter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/adapter"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/kubestatemetrics"
-	promnodeexporter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/nodeexporter"
-	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/pushgateway"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancherbackup"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -54,40 +27,12 @@ var MetricsExp MetricsExporter
 type metricName string
 
 const (
-	ReconcileCounter               metricName = "reconcile counter"
-	ReconcileError                 metricName = "reconcile error"
-	ReconcileDuration              metricName = "reconcile duration"
-	authproxyMetricName            metricName = authproxy.ComponentName
-	oamMetricName                  metricName = oam.ComponentName
-	appoperMetricName              metricName = appoper.ComponentName
-	istioMetricName                metricName = istio.ComponentName
-	weblogicMetricName             metricName = weblogic.ComponentName
-	nginxMetricName                metricName = nginx.ComponentName
-	certmanagerMetricName          metricName = certmanager.ComponentName
-	clusterOperatorMetricName      metricName = clusteroperator.ComponentName
-	externaldnsMetricName          metricName = externaldns.ComponentName
-	rancherMetricName              metricName = rancher.ComponentName
-	verrazzanoMetricName           metricName = verrazzano.ComponentName
-	vmoMetricName                  metricName = vmo.ComponentName
-	opensearchMetricName           metricName = opensearch.ComponentName
-	opensearchdashboardsMetricName metricName = opensearchdashboards.ComponentName
-	grafanaMetricName              metricName = grafana.ComponentName
-	coherenceMetricName            metricName = coherence.ComponentName
-	mysqlMetricName                metricName = mysql.ComponentName
-	mysqlOperatorMetricName        metricName = mysqloperator.ComponentName
-	keycloakMetricname             metricName = keycloak.ComponentName
-	kialiMetricName                metricName = kiali.ComponentName
-	promoperatorMetricname         metricName = promoperator.ComponentName
-	promadapterMetricname          metricName = promadapter.ComponentName
-	kubestatemmetricsMetricName    metricName = kubestatemetrics.ComponentName
-	pushgatewayMetricName          metricName = pushgateway.ComponentName
-	promnodeexporterMetricname     metricName = promnodeexporter.ComponentName
-	jaegeroperatorMetricName       metricName = jaegeroperator.ComponentName
-	consoleMetricName              metricName = console.ComponentName
-	fluentdMetricName              metricName = fluentd.ComponentName
-	veleroMetricName               metricName = velero.ComponentName
-	rancherBackupMetricName        metricName = rancherbackup.ComponentName
-	networkpoliciesMetricName      metricName = networkpolicies.ComponentName
+	component                      = "component"
+	ReconcileCounter    metricName = "reconcile counter"
+	ReconcileError      metricName = "reconcile error"
+	ReconcileDuration   metricName = "reconcile duration"
+	AvailableComponents metricName = "available components"
+	EnabledComponents   metricName = "enabled components"
 )
 
 func init() {
@@ -100,11 +45,23 @@ func RequiredInitialization() {
 	MetricsExp = MetricsExporter{
 		internalConfig: initConfiguration(),
 		internalData: data{
-			simpleCounterMetricMap: initSimpleCounterMetricMap(),
-			simpleGaugeMetricMap:   initSimpleGaugeMetricMap(),
-			durationMetricMap:      initDurationMetricMap(),
-			metricsComponentMap:    initMetricComponentMap(),
+			simpleCounterMetricMap:   initSimpleCounterMetricMap(),
+			simpleGaugeMetricMap:     initSimpleGaugeMetricMap(),
+			durationMetricMap:        initDurationMetricMap(),
+			componentHealth:          initComponentHealthMetrics(),
+			componentInstallDuration: initComponentInstallDurationMetrics(),
+			componentUpgradeDuration: initComponentUpgradeDurationMetrics(),
 		},
+	}
+	// initialize component availability metric to false
+	for _, component := range registry.GetComponents() {
+		if IsNonMetricComponent(component.Name()) {
+			continue
+		}
+		MetricsExp.internalData.componentHealth.SetComponentHealth(component.GetJSONName(), false, false)
+		SetComponentInstallDurationMetric(component.GetJSONName(), 0)
+		SetComponentUpgradeDurationMetric(component.GetJSONName(), 0)
+
 	}
 
 }
@@ -115,83 +72,67 @@ func RegisterMetrics(log *zap.SugaredLogger) {
 	go registerMetricsHandlers(log)
 }
 
-// This function returns a pointer to a new MetricComponent Object
-func newMetricsComponent(name string) *MetricsComponent {
-	return &MetricsComponent{
-		latestInstallDuration: &SimpleGaugeMetric{
-
-			metric: prometheus.NewGauge(prometheus.GaugeOpts{
-				Name: fmt.Sprintf("vz_%s_install_duration_seconds", name),
-				Help: fmt.Sprintf("The duration of the latest installation of the %s component in seconds", name),
-			}),
-		},
-		latestUpgradeDuration: &SimpleGaugeMetric{
-			prometheus.NewGauge(prometheus.GaugeOpts{
-				Name: fmt.Sprintf("vz_%s_upgrade_duration_seconds", name),
-				Help: fmt.Sprintf("The duration of the latest upgrade of the %s component in seconds", name),
-			}),
-		},
-	}
-}
-
 // This function initializes the simpleCounterMetricMap for the metricsExporter object
 func initSimpleCounterMetricMap() map[metricName]*SimpleCounterMetric {
 	return map[metricName]*SimpleCounterMetric{
 		ReconcileCounter: {
 			prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vpo_reconcile_counter",
+				Name: "vz_platform_operator_reconcile_total",
 				Help: "The number of times the reconcile function has been called in the verrazzano-platform-operator",
 			}),
 		},
 		ReconcileError: {
 			prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vpo_error_reconcile_counter",
+				Name: "vz_platform_operator_error_reconcile_total",
 				Help: "The number of times the reconcile function has returned an error in the verrazzano-platform-operator",
 			}),
 		},
 	}
 }
 
-// This function initializes the metricComponentMap for the metricsExporter object
-func initMetricComponentMap() map[metricName]*MetricsComponent {
-	return map[metricName]*MetricsComponent{
-		authproxyMetricName:            newMetricsComponent("authproxy"),
-		oamMetricName:                  newMetricsComponent("oam"),
-		appoperMetricName:              newMetricsComponent("appoper"),
-		istioMetricName:                newMetricsComponent("istio"),
-		weblogicMetricName:             newMetricsComponent("weblogic"),
-		nginxMetricName:                newMetricsComponent("nginx"),
-		certmanagerMetricName:          newMetricsComponent("certManager"),
-		clusterOperatorMetricName:      newMetricsComponent("cluster_operator"),
-		externaldnsMetricName:          newMetricsComponent("externalDNS"),
-		rancherMetricName:              newMetricsComponent("rancher"),
-		verrazzanoMetricName:           newMetricsComponent("verrazzano"),
-		vmoMetricName:                  newMetricsComponent("verrazzano_monitoring_operator"),
-		opensearchMetricName:           newMetricsComponent("opensearch"),
-		opensearchdashboardsMetricName: newMetricsComponent("opensearch_dashboards"),
-		grafanaMetricName:              newMetricsComponent("grafana"),
-		coherenceMetricName:            newMetricsComponent("coherence"),
-		mysqlMetricName:                newMetricsComponent("mysql"),
-		mysqlOperatorMetricName:        newMetricsComponent("mysql_operator"),
-		keycloakMetricname:             newMetricsComponent("keycloak"),
-		kialiMetricName:                newMetricsComponent("kiali"),
-		promoperatorMetricname:         newMetricsComponent("prometheus_operator"),
-		promadapterMetricname:          newMetricsComponent("prometheus_adapter"),
-		kubestatemmetricsMetricName:    newMetricsComponent("kube_state_metrics"),
-		pushgatewayMetricName:          newMetricsComponent("prometheus_push_gateway"),
-		promnodeexporterMetricname:     newMetricsComponent("prometheus_node_exporter"),
-		jaegeroperatorMetricName:       newMetricsComponent("jaeger_operator"),
-		consoleMetricName:              newMetricsComponent("verrazzano_console"),
-		fluentdMetricName:              newMetricsComponent("fluentd"),
-		veleroMetricName:               newMetricsComponent("velero"),
-		rancherBackupMetricName:        newMetricsComponent("rancher-backup"),
-		networkpoliciesMetricName:      newMetricsComponent("networkpolicies"),
+func initComponentHealthMetrics() *ComponentHealth {
+	return &ComponentHealth{
+		available: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "vz_platform_operator_component_health",
+			Help: "Is component enabled and available",
+		}, []string{component}),
+	}
+}
+
+func initComponentInstallDurationMetrics() *ComponentInstallDuration {
+	return &ComponentInstallDuration{
+		installDuration: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "vz_platform_operator_component_install_duration_seconds",
+			Help: "The duration of the latest installation of each component in seconds",
+		}, []string{component}),
+	}
+}
+
+func initComponentUpgradeDurationMetrics() *ComponentUpgradeDuration {
+	return &ComponentUpgradeDuration{
+		upgradeDuration: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "vz_platform_operator_component_upgrade_duration_seconds",
+			Help: "The duration of the latest upgrade of each component in seconds",
+		}, []string{component}),
 	}
 }
 
 // This function initializes the simpleGaugeMetricMap for the metricsExporter object
 func initSimpleGaugeMetricMap() map[metricName]*SimpleGaugeMetric {
-	return map[metricName]*SimpleGaugeMetric{}
+	return map[metricName]*SimpleGaugeMetric{
+		AvailableComponents: {
+			metric: prometheus.NewGauge(prometheus.GaugeOpts{
+				Name: "vz_platform_operator_component_health_total",
+				Help: "The number of currently available Verrazzano components",
+			}),
+		},
+		EnabledComponents: {
+			metric: prometheus.NewGauge(prometheus.GaugeOpts{
+				Name: "vz_platform_operator_component_enabled_total",
+				Help: "The number of currently enabled Verrazzano components",
+			}),
+		},
+	}
 }
 
 // This function initializes the durationMetricMap for the metricsExporter object
@@ -199,7 +140,7 @@ func initDurationMetricMap() map[metricName]*DurationMetric {
 	return map[metricName]*DurationMetric{
 		ReconcileDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
-				Name: "vpo_reconcile_duration",
+				Name: "vz_platform_operator_reconcile_duration",
 				Help: "The duration in seconds of vpo reconcile process",
 			}),
 		},
@@ -210,12 +151,7 @@ func initDurationMetricMap() map[metricName]*DurationMetric {
 // If the start time is greater than the completion time, the metric will not be set
 // After this check, the function calculates the duration time and tries to set the metric of the component
 // If the component's name is not in the metric map, an error will be raised to prevent a seg fault
-func metricParserHelperFunction(log vzlog.VerrazzanoLogger, componentName metricName, startTime string, completionTime string, typeofOperation string) {
-	_, ok := MetricsExp.internalData.metricsComponentMap[componentName]
-	if !ok {
-		log.Errorf("Component %s does not have metrics in the metrics map", componentName)
-		return
-	}
+func metricParserHelperFunction(log vzlog.VerrazzanoLogger, componentName string, startTime string, completionTime string, typeofOperation string) {
 	startInSeconds, err := time.Parse(time.RFC3339, startTime)
 	if err != nil {
 		log.Errorf("Error in parsing start time %s for operation %s for component %s", startTime, typeofOperation, componentName)
@@ -234,14 +170,37 @@ func metricParserHelperFunction(log vzlog.VerrazzanoLogger, componentName metric
 	}
 	totalDuration := (completionInSecondsUnix - startInSecondsUnix)
 	if typeofOperation == constants.InstallOperation {
-		installDurationMetricForComponent := MetricsExp.internalData.metricsComponentMap[componentName].getInstallDuration()
-		installDurationMetricForComponent.Set(float64(totalDuration))
+		err := SetComponentInstallDurationMetric(componentName, totalDuration)
+		if err != nil {
+			log.Errorf(err.Error())
+			return
+		}
 	}
 	if typeofOperation == constants.UpgradeOperation {
-		upgradeDurationMetricForComponent := MetricsExp.internalData.metricsComponentMap[componentName].getUpgradeDuration()
-		upgradeDurationMetricForComponent.Set(float64(totalDuration))
+		err := SetComponentUpgradeDurationMetric(componentName, totalDuration)
+		if err != nil {
+			log.Errorf(err.Error())
+			return
+		}
 	}
+}
 
+func SetComponentInstallDurationMetric(JSONName string, totalDuration int64) error {
+	metric, err := MetricsExp.internalData.componentInstallDuration.installDuration.GetMetricWithLabelValues(JSONName)
+	if err != nil {
+		return err
+	}
+	metric.Set(float64(totalDuration))
+	return nil
+}
+
+func SetComponentUpgradeDurationMetric(JSONName string, totalDuration int64) error {
+	metric, err := MetricsExp.internalData.componentUpgradeDuration.upgradeDuration.GetMetricWithLabelValues(JSONName)
+	if err != nil {
+		return err
+	}
+	metric.Set(float64(totalDuration))
+	return nil
 }
 
 // This function is a helper function that assists in registering metrics
@@ -256,7 +215,7 @@ func registerMetricsHandlersHelper() error {
 				errorObserved = err
 			}
 		} else {
-			//if a metric is registered, delete it from the failed metrics map so that it is not retried
+			// if a metric is registered, delete it from the failed metrics map so that it is not retried
 			delete(MetricsExp.internalConfig.failedMetrics, metric)
 		}
 	}
@@ -265,12 +224,16 @@ func registerMetricsHandlersHelper() error {
 
 // This function registers the metrics and provides error handling
 func registerMetricsHandlers(log *zap.SugaredLogger) {
-	initializeFailedMetricsArray() //Get list of metrics to register initially
-	//loop until there is no error in registering
+	initializeFailedMetricsArray() // Get list of metrics to register initially
+	// loop until there is no error in registering
 	for err := registerMetricsHandlersHelper(); err != nil; err = registerMetricsHandlersHelper() {
 		log.Errorf("Failed to register metrics for VPO %v \n", err)
 		time.Sleep(time.Second)
 	}
+	// register component health metrics vector
+	MetricsExp.internalConfig.registry.MustRegister(MetricsExp.internalData.componentHealth.available)
+	MetricsExp.internalConfig.registry.MustRegister(MetricsExp.internalData.componentInstallDuration.installDuration)
+	MetricsExp.internalConfig.registry.MustRegister(MetricsExp.internalData.componentUpgradeDuration.upgradeDuration)
 }
 
 // This function initializes the failedMetrics array
@@ -298,6 +261,10 @@ func StartMetricsServer(log *zap.SugaredLogger) {
 func AnalyzeVerrazzanoResourceMetrics(log vzlog.VerrazzanoLogger, cr vzapi.Verrazzano) {
 	mapOfComponents := cr.Status.Components
 	for componentName, componentStatusDetails := range mapOfComponents {
+		// If component is not in the metricsMap, move on to the next component
+		if IsNonMetricComponent(componentName) {
+			continue
+		}
 		var installCompletionTime string
 		var upgradeCompletionTime string
 		var upgradeStartTime string
@@ -316,26 +283,32 @@ func AnalyzeVerrazzanoResourceMetrics(log vzlog.VerrazzanoLogger, cr vzapi.Verra
 				upgradeCompletionTime = status.LastTransitionTime
 			}
 		}
+		found, component := registry.FindComponent(componentName)
+		if !found {
+			log.Errorf("No component %s found", componentName)
+			return
+		}
+		componentJSONName := component.GetJSONName()
 		if installStartTime != "" && installCompletionTime != "" {
-			metricParserHelperFunction(log, metricName(componentName), installStartTime, installCompletionTime, constants.InstallOperation)
+			metricParserHelperFunction(log, componentJSONName, installStartTime, installCompletionTime, constants.InstallOperation)
 		}
 		if upgradeStartTime != "" && upgradeCompletionTime != "" {
-			metricParserHelperFunction(log, metricName(componentName), upgradeStartTime, upgradeCompletionTime, constants.UpgradeOperation)
+			metricParserHelperFunction(log, componentJSONName, upgradeStartTime, upgradeCompletionTime, constants.UpgradeOperation)
 		}
 	}
 }
 
 // This function initializes the allMetrics array
 func InitializeAllMetricsArray() {
-	//loop through all metrics declarations in metric maps
+	// loop through all metrics declarations in metric maps
 	for _, value := range MetricsExp.internalData.simpleCounterMetricMap {
 		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.metric)
 	}
 	for _, value := range MetricsExp.internalData.durationMetricMap {
 		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.metric)
 	}
-	for _, value := range MetricsExp.internalData.metricsComponentMap {
-		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.latestInstallDuration.metric, value.latestUpgradeDuration.metric)
+	for _, value := range MetricsExp.internalData.simpleGaugeMetricMap {
+		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.metric)
 	}
 }
 
@@ -375,11 +348,20 @@ func GetSimpleGaugeMetric(name metricName) (*SimpleGaugeMetric, error) {
 	return gaugeMetric, nil
 }
 
-// This function returns a metricComponent from the metricComponentMap given a metricName
-func GetMetricComponent(name metricName) (*MetricsComponent, error) {
-	metricComponent, ok := MetricsExp.internalData.metricsComponentMap[name]
-	if !ok {
-		return nil, fmt.Errorf("%v not found in metricsComponentMap due to metricName being defined, but not being a key in the map", name)
+// SetComponentAvailabilityMetric updates the components availability status metric
+func SetComponentAvailabilityMetric(JSONname string, availability vzapi.ComponentAvailability, isEnabled bool) error {
+	_, err := MetricsExp.internalData.componentHealth.SetComponentHealth(JSONname, availability == vzapi.ComponentAvailable, isEnabled)
+	if err != nil {
+		return err
 	}
-	return metricComponent, nil
+	return nil
+}
+
+func IsNonMetricComponent(componentName string) bool {
+	var nonMetricComponents = map[string]bool{
+		vmo.ComponentName:               true,
+		networkpolicies.ComponentName:   true,
+		grafanadashboards.ComponentName: true,
+	}
+	return nonMetricComponents[componentName]
 }

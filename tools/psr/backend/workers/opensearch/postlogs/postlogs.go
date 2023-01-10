@@ -22,10 +22,14 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 )
 
-const LogEntries = "LOG_ENTRIES"
-const LogLength = "LOG_LENGTH"
+const (
+	// metricsPrefix is the prefix that is automatically pre-pended to all metrics exported by this worker.
+	metricsPrefix = "opensearch_postlogs"
 
-const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
+	LogEntries      = "LOG_ENTRIES"
+	LogLength       = "LOG_LENGTH"
+	osIngestService = "vmi-system-os-ingest.verrazzano-system:9200"
+)
 
 // Use an http client interface so that we can override http.Client for unit tests
 type httpClientI interface {
@@ -54,48 +58,57 @@ type workerMetrics struct {
 func NewPostLogsWorker() (spi.Worker, error) {
 	w := worker{workerMetrics: &workerMetrics{
 		openSearchPostSuccessCountTotal: metrics.MetricItem{
-			Name: "opensearch_post_success_count_total",
+			Name: "success_count_total",
 			Help: "The total number of successful OpenSearch POST requests",
 			Type: prometheus.CounterValue,
 		},
 		openSearchPostFailureCountTotal: metrics.MetricItem{
-			Name: "opensearch_post_failure_count_total",
+			Name: "failure_count_total",
 			Help: "The total number of successful OpenSearch POST requests",
 			Type: prometheus.CounterValue,
 		},
 		openSearchPostSuccessLatencyNanoSeconds: metrics.MetricItem{
-			Name: "opensearch_post_success_latency_nanoseconds",
+			Name: "success_latency_nanoseconds",
 			Help: "The latency of successful OpenSearch POST requests in nanoseconds",
 			Type: prometheus.GaugeValue,
 		},
 		openSearchPostFailureLatencyNanoSeconds: metrics.MetricItem{
-			Name: "opensearch_post_failure_latency_nanoseconds",
+			Name: "failure_latency_nanoseconds",
 			Help: "The latency of failed OpenSearch POST requests in nanoseconds",
 			Type: prometheus.GaugeValue,
 		},
 		openSearchPostDataCharsTotal: metrics.MetricItem{
-			Name: "opensearch_post_data_chars_total",
+			Name: "data_chars_total",
 			Help: "The total number of characters posted to OpenSearch",
 			Type: prometheus.CounterValue,
 		},
 	}}
 
-	w.metricDescList = []prometheus.Desc{
-		*w.openSearchPostSuccessCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.openSearchPostFailureCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.openSearchPostSuccessLatencyNanoSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.openSearchPostFailureLatencyNanoSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.openSearchPostDataCharsTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+	if err := config.PsrEnv.LoadFromEnv(w.GetEnvDescList()); err != nil {
+		return w, err
 	}
+
+	metricsLabels := map[string]string{
+		config.PsrWorkerTypeMetricsName: config.PsrEnv.GetEnv(config.PsrWorkerType),
+	}
+
+	w.metricDescList = metrics.BuildMetricDescList([]*metrics.MetricItem{
+		&w.openSearchPostSuccessCountTotal,
+		&w.openSearchPostFailureCountTotal,
+		&w.openSearchPostSuccessLatencyNanoSeconds,
+		&w.openSearchPostFailureLatencyNanoSeconds,
+		&w.openSearchPostDataCharsTotal,
+	}, metricsLabels, w.GetWorkerDesc().MetricsPrefix)
+
 	return w, nil
 }
 
 // GetWorkerDesc returns the WorkerDesc for the worker
 func (w worker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		WorkerType:  config.WorkerTypePostLogs,
-		Description: "The postlogs worker performs POST requests on the OpenSearch endpoint",
-		MetricsName: "postlogs",
+		WorkerType:    config.WorkerTypeOpsPostLogs,
+		Description:   "The postlogs worker performs POST requests on the OpenSearch endpoint",
+		MetricsPrefix: metricsPrefix,
 	}
 }
 

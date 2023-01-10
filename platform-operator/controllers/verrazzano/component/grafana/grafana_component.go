@@ -8,6 +8,7 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafanadashboards"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -32,7 +33,7 @@ const (
 	grafanaCertificateName = "system-tls-grafana"
 )
 
-// ComponentJSONName is the json name of the component in the Verrazzano CRD
+// ComponentJSONName is the JSON name of the component in the Verrazzano CRD
 const ComponentJSONName = "grafana"
 
 type grafanaComponent struct{}
@@ -59,7 +60,7 @@ func (g grafanaComponent) ShouldInstallBeforeUpgrade() bool {
 
 // GetDependencies returns the dependencies of the Grafana component
 func (g grafanaComponent) GetDependencies() []string {
-	return []string{networkpolicies.ComponentName, vmo.ComponentName}
+	return []string{networkpolicies.ComponentName, vmo.ComponentName, grafanadashboards.ComponentName}
 }
 
 // GetCertificateNames returns the Grafana certificate names if Nginx is enabled, otherwise returns
@@ -168,9 +169,6 @@ func (g grafanaComponent) PreInstall(ctx spi.ComponentContext) error {
 
 // Install performs Grafana install processing
 func (g grafanaComponent) Install(ctx spi.ComponentContext) error {
-	if err := createGrafanaConfigMaps(ctx); err != nil {
-		return err
-	}
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
 }
 
@@ -209,9 +207,6 @@ func (g grafanaComponent) PreUpgrade(ctx spi.ComponentContext) error {
 
 // Install performs Grafana upgrade processing
 func (g grafanaComponent) Upgrade(ctx spi.ComponentContext) error {
-	if err := createGrafanaConfigMaps(ctx); err != nil {
-		return err
-	}
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
 }
 
@@ -224,7 +219,7 @@ func (g grafanaComponent) PostUpgrade(ctx spi.ComponentContext) error {
 func (g grafanaComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// do not allow disabling active components
 	if vzcr.IsGrafanaEnabled(old) && !vzcr.IsGrafanaEnabled(new) {
-		return fmt.Errorf("Disabling component Grafana not allowed")
+		return fmt.Errorf("Disabling component %s not allowed", ComponentJSONName)
 	}
 	return nil
 }
@@ -233,7 +228,7 @@ func (g grafanaComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 func (g grafanaComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	// do not allow disabling active components
 	if vzcr.IsGrafanaEnabled(old) && !vzcr.IsGrafanaEnabled(new) {
-		return fmt.Errorf("Disabling component Grafana not allowed")
+		return fmt.Errorf("Disabling component %s not allowed", ComponentJSONName)
 	}
 	return nil
 }

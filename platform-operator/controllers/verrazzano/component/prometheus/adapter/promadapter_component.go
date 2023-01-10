@@ -23,7 +23,7 @@ const ComponentName = "prometheus-adapter"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoMonitoringNamespace
 
-// ComponentJSONName is the json name of the component in the CRD
+// ComponentJSONName is the JSON name of the component in the CRD
 const ComponentJSONName = "prometheusAdapter"
 
 const chartDir = "prometheus-community/prometheus-adapter"
@@ -75,7 +75,10 @@ func (c prometheusAdapterComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // PreInstall updates resources necessary for the Prometheus Adapter Component installation
 func (c prometheusAdapterComponent) PreInstall(ctx spi.ComponentContext) error {
-	return preInstall(ctx)
+	if err := preInstall(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreInstall(ctx)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package grafanadb
@@ -7,13 +7,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net/http"
-	"os"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -31,7 +32,7 @@ var clientset = k8sutil.GetKubernetesClientsetOrDie()
 var testDashboard pkg.DashboardMetadata
 var t = framework.NewTestFramework("grafana")
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Fail(fmt.Sprintf(pkg.KubeConfigErrorFmt, err))
@@ -68,6 +69,8 @@ var _ = t.BeforeSuite(func() {
 		"It should be possible to create a Grafana dashboard and persist it.")
 })
 
+var _ = BeforeSuite(beforeSuite)
+
 var _ = t.Describe("Test Grafana Dashboard Persistence", Label("f:observability.logging.es"), func() {
 
 	// GIVEN a running grafana instance,
@@ -88,7 +91,7 @@ var _ = t.Describe("Test Grafana Dashboard Persistence", Label("f:observability.
 	// WHEN a GET call is made  to Grafana with the system dashboard UID,
 	// THEN the dashboard metadata of the corresponding testDashboard is returned.
 	It("Get details of the system Grafana Dashboard", func() {
-		pkg.TestSystemGrafanaDashboard(pollingInterval, waitTimeout)
+		pkg.TestSystemHealthGrafanaDashboard(pollingInterval, waitTimeout)
 	})
 
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -152,7 +155,7 @@ var _ = t.Describe("Test Grafana Dashboard Persistence", Label("f:observability.
 	// WHEN a GET call is made  to Grafana with the UID of the system dashboard,
 	// THEN the dashboard metadata of the corresponding System dashboard is returned.
 	It("Get details of the system Grafana dashboard", func() {
-		pkg.TestSystemGrafanaDashboard(pollingInterval, waitTimeout)
+		pkg.TestSystemHealthGrafanaDashboard(pollingInterval, waitTimeout)
 	})
 
 	kubeconfigPath, err = k8sutil.GetKubeConfigLocation()

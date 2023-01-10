@@ -666,7 +666,7 @@ func TestCreateOrUpdateRoleTemplate(t *testing.T) {
 			cli = cliBuilder.WithObjects(&clr).Build()
 		}
 		fakeCtx := spi.NewFakeContext(cli, &vzapi.Verrazzano{}, nil, false)
-		err := createOrUpdateRoleTemplate(fakeCtx, clrName)
+		err := CreateOrUpdateRoleTemplate(fakeCtx, clrName)
 		if tt.wantErr {
 			asserts.ErrorContains(err, tt.errContains)
 		} else {

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
@@ -65,6 +65,7 @@ func GatherInfo() {
 	OciCliUser = os.Getenv("OCI_CLI_USER")
 	OciCliFingerprint = os.Getenv("OCI_CLI_FINGERPRINT")
 	OciCliKeyFile = os.Getenv("OCI_CLI_KEY_FILE")
+	MySQLBackupMode = os.Getenv("MYSQL_BACKUP_MODE")
 }
 
 // GetRancherURL fetches the elastic search URL from the cluster
@@ -117,7 +118,7 @@ func GetEsURL(log *zap.SugaredLogger) (string, error) {
 		return "", err
 	}
 	api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
-	ingress, err := api.GetIngress(constants.VerrazzanoSystemNamespace, "vmi-system-es-ingest")
+	ingress, err := api.GetIngress(constants.VerrazzanoSystemNamespace, "vmi-system-os-ingest")
 	if err != nil {
 		return "", err
 	}
@@ -278,6 +279,7 @@ func CreateCredentialsSecretFromFile(namespace string, name string, log *zap.Sug
 
 // CreateMySQLCredentialsSecretFromFile creates opaque secret from a file
 func CreateMySQLCredentialsSecretFromFile(namespace string, name string, log *zap.SugaredLogger) error {
+	log.Infof("Creating MySQL secret for S3 backup")
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		log.Errorf("Failed to get clientset with error: %v", err)
@@ -419,7 +421,12 @@ func HTTPHelper(httpClient *retryablehttp.Client, method, httpURL, token, tokenT
 	}
 	defer response.Body.Close()
 
-	err = httputil.ValidateResponseCode(response, expectedResponseCode)
+	// To handle 204 returns for delete apis
+	if method == "DELETE" && expectedResponseCode == 200 {
+		err = httputil.ValidateResponseCode(response, expectedResponseCode, http.StatusNoContent)
+	} else {
+		err = httputil.ValidateResponseCode(response, expectedResponseCode)
+	}
 	if err != nil {
 		log.Errorf("expected response code = %v, actual response code = %v, Error = %v", expectedResponseCode, response.StatusCode, zap.Error(err))
 		return nil, err

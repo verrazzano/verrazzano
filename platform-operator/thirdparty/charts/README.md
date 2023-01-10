@@ -94,7 +94,7 @@ The `wls-operator` folder was created by running the following commands:
 
 ```shell
 export WEBLOGIC_OPERATOR_CHART_REPO=https://oracle.github.io/weblogic-kubernetes-operator/charts
-export WEBLOGIC_OPERATOR_CHART_VERSION=3.4.3
+export WEBLOGIC_OPERATOR_CHART_VERSION=4.0.4
 rm -rf weblogic-operator
 helm repo add weblogic-operator ${WEBLOGIC_OPERATOR_CHART_REPO}
 helm repo update
@@ -182,4 +182,16 @@ helm repo add kiali ${KIALI_SERVER_CHART_REPO}
 helm repo update
 rm -rf kiali-server
 helm fetch kiali/kiali-server --untar=true --version=${KIALI_SERVER_CHART_VERSION}
+```
+
+### Argo CD
+
+The `argo-cd` folder was created by running the followiong commands:
+
+```shell
+export ARGOCD_CHART_VERSION=5.16.1
+helm repo add argocd https://argoproj.github.io/argo-helm
+helm repo update
+rm -rf argo-cd
+helm fetch argocd/argo-cd --untar=true --version=${ARGOCD_CHART_VERSION}
 ```

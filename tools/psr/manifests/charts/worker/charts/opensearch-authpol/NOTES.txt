@@ -1,1 +1,0 @@
-The PSR OpenSearch Authorization Policy Helm chart has been installed!

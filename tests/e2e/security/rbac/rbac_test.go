@@ -5,6 +5,7 @@ package rbac
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"strconv"
 	"strings"
 	"time"
@@ -36,21 +37,23 @@ const (
 
 var t = framework.NewTestFramework("rbac")
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	t.Logs.Info("Create namespace")
 	Eventually(func() (*corev1.Namespace, error) {
 		return pkg.CreateNamespace(rbacTestNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"})
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 })
 
+var _ = BeforeSuite(beforeSuite)
+
 var failed = false
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed {
-		pkg.ExecuteBugReport(rbacTestNamespace)
+		dump.ExecuteBugReport(rbacTestNamespace)
 	}
 
 	t.Logs.Info("Delete namespace")
@@ -63,6 +66,8 @@ var _ = t.AfterSuite(func() {
 		return err != nil && errors.IsNotFound(err)
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Test RBAC Permission", Label("f:security.rbac"), func() {
 	t.Context("for verrazzano-project-admin.", func() {

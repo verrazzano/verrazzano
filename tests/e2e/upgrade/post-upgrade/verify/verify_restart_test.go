@@ -51,7 +51,7 @@ var vzcr *vzapi.Verrazzano
 var kubeconfigPath string
 var envoyImage string
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -77,7 +77,9 @@ var _ = t.BeforeSuite(func() {
 		return err
 	}, shortWait, pollingInterval).Should(BeNil(), "Expected to get envoy proxy image name and tag")
 })
-var _ = t.AfterSuite(func() {})
+var _ = BeforeSuite(beforeSuite)
+var afterSuite = t.AfterSuiteFunc(func() {})
+var _ = AfterSuite(afterSuite)
 var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Post upgrade", Label("f:platform-lcm.upgrade"), func() {
@@ -199,7 +201,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 			t.Entry("Checking Deployment verrazzano-console", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "verrazzano-console"),
 			t.Entry("Checking Deployment verrazzano-monitoring-operator", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "verrazzano-monitoring-operator"),
 			t.Entry("Checking Deployment vmi-system-grafana", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-grafana"),
-			t.Entry("Checking Deployment vmi-system-kibana", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-kibana"),
+			t.Entry("Checking Deployment vmi-system-osd", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-osd"),
 			t.Entry("Checking Deployment prometheus-operator-kube-p-operator", vzconst.PrometheusOperatorNamespace, promoperator.ComponentName, "prometheus-operator-kube-p-operator"),
 			t.Entry("Checking Deployment weblogic-operator", constants.VerrazzanoSystemNamespace, weblogic.ComponentName, "weblogic-operator"),
 
@@ -257,7 +259,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 			t.Entry("Checking Deployment vmi-system-es-data-0", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-es-data-0"),
 			t.Entry("Checking Deployment vmi-system-es-data-1", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-es-data-1"),
 			t.Entry("Checking Deployment vmi-system-es-data-2", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-es-data-2"),
-			t.Entry("Checking Deployment vmi-system-es-ingest", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-es-ingest"),
+			t.Entry("Checking Deployment vmi-system-os-ingest", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-os-ingest"),
 		)
 	})
 

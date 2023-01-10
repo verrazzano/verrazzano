@@ -1,0 +1,11 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+ID: ops-s5
+name: opensearch-s5
+description: |
+  This is a scenario that scales the OpenSearch master-tier pods out and in continuously
+usecases:
+  - usecasePath: opensearch/scale.yaml
+    overrideFile: scale-master.yaml
+    description: scales master nodes

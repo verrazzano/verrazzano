@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package reconcile
@@ -6,12 +6,13 @@ package reconcile
 import (
 	"fmt"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -124,6 +125,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			// if the VZ state is not Ready, it must be Reconciling or Upgrading
 			// in either case, go right to installComponents
 			tracker.vzState = vzStateInstallComponents
+			r.beforeInstallComponents(spiCtx)
 
 		case vzStateSetGlobalInstallStatus:
 			spiCtx.Log().Oncef("Writing Install Started condition to the Verrazzano status for generation: %d", spiCtx.ActualCR().Generation)
@@ -132,7 +134,8 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 				return ctrl.Result{Requeue: true}, err
 			}
 			tracker.vzState = vzStateInstallComponents
-			// since we updated the status, requeue to pick up new changesf
+			r.beforeInstallComponents(spiCtx)
+			// since we updated the status, requeue to pick up new changes
 			return ctrl.Result{Requeue: true}, nil
 
 		case vzStateInstallComponents:
@@ -145,6 +148,9 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 		case vzStatePostInstall:
 			if !preUpgrade {
 				if err := rancher.ConfigureAuthProviders(spiCtx); err != nil {
+					return ctrl.Result{Requeue: true}, err
+				}
+				if err := argocd.ConfigureKeycloakOIDC(spiCtx); err != nil {
 					return ctrl.Result{Requeue: true}, err
 				}
 			}
@@ -190,4 +196,8 @@ func (r *Reconciler) reconcileWatchedComponents(spiCtx spi.ComponentContext) err
 		}
 	}
 	return nil
+}
+
+func (r *Reconciler) beforeInstallComponents(ctx spi.ComponentContext) {
+	r.createRancherIngressAndCertCopies(ctx)
 }

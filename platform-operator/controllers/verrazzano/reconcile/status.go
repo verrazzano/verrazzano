@@ -12,7 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
-	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -141,7 +141,6 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 	}
 	var instanceInfo *installv1alpha1.InstanceInfo
 	if conditionType == installv1alpha1.CondInstallComplete {
-		instanceInfo = vzinstance.GetInstanceInfo(compContext)
 		if componentStatus.ReconcilingGeneration > 0 {
 			componentStatus.LastReconciledGeneration = componentStatus.ReconcilingGeneration
 			componentStatus.ReconcilingGeneration = 0
@@ -160,6 +159,7 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 
 	// Set the version of component when install and upgrade complete
 	if conditionType == installv1alpha1.CondInstallComplete || conditionType == installv1alpha1.CondUpgradeComplete {
+		instanceInfo = vzinstance.GetInstanceInfo(compContext)
 		if bomFile, err := r.getBOM(); err == nil {
 			if component, er := bomFile.GetComponent(componentName); er == nil {
 				componentStatus.Version = component.Version

@@ -1,0 +1,32 @@
+# Copyright (C) 2020, 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.name }}
+spec:
+  ports:
+    - name: http-metric
+      protocol: TCP
+      port: 9100
+      targetPort: 9100
+  selector:
+    app: {{ .Values.name }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.name }}-webhook
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.name }}-webhook
+spec:
+  ports:
+    - name: https-webhook
+      port: 443
+      targetPort: 9443
+  selector:
+    app: {{ .Values.name }}-webhook

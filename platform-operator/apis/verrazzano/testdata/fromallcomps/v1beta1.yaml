@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: install.verrazzano.io/v1beta1
 kind: Verrazzano
@@ -114,7 +114,7 @@ spec:
     fluentd:
       enabled: true
       opensearchSecret: verrazzano-es-internal
-      opensearchURL: http://verrazzano-authproxy-elasticsearch:8775
+      opensearchURL: http://verrazzano-authproxy-opensearch:8775
       overrides:
         - values:
             frobber: frob
@@ -269,6 +269,11 @@ spec:
     opensearchDashboards:
       enabled: true
       replicas: 1
+      plugins:
+        enabled: true
+        installList:
+          - plugin1
+          - plugin2
     prometheus:
       enabled: true
     prometheusAdapter:
@@ -323,6 +328,11 @@ spec:
         - values:
             frobber: frob
     weblogicOperator:
+      enabled: true
+      overrides:
+        - values:
+            frobber: frob
+    argoCd:
       enabled: true
       overrides:
         - values:

@@ -1,6 +1,7 @@
 # Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+{{- if .Values.authproxy.enabled }}
 # Network policy for Verrazzano API Proxy
 # Ingress: allow nginx-ingress-controller to connect to port 8775
 #          allow connect from Prometheus to scrape Envoy stats on port 15090
@@ -61,6 +62,7 @@ spec:
           protocol: TCP
         - port: 9113
           protocol: TCP
+{{- end }}
 {{- if .Values.console.enabled }}
 ---
 # Network policy for Verrazzano console
@@ -100,6 +102,7 @@ spec:
         - port: 15090
           protocol: TCP
 {{- end }}
+{{- if .Values.applicationOperator.enabled }}
 ---
 # Network policy for Verrazzano application operator
 # Ingress: allow access from Kubernetes API server for webhook port 9443
@@ -129,6 +132,37 @@ spec:
       ports:    
         - port: 9100
           protocol: TCP
+{{- end }}
+{{- if .Values.oam.enabled }}
+---
+# Network policy for Verrazzano application operator webhook
+# Ingress: allow access from Kubernetes API server for webhook port 9443
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: verrazzano-application-operator-webhook
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: verrazzano-application-operator-webhook
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 9443
+          protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - port: 9100
+          protocol: TCP
 ---
 # Network policy for OAM Kubernetes Runtime operator
 # Ingress: deny all
@@ -144,6 +178,7 @@ spec:
       app.kubernetes.io/name: oam-kubernetes-runtime
   policyTypes:
     - Ingress
+{{- end }}
 {{- if .Values.jaegerOperator.enabled }}
 ---
 # Network policy for Jaeger Collector
@@ -227,9 +262,10 @@ spec:
         - port: 16686
           protocol: TCP
 {{- end }}
+{{- if .Values.clusterOperator.enabled }}
 ---
 # Network policy for Verrazzano cluster operator
-# Ingress: allow access from Prometheus to scrape metrics on port 8080
+# Ingress: allow access from Prometheus to scrape metrics on port 9100
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -251,5 +287,35 @@ spec:
             matchLabels:
               app.kubernetes.io/name: prometheus
       ports:
-        - port: 8080
+        - port: 9100
           protocol: TCP
+---
+# Network policy for Verrazzano cluster operator webhooks
+# Ingress: allow access to API port, allow metrics scraping by Prometheus on port 9100
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: verrazzano-cluster-operator-webhook
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: verrazzano-cluster-operator-webhook
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 9443
+          protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - port: 9100
+          protocol: TCP
+{{- end }}

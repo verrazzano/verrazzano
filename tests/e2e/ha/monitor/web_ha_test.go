@@ -9,10 +9,11 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	hacommon "github.com/verrazzano/verrazzano/tests/e2e/pkg/ha"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 )
 
 var (
-	clusterDump = pkg.NewClusterDumpWrapper()
+	clusterDump = dump.NewClusterDumpWrapper(t)
 	clientset   = k8sutil.GetKubernetesClientsetOrDie()
 )
 

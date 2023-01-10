@@ -1,13 +1,13 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package config
 
 import (
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 const (
@@ -21,6 +21,7 @@ const (
 	helmChartsDirSuffix          = "/platform-operator/helm_config/charts"
 	helmVMOChartsDirSuffix       = "/platform-operator/helm_config/charts/verrazzano-monitoring-operator"
 	helmAppOpChartsDirSuffix     = "/platform-operator/helm_config/charts/verrazzano-application-operator"
+	helmClusterOpChartsDirSuffix = "/platform-operator/helm_config/charts/verrazzano-cluster-operator"
 	helmKialiChartsDirSuffix     = "/platform-operator/thirdparty/charts/kiali-server"
 	helmPromOpChartsDirSuffix    = "/platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack"
 	helmOamChartsDirSuffix       = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
@@ -68,6 +69,9 @@ type OperatorConfig struct {
 	// HealthCheckPeriodSeconds period for health check background task in seconds; a value of 0 disables health checks
 	HealthCheckPeriodSeconds int64
 
+	// MySQLCheckPeriodSeconds period for MySQL check background task in seconds; a value of 0 disables MySQL checks
+	MySQLCheckPeriodSeconds int64
+
 	// DryRun Run installs in a dry-run mode
 	DryRun bool
 }
@@ -83,6 +87,7 @@ var instance = OperatorConfig{
 	WebhookValidationEnabled: true,
 	VerrazzanoRootDir:        rootDir,
 	HealthCheckPeriodSeconds: 60,
+	MySQLCheckPeriodSeconds:  60,
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests
@@ -125,6 +130,14 @@ func GetHelmAppOpChartsDir() string {
 		return filepath.Join(TestHelmConfigDir, "/charts/verrazzano-application-operator")
 	}
 	return filepath.Join(instance.VerrazzanoRootDir, helmAppOpChartsDirSuffix)
+}
+
+// GetHelmClusterOpChartsDir returns the Verrazzano Cluster Operator helm charts dir
+func GetHelmClusterOpChartsDir() string {
+	if TestHelmConfigDir != "" {
+		return filepath.Join(TestHelmConfigDir, "/charts/verrazzano-cluster-operator")
+	}
+	return filepath.Join(instance.VerrazzanoRootDir, helmClusterOpChartsDirSuffix)
 }
 
 // GetHelmPromOpChartsDir returns the Prometheus Operator helm charts dir
@@ -209,5 +222,5 @@ func GetInjectedSystemNamespaces() []string {
 }
 
 func GetNoInjectionComponents() []string {
-	return []string{"coherence-operator", "oam-kubernetes-runtime", "verrazzano-application-operator"}
+	return []string{"coherence-operator", "oam-kubernetes-runtime", "verrazzano-application-operator", "verrazzano-cluster-operator"}
 }

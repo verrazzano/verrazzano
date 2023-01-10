@@ -1,4 +1,4 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 metadata:
   name: "dev-disable-all-override"
@@ -66,6 +66,8 @@ spec:
                             app: webhook
                         topologyKey: kubernetes.io/hostname
                       weight: 100
+    clusterOperator:
+      enabled: false
     coherenceOperator:
       enabled: false
     console:
@@ -97,7 +99,7 @@ spec:
             - master
     fluentd:
       enabled: false
-      elasticsearchURL: "http://verrazzano-authproxy-elasticsearch:8775"
+      elasticsearchURL: "http://verrazzano-authproxy-opensearch:8775"
       elasticsearchSecret: verrazzano-es-internal
     grafana:
       enabled: false
@@ -243,6 +245,8 @@ spec:
                               app.kubernetes.io/instance: mysql-innodbcluster-mysql-mysql-server
                               app.kubernetes.io/name: mysql-innodbcluster-mysql-server
                           topologyKey: kubernetes.io/hostname
+    kubeStateMetrics:
+      enabled: true
     mySQLOperator:
       enabled: false
     kibana:
@@ -273,4 +277,6 @@ spec:
     verrazzano:
       enabled: true
     weblogicOperator:
+      enabled: false
+    argoCd:
       enabled: false

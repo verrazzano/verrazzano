@@ -99,7 +99,7 @@ func FindFileInClusterRoot(clusterRoot string, filename string) string {
 	return fmt.Sprintf("%s/%s", clusterRoot, filename)
 }
 
-// FindFileNameInNamespace will find filename in the namespace
+// FindFileInNamespace will find filename in the namespace
 func FindFileInNamespace(clusterRoot string, namespace string, filename string) string {
 	return fmt.Sprintf("%s/%s/%s", clusterRoot, namespace, filename)
 }

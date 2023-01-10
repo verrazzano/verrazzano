@@ -6,7 +6,11 @@ name: psr-backend-k8s
 version: 0.1.0
 appVersion: 0.1.0
 dependencies:
-  - name: opensearch-authpol
-    repository: file://../opensearch-authpol
+  - name: opensearch
+    repository: file://../opensearch
     version: 0.1.0
-    condition: opensearch-authpol.enabled
+    condition: opensearch.enabled
+  - name: prometheus
+    repository: file://../prometheus
+    version: 0.1.0
+    condition: prometheus.enabled

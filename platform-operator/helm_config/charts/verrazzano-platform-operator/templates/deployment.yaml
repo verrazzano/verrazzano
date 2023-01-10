@@ -27,6 +27,12 @@ spec:
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           image: {{ .Values.image }}
           command: [ 'sh', '-c', "/verrazzano/platform-operator/scripts/wait4webhook.sh" ]
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
       {{- if .Values.affinity }}
       affinity: {{ toYaml .Values.affinity | nindent 8 }}
       {{- end }}
@@ -64,19 +70,22 @@ spec:
             - name: IMAGE_PULL_SECRETS
               value: {{ join "," .Values.global.imagePullSecrets }}
             {{- end }}
-          volumeMounts:
-            - name: varlog
-              mountPath: /var/log
-              readOnly: true
           resources:
             requests:
               memory: 72Mi
-      volumes:
-        - name: varlog
-          hostPath:
-            path: /var/log
-            type: ""
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
       serviceAccountName: {{ .Values.name }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 999
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -119,6 +128,12 @@ spec:
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
       containers:
         - name: webhook-run
           image: {{ .Values.image }}
@@ -139,7 +154,19 @@ spec:
             - containerPort: 9443
               name: webhook
               protocol: TCP
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
       volumes:
         - name: webhook-certs
           emptyDir: {}
       serviceAccountName: {{ .Values.name }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 999
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault

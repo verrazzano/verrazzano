@@ -18,4 +18,28 @@ spec:
     - port: 8082
       name: "rest"
       appProtocol: https
+    - port: 8083
+      name: "metrics"
+      appProtocol: http
+---
+{{- if not .operatorOnly }}
+apiVersion: "v1"
+kind: "Service"
+metadata:
+  name: "weblogic-operator-webhook-svc"
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    weblogic.operatorName: {{ .Release.Namespace | quote }}
+spec:
+  type: "ClusterIP"
+  selector:
+    app: "weblogic-operator-webhook"
+  ports:
+    - port: 8083
+      name: "metrics"
+      appProtocol: http
+    - port: 8084
+      name: "restwebhook"
+      appProtocol: https
+{{- end }}
 {{- end }}

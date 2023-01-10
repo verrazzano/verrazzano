@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package velero
@@ -9,15 +9,13 @@ import (
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-	prometheusOperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
-
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
@@ -32,7 +30,7 @@ const (
 	ComponentName = "velero"
 	// ComponentNamespace is the namespace of the component
 	ComponentNamespace = constants.VeleroNameSpace
-	// ComponentJSONName is the json name of the component in the CRD
+	// ComponentJSONName is the JSON name of the component in the CRD
 	ComponentJSONName = "velero"
 	// ChartDir is the name of the directory for third party helm charts
 	ChartDir = "velero"
@@ -76,7 +74,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "velero-override-static-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
-			Dependencies:              []string{networkpolicies.ComponentName, prometheusOperator.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName},
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DaemonsetNames:  daemonSets,
 				DeploymentNames: deployments,
@@ -128,7 +126,10 @@ func (v veleroHelmComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 }
 
 func (v veleroHelmComponent) PreInstall(ctx spi.ComponentContext) error {
-	return ensureVeleroNamespace(ctx)
+	if err := ensureVeleroNamespace(ctx); err != nil {
+		return err
+	}
+	return v.HelmComponent.PreInstall(ctx)
 }
 
 // IsReady checks if the Velero objects are ready

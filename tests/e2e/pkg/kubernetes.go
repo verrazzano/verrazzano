@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package pkg
@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/onsi/gomega"
 	vaoClient "github.com/verrazzano/verrazzano/application-operator/clientset/versioned"
+	vcoClient "github.com/verrazzano/verrazzano/cluster-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -456,27 +457,19 @@ func createClientset(config *restclient.Config) (*kubernetes.Clientset, error) {
 	return kubernetes.NewForConfig(config)
 }
 
-// GetVerrazzanoManagedClusterClientset returns the Kubernetes clientset for the VerrazzanoManagedCluster
-func GetVerrazzanoManagedClusterClientset() (*vpoClient.Clientset, error) {
-	config, err := k8sutil.GetKubeConfig()
+// GetClusterOperatorClientset returns the Kubernetes clientset for the Verrazzano Cluster Operator
+// for a given kubeconfig
+func GetClusterOperatorClientset(kubeconfigPath string) (*vcoClient.Clientset, error) {
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
-	return vpoClient.NewForConfig(config)
+	return vcoClient.NewForConfig(config)
 }
 
 // GetVerrazzanoClientset returns the Kubernetes clientset for the Verrazzano CRD
 func GetVerrazzanoClientset() (*vpoClient.Clientset, error) {
 	config, err := k8sutil.GetKubeConfig()
-	if err != nil {
-		return nil, err
-	}
-	return vpoClient.NewForConfig(config)
-}
-
-// GetVerrazzanoClientsetInCluster returns the Kubernetes clientset for platform operator given a kubeconfig location
-func GetVerrazzanoClientsetInCluster(kubeconfigPath string) (*vpoClient.Clientset, error) {
-	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -709,6 +702,19 @@ func IsCoherenceOperatorEnabled(kubeconfigPath string) bool {
 		return true
 	}
 	return *vz.Spec.Components.CoherenceOperator.Enabled
+}
+
+// IsCertManagerEnabled returns true if the Cert Manager component is not set, or the value of its Enabled field otherwise
+func IsCertManagerEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return true
+	}
+	if vz.Spec.Components.CertManager == nil || vz.Spec.Components.CertManager.Enabled == nil {
+		return true
+	}
+	return *vz.Spec.Components.CertManager.Enabled
 }
 
 // IsWebLogicOperatorEnabled returns true if the WKO operator component is not set, or the value of its Enabled field otherwise
@@ -1012,6 +1018,44 @@ func GetNamespaceInCluster(name string, kubeconfigPath string) (*corev1.Namespac
 // CreateNamespace creates a namespace
 func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, error) {
 	return CreateNamespaceWithAnnotations(name, labels, nil)
+}
+
+// CreateOrUpdateNamespace creates or updates a namespace
+func CreateOrUpdateNamespace(name string, labels map[string]string, annotations map[string]string) (*corev1.Namespace, error) {
+	// Get the Kubernetes clientset
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	var ns *corev1.Namespace
+	if ns, err = clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{}); err != nil {
+		if !k8serrors.IsNotFound(err) {
+			return nil, err
+		}
+		return clientset.CoreV1().Namespaces().Create(context.TODO(),
+			&corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        name,
+					Labels:      labels,
+					Annotations: annotations,
+				},
+			}, metav1.CreateOptions{})
+	}
+	ns.Labels = mergeMaps(ns.Labels, labels)
+	ns.Annotations = mergeMaps(ns.Annotations, annotations)
+	return clientset.CoreV1().Namespaces().Update(context.TODO(), ns, metav1.UpdateOptions{})
+}
+
+func mergeMaps(m1 map[string]string, m2 map[string]string) map[string]string {
+	result := m1
+	if result == nil {
+		result = map[string]string{}
+	}
+	// merge keys from m2 into m1, overwriting existing keys of m1.
+	for k, v := range m2 {
+		result[k] = v
+	}
+	return result
 }
 
 func CreateNamespaceWithAnnotations(name string, labels map[string]string, annotations map[string]string) (*corev1.Namespace, error) {
@@ -1522,6 +1566,24 @@ func GetPersistentVolumeClaims(namespace string) (map[string]*corev1.PersistentV
 		volumeClaims[pvc.Name] = &pvcs.Items[i]
 	}
 	return volumeClaims, nil
+}
+
+func GetPersistentVolumes() (map[string]*corev1.PersistentVolume, error) {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	pvList, err := clientset.CoreV1().PersistentVolumes().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	pvs := make(map[string]*corev1.PersistentVolume)
+
+	for i, pvc := range pvList.Items {
+		pvs[pvc.Name] = &pvList.Items[i]
+	}
+	return pvs, nil
 }
 
 // DoesVerrazzanoProjectExistInCluster returns whether a VerrazzanoProject with the given name exists in the specified cluster

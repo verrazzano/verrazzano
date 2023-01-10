@@ -6,6 +6,7 @@ package mysqloperator
 import (
 	"context"
 	"fmt"
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"testing"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -243,6 +244,11 @@ func TestPreInstall(t *testing.T) {
 // GIVEN a call to PreUpgrade
 // THEN return the expected error
 func TestPreUpgrade(t *testing.T) {
+	helmcli.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helmcli.ChartStatusDeployed, nil
+	})
+	defer helmcli.SetDefaultChartStateFunction()
+
 	fakeClient := fake.NewClientBuilder().Build()
 	erroringClient := &erroringFakeClient{fakeClient}
 

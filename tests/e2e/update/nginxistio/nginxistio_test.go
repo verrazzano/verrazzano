@@ -360,13 +360,15 @@ var t = framework.NewTestFramework("update nginx-istio")
 
 var systemExternalIP, applicationExternalIP string
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	systemExternalIP, applicationExternalIP, err = deployExternalLBs()
 	if err != nil {
 		Fail(err.Error())
 	}
 })
+
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-nginx-istio verify", Label("f:platform-lcm.nginx-istio-verify"), func() {
