@@ -47,20 +47,10 @@ pipeline {
             }
             steps {
               script {
-                if (params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE) {
                   println("Downloading image list from object store")
                   sh "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE} --file verrazzano_images.txt"
-                } else {
-                  println("Copying image list from provided Jenkins job")
-                  copyArtifacts(projectName: '${IMAGES_TO_PUBLISH_JOB_NAME}',
-                    filter: 'verrazzano_images.txt',
-                    selector: buildParameter('IMAGES_TO_PUBLISH_BUILD'));
+                  sh "validate-ocr-images.sh"
                 }
-                sh """
-                    mv verrazzano_images.txt $WORKSPACE/verrazzano-release-utils/scripts
-                    cat $WORKSPACE/verrazzano-release-utils/scripts/verrazzano_images.txt
-                    validate-ocr-images.sh
-                """
               }
             }
         }
