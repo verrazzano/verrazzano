@@ -46,15 +46,21 @@ pipeline {
                 OCI_REGION = "us-phoenix-1"
             }
             steps {
-              script {
+                script {
                   println("Downloading image list from object store")
                   sh "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE} --file verrazzano_images.txt"
-                  sh "validate-ocr-images.sh"
                 }
               }
             }
+        stage('Compare Images from Object storage to be Published') {
+            steps {
+                script {
+                    sh "validate-ocr-images.sh"
+                }
+            }
         }
-
+        
     }
 
 }
+
