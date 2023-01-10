@@ -84,8 +84,8 @@ const kcInitContainerValueTemplate = `
       securityContext:
         allowPrivilegeEscalation: false
         capabilities:
-        drop:
-          - ALL
+          drop:
+            - ALL
         privileged: false
         runAsGroup: 0
         runAsNonRoot: true
