@@ -21,9 +21,9 @@ func TestGetters(t *testing.T) {
 	assert.NoError(t, err)
 
 	wd := w.GetWorkerDesc()
-	assert.Equal(t, config.WorkerTypeWriteLogs, wd.WorkerType)
+	assert.Equal(t, config.WorkerTypeOpsWriteLogs, wd.WorkerType)
 	assert.Equal(t, "The writelogs worker writes logs to STDOUT, putting a load on OpenSearch", wd.Description)
-	assert.Equal(t, config.WorkerTypeWriteLogs, wd.MetricsName)
+	assert.Equal(t, metricsPrefix, wd.MetricsPrefix)
 
 	el := w.GetEnvDescList()
 	assert.Len(t, el, 0)
@@ -38,8 +38,8 @@ func TestGetMetricDescList(t *testing.T) {
 		fqName string
 		help   string
 	}{
-		{name: "1", fqName: "logged_lines_count_total", help: "The total number of lines logged"},
-		{name: "2", fqName: "logged_chars_total", help: "The total number of characters logged"},
+		{name: "1", fqName: metricsPrefix + "_logged_lines_count_total", help: "The total number of lines logged"},
+		{name: "2", fqName: metricsPrefix + "_logged_chars_total", help: "The total number of characters logged"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -65,8 +65,8 @@ func TestGetMetricList(t *testing.T) {
 		fqName string
 		help   string
 	}{
-		{name: "1", fqName: "logged_lines_count_total", help: "The total number of lines logged"},
-		{name: "2", fqName: "logged_chars_total", help: "The total number of characters logged"},
+		{name: "1", fqName: metricsPrefix + "_logged_lines_count_total", help: "The total number of lines logged"},
+		{name: "2", fqName: metricsPrefix + "_logged_chars_total", help: "The total number of characters logged"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

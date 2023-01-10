@@ -4,6 +4,7 @@
 package helidon
 
 import (
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -35,7 +36,9 @@ var (
 	helloHelidonServiceName  = "hello-helidon"
 )
 
-var _ = t.BeforeSuite(func() {
+var whenJaegerOperatorEnabledIt = t.WhenMeetsConditionFunc(jaeger.OperatorCondition, jaeger.IsJaegerEnabled)
+
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	start = time.Now()
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -51,13 +54,15 @@ var _ = t.BeforeSuite(func() {
 	beforeSuitePassed = true
 })
 
+var _ = BeforeSuite(beforeSuite)
+
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteBugReport(namespace)
+		dump.ExecuteBugReport(namespace)
 	}
 	// undeploy the application here
 	start := time.Now()
@@ -66,12 +71,14 @@ var _ = t.AfterSuite(func() {
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
+var _ = AfterSuite(afterSuite)
+
 var _ = t.Describe("Helidon App with Jaeger Traces", Label("f:jaeger.helidon-workload"), func() {
 	t.Context("after successful installation", func() {
 		// GIVEN the Jaeger Operator is enabled and a sample application is installed,
 		// WHEN we check for traces for that service,
 		// THEN we are able to get the traces
-		jaeger.WhenJaegerOperatorEnabledIt(t, "traces for the helidon app should be available when queried from Jaeger", func() {
+		whenJaegerOperatorEnabledIt("traces for the helidon app should be available when queried from Jaeger", func() {
 			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 			if err != nil {
 				Fail(err.Error())
@@ -83,7 +90,7 @@ var _ = t.Describe("Helidon App with Jaeger Traces", Label("f:jaeger.helidon-wor
 		// GIVEN the Jaeger Operator component is enabled,
 		// WHEN a sample application is installed,
 		// THEN the traces are found in OpenSearch Backend
-		jaeger.WhenJaegerOperatorEnabledIt(t, "traces for the helidon app should be available in the OS backend storage.", func() {
+		whenJaegerOperatorEnabledIt("traces for the helidon app should be available in the OS backend storage.", func() {
 			validatorFn := pkg.ValidateApplicationTracesInOS(start, helloHelidonServiceName)
 			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})

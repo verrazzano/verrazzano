@@ -5,7 +5,9 @@ package oam
 
 import (
 	"context"
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,6 +24,7 @@ var testScheme = runtime.NewScheme()
 
 func init() {
 	_ = rbacv1.AddToScheme(testScheme)
+	_ = apiextensionsv1.AddToScheme(testScheme)
 }
 
 func TestValidateUpdate(t *testing.T) {
@@ -133,12 +136,29 @@ func TestValidateUpdateV1Beta1(t *testing.T) {
 	}
 }
 
+func TestPreInstall(t *testing.T) {
+	config.TestHelmConfigDir = "../../../../thirdparty"
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, nil, nil, false)
+	assert.NoError(t, NewComponent().PreInstall(ctx))
+
+	// After PreInstall, OAM CRDs should be present on the cluster
+	oamCRD := &apiextensionsv1.CustomResourceDefinition{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: "applicationconfigurations.core.oam.dev"}, oamCRD)
+	assert.NoError(t, err)
+}
+
 // TestPreUpgrade tests the OAM PreUpgrade call
 // GIVEN an OAM component
 //
 //	WHEN I call PreUpgrade with defaults
 //	THEN no error is returned
 func TestPreUpgrade(t *testing.T) {
+	helmcli.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helmcli.ChartStatusDeployed, nil
+	})
+	defer helmcli.SetDefaultChartStateFunction()
+
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
 	config.TestHelmConfigDir = "../../../../thirdparty"

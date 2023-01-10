@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package config
@@ -25,6 +25,7 @@ func TestConfigDefaults(t *testing.T) {
 	asserts.False(conf.LeaderElectionEnabled, "LeaderElectionEnabled is incorrect")
 	asserts.Equal(":8080", conf.MetricsAddr, "MetricsAddr is incorrect")
 	asserts.Equal(int64(60), conf.HealthCheckPeriodSeconds, "Default health check period is correct")
+	asserts.Equal(int64(60), conf.MySQLCheckPeriodSeconds, "Default MySQL check period is correct")
 	asserts.True(conf.VersionCheckEnabled, "VersionCheckEnabled is incorrect")
 	asserts.False(conf.RunWebhooks, "RunWebhooks is incorrect")
 	asserts.True(conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
@@ -33,8 +34,9 @@ func TestConfigDefaults(t *testing.T) {
 	asserts.Equal("/verrazzano/platform-operator/helm_config/charts", GetHelmChartsDir(), "GetHelmChartsDir() is incorrect")
 	asserts.Equal("/verrazzano/platform-operator/helm_config/charts/verrazzano-monitoring-operator", GetHelmVMOChartsDir(), "GetHelmVmoChartsDir() is incorrect")
 	asserts.Equal("/verrazzano/platform-operator/helm_config/charts/verrazzano-application-operator", GetHelmAppOpChartsDir(), "GetHelmAppOpChartsDir() is incorrect")
-	asserts.Equal("/verrazzano/platform-operator/thirdparty/charts/kiali-server", GetHelmKialiChartsDir(), "GetHelmAppOpChartsDir() is incorrect")
-	asserts.Equal("/verrazzano/platform-operator/thirdparty/charts/oam-kubernetes-runtime", GetHelmOamChartsDir(), "GetHelmAppOpChartsDir() is incorrect")
+	asserts.Equal("/verrazzano/platform-operator/helm_config/charts/verrazzano-cluster-operator", GetHelmClusterOpChartsDir(), "GetHelmClusterOpChartsDir() is incorrect")
+	asserts.Equal("/verrazzano/platform-operator/thirdparty/charts/kiali-server", GetHelmKialiChartsDir(), "GetHelmKialiChartsDir() is incorrect")
+	asserts.Equal("/verrazzano/platform-operator/thirdparty/charts/oam-kubernetes-runtime", GetHelmOamChartsDir(), "GetHelmOamChartsDir() is incorrect")
 	asserts.Equal("/verrazzano/platform-operator/helm_config/overrides", GetHelmOverridesDir(), "GetHelmOverridesDir() is incorrect")
 	asserts.Equal("/verrazzano/platform-operator/scripts/install", GetInstallDir(), "GetInstallDir() is incorrect")
 	asserts.Equal("/verrazzano/platform-operator", GetPlatformDir(), "GetPlatformDir() is incorrect")
@@ -53,7 +55,7 @@ func TestConfigDefaults(t *testing.T) {
 func TestSetConfig(t *testing.T) {
 	asserts := assert.New(t)
 	vzsystemNamespace := []string{"verrazzano-system", "verrazzano-monitoring", "ingress-nginx", "keycloak"}
-	vznonsystemNamespace := []string{"coherence-operator", "oam-kubernetes-runtime", "verrazzano-application-operator"}
+	vznonsystemNamespace := []string{"coherence-operator", "oam-kubernetes-runtime", "verrazzano-application-operator", "verrazzano-cluster-operator"}
 	TestHelmConfigDir = "/etc/verrazzano/helm_config"
 	TestProfilesDir = "/etc/verrazzano/profile"
 	bomFilePathOverride = "/etc/verrazzano/bom.json"
@@ -71,6 +73,7 @@ func TestSetConfig(t *testing.T) {
 		WebhookValidationEnabled: false,
 		VerrazzanoRootDir:        "/root",
 		HealthCheckPeriodSeconds: int64(0),
+		MySQLCheckPeriodSeconds:  int64(0),
 		DryRun:                   true,
 	})
 
@@ -90,6 +93,7 @@ func TestSetConfig(t *testing.T) {
 	asserts.Equal("/etc/verrazzano/helm_config/charts", GetHelmChartsDir(), "GetHelmChartsDir() is incorrect")
 	asserts.Equal("/etc/verrazzano/helm_config/charts/verrazzano-monitoring-operator", GetHelmVMOChartsDir(), "GetHelmVmoChartsDir() is incorrect")
 	asserts.Equal("/etc/verrazzano/helm_config/charts/verrazzano-application-operator", GetHelmAppOpChartsDir(), "GetHelmAppOpChartsDir() is incorrect")
+	asserts.Equal("/etc/verrazzano/helm_config/charts/verrazzano-cluster-operator", GetHelmClusterOpChartsDir(), "GetHelmClusterOpChartsDir() is incorrect")
 	asserts.Equal("/etc/verrazzano/helm_config/overrides", GetHelmOverridesDir(), "GetHelmOverridesDir() is incorrect")
 	asserts.Equal("/root/platform-operator/scripts/install", GetInstallDir(), "GetInstallDir() is incorrect")
 	asserts.Equal("/root/platform-operator", GetPlatformDir(), "GetPlatformDir() is incorrect")

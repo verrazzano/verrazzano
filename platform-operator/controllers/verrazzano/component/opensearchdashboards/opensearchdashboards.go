@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-const kibanaDeployment = "vmi-system-kibana"
+const kibanaDeployment = "vmi-system-osd"
 
 func getOSDDeployments() []types.NamespacedName {
 	return []types.NamespacedName{

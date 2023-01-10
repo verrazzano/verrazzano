@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package keycloak
@@ -371,30 +371,114 @@ const rancherClientTmpl = `
 }
 `
 
+const argocdClientTmpl = `
+{
+      "clientId": "argocd",
+      "name": "argocd",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      ` + argocdClientUrisTemplate + `,
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "id.token.as.detached.signature": "false",
+        "saml.assertion.signature": "false",
+        "saml.force.post.binding": "false",
+        "saml.multivalued.roles": "false",
+        "saml.encrypt": "false",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "backchannel.logout.revoke.offline.tokens": "false",
+        "saml.server.signature": "false",
+        "saml.server.signature.keyinfo.ext": "false",
+        "use.refresh.tokens": "true",
+        "exclude.session.state.from.auth.response": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "saml.artifact.binding": "false",
+        "backchannel.logout.session.required": "true",
+        "client_credentials.use_refresh_token": "false",
+        "saml_force_name_id_format": "false",
+        "require.pushed.authorization.requests": "false",
+        "saml.client.signature": "false",
+        "tls.client.certificate.bound.access.tokens": "false",
+        "saml.authnstatement": "false",
+        "display.on.consent.screen": "false",
+        "saml.onetimeuse.condition": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "protocolMappers": [
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "groups",
+            "userinfo.token.claim": "true"
+          }
+		}
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "roles",
+        "profile",
+        "groups",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+}
+`
+
 const pkceClientUrisTemplate = `
 	"redirectUris": [
 	  "https://verrazzano.{{.DNSSubDomain}}/*",
 	  "https://verrazzano.{{.DNSSubDomain}}/verrazzano/authcallback",
-	  "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/*",
-	  "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://opensearch.vmi.system.{{.DNSSubDomain}}/*",
+	  "https://opensearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/*",
 	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://grafana.vmi.system.{{.DNSSubDomain}}/*",
 	  "https://grafana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-	  "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
-	  "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://osd.vmi.system.{{.DNSSubDomain}}/*",
+	  "https://osd.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://kiali.vmi.system.{{.DNSSubDomain}}/*",
 	  "https://kiali.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-	  "https://jaeger.{{.DNSSubDomain}}/*"
+	  "https://jaeger.{{.DNSSubDomain}}/*"{{ if .OSHostExists}},
+      "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/*",
+      "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+      "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
+      "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback"{{end}}
 	],
 	"webOrigins": [
 	  "https://verrazzano.{{.DNSSubDomain}}",
-	  "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
+	  "https://opensearch.vmi.system.{{.DNSSubDomain}}",
 	  "https://prometheus.vmi.system.{{.DNSSubDomain}}",
 	  "https://grafana.vmi.system.{{.DNSSubDomain}}",
-	  "https://kibana.vmi.system.{{.DNSSubDomain}}",
+	  "https://osd.vmi.system.{{.DNSSubDomain}}",
 	  "https://kiali.vmi.system.{{.DNSSubDomain}}",
-	  "https://jaeger.{{.DNSSubDomain}}"
+	  "https://jaeger.{{.DNSSubDomain}}"{{ if .OSHostExists}},
+      "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
+      "https://kibana.vmi.system.{{.DNSSubDomain}}"
+ {{end}} 
 	]
 `
 
@@ -407,10 +491,28 @@ const rancherClientUrisTemplate = `
 	]
 `
 
+const argocdClientUrisTemplate = `
+    "rootUrl": "https://argocd.{{.DNSSubDomain}}",
+	"redirectUris": [
+        "https://argocd.{{.DNSSubDomain}}/auth/callback"
+    ],
+    "baseUrl": "/applications",
+    "adminUrl": "https://argocd.{{.DNSSubDomain}}",
+	"webOrigins": [
+		"https://argocd.{{.DNSSubDomain}}"
+	]
+`
+
 // KeycloakClients represents an array of clients currently configured in Keycloak
 type KeycloakClients []struct {
 	ID       string `json:"id"`
 	ClientID string `json:"clientId"`
+}
+
+// KeycloakClientScopes represents an array of client-scopes currently configured in Keycloak
+type KeycloakClientScopes []struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 // SubGroup represents the subgroups that Keycloak groups may contain
@@ -467,6 +569,7 @@ type KeycloakClientSecret struct {
 
 type templateData struct {
 	DNSSubDomain string
+	OSHostExists bool
 }
 
 // imageData needed for template rendering
@@ -754,7 +857,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	if vzcr.IsRancherEnabled(ctx.ActualCR()) {
+	if vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
 		// Creating rancher client
 		err = createOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true)
 		if err != nil {
@@ -769,6 +872,20 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 
 		// Add view-users role to verrazzano user
 		err = addClientRoleToUser(ctx, cfg, cli, vzUserName, realmManagement, vzSysRealm, viewUsersRole)
+		if err != nil {
+			return err
+		}
+	}
+
+	if vzcr.IsArgoCDEnabled(ctx.EffectiveCR()) {
+		//Creating groups client scope
+		err = createOrUpdateClientScope(ctx, cfg, cli, "groups")
+		if err != nil {
+			return err
+		}
+
+		// Creating Argo CD client
+		err = createOrUpdateClient(ctx, cfg, cli, "argocd", argocdClientTmpl, argocdClientUrisTemplate, true)
 		if err != nil {
 			return err
 		}
@@ -1061,6 +1178,32 @@ func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes
 
 	return nil
 }
+
+func createOrUpdateClientScope(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, groupname string) error {
+	keycloakClientScopes, err := getKeycloakClientScopes(ctx)
+	if err != nil {
+		return err
+	}
+
+	kcPod := keycloakPod()
+	if clientScopeName := getClientScopeName(keycloakClientScopes, groupname); clientScopeName != "" {
+		return nil
+	}
+
+	// Create client scope
+	clientCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create -x client-scopes -r " + vzSysRealm + " -s name=groups -s protocol=openid-connect"
+	ctx.Log().Debugf("createOrUpdateClient: Create %s client Cmd = %s", groupname, clientCreateCmd)
+	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(clientCreateCmd))
+	if err != nil {
+		ctx.Log().Errorf("Component Keycloak failed creating %s client scope stdout = %s, stderr = %s", groupname, stdout, stderr)
+		return err
+	}
+	ctx.Log().Debugf("createOrUpdateClientScope: Created %s client-scope", groupname)
+	ctx.Log().Oncef("Component Keycloak successfully created client-scope %s", groupname)
+	return nil
+
+}
+
 func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, clientName string, clientTemplate string, uriTemplate string, generateSecret bool) error {
 	keycloakClients, err := getKeycloakClients(ctx)
 	if err != nil {
@@ -1306,11 +1449,45 @@ func getKeycloakClients(ctx spi.ComponentContext) (KeycloakClients, error) {
 	return keycloakClients, nil
 }
 
-func getClientID(keycloakClients KeycloakClients, clientName string) string {
+// getKeycloakClientsScopes returns a structure of ClientScopes in Realm verrazzano-system
+func getKeycloakClientScopes(ctx spi.ComponentContext) (KeycloakClientScopes, error) {
+	var keycloakClientScopes KeycloakClientScopes
+	cfg, cli, err := k8sutil.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	// Get the Client ID JSON array
+	out, _, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get client-scopes -r "+vzSysRealm+" --fields id,name"))
+	if err != nil {
+		ctx.Log().Errorf("Component Keycloak failed retrieving client-scopes: %s", err)
+		return nil, err
+	}
+	if len(out) == 0 {
+		err := errors.New("Component Keycloak failed; clients JSON from Keycloak is zero length")
+		ctx.Log().Error(err)
+		return nil, err
+	}
+	err = json.Unmarshal([]byte(out), &keycloakClientScopes)
+	if err != nil {
+		ctx.Log().Errorf("Component Keycloak failed ummarshalling client json: %v", err)
+		return nil, err
+	}
+	return keycloakClientScopes, nil
+}
 
+func getClientID(keycloakClients KeycloakClients, clientName string) string {
 	for _, keycloakClient := range keycloakClients {
 		if keycloakClient.ClientID == clientName {
 			return keycloakClient.ID
+		}
+	}
+	return ""
+}
+
+func getClientScopeName(keycloakClientScopes KeycloakClientScopes, groupname string) string {
+	for _, keycloakClient := range keycloakClientScopes {
+		if keycloakClient.Name == groupname {
+			return keycloakClient.Name
 		}
 	}
 	return ""
@@ -1415,6 +1592,15 @@ func upgradeStatefulSet(ctx spi.ComponentContext) error {
 
 func populateSubdomainInTemplate(ctx spi.ComponentContext, tmpl string) (string, error) {
 	data := templateData{}
+
+	// Update verrazzano-pkce client redirect and web origin uris if deprecated host exists in the ingress
+	osHostExists, err := DoesDeprecatedIngressHostExist(ctx, constants.VerrazzanoSystemNamespace)
+	if err != nil {
+		ctx.Log().Errorf("Error retrieving the ingressList : %v", err)
+	}
+	// Set bool value if deprecated host exists
+	data.OSHostExists = osHostExists
+
 	// Get DNS Domain Configuration
 	dnsSubDomain, err := getDNSDomain(ctx.Client(), ctx.EffectiveCR())
 	if err != nil {
@@ -1475,6 +1661,72 @@ func GetRancherClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error
 	out, _, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get clients/"+id+"/client-secret -r "+vzSysRealm))
 	if err != nil {
 		ctx.Log().Errorf("failed retrieving rancher client secret from keycloak: %s", err)
+		return "", err
+	}
+	if len(out) == 0 {
+		err = errors.New("client secret json from keycloak is zero length")
+		ctx.Log().Error(err)
+		return "", err
+	}
+
+	err = json.Unmarshal([]byte(out), &clientSecret)
+	if err != nil {
+		ctx.Log().Errorf("failed ummarshalling client secret json: %v", err)
+		return "", err
+	}
+
+	if clientSecret.Value == "" {
+		return "", ctx.Log().ErrorNewErr("client secret is empty")
+	}
+
+	return clientSecret.Value, nil
+}
+
+type (
+	ArgoClientSecretProvider interface {
+		GetClientSecret(ctx spi.ComponentContext) (string, error)
+	}
+
+	// Gets the client secret from keycloak
+	DefaultArgoClientSecretProvider struct{}
+)
+
+// GetClientSecret returns the secret from Argo CD client in Keycloak
+func (p DefaultArgoClientSecretProvider) GetClientSecret(ctx spi.ComponentContext) (string, error) {
+	cfg, cli, err := k8sutil.ClientConfig()
+	if err != nil {
+		return "", err
+	}
+
+	// Login to Keycloak
+	err = loginKeycloak(ctx, cfg, cli)
+	if err != nil {
+		return "", err
+	}
+
+	kcClients, err := getKeycloakClients(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	id := ""
+	for _, kcClient := range kcClients {
+		if kcClient.ClientID == "argocd" {
+			id = kcClient.ID
+		}
+	}
+
+	if id == "" {
+		ctx.Log().Debugf("GetArgoCDClientSecretFromKeycloak: Argo CD client does not exist")
+		err = errors.New("Argo CD client does not exist")
+		return "", err
+	}
+
+	var clientSecret KeycloakClientSecret
+	// Get the Client secret JSON array
+	out, _, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get clients/"+id+"/client-secret -r "+vzSysRealm))
+	if err != nil {
+		ctx.Log().Errorf("failed retrieving argocd client secret from keycloak: %s", err)
 		return "", err
 	}
 	if len(out) == 0 {
@@ -1583,4 +1835,21 @@ func addClientRoleToUser(ctx spi.ComponentContext, cfg *restclient.Config, cli k
 	}
 	ctx.Log().Oncef("Added client role %s to the user %s", roleName, userName)
 	return nil
+}
+
+// DoesDeprecatedIngressHostExist returns true if ingress host exists
+func DoesDeprecatedIngressHostExist(ctx spi.ComponentContext, namespace string) (bool, error) {
+	ingressList := &networkv1.IngressList{}
+
+	listOptions := &client.ListOptions{Namespace: namespace}
+	err := ctx.Client().List(context.TODO(), ingressList, listOptions)
+	if err != nil && len(ingressList.Items) == 0 {
+		return false, err
+	}
+	for _, ingress := range ingressList.Items {
+		if len(ingress.Spec.Rules) > 0 && strings.HasPrefix(ingress.Spec.Rules[0].Host, "elasticsearch") {
+			return true, nil
+		}
+	}
+	return false, nil
 }

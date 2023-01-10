@@ -5,6 +5,7 @@ package helidonmetrics
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
@@ -32,7 +33,7 @@ var (
 	generatedNamespace = pkg.GenerateNamespace("helidon-metrics")
 )
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
 		start := time.Now()
 		Eventually(func() (*v1.Namespace, error) {
@@ -63,6 +64,8 @@ var _ = t.BeforeSuite(func() {
 	Eventually(helidonConfigPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
 })
 
+var _ = BeforeSuite(beforeSuite)
+
 var failed = false
 var beforeSuitePassed = false
 
@@ -70,10 +73,9 @@ var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
-
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteBugReport(namespace)
+		dump.ExecuteBugReport(namespace)
 	}
 	if !skipUndeploy {
 		start := time.Now()
@@ -121,6 +123,8 @@ var _ = t.AfterSuite(func() {
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
+
+var _ = AfterSuite(afterSuite)
 
 var (
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}

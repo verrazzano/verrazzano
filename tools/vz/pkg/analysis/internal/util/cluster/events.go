@@ -6,6 +6,7 @@ package cluster
 
 import (
 	encjson "encoding/json"
+	"fmt"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"go.uber.org/zap"
 	"io"
@@ -73,7 +74,7 @@ func GetEventsRelatedToPod(log *zap.SugaredLogger, clusterRoot string, pod corev
 
 // GetEventsRelatedToService gets events related to a service
 func GetEventsRelatedToService(log *zap.SugaredLogger, clusterRoot string, service corev1.Service, timeRange *files.TimeRange) (serviceEvents []corev1.Event, err error) {
-	log.Debugf("GetEventsRelatedToService called for %s in namespace ", service.ObjectMeta.Name, service.ObjectMeta.Namespace)
+	log.Debugf("GetEventsRelatedToService called for %s in namespace %s", service.ObjectMeta.Name, service.ObjectMeta.Namespace)
 	allEvents, err := GetEventList(log, files.FindFileInNamespace(clusterRoot, service.ObjectMeta.Namespace, "events.json"))
 	if err != nil {
 		return nil, err
@@ -93,6 +94,75 @@ func GetEventsRelatedToService(log *zap.SugaredLogger, clusterRoot string, servi
 		}
 	}
 	return serviceEvents, nil
+}
+
+// GetEventsRelatedToComponentNamespace gets events related to a component namespace
+func GetEventsRelatedToComponentNamespace(log *zap.SugaredLogger, clusterRoot string, componentNamespace string, timeRange *files.TimeRange) (componentEvents []corev1.Event, err error) {
+	log.Debugf("GetEventsRelatedToComponentNs called for component in namespace %s", componentNamespace)
+
+	podFile := files.FindFileInNamespace(clusterRoot, componentNamespace, podsJSON)
+	podList, err := GetPodList(log, podFile)
+	if err != nil {
+		log.Debugf("Failed to get the list of pods for the given pod file %s, skipping", podFile)
+	}
+	if podList == nil {
+		log.Debugf("No pod was returned, skipping")
+		return nil, nil
+	}
+
+	for _, pod := range podList.Items {
+		eventList, err := GetEventsRelatedToPod(log, clusterRoot, pod, nil)
+		if err != nil {
+			log.Debugf("Failed to get events for %s pod in namespace %s", pod.Name, pod.Namespace)
+			continue
+		}
+		componentEvents = append(componentEvents, eventList...)
+	}
+	return componentEvents, nil
+}
+
+// CheckEventsForWarnings goes through the events list for a specific Component/Service/Pod
+// and checks if there exists an event with type Warning and returns the corresponding reason and message
+// as an additional supporting data
+func CheckEventsForWarnings(log *zap.SugaredLogger, events []corev1.Event, eventType string, timeRange *files.TimeRange) (message []string, err error) {
+	log.Debugf("Searching the events list for any additional support data")
+	var finalEventList []corev1.Event
+	for _, event := range events {
+		foundInvolvedObject := false
+		for index, previousEvent := range finalEventList {
+			// If we already iterated through an event for the same involved object with given eventType
+			// And that event occurred before this current event, replace it accordingly
+			if isInvolvedObjectSame(event, previousEvent) && event.LastTimestamp.Time.After(previousEvent.LastTimestamp.Time) {
+				foundInvolvedObject = true
+				// Remove the previous event from the final list
+				finalEventList = append(finalEventList[:index], finalEventList[index+1:]...)
+				if event.Type == eventType {
+					finalEventList = append(finalEventList, event)
+				}
+				break
+			}
+		}
+		// No previous event for this specific involved object
+		// Add to the finalEventList, if event type matches
+		if !foundInvolvedObject && event.Type == eventType {
+			finalEventList = append(finalEventList, event)
+		}
+	}
+
+	for _, event := range finalEventList {
+		if len(event.Message) == 0 {
+			continue
+		}
+		message = append(message, fmt.Sprintf("Namespace: %s, %s %s, Message: %s, Reason: %s", event.InvolvedObject.Namespace, event.InvolvedObject.Kind, event.InvolvedObject.Name, event.Message, event.Reason))
+	}
+
+	return message, nil
+}
+
+func isInvolvedObjectSame(eventA corev1.Event, eventB corev1.Event) bool {
+	return eventA.InvolvedObject.Kind == eventB.InvolvedObject.Kind &&
+		(eventA.InvolvedObject.Name == eventB.InvolvedObject.Name) &&
+		eventA.InvolvedObject.Namespace == eventB.InvolvedObject.Namespace
 }
 
 func getEventListIfPresent(path string) (eventList *corev1.EventList) {

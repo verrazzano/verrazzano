@@ -18,6 +18,14 @@ Component version updates:
 - kube-state-metrics v2.6.0
 - cert-manager v1.9.1
 - Prometheus Adapter for Kubernetes Metrics APIs v0.10.0
+- Grafana v7.5.17
+- WebLogic Kubernetes Operator v4.0.4
+- WebLogic Monitoring Exporter v2.1.0
+- OpenSearch v2.3.0
+- OpenSearch Dashboards v2.3.0
+- Istio v1.15.1
+- Jaeger v1.37.0
+- Kiali v1.57.1
 
 Components added:
 - MySQL Operator 8.0.30-2.0.6
@@ -26,7 +34,8 @@ Fixes:
 
 - Updated base and other images for bugs and security.
 - Rancher upgrade intermittently fails with errors stating that the available chart version is less than the minimum chart version for Rancher system charts.
-
+- Fixed Fluentd configuration to prevent duplication of logs in OpenSearch on Fluentd restarts or upgrade.
+- Fixed i/o timeout errors installing Verrazzano on a RKE2 cluster.
 
 ### v1.4.0
 Features:

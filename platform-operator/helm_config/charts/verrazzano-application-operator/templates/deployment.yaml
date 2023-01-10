@@ -1,0 +1,160 @@
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.name }}
+    spec:
+      initContainers:
+        - name: webhookswait
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          image: {{ .Values.image }}
+          command: [ 'sh', '-c', "/usr/local/bin/wait4webhook.sh" ]
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      {{- if .Values.affinity }}
+      affinity: {{ toYaml .Values.affinity | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Values.name }}
+          image: {{ .Values.image }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - containerPort: 9443
+              name: https-webhook
+              protocol: TCP
+            - containerPort: 9100
+              name: http-metric
+              protocol: TCP
+          args:
+            - --zap-log-level={{ .Values.logLevel }}
+          resources:
+            requests:
+              memory: {{ .Values.requestMemory }}
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/certs
+          env:
+            - name: DEFAULT_FLUENTD_IMAGE
+              value: {{ .Values.fluentdImage }}
+            - name: ISTIO_PROXY_IMAGE
+              value: {{ .Values.istioProxyImage }}
+            - name: WEBLOGIC_MONITORING_EXPORTER_IMAGE
+              value: {{ .Values.weblogicMonitoringExporterImage }}
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: webhook-certs
+          emptyDir: {}
+      serviceAccountName: {{ .Values.name }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 999
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}-webhook
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.name }}-webhook
+spec:
+  replicas: {{ .Values.webhook.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.name }}-webhook
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.name }}-webhook
+        sidecar.istio.io/inject: "false"
+    spec:
+      initContainers:
+        - name: initwebhooks
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          image: {{ .Values.image }}
+          args:
+            - --zap-log-level=info
+            - --run-webhook-init
+            - --cert-dir=/etc/certs
+          resources:
+            requests:
+              memory: {{ .Values.requestMemory }}
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/certs
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      containers:
+        - name: {{ .Values.name }}-webhook
+          image: {{ .Values.image }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - containerPort: 9443
+              name: https-webhook
+              protocol: TCP
+            - containerPort: 9100
+              name: http-metric
+              protocol: TCP
+          args:
+            - --zap-log-level={{ .Values.logLevel }}
+            - --run-webhooks
+            - --metrics-addr=:9100
+          resources:
+            requests:
+              memory: {{ .Values.requestMemory }}
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/certs
+          env:
+            - name: DEFAULT_FLUENTD_IMAGE
+              value: {{ .Values.fluentdImage }}
+            - name: ISTIO_PROXY_IMAGE
+              value: {{ .Values.istioProxyImage }}
+            - name: WEBLOGIC_MONITORING_EXPORTER_IMAGE
+              value: {{ .Values.weblogicMonitoringExporterImage }}
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: webhook-certs
+          emptyDir: {}
+      serviceAccountName: {{ .Values.name }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 999
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+

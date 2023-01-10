@@ -1,12 +1,14 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package reconcile
 
 import (
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -73,12 +75,21 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 	compName := comp.Name()
 	compContext := spiCtx.Init(compName).Operation(vzconst.UninstallOperation)
 	compLog := compContext.Log()
+	rancherProvisioned, err := rancher.IsClusterProvisionedByRancher()
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	for UninstallContext.state != compStateUninstallEnd {
 		switch UninstallContext.state {
 		case compStateUninstallStart:
 			// Check if operator based uninstall is supported
 			if !comp.IsOperatorUninstallSupported() {
+				UninstallContext.state = compStateUninstallEnd
+				continue
+			}
+			if comp.Name() == rancher.ComponentName && rancherProvisioned {
+				compLog.Oncef("Cluster was provisioned by Rancher. Component %s will not be uninstalled.", rancher.ComponentName)
 				UninstallContext.state = compStateUninstallEnd
 				continue
 			}
@@ -110,7 +121,9 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 		case compStateUninstall:
 			compLog.Progressf("Component %s is calling uninstall", compName)
 			if err := comp.Uninstall(compContext); err != nil {
-				compLog.Errorf("Failed uninstalling component %s, will retry: %v", compName, err)
+				if !ctrlerrors.IsRetryableError(err) {
+					compLog.Errorf("Failed uninstalling component %s, will retry: %v", compName, err)
+				}
 				return ctrl.Result{}, err
 			}
 			UninstallContext.state = compStateWaitUninstalled
@@ -127,7 +140,9 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 			}
 			compLog.Progressf("Component %s has been uninstalled, running post-uninstall", compName)
 			if err := comp.PostUninstall(compContext); err != nil {
-				compLog.Errorf("PostUninstall for component %s failed: %v", compName, err)
+				if !ctrlerrors.IsRetryableError(err) {
+					compLog.Errorf("PostUninstall for component %s failed: %v", compName, err)
+				}
 				return newRequeueWithDelay(), nil
 			}
 			UninstallContext.state = compStateUninstalleDone

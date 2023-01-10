@@ -56,7 +56,7 @@ func locateContainersField(res *unstructured.Unstructured) (bool, []string) {
 	case "Deployment":
 		containersFieldPath = []string{"spec", "template", "spec", "containers"}
 		ok = true
-	case "StatefuleSet":
+	case "StatefulSet":
 		containersFieldPath = []string{"spec", "template", "spec", "containers"}
 		ok = true
 	case "DaemonSet":
@@ -83,7 +83,7 @@ func locateVolumesField(res *unstructured.Unstructured) (bool, []string) {
 	case "Deployment":
 		volumeFieldPath = []string{"spec", "template", "spec", "volumes"}
 		ok = true
-	case "StatefuleSet":
+	case "StatefulSet":
 		volumeFieldPath = []string{"spec", "template", "spec", "volumes"}
 		ok = true
 	case "DaemonSet":

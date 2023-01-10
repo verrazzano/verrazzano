@@ -28,8 +28,8 @@ import (
 
 const (
 	profilesRelativePath = "../../../../manifests/profiles"
-	masterAppName        = "system-kibana"
-	DeploymentName       = "vmi-system-kibana"
+	masterAppName        = "system-osd"
+	DeploymentName       = "vmi-system-osd"
 	InstallArgsName      = "nodes.data.requests.storage"
 )
 
@@ -100,7 +100,7 @@ func TestGetMinVerrazzanoVersion(t *testing.T) {
 //	THEN a string containing JSONName is returned
 func TestGetJSONName(t *testing.T) {
 	jsonName := NewComponent().GetJSONName()
-	assert.Equal(t, jsonName, "opensearch-dashboards")
+	assert.Equal(t, jsonName, ComponentJSONName)
 
 }
 
@@ -578,7 +578,7 @@ func TestIsAvailable(t *testing.T) {
 			"TestIsAvailable",
 			opensearchDashboardsComponent{},
 			spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false),
-			"waiting for deployment verrazzano-system/vmi-system-kibana to exist",
+			"waiting for deployment verrazzano-system/vmi-system-osd to exist",
 			vzapi.ComponentUnavailable,
 		},
 	}

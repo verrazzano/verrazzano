@@ -4,14 +4,15 @@
 package workmanager
 
 import (
+	"testing"
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
-
-	"testing"
 )
 
 type fakeWorker struct {
@@ -79,6 +80,7 @@ func assertMetricDescList(t *testing.T, mdList []prometheus.Desc) {
 func TestRunWorker(t *testing.T) {
 	var tests = []struct {
 		name      string
+		duration  time.Duration
 		loops     int64
 		expectErr bool
 	}{
@@ -90,12 +92,13 @@ func TestRunWorker(t *testing.T) {
 			log := vzlog.DefaultLogger()
 			f := fakeWorker{}
 			r, err := NewRunner(&f, config.CommonConfig{}, log)
-			actualRunner := r.(runner)
+			actualRunner := r.(workerRunner)
 			assert.NoError(t, err)
 
 			err = r.RunWorker(config.CommonConfig{
-				WorkerType: "Fake",
-				NumLoops:   test.loops,
+				WorkerType:  "Fake",
+				NumLoops:    test.loops,
+				PsrDuration: config.UnlimitedWorkerDuration,
 			}, log)
 
 			assert.NoError(t, err)
@@ -105,12 +108,43 @@ func TestRunWorker(t *testing.T) {
 	}
 }
 
+// TestRunDuration tests the Runner.RunWorker method
+// GIVEN a Runner
+//
+//	WHEN RunWorker is called with different duration values
+//	THEN ensure that the worker is called without error
+func TestRunDuration(t *testing.T) {
+	var tests = []struct {
+		name      string
+		expectErr bool
+		duration  time.Duration
+	}{
+		{name: "oneS", duration: 1 * time.Second, expectErr: false},
+		{name: "fiveMs", duration: 5 * time.Millisecond, expectErr: false},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			log := vzlog.DefaultLogger()
+			f := fakeWorker{}
+			r, err := NewRunner(&f, config.CommonConfig{}, log)
+			assert.NoError(t, err)
+
+			err = r.RunWorker(config.CommonConfig{
+				WorkerType:  "Fake",
+				PsrDuration: test.duration,
+			}, log)
+
+			assert.NoError(t, err)
+		})
+	}
+}
+
 // GetWorkerDesc returns the WorkerDesc for the worker
 func (w fakeWorker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		WorkerType:  config.WorkerTypeExample,
-		Description: "Example worker that demonstrates executing a fake use case",
-		MetricsName: "example",
+		WorkerType:    config.WorkerTypeExample,
+		Description:   "Example worker that demonstrates executing a fake use case",
+		MetricsPrefix: "example",
 	}
 }
 
@@ -134,7 +168,7 @@ func (w fakeWorker) PreconditionsMet() (bool, error) {
 	return true, nil
 }
 
-func (w *fakeWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+func (w *fakeWorker) DoWork(config.CommonConfig, vzlog.VerrazzanoLogger) error {
 	w.doWorkCount = w.doWorkCount + 1
 	return nil
 }

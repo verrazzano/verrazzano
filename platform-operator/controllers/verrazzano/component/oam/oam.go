@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package oam
@@ -6,18 +6,18 @@ package oam
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -47,7 +47,10 @@ func ensureClusterRoles(ctx spi.ComponentContext) error {
 		pvcClusterRole.Rules = []rbacv1.PolicyRule{
 			{
 				APIGroups: []string{""},
-				Resources: []string{corev1.ResourcePersistentVolumeClaims.String()},
+				Resources: []string{
+					corev1.ResourcePersistentVolumeClaims.String(),
+					"persistentvolumes",
+				},
 				Verbs: []string{
 					"create",
 					"delete",
@@ -76,7 +79,7 @@ func ensureClusterRoles(ctx spi.ComponentContext) error {
 		istioClusterRole.Labels[aggregateToControllerLabel] = "true"
 		istioClusterRole.Rules = []rbacv1.PolicyRule{
 			{
-				APIGroups: []string{"networking.istio.io", "install.istio.io", "security.istio.io", "telemetry.istio.io"},
+				APIGroups: []string{"networking.istio.io", "install.istio.io", "security.istio.io", "telemetry.istio.io", "coordination.k8s.io"},
 				Resources: []string{"*"},
 				Verbs: []string{
 					"create",
@@ -137,7 +140,9 @@ func deleteOAMClusterRoles(client client.Client, log vzlog.VerrazzanoLogger) err
 	for _, role := range clusterRoles {
 		log.Progressf("Deleting OAM clusterrole %s", role.Name)
 		if err := client.Delete(ctx, role); err != nil {
-			return err
+			if !errors.IsNotFound(err) {
+				return err
+			}
 		}
 	}
 	return nil

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package syscomponents
@@ -13,6 +13,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
@@ -31,14 +32,14 @@ const (
 	sidecarInjectionRequests       = "sidecar_injection_requests_total"
 	prometheusTargetIntervalLength = "prometheus_target_interval_length_seconds"
 	envoyStatsRecentLookups        = "envoy_server_stats_recent_lookups"
-	vmoFunctionMetric              = "vmo_reconcile_total"
-	vmoCounterMetric               = "vmo_deployment_update_total"
-	vmoGaugeMetric                 = "vmo_work_queue_size"
-	vmoTimestampMetric             = "vmo_configmap_last_successful_timestamp"
-	vaoSuccessCountMetric          = "vao_appconfig_successful_reconcile_total"
-	vaoFailCountMetric             = "vao_appconfig_error_reconcile_total"
-	vaoDurationCountMetric         = "vao_appconfig_reconcile_duration_count"
-	esClusterStatusMetric          = "es_cluster_status"
+	vmoFunctionMetric              = "vz_monitoring_operator_reconcile_total"
+	vmoCounterMetric               = "vz_monitoring_operator_deployment_update_total"
+	vmoGaugeMetric                 = "vz_monitoring_operator_work_queue_size"
+	vmoTimestampMetric             = "vz_monitoring_operator_configmap_last_successful_timestamp"
+	vaoSuccessCountMetric          = "vz_application_operator_appconfig_successful_reconcile_total"
+	vaoFailCountMetric             = "vz_application_operator_appconfig_error_reconcile_total"
+	vaoDurationCountMetric         = "vz_application_operator_appconfig_reconcile_duration_count"
+	esClusterStatusMetric          = "opensearch_cluster_status"
 
 	// Namespaces used for validating envoy stats
 	verrazzanoSystemNamespace = "verrazzano-system"
@@ -68,7 +69,7 @@ const (
 var clusterName = os.Getenv("CLUSTER_NAME")
 var kubeConfig = os.Getenv("KUBECONFIG")
 
-// will be initialized in BeforeSuite so that any log messages during init are available
+// will be initialized in BeforeSuiteFunc so that any log messages during init are available
 var clusterNameMetricsLabel = ""
 var isMinVersion110 bool
 
@@ -90,6 +91,7 @@ var excludePodsVS = []string{
 	"verrazzano-monitoring-operator",
 	"verrazzano-cluster-operator",
 	"verrazzano-operator",
+	"weblogic-operator-webhook",
 }
 
 // List of pods to be excluded from istio-system namespace for envoy-stats as they do not have envoy
@@ -100,7 +102,7 @@ var excludePodsIstio = []string{
 
 var t = framework.NewTestFramework("syscomponents")
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	present := false
 	var err error
 	adminKubeConfig, present = os.LookupEnv("ADMIN_KUBECONFIG")
@@ -122,9 +124,13 @@ var _ = t.BeforeSuite(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
-
 })
-var _ = t.AfterSuite(func() {})
+
+var _ = BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {})
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.AfterEach(func() {})
 
@@ -139,7 +145,7 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 		})
 
 		if !pkg.IsManagedClusterProfile() {
-			t.ItMinimumVersion("Verify sample OpenSearch metrics can be queried from Prometheus", "1.3.0", kubeConfig, func() {
+			t.ItMinimumVersion("Verify sample OpenSearch metrics can be queried from Prometheus", "1.5.0", kubeConfig, func() {
 				eventuallyMetricsContainLabels(esClusterStatusMetric, map[string]string{
 					container: esMaster,
 				})
@@ -150,22 +156,22 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 			eventuallyMetricsContainLabels(containerStartTimeSeconds, map[string]string{})
 		})
 		t.ItMinimumVersion("Verify VPO summary counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
-			eventuallyMetricsContainLabels("vpo_reconcile_duration_count", map[string]string{})
+			eventuallyMetricsContainLabels("vz_platform_operator_reconcile_duration_count", map[string]string{})
 		})
 		t.ItMinimumVersion("Verify VPO summary sum times can be queried from Prometheus", metricsVersion, kubeConfig, func() {
-			eventuallyMetricsContainLabels("vpo_reconcile_duration_sum", map[string]string{})
+			eventuallyMetricsContainLabels("vz_platform_operator_reconcile_duration_sum", map[string]string{})
 		})
 		t.ItMinimumVersion("Verify VPO counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
-			eventuallyMetricsContainLabels("vpo_reconcile_counter", map[string]string{})
+			eventuallyMetricsContainLabels("vz_platform_operator_reconcile_total", map[string]string{})
 		})
 		t.ItMinimumVersion("Verify VPO error counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
-			eventuallyMetricsContainLabels("vpo_error_reconcile_counter", map[string]string{})
+			eventuallyMetricsContainLabels("vz_platform_operator_error_reconcile_total", map[string]string{})
 		})
 		t.ItMinimumVersion("Verify VPO install metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
-			eventuallyMetricsContainLabels("vz_nginx_install_duration_seconds", map[string]string{})
+			eventuallyMetricsContainLabels("vz_platform_operator_component_install_duration_seconds", map[string]string{})
 		})
 		t.ItMinimumVersion("Verify VPO upgrade counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
-			eventuallyMetricsContainLabels("vz_nginx_upgrade_duration_seconds", map[string]string{})
+			eventuallyMetricsContainLabels("vz_platform_operator_component_upgrade_duration_seconds", map[string]string{})
 		})
 
 		t.ItMinimumVersion("Verify VMO function metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {

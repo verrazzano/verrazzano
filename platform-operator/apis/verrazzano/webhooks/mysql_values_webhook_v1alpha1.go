@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -45,7 +45,6 @@ func (v *MysqlValuesValidatorV1alpha1) Handle(ctx context.Context, req admission
 			return v.validateMysqlValuesV1alpha1(log, oldVz, vz)
 		}
 	}
-	log.Debugf("Admission allowed")
 	return admission.Allowed("")
 }
 
@@ -53,18 +52,19 @@ func (v *MysqlValuesValidatorV1alpha1) Handle(ctx context.Context, req admission
 func (v *MysqlValuesValidatorV1alpha1) validateMysqlValuesV1alpha1(log *zap.SugaredLogger, oldVz v1alpha1.Verrazzano, newVz *v1alpha1.Verrazzano) admission.Response {
 	response := admission.Allowed("")
 	versionToCompare := getVersion(oldVz.Status.Version, newVz.Spec.Version, v.BomVersion)
-	log.Debugf("Min version required %s, version to compare: %s", MinVersion, versionToCompare)
 	if isMinVersion(versionToCompare, MinVersion) {
+		log.Debug("Validating v1alpha1 MySQL values")
 		if newVz.Spec.Components.Keycloak != nil {
 			// compare overrides from current and previous VZ
 			newMySQLOverrides := newVz.Spec.Components.Keycloak.MySQL.ValueOverrides
 			for _, override := range newMySQLOverrides {
 				var err error
-				hasWarning, warning, err := inspectOverride(override.Values)
+				warning, err := inspectOverride(override.Values)
 				if err != nil {
 					return admission.Errored(http.StatusBadRequest, err)
 				}
-				if hasWarning {
+				if len(warning) > 0 {
+					log.Warnf(warning)
 					response = admission.Allowed("").WithWarnings(warning)
 				}
 			}

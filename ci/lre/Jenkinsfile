@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 properties([[$class: 'ThrottleJobProperty', categories: [], limitOneJobWithMatchingParams: false, maxConcurrentPerNode: 1,
@@ -343,9 +343,6 @@ pipeline {
                 }
             }
         }
-        cleanup {
-            emitJobMetrics()
-        }
     }
 }
 
@@ -391,16 +388,6 @@ def runGinkgoAppTest(testSuitePath, namespace, dumpDir='', skipDeploy='false', s
             ginkgo -v --keep-going --no-color ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --namespace=${namespace}
         """
     }
-}
-
-def emitJobMetrics() {
-    env.JOB_STATUS = "${currentBuild.currentResult}".trim()
-    long duration = "${currentBuild.duration}" as long;
-    env.DURATION = duration
-    long timeInMillis = "${currentBuild.timeInMillis}" as long;
-    long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
-    env.TIME_WAITING = startTimeInMillis-timeInMillis
-    runGinkgoRandomize('jobmetrics')
 }
 
 def dumpK8sCluster(dumpDirectory) {

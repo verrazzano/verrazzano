@@ -9,13 +9,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	vmcv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -34,7 +34,7 @@ const ComponentName = "verrazzano-application-operator"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoSystemNamespace
 
-// ComponentJSONName is the josn name of the verrazzano component in CRD
+// ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "applicationOperator"
 
 type applicationOperatorComponent struct {
@@ -75,6 +75,14 @@ func (c applicationOperatorComponent) IsReady(context spi.ComponentContext) bool
 	return false
 }
 
+// PreInstall applies the Application Operator CRDs
+func (c applicationOperatorComponent) PreInstall(ctx spi.ComponentContext) error {
+	if err := common.ApplyCRDYaml(ctx, config.GetHelmAppOpChartsDir()); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreInstall(ctx)
+}
+
 // PreUpgrade processing for the application-operator
 func (c applicationOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	err := common.ApplyCRDYaml(ctx, config.GetHelmAppOpChartsDir())
@@ -85,7 +93,10 @@ func (c applicationOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error
 	if err != nil {
 		return err
 	}
-	return labelAnnotateWorkloadDefinitions(ctx.Client())
+	if err := labelAnnotateWorkloadDefinitions(ctx.Client()); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreUpgrade(ctx)
 }
 
 // PostUpgrade processing for the application-operator

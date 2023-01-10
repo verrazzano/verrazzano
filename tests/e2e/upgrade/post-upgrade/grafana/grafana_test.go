@@ -1,15 +1,15 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package grafana
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
@@ -21,7 +21,7 @@ const (
 
 var t = framework.NewTestFramework("grafana")
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Fail(fmt.Sprintf(pkg.KubeConfigErrorFmt, err))
@@ -32,6 +32,8 @@ var _ = t.BeforeSuite(func() {
 		Skip("Grafana component is not enabled")
 	}
 })
+
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("Post Upgrade Grafana Dashboard", Label("f:observability.logging.es"), func() {
 
@@ -46,7 +48,14 @@ var _ = t.Describe("Post Upgrade Grafana Dashboard", Label("f:observability.logg
 	// WHEN a GET call is made  to Grafana with the UID of the system dashboard,
 	// THEN the dashboard metadata of the corresponding System dashboard is returned.
 	t.It("Get details of the system Grafana dashboard", func() {
-		pkg.TestSystemGrafanaDashboard(pollingInterval, waitTimeout)
+		kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
+		Expect(err).To(BeNil(), fmt.Sprintf(pkg.KubeConfigErrorFmt, err))
+		systemHealthDashboardExists, err := pkg.IsVerrazzanoMinVersion("1.5.0", kubeConfigPath)
+		Expect(err).To(BeNil(), fmt.Sprintf("could not find verrazzzano min version: %v", err))
+		if systemHealthDashboardExists {
+			pkg.TestSystemHealthGrafanaDashboard(pollingInterval, waitTimeout)
+		}
+		pkg.TestSystemHealthGrafanaDashboard(pollingInterval, waitTimeout)
 	})
 
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()

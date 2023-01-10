@@ -55,6 +55,15 @@ func (m *MetricItem) BuildMetric() prometheus.Metric {
 	)
 }
 
+func BuildMetricDescList(metrics []*MetricItem, labels map[string]string, workerMetricsName string) []prometheus.Desc {
+	var descList []prometheus.Desc
+	for _, metric := range metrics {
+		metric.ConstLabels = labels
+		descList = append(descList, *metric.BuildMetricDesc(workerMetricsName))
+	}
+	return descList
+}
+
 // BuildMetricDesc builds the MetricItem description from info about the metric and worker
 func (m *MetricItem) BuildMetricDesc(workerMetricsName string) *prometheus.Desc {
 	d := prometheus.NewDesc(

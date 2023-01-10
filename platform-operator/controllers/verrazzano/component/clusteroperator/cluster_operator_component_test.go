@@ -4,13 +4,26 @@
 package clusteroperator
 
 import (
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"context"
+	"github.com/golang/mock/gomock"
+	"github.com/verrazzano/verrazzano/pkg/rancherutil"
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const profilesRelativePath = "../../../../manifests/profiles"
@@ -114,4 +127,88 @@ func TestIsReadyFalse(t *testing.T) {
 	c := fake.NewClientBuilder().Build()
 	ctx := spi.NewFakeContext(c, &v1alpha1.Verrazzano{}, nil, false)
 	assert.False(t, NewComponent().IsReady(ctx))
+}
+
+// TestPostInstall that the RoleTemplate gets created
+func TestPostInstall(t *testing.T) {
+	clustOpComp := clusterOperatorComponent{}
+
+	cli := createClusterUserTestObjects().WithObjects(
+		&rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: vzconst.VerrazzanoClusterRancherName,
+			},
+		},
+	).Build()
+
+	mocker := gomock.NewController(t)
+	httpMock := createClusterUserExists(mocks.NewMockRequestSender(mocker), http.StatusOK)
+
+	savedRancherHTTPClient := rancherutil.RancherHTTPClient
+	defer func() {
+		rancherutil.RancherHTTPClient = savedRancherHTTPClient
+	}()
+	rancherutil.RancherHTTPClient = httpMock
+
+	savedRetry := rancherutil.DefaultRetry
+	defer func() {
+		rancherutil.DefaultRetry = savedRetry
+	}()
+	rancherutil.DefaultRetry = wait.Backoff{
+		Steps:    1,
+		Duration: 1 * time.Millisecond,
+		Factor:   1.0,
+		Jitter:   0.1,
+	}
+
+	err := clustOpComp.PostInstall(spi.NewFakeContext(cli, &v1alpha1.Verrazzano{}, nil, false))
+	assert.NoError(t, err)
+
+	// Ensure the resource exists after postInstallUpgrade
+	resource := unstructured.Unstructured{}
+	resource.SetGroupVersionKind(rancher.GVKRoleTemplate)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: vzconst.VerrazzanoClusterRancherName}, &resource)
+	assert.NoError(t, err)
+}
+
+// TestPostUpgrade that the RoleTemplate gets created
+func TestPostUpgrade(t *testing.T) {
+	clustOpComp := clusterOperatorComponent{}
+
+	cli := createClusterUserTestObjects().WithObjects(
+		&rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: vzconst.VerrazzanoClusterRancherName,
+			},
+		},
+	).Build()
+
+	mocker := gomock.NewController(t)
+	httpMock := createClusterUserExists(mocks.NewMockRequestSender(mocker), http.StatusOK)
+
+	savedRancherHTTPClient := rancherutil.RancherHTTPClient
+	defer func() {
+		rancherutil.RancherHTTPClient = savedRancherHTTPClient
+	}()
+	rancherutil.RancherHTTPClient = httpMock
+
+	savedRetry := rancherutil.DefaultRetry
+	defer func() {
+		rancherutil.DefaultRetry = savedRetry
+	}()
+	rancherutil.DefaultRetry = wait.Backoff{
+		Steps:    1,
+		Duration: 1 * time.Millisecond,
+		Factor:   1.0,
+		Jitter:   0.1,
+	}
+
+	err := clustOpComp.PostUpgrade(spi.NewFakeContext(cli, &v1alpha1.Verrazzano{}, nil, false))
+	assert.NoError(t, err)
+
+	// Ensure the resource exists after postInstallUpgrade
+	resource := unstructured.Unstructured{}
+	resource.SetGroupVersionKind(rancher.GVKRoleTemplate)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: vzconst.VerrazzanoClusterRancherName}, &resource)
+	assert.NoError(t, err)
 }

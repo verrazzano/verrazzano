@@ -3,7 +3,7 @@
 
 global:
   envVars:
-    PSR_WORKER_TYPE: scale
+    PSR_WORKER_TYPE: ops-scale
     OPENSEARCH_TIER: master
     MIN_REPLICA_COUNT: 3
     MAX_REPLICA_COUNT: 5

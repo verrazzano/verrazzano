@@ -12,12 +12,19 @@ replicas: 1
 global:
   envVars:
     PSR_WORKER_TYPE: example
+    PSR_DURATION: -1s
     PSR_LOOP_SLEEP: 1s
     PSR_WORKER_THREAD_COUNT: 1
 
 # appType can be either oam or k8s, which are just Kubernetes deployments
 appType: oam
 
+# whether the pod should be injected with an istio envoy proxy sidecar
+istioInject: false
+
 # Each worker that has a subchart needs to override this property
-opensearch-authpol:
+opensearch:
+  enabled: false
+
+prometheus:
   enabled: false

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package networkpolicies
@@ -54,11 +54,12 @@ var netpolNamespaceNames = []types.NamespacedName{
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "verrazzano-authproxy"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "verrazzano-console"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "verrazzano-application-operator"},
+	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "verrazzano-application-operator-webhook"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "oam-kubernetes-runtime"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "vmi-system-es-master"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "vmi-system-es-data"},
-	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "vmi-system-es-ingest"},
-	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "vmi-system-kibana"},
+	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "vmi-system-os-ingest"},
+	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "vmi-system-osd"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "vmi-system-grafana"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "weblogic-operator"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "coherence-operator"},
@@ -66,6 +67,7 @@ var netpolNamespaceNames = []types.NamespacedName{
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "kiali"},
 	{Namespace: constants.VeleroNameSpace, Name: "allow-same-namespace"},
 	{Namespace: constants.VeleroNameSpace, Name: "velero"},
+	{Namespace: constants.ArgoCDNamespace, Name: "argocd"},
 }
 
 var (
@@ -120,6 +122,15 @@ func generateOverridesFile(ctx spi.ComponentContext, overrides *chartValues) (st
 func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *chartValues) error {
 	effectiveCR := ctx.EffectiveCR()
 
+	overrides.AuthProxy = &authproxyValues{Enabled: vzcr.IsAuthProxyEnabled(effectiveCR)}
+	overrides.ConsoleValues = &consoleValues{Enabled: vzcr.IsConsoleEnabled(effectiveCR)}
+	overrides.ApplicationOperator = &appOperatorValues{Enabled: vzcr.IsApplicationOperatorEnabled(effectiveCR)}
+	overrides.OAM = &oamValues{Enabled: vzcr.IsOAMEnabled(effectiveCR)}
+	overrides.WeblogicOperator = &weblogicOperatorValues{Enabled: vzcr.IsWebLogicOperatorEnabled(effectiveCR)}
+	overrides.CoherenceOperator = &coherenceOperatorValues{Enabled: vzcr.IsCoherenceOperatorEnabled(effectiveCR)}
+	overrides.ClusterOperator = &clusterOperatorValues{Enabled: vzcr.IsClusterOperatorEnabled(effectiveCR)}
+	overrides.CertManager = &certManagerValues{Enabled: vzcr.IsCertManagerEnabled(effectiveCR)}
+	overrides.NGINX = &nginxValues{Enabled: vzcr.IsNGINXEnabled(effectiveCR)}
 	overrides.ElasticSearch = &elasticsearchValues{Enabled: vzcr.IsOpenSearchEnabled(effectiveCR)}
 	overrides.Externaldns = &externalDNSValues{Enabled: vzcr.IsExternalDNSEnabled(effectiveCR)}
 	overrides.Grafana = &grafanaValues{Enabled: vzcr.IsGrafanaEnabled(effectiveCR)}
@@ -131,6 +142,7 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *chartValues) er
 	overrides.Prometheus = &prometheusValues{Enabled: promEnable}
 	overrides.Rancher = &rancherValues{Enabled: vzcr.IsRancherEnabled(effectiveCR)}
 	overrides.Velero = &veleroValues{Enabled: vzcr.IsVeleroEnabled(effectiveCR)}
+	overrides.ArgoCD = &argoCDValues{Enabled: vzcr.IsArgoCDEnabled(effectiveCR)}
 	return nil
 }
 

@@ -1,0 +1,45 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+==== START logs for container helm of pod cattle-system/helm-operation-gjfls ====
+helm upgrade --force-adopt=true --history-max=5 --install=true --namespace=cattle-fleet-system --reset-values=true --timeout=5m0s --version=100.0.3+up0.3.9 --wait=true fleet-crd /home/shell/helm/fleet-crd-100.0.3-up0.3.9.tgz
+Release "fleet-crd" does not exist. Installing it now.
+checking 12 resources for changes
+Patch CustomResourceDefinition "bundles.fleet.cattle.io" in namespace 
+Created a new CustomResourceDefinition called "bundledeployments.fleet.cattle.io" in 
+
+Created a new CustomResourceDefinition called "bundlenamespacemappings.fleet.cattle.io" in 
+
+Created a new CustomResourceDefinition called "clustergroups.fleet.cattle.io" in 
+
+Patch CustomResourceDefinition "clusters.fleet.cattle.io" in namespace 
+Created a new CustomResourceDefinition called "clusterregistrationtokens.fleet.cattle.io" in 
+
+Created a new CustomResourceDefinition called "gitrepos.fleet.cattle.io" in 
+
+Created a new CustomResourceDefinition called "clusterregistrations.fleet.cattle.io" in 
+
+Created a new CustomResourceDefinition called "gitreporestrictions.fleet.cattle.io" in 
+
+Created a new CustomResourceDefinition called "contents.fleet.cattle.io" in 
+
+Created a new CustomResourceDefinition called "imagescans.fleet.cattle.io" in 
+
+Created a new CustomResourceDefinition called "gitjobs.gitjob.cattle.io" in 
+
+beginning wait for 12 resources with timeout of 5m0s
+NAME: fleet-crd
+LAST DEPLOYED: Thu Jun 16 10:25:37 2022
+NAMESPACE: cattle-fleet-system
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+
+---------------------------------------------------------------------
+SUCCESS: helm upgrade --force-adopt=true --history-max=5 --install=true --namespace=cattle-fleet-system --reset-values=true --timeout=5m0s --version=100.0.3+up0.3.9 --wait=true fleet-crd /home/shell/helm/fleet-crd-100.0.3-up0.3.9.tgz
+---------------------------------------------------------------------
+==== END logs for container helm of pod cattle-system/helm-operation-gjfls ====
+==== START logs for container proxy of pod cattle-system/helm-operation-gjfls ====
+W0616 10:25:36.750649       7 proxy.go:162] Request filter disabled, your proxy is vulnerable to XSRF attacks, please be cautious
+Starting to serve on REDACTED-IP4-ADDRESS:8001
+Terminated
+==== END logs for container proxy of pod cattle-system/helm-operation-gjfls ====

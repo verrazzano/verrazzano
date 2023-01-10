@@ -39,7 +39,7 @@ const ComponentName = "keycloak"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.KeycloakNamespace
 
-// ComponentJSONName is the josn name of the verrazzano component in CRD
+// ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "keycloak"
 
 // KeycloakComponent represents an Keycloak component
@@ -124,7 +124,7 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	return nil
+	return c.HelmComponent.PreInstall(ctx)
 }
 
 func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
@@ -165,7 +165,10 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 // PreUpgrade - component level processing for pre-upgrade
 func (c KeycloakComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	// Determine if additional processing is required for the upgrade of the StatefulSet
-	return upgradeStatefulSet(ctx)
+	if err := upgradeStatefulSet(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreUpgrade(ctx)
 }
 
 // PostUpgrade Keycloak-post-upgrade processing, create or update the Kiali ingress
@@ -211,7 +214,7 @@ func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verr
 	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+// ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c KeycloakComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(old) && !c.IsEnabled(new) {

@@ -1,9 +1,10 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package oam
 
 import (
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -27,6 +28,7 @@ const (
 	compConfiguration = "tests/testdata/test-applications/oam/oam-comp.yaml"
 
 	pvcName = "test-pvc"
+	pvName  = "test-pv"
 )
 
 var (
@@ -34,7 +36,7 @@ var (
 	generatedNamespace = pkg.GenerateNamespace("oam-workloads")
 )
 
-var _ = BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
 		start := time.Now()
 		deployOAMApp()
@@ -43,20 +45,24 @@ var _ = BeforeSuite(func() {
 	beforeSuitePassed = true
 })
 
+var _ = BeforeSuite(beforeSuite)
+
 var failed = false
 var beforeSuitePassed = false
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteBugReport(namespace)
+		dump.ExecuteBugReport(namespace)
 	}
 	if !skipUndeploy {
 		undeployOAMApp()
 	}
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("An OAM application is deployed", Label("f:app-lcm.oam"), func() {
 	t.Context("Check for created resources", func() {
@@ -69,8 +75,23 @@ var _ = t.Describe("An OAM application is deployed", Label("f:app-lcm.oam"), fun
 				return volumeClaimExists(pvcName)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
+
+		t.It("The persistent volume exists", func() {
+			Eventually(func() (bool, error) {
+				return pvExists(pvName)
+			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+		})
 	})
 })
+
+func pvExists(name string) (bool, error) {
+	volumes, err := pkg.GetPersistentVolumes()
+	if err != nil {
+		return false, err
+	}
+	_, ok := volumes[name]
+	return ok, nil
+}
 
 // volumeClaimExists checks if the persistent volume claim with the specified name exists
 // in the test namespace

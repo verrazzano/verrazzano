@@ -4,14 +4,18 @@
 package certac
 
 import (
+	"bytes"
+	"encoding/base64"
 	"fmt"
 	"reflect"
 	"strings"
 	"time"
 
+	"github.com/Jeffail/gabs/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	aocnst "github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -20,6 +24,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
+	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -40,7 +45,7 @@ func (u *CertModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.CertManager = u.CertManager
 }
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	adminCluster = multicluster.AdminCluster()
 	managedClusters = multicluster.ManagedClusters()
 	adminVZ := adminCluster.GetCR(true)
@@ -52,9 +57,12 @@ var _ = t.BeforeSuite(func() {
 	verifyRegistration()
 })
 
-var _ = t.AfterSuite(func() {
-	//verifyManagedClustersFluentdConnection()
+var _ = BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Update admin-cluster cert-manager", Label("f:platform-lcm.update"), func() {
 	t.Describe("multicluster cert-manager verify", Label("f:platform-lcm.multicluster-verify"), func() {
@@ -66,8 +74,8 @@ var _ = t.Describe("Update admin-cluster cert-manager", Label("f:platform-lcm.up
 			verifyManagedFluentd(start)
 		})
 	})
-	t.Describe("multicluster cert-manager verify", Label("f:platform-lcm.multicluster-verify"), func() {
-		t.It("admin-cluster cert-manager default self-signed CA", func() {
+	t.Describe("multicluster cert-manager verify cleanup", Label("f:platform-lcm.multicluster-verify"), func() {
+		t.It("admin-cluster cert-manager revert to default self-signed CA", func() {
 			start := time.Now()
 			oldIngressCaCrt := revertToDefaultCertManager()
 			verifyCaSync(oldIngressCaCrt)
@@ -106,6 +114,7 @@ func revertToDefaultCertManager() string {
 
 func verifyCaSync(oldIngressCaCrt string) {
 	newIngressCaCrt := verifyAdminClusterIngressCA(oldIngressCaCrt)
+	reapplyManagedClusterRegManifest(newIngressCaCrt)
 	verifyCaSyncToManagedClusters(newIngressCaCrt)
 }
 
@@ -120,7 +129,7 @@ func verifyAdminClusterIngressCA(oldIngressCaCrt string) string {
 			pkg.Log(pkg.Error, fmt.Sprintf("%v of %v took %v updated", pocnst.VerrazzanoIngressSecret, adminCluster.Name, time.Since(start)))
 		}
 		return newIngressCaCrt != oldIngressCaCrt
-	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Fail updating ingress %v CA", adminCluster.Name))
+	}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Fail updating ingress %v CA", adminCluster.Name))
 	return adminCluster.
 		GetSecretDataAsString(constants.VerrazzanoSystemNamespace, pocnst.VerrazzanoIngressSecret, mcconstants.CaCrtKey)
 }
@@ -128,10 +137,44 @@ func verifyAdminClusterIngressCA(oldIngressCaCrt string) string {
 func verifyCaSyncToManagedClusters(admCaCrt string) {
 	for _, managedCluster := range managedClusters {
 		verifyManagedClusterRegistration(managedCluster, admCaCrt, mcconstants.AdminCaBundleKey)
+		verifyManagedClusterAdminKubeconfig(managedCluster, admCaCrt, mcconstants.KubeconfigKey)
 		if isDefaultFluentd(originalFluentd) {
 			verifyManagedClusterRegistration(managedCluster, admCaCrt, mcconstants.ESCaBundleKey)
 		}
 	}
+}
+
+func verifyManagedClusterAdminKubeconfig(managedCluster *multicluster.Cluster, admCaCrt, kubeconfigKey string) {
+	start := time.Now()
+	gomega.Eventually(func() error {
+		newKubeconfig := managedCluster.
+			GetSecretDataAsString(constants.VerrazzanoSystemNamespace, aocnst.MCAgentSecret, kubeconfigKey)
+		jsonKubeconfig, err := yaml.YAMLToJSON([]byte(newKubeconfig))
+		if err != nil {
+			fullErr := fmt.Errorf("Failed converting admin kubeconfig to JSON: %v", err)
+			pkg.Log(pkg.Error, fullErr.Error())
+			return fullErr
+		}
+		parsedKubeconfig, err := gabs.ParseJSON(jsonKubeconfig)
+		if err != nil {
+			return fmt.Errorf("failed parsing admin kubeconfig JSON: %v", err)
+		}
+		newCaCrtData := parsedKubeconfig.Search("clusters", "0", "cluster", "certificate-authority-data").Data()
+		if newCaCrtData == nil {
+			return fmt.Errorf("kubeconfig in %s of %s has nil clusters[0].cluster.certificate-authority-data", aocnst.MCAgentSecret, managedCluster.Name)
+		}
+		newCaCrt, err := base64.StdEncoding.DecodeString(newCaCrtData.(string))
+		if err != nil {
+			return fmt.Errorf("could not decode certificate-authority-data in the kubeconfig in %s: %v", aocnst.MCAgentSecret, err)
+		}
+		if admCaCrt == string(newCaCrt) {
+			pkg.Log(pkg.Info, fmt.Sprintf("%v of %v took %v updated", aocnst.MCAgentSecret, managedCluster.Name, time.Since(start)))
+			return nil
+		}
+		err = fmt.Errorf("%v of %v is not updated", aocnst.MCAgentSecret, managedCluster.Name)
+		pkg.Log(pkg.Error, err.Error())
+		return err
+	}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(gomega.Not(gomega.HaveOccurred()))
 }
 
 func verifyManagedClusterRegistration(managedCluster *multicluster.Cluster, admCaCrt, cakey string) {
@@ -145,7 +188,7 @@ func verifyManagedClusterRegistration(managedCluster *multicluster.Cluster, admC
 			pkg.Log(pkg.Error, fmt.Sprintf("%v of %v is not updated", aocnst.MCRegistrationSecret, managedCluster.Name))
 		}
 		return admCaCrt == newCaCrt
-	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Sync CA %v", managedCluster.Name))
+	}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Sync CA %v", managedCluster.Name))
 }
 
 func verifyManagedFluentd(since time.Time) {
@@ -154,10 +197,10 @@ func verifyManagedFluentd(since time.Time) {
 			logs := managedCluster.FluentdLogs(5, since)
 			ok := checkFluentdLogs(logs)
 			if !ok {
-				pkg.Log(pkg.Error, fmt.Sprintf("%v Fluentd is not read: \n%v\n", managedCluster.Name, logs))
+				pkg.Log(pkg.Error, fmt.Sprintf("%v Fluentd is not ready: \n%v\n", managedCluster.Name, logs))
 			}
 			return ok
-		}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("scrape target of %s is not ready", managedCluster.Name))
+		}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("scrape target of %s is not ready", managedCluster.Name))
 	}
 }
 
@@ -173,7 +216,86 @@ func verifyRegistration() {
 			gomega.Eventually(func() bool {
 				reg, err := adminCluster.GetRegistration(managedCluster.Name)
 				return reg != nil && err == nil
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("%s is not registered", managedCluster.Name))
+			}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("%s is not registered", managedCluster.Name))
 		}
 	}
+}
+
+// reapplyManagedClusterRegManifest reapplies the registration manifest on managed clusters. For
+// self-signed certs, this manual step is expected of users so that the admin kubeconfig used by the
+// managed clusters can be reliably updated to use the new CA cert. Otherwise intermittent timing
+// related failures may occur
+func reapplyManagedClusterRegManifest(newCACert string) {
+	for _, managedCluster := range managedClusters {
+		waitForManifestSecretUpdated(managedCluster.Name, newCACert)
+		gomega.Eventually(func() error {
+			reg, err := adminCluster.GetManifest(managedCluster.Name)
+			if err != nil {
+				pkg.Log(pkg.Error, fmt.Sprintf("could not get manifest for managed cluster %v error: %v", managedCluster.Name, err))
+				return err
+			}
+			pkg.Log(pkg.Info, fmt.Sprintf("Reapplying registration manifest for managed cluster %s", managedCluster.Name))
+			managedCluster.Apply(reg)
+			return nil
+		}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(gomega.Not(gomega.HaveOccurred()), fmt.Sprintf("Reapply registration manifest failed for cluster %s", managedCluster.Name))
+	}
+}
+
+func waitForManifestSecretUpdated(managedClusterName string, newCACert string) {
+	start := time.Now()
+	manifestSecretName := vmc.GetManifestSecretName(managedClusterName)
+	gomega.Eventually(func() error {
+		manifestBytes, err := adminCluster.GetManifest(managedClusterName)
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Could not get manifest secret for managed cluster %s: %v", managedClusterName, err))
+			return err
+		}
+		resourceContainer, err := extractResourceFromManifestYAML(manifestBytes, aocnst.MCAgentSecret)
+		if err != nil {
+			return err
+		}
+
+		encodedKubeconfigData := resourceContainer.Search("data", mcconstants.KubeconfigKey)
+		if encodedKubeconfigData == nil {
+			return fmt.Errorf("could not find admin kubeconfig data in manifest")
+		}
+		updated := kubeconfigContainsCACert(encodedKubeconfigData, newCACert)
+		if updated {
+			pkg.Log(pkg.Info, fmt.Sprintf("%s took %v updated", manifestSecretName, time.Since(start)))
+			return nil
+		}
+		pkg.Log(pkg.Info, fmt.Sprintf("%s not updated", manifestSecretName))
+		return fmt.Errorf("manifest secret for cluster %s not updated with new CA cert", managedClusterName)
+	}).WithTimeout(waitTimeout).WithPolling(pollingInterval).
+		Should(gomega.Not(gomega.HaveOccurred()))
+}
+
+func extractResourceFromManifestYAML(manifestBytes []byte, resourceName string) (*gabs.Container, error) {
+	yamlDocs := bytes.Split(manifestBytes, []byte("---\n"))
+	for _, yamlDoc := range yamlDocs {
+		jsonDoc, err := yaml.YAMLToJSON(yamlDoc)
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Could not parse YAML in manifest to JSON %v", err))
+			return nil, err
+		}
+		resourceContainer, err := gabs.ParseJSON(jsonDoc)
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Could not parse JSON manifest secret: %v", err))
+			return nil, err
+		}
+		if resourceContainer.Search("metadata", "name").Data() == resourceName {
+			return resourceContainer, nil
+		}
+	}
+	return nil, fmt.Errorf("resource %s not found in manifest", resourceName)
+}
+
+func kubeconfigContainsCACert(encodedKubeconfigData *gabs.Container, newCACert string) bool {
+	kubeconfig, err := base64.StdEncoding.DecodeString(encodedKubeconfigData.Data().(string))
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not base64 decode kubeconfig in manifest: %v", err))
+		return false
+	}
+	encodedCACert := base64.StdEncoding.EncodeToString([]byte(newCACert))
+	return strings.Contains(string(kubeconfig), encodedCACert)
 }

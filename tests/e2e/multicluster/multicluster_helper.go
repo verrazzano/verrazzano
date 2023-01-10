@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	mcapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -23,11 +24,10 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	mcClient "github.com/verrazzano/verrazzano/cluster-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	mcapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	mcClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	yv2 "gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
@@ -273,6 +273,7 @@ func getCluster(name, kcfgDir string, count int) *Cluster {
 	if _, err := os.Stat(kcfgPath); errs.Is(err, os.ErrNotExist) {
 		return nil
 	}
+
 	return newCluster(name, kcfgPath)
 }
 
@@ -397,7 +398,7 @@ func (c *Cluster) GetSecretDataAsString(ns, name, key string) string {
 }
 
 func (c *Cluster) getCacrt() ([]byte, error) {
-	//cattle-system get secret tls-ca-additional
+	// cattle-system get secret tls-ca-additional
 	data, err := c.GetSecretData(constants.RancherSystemNamespace, "tls-ca-additional", "ca-additional.pem")
 	if len(data) != 0 {
 		return data, err
@@ -405,7 +406,7 @@ func (c *Cluster) getCacrt() ([]byte, error) {
 	return c.GetSecretData(constants.VerrazzanoSystemNamespace, "verrazzano-tls", "ca.crt")
 }
 
-func (c *Cluster) apply(data []byte) {
+func (c *Cluster) Apply(data []byte) {
 	gomega.Eventually(func() bool {
 		err := apply(data, c.restConfig)
 		if err != nil {
@@ -478,8 +479,17 @@ func (c *Cluster) Register(managed *Cluster) error {
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("manifest %v error: %v", managed.Name, err))
 	}
-	managed.apply(reg)
+	managed.Apply(reg)
 	return nil
+}
+
+func (c *Cluster) GetVMC(name string) (*mcapi.VerrazzanoManagedCluster, error) {
+	mcCli, err := mcClient.NewForConfig(c.restConfig)
+	if err != nil {
+		return nil, err
+	}
+	return mcCli.ClustersV1alpha1().
+		VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
 func (c *Cluster) GetManifest(name string) ([]byte, error) {
@@ -542,7 +552,7 @@ spec:
 `
 	caname := fmt.Sprintf("gen-ca-%v", uuid.NewString()[:7])
 	cacert := fmt.Sprintf(caCertTemp, caname, caname, caname)
-	c.apply([]byte(cacert))
+	c.Apply([]byte(cacert))
 	gomega.Eventually(func() bool {
 		casec, err := c.GetSecret(constants.CertManagerNamespace, caname)
 		if err != nil || errors.IsNotFound(err) || casec == nil {

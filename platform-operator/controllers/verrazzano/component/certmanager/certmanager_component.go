@@ -36,7 +36,7 @@ const ComponentName = "cert-manager"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = vzconst.CertManagerNamespace
 
-// ComponentJSONName is the josn name of the verrazzano component in CRD
+// ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "certManager"
 
 // certManagerComponent represents an CertManager component
@@ -200,7 +200,7 @@ func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error
 	if err := common.ProcessAdditionalCertificates(log, cli, vz); err != nil {
 		return err
 	}
-	return nil
+	return c.HelmComponent.PreInstall(compContext)
 }
 
 // PostInstall applies necessary cert-manager resources after the install has occurred

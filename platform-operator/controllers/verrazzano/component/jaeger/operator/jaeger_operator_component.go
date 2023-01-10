@@ -6,11 +6,10 @@ package operator
 import (
 	"context"
 	"fmt"
-	"path/filepath"
-
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"path/filepath"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -35,7 +34,7 @@ const (
 	ComponentName = "jaeger-operator"
 	// ComponentNamespace is the namespace of the component
 	ComponentNamespace = constants.VerrazzanoMonitoringNamespace
-	// ComponentJSONName is the json name of the component in the CRD
+	// ComponentJSONName is the JSON name of the component in the CRD
 	ComponentJSONName = "jaegerOperator"
 	// ChartDir is the relative directory path for Jaeger Operator chart
 	ChartDir = "jaegertracing/jaeger-operator"
@@ -131,7 +130,10 @@ func (c jaegerOperatorComponent) MonitorOverrides(ctx spi.ComponentContext) bool
 
 // PreInstall updates resources necessary for the Jaeger Operator Component installation
 func (c jaegerOperatorComponent) PreInstall(ctx spi.ComponentContext) error {
-	return preInstall(ctx)
+	if err := preInstall(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreInstall(ctx)
 }
 
 // PostInstall creates the ingress resource for exposing Jaeger UI service.
@@ -220,11 +222,23 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if !installed && doDefaultJaegerInstanceDeploymentsExists(ctx) {
 		return ctx.Log().ErrorfNewErr("Conflicting Jaeger instance %s/%s exists! Either disable the Verrazzano's default Jaeger instance creation by overriding jaeger.create Helm value for Jaeger Operator component to false or delete and recreate the existing Jaeger deployment in a different namespace: %v", ComponentNamespace, globalconst.JaegerInstanceName, err)
 	}
-	err = removeOldJaegerResources(ctx)
+	//if installed is false then component is not installed by helm
+	if !installed {
+		err = removeOldJaegerResources(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	createInstance, err := isCreateDefaultJaegerInstance(ctx)
 	if err != nil {
 		return err
 	}
-	return createJaegerSecrets(ctx)
+	if createInstance {
+		// Create Jaeger secret with the OpenSearch credentials
+		return createJaegerSecret(ctx)
+	}
+	return c.HelmComponent.PreUpgrade(ctx)
 }
 
 // Upgrade jaegeroperator component for upgrade processing.

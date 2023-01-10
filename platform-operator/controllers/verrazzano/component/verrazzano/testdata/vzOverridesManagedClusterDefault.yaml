@@ -1,4 +1,4 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 config:
   dnsSuffix: 11.22.33.44.nip.io
@@ -11,7 +11,7 @@ elasticSearch:
 logging:
   configHash: 88460f47e6c63ea7758048594d14872474fef617a36fc03553e2b7896c3061cb
   elasticsearchSecret: verrazzano-es-internal
-  elasticsearchURL: http://verrazzano-authproxy-elasticsearch:8775
+  elasticsearchURL: http://verrazzano-authproxy-opensearch:8775
 fluentd:
   enabled: true
 grafana:
@@ -31,7 +31,7 @@ prometheusOperator:
 prometheusAdapter:
   enabled: false
 kubeStateMetrics:
-  enabled: false
+  enabled: true
 prometheusPushgateway:
   enabled: false
 prometheusNodeExporter:

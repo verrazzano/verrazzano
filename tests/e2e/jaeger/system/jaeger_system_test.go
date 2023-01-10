@@ -27,13 +27,15 @@ var (
 	start = time.Now().Add(-3 * time.Hour)
 )
 
+var whenJaegerOperatorEnabledIt = t.WhenMeetsConditionFunc(jaeger.OperatorCondition, jaeger.IsJaegerEnabled)
+
 var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.system-traces"), func() {
 	t.Context("after successful installation", func() {
 
 		// GIVEN the Jaeger Operator is enabled and istio tracing is enabled,
 		// WHEN we query for traces from verrazzano system components,
 		// THEN we are able to get the traces
-		jaeger.WhenJaegerOperatorEnabledIt(t, "traces from verrazzano system components should be available when queried from Jaeger", func() {
+		whenJaegerOperatorEnabledIt("traces from verrazzano system components should be available when queried from Jaeger", func() {
 			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 			if err != nil {
 				Fail(err.Error())
@@ -45,7 +47,7 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 		// GIVEN the Jaeger Operator is enabled and istio tracing is enabled,
 		// WHEN we check for traces from verrazzano system components in Opensearch Storage,
 		// THEN we are able to get the traces
-		jaeger.WhenJaegerOperatorEnabledIt(t, "traces from verrazzano system components should be available in the OS backend storage.", func() {
+		whenJaegerOperatorEnabledIt("traces from verrazzano system components should be available in the OS backend storage.", func() {
 			validatorFn := pkg.ValidateSystemTracesInOSFunc(start)
 			Eventually(validatorFn).WithPolling(longPollingInterval).WithTimeout(longWaitTimeout).Should(BeTrue())
 		})
@@ -53,7 +55,7 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 		// GIVEN the Jaeger Operator component is enabled,
 		// WHEN we query for metrics related to Jaeger operator
 		// THEN we see that the metrics are present in prometheus
-		jaeger.WhenJaegerOperatorEnabledIt(t, "metrics of jaeger operator are available in prometheus", func() {
+		whenJaegerOperatorEnabledIt("metrics of jaeger operator are available in prometheus", func() {
 			validatorFn := pkg.ValidateJaegerOperatorMetricFunc()
 			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
@@ -61,7 +63,7 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 		// GIVEN the Jaeger Operator component is installed with default Jaeger CR enabled
 		// WHEN we query for metrics related to Jaeger collector
 		// THEN we see that the metrics are present in prometheus
-		jaeger.WhenJaegerOperatorEnabledIt(t, "metrics of jaeger collector are available in prometheus", func() {
+		whenJaegerOperatorEnabledIt("metrics of jaeger collector are available in prometheus", func() {
 			validatorFn := pkg.ValidateJaegerCollectorMetricFunc()
 			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
@@ -69,7 +71,7 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 		// GIVEN the Jaeger Operator component is installed with default Jaeger CR enabled
 		// WHEN we query for metrics related to Jaeger collector
 		// THEN we see that the metrics are present in prometheus
-		jaeger.WhenJaegerOperatorEnabledIt(t, "metrics of jaeger query are available in prometheus", func() {
+		whenJaegerOperatorEnabledIt("metrics of jaeger query are available in prometheus", func() {
 			validatorFn := pkg.ValidateJaegerQueryMetricFunc()
 			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
@@ -77,7 +79,7 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 		// GIVEN the Jaeger Operator component is installed with default Jaeger CR enabled
 		// WHEN we query for metrics related to Jaeger collector
 		// THEN we see that the metrics are present in prometheus
-		jaeger.WhenJaegerOperatorEnabledIt(t, "metrics of jaeger agent are available in prometheus", func() {
+		whenJaegerOperatorEnabledIt("metrics of jaeger agent are available in prometheus", func() {
 			validatorFn := pkg.ValidateJaegerAgentMetricFunc()
 			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})

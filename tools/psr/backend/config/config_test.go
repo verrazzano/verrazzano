@@ -4,11 +4,12 @@
 package config
 
 import (
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
-	"testing"
-	"time"
 )
 
 type fakeEnv struct {
@@ -36,21 +37,21 @@ func TestWorkerType(t *testing.T) {
 			},
 		},
 		{name: "GetLogs",
-			workerType: WorkerTypeGetLogs,
+			workerType: WorkerTypeOpsGetLogs,
 			expectErr:  false,
 			envMap: map[string]string{
-				PsrWorkerType: WorkerTypeGetLogs,
+				PsrWorkerType: WorkerTypeOpsGetLogs,
 			},
 		},
 		{name: "ExampleWorkerType",
-			workerType: WorkerTypeWriteLogs,
+			workerType: WorkerTypeOpsWriteLogs,
 			expectErr:  false,
 			envMap: map[string]string{
-				PsrWorkerType: WorkerTypeWriteLogs,
+				PsrWorkerType: WorkerTypeOpsWriteLogs,
 			},
 		},
 		{name: "MissingWorkerType",
-			workerType: WorkerTypeWriteLogs,
+			workerType: WorkerTypeOpsWriteLogs,
 			expectErr:  true,
 			envMap:     map[string]string{},
 		},
@@ -76,6 +77,79 @@ func TestWorkerType(t *testing.T) {
 	}
 }
 
+// TestDuration tests the Config interface
+// GIVEN a config map with environment vars PsrDuration
+//
+//	WHEN the GetCommonConfig is called
+//	THEN ensure that the resulting configuration is correct
+func TestDuration(t *testing.T) {
+	var tests = []struct {
+		name      string
+		envMap    map[string]string
+		envKey    string
+		duration  time.Duration
+		expectErr bool
+	}{
+		{name: "DefaultDuration",
+			duration:  UnlimitedWorkerDuration,
+			expectErr: false,
+			envMap: map[string]string{
+				PsrWorkerType: WorkerTypeOpsWriteLogs,
+			},
+		},
+		{name: "OneSecDuration",
+			duration:  1 * time.Second,
+			expectErr: false,
+			envMap: map[string]string{
+				PsrWorkerType: WorkerTypeOpsWriteLogs,
+				PsrDuration:   "1s",
+			},
+		},
+		{name: "OneMinDuration",
+			duration:  1 * time.Minute,
+			expectErr: false,
+			envMap: map[string]string{
+				PsrWorkerType: WorkerTypeOpsWriteLogs,
+				PsrDuration:   "1m",
+			},
+		},
+		{name: "NegativeDuration",
+			duration:  UnlimitedWorkerDuration,
+			expectErr: false,
+			envMap: map[string]string{
+				PsrWorkerType: WorkerTypeOpsWriteLogs,
+				PsrDuration:   "-3s",
+			},
+		},
+		{name: "BadNumericStringFormat",
+			expectErr: true,
+			envMap: map[string]string{
+				PsrWorkerType: WorkerTypeOpsWriteLogs,
+				PsrDuration:   "10xyz",
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// Load the fake env
+			f := fakeEnv{data: test.envMap}
+			saveEnv := osenv.GetEnvFunc
+			osenv.GetEnvFunc = f.GetEnv
+			defer func() {
+				osenv.GetEnvFunc = saveEnv
+			}()
+
+			cc, err := GetCommonConfig(vzlog.DefaultLogger())
+			if test.expectErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.duration, cc.PsrDuration)
+			}
+		})
+	}
+}
+
 // TestLoopSleep tests the Config interface
 // GIVEN a config map with environment vars loop sleep
 //
@@ -93,14 +167,14 @@ func TestLoopSleep(t *testing.T) {
 			loopSleep: time.Second,
 			expectErr: false,
 			envMap: map[string]string{
-				PsrWorkerType: WorkerTypeWriteLogs,
+				PsrWorkerType: WorkerTypeOpsWriteLogs,
 			},
 		},
 		{name: "TenMilliSleep",
 			loopSleep: 10 * time.Millisecond,
 			expectErr: false,
 			envMap: map[string]string{
-				PsrWorkerType: WorkerTypeWriteLogs,
+				PsrWorkerType: WorkerTypeOpsWriteLogs,
 				PsrLoopSleep:  "10ms",
 			},
 		},
@@ -108,7 +182,7 @@ func TestLoopSleep(t *testing.T) {
 			loopSleep: 10 * time.Nanosecond,
 			expectErr: false,
 			envMap: map[string]string{
-				PsrWorkerType: WorkerTypeWriteLogs,
+				PsrWorkerType: WorkerTypeOpsWriteLogs,
 				PsrLoopSleep:  "10ns",
 			},
 		},
@@ -117,14 +191,14 @@ func TestLoopSleep(t *testing.T) {
 			loopSleep: 10 * time.Nanosecond,
 			expectErr: false,
 			envMap: map[string]string{
-				PsrWorkerType: WorkerTypeWriteLogs,
+				PsrWorkerType: WorkerTypeOpsWriteLogs,
 				PsrLoopSleep:  "1ns",
 			},
 		},
 		{name: "BadNumericStringFormat",
 			expectErr: true,
 			envMap: map[string]string{
-				PsrWorkerType: WorkerTypeWriteLogs,
+				PsrWorkerType: WorkerTypeOpsWriteLogs,
 				PsrLoopSleep:  "10xyz",
 			},
 		},
@@ -167,14 +241,14 @@ func TestThreadCount(t *testing.T) {
 			workerThreads: 1,
 			expectErr:     false,
 			envMap: map[string]string{
-				PsrWorkerType: WorkerTypeWriteLogs,
+				PsrWorkerType: WorkerTypeOpsWriteLogs,
 			},
 		},
 		{name: "MultipleWorkerThreads",
 			workerThreads: 50,
 			expectErr:     false,
 			envMap: map[string]string{
-				PsrWorkerType:        WorkerTypeWriteLogs,
+				PsrWorkerType:        WorkerTypeOpsWriteLogs,
 				PsrWorkerThreadCount: "50",
 			},
 		},
@@ -183,14 +257,14 @@ func TestThreadCount(t *testing.T) {
 			workerThreads: 100,
 			expectErr:     false,
 			envMap: map[string]string{
-				PsrWorkerType:        WorkerTypeWriteLogs,
+				PsrWorkerType:        WorkerTypeOpsWriteLogs,
 				PsrWorkerThreadCount: "1000",
 			},
 		},
 		{name: "BadThreadCountFormat",
 			expectErr: true,
 			envMap: map[string]string{
-				PsrWorkerType:        WorkerTypeWriteLogs,
+				PsrWorkerType:        WorkerTypeOpsWriteLogs,
 				PsrWorkerThreadCount: "100n",
 			},
 		},

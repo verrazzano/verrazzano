@@ -29,3 +29,13 @@ spec:
       enabled: true
     prometheusNodeExporter:
       enabled: true
+    clusterOperator:
+      overrides:
+        - values:
+            syncRancherClusters:
+              enabled: true
+              clusterSelector:
+                matchExpressions:
+                  - key: rancher-sync
+                    operator: In
+                    values: [ enabled ]

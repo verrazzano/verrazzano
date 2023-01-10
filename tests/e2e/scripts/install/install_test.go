@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 
@@ -28,8 +29,10 @@ var kubeConfigFromEnv = os.Getenv("KUBECONFIG")
 
 var t = framework.NewTestFramework("install")
 
-var _ = t.BeforeSuite(func() {})
-var _ = t.AfterSuite(func() {})
+var beforeSuite = t.BeforeSuiteFunc(func() {})
+var _ = BeforeSuite(beforeSuite)
+var afterSuite = t.AfterSuiteFunc(func() {})
+var _ = AfterSuite(afterSuite)
 var _ = t.AfterEach(func() {})
 
 // This test checks that the Verrazzano install resource has the expected console URLs.
@@ -121,6 +124,16 @@ func getExpectedConsoleURLs(kubeConfig string) ([]string, error) {
 
 	for _, ingress := range ingresses.Items {
 		ingressHost := ingress.Spec.Rules[0].Host
+		// elasticsearch and kibana ingresses are created for permanent redirection when upgraded from older VZ releases to 1.5.0 or later.
+		if strings.HasPrefix(ingressHost, "elasticsearch") || strings.HasPrefix(ingressHost, "kibana") {
+			continue
+		}
+		// Any verrazzano-managed ingresses in the Rancher namespace are created for managed clusters to be
+		// able to use an older DNS name to connect to Rancher proxy until the managed clusters are updated.
+		// Those will not exist in the VZ resource.
+		if ingress.Namespace == constants.RancherSystemNamespace && pkg.IsVerrazzanoManaged(ingress.Labels) {
+			continue
+		}
 		// If it's not the console ingress, or it is and the console is enabled, add it to the expected set of URLs
 		if !isConsoleIngressHost(ingressHost) || consoleURLExpected {
 			expectedUrls = append(expectedUrls, fmt.Sprintf("https://%s", ingressHost))

@@ -29,7 +29,7 @@ const ComponentName = "oam-kubernetes-runtime"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoSystemNamespace
 
-// ComponentJSONName is the josn name of the verrazzano component in CRD
+// ComponentJSONName is the JSON name of the oam component in CRD
 const ComponentJSONName = "oam"
 
 type oamComponent struct {
@@ -84,7 +84,7 @@ func (c oamComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzan
 	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+// ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c oamComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	// Block all changes for now, particularly around storage changes
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
@@ -93,9 +93,20 @@ func (c oamComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new 
 	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }
 
+// PreInstall applies the OAM CRDs
+func (c oamComponent) PreInstall(ctx spi.ComponentContext) error {
+	if err := common.ApplyCRDYaml(ctx, config.GetHelmOamChartsDir()); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreInstall(ctx)
+}
+
 // PreUpgrade OAM-pre-upgrade processing
 func (c oamComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	return common.ApplyCRDYaml(ctx, config.GetHelmOamChartsDir())
+	if err := common.ApplyCRDYaml(ctx, config.GetHelmOamChartsDir()); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreUpgrade(ctx)
 }
 
 // PostInstall runs post-install processing for the OAM component

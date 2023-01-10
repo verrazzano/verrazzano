@@ -6,6 +6,7 @@ package mcagent
 import (
 	"context"
 	"fmt"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"time"
 
@@ -13,10 +14,10 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
-	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -145,7 +146,7 @@ func (s *Syncer) ProcessAgentThread() error {
 
 func (s *Syncer) updateVMCStatus() error {
 	vmcName := client.ObjectKey{Name: s.ManagedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
-	vmc := platformopclusters.VerrazzanoManagedCluster{}
+	vmc := v1alpha1.VerrazzanoManagedCluster{}
 	err := s.AdminClient.Get(s.Context, vmcName, &vmc)
 	if err != nil {
 		return err
@@ -164,7 +165,9 @@ func (s *Syncer) updateVMCStatus() error {
 		return fmt.Errorf("Failed to get api prometheus host for vmc %s with error %v", vmcName, err)
 	}
 
-	vmc.Status.PrometheusHost = prometheusHost
+	if prometheusHost != "" {
+		vmc.Status.PrometheusHost = prometheusHost
+	}
 
 	// update status of VMC
 	return s.AdminClient.Status().Update(s.Context, &vmc)
@@ -242,7 +245,7 @@ func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 	}
 	scheme := runtime.NewScheme()
 	_ = clustersv1alpha1.AddToScheme(scheme)
-	_ = platformopclusters.AddToScheme(scheme)
+	_ = v1alpha1.AddToScheme(scheme)
 	_ = oamv1alpha2.SchemeBuilder.AddToScheme(scheme)
 	_ = corev1.SchemeBuilder.AddToScheme(scheme)
 
@@ -299,6 +302,9 @@ func (s *Syncer) GetPrometheusHost() (string, error) {
 	ingress := &networkingv1.Ingress{}
 	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.VzPrometheusIngress, Namespace: constants.VerrazzanoSystemNamespace}, ingress)
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", nil
+		}
 		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", constants.VerrazzanoSystemNamespace, constants.VzPrometheusIngress, err)
 	}
 	return ingress.Spec.Rules[0].Host, nil
