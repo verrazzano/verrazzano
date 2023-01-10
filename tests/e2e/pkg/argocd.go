@@ -4,6 +4,7 @@
 package pkg
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -149,7 +150,7 @@ func GetApplicationsWithClient(log *zap.SugaredLogger, argoCDURL string, token s
 	client := &http.Client{}
 	var bearer = "Bearer " + token
 
-	//http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	req, err := http.NewRequest("GET", argoCDLoginURL, nil)
 	if err != nil {
 		return false, err
