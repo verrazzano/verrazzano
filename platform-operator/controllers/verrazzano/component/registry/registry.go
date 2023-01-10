@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package registry
@@ -6,6 +6,7 @@ package registry
 import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
@@ -46,14 +47,18 @@ var getComponentsFn = getComponents
 
 var componentsRegistry []spi.Component
 
+var getComponentsMap map[string]spi.Component
+
 // OverrideGetComponentsFn Allows overriding the set of registry components for testing purposes
 func OverrideGetComponentsFn(fnType GetCompoentsFnType) {
 	getComponentsFn = fnType
+	getComponentsMap = make(map[string]spi.Component)
 }
 
 // ResetGetComponentsFn Restores the GetComponents implementation to the default if it's been overridden for testing
 func ResetGetComponentsFn() {
 	getComponentsFn = getComponents
+	getComponentsMap = make(map[string]spi.Component)
 }
 
 func InitRegistry() {
@@ -90,7 +95,9 @@ func InitRegistry() {
 		velero.NewComponent(),
 		rancherbackup.NewComponent(),
 		clusteroperator.NewComponent(),
+		argocd.NewComponent(),
 	}
+	getComponentsMap = make(map[string]spi.Component)
 }
 
 // GetComponents returns the list of components that are installable and upgradeable.
@@ -109,12 +116,19 @@ func getComponents() []spi.Component {
 }
 
 func FindComponent(componentName string) (bool, spi.Component) {
-	for _, comp := range GetComponents() {
-		if comp.Name() == componentName {
-			return true, comp
+	// check if component is in map of looked up components
+	existingComponent, ok := getComponentsMap[componentName]
+	if !ok {
+		for _, newComponent := range GetComponents() {
+			if newComponent.Name() == componentName {
+				getComponentsMap[componentName] = newComponent
+				return true, newComponent
+			}
 		}
+		// Component is not in registry
+		return false, nil
 	}
-	return false, nil
+	return true, existingComponent
 }
 
 // ComponentDependenciesMet Checks if the declared dependencies for the component are ready and available; this is

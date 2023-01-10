@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package namespace
 
@@ -6,6 +6,8 @@ import (
 	"context"
 	"fmt"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -178,6 +180,16 @@ func TestCreateRancherNamespace(t *testing.T) {
 	runNamespaceTest(t, globalconst.RancherSystemNamespace,
 		createVzLabels(globalconst.RancherSystemNamespace),
 		CreateRancherNamespace)
+}
+
+// TestCreateArgoCDNamespace tests the CreateArgoCDNamespace function
+// GIVEN a call to CreateArgoCDNamespace
+// WHEN no error occurs
+// THEN no error is returned, the namespace is created, and the proper labels have been added
+func TestCreateArgoCDNamespace(t *testing.T) {
+	runNamespaceTestWithIstioFlag(t, constants.ArgoCDNamespace,
+		createVZAndIstioLabels(constants.ArgoCDNamespace),
+		CreateArgoCDNamespace)
 }
 
 // TestCreateVerrazzanoMultiClusterNamespace tests the CreateVerrazzanoMultiClusterNamespace function

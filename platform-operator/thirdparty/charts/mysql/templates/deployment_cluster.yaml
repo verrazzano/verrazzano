@@ -154,7 +154,7 @@ spec:
 
   {{- if and .Values.initDB .Values.initDB.dump }}
     {{- with .Values.initDB.dump }}
-      {{- if and .name (or .ociObjectStorage .persistentVolumeClaim .options) }}
+      {{- if and .name (or .ociObjectStorage .s3 .persistentVolumeClaim .options) }}
   initDB:
     dump:
         {{- if .name }}

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package constants
@@ -115,6 +115,12 @@ const KeycloakNamespace = "keycloak"
 
 // KeycloakIngress - the name of the ingress for Keycloak console and api
 const KeycloakIngress = "keycloak"
+
+// ArgoCDNamespace - the name of the Argo CD namespace
+const ArgoCDNamespace = "argocd"
+
+// ArgoCDIngress - the name of the ingress for Argo CD
+const ArgoCDIngress = "argocd-server"
 
 // VerrazzanoAuthProxyServiceName is the name of the Verrazzano auth proxy service
 const VerrazzanoAuthProxyServiceName = "verrazzano-authproxy"
@@ -236,3 +242,5 @@ const RancherBackupNamesSpace = "cattle-resources-system"
 
 // VerrazzanoManagedKey indicates the label key to the Verrazzano managed namespaces
 const VerrazzanoManagedKey = "verrazzano.io/namespace"
+
+const ExternalDNSNamespace = "cert-manager"

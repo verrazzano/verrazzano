@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package status
@@ -6,6 +6,8 @@ package status
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"reflect"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -29,117 +31,42 @@ vz status --kubeconfig ~/.kube/config --context minikube`
 // the content of the Verrazzano status block
 var componentOutputEnabled = false
 
+type TemplateInput struct {
+	Endpoints         map[string]string
+	Components        map[string]string
+	ComponentsEnabled bool
+
+	Name                string
+	Namespace           string
+	Version             string
+	State               string
+	Profile             string
+	AvailableComponents string
+}
+
 // statusOutputTemplate - template for output of status command
 const statusOutputTemplate = `
 Verrazzano Status
-  Name: {{.verrazzano_name}}
-  Namespace: {{.verrazzano_namespace}}
-  Version: {{.verrazzano_version}}
-  State: {{.verrazzano_state}}
-  Profile: {{.install_profile}}
+  Name: {{.Name}}
+  Namespace: {{.Namespace}}
+  Profile: {{.Profile}}
+  Version: {{.Version}}
+  State: {{.State}}
+{{- if .AvailableComponents }}
+  Available Components: {{.AvailableComponents}}
+{{- end }}
+{{- if .Endpoints }}
   Access Endpoints:
-{{- if .console_url}}
-    Console URL: {{.console_url}}
-{{- end}}
-{{- if .grafana_url}}
-    Grafana URL: {{.grafana_url}}
-{{- end}}
-{{- if .jaeger_url}}
-    Jaeger URL: {{.jaeger_url}}
-{{- end}}
-{{- if .keycloak_url}}
-    Keycloak URL: {{.keycloak_url}}
-{{- end}}
-{{- if .kiali_url}}
-    Kiali URL: {{.kiali_url}}
-{{- end}}
-{{- if .osd_url}}
-    Opensearch Dashboards URL: {{.osd_url}}
-{{- end}}
-{{- if .os_url}}
-    OpenSearch URL: {{.os_url}}
-{{- end}}
-{{- if .prometheus_url}}
-    Prometheus URL: {{.prometheus_url}}
-{{- end}}
-{{- if .rancher_url}}
-    Rancher URL: {{.rancher_url}}
-{{- end}}
-{{- if .components_enabled}}
+{{- range $key, $value := .Endpoints }}
+    {{ $key }}: {{ $value }}
+{{- end }}
+{{- end }}
+{{- if .ComponentsEnabled }}
   Components:
-{{- end}}
-{{- if .comp_certmanager_state}}
-    Cert Manager: {{.comp_certmanager_state}}
-{{- end}}
-{{- if .comp_coherenceoperator_state}}
-    Coherence Operator: {{.comp_coherenceoperator_state}}
-{{- end}}
-{{- if .comp_externaldns_state}}
-    External DNS: {{.comp_externaldns_state}}
-{{- end}}
-{{- if .comp_grafana_state}}
-    Grafana: {{.comp_grafana_state}}
-{{- end}}
-{{- if .comp_ingresscontroller_state}}
-    Ingress Controller: {{.comp_ingresscontroller_state}}
-{{- end}}
-{{- if .comp_istio_state}}
-    Istio: {{.comp_istio_state}}
-{{- end}}
-{{- if .comp_jaegeroperator_state}}
-    Jaeger Operator: {{.comp_jaegeroperator_state}}
-{{- end}}
-{{- if .comp_keycloak_state}}
-    Keycloak: {{.comp_keycloak_state}}
-{{- end}}
-{{- if .comp_kialiserver_state}}
-    Kiali Server: {{.comp_kialiserver_state}}
-{{- end}}
-{{- if .comp_kubestatemetrics_state}}
-    Kube State Metrics: {{.comp_kubestatemetrics_state}}
-{{- end}}
-{{- if .comp_mysql_state}}
-    MySQL: {{.comp_mysql_state}}
-{{- end}}
-{{- if .comp_oamkubernetesruntime_state}}
-    OAM Kubernetes Runtime: {{.comp_oamkubernetesruntime_state}}
-{{- end}}
-{{- if .comp_opensearch_state}}
-    OpenSearch: {{.comp_opensearch_state}}
-{{- end}}
-{{- if .comp_opensearchdashboards_state}}
-    OpenSearch Dashboards: {{.comp_opensearchdashboards_state}}
-{{- end}}
-{{- if .comp_prometheusadapter_state}}
-    Prometheus Adapter: {{.comp_prometheusadapter_state}}
-{{- end}}
-{{- if .comp_prometheusnodeexporter_state}}
-    Prometheus Node Exporter: {{.comp_prometheusnodeexporter_state}}
-{{- end}}
-{{- if .comp_prometheusoperator_state}}
-    Prometheus Operator: {{.comp_prometheusoperator_state}}
-{{- end}}
-{{- if .comp_prometheuspushgateway_state}}
-    Prometheus Pushgateway: {{.comp_prometheuspushgateway_state}}
-{{- end}}
-{{- if .comp_rancher_state}}
-    Rancher: {{.comp_rancher_state}}
-{{- end}}
-{{- if .comp_verrazzano_state}}
-    Verrazzano: {{.comp_verrazzano_state}}
-{{- end}}
-{{- if .comp_verrazzanoapplicationoperator_state}}
-    Verrazzano Application Operator: {{.comp_verrazzanoapplicationoperator_state}}
-{{- end}}
-{{- if .comp_verrazzanoauthproxy_state}}
-    Verrazzano AuthProxy: {{.comp_verrazzanoauthproxy_state}}
-{{- end}}
-{{- if .comp_verrazzanomonitoringoperator_state}}
-    Verrazzano Monitoring Operator: {{.comp_verrazzanomonitoringoperator_state}}
-{{- end}}
-{{- if .comp_weblogicoperator_state}}
-    WebLogic Operator: {{.comp_weblogicoperator_state}}
-{{- end}}
+{{- range $key, $value := .Components }}
+    {{ $key }}: {{ $value }}
+{{- end }}
+{{- end }}
 `
 
 func NewCmdStatus(vzHelper helpers.VZHelper) *cobra.Command {
@@ -164,21 +91,16 @@ func runCmdStatus(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	if err != nil {
 		return err
 	}
-
-	// Report the status information
-	templateValues := map[string]string{
-		"verrazzano_name":      vz.Name,
-		"verrazzano_namespace": vz.Namespace,
-		"verrazzano_version":   vz.Status.Version,
-		"verrazzano_state":     string(vz.Status.State),
+	templateValues := TemplateInput{
+		Endpoints:           getEndpoints(vz.Status.VerrazzanoInstance),
+		Components:          getComponents(vz.Status.Components),
+		Name:                vz.Name,
+		Namespace:           vz.Namespace,
+		Version:             vz.Status.Version,
+		State:               string(vz.Status.State),
+		AvailableComponents: getAvailableComponents(vz.Status.Available),
+		Profile:             getProfile(vz.Spec.Profile),
 	}
-	if vz.Spec.Profile == "" {
-		templateValues["install_profile"] = string(vzapi.Prod)
-	} else {
-		templateValues["install_profile"] = string(vz.Spec.Profile)
-	}
-	addAccessEndpoints(vz.Status.VerrazzanoInstance, templateValues)
-	addComponents(vz.Status.Components, templateValues)
 	result, err := templates.ApplyTemplate(statusOutputTemplate, templateValues)
 	if err != nil {
 		return fmt.Errorf("Failed to generate %s command output: %s", CommandName, err.Error())
@@ -188,46 +110,53 @@ func runCmdStatus(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	return nil
 }
 
-// addAccessEndpoints - add access endpoints to the display output
-func addAccessEndpoints(instance *v1beta1.InstanceInfo, values map[string]string) {
-	if instance != nil {
-		if instance.ConsoleURL != nil {
-			values["console_url"] = *instance.ConsoleURL
-		}
-		if instance.KeyCloakURL != nil {
-			values["keycloak_url"] = *instance.KeyCloakURL
-		}
-		if instance.RancherURL != nil {
-			values["rancher_url"] = *instance.RancherURL
-		}
-		if instance.OpenSearchURL != nil {
-			values["os_url"] = *instance.OpenSearchURL
-		}
-		if instance.OpenSearchURL != nil {
-			values["osd_url"] = *instance.OpenSearchDashboardsURL
-		}
-		if instance.GrafanaURL != nil {
-			values["grafana_url"] = *instance.GrafanaURL
-		}
-		if instance.PrometheusURL != nil {
-			values["prometheus_url"] = *instance.PrometheusURL
-		}
-		if instance.KialiURL != nil {
-			values["kiali_url"] = *instance.KialiURL
-		}
-		if instance.JaegerURL != nil {
-			values["jaeger_url"] = *instance.JaegerURL
+func getAvailableComponents(available *string) string {
+	if available == nil {
+		return ""
+	}
+	return *available
+}
+
+func getProfile(profile v1beta1.ProfileType) string {
+	if profile == "" {
+		return string(vzapi.Prod)
+	}
+	return string(profile)
+}
+
+func getEndpoints(instance *v1beta1.InstanceInfo) map[string]string {
+	values := map[string]string{}
+	if instance == nil {
+		return values
+	}
+	instanceValue := reflect.Indirect(reflect.ValueOf(instance))
+	instanceType := reflect.TypeOf(instance).Elem()
+	for i := 0; i < instanceType.NumField(); i++ {
+		fieldValue := instanceValue.Field(i)
+		v, ok := fieldValue.Interface().(*string)
+		if ok && v != nil {
+			k := getJSONTagNameForField(instanceType.Field(i))
+			values[k] = *v
 		}
 	}
+	return values
+}
+
+func getJSONTagNameForField(field reflect.StructField) string {
+	return strings.Split(field.Tag.Get("json"), ",")[0]
 }
 
 // addComponents - add the component status information
-func addComponents(components v1beta1.ComponentStatusMap, values map[string]string) {
+func getComponents(components v1beta1.ComponentStatusMap) map[string]string {
+	values := map[string]string{}
 	if componentOutputEnabled {
 		for _, component := range components {
-			// Generate key/value for output template - remove dashes from component name, not a valid template character
-			stateKey := fmt.Sprintf("comp_%s_state", component.Name)
-			values[strings.ReplaceAll(stateKey, "-", "")] = string(component.State)
+			ok, c := registry.FindComponent(component.Name)
+			if !ok {
+				continue
+			}
+			values[c.GetJSONName()] = string(component.State)
 		}
 	}
+	return values
 }

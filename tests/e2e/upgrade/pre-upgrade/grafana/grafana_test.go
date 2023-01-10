@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package grafana
@@ -6,13 +6,13 @@ package grafana
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"net/http"
 	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
@@ -85,7 +85,13 @@ var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.loggi
 	// WHEN a GET call is made  to Grafana with the system dashboard UID,
 	// THEN the dashboard metadata of the corresponding testDashboard is returned.
 	t.It("Get details of the system Grafana Dashboard", func() {
-		pkg.TestSystemGrafanaDashboard(pollingInterval, waitTimeout)
+		kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
+		Expect(err).To(BeNil(), fmt.Sprintf(pkg.KubeConfigErrorFmt, err))
+		systemHealthDashboardExists, err := pkg.IsVerrazzanoMinVersion("1.5.0", kubeConfigPath)
+		Expect(err).To(BeNil(), fmt.Sprintf("could not find verrazzzano min version: %v", err))
+		if systemHealthDashboardExists {
+			pkg.TestSystemHealthGrafanaDashboard(pollingInterval, waitTimeout)
+		}
 	})
 
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()

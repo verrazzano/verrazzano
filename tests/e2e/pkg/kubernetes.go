@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package pkg
@@ -1566,6 +1566,24 @@ func GetPersistentVolumeClaims(namespace string) (map[string]*corev1.PersistentV
 		volumeClaims[pvc.Name] = &pvcs.Items[i]
 	}
 	return volumeClaims, nil
+}
+
+func GetPersistentVolumes() (map[string]*corev1.PersistentVolume, error) {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	pvList, err := clientset.CoreV1().PersistentVolumes().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	pvs := make(map[string]*corev1.PersistentVolume)
+
+	for i, pvc := range pvList.Items {
+		pvs[pvc.Name] = &pvList.Items[i]
+	}
+	return pvs, nil
 }
 
 // DoesVerrazzanoProjectExistInCluster returns whether a VerrazzanoProject with the given name exists in the specified cluster
