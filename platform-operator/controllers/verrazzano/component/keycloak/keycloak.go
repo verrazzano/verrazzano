@@ -1306,7 +1306,7 @@ func enableVerrazzanoSystemRealm(ctx spi.ComponentContext, cfg *restclient.Confi
 
 func removeLoginConfigFile(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
 	kcPod := keycloakPod()
-	removeLoginConfigFileCmd := "rm /root/.keycloak/kcadm.config"
+	removeLoginConfigFileCmd := "rm ~/.keycloak/kcadm.config"
 	ctx.Log().Debugf("removeLoginConfigFile: Removing login config file Cmd = %s", removeLoginConfigFileCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(removeLoginConfigFileCmd))
 	if err != nil {
