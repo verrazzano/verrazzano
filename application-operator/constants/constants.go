@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package constants
@@ -126,3 +126,9 @@ const LegacyDefaultMetricsTemplateNamespace = VerrazzanoSystemNamespace
 // DefaultScraperName is the default Prometheus deployment name used to scrape metrics. If a metrics trait does not specify a scraper, this
 // is the scraper that will be used.
 const DefaultScraperName = "verrazzano-system/vmi-system-prometheus-0"
+
+// AppObjectMetaLabel Label names for the OAM ApplicationConfiguration reference
+const AppObjectMetaLabel = "app.oam.dev/name"
+
+// CompObjectMetaLabel Label names for the OAM Component reference
+const CompObjectMetaLabel = "app.oam.dev/component"

@@ -12,6 +12,7 @@ import (
 
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
@@ -224,11 +225,11 @@ func (r *Reconciler) convertWorkloadToDeployment(workload *vzapi.VerrazzanoHelid
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: workload.Spec.DeploymentTemplate.Metadata.GetName(),
-			//make sure the namespace is set to the namespace of the component
+			// make sure the namespace is set to the namespace of the component
 			Namespace: workload.GetNamespace(),
 		},
 		Spec: appsv1.DeploymentSpec{
-			//setting label selector for pod that this deployment will manage
+			// setting label selector for pod that this deployment will manage
 			Selector: &metav1.LabelSelector{
 				MatchLabels:      workload.Spec.DeploymentTemplate.Selector.MatchLabels,
 				MatchExpressions: workload.Spec.DeploymentTemplate.Selector.MatchExpressions,
@@ -277,7 +278,9 @@ func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelid
 				Name:      deploy.GetName(),
 				Namespace: deploy.GetNamespace(),
 				Labels: map[string]string{
-					labelKey: string(workload.GetUID()),
+					labelKey:                      string(workload.GetUID()),
+					constants.AppObjectMetaLabel:  deploy.ObjectMeta.Labels[constants.AppObjectMetaLabel],
+					constants.CompObjectMetaLabel: deploy.ObjectMeta.Labels[constants.CompObjectMetaLabel],
 				},
 			},
 			Spec: corev1.ServiceSpec{

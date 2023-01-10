@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package metricstrait
@@ -8,6 +8,7 @@ import (
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/internal/metrics"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -65,8 +66,8 @@ func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.Metr
 
 	// Populate the keep labels to match the oam pod labels
 	scrapeInfo.KeepLabels = map[string]string{
-		"__meta_kubernetes_pod_label_app_oam_dev_name":      trait.Labels[appObjectMetaLabel],
-		"__meta_kubernetes_pod_label_app_oam_dev_component": trait.Labels[compObjectMetaLabel],
+		"__meta_kubernetes_pod_label_app_oam_dev_name":      trait.Labels[constants.AppObjectMetaLabel],
+		"__meta_kubernetes_pod_label_app_oam_dev_component": trait.Labels[constants.CompObjectMetaLabel],
 	}
 
 	serviceMonitor := promoperapi.ServiceMonitor{}

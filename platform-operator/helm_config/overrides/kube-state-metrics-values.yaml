@@ -9,7 +9,10 @@ prometheus:
   monitor:
     honorLabels: true
 metricLabelsAllowlist:
-  - deployments=[app.oam.dev/name,app.oam.dev/component],pods=[app.oam.dev/name,app.oam.dev/component]
+  - deployments=[app.oam.dev/name,app.oam.dev/component]
+  - pods=[app.oam.dev/name,app.oam.dev/component]
+  - services=[app.oam.dev/name,app.oam.dev/component]
+  - statefulsets=[app.oam.dev/name,app.oam.dev/component]
 
 securityContext:
   seccompProfile:
