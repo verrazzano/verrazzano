@@ -101,6 +101,9 @@ func getConsoleURLsFromResource(kubeconfig string) ([]string, error) {
 	if vz.Status.VerrazzanoInstance.JaegerURL != nil {
 		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.JaegerURL)
 	}
+	if vz.Status.VerrazzanoInstance.ArgoCDURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.ArgoCDURL)
+	}
 
 	return consoleUrls, nil
 }

@@ -34,6 +34,7 @@ var isMinVersion140 bool
 var isMinVersion150 bool
 var keycloakEnabled bool
 var mySQLOperatorEnabled bool
+var argocdEnabled bool
 
 var t = framework.NewTestFramework("verrazzano")
 
@@ -63,6 +64,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	}
 	keycloakEnabled = pkg.IsKeycloakEnabled(kubeconfigPath)
 	mySQLOperatorEnabled = pkg.IsMySQLOperatorEnabled(kubeconfigPath)
+	argocdEnabled = pkg.IsArgoCDEnabled(kubeconfigPath)
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -677,6 +679,12 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 		})
 	})
 
+	t.Describe("argocd verification", Label("f:platform-lcm.install"), func() {
+		t.It("has namespace created and expected deployments", func() {
+			validateArgoCDResources()
+		})
+	})
+
 })
 
 func validateIstioGatewayAffinity(gwName string, gwNamespace string) {
@@ -844,5 +852,84 @@ func assertPodAntiAffinity(matchLabels map[string]string, namespace string) {
 		Expect(affinity.NodeAffinity).To(BeNil())
 		Expect(affinity.PodAntiAffinity).ToNot(BeNil())
 		Expect(len(affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution)).To(Equal(1))
+	}
+}
+
+// Validates the Argocd namespace and deployments if Argocd is explicitly enabled
+func validateArgoCDResources() {
+
+	var err error
+
+	if argocdEnabled {
+		var pods []corev1.Pod
+
+		Eventually(func() bool {
+			pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/instance": "argocd"}}, constants.ArgoCDNamespace)
+			if err != nil {
+				t.Logs.Error("Failed to get Argocd pods: %v", err)
+				return false
+			}
+			if len(pods) < 1 {
+				return false
+			}
+			return true
+		}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+		Eventually(func() (bool, error) {
+			return pkg.DoesStatefulSetExist(constants.ArgoCDNamespace, "argocd-application-controller")
+		}, waitTimeout, pollingInterval).Should(BeTrue())
+
+		Eventually(func() (bool, error) {
+			return pkg.DoesNamespaceExist(constants.ArgoCDNamespace)
+		}, waitTimeout, pollingInterval).Should(BeTrue())
+		t.Entry(fmt.Sprintf("%s namespace should exist", constants.ArgoCDNamespace), constants.ArgoCDNamespace)
+
+		expectedDeployments := []string{
+			"argocd-applicationset-controller",
+			"argocd-notifications-controller",
+			"argocd-redis",
+			"argocd-repo-server",
+			"argocd-server",
+		}
+		deploymentNames := func(deploymentList *appsv1.DeploymentList) []string {
+			var deploymentNames []string
+			for _, deployment := range deploymentList.Items {
+				deploymentNames = append(deploymentNames, deployment.Name)
+			}
+			return deploymentNames
+		}
+
+		var deployments *appsv1.DeploymentList
+		Eventually(func() (*appsv1.DeploymentList, error) {
+			var err error
+			deployments, err = pkg.ListDeployments(constants.ArgoCDNamespace)
+			return deployments, err
+		}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+		Expect(deployments).Should(WithTransform(deploymentNames, ContainElements(expectedDeployments)))
+
+		t.Entry(fmt.Sprintf("%s namespace should contain expected list of deployments", constants.ArgoCDNamespace), constants.ArgoCDNamespace)
+
+		var configmap corev1.ConfigMap
+		Eventually(func() (*corev1.ConfigMap, error) {
+			var err error
+			var cm *corev1.ConfigMap
+			cm, err = pkg.GetConfigMap("argocd-cm", constants.ArgoCDNamespace)
+			return cm, err
+		}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+		data := configmap.Data
+		Expect(data["oidc.config"]).ToNot(BeNil())
+
+		Eventually(func() (*corev1.ConfigMap, error) {
+			var err error
+			var cm *corev1.ConfigMap
+			cm, err = pkg.GetConfigMap("argocd-rbac-cm", constants.ArgoCDNamespace)
+			return cm, err
+		}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+		data = configmap.Data
+		Expect(data["policy.csv"]).ToNot(BeNil())
+
+	} else {
+		t.Logs.Info("Skipping the Argocd check resources as its not enabled")
 	}
 }

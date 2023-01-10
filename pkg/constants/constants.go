@@ -74,6 +74,9 @@ const IngressNamespace = "ingress-nginx"
 // and its related components.
 const PrometheusOperatorNamespace = "verrazzano-monitoring"
 
+// ArgoCDNamespace - the Argocd namespace
+const ArgoCDNamespace = "argocd"
+
 // LabelIstioInjection - constant for a Kubernetes label that is applied by Verrazzano
 const LabelIstioInjection = "istio-injection"
 
