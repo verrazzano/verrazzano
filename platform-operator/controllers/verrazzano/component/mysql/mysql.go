@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mysql
@@ -21,6 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
@@ -128,8 +129,6 @@ util.dumpInstance("/var/lib/mysql/dump", {ocimds: true, compatibility: ["strip_d
 EOF
 `
 	innoDBClusterStatusOnline = "ONLINE"
-	mySQLComponentLabel       = "component"
-	mySQLDComponentName       = "mysqld"
 )
 
 var (
@@ -189,7 +188,7 @@ func (c mysqlComponent) isMySQLReady(ctx spi.ComponentContext) bool {
 
 	// Temporary work around for issue where MySQL pod readiness gates not all met
 	if !ready {
-		if err = c.repairMySQLPodsWaitingReadinessGates(ctx); err != nil {
+		if err = mysqlcheck.RepairMySQLPodsWaitingReadinessGates(ctx); err != nil {
 			return false
 		}
 	}
@@ -654,8 +653,5 @@ func initUnitTesting() {
 
 // postUninstall performs additional actions after the uninstall step
 func (c mysqlComponent) postUninstall(ctx spi.ComponentContext) error {
-	if err := c.repairICStuckDeleting(ctx); err != nil {
-		return err
-	}
-	return c.repairMySQLPodStuckDeleting(ctx)
+	return mysqlcheck.RepairICStuckDeleting(ctx)
 }

@@ -39,4 +39,16 @@ spec:
           env:
             - name: VZ_API_URL
               value: "https://verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}"
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
       serviceAccountName: {{ .Values.name }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 999
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault

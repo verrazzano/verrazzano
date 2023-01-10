@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1beta1
@@ -117,6 +117,8 @@ type VolumeClaimSpecTemplate struct {
 
 // InstanceInfo details of the installed Verrazzano instance maintained in status field.
 type InstanceInfo struct {
+	// ArgoCDURL The Argo CD UI URL for this Verrazzano installation
+	ArgoCDURL *string `json:"argoCdUrl,omitempty"`
 	// The Console URL for this Verrazzano installation.
 	ConsoleURL *string `json:"consoleUrl,omitempty"`
 	// The Grafana URL for this Verrazzano installation.
@@ -294,6 +296,10 @@ type ComponentSpec struct {
 	// The Application Operator component configuration.
 	// +optional
 	ApplicationOperator *ApplicationOperatorComponent `json:"applicationOperator,omitempty"`
+
+	// Argo CD configuration
+	// +optional
+	ArgoCD *ArgoCDComponent `json:"argoCd,omitempty"`
 
 	// The AuthProxy component configuration.
 	// +optional
@@ -842,6 +848,13 @@ type RancherComponent struct {
 	// KeycloakAuthEnabled specifies whether the Keycloak Auth provider is enabled.  Default is `false`.
 	// +optional
 	KeycloakAuthEnabled *bool `json:"keycloakAuthEnabled,omitempty"`
+}
+
+// ArgoCDComponent specifies the Argo CD configuration
+type ArgoCDComponent struct {
+	// +optional
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // RancherBackupComponent specifies the rancherBackup configuration.

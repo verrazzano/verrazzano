@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.8-20221215154406-77e20c949",
-              "dashboard": "v2.6.8-20221215153313-0f838a2b",
+              "tag": "v2.6.8-20230105220826-d3322376b",
+              "dashboard": "v2.6.8-20230105215333-87ca906e",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20221215154406-77e20c949"
+              "tag": "v2.6.8-20230105220826-d3322376b"
             }
           ]
         },
@@ -219,7 +219,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.5.0-20221219110629-89fda53",
+              "tag": "v1.5.0-20221223051839-d6a49f9",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -745,6 +745,36 @@
               "tag": "v1.20.2",
               "helmFullImageKey": "global.kubectl.repository",
               "helmTagKey": "global.kubectl.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "argocd",
+      "version": "2.5.3",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "argocd",
+          "images": [
+            {
+              "image": "argocd",
+              "tag": "v2.5.3-20221214191504-c922509d",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "redis",
+          "images": [
+            {
+              "image": "redis",
+              "tag": "v6.2.7-20221220011601-26c8b963",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
             }
           ]
         }

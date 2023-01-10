@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package analysis
 
@@ -400,6 +400,29 @@ func TestComponentsNotReadyNoErrorMsg(t *testing.T) {
 			problemsFound++
 			// Two supporting messages are always included. Rest should come from events related to failed components
 			assert.True(t, len(issue.SupportingData[0].Messages) > 2)
+		}
+	}
+	assert.True(t, problemsFound > 0)
+}
+
+// TestExternalDNSConfigurationIssue Tests that analysis of a cluster dump when dns(oci,custom dns) was not configured
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN the cluster-snapshot shows private subnet not allowed in public LB.
+// THEN a report is generated with issues identified
+func TestExternalDNSConfigurationIssue(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+
+	report.ClearReports()
+	err := Analyze(logger, "cluster", "test/cluster/external-dns-issue")
+	assert.Nil(t, err)
+
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.NotNil(t, reportedIssues)
+	assert.True(t, len(reportedIssues) > 0)
+	problemsFound := 0
+	for _, issue := range reportedIssues {
+		if issue.Type == report.ExternalDNSConfigureIssue {
+			problemsFound++
 		}
 	}
 	assert.True(t, problemsFound > 0)
