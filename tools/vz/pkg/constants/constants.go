@@ -186,11 +186,11 @@ const (
 	// Flag for capture pods logs( both customer and system namespaces)
 	BugReportLogFlagName         = "include-logs"
 	BugReportLogFlagNameShort    = "l"
-	BugReportLogFlagNameUsage    = "collect logs from pods"
+	BugReportLogFlagNameUsage    = "Include logs from the pods in one or more namespaces; this is specified using --include-namespaces."
 	BugReportTimeFlagName        = "duration"
 	BugReportTimeFlagNameShort   = "d"
 	BugReportTimeFlagDefaultTime = 0
-	BugReportTimeFlagNameUsage   = "Time period of logs in seconds, minutes, hours e.g 300s, 60m, 2h"
+	BugReportTimeFlagNameUsage   = "The time period during which the logs are collected in seconds, minutes, and hours."
 )
 
 // Constants for cluster operations
