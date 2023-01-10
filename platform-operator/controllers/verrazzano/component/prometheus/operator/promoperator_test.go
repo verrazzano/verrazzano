@@ -485,7 +485,7 @@ func TestApplySystemMonitors(t *testing.T) {
 	err = client.List(context.TODO(), monitors)
 	assert.NoError(t, err)
 	// expect that 9 ServiceMonitors are created
-	assert.Len(t, monitors.Items, 9)
+	assert.Len(t, monitors.Items, 10)
 }
 
 // TestValidatePrometheusOperator tests the validation of the Prometheus Operator installation and the Verrazzano CR

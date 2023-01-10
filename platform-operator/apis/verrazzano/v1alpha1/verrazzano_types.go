@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -127,6 +127,8 @@ type VolumeClaimSpecTemplate struct {
 
 // InstanceInfo details of installed Verrazzano instance maintained in status field.
 type InstanceInfo struct {
+	// ArgoCDURL The Argo CD UI URL for this Verrazzano installation
+	ArgoCDURL *string `json:"argoCdUrl,omitempty"`
 	// The Console URL for this Verrazzano installation.
 	ConsoleURL *string `json:"consoleUrl,omitempty"`
 	// The OpenSearch URL for this Verrazzano installation.
@@ -305,6 +307,10 @@ type ComponentSpec struct {
 	// +optional
 	ApplicationOperator *ApplicationOperatorComponent `json:"applicationOperator,omitempty"`
 
+	// Argo CD configuration
+	// +optional
+	ArgoCD *ArgoCDComponent `json:"argoCd,omitempty"`
+
 	// The AuthProxy component configuration.
 	// +optional
 	AuthProxy *AuthProxyComponent `json:"authProxy,omitempty"`
@@ -436,9 +442,12 @@ type ElasticsearchComponent struct {
 	// +patchMergeKey=name
 	// +patchStrategy=merge,retainKeys
 	Nodes []OpenSearchNode `json:"nodes,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
-	// A list of <a href="https://opensearch.org/docs/1.2/im-plugin/ism/index/">Index State Management</a> policies
+	// A list of <a href="https://opensearch.org/docs/2.3/im-plugin/ism/index/">Index State Management</a> policies
 	// to enable on OpenSearch.
 	Policies []vmov1.IndexManagementPolicy `json:"policies,omitempty"`
+	// Enable to add 3rd Party / Custom plugins not offered in the default OpenSearch image
+	// +optional
+	Plugins vmov1.OpenSearchPlugins `json:"plugins,omitempty"`
 }
 
 // OpenSearchNode specifies a node group in the OpenSearch cluster.
@@ -471,6 +480,9 @@ type KibanaComponent struct {
 	Enabled *bool `json:"enabled,omitempty"`
 	// The number of pods to replicate. The default is `1`.
 	Replicas *int32 `json:"replicas,omitempty"`
+	// Enable to add 3rd Party / Custom plugins not offered in the default OpenSearch-Dashboard image
+	// +optional
+	Plugins vmov1.OpenSearchDashboardsPlugins `json:"plugins,omitempty"`
 }
 
 // KubeStateMetricsComponent specifies the kube-state-metrics configuration.
@@ -996,6 +1008,13 @@ type VeleroComponent struct {
 	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/velero/values.yaml %}} )
 	// and invalid values will be ignored.
 	// +optional
+	InstallOverrides `json:",inline"`
+}
+
+// ArgoCDComponent specifies the Argo CD configuration
+type ArgoCDComponent struct {
+	// +optional
+	Enabled          *bool `json:"enabled,omitempty"`
 	InstallOverrides `json:",inline"`
 }
 

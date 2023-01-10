@@ -5,35 +5,207 @@ package rancher
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"fmt"
 	"testing"
 	"time"
 
-	asserts "github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
+	fakemonitor "github.com/verrazzano/verrazzano/platform-operator/internal/monitor/fake"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
+	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	admv1 "k8s.io/api/admissionregistration/v1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	v12 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+var nonRanNSName = "local-not-rancher"
+var rancherNSName = "local"
+var nonRancherNs v1.Namespace = v1.Namespace{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: nonRanNSName,
+	},
+}
+var rancherNs v1.Namespace = v1.Namespace{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: rancherNSName,
+	},
+}
+
 // TestPostUninstall tests the post uninstall process for Rancher
 // GIVEN a call to postUninstall
-// WHEN the objects exist in the cluster
-// THEN no error is returned and all objects are deleted
+// WHEN the background uninstall goroutine is not running yet
+// THEN the post-uninstall starts a new attempt and returns a RetryableError to requeue
 func TestPostUninstall(t *testing.T) {
-	assert := asserts.New(t)
+	a := assert.New(t)
+	vz := v1alpha1.Verrazzano{}
+	testObjects := []clipkg.Object{
+		&nonRancherNs,
+		&rancherNs,
+	}
+
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
+	ctx := spi.NewFakeContext(c, &vz, nil, false)
+
+	expectedErr := ctrlerrors.RetryableError{Source: ComponentName}
+	forkPostUninstallFunc = func(_ spi.ComponentContext, _ monitor.BackgroundProcessMonitor) error {
+		return expectedErr
+	}
+	defer func() { forkPostUninstallFunc = forkPostUninstall }()
+
+	monitor := &fakemonitor.BackgroundProcessMonitorType{Result: true, Running: false}
+	err := postUninstall(ctx, monitor)
+	a.Equal(expectedErr, err, "Uninstall returned an unexpected error")
+}
+
+// TestBackgroundPostUninstallCompletedSuccessfully tests the post uninstall process for Rancher
+// GIVEN a call to postUninstall
+// WHEN the goroutine is not finished running, but has a successful result in the monitor and no error
+// THEN postUninstall returns nil without calling the forkPostUninstall function
+func TestBackgroundPostUninstallCompletedSuccessfully(t *testing.T) {
+	a := assert.New(t)
+	vz := v1alpha1.Verrazzano{}
+	testObjects := []clipkg.Object{
+		&nonRancherNs,
+		&rancherNs,
+	}
+
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
+	ctx := spi.NewFakeContext(c, &vz, nil, false)
+
+	forkPostUninstallFunc = func(_ spi.ComponentContext, _ monitor.BackgroundProcessMonitor) error {
+		a.Fail("Unexpected call to forkPostUninstall() function")
+		return nil
+	}
+	defer func() { forkPostUninstallFunc = forkPostUninstall }()
+
+	monitor := &fakemonitor.BackgroundProcessMonitorType{Result: true, Running: true}
+	err := postUninstall(ctx, monitor)
+	a.NoError(err)
+}
+
+// TestPostUninstall tests the post uninstall process for Rancher
+// GIVEN a call to postUninstall
+// WHEN the the monitor goroutine failed to successfully complete
+// THEN the postUninstall function calls the forkPostUninstall function and returns a RetryableError
+func TestBackgroundPostUninstallRetryOnFailure(t *testing.T) {
+	a := assert.New(t)
+	vz := v1alpha1.Verrazzano{}
+	testObjects := []clipkg.Object{
+		&nonRancherNs,
+		&rancherNs,
+	}
+
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
+	ctx := spi.NewFakeContext(c, &vz, nil, false)
+
+	forkFuncCalled := false
+	expectedErr := ctrlerrors.RetryableError{Source: ComponentName}
+	forkPostUninstallFunc = func(_ spi.ComponentContext, _ monitor.BackgroundProcessMonitor) error {
+		forkFuncCalled = true
+		return expectedErr
+	}
+	defer func() { forkPostUninstallFunc = forkPostUninstall }()
+
+	monitor := &fakemonitor.BackgroundProcessMonitorType{Result: false, Running: true}
+	err := postUninstall(ctx, monitor)
+	a.True(forkFuncCalled)
+	a.Equal(expectedErr, err, "Uninstall returned an unexpected error")
+}
+
+// Test_forkPostUninstallSuccess tests the forkPostUninstall function
+// GIVEN a call to rancher.forkPostUninstall()
+// WHEN when the monitor install successfully runs the rancher uninstall tool
+// THEN retryerrors are returned until the goroutine completes and sends a success message
+func Test_forkPostUninstallSuccess(t *testing.T) {
+	a := assert.New(t)
+	vz := v1alpha1.Verrazzano{}
+	testObjects := []clipkg.Object{
+		&nonRancherNs,
+		&rancherNs,
+	}
+
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
+	ctx := spi.NewFakeContext(c, &vz, nil, false)
+
+	postUninstallFunc = func(ctx spi.ComponentContext) error {
+		return nil
+	}
+	defer func() { postUninstallFunc = invokeRancherSystemToolAndCleanup }()
+
+	var monitor = &monitor.BackgroundProcessMonitorType{ComponentName: ComponentName}
+	err := forkPostUninstall(ctx, monitor)
+	a.Equal(ctrlerrors.RetryableError{Source: ComponentName}, err)
+	for i := 0; i < 100; i++ {
+		result, retryError := monitor.CheckResult()
+		if retryError != nil {
+			t.Log("Waiting for result...")
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		a.True(result)
+		a.Nil(retryError)
+		return
+	}
+	a.Fail("Did not detect completion in time")
+}
+
+// Test_forkPostUninstallFailure tests the forkPostUninstall function
+// GIVEN a call to rancher.forkPostUninstall()
+// WHEN when the monitor install unsuccessfully runs rancher post-uninstall
+// THEN retryerrors are returned until the goroutine completes and sends a failure message when the rancher uninstall tool fails
+func Test_forkPostUninstallFailure(t *testing.T) {
+	a := assert.New(t)
+	vz := v1alpha1.Verrazzano{}
+	testObjects := []clipkg.Object{
+		&nonRancherNs,
+		&rancherNs,
+	}
+
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
+	ctx := spi.NewFakeContext(c, &vz, nil, false)
+
+	postUninstallFunc = func(ctx spi.ComponentContext) error {
+		return fmt.Errorf("Unexpected error on uninstall")
+	}
+	defer func() { postUninstallFunc = invokeRancherSystemToolAndCleanup }()
+
+	var monitor = &monitor.BackgroundProcessMonitorType{ComponentName: ComponentName}
+	err := forkPostUninstall(ctx, monitor)
+	a.Equal(ctrlerrors.RetryableError{Source: ComponentName}, err)
+	for i := 0; i < 100; i++ {
+		result, retryError := monitor.CheckResult()
+		if retryError != nil {
+			t.Log("Waiting for result...")
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		a.False(result)
+		a.Nil(retryError)
+		return
+	}
+	a.Fail("Did not detect completion in time")
+}
+
+// TestInvokeRancherSystemToolAndCleanup tests the deletion of objects in the post-uninstall process for Rancher
+// GIVEN a call to invokeRancherSystemToolAndCleanup
+// WHEN the objects exist in the cluster
+// THEN all objects are deleted
+func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
+	a := assert.New(t)
 	vz := v1alpha1.Verrazzano{}
 
-	nonRanNSName := "local-not-rancher"
-	rancherNSName := "local"
 	rancherNSName2 := "fleet-rancher"
 	rancherCrName := "proxy-1234"
 	mwcName := "mutating-webhook-configuration"
@@ -48,16 +220,6 @@ func TestPostUninstall(t *testing.T) {
 	rancherCRDName := "definitelyrancher.cattle.io"
 	nonRancherCRDName := "other.cattle"
 
-	nonRancherNs := v1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: nonRanNSName,
-		},
-	}
-	rancherNs := v1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: rancherNSName,
-		},
-	}
 	rancherNs2 := v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: rancherNSName2,
@@ -140,6 +302,7 @@ func TestPostUninstall(t *testing.T) {
 			Name: randPV,
 		},
 	}
+
 	delTimestamp := metav1.NewTime(time.Now())
 	crdAPIVersion := "apiextensions.k8s.io/v1"
 	crdKind := "CustomResourceDefinition"
@@ -366,6 +529,7 @@ func TestPostUninstall(t *testing.T) {
 			},
 		},
 	}
+
 	setRancherSystemTool("echo")
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -375,56 +539,56 @@ func TestPostUninstall(t *testing.T) {
 			crd1 := v12.CustomResourceDefinition{}
 			c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
 
-			err := postUninstall(ctx)
-			assert.NoError(err)
+			err := invokeRancherSystemToolAndCleanup(ctx)
+			a.NoError(err)
 
 			// MutatingWebhookConfigurations should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: webhookName}, &admv1.MutatingWebhookConfiguration{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			err = c.Get(context.TODO(), types.NamespacedName{Name: mwcName}, &admv1.MutatingWebhookConfiguration{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			// ValidatingWebhookConfigurations should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: webhookName}, &admv1.ValidatingWebhookConfiguration{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			err = c.Get(context.TODO(), types.NamespacedName{Name: vwcName}, &admv1.ValidatingWebhookConfiguration{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			// ClusterRole should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: rancherCrName}, &rbacv1.ClusterRole{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			// ClusterRoleBinding should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: webhookName}, &rbacv1.ClusterRoleBinding{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			if tt.nonRancherTest {
 				// Verify that non-Rancher components did not get cleaned up
 				err = c.Get(context.TODO(), types.NamespacedName{Name: randCR}, &rbacv1.ClusterRole{})
-				assert.Nil(err)
+				a.Nil(err)
 				err = c.Get(context.TODO(), types.NamespacedName{Name: randCRB}, &rbacv1.ClusterRoleBinding{})
-				assert.Nil(err)
+				a.Nil(err)
 				err = c.Get(context.TODO(), types.NamespacedName{Name: randPV}, &v1.PersistentVolume{})
-				assert.Nil(err)
+				a.Nil(err)
 				err = c.Get(context.TODO(), types.NamespacedName{Name: nonRancherRBName}, &rbacv1.RoleBinding{})
-				assert.Nil(err)
+				a.Nil(err)
 				err = c.Get(context.TODO(), types.NamespacedName{Name: nonRancherCRDName}, &v12.CustomResourceDefinition{})
-				assert.Nil(err)
+				a.Nil(err)
 			}
 			// ConfigMaps should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: controllerCMName}, &v1.ConfigMap{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			err = c.Get(context.TODO(), types.NamespacedName{Name: lockCMName}, &v1.ConfigMap{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			// Persistent volume should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: pvName}, &v1.PersistentVolume{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			err = c.Get(context.TODO(), types.NamespacedName{Name: pv2Name}, &v1.PersistentVolume{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			// Role Binding should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: rbName}, &rbacv1.RoleBinding{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			// Rancher CRD finalizer should have been deleted which should cause it to go away
 			// since it had a deletion timestamp
 			crd := v12.CustomResourceDefinition{}
 			err = c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd)
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 		})
 	}
 }
@@ -434,14 +598,14 @@ func TestPostUninstall(t *testing.T) {
 // WHEN the namespace belings to Rancher or not
 // THEN we see true if it is and false if not
 func TestIsRancherNamespace(t *testing.T) {
-	assert := asserts.New(t)
+	a := assert.New(t)
 
-	assert.True(isRancherNamespace(&v1.Namespace{
+	a.True(isRancherNamespace(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "cattle-system",
 		},
 	}))
-	assert.True(isRancherNamespace(&v1.Namespace{
+	a.True(isRancherNamespace(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "p-12345",
 			Annotations: map[string]string{
@@ -449,7 +613,7 @@ func TestIsRancherNamespace(t *testing.T) {
 			},
 		},
 	}))
-	assert.True(isRancherNamespace(&v1.Namespace{
+	a.True(isRancherNamespace(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "local",
 			Annotations: map[string]string{
@@ -457,7 +621,7 @@ func TestIsRancherNamespace(t *testing.T) {
 			},
 		},
 	}))
-	assert.False(isRancherNamespace(&v1.Namespace{
+	a.False(isRancherNamespace(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "p-12345",
 			Annotations: map[string]string{
@@ -465,7 +629,7 @@ func TestIsRancherNamespace(t *testing.T) {
 			},
 		},
 	}))
-	assert.False(isRancherNamespace(&v1.Namespace{
+	a.False(isRancherNamespace(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "p-12345",
 		},

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package namespace
 
@@ -73,6 +73,11 @@ func CreateVerrazzanoMultiClusterNamespace(client client.Client) error {
 // CreateVeleroNamespace - Create/Update and label the Velero namespace
 func CreateVeleroNamespace(client client.Client) error {
 	return CreateAndLabelNamespace(client, constants.VeleroNameSpace, true, true)
+}
+
+// CreateArgoCDNamespace - Create/Update and label the Argo CD namespace
+func CreateArgoCDNamespace(client client.Client, istioInjectionEnabled bool) error {
+	return CreateAndLabelNamespace(client, constants.ArgoCDNamespace, true, istioInjectionEnabled)
 }
 
 // MergeMaps Merge one map into another, creating new one if necessary; returns the updated map and true if it was modified

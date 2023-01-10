@@ -5,3 +5,4 @@
 verrazzano-system
 verrazzano-application-bobs-books
 verrazzano-system,verrazzano-application-k*,verrazzano-application-socks-shop
+verrazzano-application*

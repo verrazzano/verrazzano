@@ -1,4 +1,4 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 {{- if .Values.weblogicOperator.enabled }}
 ---
@@ -295,9 +295,9 @@ spec:
           protocol: TCP
 
 {{- end }}
-{{- if .Values.rancher.enabled }}
 ---
 # Network policy for Rancher cluster agent
+# - always create this policy in case the target cluster is intended to be a managed cluster
 # Ingress: deny all
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
@@ -311,6 +311,7 @@ spec:
       app: cattle-cluster-agent
   policyTypes:
     - Ingress
+{{- if .Values.rancher.enabled }}
 ---
 # Network policy for Rancher UI/API
 # Ingress: allow nginx ingress
@@ -362,6 +363,40 @@ spec:
     - ports:
         - port: 9443
           protocol: TCP
+{{- end }}
+{{- if .Values.argoCd.enabled}}
+---
+# Network policy for Argo CD UI/API
+# Ingress: allow nginx ingress
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: argocd
+  namespace: argocd
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-server
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: argocd
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: ingress-nginx
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: ingress-controller
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 8080
 {{- end }}
 {{- if .Values.ingressNGINX.enabled }}
 ---
@@ -638,6 +673,12 @@ spec:
           podSelector:
             matchLabels:
               name: mysql-operator
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: argocd
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: argocd
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: verrazzano-backup

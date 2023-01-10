@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -9,8 +9,6 @@ import (
 
 	"github.com/Jeffail/gabs/v2"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	operatorv1alpha1 "istio.io/api/operator/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -19,6 +17,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 	"sigs.k8s.io/yaml"
+
+	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 )
 
 const (
@@ -116,6 +117,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		CertManager:            ConvertCertManagerToV1Beta1(src.CertManager),
 		CoherenceOperator:      convertCoherenceOperatorToV1Beta1(src.CoherenceOperator),
 		ApplicationOperator:    convertApplicationOperatorToV1Beta1(src.ApplicationOperator),
+		ArgoCD:                 convertArgoCDToV1Beta1(src.ArgoCD),
 		AuthProxy:              authProxyComponent,
 		OAM:                    convertOAMToV1Beta1(src.OAM),
 		Console:                convertConsoleToV1Beta1(src.Console),
@@ -294,6 +296,7 @@ func convertOpenSearchToV1Beta1(src *ElasticsearchComponent) (*v1beta1.OpenSearc
 		Enabled:  src.Enabled,
 		Policies: src.Policies,
 		Nodes:    nodes,
+		Plugins:  src.Plugins,
 	}, nil
 }
 
@@ -620,6 +623,7 @@ func convertOSDToV1Beta1(src *KibanaComponent) *v1beta1.OpenSearchDashboardsComp
 	return &v1beta1.OpenSearchDashboardsComponent{
 		Enabled:  src.Enabled,
 		Replicas: src.Replicas,
+		Plugins:  src.Plugins,
 	}
 }
 
@@ -723,6 +727,16 @@ func convertVeleroToV1Beta1(src *VeleroComponent) *v1beta1.VeleroComponent {
 	}
 }
 
+func convertArgoCDToV1Beta1(src *ArgoCDComponent) *v1beta1.ArgoCDComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.ArgoCDComponent{
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
+	}
+}
+
 func convertVerrazzanoToV1Beta1(src *VerrazzanoComponent) (*v1beta1.VerrazzanoComponent, error) {
 	if src == nil {
 		return nil, nil
@@ -794,6 +808,7 @@ func convertVerrazzanoInstanceTo(instance *InstanceInfo) *v1beta1.InstanceInfo {
 		return nil
 	}
 	return &v1beta1.InstanceInfo{
+		ArgoCDURL:               instance.ArgoCDURL,
 		ConsoleURL:              instance.ConsoleURL,
 		KeyCloakURL:             instance.KeyCloakURL,
 		RancherURL:              instance.RancherURL,

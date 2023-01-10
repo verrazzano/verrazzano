@@ -5,6 +5,7 @@ package stop
 
 import (
 	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/scenario"
@@ -43,13 +44,13 @@ func RunCmdStop(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return fmt.Errorf("Failed to create scenario ScenarioMananger %v", err)
 	}
 
-	fmt.Printf("Stopping scenario %s\n", scenarioID)
-	msg, err := scenarioMan.StopScenarioByID(scenarioID)
+	fmt.Fprintf(vzHelper.GetOutputStream(), "Stopping scenario %s\n", scenarioID)
+	msg, err := scenarioMan.StopScenarioByID(scenarioID, vzHelper)
 	if err != nil {
 		// Cobra will display failure message
 		return fmt.Errorf("Failed to stop scenario %s/%s: %v\n%s", namespace, scenarioID, err, msg)
 	}
-	fmt.Printf("Scenario %s successfully stopped\n", scenarioID)
+	fmt.Fprintf(vzHelper.GetOutputStream(), "Scenario %s successfully stopped\n", scenarioID)
 
 	return nil
 }

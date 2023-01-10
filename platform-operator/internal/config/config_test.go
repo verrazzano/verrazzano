@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package config
@@ -25,6 +25,7 @@ func TestConfigDefaults(t *testing.T) {
 	asserts.False(conf.LeaderElectionEnabled, "LeaderElectionEnabled is incorrect")
 	asserts.Equal(":8080", conf.MetricsAddr, "MetricsAddr is incorrect")
 	asserts.Equal(int64(60), conf.HealthCheckPeriodSeconds, "Default health check period is correct")
+	asserts.Equal(int64(60), conf.MySQLCheckPeriodSeconds, "Default MySQL check period is correct")
 	asserts.True(conf.VersionCheckEnabled, "VersionCheckEnabled is incorrect")
 	asserts.False(conf.RunWebhooks, "RunWebhooks is incorrect")
 	asserts.True(conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
@@ -72,6 +73,7 @@ func TestSetConfig(t *testing.T) {
 		WebhookValidationEnabled: false,
 		VerrazzanoRootDir:        "/root",
 		HealthCheckPeriodSeconds: int64(0),
+		MySQLCheckPeriodSeconds:  int64(0),
 		DryRun:                   true,
 	})
 

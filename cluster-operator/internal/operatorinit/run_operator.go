@@ -5,11 +5,13 @@ package operatorinit
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/rancher"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
 	"go.uber.org/zap"
@@ -95,6 +97,8 @@ func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAd
 	ctx, cancel := context.WithCancel(ctrl.SetupSignalHandler())
 	go watchCattleClustersCRD(cancel, apiextv1Client, crdInstalled, log)
 
+	go startMetricsServer(log)
+
 	log.Info("starting manager")
 	if err := mgr.Start(ctx); err != nil {
 		log.Error(err, "problem running manager")
@@ -160,6 +164,21 @@ func watchCattleClustersCRD(cancel context.CancelFunc, client apiextv1.Apiextens
 			cancel()
 			return
 		}
+		time.Sleep(10 * time.Second)
+	}
+}
+
+// startMetricsServer initializes the HTTP listener for the metrics server
+func startMetricsServer(log *zap.SugaredLogger) {
+	// Start up the Prometheus Metrics Exporter server to emit operator metrics
+	http.Handle("/metrics", promhttp.Handler())
+	server := &http.Server{
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		Addr:         ":9100",
+	}
+	for err := server.ListenAndServe(); err != nil; err = server.ListenAndServe() {
+		log.Debugf("Failed to start the metrics server on port 9100: %v", err)
 		time.Sleep(10 * time.Second)
 	}
 }

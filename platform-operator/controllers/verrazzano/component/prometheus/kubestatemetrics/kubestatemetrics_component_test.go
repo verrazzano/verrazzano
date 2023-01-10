@@ -1,12 +1,13 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package kubestatemetrics
 
 import (
+	"testing"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -27,11 +28,11 @@ func TestIsEnabled(t *testing.T) {
 	}{
 		{
 			// GIVEN a default Verrazzano custom resource
-			// WHEN we call IsReady on the kube-state-metrics component
+			// WHEN we call IsEnabled on the kube-state-metrics component
 			// THEN the call returns true
 			name:       "Test IsEnabled when using default Verrazzano CR",
 			actualCR:   vzapi.Verrazzano{},
-			expectTrue: false,
+			expectTrue: true,
 		},
 		{
 			// GIVEN a Verrazzano custom resource with KubeStateMetrics enabled
@@ -94,10 +95,11 @@ func TestMonitorOverride(t *testing.T) {
 		{
 			// GIVEN a default Verrazzano custom resource
 			// WHEN we call MonitorOverride on the KubeStateMetricsComponent
-			// THEN the call returns false
+			// THEN the call returns true (since kube-state-metrics is enabled by default and
+			// monitorOverrides defaults to true)
 			name:       "Test MonitorOverride when using default Verrazzano CR",
 			actualCR:   vzapi.Verrazzano{},
-			expectTrue: false,
+			expectTrue: true,
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the KubeStateMetricsComponent enabled
