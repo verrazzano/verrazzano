@@ -5,3 +5,6 @@
 #
 
 echo Running OCR image checks ...
+VZ_IMAGE_TXT=verrazzano_images.txt
+
+cat "$VZ_IMAGE_TXT"

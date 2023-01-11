@@ -31,6 +31,8 @@ pipeline {
         GHCR_CREDS = credentials('github-packages-credentials-rw')
 
         NETRC_FILE = credentials('netrc')
+        DOCKER_REPO = 'ghcr.io'
+
     }
 
     stages {
@@ -99,6 +101,21 @@ pipeline {
             }
         stage('Compare Images from Object storage to be Published') {
             steps {
+                script {
+                    try {
+                        sh """
+                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                        """
+                    } catch(error) {
+                        echo "docker login failed, retrying after sleep"
+                        retry(4) {
+                            sleep(30)
+                            sh """
+                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                            """
+                        }
+                    }
+                }
                 script {
                     sh """
                     ${WORKSPACE}/release/scripts/validate_ocr_images.sh
