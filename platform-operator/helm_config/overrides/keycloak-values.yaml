@@ -24,14 +24,6 @@ mysql:
   enabled: true
 
 extraEnv: |
-  - name: CACHE_OWNERS
-    value: "2"
-  - name: CACHE_OWNERS_AUTH_SESSIONS_COUNT
-    value: "2"
-  - name: JGROUPS_DISCOVERY_PROTOCOL
-    value: JDBC_PING
-  - name: KC_PROXY
-    value: "passthrough"
   - name: KEYCLOAK_ADMIN
     value: "keycloakadmin"
   - name: KEYCLOAK_ADMIN_PASSWORD
@@ -45,6 +37,10 @@ extraEnv: |
       -XX:MaxRAMPercentage=50.0
       -Djava.awt.headless=true
       -Djgroups.dns.query={{ include "keycloak.fullname" . }}-headless
+
+proxy:
+  enabled: true
+  mode: passthrough
 
 database:
   vendor: mysql
