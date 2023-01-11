@@ -11,6 +11,7 @@ import (
 	k8util "github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"os/exec"
 	"strings"
 	"time"
@@ -26,78 +27,72 @@ const (
 	//ImagePullBackOff string = "ISSUE (ImagePullBackOff)"
 )
 
+var c = &kubernetes.Clientset{}
+var err error
 var t = framework.NewTestFramework("Vz Tools Analysis Image Issues")
 var _ = BeforeSuite(beforeSuite)
 var _ = t.AfterEach(func() {})
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
+	c, err = k8util.GetKubernetesClientset()
+	if err != nil {
+		Fail(err.Error())
+	}
 })
+
+func patchImage(patchImage, patchImageName, namespace string) error {
+	deploymentsClient := c.AppsV1().Deployments(namespace)
+	result, getErr := deploymentsClient.Get(context.TODO(), patchImageName, v1.GetOptions{})
+	if getErr != nil {
+		return getErr
+	}
+	for ind, i := range result.Spec.Template.Spec.Containers {
+		if i.Name == patchImageName {
+			result.Spec.Template.Spec.Containers[ind].Image = patchImage
+		}
+	}
+	_, updateErr := deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
+	if updateErr != nil {
+		return updateErr
+	}
+	return nil
+}
 
 var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 	t.Context("During Analysis", func() {
-		c, err := k8util.GetKubernetesClientset()
-		if err != nil {
-			Fail(err.Error())
-		}
-		//patch := []byte(`{"spec":{"template":{"spec":{"containers":[{"image":"ghcr.io/oracle/coherence-operator:3.YY","name":"coherence-operator"}]}}}}`)
-		deploymentsClient := c.AppsV1().Deployments("verrazzano-system")
-		result, getErr := deploymentsClient.Get(context.TODO(), "verrazzano-console", v1.GetOptions{})
-		if getErr != nil {
-			fmt.Println(getErr)
-			Fail(getErr.Error())
-		}
-		//fmt.Println(result.Spec.Template.Spec.Containers[0].Image)
-		for ind, i := range result.Spec.Template.Spec.Containers {
-			if i.Name == "verrazzano-console" {
-				result.Spec.Template.Spec.Containers[ind].Image = "ghcr.io/verrazzano/console:v1.5.X-20221118195745-5347193"
+		t.It("Should Have ImagePullNotFound Issue", func() {
+			patchErr := patchImage("ghcr.io/verrazzano/console:v1.5.X-20221118195745-5347193", "verrazzano-console", "verrazzano-console")
+			if patchErr != nil {
+				Fail(patchErr.Error())
 			}
-		}
-		_, updateErr := deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
-		if updateErr != nil {
-			fmt.Println(updateErr)
-			Fail(updateErr.Error())
-		}
-		time.Sleep(time.Second * 10)
-		out, err := RunVzAnalyze()
-		if err != nil {
-			fmt.Println(updateErr)
-			Fail(err.Error())
-		}
-		t.It("should have ImagePullNotFound issue", func() {
+			time.Sleep(time.Second * 10)
+			out, err := RunVzAnalyze()
+			if err != nil {
+				Fail(err.Error())
+			}
 			Eventually(func() bool {
-				return testIssues(out, ImagePullNotFound)
+				return verifyIssue(out, ImagePullNotFound)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
-
 		fmt.Println("going to sleep...")
 		time.Sleep(time.Second * 30)
 
-		result, getErr = deploymentsClient.Get(context.TODO(), "verrazzano-console", v1.GetOptions{})
-		if getErr != nil {
-				fmt.Println(getErr)
-				Fail(getErr.Error())
-		}
-
-		for ind, i := range result.Spec.Template.Spec.Containers {
-			if i.Name == "verrazzano-console" {
-				result.Spec.Template.Spec.Containers[ind].Image = "ghcr.io/verrazzano/console:v1.5.0-20221118195745-5347193"
+		
+		t.It("Should Not Have ImagePullNotFound Issue", func() {
+			patchErr := patchImage("ghcr.io/verrazzano/console:v1.5.0-20221118195745-5347193","verrazzano-console", "verrazzano-console")
+			if patchErr != nil {
+				Fail(patchErr.Error())
 			}
-		}
-		_, updateErr = deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
-		if updateErr != nil {
-			fmt.Println(updateErr)
-			Fail(updateErr.Error())
-		}
-		time.Sleep(time.Second * 10)
-		_, err = RunVzAnalyze()
-		if err != nil {
-			fmt.Println(err)
-			Fail(err.Error())
-		}
-
-		Eventually(func() bool {
-			return testIssues(out, ImagePullNotFound)
-		}, waitTimeout, pollingInterval).Should(BeFalse())
+			time.Sleep(time.Second * 10)
+			out1, err := RunVzAnalyze()
+			if err != nil {
+				fmt.Println(err)
+				Fail(err.Error())
+			}
+			Eventually(func() bool {
+				return verifyIssue(out1, ImagePullNotFound)
+			}, waitTimeout, pollingInterval).Should(BeFalse())
+		})
 	})
 })
 
@@ -107,7 +102,7 @@ func RunVzAnalyze() (string, error) {
 	return string(out), err
 }
 
-func testIssues(out, issueType string) bool {
+func verifyIssue(out, issueType string) bool {
 	if strings.Contains(out, issueType) {
 		return true
 	}
