@@ -31,6 +31,8 @@ pipeline {
         GHCR_CREDS = credentials('github-packages-credentials-rw')
 
         NETRC_FILE = credentials('netrc')
+        DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_EMAIL = credentials('github-packages-email')
         DOCKER_REPO = 'container-registry.oracle.com'
 
     }
