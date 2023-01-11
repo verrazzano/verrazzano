@@ -22,6 +22,8 @@ pipeline {
         string name: 'IMAGES_TO_PUBLISH_JOB_NAME', defaultValue: 'verrazzano-new-oci-dns-acceptance-tests/master', description: 'Jenkins job whose built artifacts includes the list of images to push (needed if an object store location is not available for the images to publish)', trim: true
         buildSelector name: 'IMAGES_TO_PUBLISH_BUILD', defaultSelector: latestSavedBuild(), description: 'The specific build to get the images to push artifact from (needed if an object store location is not available for the images to publish)'
         booleanParam (description: 'Indicate whether this is a dry run - no images will be pulled or pushed', name: 'DRY_RUN', defaultValue: false)
+        string (description: 'The full git commit hash from the source build', name: 'GIT_COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
+
     }
 
     environment {
@@ -31,8 +33,49 @@ pipeline {
     }
 
     stages {
-        
+        stage('Clean workspace and checkout') {
+            steps {
+                sh """
+                    echo "${NODE_LABELS}"
+                """
+                script {
+                    if (params.GIT_COMMIT_TO_USE == "NONE") {
+                        echo "Specific GIT commit was not specified, use current head"
+                        def scmInfo = checkout scm
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                    } else {
+                        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
+                        def scmInfo = checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: params.GIT_COMMIT_TO_USE]],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [],
+                            submoduleCfg: [],
+                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                        // If the commit we were handed is not what the SCM says we are using, fail
+                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
+                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+                            exit 1
+                        }
+                    }
+                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                }
+                sh """
+                    cp -f "${NETRC_FILE}" $HOME/.netrc
+                    chmod 600 $HOME/.netrc
+                """
 
+                script {
+                    def props = readProperties file: '.verrazzano-development-version'
+                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 ${params.RELEASE_COMMIT}").trim()
+                }
+            }
+        }
         stage('Get Images') {
             environment {
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
@@ -56,11 +99,7 @@ pipeline {
             steps {
                 script {
                     sh """
-                    cd ${WORKSPACE}
-                    pwd 
-                    ls -ltr
-                    cd ../
-                    ls -ltr
+                    ${WORKSPACE}/release/scripts/validate_ocr_images.sh
                     """
                 }
             }
