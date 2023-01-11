@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package cluster
 
@@ -28,4 +28,5 @@ func TestAnalyzeVerrazzanoResource(t *testing.T) {
 	assert.NoError(t, AnalyzeVerrazzanoResource(logger, "../../../test/cluster/insufficient-mem/cluster-snapshot", &issueReporter))
 	assert.NoError(t, AnalyzeVerrazzanoResource(logger, "../../../test/cluster/istio-ingress-ip-not-found/cluster-snapshot", &issueReporter))
 	assert.NoError(t, AnalyzeVerrazzanoResource(logger, "../../../test/cluster/pending-pods/cluster-snapshot", &issueReporter))
+	assert.NoError(t, AnalyzeVerrazzanoResource(logger, "../../../test/cluster/external-dns-issue/cluster-snapshot", &issueReporter))
 }

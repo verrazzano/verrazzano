@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -6,10 +6,8 @@ package rancher
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strconv"
-
+	"github.com/gertd/go-pluralize"
+	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -32,8 +30,15 @@ import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"os"
+	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strconv"
+	"strings"
 )
 
 // ComponentName is the name of the component
@@ -81,6 +86,18 @@ type rancherComponent struct {
 
 var certificates = []types.NamespacedName{
 	{Name: "tls-rancher-ingress", Namespace: ComponentNamespace},
+}
+
+// For use to override during unit tests
+type checkClusterProvisionedFuncSig func(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error)
+
+var checkClusterProvisionedFunc checkClusterProvisionedFuncSig = checkClusterProvisioned
+
+func SetCheckClusterProvisionedFunc(newFunc checkClusterProvisionedFuncSig) {
+	checkClusterProvisionedFunc = newFunc
+}
+func SetDefaultCheckClusterProvisionedFunc() {
+	checkClusterProvisionedFunc = checkClusterProvisioned
 }
 
 func NewComponent() spi.Component {
@@ -307,7 +324,7 @@ func (r rancherComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) 
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	// Block all changes for now, particularly around storage changes
+	// Do not allow disabling of component
 	if r.IsEnabled(old) && !r.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
@@ -316,7 +333,7 @@ func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (r rancherComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	// Block all changes for now, particularly around storage changes
+	// Do not allow disabling of component
 	if r.IsEnabled(old) && !r.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
@@ -441,7 +458,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// postUninstall handles the deletion of all Rancher resources after the Helm uninstall
+// PostUninstall handles the deletion of all Rancher resources after the Helm uninstall
 func (r rancherComponent) PostUninstall(ctx spi.ComponentContext) error {
 	if ctx.IsDryRun() {
 		ctx.Log().Debug("Rancher postUninstall dry run")
@@ -599,10 +616,21 @@ func checkExistingRancher(vz runtime.Object) error {
 	if !vzcr.IsRancherEnabled(vz) {
 		return nil
 	}
+
+	provisioned, err := IsClusterProvisionedByRancher()
+	if err != nil {
+		return err
+	}
+	// If the k8s cluster was provisioned by Rancher then don't check for Rancher namespaces.
+	// A Rancher provisioned cluster will have Rancher namespaces.
+	if provisioned {
+		return nil
+	}
 	client, err := k8sutil.GetCoreV1Func()
 	if err != nil {
 		return err
 	}
+
 	ns, err := client.Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil && !kerrs.IsNotFound(err) {
 		return err
@@ -611,6 +639,57 @@ func checkExistingRancher(vz runtime.Object) error {
 		return err
 	}
 	return nil
+}
+
+// IsClusterProvisionedByRancher checks if the Kubernetes cluster was provisioned by Rancher.
+func IsClusterProvisionedByRancher() (bool, error) {
+	client, err := k8sutil.GetCoreV1Func()
+	if err != nil {
+		return false, err
+	}
+	dynClient, err := k8sutil.GetDynamicClientFunc()
+	if err != nil {
+		return false, err
+	}
+
+	return checkClusterProvisionedFunc(client, dynClient)
+}
+
+// checkClusterProvisioned checks if the Kubernetes cluster was provisioned by Rancher.
+func checkClusterProvisioned(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) {
+	// Check for the "local" namespace.
+	ns, err := client.Namespaces().Get(context.TODO(), ClusterLocal, metav1.GetOptions{})
+	if kerrs.IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	// Find the management.cattle.io Cluster resource and check if the provider.cattle.io label exists.
+	for _, ownerRef := range ns.OwnerReferences {
+		group, version := controllers.ConvertAPIVersionToGroupAndVersion(ownerRef.APIVersion)
+		if group == common.APIGroupRancherManagement && ownerRef.Kind == ClusterKind {
+			resource := schema.GroupVersionResource{
+				Group:    group,
+				Version:  version,
+				Resource: pluralize.NewClient().Plural(strings.ToLower(ownerRef.Kind)),
+			}
+			u, err := dynClient.Resource(resource).Namespace("").Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
+			if err != nil {
+				return false, err
+			}
+
+			labels := u.GetLabels()
+			_, ok := labels[ProviderCattleIoLabel]
+			if ok {
+				return true, nil
+			}
+			return false, nil
+		}
+	}
+
+	return false, nil
 }
 
 // createOrUpdateRancherUser create or update the new Rancher user mapped to Keycloak user verrazzano

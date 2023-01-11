@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package reconcile
@@ -416,6 +416,13 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
+	defer func() {
+		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+		k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
+	}()
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
@@ -551,8 +558,13 @@ func TestUpgradeCompleted(t *testing.T) {
 	localAuthConfig := createLocalAuthConfig()
 	kcSecret := createKeycloakSecret()
 	firstLoginSetting := createFirstLoginSetting()
+	argoCASecret := createCASecret()
+	argoCDConfigMap := createArgoCDCM()
+	argoCDRbacConfigMap := createArgoCDRbacCM()
+	argoCDServerDeploy := createArgoCDServerDeploy()
 	rancherIngress := createIngress(common.CattleSystem, constants.RancherIngress, common.RancherName)
 	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
+	argocdIngress := createIngress(constants.ArgoCDNamespace, constants.ArgoCDIngress, common.ArgoCDName)
 	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
 	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
 	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
@@ -577,7 +589,8 @@ func TestUpgradeCompleted(t *testing.T) {
 			}},
 		rbac.NewServiceAccount(namespace, name, []string{}, nil),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
-		&rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting,
+		&rancherIngress, &kcIngress, &argocdIngress, &argoCASecret, &argoCDConfigMap, &argoCDRbacConfigMap, &argoCDServerDeploy,
+		&authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting,
 		&verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole,
 	).Build()
 
@@ -649,8 +662,13 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 	localAuthConfig := createLocalAuthConfig()
 	kcSecret := createKeycloakSecret()
 	firstLoginSetting := createFirstLoginSetting()
+	argoCASecret := createCASecret()
+	argoCDConfigMap := createArgoCDCM()
+	argoCDRbacConfigMap := createArgoCDRbacCM()
+	argoCDServerDeploy := createArgoCDServerDeploy()
 	rancherIngress := createIngress(common.CattleSystem, constants.RancherIngress, common.RancherName)
 	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
+	argocdIngress := createIngress(constants.ArgoCDNamespace, constants.ArgoCDIngress, common.ArgoCDName)
 	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
 	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
 	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
@@ -676,7 +694,8 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 			}},
 		rbac.NewServiceAccount(namespace, name, []string{}, nil),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
-		&rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting,
+		&rancherIngress, &kcIngress, &argocdIngress, &argoCASecret, &argoCDConfigMap, &argoCDRbacConfigMap, &argoCDServerDeploy,
+		&authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting,
 		&verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole,
 	).Build()
 
