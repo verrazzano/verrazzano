@@ -58,6 +58,8 @@ pipeline {
                     sh """
                     cd ${WORKSPACE}/release/scripts
                     ./validate_ocr_images.sh
+                    pwd 
+                    ls -ltr
                     """
                 }
             }
