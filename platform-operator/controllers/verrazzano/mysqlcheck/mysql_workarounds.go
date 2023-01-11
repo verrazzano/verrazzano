@@ -290,7 +290,7 @@ func (mc *MySQLChecker) RepairMySQLRouterPodsCrashLoopBackoff() error {
 
 // restartMySQLOperator - restart the MySQL Operator pod
 func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client, reason string) error {
-	log.Info("Restarting the mysql-operator to see if it will repair: %s", reason)
+	log.Infof("Restarting the mysql-operator to see if it will repair: %s", reason)
 
 	operPod, err := getMySQLOperatorPod(log, client)
 	if err != nil {
