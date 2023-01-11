@@ -70,6 +70,9 @@ func (mc *MySQLChecker) Start() {
 				if err = mc.RepairMySQLPodsWaitingReadinessGates(); err != nil {
 					mc.log.ErrorfThrottled("Failed to repair MySQL pods waiting for readiness gates: %v", err)
 				}
+				if err = mc.RepairMySQLRouterPodsCrashLoopBackoff(); err != nil {
+					mc.log.ErrorfThrottled("Failed to repair mysql-router pods stuck in CrashLoopBackoff: %v", err)
+				}
 			case <-mc.shutdown:
 				// shutdown event causes termination
 				ticker.Stop()
