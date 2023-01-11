@@ -30,6 +30,8 @@ pipeline {
         OCR_CREDS = credentials('ocr-credentials-for-release')
         OCR_ADMIN_CREDS = credentials('ocr-credentials-for-release')
         GHCR_CREDS = credentials('github-packages-credentials-rw')
+
+        NETRC_FILE = credentials('netrc')
     }
 
     stages {
@@ -76,6 +78,7 @@ pipeline {
                 }
             }
         }
+
         stage('Get Images') {
             environment {
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
