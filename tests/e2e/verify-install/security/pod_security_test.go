@@ -39,6 +39,9 @@ var skipPods = map[string][]string{
 		"vmi-system",
 		"weblogic-operator",
 	},
+	"verrazzano-monitoring": {
+		"jaeger",
+	},
 	"verrazzano-backup": {
 		"restic",
 	},
