@@ -43,9 +43,9 @@ func patchImage(patchImage, patchImageName, namespace string) error {
 	if getErr != nil {
 		return getErr
 	}
-	for ind, i := range result.Spec.Template.Spec.Containers {
-		if i.Name == patchImageName {
-			result.Spec.Template.Spec.Containers[ind].Image = patchImage
+	for i, container := range result.Spec.Template.Spec.Containers {
+		if container.Name == patchImageName {
+			result.Spec.Template.Spec.Containers[i].Image = patchImage
 		}
 	}
 	_, updateErr := deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
@@ -56,7 +56,7 @@ func patchImage(patchImage, patchImageName, namespace string) error {
 }
 
 var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
-	t.Context("During Analysis", func() {
+	t.Context("During Image Issue Analysis", func() {
 		imageTobePatched := []string{"ghcr.io/verrazzano/console:v1.5.X-20221118195745-5347193", "ghcr.io/verrazzano/console:v1.5.0-20221118195745-5347193"}
 		out := make([]string, len(imageTobePatched))
 		for i := 0; i < len(imageTobePatched); i++ {
@@ -64,7 +64,7 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 			if patchErr != nil {
 				Fail(patchErr.Error())
 			}
-			time.Sleep(time.Second * waitTimeout)
+			time.Sleep(waitTimeout)
 			out[i], err = RunVzAnalyze()
 			if err != nil {
 				Fail(err.Error())
