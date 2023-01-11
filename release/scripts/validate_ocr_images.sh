@@ -18,5 +18,5 @@ for image in "$IMAGES"; do
     # docker image inspect "$DOCKER_REPO"/"$IMAGE_NAME_AND_TAG"
 done
 
-docker image inspect "$DOCKER_REPO"/verrazzano/example-bobbys-coherence:1.0.0-1-20210728181814-eb1e622
-docker image inspect "$DOCKER_REPO"/verrazzano/example-bobbys-front-end:1.0.0-1-20220608153526-843e168
+docker pull "$DOCKER_REPO"/verrazzano/example-bobbys-coherence:1.0.0-1-20210728181814-eb1e622
+docker pull "$DOCKER_REPO"/verrazzano/example-bobbys-front-end:1.0.0-1-20220608153526-843e168
