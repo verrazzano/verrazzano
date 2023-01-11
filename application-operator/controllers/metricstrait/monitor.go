@@ -6,9 +6,9 @@ package metricstrait
 import (
 	"context"
 
+	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/internal/metrics"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -66,8 +66,8 @@ func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.Metr
 
 	// Populate the keep labels to match the oam pod labels
 	scrapeInfo.KeepLabels = map[string]string{
-		"__meta_kubernetes_pod_label_app_oam_dev_name":      trait.Labels[constants.AppObjectMetaLabel],
-		"__meta_kubernetes_pod_label_app_oam_dev_component": trait.Labels[constants.CompObjectMetaLabel],
+		"__meta_kubernetes_pod_label_app_oam_dev_name":      trait.Labels[oam.LabelAppName],
+		"__meta_kubernetes_pod_label_app_oam_dev_component": trait.Labels[oam.LabelAppComponent],
 	}
 
 	serviceMonitor := promoperapi.ServiceMonitor{}

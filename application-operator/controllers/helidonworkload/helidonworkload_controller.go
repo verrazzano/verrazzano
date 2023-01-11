@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helidonworkload
@@ -12,7 +12,6 @@ import (
 
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
@@ -278,9 +277,9 @@ func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelid
 				Name:      deploy.GetName(),
 				Namespace: deploy.GetNamespace(),
 				Labels: map[string]string{
-					labelKey:                      string(workload.GetUID()),
-					constants.AppObjectMetaLabel:  deploy.ObjectMeta.Labels[constants.AppObjectMetaLabel],
-					constants.CompObjectMetaLabel: deploy.ObjectMeta.Labels[constants.CompObjectMetaLabel],
+					labelKey:              string(workload.GetUID()),
+					oam.LabelAppName:      deploy.ObjectMeta.Labels[oam.LabelAppName],
+					oam.LabelAppComponent: deploy.ObjectMeta.Labels[oam.LabelAppComponent],
 				},
 			},
 			Spec: corev1.ServiceSpec{

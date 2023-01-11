@@ -13,6 +13,7 @@ import (
 
 	gabs "github.com/Jeffail/gabs/v2"
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -776,7 +777,7 @@ func MutateLabels(trait *vzapi.MetricsTrait, workload *unstructured.Unstructured
 	mutated := labels
 	// If the trait is not being deleted, copy specific labels from the trait.
 	if trait.DeletionTimestamp.IsZero() {
-		mutated = copyStringMapEntries(mutated, trait.Labels, constants.AppObjectMetaLabel, constants.CompObjectMetaLabel)
+		mutated = copyStringMapEntries(mutated, trait.Labels, oam.LabelAppName, oam.LabelAppComponent)
 	}
 	return mutated
 }
@@ -810,8 +811,8 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 			portOrderStr = strconv.Itoa(portIncrement)
 		}
 		context := map[string]string{
-			appNameHolder:       trait.Labels[constants.AppObjectMetaLabel],
-			compNameHolder:      trait.Labels[constants.CompObjectMetaLabel],
+			appNameHolder:       trait.Labels[oam.LabelAppName],
+			compNameHolder:      trait.Labels[oam.LabelAppComponent],
 			jobNameHolder:       job,
 			portOrderHolder:     portOrderStr,
 			namespaceHolder:     trait.Namespace,
@@ -886,7 +887,7 @@ func (r *Reconciler) removedTraitReferencesFromOwner(ctx context.Context, ownerR
 						log.Debugf("Unable to convert trait for component: %s of application configuration: %s/%s, error: %v", component.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
 					} else {
 						if componentTraitUnstructured.GetAPIVersion() == trait.APIVersion && componentTraitUnstructured.GetKind() == trait.Kind {
-							if compName, ok := trait.Labels[constants.CompObjectMetaLabel]; ok && compName == component.ComponentName {
+							if compName, ok := trait.Labels[oam.LabelAppComponent]; ok && compName == component.ComponentName {
 								log.Infof("Removing trait %s/%s for component: %s of application configuration: %s/%s", componentTraitUnstructured.GetAPIVersion(), componentTraitUnstructured.GetKind(), component.ComponentName, appConfig.GetNamespace(), appConfig.GetName())
 								remainingTraits = remainingTraits[:len(remainingTraits)-1]
 							}

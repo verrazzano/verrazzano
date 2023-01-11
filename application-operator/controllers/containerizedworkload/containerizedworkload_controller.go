@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package containerizedworkload
@@ -6,17 +6,19 @@ package containerizedworkload
 import (
 	"context"
 	errors "errors"
+
+	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
-
-	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/types"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -84,6 +86,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 // doReconcile performs the reconciliation operations for the ContainerizedWorkload
 func (r *Reconciler) doReconcile(ctx context.Context, workload oamv1.ContainerizedWorkload, log vzlog2.VerrazzanoLogger) (ctrl.Result, error) {
+	// Label the service with the OAM app and component, if the service exists. Errors will be logged in the method, we still
+	// need to process restart annotation even if there's an error
+	r.updateServiceLabels(ctx, workload, log)
+
 	// get the user-specified restart version - if it's missing then there's nothing to do here
 	restartVersion, ok := workload.Annotations[vzconst.RestartVersionAnnotation]
 	if !ok || len(restartVersion) == 0 {
@@ -116,4 +122,53 @@ func (r *Reconciler) restartWorkload(ctx context.Context, restartVersion string,
 		}
 	}
 	return nil
+}
+
+// updateServiceLabels looks up the Service associated with the workload, and updates its OAM
+// app and component labels if needed. Any errors will be logged and not returned since we don't want
+// this to fail anything.
+func (r *Reconciler) updateServiceLabels(ctx context.Context, workload oamv1.ContainerizedWorkload, log vzlog2.VerrazzanoLogger) {
+	svc, err := r.getWorkloadService(ctx, workload, log)
+	if err != nil {
+		return
+	}
+	if svc == nil {
+		return
+	}
+	if svc.Labels == nil {
+		svc.Labels = map[string]string{}
+	}
+	if svc.Labels[oam.LabelAppName] == workload.Labels[oam.LabelAppName] &&
+		svc.Labels[oam.LabelAppComponent] == workload.Labels[oam.LabelAppComponent] {
+		// nothing to do, return
+		return
+	}
+	log.Infof("Updating service OAM app and component labels for %s/%s", svc.Namespace, svc.Name)
+	svc.Labels[oam.LabelAppName] = workload.Labels[oam.LabelAppName]
+	svc.Labels[oam.LabelAppComponent] = workload.Labels[oam.LabelAppComponent]
+	err = r.Update(ctx, svc)
+	if err != nil {
+		log.Errorf("Failed to update Service %s for ContainerizedWorkload %s/%s: %v", svc.Name, workload.Namespace, workload.Name, err)
+	}
+}
+
+// getWorkloadService retrieves the Service associated with the workload
+func (r *Reconciler) getWorkloadService(ctx context.Context, workload oamv1.ContainerizedWorkload, log vzlog2.VerrazzanoLogger) (*corev1.Service, error) {
+	service := corev1.Service{}
+	svcName := ""
+	for _, res := range workload.Status.Resources {
+		if res.Kind == service.Kind && res.APIVersion == service.APIVersion {
+			svcName = res.Name
+		}
+	}
+	if svcName == "" {
+		log.Errorf("Service does not exist in status of ContainerizedWorkload %s/%s", workload.Namespace, workload.Name)
+		return nil, nil
+	}
+	svc := corev1.Service{}
+	if err := r.Get(ctx, types.NamespacedName{Name: svcName, Namespace: workload.Namespace}, &svc); err != nil {
+		log.Errorf("Failed to retrieve Service %s for ContainerizedWorkload %s/%s: %v", svcName, workload.Namespace, workload.Name, err)
+		return nil, err
+	}
+	return &svc, nil
 }
