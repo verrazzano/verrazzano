@@ -120,15 +120,14 @@ pipeline {
             steps {
                 script {
                     sh """
-                    ${WORKSPACE}/release/scripts/validate_ocr_images.sh
-                    echo Running OCR image checks ...
-                    VZ_IMAGE_TXT=verrazzano_images.txt
-                    IMAGES=$(cat "$VZ_IMAGE_TXT")
+                        echo Running OCR image checks ...
+                        VZ_IMAGE_TXT=verrazzano_images.txt
+                        IMAGES=$(cat "$VZ_IMAGE_TXT")
 
-                    for image in "$IMAGES"; do
-                        echo "$image" | awk -F '[/]' '{print $2}'
-                        docker manifest inspect "$image"
-                    done
+                        for image in "$IMAGES"; do
+                            echo "$image" | awk -F '[/]' '{print $2}'
+                            docker manifest inspect "$image"
+                        done
                     """
                 }
             }
