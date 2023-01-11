@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -95,7 +94,6 @@ func eventuallyGetArgocdAdminPassword(log *zap.SugaredLogger) (string, error) {
 func getArgoCDUserToken(log *zap.SugaredLogger, argoCDURL string, username string, password string, httpClient *retryablehttp.Client) (string, error) {
 	argoCDLoginURL := fmt.Sprintf("%s/%s", argoCDURL, "api/v1/session")
 	payload := `{"Username": "` + username + `", "Password": "` + password + `"}`
-	//http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	response, err := httpClient.Post(argoCDLoginURL, "application/json", strings.NewReader(payload))
 	if err != nil {
 		log.Error(fmt.Sprintf("Error getting argocd admin token: %v", err))
@@ -124,25 +122,6 @@ func getArgoCDUserToken(log *zap.SugaredLogger, argoCDURL string, username strin
 	}
 
 	return token, nil
-}
-
-// GetArgoCDURL fetches the Argocd URL from the cluster
-func GetArgoCDURL(log *zap.SugaredLogger) (string, error) {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		log.Errorf("Failed to get kubeconfigPath with error: %v", err)
-		return "", err
-	}
-	api, err := GetAPIEndpoint(kubeconfigPath)
-	if err != nil {
-		log.Errorf("Unable to fetch api endpoint due to %v", zap.Error(err))
-		return "", err
-	}
-	ingress, err := api.GetIngress("argocd", "argocd-server")
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host), nil
 }
 
 func GetApplicationsWithClient(log *zap.SugaredLogger, argoCDURL string, token string) (bool, error) {
