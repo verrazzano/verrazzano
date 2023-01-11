@@ -18,11 +18,12 @@ pipeline {
     }
     parameters {
         string name: 'RELEASE_UTILS_BRANCH', defaultValue: 'master', description: 'Branch or tag or commit to checkout from the release utils repo', trim: true
-        string name: 'IMAGES_TO_PUBLISH_OBJECT_STORE_FILE', description: 'The object store file from which to get the list of images to be published to OCR (if provided, IMAGES_TO_PUBLISH_JOB_NAME and IMAGES_TO_PUBLISH_BUILD are ignored)'
+        string name: 'IMAGES_TO_PUBLISH_OBJECT_STORE_FILE', description: 'The object store file from which to get the list of images to be published to OCR (if provided, IMAGES_TO_PUBLISH_JOB_NAME and IMAGES_TO_PUBLISH_BUILD are ignored)', defaultValue: 'release-1.4/verrazzano_1.4.3-images.txt'
         string name: 'IMAGES_TO_PUBLISH_JOB_NAME', defaultValue: 'verrazzano-new-oci-dns-acceptance-tests/master', description: 'Jenkins job whose built artifacts includes the list of images to push (needed if an object store location is not available for the images to publish)', trim: true
         buildSelector name: 'IMAGES_TO_PUBLISH_BUILD', defaultSelector: latestSavedBuild(), description: 'The specific build to get the images to push artifact from (needed if an object store location is not available for the images to publish)'
         booleanParam (description: 'Indicate whether this is a dry run - no images will be pulled or pushed', name: 'DRY_RUN', defaultValue: false)
         string (description: 'The full git commit hash from the source build', name: 'GIT_COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
+        string (description: 'The source commit for the release (required for full release)', name: 'RELEASE_COMMIT', defaultValue: 'NONE', trim: true )
 
     }
 
