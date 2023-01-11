@@ -84,14 +84,13 @@ controller:
     seccompProfile:
       type: RuntimeDefault
   containerSecurityContext:
-    securityContext:
-      allowPrivilegeEscalation: false
-      capabilities:
-        add:
-          - NET_BIND_SERVICE
-        drop:
-          - ALL
-      privileged: false
+    allowPrivilegeEscalation: false
+    capabilities:
+      add:
+        - NET_BIND_SERVICE
+      drop:
+        - ALL
+    privileged: false
 
 defaultBackend:
   # NOTE: The image you're looking for isn't here. The nginx-ingress-default-backend image now comes from
@@ -275,9 +274,8 @@ defaultBackend:
       type: RuntimeDefault
 
   containerSecurityContext:
-    securityContext:
-      allowPrivilegeEscalation: false
-      capabilities:
-        drop:
-          - ALL
-      privileged: false
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    privileged: false
