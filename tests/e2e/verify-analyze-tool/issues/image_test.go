@@ -22,8 +22,8 @@ var (
 )
 
 const (
-	ImagePullNotFound string = "ImagePullNotFound"
-	//ImagePullBackOff string = "ImagePullBackOff"
+	ImagePullNotFound string = "ISSUE (ImagePullNotFound)"
+	//ImagePullBackOff string = "ISSUE (ImagePullBackOff)"
 )
 
 var t = framework.NewTestFramework("Vz Tools Analysis Image Issues")
@@ -57,6 +57,7 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 			fmt.Println(updateErr)
 			Fail(updateErr.Error())
 		}
+		time.Sleep(time.Second * 10)
 		out, err := RunVzAnalyze()
 		if err != nil {
 			fmt.Println(updateErr)
@@ -69,7 +70,7 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 		})
 
 		fmt.Println("going to sleep...")
-		time.Sleep(time.Second * 60)
+		time.Sleep(time.Second * 30)
 
 		result, getErr = deploymentsClient.Get(context.TODO(), "verrazzano-console", v1.GetOptions{})
 		if getErr != nil {
@@ -87,16 +88,16 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 			fmt.Println(updateErr)
 			Fail(updateErr.Error())
 		}
+		time.Sleep(time.Second * 10)
 		_, err = RunVzAnalyze()
 		if err != nil {
 			fmt.Println(err)
 			Fail(err.Error())
 		}
-		/*
+
 		Eventually(func() bool {
-			return testIssues(out, ImagePullBackOff)
+			return testIssues(out, ImagePullNotFound)
 		}, waitTimeout, pollingInterval).Should(BeFalse())
-		*/
 	})
 })
 
