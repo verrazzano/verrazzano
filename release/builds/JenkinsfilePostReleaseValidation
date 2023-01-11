@@ -121,6 +121,7 @@ pipeline {
                 script {
                     sh """
                         ${WORKSPACE}/release/scripts/validate_ocr_images.sh
+                        docker manifest inspect alertmanager:v0.24.0-20221206192620-fb73d30f
                     """
                 }
             }
