@@ -15,8 +15,6 @@ echo "$OCR_CREDS_PSW" | docker login "$DOCKER_REPO" -u "$OCR_CREDS_USR" --passwo
 echo Running docker image inspect ...
 for image in "$IMAGES"; do
     IMAGE_NAME_AND_TAG=$(echo "$image")
+    docker pull "$DOCKER_REPO"/"$IMAGE_NAME_AND_TAG"
     # docker image inspect "$DOCKER_REPO"/"$IMAGE_NAME_AND_TAG"
 done
-
-docker pull "$DOCKER_REPO"/verrazzano/example-bobbys-coherence:1.0.0-1-20210728181814-eb1e622
-docker pull "$DOCKER_REPO"/verrazzano/example-bobbys-front-end:1.0.0-1-20220608153526-843e168

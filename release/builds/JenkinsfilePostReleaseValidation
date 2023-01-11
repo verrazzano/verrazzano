@@ -79,21 +79,6 @@ pipeline {
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                 }
-                script {
-                    try {
-                        sh """
-                            echo "${OCR_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${OCR_CREDS_USR} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                            echo "${OCR_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${OCR_CREDS_USR} --password-stdin
-                            """
-                        }
-                    }
-                }
             }
         }
 
@@ -121,7 +106,6 @@ pipeline {
                 script {
                     sh """
                         ${WORKSPACE}/release/scripts/validate_ocr_images.sh
-                        docker manifest inspect alertmanager:v0.24.0-20221206192620-fb73d30f
                     """
                 }
             }
