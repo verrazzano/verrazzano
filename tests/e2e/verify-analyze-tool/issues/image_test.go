@@ -5,13 +5,11 @@ package issues
 
 import (
 	"context"
-	"fmt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	k8util "github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	//	"k8s.io/client-go/kubernetes"
 	"os/exec"
 	"strings"
 	"time"
@@ -27,7 +25,6 @@ const (
 	//ImagePullBackOff string = "ISSUE (ImagePullBackOff)"
 )
 
-//var c = &kubernetes.Clientset{}
 var err error
 var t = framework.NewTestFramework("Vz Tools Analysis Image Issues")
 var _ = BeforeSuite(beforeSuite)
@@ -44,7 +41,6 @@ func patchImage(patchImage, patchImageName, namespace string) error {
 	deploymentsClient := c.AppsV1().Deployments(namespace)
 	result, getErr := deploymentsClient.Get(context.TODO(), patchImageName, v1.GetOptions{})
 	if getErr != nil {
-		fmt.Println(getErr)
 		return getErr
 	}
 	for ind, i := range result.Spec.Template.Spec.Containers {
@@ -54,7 +50,6 @@ func patchImage(patchImage, patchImageName, namespace string) error {
 	}
 	_, updateErr := deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
 	if updateErr != nil {
-		fmt.Println(updateErr)
 		return updateErr
 	}
 	return nil
@@ -64,7 +59,7 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 	t.Context("During Analysis", func() {
 		imageTobePatched := []string{"ghcr.io/verrazzano/console:v1.5.X-20221118195745-5347193", "ghcr.io/verrazzano/console:v1.5.0-20221118195745-5347193"}
 		out := make([]string, len(imageTobePatched))
-		for i:=0; i<len(imageTobePatched) ; i++ {
+		for i := 0; i < len(imageTobePatched); i++ {
 			patchErr := patchImage(imageTobePatched[i], "verrazzano-console", "verrazzano-system")
 			if patchErr != nil {
 				Fail(patchErr.Error())
