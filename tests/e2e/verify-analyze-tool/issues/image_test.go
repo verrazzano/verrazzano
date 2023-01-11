@@ -11,7 +11,7 @@ import (
 	k8util "github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	//	"k8s.io/client-go/kubernetes"
 	"os/exec"
 	"strings"
 	"time"
@@ -27,23 +27,24 @@ const (
 	//ImagePullBackOff string = "ISSUE (ImagePullBackOff)"
 )
 
-var c = &kubernetes.Clientset{}
+//var c = &kubernetes.Clientset{}
 var err error
 var t = framework.NewTestFramework("Vz Tools Analysis Image Issues")
 var _ = BeforeSuite(beforeSuite)
 var _ = t.AfterEach(func() {})
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
-	c, err = k8util.GetKubernetesClientset()
-	if err != nil {
-		Fail(err.Error())
-	}
 })
 
 func patchImage(patchImage, patchImageName, namespace string) error {
+	c, err := k8util.GetKubernetesClientset()
+	if err != nil {
+		Fail(err.Error())
+	}
 	deploymentsClient := c.AppsV1().Deployments(namespace)
 	result, getErr := deploymentsClient.Get(context.TODO(), patchImageName, v1.GetOptions{})
 	if getErr != nil {
+		fmt.Println(getErr)
 		return getErr
 	}
 	for ind, i := range result.Spec.Template.Spec.Containers {
@@ -53,6 +54,7 @@ func patchImage(patchImage, patchImageName, namespace string) error {
 	}
 	_, updateErr := deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
 	if updateErr != nil {
+		fmt.Println(updateErr)
 		return updateErr
 	}
 	return nil
@@ -60,37 +62,32 @@ func patchImage(patchImage, patchImageName, namespace string) error {
 
 var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 	t.Context("During Analysis", func() {
-		t.It("Should Have ImagePullNotFound Issue", func() {
-			patchErr := patchImage("ghcr.io/verrazzano/console:v1.5.X-20221118195745-5347193", "verrazzano-console", "verrazzano-console")
+		imageTobePatched := []string{"ghcr.io/verrazzano/console:v1.5.X-20221118195745-5347193", "ghcr.io/verrazzano/console:v1.5.0-20221118195745-5347193"}
+		out := make([]string, len(imageTobePatched))
+		for i:=0; i<len(imageTobePatched) ; i++ {
+			patchErr := patchImage(imageTobePatched[i], "verrazzano-console", "verrazzano-system")
 			if patchErr != nil {
 				Fail(patchErr.Error())
 			}
-			time.Sleep(time.Second * 10)
-			out, err := RunVzAnalyze()
+			time.Sleep(time.Second * waitTimeout)
+			out[i], err = RunVzAnalyze()
 			if err != nil {
 				Fail(err.Error())
 			}
+			if i == 1 {
+				continue
+			}
+			time.Sleep(time.Second * 30)
+		}
+		t.It("Should Have ImagePullNotFound Issue Post Bad Image Inject", func() {
 			Eventually(func() bool {
-				return verifyIssue(out, ImagePullNotFound)
+				return verifyIssue(out[0], ImagePullNotFound)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
-		fmt.Println("going to sleep...")
-		time.Sleep(time.Second * 30)
 
-		
-		t.It("Should Not Have ImagePullNotFound Issue", func() {
-			patchErr := patchImage("ghcr.io/verrazzano/console:v1.5.0-20221118195745-5347193","verrazzano-console", "verrazzano-console")
-			if patchErr != nil {
-				Fail(patchErr.Error())
-			}
-			time.Sleep(time.Second * 10)
-			out1, err := RunVzAnalyze()
-			if err != nil {
-				fmt.Println(err)
-				Fail(err.Error())
-			}
+		t.It("Should Not Have ImagePullNotFound Issue Post Correct Image Inject", func() {
 			Eventually(func() bool {
-				return verifyIssue(out1, ImagePullNotFound)
+				return verifyIssue(out[1], ImagePullNotFound)
 			}, waitTimeout, pollingInterval).Should(BeFalse())
 		})
 	})
