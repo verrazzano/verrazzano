@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package keycloak
@@ -35,6 +35,7 @@ const (
 	kialiURI          = "kiali.vmi.system."
 	verrazzanoURI     = "verrazzano."
 	rancherURI        = "rancher."
+	kcAdminScript     = "/opt/keycloak/bin/kcadm.sh"
 )
 
 // KeycloakClients represents an array of clients currently configured in Keycloak
@@ -249,7 +250,7 @@ var _ = t.Describe("Verify client role", Label("f:platform-lcm.install"), func()
 })
 
 func verifyKeycloakVerrazzanoRealmPasswordPolicyIsCorrect() bool {
-	return verifyKeycloakRealmPasswordPolicyIsCorrect("verrazzano-system")
+	return verifyKeycloakRealmPasswordPolicyIsCorrect(vzSysRealm)
 }
 
 func verifyKeycloakMasterRealmPasswordPolicyIsCorrect() bool {
@@ -319,7 +320,7 @@ func verifyKeycloakClientURIs() bool {
 	}
 
 	// Get the Client ID JSON array
-	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "clients", "-r", "verrazzano-system", "--fields", "id,clientId")
+	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", kcAdminScript, "get", "clients", "-r", vzSysRealm, "--fields", "id,clientId")
 	out, err := cmd.Output()
 	if err != nil {
 		t.Logs.Error(fmt.Printf("Error retrieving ID for client ID, zero length: %s\n", err))
@@ -408,7 +409,7 @@ func getKeycloakClientByClientID(keycloakClients KeycloakClients, clientID strin
 
 	// Get the client Info
 	client := "clients/" + id
-	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", client, "-r", "verrazzano-system")
+	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", kcAdminScript, "get", client, "-r", vzSysRealm)
 	out, err := cmd.Output()
 	if err != nil {
 		err := fmt.Errorf("error retrieving clientID json: %s", err)
@@ -570,7 +571,7 @@ func loginKeycloak() bool {
 
 	// Login to Keycloak
 	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--",
-		"/opt/jboss/keycloak/bin/kcadm.sh", "config", "credentials", "--server", "http://localhost:8080/auth", "--realm", "master", "--user", "keycloakadmin", "--password", keycloakpw)
+		kcAdminScript, "config", "credentials", "--server", "http://localhost:8080/auth", "--realm", "master", "--user", "keycloakadmin", "--password", keycloakpw)
 	_, err = cmd.Output()
 	if err != nil {
 		t.Logs.Error(fmt.Printf("Error logging into Keycloak: %s\n", err))
@@ -589,7 +590,7 @@ func verifyUserClientRole(user, userRole string) bool {
 	}
 
 	// Get the roles for the user
-	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get-roles", "-r", vzSysRealm, "--uusername", user, "--cclientid", realmMgmt, "--effective", "--fields", "name")
+	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", kcAdminScript, "get-roles", "-r", vzSysRealm, "--uusername", user, "--cclientid", realmMgmt, "--effective", "--fields", "name")
 	out, err := cmd.Output()
 	if err != nil {
 		t.Logs.Error(fmt.Printf("Error retrieving client role for the user %s: %s\n", vzUser, err.Error()))
