@@ -272,10 +272,3 @@ defaultBackend:
     runAsNonRoot: true
     seccompProfile:
       type: RuntimeDefault
-
-  containerSecurityContext:
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop:
-        - ALL
-    privileged: false
