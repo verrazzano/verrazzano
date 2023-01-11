@@ -280,3 +280,45 @@ func newInnoDBCluster(status string) *unstructured.Unstructured {
 	_ = unstructured.SetNestedField(innoDBCluster.Object, status, innoDBClusterStatusFields...)
 	return &innoDBCluster
 }
+
+// RepairMySQLRouterPodsCrashLoopBackoff tests the temporary workaround for mysql-router
+// pods getting stuck in CrashLoopBackoff state.
+// GIVEN a mysql-router pod
+// WHEN it is in state CrashLoopBackoff
+// THEN delete the pod
+func TestRepairMySQLRouterPodsCrashLoopBackoff(t *testing.T) {
+	routerName := "mysql-router-0"
+	mySQLRouterPod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      routerName,
+			Namespace: componentNamespace,
+			Labels: map[string]string{
+				mySQLComponentLabel: mysqlRouterComponentName,
+			},
+		},
+		Status: v1.PodStatus{
+			ContainerStatuses: []v1.ContainerStatus{
+				{
+					State: v1.ContainerState{
+						Waiting: &v1.ContainerStateWaiting{
+							Reason: "CrashLoopBackOff",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLRouterPod).Build()
+	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
+	mysqlCheck, err := NewMySQLChecker(fakeCtx.Client(), time.Duration(MySQLCheckPeriodSeconds)*time.Second)
+	assert.NoError(t, err)
+	err = mysqlCheck.RepairMySQLRouterPodsCrashLoopBackoff()
+	assert.NoError(t, err)
+
+	pod := v1.Pod{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: routerName}, &pod)
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
+
+}
