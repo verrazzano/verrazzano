@@ -77,6 +77,22 @@ controller:
     # default to false to prevent conflicts.
     default: false
     controllerValue: "k8s.io/verrazzano-ingress-nginx"
+  podSecurityContext:
+    runAsUser: 101  # www-data container user
+    runAsGroup: 101 # www-data container group
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        add:
+          - NET_BIND_SERVICE
+        drop:
+          - ALL
+      privileged: false
+
 defaultBackend:
   # NOTE: The image you're looking for isn't here. The nginx-ingress-default-backend image now comes from
   # the bill of materials file (verrazzano-bom.json).
@@ -250,3 +266,18 @@ defaultBackend:
             path: 504.json
           - key: 505.json
             path: 505.json
+
+  podSecurityContext:
+    runAsUser: 65534  # nobody container user
+    runAsGroup: 65534 # nobody container group
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+
+  containerSecurityContext:
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      privileged: false
