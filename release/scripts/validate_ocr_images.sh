@@ -14,5 +14,7 @@ for image in "$IMAGES"; do
     # docker manifest inspect "$IMAGE_NAME_AND_TAG"
 done
 
-echo Running manifest inspect
+echo Running manifest inspect . . .
+echo "$OCR_CREDS_PSW" | docker login "$DOCKER_REPO" -u "$OCR_CREDS_USR" --password-stdin
+
 docker manifest inspect alertmanager:v0.24.0-20221206192620-fb73d30f
