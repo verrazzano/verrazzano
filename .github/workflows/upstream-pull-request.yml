@@ -27,13 +27,3 @@ jobs:
           echo 'EOF' >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Approve PR
-        run: gh pr review --approve "${{ env.PR_URL }}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Enable Automatic Merge
-        run: gh pr merge --auto --squash "${{ env.PR_URL }}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
