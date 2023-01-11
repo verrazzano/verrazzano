@@ -59,6 +59,8 @@ pipeline {
                     cd ${WORKSPACE}
                     pwd 
                     ls -ltr
+                    cd ../
+                    ls -ltr
                     """
                 }
             }
