@@ -16,6 +16,10 @@ const (
 	channelBufferSize = 100
 )
 
+// mySQLChecker - holds global instance of MySQLChecker.  Required by MySQL workaround
+// functions that don't have access to the MySQLChecker context.
+var mySQLChecker *MySQLChecker
+
 // MySQLChecker periodically checks the state of MySQL related pods and repairs
 // any that are found to be in a stuck state (e.g. terminating, waiting for readiness gates).
 type MySQLChecker struct {
@@ -40,12 +44,18 @@ func NewMySQLChecker(c clipkg.Client, tick time.Duration, timeout time.Duration)
 		return nil, err
 	}
 
-	return &MySQLChecker{
+	mySQLChecker = &MySQLChecker{
 		client:        c,
 		tickTime:      tick,
 		RepairTimeout: timeout,
 		log:           log,
-	}, nil
+	}
+	return mySQLChecker, nil
+}
+
+// GetMySQLChecker - returns the value of mySQLChecker
+func GetMySQLChecker() *MySQLChecker {
+	return mySQLChecker
 }
 
 // Start starts the MySQLChecker if it is not already running.

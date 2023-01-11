@@ -29,7 +29,6 @@ const (
 	componentNamespace       = "keycloak"
 	componentName            = "mysql"
 	mysqlRouterComponentName = "mysqlrouter"
-	repairTimeoutPeriod      = 2 * time.Minute
 )
 
 var (
@@ -118,7 +117,7 @@ func RepairICStuckDeleting(ctx spi.ComponentContext) error {
 	}
 
 	// Initiate repair only if time to wait period has been exceeded
-	expiredTime := getInitialTimeICUninstallChecked().Add(repairTimeoutPeriod)
+	expiredTime := getInitialTimeICUninstallChecked().Add(GetMySQLChecker().RepairTimeout)
 	if time.Now().After(expiredTime) {
 		return restartMySQLOperator(ctx.Log(), ctx.Client(), "InnoDBCluster stuck deleting")
 	}
