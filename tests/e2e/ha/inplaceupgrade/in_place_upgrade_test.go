@@ -18,15 +18,11 @@ import (
 	"github.com/oracle/oci-go-sdk/v53/common/auth"
 	ocice "github.com/oracle/oci-go-sdk/v53/containerengine"
 	ocicore "github.com/oracle/oci-go-sdk/v53/core"
-	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	hacommon "github.com/verrazzano/verrazzano/tests/e2e/pkg/ha"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
-	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -38,9 +34,6 @@ const (
 	pollingInterval = 30 * time.Second
 
 	waitForDeleteTimeout = 600 * time.Second
-
-	mysqlComponentLabel      = "component"
-	mysqlRouterComponentName = "mysqlrouter"
 )
 
 var clientset = k8sutil.GetKubernetesClientsetOrDie()
@@ -179,9 +172,6 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 				latestNodes, err = waitForReplacementNode(latestNodes)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				// Handle the case where mysql-router pods are stuck in a CrashLoopBackoff state
-				repairMySQLRouterPodsCrashLoopBackoff(clientset)
-
 				// wait for all pods to be ready before continuing to the next node
 				t.Logs.Infof("Waiting for all pods to be ready")
 				hacommon.EventuallyPodsReady(t.Logs, clientset)
@@ -202,45 +192,6 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 		}
 	})
 })
-
-// repairMySQLRouterPodsCrashLoopBackoff - repair mysql-router pods stuck in CrashLoopBackoff.  The workaround
-// is to terminate the pod.
-func repairMySQLRouterPodsCrashLoopBackoff(client *kubernetes.Clientset) {
-	Eventually(func() error {
-		t.Logs.Info("Cleaning up any mysql-router pods stuck in CrashLoopBackoff after a node drain")
-		mysqldReq, err := labels.NewRequirement(mysqlComponentLabel, selection.Equals, []string{mysqlRouterComponentName})
-		if err != nil {
-			return err
-		}
-		selector := labels.NewSelector().Add(*mysqldReq)
-
-		podList, err := client.CoreV1().Pods(constants.KeycloakNamespace).List(context.TODO(), metav1.ListOptions{
-			LabelSelector: selector.String(),
-		})
-		if err != nil {
-			return err
-		}
-		if len(podList.Items) == 0 {
-			return fmt.Errorf("no pods found matching selector %s", selector.String())
-		}
-
-		for i := range podList.Items {
-			pod := podList.Items[i]
-			for _, container := range pod.Status.ContainerStatuses {
-				if waiting := container.State.Waiting; waiting != nil {
-					if waiting.Reason == "CrashLoopBackOff" {
-						// Terminate the pod
-						t.Logs.Infof("Terminating pod %s/%s because it was stuck in CrashLoopBackOff", pod.Namespace, pod.Name)
-						if err = client.CoreV1().Pods(pod.Namespace).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{}); err != nil {
-							return err
-						}
-					}
-				}
-			}
-		}
-		return nil
-	}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
-}
 
 // waitForWorkRequest waits for the work request to transition to success
 func waitForWorkRequest(workRequestID string) {
