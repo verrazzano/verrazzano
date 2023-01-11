@@ -5,15 +5,15 @@ package issues
 
 import (
 	"context"
+	"fmt"
 	. "github.com/onsi/ginkgo/v2"
-	//. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	k8util "github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os/exec"
 	"strings"
 	"time"
-	"fmt"
 )
 
 var (
@@ -22,8 +22,8 @@ var (
 )
 
 const (
-	//ImagePullNotFound string = "ImagePullNotFound"
-	ImagePullBackOff string = "ImagePullBackOff"
+	ImagePullNotFound string = "ImagePullNotFound"
+	//ImagePullBackOff string = "ImagePullBackOff"
 )
 
 var t = framework.NewTestFramework("Vz Tools Analysis Image Issues")
@@ -57,25 +57,25 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 			fmt.Println(updateErr)
 			Fail(updateErr.Error())
 		}
-		_, err = RunVzAnalyze()
+		out, err := RunVzAnalyze()
 		if err != nil {
 			fmt.Println(updateErr)
 			Fail(err.Error())
 		}
-		/*
-		Eventually(func() bool {
-			return testIssues(out, ImagePullBackOff)
-		}, waitTimeout, pollingInterval).Should(BeTrue())
+		t.It("should have ImagePullNotFound issue", func() {
+			Eventually(func() bool {
+				return testIssues(out, ImagePullNotFound)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
 
-		*/
 		fmt.Println("going to sleep...")
 		time.Sleep(time.Second * 60)
 
-                result, getErr = deploymentsClient.Get(context.TODO(), "verrazzano-console", v1.GetOptions{})
-                if getErr != nil {
-                        fmt.Println(getErr)
-                        Fail(getErr.Error())
-                }
+		result, getErr = deploymentsClient.Get(context.TODO(), "verrazzano-console", v1.GetOptions{})
+		if getErr != nil {
+				fmt.Println(getErr)
+				Fail(getErr.Error())
+		}
 
 		for ind, i := range result.Spec.Template.Spec.Containers {
 			if i.Name == "verrazzano-console" {
