@@ -55,7 +55,10 @@ pipeline {
         stage('Compare Images from Object storage to be Published') {
             steps {
                 script {
-                    sh "${WORKSPACE}/release/scripts/validate_ocr_images.sh"
+                    sh """
+                    cd ${WORKSPACE}/release/scripts
+                    ./validate_ocr_images.sh
+                    """
                 }
             }
         }
