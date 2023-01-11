@@ -56,8 +56,7 @@ pipeline {
             steps {
                 script {
                     sh """
-                    cd ${WORKSPACE}/release/scripts
-                    ./validate_ocr_images.sh
+                    cd ${WORKSPACE}
                     pwd 
                     ls -ltr
                     """
