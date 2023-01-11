@@ -5,11 +5,14 @@
 #
 
 echo Running OCR image checks ...
+export DOCKER_CLI_EXPERIMENTAL=enabled
 VZ_IMAGE_TXT=verrazzano_images.txt
-LOCAL_IMAGES_TXT=/Users/abrherna/Downloads/release-1.4_verrazzano_1.4.3-images.txt
-
-IMAGES=$(cat "$LOCAL_IMAGES_TXT")
+IMAGES=$(cat "$VZ_IMAGE_TXT")
 
 for image in "$IMAGES"; do
-    echo "$image" | awk -F '[/]' '{print $2}'
+    IMAGE_NAME_AND_TAG=$(echo "$image" | awk -F '[/]' '{print $2}')
+    # docker manifest inspect "$IMAGE_NAME_AND_TAG"
 done
+
+echo Running manifest inspect
+docker manifest inspect alertmanager:v0.24.0-20221206192620-fb73d30f
