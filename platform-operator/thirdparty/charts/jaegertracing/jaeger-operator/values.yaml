@@ -83,3 +83,5 @@ affinity: {}
 securityContext: {}
 
 priorityClassName:
+
+containerSecurityContext: {}

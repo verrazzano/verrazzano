@@ -62,3 +62,13 @@ securityContext:
   runAsUser: 1001
   seccompProfile:
     type: RuntimeDefault
+
+containerSecurityContext:
+  runAsUser: 1001
+  runAsGroup: 65534
+  runAsNonRoot: true
+  privileged: false
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL

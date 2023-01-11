@@ -42,15 +42,12 @@ var skipPods = map[string][]string{
 		"vmi-system",
 		"weblogic-operator",
 	},
-	"verrazzano-monitoring": {
-		"jaeger",
-	},
 	"verrazzano-backup": {
 		"restic",
 	},
 }
 
-var skipContainers = []string{"jaeger-operator", "jaeger-collector", "jaeger-query", "jaeger-agent"}
+var skipContainers = []string{"jaeger-collector", "jaeger-query", "jaeger-agent"}
 var skipInitContainers = []string{"istio-init"}
 
 type podExceptions struct {
