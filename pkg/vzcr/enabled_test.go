@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package vzcr
 
@@ -1152,6 +1152,38 @@ func TestIsPrometheusComponentsEnabled(t *testing.T) {
 			assert.Equal(t, tt.enabled, tt.isEnabled(tt.cr))
 		})
 	}
+}
+
+// TestIsArgoCDEnabled tests the IsArgoCDEnabled function
+// GIVEN a call to IsArgoCDEnabled
+//
+//	THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default)
+func TestIsArgoCDEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.False(IsArgoCDEnabled(nil))
+	asserts.False(IsArgoCDEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.False(IsArgoCDEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ArgoCD: &vzapi.ArgoCDComponent{},
+			},
+		}}))
+	asserts.True(IsArgoCDEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ArgoCD: &vzapi.ArgoCDComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsArgoCDEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ArgoCD: &vzapi.ArgoCDComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
 }
 
 func TestIsComponentEnabled(t *testing.T) {

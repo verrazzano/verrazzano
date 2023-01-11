@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package spi
 
@@ -172,7 +172,7 @@ func TestContextProfilesMerge(t *testing.T) {
 			// Tests EffectiveCR method
 			a.NotNil(context.EffectiveCR(), "Effective CR was nil")
 			a.Equal(v1alpha1.VerrazzanoStatus{}, context.EffectiveCR().Status, "Effective CR status not empty")
-			a.True(equality.Semantic.DeepEqual(expectedVZ, context.EffectiveCR()), "Effective CR did not match expected results")
+			a.True(equality.Semantic.DeepEqual(expectedVZ, context.EffectiveCR()), "Effective CR did not match expected results in %s", test.expectedYAML)
 			// Tests Log method
 			a.Equal(log, context.Log(), "The log in the context doesn't match the original one")
 		})
@@ -213,7 +213,7 @@ func TestNewFakeContext(t *testing.T) {
 			a.Equal(test.actualCR, *context.ActualCR(), "Actual CR unexpectedly modified")
 			a.NotNil(context.EffectiveCR(), "Effective CR was nil")
 			a.Equal(v1alpha1.VerrazzanoStatus{}, context.EffectiveCR().Status, "Effective CR status not empty")
-			a.True(equality.Semantic.DeepEqual(expectedVZ, context.EffectiveCR()), "Effective CR did not match expected results")
+			a.True(equality.Semantic.DeepEqual(expectedVZ, context.EffectiveCR()), "Effective CR did not match expected results in %s", test.expectedYAML)
 			// Tests GetClient method
 			a.Equal(client, context.Client(), "The client name doesn't match")
 			// Tests IsDryRun method

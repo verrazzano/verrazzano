@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package inplaceupgrade
@@ -20,7 +20,6 @@ import (
 	ocicore "github.com/oracle/oci-go-sdk/v53/core"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	hacommon "github.com/verrazzano/verrazzano/tests/e2e/pkg/ha"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	corev1 "k8s.io/api/core/v1"
@@ -41,7 +40,6 @@ const (
 	waitForDeleteTimeout = 600 * time.Second
 
 	mysqlComponentLabel      = "component"
-	mysqldComponentName      = "mysqld"
 	mysqlRouterComponentName = "mysqlrouter"
 )
 
@@ -172,10 +170,6 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 				}
 				Expect(err).ShouldNot(HaveOccurred())
 
-				// Handle the case where MySQL pods can be left dangling waiting for finalizers to be cleaned up
-				// - this is a workaround until we can perhaps get a fix from the MySQL team
-				cleanupDanglingMySQLPods(clientset)
-
 				// terminate the compute instance that the node is on, OKE will replace it with a new node
 				// running the upgraded Kubernetes version
 				t.Logs.Infof("Terminating compute instance: %s", node.Spec.ProviderID)
@@ -184,11 +178,6 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 
 				latestNodes, err = waitForReplacementNode(latestNodes)
 				Expect(err).ShouldNot(HaveOccurred())
-
-				// Handle the case where MySQL pods are waiting for all readiness gates to be met.  This condition
-				// may be the result of manually removing the finalizers on a dangling MySQL pod.  So this work around
-				// could end up being resolved by the same issue causing the dangling MySQL pods.
-				repairMySQLPodsWaitingReadinessGates(clientset)
 
 				// Handle the case where mysql-router pods are stuck in a CrashLoopBackoff state
 				repairMySQLRouterPodsCrashLoopBackoff(clientset)
@@ -213,121 +202,6 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 		}
 	})
 })
-
-// cleanupDanglingMySQLPods - workaround to clean up any dangling MySQL pods, workaround for case where finalizers don't get cleaned up
-func cleanupDanglingMySQLPods(client *kubernetes.Clientset) {
-	Eventually(func() error {
-		t.Logs.Info("Cleaning up any dangling MySQL pods after node drain")
-		mysqldReq, err := labels.NewRequirement(mysqlComponentLabel, selection.Equals, []string{mysqldComponentName})
-		if err != nil {
-			return err
-		}
-		selector := labels.NewSelector().Add(*mysqldReq)
-
-		list, err := client.CoreV1().Pods(constants.KeycloakNamespace).List(context.TODO(), metav1.ListOptions{
-			LabelSelector: selector.String(),
-		})
-		if err != nil {
-			return err
-		}
-		if len(list.Items) == 0 {
-			return fmt.Errorf("no pods found matching selector %s", selector.String())
-		}
-		for i := range list.Items {
-			mysqlPod := list.Items[i]
-			deletionTimestamp := mysqlPod.ObjectMeta.DeletionTimestamp
-			if !deletionTimestamp.IsZero() {
-				diff := metav1.Now().Sub(deletionTimestamp.Time)
-				t.Logs.Infof("Pod %s/%s deletion time: %s, difference: %v", mysqlPod.Namespace, mysqlPod.Name, deletionTimestamp.String(), diff.Seconds())
-				if diff.Seconds() >= waitForDeleteTimeout.Seconds() {
-					t.Logs.Infof("Found dangling MySQL pod %s/%s, patching out finalizers %v", mysqlPod.Namespace, mysqlPod.Name, mysqlPod.Finalizers)
-					mysqlPod.Finalizers = []string{}
-					_, err := client.CoreV1().Pods(constants.KeycloakNamespace).Update(context.TODO(), &mysqlPod, metav1.UpdateOptions{})
-					if err != nil {
-						t.Logs.Errorf("Error occurred patching finalizers for %s/%s, %s", mysqlPod.Namespace, mysqlPod.Name, err.Error())
-						return err
-					}
-				}
-			}
-		}
-		return nil
-	}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
-}
-
-// repairMySQLPodsWaitingReadinessGates - workaround to repair any MySQL pods that are stuck starting up due
-// to readiness gates not all true.
-func repairMySQLPodsWaitingReadinessGates(client *kubernetes.Clientset) {
-	operatorRestarted := false
-	Eventually(func() error {
-		t.Logs.Info("Cleaning up any MySQL pods stuck restarting after a node drain")
-		mysqldReq, err := labels.NewRequirement(mysqlComponentLabel, selection.Equals, []string{mysqldComponentName})
-		if err != nil {
-			return err
-		}
-		selector := labels.NewSelector().Add(*mysqldReq)
-
-		list, err := client.CoreV1().Pods(constants.KeycloakNamespace).List(context.TODO(), metav1.ListOptions{
-			LabelSelector: selector.String(),
-		})
-		if err != nil {
-			return err
-		}
-		if len(list.Items) == 0 {
-			return fmt.Errorf("no pods found matching selector %s", selector.String())
-		}
-
-		for i := range list.Items {
-			mysqlPod := list.Items[i]
-			rgConfiguredStatus := false
-			rgReadyStatus := false
-
-			// Check if the readiness conditions have been met
-			conditions := mysqlPod.Status.Conditions
-			if len(conditions) == 0 {
-				return fmt.Errorf("no status conditions found for pod %s/%s", mysqlPod.Namespace, mysqlPod.Name)
-			}
-			for _, condition := range conditions {
-				if condition.Type == "mysql.oracle.com/configured" && condition.Status == corev1.ConditionTrue {
-					rgConfiguredStatus = true
-				}
-				if condition.Type == "mysql.oracle.com/ready" && condition.Status == corev1.ConditionTrue {
-					rgReadyStatus = true
-				}
-			}
-			// Both readiness gates must be true
-			if !(rgReadyStatus && rgConfiguredStatus) {
-				// Restart the mysql-operator to see if it will finish setting the readiness gates
-				t.Logs.Info("Restarting the mysql-operator to see if it will repair MySQL pods stuck waiting for readiness gates")
-
-				operList, err := getMySQLOperatorPod(client)
-				if err != nil {
-					return err
-				}
-
-				if err = client.CoreV1().Pods(constants.MySQLOperatorNamespace).Delete(context.TODO(), operList.Items[0].Name, metav1.DeleteOptions{}); err != nil {
-					return err
-				}
-				operatorRestarted = true
-				return nil
-			}
-		}
-		return nil
-	}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
-
-	// If the mysql-operator was restarted, wait for it to be ready
-	if operatorRestarted {
-		Eventually(func() error {
-			operList, err := getMySQLOperatorPod(client)
-			if err != nil {
-				return err
-			}
-			if !hacommon.IsPodReadyOrCompleted(operList.Items[0]) {
-				return fmt.Errorf("mysql-operator pod not ready yet")
-			}
-			return nil
-		}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
-	}
-}
 
 // repairMySQLRouterPodsCrashLoopBackoff - repair mysql-router pods stuck in CrashLoopBackoff.  The workaround
 // is to terminate the pod.
@@ -366,27 +240,6 @@ func repairMySQLRouterPodsCrashLoopBackoff(client *kubernetes.Clientset) {
 		}
 		return nil
 	}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
-}
-
-// getMySQLOperatorPod - return the mysql-operator pod
-func getMySQLOperatorPod(client *kubernetes.Clientset) (*corev1.PodList, error) {
-	operReq, err := labels.NewRequirement("name", selection.Equals, []string{mysqloperator.ComponentName})
-	if err != nil {
-		return nil, err
-	}
-	selector := labels.NewSelector().Add(*operReq)
-
-	operList, err := client.CoreV1().Pods(constants.MySQLOperatorNamespace).List(context.TODO(), metav1.ListOptions{
-		LabelSelector: selector.String(),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	if len(operList.Items) != 1 {
-		return nil, fmt.Errorf("expected one pod to match selector %s, found %d", selector.String(), len(operList.Items))
-	}
-	return operList, nil
 }
 
 // waitForWorkRequest waits for the work request to transition to success

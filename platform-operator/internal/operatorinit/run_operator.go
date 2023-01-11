@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package operatorinit
@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
@@ -70,10 +71,18 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 		return errors.Wrap(err, "Failed to setup controller VerrazzanoConfigMaps")
 	}
 
+	// Setup MySQL checker
+	mysqlCheck, err := mysqlcheck.NewMySQLChecker(mgr.GetClient(), time.Duration(config.MySQLCheckPeriodSeconds)*time.Second)
+	if err != nil {
+		return errors.Wrap(err, "Failed starting MySQLChecker")
+	}
+	mysqlCheck.Start()
+
 	// +kubebuilder:scaffold:builder
 	log.Info("Starting controller-runtime manager")
 	if err := mgr.Start(controllerruntime.SetupSignalHandler()); err != nil {
 		return errors.Wrap(err, "Failed starting controller-runtime manager: %v")
 	}
+
 	return nil
 }
