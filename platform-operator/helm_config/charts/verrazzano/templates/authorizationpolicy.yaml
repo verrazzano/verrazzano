@@ -16,6 +16,12 @@ spec:
       app: {{ .Values.api.name }}
   action: ALLOW
   rules:
+    - from:
+        - source:
+            namespaces: ["fluent"]
+      to:
+        - operation:
+            ports: ["8775"]
     # verrazzano-authproxy:8775 <- ingress-controller-ingress-nginx-controller
     - from:
         - source:
