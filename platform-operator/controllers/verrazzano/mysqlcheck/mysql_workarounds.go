@@ -121,20 +121,10 @@ func RepairICStuckDeleting(ctx spi.ComponentContext) error {
 	expiredTime := getInitialTimeICUninstallChecked().Add(GetMySQLChecker().RepairTimeout)
 	if time.Now().After(expiredTime) {
 		metaData := metav1.ObjectMeta{
-			Name:                       innoDBCluster.GetName(),
-			GenerateName:               innoDBCluster.GetGenerateName(),
-			Namespace:                  innoDBCluster.GetNamespace(),
-			UID:                        innoDBCluster.GetUID(),
-			ResourceVersion:            innoDBCluster.GetResourceVersion(),
-			Generation:                 innoDBCluster.GetGeneration(),
-			CreationTimestamp:          innoDBCluster.GetCreationTimestamp(),
-			DeletionTimestamp:          innoDBCluster.GetDeletionTimestamp(),
-			DeletionGracePeriodSeconds: innoDBCluster.GetDeletionGracePeriodSeconds(),
-			Labels:                     innoDBCluster.GetLabels(),
-			Annotations:                innoDBCluster.GetAnnotations(),
-			OwnerReferences:            innoDBCluster.GetOwnerReferences(),
-			Finalizers:                 innoDBCluster.GetFinalizers(),
-			ManagedFields:              innoDBCluster.GetManagedFields(),
+			Name:            innoDBCluster.GetName(),
+			Namespace:       innoDBCluster.GetNamespace(),
+			UID:             innoDBCluster.GetUID(),
+			ResourceVersion: innoDBCluster.GetResourceVersion(),
 		}
 		msg := "InnoDBCluster stuck deleting"
 		createEvent(ctx.Log(), ctx.Client(), metaData, "innodbcluster", "ICStuckDeleting", msg)
@@ -349,13 +339,10 @@ func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, objectMetadat
 		InvolvedObject: func() v1.ObjectReference {
 			if !reflect.DeepEqual(objectMetadata, metav1.ObjectMeta{}) {
 				return v1.ObjectReference{
-					Kind:            "",
 					Namespace:       objectMetadata.Namespace,
 					Name:            objectMetadata.Name,
 					UID:             objectMetadata.UID,
-					APIVersion:      "",
 					ResourceVersion: objectMetadata.ResourceVersion,
-					FieldPath:       "",
 				}
 			}
 			return v1.ObjectReference{}
