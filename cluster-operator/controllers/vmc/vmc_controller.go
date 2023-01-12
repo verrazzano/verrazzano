@@ -512,6 +512,8 @@ func (r *VerrazzanoManagedClusterReconciler) getVerrazzanoResource() (*v1beta1.V
 }
 
 func (r *VerrazzanoManagedClusterReconciler) createManagedClusterKeycloakClient(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	const prometheusHostPrefix = "prometheus.vmi.system"
+
 	// login to keycloak
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
@@ -529,8 +531,13 @@ func (r *VerrazzanoManagedClusterReconciler) createManagedClusterKeycloakClient(
 		return err
 	}
 
+	promHost := vmc.Status.PrometheusHost
+	if len(promHost) == 0 {
+		return fmt.Errorf("Prometheus host not yet available from VMC Status")
+	}
+	dnsSubdomain := promHost[len(prometheusHostPrefix)+1:]
 	clientId := fmt.Sprintf("verrazzano-%s", vmc.Name)
-	err = keycloak.CreateOrUpdateClient(ctx, cfg, cli, clientId, keycloak.ManagedClusterClientTmpl, keycloak.ManagedClusterClientUrisTemplate, false)
+	err = keycloak.CreateOrUpdateClient(ctx, cfg, cli, clientId, keycloak.ManagedClusterClientTmpl, keycloak.ManagedClusterClientUrisTemplate, false, &dnsSubdomain)
 	if err != nil {
 		return err
 	}

@@ -166,7 +166,7 @@ const pkceTmpl = `
 `
 const ManagedClusterClientTmpl = `
 {
-      "clientId" : "verrazzano-pkce",
+      "clientId" : "{{.ClientId}}",
       "enabled": true,
       "surrogateAuthRequired": false,
       "alwaysDisplayInConsole": false,
@@ -488,7 +488,7 @@ const pkceClientUrisTemplate = `
 const ManagedClusterClientUrisTemplate = `
 	"redirectUris": [
 	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/*",
-	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/_authentication_callback"{{end}}
+	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/_authentication_callback"
 	],
 	"webOrigins": [
 	  "https://prometheus.vmi.system.{{.DNSSubDomain}}"
@@ -565,6 +565,7 @@ type KeycloakClientSecret struct {
 type templateData struct {
 	DNSSubDomain string
 	OSHostExists bool
+	ClientId     string
 }
 
 // imageData needed for template rendering
@@ -703,8 +704,8 @@ func updateKeycloakIngress(ctx spi.ComponentContext) error {
 }
 
 // updateKeycloakUris invokes kcadm.sh in Keycloak pod to update the client with Keycloak rewrite and weborigin uris
-func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *corev1.Pod, clientID string, uriTemplate string) error {
-	data, err := populateSubdomainInTemplate(ctx, "{"+uriTemplate+"}")
+func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *corev1.Pod, clientID string, uriTemplate string, dnsSubdomain *string) error {
+	data, err := populateClientTemplate(ctx, "{"+uriTemplate+"}", "", dnsSubdomain)
 	if err != nil {
 		return err
 	}
@@ -841,20 +842,20 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Create verrazzano-pkce client
-	err = CreateOrUpdateClient(ctx, cfg, cli, "verrazzano-pkce", pkceTmpl, pkceClientUrisTemplate, false)
+	err = CreateOrUpdateClient(ctx, cfg, cli, "verrazzano-pkce", pkceTmpl, pkceClientUrisTemplate, false, nil)
 	if err != nil {
 		return err
 	}
 
 	// Creating verrazzano-pg client
-	err = CreateOrUpdateClient(ctx, cfg, cli, "verrazzano-pg", pgClient, "", true)
+	err = CreateOrUpdateClient(ctx, cfg, cli, "verrazzano-pg", pgClient, "", true, nil)
 	if err != nil {
 		return err
 	}
 
 	if vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
 		// Creating rancher client
-		err = CreateOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true)
+		err = CreateOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true, nil)
 		if err != nil {
 			return err
 		}
@@ -1164,7 +1165,7 @@ func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes
 
 	return nil
 }
-func CreateOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, clientName string, clientTemplate string, uriTemplate string, generateSecret bool) error {
+func CreateOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, clientName string, clientTemplate string, uriTemplate string, generateSecret bool, dnsSubdomain *string) error {
 	keycloakClients, err := getKeycloakClients(ctx)
 	if err != nil {
 		return err
@@ -1173,7 +1174,7 @@ func CreateOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 	kcPod := keycloakPod()
 	if clientID := getClientID(keycloakClients, clientName); clientID != "" {
 		if uriTemplate != "" {
-			err := updateKeycloakUris(ctx, cfg, cli, kcPod, clientID, uriTemplate)
+			err := updateKeycloakUris(ctx, cfg, cli, kcPod, clientID, uriTemplate, dnsSubdomain)
 			if err != nil {
 				return err
 			}
@@ -1182,7 +1183,7 @@ func CreateOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 		return nil
 	}
 
-	data, err := populateSubdomainInTemplate(ctx, clientTemplate)
+	data, err := populateClientTemplate(ctx, clientTemplate, clientName, dnsSubdomain)
 	if err != nil {
 		return err
 	}
@@ -1516,7 +1517,7 @@ func upgradeStatefulSet(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func populateSubdomainInTemplate(ctx spi.ComponentContext, tmpl string) (string, error) {
+func populateClientTemplate(ctx spi.ComponentContext, tmpl string, clientId string, subdomain *string) (string, error) {
 	data := templateData{}
 
 	// Update verrazzano-pkce client redirect and web origin uris if deprecated host exists in the ingress
@@ -1528,14 +1529,21 @@ func populateSubdomainInTemplate(ctx spi.ComponentContext, tmpl string) (string,
 	data.OSHostExists = osHostExists
 
 	// Get DNS Domain Configuration
-	dnsSubDomain, err := getDNSDomain(ctx.Client(), ctx.EffectiveCR())
-	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %v", err)
-		return "", err
+	var dnsSubDomain string
+	if subdomain == nil {
+		dnsSubDomain, err = getDNSDomain(ctx.Client(), ctx.EffectiveCR())
+		if err != nil {
+			ctx.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %v", err)
+			return "", err
+		}
+	} else {
+		dnsSubDomain = *subdomain
 	}
-	ctx.Log().Debugf("populateSubdomainInTemplate: DNSDomain returned %s", dnsSubDomain)
+	ctx.Log().Debugf("populateClientTemplate: DNSDomain = %s", dnsSubDomain)
 
 	data.DNSSubDomain = dnsSubDomain
+
+	data.ClientId = clientId
 
 	// use template to get populate template with data
 	var b bytes.Buffer
