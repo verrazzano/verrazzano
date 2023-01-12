@@ -16,9 +16,12 @@ echo "$OCR_CREDS_PSW" | docker login "$DOCKER_REPO" -u "$OCR_CREDS_USR" --passwo
 echo Running docker image inspect ...
 while IFS= read -r line
 do
-  IMAGE_NAME_AND_TAG=$(echo "$line")
-  docker pull -q "$DOCKER_REPO"/"$IMAGE_NAME_AND_TAG"
+    IMAGE_NAME_AND_TAG=$(echo "$line")
+    docker pull -q "$DOCKER_REPO"/"$IMAGE_NAME_AND_TAG"
+
+    if [[ $? -gt 0 ]]; then
+        echo Testing statement... 
+    fi
+
 done < "$VZ_IMAGE_TXT"
 
-cd /var/lib/docker/images
-ls -al
