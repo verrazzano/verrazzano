@@ -357,9 +357,8 @@ func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, objectMetadat
 					ResourceVersion: objectMetadata.ResourceVersion,
 					FieldPath:       "",
 				}
-			} else {
-				return v1.ObjectReference{}
 			}
+			return v1.ObjectReference{}
 		}(),
 		Type:    "Warning",
 		Reason:  reason,
