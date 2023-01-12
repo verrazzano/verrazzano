@@ -681,7 +681,7 @@ func IsManagedClusterProfile() bool {
 
 // GetACMEEnvironment returns true if
 func GetACMEEnvironment(kubeconfigPath string) (string, error) {
-	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	vz, err := GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 	if err != nil {
 		return "", err
 	}
