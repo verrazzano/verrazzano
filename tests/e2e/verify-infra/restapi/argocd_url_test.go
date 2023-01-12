@@ -22,28 +22,29 @@ var _ = t.Describe("argocd", Label("f:infra-lcm",
 				t.Logs.Error(fmt.Sprintf("Error getting kubeconfig: %v", err))
 				t.Fail(err.Error())
 			}
+
 			if pkg.IsArgoCDEnabled(kubeconfigPath) {
-
-				start := time.Now()
-				err = pkg.VerifyArgoCDAccess(t.Logs, kubeconfigPath)
-				if err != nil {
-					t.Logs.Error(fmt.Sprintf("Error verifying access to Argocd: %v", err))
-					t.Fail(err.Error())
-				}
-
-				metrics.Emit(t.Metrics.With("argocd_access_elapsed_time", time.Since(start).Milliseconds()))
-
-				start = time.Now()
-				t.Logs.Info("Accessing the Argocd Applications")
-				err = pkg.VerifyArgocdApplicationAccess(t.Logs, kubeconfigPath)
-				if err != nil {
-					t.Logs.Error(fmt.Sprintf("Error verifying access to Argocd: %v", err))
-					t.Fail(err.Error())
-				}
-
-				metrics.Emit(t.Metrics.With("argocd_access_elapsed_time", time.Since(start).Milliseconds()))
-
+				Skip("Skipping Argo CD access test as Argo CD is not enabled.")
 			}
+
+			start := time.Now()
+			err = pkg.VerifyArgoCDAccess(t.Logs, kubeconfigPath)
+			if err != nil {
+				t.Logs.Error(fmt.Sprintf("Error verifying access to Argocd: %v", err))
+				t.Fail(err.Error())
+			}
+
+			metrics.Emit(t.Metrics.With("argocd_access_elapsed_time", time.Since(start).Milliseconds()))
+
+			start = time.Now()
+			t.Logs.Info("Accessing the Argocd Applications")
+			err = pkg.VerifyArgocdApplicationAccess(t.Logs, kubeconfigPath)
+			if err != nil {
+				t.Logs.Error(fmt.Sprintf("Error verifying access to Argocd: %v", err))
+				t.Fail(err.Error())
+			}
+
+			metrics.Emit(t.Metrics.With("argocd_access_elapsed_time", time.Since(start).Milliseconds()))
 
 		})
 	})

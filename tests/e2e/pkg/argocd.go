@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -22,7 +23,7 @@ func VerifyArgoCDAccess(log *zap.SugaredLogger, kubeconfigPath string) error {
 	var err error
 
 	api := EventuallyGetAPIEndpoint(kubeconfigPath)
-	argocdURL := EventuallyGetURLForIngress(log, api, "argocd", "argocd-server", "https")
+	argocdURL := EventuallyGetURLForIngress(log, api, constants.ArgoCDNamespace, "argocd-server", "https")
 	httpClient := EventuallyVerrazzanoRetryableHTTPClient()
 	var httpResponse *HTTPResponse
 
@@ -49,7 +50,7 @@ func VerifyArgocdApplicationAccess(log *zap.SugaredLogger, kubeConfigPath string
 	}
 
 	api := EventuallyGetAPIEndpoint(kubeConfigPath)
-	argocdURL := EventuallyGetURLForIngress(log, api, "argocd", "argocd-server", "https")
+	argocdURL := EventuallyGetURLForIngress(log, api, constants.ArgoCDNamespace, "argocd-server", "https")
 
 	token, err := getArgoCDUserToken(log, argocdURL, "admin", string(argocdAdminPassword), httpClient)
 	if err != nil {
@@ -71,7 +72,7 @@ func eventuallyGetArgocdAdminPassword(log *zap.SugaredLogger) (string, error) {
 	var err error
 	var secret *corev1.Secret
 	gomega.Eventually(func() error {
-		secret, err = GetSecret("argocd", "argocd-initial-admin-secret")
+		secret, err = GetSecret(constants.ArgoCDNamespace, "argocd-initial-admin-secret")
 		if err != nil {
 			log.Error(fmt.Sprintf("Error getting argocd-initial-admin-secret, retrying: %v", err))
 		}

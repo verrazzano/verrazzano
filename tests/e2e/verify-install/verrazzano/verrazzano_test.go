@@ -870,6 +870,7 @@ func validateArgoCDResources() {
 				return false
 			}
 			if len(pods) < 1 {
+				t.Logs.Error("No pods exist in the Argo CD namespace")
 				return false
 			}
 			return true
