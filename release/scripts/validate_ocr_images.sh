@@ -19,7 +19,7 @@ do
     IMAGE_NAME_AND_TAG=$(echo "$line")
     docker pull -q "$DOCKER_REPO"/"$IMAGE_NAME_AND_TAG"
 
-    if [[ $? -gt 0 ]]; then
+    if [[ $? -gt 1 ]]; then
         echo Testing statement... 
     fi
 
