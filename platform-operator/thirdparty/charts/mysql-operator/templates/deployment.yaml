@@ -49,7 +49,16 @@ spec:
             allowPrivilegeEscalation: false
             privileged: false
             readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+              - ALL
       volumes:
         - name: mysqlsh-home
           emptyDir: {}
       serviceAccountName: mysql-operator-sa
+      securityContext:
+        runAsGroup: 27  # mysql group
+        runAsUser: 27   # mysql user
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault

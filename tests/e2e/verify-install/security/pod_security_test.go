@@ -129,6 +129,7 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 		for _, pod := range pods {
 			t.Logs.Debugf("Checking pod %s/%s", ns, pod.Name)
 			if shouldSkipPod(pod.Name, ns) {
+				t.Logs.Debugf("Pod %s/%s on skip list, continuing...", ns, pod.Name)
 				continue
 			}
 			errors = append(errors, expectPodSecurityForNamespace(pod)...)
@@ -141,6 +142,7 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 		Entry("Checking pod security in verrazzano-monitoring", "verrazzano-monitoring"),
 		Entry("Checking pod security in verrazzano-backup", "verrazzano-backup"),
 		Entry("Checking pod security in ingress-nginx", "ingress-nginx"),
+		Entry("Checking pod security in mysql-operator", "mysql-operator"),
 	)
 })
 
