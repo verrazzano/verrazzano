@@ -17,11 +17,12 @@ echo Running docker image inspect ...
 while IFS= read -r line
 do
     IMAGE_NAME_AND_TAG=$(echo "$line")
-    docker pull -q "$DOCKER_REPO"/"$IMAGE_NAME_AND_TAG"
-
-    if [[ $? -gt 1 ]]; then
-        echo Testing statement... 
+    IMAGE_PULL=$(docker pull -q "$DOCKER_REPO"/"$IMAGE_NAME_AND_TAG")
+    if [[ "$IMAGE_PULL" -eq 0 ]]; then
+        echo Success Downloading image ...
+        echo "$IMAGE_PULL"
     fi
 
 done < "$VZ_IMAGE_TXT"
 
+ls -al
