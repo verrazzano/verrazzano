@@ -32,7 +32,7 @@ const (
 
 var skipPods = map[string][]string{
 	"keycloak": {
-		"mysql",
+		"mysql-0",
 	},
 	"verrazzano-install": {
 		"mysql",
