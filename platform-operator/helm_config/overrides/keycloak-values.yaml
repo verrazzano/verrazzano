@@ -5,12 +5,13 @@
 
 command:
   - "/opt/keycloak/bin/kc.sh"
-  - "--verbose"
   - "start"
   - "--http-enabled=true"
   - "--http-port=8080"
   - "--hostname-strict=false"
   - "--hostname-strict-https=false"
+  - "--spi-login-protocol-openid-connect-legacy-logout-redirect-uri=true"
+  - "--spi-login-protocol-openid-connect-suppress-logout-confirmation-screen=true"
 
 fullnameOverride: "keycloak"
 nameOverride: "keycloak"
