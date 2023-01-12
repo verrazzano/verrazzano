@@ -60,6 +60,9 @@ spec:
 {{- end }}
 {{ if ((.Values).podSpec) }}
   podSpec:
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
 {{ if ((.Values).podSpec.affinity) }}
     affinity:
 {{ toYaml ((.Values).podSpec.affinity) | indent 6 }}
@@ -72,6 +75,8 @@ spec:
           allowPrivilegeEscalation: false
           privileged: false
           runAsNonRoot: true
+          runAsUser: 27
+          runAsGroup: 27
           capabilities:
             drop:
               - ALL
@@ -80,6 +85,8 @@ spec:
           allowPrivilegeEscalation: false
           privileged: false
           runAsNonRoot: true
+          runAsUser: 27
+          runAsGroup: 27
           capabilities:
             drop:
               - ALL
@@ -93,12 +100,15 @@ spec:
 {{ if(.Values).initdbScripts }}
     initContainers:
     - name: fixdatadir
+      runAsUser: 0
       image: {{ (.Values).mysqlOperator.image  }}
     - name: initconf
       securityContext:
         allowPrivilegeEscalation: false
         privileged: false
         runAsNonRoot: true
+        runAsUser: 27
+        runAsGroup: 27
         capabilities:
           drop:
             - ALL
@@ -108,6 +118,8 @@ spec:
         allowPrivilegeEscalation: false
         privileged: false
         runAsNonRoot: true
+        runAsUser: 27
+        runAsGroup: 27
         capabilities:
           drop:
             - ALL
