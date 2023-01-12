@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 import groovy.transform.Field
@@ -278,6 +278,24 @@ pipeline {
                         }
                     }
                 }
+                stage('HA tests') {
+                    when {
+                        expression { false }
+                    }
+                    steps {
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "/verrazzano-ha-tests/${CLEAN_BRANCH_NAME}",
+                                        parameters: [
+                                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                                string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                                string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                                string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                        ], wait: true
+                            }
+                        }
+                    }
+                }
                 stage('Upgrade Resiliency tests') {
                     steps {
                         script {
@@ -304,6 +322,7 @@ pipeline {
                         }
                     }
                 }
+
                 stage('Kind Acceptance Tests on 1.24 Non-Calico') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {

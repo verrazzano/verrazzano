@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helidonconfig
@@ -172,23 +172,16 @@ var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 		})
 	})
 
-	// Verify Prometheus scraped metrics
+	// Verify Prometheus scraped targets
 	// GIVEN OAM helidon-config app is deployed
 	// WHEN the component and appconfig without metrics-trait(using default) are created
-	// THEN the application metrics must be accessible
+	// THEN the application scrape targets must be healthy
 	t.Describe("Metrics.", Label("f:observability.monitoring.prom"), func() {
-		t.It("Retrieve Prometheus scraped metrics", func() {
-			pkg.Concurrently(
-				func() {
-					Eventually(appMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(appComponentMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(appConfigMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
-				},
-			)
+		t.It("Verify all scrape targets are healthy for the application", func() {
+			Eventually(func() (bool, error) {
+				var componentNames = []string{"helidon-config-component"}
+				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "helidon-config-appconf", componentNames))
+			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
 	})
 
@@ -229,16 +222,4 @@ func helidonConfigPodsRunning() bool {
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 	}
 	return result
-}
-
-func appMetricsExists() bool {
-	return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "helidon-config")
-}
-
-func appComponentMetricsExists() bool {
-	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", "helidon-config-appconf")
-}
-
-func appConfigMetricsExists() bool {
-	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "helidon-config-component")
 }

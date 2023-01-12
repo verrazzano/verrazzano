@@ -320,6 +320,13 @@ func GetAllSourcesFilteredIssues(log *zap.SugaredLogger, includeInfo bool, minCo
 	return filtered
 }
 
+// ClearReports clears the reports map, only for unit tests
+func ClearReports() {
+	reportMutex.Lock()
+	reports = make(map[string][]Issue)
+	reportMutex.Unlock()
+}
+
 // compare two structs are same or not
 func isEqualStructs(s1, s2 any) bool {
 	return reflect.DeepEqual(s1, s2)

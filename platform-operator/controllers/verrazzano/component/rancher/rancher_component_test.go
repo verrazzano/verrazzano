@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -1122,13 +1122,21 @@ func newReplicaSet(namespace string, name string) *appsv1.ReplicaSet {
 // When there is namespace without the required label,
 // Then ValidateInstall should throw error
 func TestValidateInstall(t *testing.T) {
-	namespaceWithoutLabels := &corev1.Namespace{}
-	namespaceWithoutLabels.Name = FleetSystemNamespace
-	namespaceWithoutLabels.Namespace = FleetSystemNamespace
-	labelledNamespace := &corev1.Namespace{}
-	labelledNamespace.Name = FleetSystemNamespace
-	labelledNamespace.Namespace = FleetSystemNamespace
-	labelledNamespace.Labels = map[string]string{constants.VerrazzanoManagedKey: FleetSystemNamespace}
+	namespaceWithoutLabels := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      FleetSystemNamespace,
+			Namespace: FleetSystemNamespace,
+		},
+	}
+	labelledNamespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      FleetSystemNamespace,
+			Namespace: FleetSystemNamespace,
+			Labels: map[string]string{
+				constants.VerrazzanoManagedKey: FleetSystemNamespace,
+			},
+		},
+	}
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -1138,19 +1146,78 @@ func TestValidateInstall(t *testing.T) {
 	}
 	common.RunValidateInstallTest(t, NewComponent,
 		common.ValidateInstallTest{
-			Name:      "ValidRancherNamespace",
-			WantErr:   "",
-			Appsv1Cli: common.MockGetAppsV1(),
-			Corev1Cli: common.MockGetCoreV1(labelledNamespace),
-			Vz:        vz,
+			Name:       "ValidRancherNamespace",
+			WantErr:    "",
+			Appsv1Cli:  common.MockGetAppsV1(),
+			Corev1Cli:  common.MockGetCoreV1(labelledNamespace),
+			DynamicCli: common.MockDynamicClient(),
+			Vz:         vz,
 		},
 		common.ValidateInstallTest{
-			Name:      "InvalidRancherNamespace",
-			WantErr:   FleetSystemNamespace,
-			Appsv1Cli: common.MockGetAppsV1(),
-			Corev1Cli: common.MockGetCoreV1(namespaceWithoutLabels),
-			Vz:        vz,
+			Name:       "InvalidRancherNamespace",
+			WantErr:    FleetSystemNamespace,
+			Appsv1Cli:  common.MockGetAppsV1(),
+			Corev1Cli:  common.MockGetCoreV1(namespaceWithoutLabels),
+			DynamicCli: common.MockDynamicClient(),
+			Vz:         vz,
+		},
+		common.ValidateInstallTest{
+			Name:       "ClusterNotProvisionedByRancher",
+			WantErr:    "",
+			Appsv1Cli:  common.MockGetAppsV1(),
+			Corev1Cli:  common.MockGetCoreV1(getLocalNamespaceNotProvisioned()),
+			DynamicCli: common.MockDynamicClient(),
+			Vz:         vz,
+		},
+		common.ValidateInstallTest{
+			Name:       "ClusterProvisionedByRancher",
+			WantErr:    "",
+			Appsv1Cli:  common.MockGetAppsV1(),
+			Corev1Cli:  common.MockGetCoreV1(getLocalNamespaceProvisioned()),
+			DynamicCli: common.MockDynamicClient(getLocalClusterManagementCattleIo()),
+			Vz:         vz,
 		})
+
+}
+
+func getLocalNamespaceNotProvisioned() *corev1.Namespace {
+	return &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ClusterLocal,
+			Labels: map[string]string{
+				constants.VerrazzanoManagedKey: ClusterLocal,
+			},
+		},
+	}
+}
+
+func getLocalNamespaceProvisioned() *corev1.Namespace {
+	return &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ClusterLocal,
+			Labels: map[string]string{
+				ProviderCattleIoLabel: "rke2",
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: common.APIGroupRancherManagement + "/" + "v3",
+					Kind:       ClusterKind,
+					Name:       ClusterLocal,
+				},
+			},
+		},
+	}
+}
+
+func getLocalClusterManagementCattleIo() *unstructured.Unstructured {
+	localClusterManagementCattleIo := &unstructured.Unstructured{
+		Object: map[string]interface{}{},
+	}
+	localClusterManagementCattleIo.SetName(ClusterLocal)
+	localClusterManagementCattleIo.SetKind(ClusterKind)
+	localClusterManagementCattleIo.SetAPIVersion(common.APIGroupRancherManagement + "/" + "v3")
+	localClusterManagementCattleIo.SetLabels(map[string]string{ProviderCattleIoLabel: "rke2"})
+	return localClusterManagementCattleIo
 }
 
 func createFakeTestClient(extraObjs ...client.Object) client.Client {

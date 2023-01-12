@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
@@ -303,15 +303,82 @@ def storePipelineArtifacts() {
         // If this was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of the branch
         // NOTE: Normally master and release-* branches are the only ones doing this, but when we need to test out pipeline changes we can make use
         // as well
-        sh """
-            echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
-            if [ "true" == "${params.FORCE_STABLE_COMMIT_UPDATE}" ]; then
-                echo "forced-by-job=${env.BUILD_URL}" >> $WORKSPACE/last-stable-commit.txt
-            fi
-            cat $WORKSPACE/last-stable-commit.txt
-            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
-        """
+        LAST_STABLE_COMMIT=getLastStableCommit()
+        IS_ANCESTOR=isAncestor()
+        if (LAST_STABLE_COMMIT == null || IS_ANCESTOR) {
+            sh """
+                        echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
+                        if [ "true" == "${params.FORCE_STABLE_COMMIT_UPDATE}" ]; then
+                            echo "forced-by-job=${env.BUILD_URL}" >> $WORKSPACE/last-stable-commit.txt
+                        fi
+                        cat $WORKSPACE/last-stable-commit.txt
+                    """
+            putLastStableCommit()
+        }
     }
+}
+
+// Sets Job Display Name based on last-stable-commit.txt put status
+def putLastStableCommit() {
+    putLastStableCommitCommandOutput = sh (
+                                               label: "Put last stable commit text file",
+                                               script: "oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt 2>&1 || true",
+                                               returnStdout: true
+                                               ).trim()
+    echo "command out: ${putLastStableCommitCommandOutput}"
+    if (putLastStableCommitCommandOutput.length() > 0) {
+        if (putLastStableCommitCommandOutput =~ /(.*)status(.*)\d{1,4}(.*)/) {
+            currentBuild.displayName = "${currentBuild.displayName} : Put Last Stable Commit Failed"
+            slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nFailed to put last-stable-commit.txt in Object Store\n" )
+        }
+    }
+}
+
+// Returns true if current commit is ancestor of last stable commit
+def isAncestor() {
+   LAST_STABLE_COMMIT=getLastStableCommit()
+   ANCESTOR=''
+   if (LAST_STABLE_COMMIT != null) {
+       ANCESTOR = sh (
+                          label: "Check for Ancestry",
+                          script: "git rev-list ${env.GIT_COMMIT} | grep \$(git rev-parse $LAST_STABLE_COMMIT) 2>&1 || true",
+                          returnStdout: true
+                          ).trim()
+   }
+   if (ANCESTOR.length() > 0) {
+       return true
+   } else {
+       return false
+   }
+}
+
+// Returns the last stable commit for the branch, or null if the commit file does not exist yet.
+// - fails the pipeline if any error other than 404 is returned by the OCI CLI
+def getLastStableCommit() {
+    lastStableCommitCommandOutput = sh (
+        label: "Get last stable commit text file",
+        script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/last-stable-commit.txt --file ${WORKSPACE}/stored-stable-commit.txt 2>&1 || true",
+        returnStdout: true
+        ).trim()
+    echo "command out: ${lastStableCommitCommandOutput}"
+    if (lastStableCommitCommandOutput.length() > 0) {
+        // We can get warning messages here as well even when the command succeeded, so be more precise on the checking
+        if (lastStableCommitCommandOutput =~ /(.*)status(.*)\d{1,4}(.*)/) {
+            // If we think we had a status: NNN, we ignore 404 and fail for others
+            assert lastStableCommitCommandOutput =~ /(.*)status(.*)404(.*)/ : "An unexpected error occurred getting last stable commit from ObjectStore: ${lastStableCommitCommandOutput}"
+        } else {
+            // If we got here, we have some message that may or may not be an error. If we don't see the file, we assume it was an error
+            sh """
+                if [ ! -f $WORKSPACE/stored-stable-commit.txt ]; then
+                    echo "An unexpected error occurred getting last stable commit from ObjectStore: ${lastStableCommitCommandOutput}"
+                    exit 1
+                fi
+            """
+        }
+    }
+    // Get the commit ID for the last stable commit
+    def lastStableCommitProps = readProperties file: "$WORKSPACE/stored-stable-commit.txt"
+    return lastStableCommitProps['git-commit']
 }
 
 // Called in Stage Clean workspace and checkout steps

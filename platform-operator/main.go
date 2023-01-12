@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package main
@@ -7,21 +7,19 @@ import (
 	"flag"
 	"os"
 
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-
 	cmapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/operatorinit"
 	"go.uber.org/zap"
@@ -89,6 +87,10 @@ func main() {
 	flag.BoolVar(&helm.Debug, "helm-debug", helm.Debug, "Add the --debug flag to helm commands")
 	flag.Int64Var(&config.HealthCheckPeriodSeconds, "health-check-period", config.HealthCheckPeriodSeconds,
 		"Health check period seconds; set to 0 to disable health checks")
+	flag.Int64Var(&config.MySQLCheckPeriodSeconds, "mysql-check-period", config.MySQLCheckPeriodSeconds,
+		"MySQL check period seconds; set to 0 to disable MySQL checks")
+	flag.Int64Var(&config.MySQLRepairTimeoutSeconds, "mysql-repair-timeout", config.MySQLRepairTimeoutSeconds,
+		"MySQL repair timeout seconds")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}

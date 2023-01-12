@@ -6,9 +6,10 @@ package istio
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
 	"os"
 	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -20,6 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	istiosec "istio.io/api/security/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -50,7 +52,7 @@ type installFuncSig func(log vzlog.VerrazzanoLogger, imageOverridesString string
 
 var installFunc installFuncSig = istio.Install
 
-type forkInstallFuncSig func(compContext spi.ComponentContext, monitor installMonitor, overrideStrings string, files []string) error
+type forkInstallFuncSig func(compContext spi.ComponentContext, monitor monitor.BackgroundProcessMonitor, overrideStrings string, files []string) error
 
 var forkInstallFunc forkInstallFuncSig = forkInstall
 
@@ -70,12 +72,6 @@ func setBashFunc(f bashFuncSig) {
 	bashFunc = f
 }
 
-type installMonitorType struct {
-	running  bool
-	resultCh chan bool
-	inputCh  chan installRoutineParams
-}
-
 // installRoutineParams - Used to pass args to the install goroutine
 type installRoutineParams struct {
 	overrides     string
@@ -83,76 +79,22 @@ type installRoutineParams struct {
 	log           vzlog.VerrazzanoLogger
 }
 
-// installMonitor - Represents a monitor object used by the component to monitor a background goroutine used for running
-// istioctl install operations asynchronously.
-type installMonitor interface {
-	// checkResult - Checks for a result from the install goroutine; returns either the result of the operation, or an error indicating
-	// the install is still in progress
-	checkResult() (bool, error)
-	// reset - Resets the monitor and closes any open channels
-	reset()
-	// isRunning - returns true of the monitor/goroutine are active
-	isRunning() bool
-	// run - Run the install with the specified args
-	run(args installRoutineParams)
-}
+// istioctlInstall - run the installation with istioctl
+func istioctlInstall(args installRoutineParams) error {
+	log := args.log
 
-// checkResult - checks for a result from the goroutine
-// - returns false and a retry error if it's still running, or the result from the channel and nil if an answer was received
-func (m *installMonitorType) checkResult() (bool, error) {
-	select {
-	case result := <-m.resultCh:
-		return result, nil
-	default:
-		return false, ctrlerrors.RetryableError{Source: ComponentName}
+	log.Oncef("Component Istio is running istioctl")
+	stdout, stderr, err := installFunc(log, args.overrides, args.fileOverrides...)
+	log.Debugf("istioctl stdout: %s", string(stdout))
+	if err != nil {
+		return log.ErrorfNewErr("Failed calling istioctl install: %v stderr: %s", err.Error(), string(stderr))
 	}
-}
+	log.Infof("Component Istio successfully ran istioctl install")
 
-// reset - reset the monitor and close the channel
-func (m *installMonitorType) reset() {
-	m.running = false
-	close(m.resultCh)
-	close(m.inputCh)
-}
+	// Clean up the temp files
+	removeTempFiles(log)
 
-// isRunning - returns true of the monitor/goroutine are active
-func (m *installMonitorType) isRunning() bool {
-	return m.running
-}
-
-// run - Run the install in a goroutine
-func (m *installMonitorType) run(args installRoutineParams) {
-	m.running = true
-	m.resultCh = make(chan bool, 2)
-	m.inputCh = make(chan installRoutineParams, 2)
-
-	// Run the install in the background
-	go func(inputCh chan installRoutineParams, outputCh chan bool) {
-		// The function will execute once, sending true on success, false on failure to the channel reader
-		// Read inputs
-		args := <-inputCh
-		log := args.log
-
-		result := true
-		log.Oncef("Component Istio is running istioctl")
-		stdout, stderr, err := installFunc(log, args.overrides, args.fileOverrides...)
-		log.Debugf("istioctl stdout: %s", string(stdout))
-		if err != nil {
-			result = false
-			err = log.ErrorfNewErr("Failed calling istioctl install: %v stderr: %s", err.Error(), string(stderr))
-		} else {
-			log.Infof("Component Istio successfully ran istioctl install")
-		}
-
-		// Clean up the temp files
-		removeTempFiles(log)
-
-		// Write result
-		outputCh <- result
-	}(m.inputCh, m.resultCh)
-
-	// Pass in the args to get started
-	m.inputCh <- args
+	return nil
 }
 
 func (i istioComponent) IsOperatorInstallSupported() bool {
@@ -186,16 +128,16 @@ func (i istioComponent) IsInstalled(compContext spi.ComponentContext) (bool, err
 // If the monitor detects that the goroutine is finished, we either return nil (success) for the successful install
 // case, or reset the monitor state and drop down to the rest of the install method to retry the install again.
 func (i istioComponent) Install(compContext spi.ComponentContext) error {
-	if i.monitor.isRunning() {
+	if i.monitor.IsRunning() {
 		// Check the result
-		succeeded, err := i.monitor.checkResult()
+		succeeded, err := i.monitor.CheckResult()
 		if err != nil {
 			// Not finished yet, requeue
 			compContext.Log().Progress("Component Istio waiting to finish installing in the background")
 			return err
 		}
 		// reset on success or failure
-		i.monitor.reset()
+		i.monitor.Reset()
 		// If it's not finished running, requeue
 		if succeeded {
 			return nil
@@ -220,7 +162,7 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 }
 
 // forkInstall - istioctl install blocks, fork it into the background
-func forkInstall(compContext spi.ComponentContext, monitor installMonitor, overrideStrings string, files []string) error {
+func forkInstall(compContext spi.ComponentContext, monitor monitor.BackgroundProcessMonitor, overrideStrings string, files []string) error {
 	log := compContext.Log()
 	log.Debugf("Creating background install goroutine for Istio")
 	// clone the parameters
@@ -231,11 +173,15 @@ func forkInstall(compContext spi.ComponentContext, monitor installMonitor, overr
 	clone := log.GetZapLogger().With()
 	log.SetZapLogger(clone)
 
-	monitor.run(
-		installRoutineParams{
-			overrides:     overrideStrings,
-			fileOverrides: overridesFilesCopy,
-			log:           log,
+	monitor.Run(
+		func() error {
+			return istioctlInstall(
+				installRoutineParams{
+					overrides:     overrideStrings,
+					fileOverrides: overridesFilesCopy,
+					log:           log,
+				},
+			)
 		},
 	)
 	return ctrlerrors.RetryableError{Source: ComponentName}

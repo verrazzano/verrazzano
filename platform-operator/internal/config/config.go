@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package config
@@ -6,9 +6,8 @@ package config
 import (
 	"path/filepath"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 const (
@@ -70,21 +69,30 @@ type OperatorConfig struct {
 	// HealthCheckPeriodSeconds period for health check background task in seconds; a value of 0 disables health checks
 	HealthCheckPeriodSeconds int64
 
+	// MySQLCheckPeriodSeconds period for MySQL check background task in seconds; a value of 0 disables MySQL checks
+	MySQLCheckPeriodSeconds int64
+
+	// MySQLRepairTimeoutSeconds is the amount of time the MySQL check background thread will allow to transpire between
+	// detecting a possible condition to repair, and initiating the repair logic.
+	MySQLRepairTimeoutSeconds int64
+
 	// DryRun Run installs in a dry-run mode
 	DryRun bool
 }
 
 // The singleton instance of the operator config
 var instance = OperatorConfig{
-	CertDir:                  "/etc/webhook/certs",
-	MetricsAddr:              ":8080",
-	LeaderElectionEnabled:    false,
-	VersionCheckEnabled:      true,
-	RunWebhookInit:           false,
-	RunWebhooks:              false,
-	WebhookValidationEnabled: true,
-	VerrazzanoRootDir:        rootDir,
-	HealthCheckPeriodSeconds: 60,
+	CertDir:                   "/etc/webhook/certs",
+	MetricsAddr:               ":8080",
+	LeaderElectionEnabled:     false,
+	VersionCheckEnabled:       true,
+	RunWebhookInit:            false,
+	RunWebhooks:               false,
+	WebhookValidationEnabled:  true,
+	VerrazzanoRootDir:         rootDir,
+	HealthCheckPeriodSeconds:  60,
+	MySQLCheckPeriodSeconds:   60,
+	MySQLRepairTimeoutSeconds: 120,
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests

@@ -5,9 +5,10 @@
 package log
 
 import (
+	"os"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"os"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 )

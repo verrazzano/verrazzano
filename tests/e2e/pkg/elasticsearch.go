@@ -464,7 +464,7 @@ func querySystemOpenSearch(index string, fields map[string]string, kubeconfigPat
 		}
 	}
 	var result map[string]interface{}
-	url := fmt.Sprintf("%s/%s/_doc/_search?q=%s", getOpenSearchURL(kubeconfigPath), index, query)
+	url := fmt.Sprintf("%s/%s/_search?q=%s", getOpenSearchURL(kubeconfigPath), index, query)
 	username, password, err := getOpenSearchUsernamePassword(kubeconfigPath)
 	if err != nil {
 		return result

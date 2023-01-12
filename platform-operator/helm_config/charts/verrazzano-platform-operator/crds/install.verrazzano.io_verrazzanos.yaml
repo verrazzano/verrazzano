@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ---
 apiVersion: apiextensions.k8s.io/v1
@@ -51,6 +51,44 @@ spec:
               components:
                 properties:
                   applicationOperator:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                    type: object
+                  argoCd:
                     properties:
                       enabled:
                         type: boolean
@@ -802,6 +840,17 @@ spec:
                               type: object
                           type: object
                         type: array
+                      plugins:
+                        properties:
+                          enabled:
+                            type: boolean
+                          installList:
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - enabled
+                        type: object
                       policies:
                         items:
                           properties:
@@ -2707,6 +2756,17 @@ spec:
                     properties:
                       enabled:
                         type: boolean
+                      plugins:
+                        properties:
+                          enabled:
+                            type: boolean
+                          installList:
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - enabled
+                        type: object
                       replicas:
                         format: int32
                         type: integer
@@ -4075,6 +4135,8 @@ spec:
                 type: array
               instance:
                 properties:
+                  argoCdUrl:
+                    type: string
                   consoleUrl:
                     type: string
                   elasticUrl:
@@ -4132,6 +4194,44 @@ spec:
               components:
                 properties:
                   applicationOperator:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                    type: object
+                  argoCd:
                     properties:
                       enabled:
                         type: boolean
@@ -5640,6 +5740,17 @@ spec:
                               type: object
                           type: object
                         type: array
+                      plugins:
+                        properties:
+                          enabled:
+                            type: boolean
+                          installList:
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - enabled
+                        type: object
                       policies:
                         items:
                           properties:
@@ -5671,6 +5782,17 @@ spec:
                     properties:
                       enabled:
                         type: boolean
+                      plugins:
+                        properties:
+                          enabled:
+                            type: boolean
+                          installList:
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - enabled
+                        type: object
                       replicas:
                         format: int32
                         type: integer
@@ -6908,6 +7030,8 @@ spec:
                 type: array
               instance:
                 properties:
+                  argoCdUrl:
+                    type: string
                   consoleUrl:
                     type: string
                   grafanaUrl:
