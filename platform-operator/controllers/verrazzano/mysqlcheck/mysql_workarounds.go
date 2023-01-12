@@ -29,7 +29,6 @@ const (
 	componentNamespace       = "keycloak"
 	componentName            = "mysql"
 	mysqlRouterComponentName = "mysqlrouter"
-	repairTimeoutPeriod      = 5 * time.Minute
 )
 
 var (
@@ -118,7 +117,7 @@ func RepairICStuckDeleting(ctx spi.ComponentContext) error {
 	}
 
 	// Initiate repair only if time to wait period has been exceeded
-	expiredTime := getInitialTimeICUninstallChecked().Add(repairTimeoutPeriod)
+	expiredTime := getInitialTimeICUninstallChecked().Add(GetMySQLChecker().RepairTimeout)
 	if time.Now().After(expiredTime) {
 		return restartMySQLOperator(ctx.Log(), ctx.Client(), "InnoDBCluster stuck deleting")
 	}
@@ -143,7 +142,7 @@ func (mc *MySQLChecker) RepairMySQLPodsWaitingReadinessGates() error {
 		}
 
 		// Initiate repair only if time to wait period has been exceeded
-		expiredTime := getLastTimeReadinessGateChecked().Add(repairTimeoutPeriod)
+		expiredTime := getLastTimeReadinessGateChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
 			return restartMySQLOperator(mc.log, mc.client, "MySQL pods waiting for readiness gates")
 		}
@@ -246,7 +245,7 @@ func (mc *MySQLChecker) RepairMySQLPodStuckDeleting() error {
 		}
 
 		// Initiate repair only if time to wait period has been exceeded
-		expiredTime := getInitialTimeMySQLPodsStuckChecked().Add(repairTimeoutPeriod)
+		expiredTime := getInitialTimeMySQLPodsStuckChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
 			if err := restartMySQLOperator(mc.log, mc.client, "MySQL pods stuck terminating"); err != nil {
 				return err
@@ -291,7 +290,7 @@ func (mc *MySQLChecker) RepairMySQLRouterPodsCrashLoopBackoff() error {
 
 // restartMySQLOperator - restart the MySQL Operator pod
 func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client, reason string) error {
-	log.Info("Restarting the mysql-operator to see if it will repair: %s", reason)
+	log.Infof("Restarting the mysql-operator to see if it will repair: %s", reason)
 
 	operPod, err := getMySQLOperatorPod(log, client)
 	if err != nil {

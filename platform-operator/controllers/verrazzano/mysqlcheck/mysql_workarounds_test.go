@@ -25,11 +25,12 @@ import (
 var (
 	testScheme                = runtime.NewScheme()
 	innoDBClusterStatusFields = []string{"status", "cluster", "status"}
+	checkPeriodDuration       = time.Duration(1) * time.Second
+	timeoutDuration           = time.Duration(120) * time.Second
 )
 
 const (
 	innoDBClusterStatusOnline = "ONLINE"
-	MySQLCheckPeriodSeconds   = 1
 )
 
 func init() {
@@ -74,7 +75,7 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	// Set up the initial context
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLPod, mySQLOperatorPod).Build()
 	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
-	mysqlCheck, err := NewMySQLChecker(fakeCtx.Client(), time.Duration(MySQLCheckPeriodSeconds)*time.Second)
+	mysqlCheck, err := NewMySQLChecker(fakeCtx.Client(), checkPeriodDuration, timeoutDuration)
 	assert.NoError(t, err)
 	assert.True(t, getLastTimeReadinessGateChecked().IsZero())
 
@@ -90,7 +91,7 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	mySQLPod.Status.Conditions = []v1.PodCondition{{Type: "gate1", Status: v1.ConditionTrue}, {Type: "gate2", Status: v1.ConditionFalse}}
 	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLPod, mySQLOperatorPod).Build()
 	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
-	mysqlCheck, err = NewMySQLChecker(fakeCtx.Client(), time.Duration(MySQLCheckPeriodSeconds)*time.Second)
+	mysqlCheck, err = NewMySQLChecker(fakeCtx.Client(), checkPeriodDuration, timeoutDuration)
 	assert.NoError(t, err)
 
 	// Expect timer to get started when ond of the conditions is not met.  The mysql-operator pod should still exist.
@@ -100,7 +101,7 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
 	assert.NoError(t, err)
 
-	// Set the last time readiness gate checked to exceed the timeout period.  Expect the mysql-operator to get recycled.
+	// Set the last time readiness gate checked to exceed the RepairTimeout period.  Expect the mysql-operator to get recycled.
 	setInitialTimeReadinessGateChecked(time.Now().Add(-time.Hour * 2))
 	err = mysqlCheck.RepairMySQLPodsWaitingReadinessGates()
 	assert.NoError(t, err, fmt.Sprintf("unexpected error: %v", err))
@@ -226,7 +227,7 @@ func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLPod0, mySQLPod1).Build()
 	resetInitialTimeMySQLPodsStuckChecked()
 	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
-	mysqlCheck, err := NewMySQLChecker(fakeCtx.Client(), time.Duration(MySQLCheckPeriodSeconds)*time.Second)
+	mysqlCheck, err := NewMySQLChecker(fakeCtx.Client(), checkPeriodDuration, timeoutDuration)
 	assert.NoError(t, err)
 
 	err = mysqlCheck.RepairMySQLPodStuckDeleting()
@@ -237,7 +238,7 @@ func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLPod0, mySQLPod1, mySQLPod2).Build()
 	resetInitialTimeMySQLPodsStuckChecked()
 	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
-	mysqlCheck, err = NewMySQLChecker(fakeCtx.Client(), time.Duration(MySQLCheckPeriodSeconds)*time.Second)
+	mysqlCheck, err = NewMySQLChecker(fakeCtx.Client(), checkPeriodDuration, timeoutDuration)
 	assert.NoError(t, err)
 
 	err = mysqlCheck.RepairMySQLPodStuckDeleting()
@@ -248,7 +249,7 @@ func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLOperatorPod, mySQLPod0, mySQLPod1, mySQLPod2).Build()
 	setInitialTimeMySQLPodsStuckChecked(time.Now().Add(-time.Hour * 2))
 	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
-	mysqlCheck, err = NewMySQLChecker(fakeCtx.Client(), time.Duration(MySQLCheckPeriodSeconds)*time.Second)
+	mysqlCheck, err = NewMySQLChecker(fakeCtx.Client(), checkPeriodDuration, timeoutDuration)
 	assert.NoError(t, err)
 
 	err = mysqlCheck.RepairMySQLPodStuckDeleting()
@@ -264,7 +265,7 @@ func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects().Build()
 	resetInitialTimeMySQLPodsStuckChecked()
 	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
-	mysqlCheck, err = NewMySQLChecker(fakeCtx.Client(), time.Duration(MySQLCheckPeriodSeconds)*time.Second)
+	mysqlCheck, err = NewMySQLChecker(fakeCtx.Client(), checkPeriodDuration, timeoutDuration)
 	assert.NoError(t, err)
 
 	err = mysqlCheck.RepairMySQLPodStuckDeleting()
@@ -311,7 +312,7 @@ func TestRepairMySQLRouterPodsCrashLoopBackoff(t *testing.T) {
 
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLRouterPod).Build()
 	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
-	mysqlCheck, err := NewMySQLChecker(fakeCtx.Client(), time.Duration(MySQLCheckPeriodSeconds)*time.Second)
+	mysqlCheck, err := NewMySQLChecker(fakeCtx.Client(), checkPeriodDuration, timeoutDuration)
 	assert.NoError(t, err)
 	err = mysqlCheck.RepairMySQLRouterPodsCrashLoopBackoff()
 	assert.NoError(t, err)
