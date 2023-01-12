@@ -6,6 +6,7 @@ package mysqlcheck
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -228,10 +229,12 @@ func (mc *MySQLChecker) RepairMySQLPodStuckDeleting() error {
 	}
 
 	foundPodsDeleting := false
+	podStuckDeleting := v1.Pod{}
 	for i := range podList.Items {
 		pod := podList.Items[i]
 		if !pod.GetDeletionTimestamp().IsZero() {
 			foundPodsDeleting = true
+			podStuckDeleting = pod
 			break
 		}
 	}
@@ -247,6 +250,7 @@ func (mc *MySQLChecker) RepairMySQLPodStuckDeleting() error {
 		// Initiate repair only if time to wait period has been exceeded
 		expiredTime := getInitialTimeMySQLPodsStuckChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
+			createEvent(mc.log, mc.client, podStuckDeleting.ObjectMeta, "pod-stuck", "PodStuckDeleting", fmt.Sprintf("Pod stuck deleting for a minimum of %s", mc.RepairTimeout.String()))
 			if err := restartMySQLOperator(mc.log, mc.client, "MySQL pods stuck terminating"); err != nil {
 				return err
 			}
@@ -277,7 +281,9 @@ func (mc *MySQLChecker) RepairMySQLRouterPodsCrashLoopBackoff() error {
 			if waiting := container.State.Waiting; waiting != nil {
 				if waiting.Reason == "CrashLoopBackOff" {
 					// Terminate the pod
-					mc.log.Infof("Terminating pod %s/%s because it was stuck in CrashLoopBackOff", pod.Namespace, pod.Name)
+					msg := fmt.Sprintf("Terminating pod %s/%s because it is stuck in CrashLoopBackOff", pod.Namespace, pod.Name)
+					mc.log.Infof("%s", msg)
+					createEvent(mc.log, mc.client, pod.ObjectMeta, "mysql-router", waiting.Reason, msg)
 					if err := mc.client.Delete(context.TODO(), &pod, &clipkg.DeleteOptions{}); err != nil {
 						return err
 					}
@@ -290,14 +296,20 @@ func (mc *MySQLChecker) RepairMySQLRouterPodsCrashLoopBackoff() error {
 
 // restartMySQLOperator - restart the MySQL Operator pod
 func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client, reason string) error {
-	log.Infof("Restarting the mysql-operator to see if it will repair: %s", reason)
+	alertName := "mysql-operator"
+	message := fmt.Sprintf("Restarting the mysql-operator to repair: %s", reason)
+	log.Infof(message)
+	createEvent(log, client, metav1.ObjectMeta{}, alertName, "RestartMySQLOperator", message)
 
 	operPod, err := getMySQLOperatorPod(log, client)
 	if err != nil {
-		return fmt.Errorf("Failed restarting the mysql-operator to repair MySQL pods stuck deleting: %v", err)
+		msg := fmt.Sprintf("Failed restarting the mysql-operator to repair stuck resources: %v", err)
+		createEvent(log, client, metav1.ObjectMeta{}, alertName, "PodNotFound", msg)
+		return fmt.Errorf("%s", msg)
 	}
 
 	if err = client.Delete(context.TODO(), operPod, &clipkg.DeleteOptions{}); err != nil {
+		createEvent(log, client, operPod.ObjectMeta, alertName, "PodNotDeleted", fmt.Sprintf("Failed to delete the mysql-operator pod: %v", err))
 		return err
 	}
 
@@ -307,4 +319,36 @@ func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client, reas
 	resetInitialTimeICUninstallChecked()
 
 	return nil
+}
+
+// createEvent - generate an event that describes a workaround action taken
+func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, objectMetadata metav1.ObjectMeta, alertName string, reason string, message string) {
+	event := &v1.Event{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "verrazzano-" + alertName,
+			Namespace: componentNamespace,
+		},
+		InvolvedObject: func() v1.ObjectReference {
+			if !reflect.DeepEqual(objectMetadata, metav1.ObjectMeta{}) {
+				return v1.ObjectReference{
+					Kind:            "",
+					Namespace:       objectMetadata.Namespace,
+					Name:            objectMetadata.Name,
+					UID:             objectMetadata.UID,
+					APIVersion:      "",
+					ResourceVersion: objectMetadata.ResourceVersion,
+					FieldPath:       "",
+				}
+			} else {
+				return v1.ObjectReference{}
+			}
+		}(),
+		Type:    "Warning",
+		Reason:  reason,
+		Message: message,
+	}
+
+	if err := client.Create(context.TODO(), event); err != nil {
+		log.ErrorfThrottled("%v", err)
+	}
 }

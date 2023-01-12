@@ -323,3 +323,40 @@ func TestRepairMySQLRouterPodsCrashLoopBackoff(t *testing.T) {
 	assert.True(t, errors.IsNotFound(err))
 
 }
+
+// TestCreateEvent tests the creation of events
+// GIVEN an event to record
+// WHEN there is object metadata
+// THEN no error logging the event
+// WHEN there is no object metadata
+// THEN no error logging the event
+func TestCreateEvent(t *testing.T) {
+	routerName := "mysql-router-0"
+	mySQLRouterPod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      routerName,
+			Namespace: componentNamespace,
+			Labels: map[string]string{
+				mySQLComponentLabel: mysqlRouterComponentName,
+			},
+		},
+	}
+
+	alertName := "test"
+	reason := "PodStuck"
+	message := "Pod was stuck terminating"
+	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLRouterPod).Build()
+	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
+	createEvent(fakeCtx.Log(), cli, mySQLRouterPod.ObjectMeta, alertName, reason, message)
+
+	event := v1.Event{}
+	err := cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: fmt.Sprintf("verrazzano-%s", alertName)}, &event)
+	assert.NoError(t, err)
+	assert.Equal(t, reason, event.Reason)
+	assert.Equal(t, message, event.Message)
+
+	// Test with empty object
+	createEvent(fakeCtx.Log(), cli, metav1.ObjectMeta{}, alertName+"2", reason, message)
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: fmt.Sprintf("verrazzano-%s", alertName+"2")}, &event)
+	assert.NoError(t, err)
+}
