@@ -19,7 +19,7 @@ while IFS= read -r line
 do
     IMAGE_NAME_AND_TAG=$(echo "$line")
     IMAGE_PULL=$(docker pull "$DOCKER_REPO"/"$IMAGE_NAME_AND_TAG")
-    if [[ "$IMAGE_PULL" -eq 0 ]]; then
+    if [[ "$IMAGE_PULL" != *"up to date"* ]]; then
         echo Success Downloading image ...
         SUCCESSFULLY_PULLED_IMAGES+=("$IMAGE_NAME_AND_TAG")
     fi
