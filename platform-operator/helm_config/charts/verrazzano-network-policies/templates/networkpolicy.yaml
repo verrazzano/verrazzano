@@ -31,6 +31,13 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
+              verrazzano.io/namespace: fluent
+      ports:
+        - protocol: TCP
+          port: 8775
+    - from:
+        - namespaceSelector:
+            matchLabels:
               verrazzano.io/namespace: verrazzano-system
           podSelector:
             matchLabels:
