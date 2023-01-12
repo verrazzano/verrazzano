@@ -17,5 +17,8 @@ echo Running docker image inspect ...
 while IFS= read -r line
 do
   IMAGE_NAME_AND_TAG=$(echo "$line")
-  docker pull "$DOCKER_REPO"/"$IMAGE_NAME_AND_TAG"
+  docker pull -q "$DOCKER_REPO"/"$IMAGE_NAME_AND_TAG"
 done < "$VZ_IMAGE_TXT"
+
+cd /var/lib/docker/images
+ls -al
