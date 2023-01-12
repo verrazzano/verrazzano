@@ -8,7 +8,7 @@
 export DOCKER_CLI_EXPERIMENTAL=enabled
 
 echo Running OCR image checks ...
-VZ_IMAGE_TXT=verrazzano_images.txt
+OBJ_STORAGE_VZ_IMAGE_TXT=verrazzano_images.txt
 SUCCESSFULLY_PULLED_IMAGES=("")
 
 echo Logging into Docker ...
@@ -23,15 +23,14 @@ do
         echo Success Downloading image ...
         SUCCESSFULLY_PULLED_IMAGES+=("$IMAGE_NAME_AND_TAG")
     fi
-done < "$VZ_IMAGE_TXT"
+done < "$OBJ_STORAGE_VZ_IMAGE_TXT"
 
 echo List of images that were successfully pulled ...
 for image_name in "${SUCCESSFULLY_PULLED_IMAGES[@]}"
 do
-    IMAGE_FOUND_OR_NOT=$(grep -i "$image_name" "$VZ_IMAGE_TXT")
+    IMAGE_FOUND_OR_NOT=$(grep -i "$image_name" "$OBJ_STORAGE_VZ_IMAGE_TXT")
     if [[ $? -eq 0 ]]; then
         echo Image "$image_name" found
-    fi
     else
         echo Image "$image_name" not found
     fi
