@@ -120,7 +120,25 @@ func RepairICStuckDeleting(ctx spi.ComponentContext) error {
 	// Initiate repair only if time to wait period has been exceeded
 	expiredTime := getInitialTimeICUninstallChecked().Add(GetMySQLChecker().RepairTimeout)
 	if time.Now().After(expiredTime) {
-		return restartMySQLOperator(ctx.Log(), ctx.Client(), "InnoDBCluster stuck deleting")
+		metaData := metav1.ObjectMeta{
+			Name:                       innoDBCluster.GetName(),
+			GenerateName:               innoDBCluster.GetGenerateName(),
+			Namespace:                  innoDBCluster.GetNamespace(),
+			UID:                        innoDBCluster.GetUID(),
+			ResourceVersion:            innoDBCluster.GetResourceVersion(),
+			Generation:                 innoDBCluster.GetGeneration(),
+			CreationTimestamp:          innoDBCluster.GetCreationTimestamp(),
+			DeletionTimestamp:          innoDBCluster.GetDeletionTimestamp(),
+			DeletionGracePeriodSeconds: innoDBCluster.GetDeletionGracePeriodSeconds(),
+			Labels:                     innoDBCluster.GetLabels(),
+			Annotations:                innoDBCluster.GetAnnotations(),
+			OwnerReferences:            innoDBCluster.GetOwnerReferences(),
+			Finalizers:                 innoDBCluster.GetFinalizers(),
+			ManagedFields:              innoDBCluster.GetManagedFields(),
+		}
+		msg := "InnoDBCluster stuck deleting"
+		createEvent(ctx.Log(), ctx.Client(), metaData, "innodbcluster", "ICStuckDeleting", msg)
+		return restartMySQLOperator(ctx.Log(), ctx.Client(), msg)
 	}
 
 	ctx.Log().Progressf("Waiting for InnoDBCluster %s/%s to be deleted", componentNamespace, helmReleaseName)
