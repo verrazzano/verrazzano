@@ -18,4 +18,4 @@ while IFS= read -r line
 do
   IMAGE_NAME_AND_TAG=$(echo "$line")
   docker pull "$DOCKER_REPO"/"$IMAGE_NAME_AND_TAG"
-done < "$LOCAL_IMAGES_TXT"
+done < "$VZ_IMAGE_TXT"
