@@ -9,17 +9,17 @@ export DOCKER_CLI_EXPERIMENTAL=enabled
 
 echo Running OCR image checks ...
 VZ_IMAGE_TXT=verrazzano_images.txt
-SUCCESSFULLY_PULLED_IMAGES=()
+SUCCESSFULLY_PULLED_IMAGES=("")
 
 echo Logging into Docker ...
 echo "$OCR_CREDS_PSW" | docker login "$DOCKER_REPO" -u "$OCR_CREDS_USR" --password-stdin
 
-echo Running docker image inspect ...
+echo Pulling images from OCR ... 
 while IFS= read -r line
 do
     IMAGE_NAME_AND_TAG=$(echo "$line")
     IMAGE_PULL=$(docker pull -q "$DOCKER_REPO"/"$IMAGE_NAME_AND_TAG")
-    if [[ "$IMAGE_PULL" -eq 1 ]]; then
+    if [[ "$IMAGE_PULL" -eq 0 ]]; then
         echo Success Downloading image ...
         echo "$IMAGE_PULL"
         SUCCESSFULLY_PULLED_IMAGES+=("$IMAGE_PULL")
@@ -27,6 +27,7 @@ do
 
 done < "$VZ_IMAGE_TXT"
 
+echo List of images that were successfully pulled ...
 for value in "${SUCCESSFULLY_PULLED_IMAGES[@]}"
 do
      echo $value
