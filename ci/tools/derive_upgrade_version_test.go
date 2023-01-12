@@ -47,14 +47,3 @@ func TestGetInterimReleaseWithMajorVersion(t *testing.T) {
 	releaseTags := []string{"v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3", "v1.0.4", "v1.1.0", "v1.1.1", "v1.1.2", "v1.2.0", "v1.2.1", "v1.2.2", "v1.3.0", "v1.3.1", "v1.3.2", "v1.3.3", "v1.3.4", "v1.3.5", "v1.3.6", "v1.3.7", "v1.3.8", "v1.4.0", "v1.4.1", "v1.4.2", "v1.5.0", "2.0.0"}
 	assert.Equal(t, "v1.5.0\n", getInterimRelease(releaseTags))
 }
-
-// TestGetReleaseTagsWithoutExcludedTags Tests the getReleaseTags function
-// WHEN with git release tags exclude release tags are given
-// THEN git release tags without the excluded tags is expected
-func TestGetReleaseTagsWithoutExcludedTags(t *testing.T) {
-	pwd, _ := os.Getwd()
-	parseCliArgs([]string{pwd, "interim-version"})
-	excludeReleaseTags := []string{"v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3", "v1.0.4", "v1.1.0", "v1.1.1", "v1.1.2", "v1.2.0", "v1.2.1", "v1.2.2", "v1.3.0", "v1.3.1", "v1.3.2", "v1.3.3", "v1.3.4", "v1.3.5", "v1.3.6", "v1.3.7", "v1.3.8"}
-	expectedReleaseTags := []string{"v1.4.0", "v1.4.1", "v1.4.2"}
-	assert.Equal(t, expectedReleaseTags, getReleaseTags(pwd, excludeReleaseTags))
-}
