@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2023, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package main
 
@@ -162,7 +162,6 @@ func getInstallRelease(releaseTags []string) string {
 
 	// Handles the major release case, e.g. where the latest version is 2.0.0 and the previous version is 1.4.2
 	if minorInstallVersionValue < 0 {
-		minorInstallVersionValue = 0
 		majorVersionValue = parseInt(latestReleaseTagSplit[0]) - 1
 		majorReleaseDecrementCount := 0
 
@@ -174,15 +173,20 @@ func getInstallRelease(releaseTags []string) string {
 				totalMinorReleaseCounter++
 			}
 		}
+
 		if totalMinorReleaseCounter == 0 {
 			majorVersionValue = majorVersionValue - totalMinorReleaseCounter - 1
 			majorReleaseDecrementCount = parseInt(latestReleaseTagSplit[0]) - majorVersionValue
 		}
+
+		minorInstallVersionDiff := minorInstallVersionValue
+		minorInstallVersionValue = 0
 		for _, version := range releaseTags {
 			versionSplit := strings.Split(strings.TrimPrefix(version, "v"), ".")
 			if parseInt(versionSplit[0]) == majorVersionValue && parseInt(versionSplit[1]) > minorInstallVersionValue {
-				if majorReleaseDecrementCount < 2 {
+				if majorReleaseDecrementCount < 2 && minorInstallVersionDiff < -2 {
 					minorInstallVersionValue = parseInt(versionSplit[1]) - 1
+					//fmt.Println(minorInstallVersionValue)
 				} else {
 					minorInstallVersionValue = parseInt(versionSplit[1])
 				}
