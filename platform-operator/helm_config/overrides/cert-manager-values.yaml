@@ -12,3 +12,17 @@ ingressShim:
 # file (verrazzano-bom.json), and the override string is built in the install_cert_manager() shell function
 # in the 2-install-system-components.sh install script
 
+securityContext:
+  allowPrivilegeEscalation: false
+  privileged: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65534
+  runAsGroup: 65534
+  capabilities:
+    drop:
+      - ALL
+
+podSecurityContext:
+  seccompProfile:
+    type: RuntimeDefault
