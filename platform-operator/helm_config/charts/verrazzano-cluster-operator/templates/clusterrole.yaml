@@ -42,6 +42,8 @@ rules:
       - serviceaccounts
       - configmaps
       - secrets
+      - services
+      - pods/exec
     verbs:
       - create
       - get
@@ -53,6 +55,7 @@ rules:
     resources:
       - ingresses
     verbs:
+      - get
       - list
       - watch
   - apiGroups:

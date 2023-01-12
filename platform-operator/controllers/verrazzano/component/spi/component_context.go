@@ -38,6 +38,15 @@ func NewContext(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *v1alpha1.
 	}, nil
 }
 
+// NewMinimalContext creates a ComponentContext limited to kubernetes client interactions and logging
+func NewMinimalContext(c clipkg.Client, log vzlog.VerrazzanoLogger) (ComponentContext, error) {
+	// Generate the effective CR based ond the declared profile and any overrides in the user-supplied one
+	return componentContext{
+		log:    log,
+		client: c,
+	}, nil
+}
+
 // NewFakeContext creates a fake ComponentContext for unit testing purposes
 // c Kubernetes client
 // actualCR The user-supplied Verrazzano CR

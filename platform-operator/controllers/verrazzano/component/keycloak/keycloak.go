@@ -164,6 +164,87 @@ const pkceTmpl = `
       ]
 }
 `
+const ManagedClusterClientTmpl = `
+{
+      "clientId" : "verrazzano-pkce",
+      "enabled": true,
+      "surrogateAuthRequired": false,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      ` + ManagedClusterClientUrisTemplate + `,
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "saml.assertion.signature": "false",
+        "saml.multivalued.roles": "false",
+        "saml.force.post.binding": "false",
+        "saml.encrypt": "false",
+        "saml.server.signature": "false",
+        "saml.server.signature.keyinfo.ext": "false",
+        "exclude.session.state.from.auth.response": "false",
+        "saml_force_name_id_format": "false",
+        "saml.client.signature": "false",
+        "tls.client.certificate.bound.access.tokens": "false",
+        "saml.authnstatement": "false",
+        "display.on.consent.screen": "false",
+        "pkce.code.challenge.method": "S256",
+        "saml.onetimeuse.condition": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "protocolMappers": [
+          {
+            "name": "groupmember",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-group-membership-mapper",
+            "consentRequired": false,
+            "config": {
+              "full.path": "false",
+              "id.token.claim": "true",
+              "access.token.claim": "true",
+              "claim.name": "groups",
+              "userinfo.token.claim": "true"
+            }
+          },
+          {
+            "name": "realm roles",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-usermodel-realm-role-mapper",
+            "consentRequired": false,
+            "config": {
+              "multivalued": "true",
+              "user.attribute": "foo",
+              "id.token.claim": "true",
+              "access.token.claim": "true",
+              "claim.name": "realm_access.roles",
+              "jsonType.label": "String"
+            }
+          }
+        ],
+      "defaultClientScopes": [
+        "web-origins",
+        "role_list",
+        "roles",
+        "profile",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+}
+`
 
 const pgClient = `
 {
@@ -402,6 +483,15 @@ const pkceClientUrisTemplate = `
       "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
       "https://kibana.vmi.system.{{.DNSSubDomain}}"
  {{end}} 
+	]
+`
+const ManagedClusterClientUrisTemplate = `
+	"redirectUris": [
+	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/*",
+	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/_authentication_callback"{{end}}
+	],
+	"webOrigins": [
+	  "https://prometheus.vmi.system.{{.DNSSubDomain}}"
 	]
 `
 
@@ -659,7 +749,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		// When the MySQL pod restarts and using ephemeral storage, the
 		// login to Keycloak will fail.  Need to recycle the Keycloak pod
 		// to resolve the condition.
-		err = loginKeycloak(ctx, cfg, cli)
+		err = LoginKeycloak(ctx, cfg, cli)
 		if err != nil {
 			err2 := ctx.Client().Delete(context.TODO(), pod)
 			if err2 != nil {
@@ -670,7 +760,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Login to Keycloak
-	err = loginKeycloak(ctx, cfg, cli)
+	err = LoginKeycloak(ctx, cfg, cli)
 	if err != nil {
 		return err
 	}
@@ -751,20 +841,20 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Create verrazzano-pkce client
-	err = createOrUpdateClient(ctx, cfg, cli, "verrazzano-pkce", pkceTmpl, pkceClientUrisTemplate, false)
+	err = CreateOrUpdateClient(ctx, cfg, cli, "verrazzano-pkce", pkceTmpl, pkceClientUrisTemplate, false)
 	if err != nil {
 		return err
 	}
 
 	// Creating verrazzano-pg client
-	err = createOrUpdateClient(ctx, cfg, cli, "verrazzano-pg", pgClient, "", true)
+	err = CreateOrUpdateClient(ctx, cfg, cli, "verrazzano-pg", pgClient, "", true)
 	if err != nil {
 		return err
 	}
 
 	if vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
 		// Creating rancher client
-		err = createOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true)
+		err = CreateOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true)
 		if err != nil {
 			return err
 		}
@@ -823,7 +913,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 }
 
 // loginKeycloak logs into Keycloak so kcadm API calls can be made
-func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
+func LoginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
 	// Get the Keycloak admin password
 	secret := &corev1.Secret{}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
@@ -841,12 +931,12 @@ func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kuberne
 		ctx.Log().Error(err)
 		return err
 	}
-	ctx.Log().Debug("loginKeycloak: Successfully retrieved Keycloak password")
+	ctx.Log().Debug("LoginKeycloak: Successfully retrieved Keycloak password")
 
 	// Login to Keycloak
 	kcPod := keycloakPod()
 	loginCmd := "/opt/jboss/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user keycloakadmin --password " + keycloakpw
-	ctx.Log().Debugf("loginKeycloak: Login Cmd = %s", maskPw(loginCmd))
+	ctx.Log().Debugf("LoginKeycloak: Login Cmd = %s", maskPw(loginCmd))
 	stdOut, stdErr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(loginCmd))
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed logging into Keycloak: stdout = %s: stderr = %s, err = %v", stdOut, stdErr, maskPw(err.Error()))
@@ -931,11 +1021,16 @@ func getSecretPassword(ctx spi.ComponentContext, namespace string, secretname st
 
 // getDNSDomain returns the DNS Domain
 func getDNSDomain(c client.Client, vz *vzapi.Verrazzano) (string, error) {
+	var dnsDomain string
 	dnsSuffix, err := vzconfig.GetDNSSuffix(c, vz)
 	if err != nil {
 		return "", err
 	}
-	dnsDomain := fmt.Sprintf("%s.%s", vz.Spec.EnvironmentName, dnsSuffix)
+	if vz != nil {
+		dnsDomain = fmt.Sprintf("%s.%s", vz.Spec.EnvironmentName, dnsSuffix)
+	} else {
+		dnsDomain = dnsSuffix
+	}
 	return dnsDomain, nil
 }
 
@@ -1069,7 +1164,7 @@ func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes
 
 	return nil
 }
-func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, clientName string, clientTemplate string, uriTemplate string, generateSecret bool) error {
+func CreateOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, clientName string, clientTemplate string, uriTemplate string, generateSecret bool) error {
 	keycloakClients, err := getKeycloakClients(ctx)
 	if err != nil {
 		return err
@@ -1097,7 +1192,7 @@ func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 		data +
 		"END"
 
-	ctx.Log().Debugf("createOrUpdateClient: Create %s client Cmd = %s", clientName, clientCreateCmd)
+	ctx.Log().Debugf("CreateOrUpdateClient: Create %s client Cmd = %s", clientName, clientCreateCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(clientCreateCmd))
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed creating %s client: stdout = %s, stderr = %s", clientName, stdout, stderr)
@@ -1112,7 +1207,7 @@ func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 		}
 	}
 
-	ctx.Log().Debugf("createOrUpdateClient: Created %s client", clientName)
+	ctx.Log().Debugf("CreateOrUpdateClient: Created %s client", clientName)
 	ctx.Log().Oncef("Component Keycloak successfully created client %s", clientName)
 	return nil
 }
@@ -1465,7 +1560,7 @@ func GetRancherClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error
 	}
 
 	// Login to Keycloak
-	err = loginKeycloak(ctx, cfg, cli)
+	err = LoginKeycloak(ctx, cfg, cli)
 	if err != nil {
 		return "", err
 	}
@@ -1549,7 +1644,7 @@ func GetVerrazzanoUserFromKeycloak(ctx spi.ComponentContext) (*KeycloakUser, err
 	}
 
 	// Login to Keycloak
-	err = loginKeycloak(ctx, cfg, cli)
+	err = LoginKeycloak(ctx, cfg, cli)
 	if err != nil {
 		return nil, err
 	}

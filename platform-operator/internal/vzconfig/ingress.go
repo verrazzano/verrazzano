@@ -3,7 +3,11 @@
 package vzconfig
 
 import (
+	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+	k8net "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -56,7 +60,21 @@ func GetWildcardDomain(DNS interface{}) string {
 // GetDNSSuffix Returns the DNS suffix for the Verrazzano installation
 // - port of install script function get_dns_suffix from config.sh
 func GetDNSSuffix(client client.Client, vz *vzapi.Verrazzano) (string, error) {
+	const externalDNSKey = "external-dns.alpha.kubernetes.io/target"
 	var dnsSuffix string
+	if vz == nil {
+		// attempt to get DNS from env
+		ingress := k8net.Ingress{}
+		err := client.Get(context.TODO(), types.NamespacedName{Name: constants.VzConsoleIngress, Namespace: constants.VerrazzanoSystemNamespace}, &ingress)
+		if err != nil {
+			return "", err
+		}
+		externalDNSAnno, ok := ingress.Annotations[externalDNSKey]
+		if !ok || len(externalDNSAnno) == 0 {
+			return "", fmt.Errorf("Annotation %s missing from Verrazzano ingress, unable to generate DNS name", externalDNSKey)
+		}
+		return externalDNSAnno[len(constants.VzConsoleIngress)+1:], nil
+	}
 	dnsConfig := vz.Spec.Components.DNS
 	if dnsConfig == nil || dnsConfig.Wildcard != nil {
 		ingressIP, err := GetIngressIP(client, vz)

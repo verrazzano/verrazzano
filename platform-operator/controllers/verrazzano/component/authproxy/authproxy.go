@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"io/fs"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,9 +75,21 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 	overrides.Config.DNSSuffix = dnsSuffix
 
+	registrationSecret, err := common.GetManagedClusterRegistrationSecret(ctx.Client())
+	if err != nil {
+		return nil, err
+	}
+	oidcClient := "verrazzano-pkce"
+	if registrationSecret != nil {
+		// specify the cluster associated keycloak/OIDC client
+		clusterName := string(registrationSecret.Data[constants.ClusterNameData])
+		oidcClient = fmt.Sprintf("verrazzano-%s", clusterName)
+	}
+
 	overrides.Proxy = &proxyValues{
 		OidcProviderHost:          fmt.Sprintf("keycloak.%s.%s", overrides.Config.EnvName, dnsSuffix),
 		OidcProviderHostInCluster: keycloakInClusterURL,
+		PKCEClientID:              oidcClient,
 	}
 
 	// Image name and version

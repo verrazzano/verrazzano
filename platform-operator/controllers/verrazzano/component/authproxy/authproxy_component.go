@@ -194,3 +194,14 @@ func (c authProxyComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	}
 	return false
 }
+
+func (c authProxyComponent) Reconcile(ctx spi.ComponentContext) error {
+	installed, err := c.IsInstalled(ctx)
+	if err != nil {
+		return err
+	}
+	if installed {
+		err = c.Install(ctx)
+	}
+	return err
+}

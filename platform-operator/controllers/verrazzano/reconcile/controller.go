@@ -9,6 +9,7 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"io"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -878,7 +879,7 @@ func (r *Reconciler) isManagedClusterRegistrationSecret(o client.Object) bool {
 	if secret.Namespace != vzconst.VerrazzanoSystemNamespace || secret.Name != vzconst.MCRegistrationSecret {
 		return false
 	}
-	r.AddWatch(fluentd.ComponentJSONName, jaegeroperator.ComponentJSONName)
+	r.AddWatch(fluentd.ComponentJSONName, jaegeroperator.ComponentJSONName, authproxy.ComponentJSONName)
 	return true
 }
 

@@ -702,7 +702,7 @@ func TestGetEnvironmentName(t *testing.T) {
 
 // TestLoginKeycloak tests the login to keycloak interacts with k8s resources as expected
 // GIVEN a client
-// WHEN I call loginKeycloak
+// WHEN I call LoginKeycloak
 // THEN throw an error if the k8s environment is invalid (bad secret)
 func TestLoginKeycloak(t *testing.T) {
 	httpSecret := createTestLoginSecret()
@@ -735,7 +735,7 @@ func TestLoginKeycloak(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := loginKeycloak(spi.NewFakeContext(tt.c, testVZ, nil, false), cfg, restclient)
+			err := LoginKeycloak(spi.NewFakeContext(tt.c, testVZ, nil, false), cfg, restclient)
 			if tt.isErr {
 				assert.Error(t, err)
 			} else {
