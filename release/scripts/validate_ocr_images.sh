@@ -18,17 +18,22 @@ echo Pulling images from OCR ...
 while IFS= read -r line
 do
     IMAGE_NAME_AND_TAG=$(echo "$line")
-    IMAGE_PULL=$(docker pull -q "$DOCKER_REPO"/"$IMAGE_NAME_AND_TAG")
+    IMAGE_PULL=$(docker pull "$DOCKER_REPO"/"$IMAGE_NAME_AND_TAG")
     if [[ "$IMAGE_PULL" -eq 0 ]]; then
         echo Success Downloading image ...
-        echo "$IMAGE_PULL"
         SUCCESSFULLY_PULLED_IMAGES+=("$IMAGE_NAME_AND_TAG")
     fi
-
 done < "$VZ_IMAGE_TXT"
 
 echo List of images that were successfully pulled ...
-for value in "${SUCCESSFULLY_PULLED_IMAGES[@]}"
+for image_name in "${SUCCESSFULLY_PULLED_IMAGES[@]}"
 do
-     echo $value
+    IMAGE_FOUND_OR_NOT=$(grep -i "$image_name" "$VZ_IMAGE_TXT")
+    if [[ $? -eq 0 ]]; then
+        echo Image "$image_name" found
+    fi
+    else
+        echo Image "$image_name" not found
+    fi
 done
+
