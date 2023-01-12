@@ -210,5 +210,18 @@ func createServiceMonitorEndpoint(info ScrapeInfo, portIncrement int) (promopera
 		TargetLabel: "webapp",
 	})
 
+	// Add a relabel config that will copy the value of "app" to "application" if "application" is empty
+	endpoint.RelabelConfigs = append(endpoint.RelabelConfigs, &promoperapi.RelabelConfig{
+		Action:      "replace",
+		Regex:       `;(.*)`,
+		Replacement: "$1",
+		Separator:   ";",
+		SourceLabels: []promoperapi.LabelName{
+			"application",
+			"app",
+		},
+		TargetLabel: "application",
+	})
+
 	return endpoint, nil
 }

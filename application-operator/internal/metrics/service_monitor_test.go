@@ -64,7 +64,7 @@ func TestPopulateServiceMonitor(t *testing.T) {
 					return
 				}
 				asserts.Equal(t, serviceMonitor.Spec.Endpoints[0].RelabelConfigs[0].Replacement, tt.info.ClusterName)
-				asserts.Equal(t, 9, len(serviceMonitor.Spec.Endpoints[0].RelabelConfigs))
+				asserts.Equal(t, 10, len(serviceMonitor.Spec.Endpoints[0].RelabelConfigs))
 				if tt.info.BasicAuthSecret != nil {
 					asserts.NotNil(t, serviceMonitor.Spec.Endpoints[0].BasicAuth)
 				}
