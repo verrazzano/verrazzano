@@ -25,6 +25,9 @@ spec:
           image: {{ .Values.logging.fluentdImage }}
           imagePullPolicy: IfNotPresent
           securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            runAsGroup: 997
             privileged: false
             allowPrivilegeEscalation: false
             capabilities:
@@ -128,7 +131,7 @@ spec:
           type: RuntimeDefault
       volumes:
         - configMap:
-            defaultMode: 0744
+            defaultMode: 0755
             name: {{ .Values.logging.name }}-init
           name: {{ .Values.logging.name }}-init
         - name: cacerts
