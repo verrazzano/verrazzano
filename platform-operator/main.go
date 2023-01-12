@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package main
@@ -87,6 +87,10 @@ func main() {
 	flag.BoolVar(&helm.Debug, "helm-debug", helm.Debug, "Add the --debug flag to helm commands")
 	flag.Int64Var(&config.HealthCheckPeriodSeconds, "health-check-period", config.HealthCheckPeriodSeconds,
 		"Health check period seconds; set to 0 to disable health checks")
+	flag.Int64Var(&config.MySQLCheckPeriodSeconds, "mysql-check-period", config.MySQLCheckPeriodSeconds,
+		"MySQL check period seconds; set to 0 to disable MySQL checks")
+	flag.Int64Var(&config.MySQLRepairTimeoutSeconds, "mysql-repair-timeout", config.MySQLRepairTimeoutSeconds,
+		"MySQL repair timeout seconds")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}

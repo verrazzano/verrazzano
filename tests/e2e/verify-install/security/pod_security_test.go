@@ -30,13 +30,15 @@ const (
 )
 
 var skipPods = map[string][]string{
+	"keycloak": {
+		"mysql",
+	},
 	"verrazzano-install": {
 		"mysql",
 	},
 	"verrazzano-system": {
 		"coherence-operator",
 		"fluentd",
-		"oam-kubernetes-runtime",
 		"vmi-system",
 		"weblogic-operator",
 	},

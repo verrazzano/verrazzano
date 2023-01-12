@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package reconcile
@@ -6,6 +6,9 @@ package reconcile
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"k8s.io/client-go/dynamic"
 	"reflect"
 	"sync"
 	"testing"
@@ -45,6 +48,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakes "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -487,6 +491,16 @@ func TestUninstallComplete(t *testing.T) {
 	setFakeComponentsDisabled()
 	defer registry.ResetGetComponentsFn()
 
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
+	defer func() {
+		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+		k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
+	}()
+	testFunc := func(client typedcorev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) { return false, nil }
+	rancher.SetCheckClusterProvisionedFunc(testFunc)
+	defer rancher.SetDefaultCheckClusterProvisionedFunc()
+
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -578,6 +592,16 @@ func TestUninstallStarted(t *testing.T) {
 	deleteTime := metav1.Time{
 		Time: time.Now(),
 	}
+
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
+	defer func() {
+		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+		k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
+	}()
+	testFunc := func(client typedcorev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) { return false, nil }
+	rancher.SetCheckClusterProvisionedFunc(testFunc)
+	defer rancher.SetDefaultCheckClusterProvisionedFunc()
 
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -686,6 +710,16 @@ func TestUninstallSucceeded(t *testing.T) {
 	setFakeComponentsDisabled()
 	defer registry.ResetGetComponentsFn()
 
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
+	defer func() {
+		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+		k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
+	}()
+	testFunc := func(client typedcorev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) { return false, nil }
+	rancher.SetCheckClusterProvisionedFunc(testFunc)
+	defer rancher.SetDefaultCheckClusterProvisionedFunc()
+
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -754,7 +788,7 @@ func TestUninstallSucceeded(t *testing.T) {
 }
 
 // TestVerrazzanoNotFound tests the Reconcile method for the following use case
-// GIVEN an reqyest for a Verrazzano custom resource
+// GIVEN a request for a Verrazzano custom resource
 // WHEN it does not exist
 // THEN ensure the error not found is handled
 func TestVerrazzanoNotFound(t *testing.T) {

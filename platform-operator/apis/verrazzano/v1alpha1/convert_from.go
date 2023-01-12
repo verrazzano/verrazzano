@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -94,6 +94,7 @@ func convertVerrazzanoInstanceFromV1Beta1(instance *v1beta1.InstanceInfo) *Insta
 		return nil
 	}
 	return &InstanceInfo{
+		ArgoCDURL:     instance.ArgoCDURL,
 		ConsoleURL:    instance.ConsoleURL,
 		KeyCloakURL:   instance.KeyCloakURL,
 		RancherURL:    instance.RancherURL,
@@ -144,6 +145,7 @@ func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 		WebLogicOperator:       convertWeblogicOperatorFromV1Beta1(in.WebLogicOperator),
 		Velero:                 convertVeleroFromV1Beta1(in.Velero),
 		Verrazzano:             convertVerrazzanoFromV1Beta1(in.Verrazzano),
+		ArgoCD:                 convertArgoCDFromV1Beta1(in.ArgoCD),
 	}
 }
 
@@ -534,6 +536,16 @@ func convertVerrazzanoFromV1Beta1(in *v1beta1.VerrazzanoComponent) *VerrazzanoCo
 		return nil
 	}
 	return &VerrazzanoComponent{
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
+	}
+}
+
+func convertArgoCDFromV1Beta1(in *v1beta1.ArgoCDComponent) *ArgoCDComponent {
+	if in == nil {
+		return nil
+	}
+	return &ArgoCDComponent{
 		Enabled:          in.Enabled,
 		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
 	}
