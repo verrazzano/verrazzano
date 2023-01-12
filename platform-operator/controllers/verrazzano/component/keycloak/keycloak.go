@@ -81,6 +81,15 @@ const kcInitContainerValueTemplate = `
           mountPath: /theme
         - name: cacerts
           mountPath: /cacerts
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        privileged: false
+        runAsGroup: 0
+        runAsNonRoot: true
+        runAsUser: 1000
 `
 
 const pkceTmpl = `
@@ -1297,7 +1306,7 @@ func enableVerrazzanoSystemRealm(ctx spi.ComponentContext, cfg *restclient.Confi
 
 func removeLoginConfigFile(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
 	kcPod := keycloakPod()
-	removeLoginConfigFileCmd := "rm /root/.keycloak/kcadm.config"
+	removeLoginConfigFileCmd := "rm ~/.keycloak/kcadm.config"
 	ctx.Log().Debugf("removeLoginConfigFile: Removing login config file Cmd = %s", removeLoginConfigFileCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(removeLoginConfigFileCmd))
 	if err != nil {

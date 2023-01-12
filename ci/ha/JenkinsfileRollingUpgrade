@@ -2,7 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-def agentLabel = env.JOB_NAME.contains('master') ? "1.5-large-phx" : "1.5-large"
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 def TESTS_FAILED = false
 
@@ -58,6 +58,10 @@ pipeline {
                 choices: [ "nip.io", "sslip.io"])
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+        string (name: 'TAGGED_TESTS',
+                defaultValue: '',
+                description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
+                trim: true)
         string (name: 'INCLUDED_TESTS',
                 defaultValue: '.*',
                 description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*',

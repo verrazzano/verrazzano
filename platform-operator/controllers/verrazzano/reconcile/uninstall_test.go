@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package reconcile
@@ -6,6 +6,8 @@ package reconcile
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"reflect"
 	"testing"
 	"time"
@@ -92,6 +94,13 @@ func TestReconcileUninstalling(t *testing.T) {
 		}
 	})
 	defer registry.ResetGetComponentsFn()
+
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
+	defer func() {
+		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+		k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
+	}()
 
 	vzcr := &vzapi.Verrazzano{
 		ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
@@ -180,6 +189,13 @@ func TestReconcileUninstall(t *testing.T) {
 	})
 
 	defer registry.ResetGetComponentsFn()
+
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
+	defer func() {
+		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+		k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
+	}()
 
 	vzcr := &vzapi.Verrazzano{
 		ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
@@ -336,6 +352,14 @@ func TestUninstallVariations(t *testing.T) {
 				}
 			})
 			defer registry.ResetGetComponentsFn()
+
+			k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+			k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
+			defer func() {
+				k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+				k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
+			}()
+
 			reconciler := newVerrazzanoReconciler(c)
 			result, err := reconciler.reconcileUninstall(vzlog.DefaultLogger(), vzcr)
 			asserts.NoError(err)
@@ -586,7 +610,7 @@ func TestDeleteNamespaces(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(nameSpaces...).Build()
 
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.deleteNamespaces(vzlog.DefaultLogger())
+	result, err := reconciler.deleteNamespaces(vzlog.DefaultLogger(), false)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -624,6 +648,14 @@ func TestReconcileUninstall2(t *testing.T) {
 	}
 	defer helm.SetDefaultRunner()
 	config.TestProfilesDir = relativeProfilesDir
+
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
+	defer func() {
+		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+		k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
+	}()
+
 	getMockWithError := func() client.Client {
 		mocker := gomock.NewController(t)
 		mockClient := mocks.NewMockClient(mocker)
