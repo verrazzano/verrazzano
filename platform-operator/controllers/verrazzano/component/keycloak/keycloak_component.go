@@ -177,7 +177,7 @@ func (c KeycloakComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return c.HelmComponent.PreUpgrade(ctx)
 }
 
-// PostUpgrade Keycloak-post-upgrade processing, create or update the Kiali ingress
+// PostUpgrade Keycloak-post-upgrade processing, create or update the Keycloak ingress
 func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err
