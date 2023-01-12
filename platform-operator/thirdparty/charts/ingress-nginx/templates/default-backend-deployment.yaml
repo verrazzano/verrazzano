@@ -67,6 +67,7 @@ spec:
             runAsUser: {{ .Values.defaultBackend.image.runAsUser }}
             runAsNonRoot: {{ .Values.defaultBackend.image.runAsNonRoot }}
             allowPrivilegeEscalation: {{ .Values.defaultBackend.image.allowPrivilegeEscalation }}
+            privileged: {{ .Values.defaultBackend.image.privileged }}
             readOnlyRootFilesystem: {{ .Values.defaultBackend.image.readOnlyRootFilesystem}}
         {{- if .Values.defaultBackend.extraEnvs }}
           env: {{ toYaml .Values.defaultBackend.extraEnvs | nindent 12 }}

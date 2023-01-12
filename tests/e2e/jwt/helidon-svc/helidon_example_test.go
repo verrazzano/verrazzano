@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helidonsvc
@@ -140,32 +140,19 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		})
 	})
 
-	// Verify Prometheus scraped metrics
+	// Verify Prometheus scraped targets
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig without metrics-trait(using default) are created
-	// THEN the application metrics must be accessible
+	// THEN the application scrape targets must be healthy
 	t.Describe("for Metrics.", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
-		t.It("Retrieve Prometheus scraped metrics", func() {
+		t.It("Verify all scrape targets are healthy for the application", func() {
 			if skipVerify {
 				Skip(skipVerifications)
 			}
-			pkg.Concurrently(
-				func() {
-					Eventually(appMetricsExists, longWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(appComponentMetricsExists, longWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(appConfigMetricsExists, longWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(nodeExporterProcsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(nodeExporterDiskIoNow, longWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-			)
+			Eventually(func() (bool, error) {
+				var componentNames = []string{"hello-helidon-component"}
+				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "hello-helidon", componentNames))
+			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
 	})
 
@@ -364,24 +351,4 @@ func appEndpointAccess(url string, hostname string, token string, requestShouldS
 		}
 	}
 	return true
-}
-
-func appMetricsExists() bool {
-	return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "hello-helidon-svc-application")
-}
-
-func appComponentMetricsExists() bool {
-	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", "hello-helidon-svc-application")
-}
-
-func appConfigMetricsExists() bool {
-	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "hello-helidon-deploy-component")
-}
-
-func nodeExporterProcsRunning() bool {
-	return pkg.MetricsExist("node_procs_running", "job", nodeExporterJobName)
-}
-
-func nodeExporterDiskIoNow() bool {
-	return pkg.MetricsExist("node_disk_io_now", "job", nodeExporterJobName)
 }
