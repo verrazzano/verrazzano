@@ -22,7 +22,7 @@ do
     if [[ "$IMAGE_PULL" -eq 0 ]]; then
         echo Success Downloading image ...
         echo "$IMAGE_PULL"
-        SUCCESSFULLY_PULLED_IMAGES+=("$IMAGE_PULL")
+        SUCCESSFULLY_PULLED_IMAGES+=("$IMAGE_NAME_AND_TAG")
     fi
 
 done < "$VZ_IMAGE_TXT"
