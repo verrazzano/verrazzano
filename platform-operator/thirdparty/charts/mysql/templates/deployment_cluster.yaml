@@ -10,9 +10,19 @@ spec:
   tlsUseSelfSigned: {{ $use_self_signed }}
   router:
     instances: {{ required "routerInstances is required" .Values.routerInstances }}
-  {{ if ((.Values).router.podSpec) }}
-    podSpec: {{ toYaml ((.Values).router.podSpec) | nindent 6 }}
-  {{ end }}
+    podSpec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: router
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
   {{- if not $use_self_signed }}
   {{- $default_secret_name := printf "%s-router-tls" $cluster_name }}
   {{- $secret_name := default $default_secret_name ((.Values.tls).routerCertAndPKsecretName) }}
@@ -58,7 +68,21 @@ spec:
     containers:
       - name: sidecar
         image: {{ (.Values).mysqlOperator.image  }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          privileged: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+              - ALL
       - name: mysql
+        securityContext:
+          allowPrivilegeEscalation: false
+          privileged: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+              - ALL
         volumeMounts:
 {{- range $key, $val := .Values.configurationFiles }}
         - name: configurations
@@ -71,8 +95,22 @@ spec:
     - name: fixdatadir
       image: {{ (.Values).mysqlOperator.image  }}
     - name: initconf
+      securityContext:
+        allowPrivilegeEscalation: false
+        privileged: false
+        runAsNonRoot: true
+        capabilities:
+          drop:
+            - ALL
       image: {{ (.Values).mysqlOperator.image  }}
     - name: initmysql
+      securityContext:
+        allowPrivilegeEscalation: false
+        privileged: false
+        runAsNonRoot: true
+        capabilities:
+          drop:
+            - ALL
 {{ if ((.Values).initDB) }}
       env:
         - name: DB_RESTORE
