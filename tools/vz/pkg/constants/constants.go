@@ -133,7 +133,7 @@ const (
 
 	BugReportIncludeNSFlagName  = "include-namespaces"
 	BugReportIncludeNSFlagShort = "i"
-	BugReportIncludeNSFlagUsage = "A comma-separated list of additional namespaces for collecting cluster information. This flag can be specified multiple times, such as --include-namespaces ns1 --include-namespaces ns..."
+	BugReportIncludeNSFlagUsage = "A comma-separated list of namespaces, in addition to the ones collected by default (system namespaces), for collecting cluster information. This flag can be specified multiple times, such as --include-namespaces ns1 --include-namespaces ns..."
 
 	BugReportDir = "bug-report"
 
@@ -183,10 +183,10 @@ const (
 	BugReportMsgPrefix = "Capturing "
 	AnalysisMsgPrefix  = "Analyzing "
 
-	// Flag for capture pods logs( both customer and system namespaces)
+	// Flag for capture pods logs( both additional and system namespaces)
 	BugReportLogFlagName         = "include-logs"
 	BugReportLogFlagNameShort    = "l"
-	BugReportLogFlagNameUsage    = "Include logs from the pods in one or more namespaces; this is specified using --include-namespaces."
+	BugReportLogFlagNameUsage    = "Include logs from the pods in one or more namespaces; this is specified along with the --include-namespaces flag."
 	BugReportTimeFlagName        = "duration"
 	BugReportTimeFlagNameShort   = "d"
 	BugReportTimeFlagDefaultTime = 0

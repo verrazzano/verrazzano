@@ -31,13 +31,14 @@ When --report-file is not provided, the command creates bug-report.tar.gz in the
 # Create a bug report file, bugreport.tar.gz, including the additional namespace ns1 from the cluster:
 vz bug-report --report-file bugreport.tgz --include-namespaces ns1
 
-# Use the --include-logs flag to collect the logs from the pods in one or more namespace, specified using --include-namespaces.
+# Use the --include-logs flag to collect the logs from the pods in one or more namespaces, by specifying the --include-namespaces flag.
 vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2 --include-logs
 
 # The flag --duration collects logs for a specific period. The default value is 0, which collects the complete pod log. It supports seconds, minutes, and hours.
    a. vz bug-report --report-file bugreport.tgz --include-namespaces ns1 --include-logs --duration 3h
    b. vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2 --include-logs --duration 5m
    c. vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2 --include-logs --duration 300s
+
 # The flag --include-namespaces accepts comma-separated values and can be specified multiple times. For example, the following commands create a bug report by including additional namespaces ns1, ns2, and ns3:
    a. vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2,ns3
    b. vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2 --include-namespaces ns3
