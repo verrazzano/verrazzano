@@ -1,9 +1,6 @@
 # Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-# NOTE: The extraInitContainers value is now set in the installation script (4-install-keycloak.sh) so that we can specify the
-# image using data from the bill of materials file (verrazzano-bom.json).
-
 # NOTE: The keycloak image now comes from the bill of materials file (verrazzano-bom.json).
 
 command:

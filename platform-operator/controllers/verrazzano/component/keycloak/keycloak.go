@@ -59,6 +59,7 @@ const (
 	noRouterAddr            = "mysql-instances"
 	routerAddr              = "mysql"
 	dbHostKey               = "database.hostname"
+	headlessService         = "keycloak-headless"
 	kcAdminScript           = "/opt/keycloak/bin/kcadm.sh"
 )
 
@@ -1358,6 +1359,37 @@ func GetOverrides(object runtime.Object) interface{} {
 	return []vzapi.Overrides{}
 }
 
+// removeStatefulSet removes the StatefulSet and the associated headless service before upgrade
+func removeStatefulSet(ctx spi.ComponentContext) error {
+	keycloakComp := ctx.EffectiveCR().Spec.Components.Keycloak
+	if keycloakComp == nil {
+		return nil
+	}
+
+	ctxClient := ctx.Client()
+	statefulSet := appv1.StatefulSet{}
+	err := ctxClient.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &statefulSet)
+	if err != nil {
+		return err
+	}
+
+	// Delete the StatefulSet
+	deleteOpts := []client.DeleteOption{client.PropagationPolicy(metav1.DeletePropagationOrphan)}
+	if err := ctxClient.Delete(context.TODO(), &statefulSet, deleteOpts...); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to delete StatefulSet %s/%s: %v", ComponentNamespace, ComponentName, err)
+	}
+
+	// Delete the headless service associated with the StatefulSet
+	service := &corev1.Service{}
+	if err := ctxClient.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: headlessService}, service); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to get service %s/%s: %v", ComponentNamespace, headlessService, err)
+	}
+	if err := ctxClient.Delete(context.TODO(), service); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to delete service %s/%s: %v", ComponentNamespace, headlessService, err)
+	}
+	return nil
+}
+
 // upgradeStatefulSet - determine if the replica count for the StatefulSet needs
 // to be scaled down before the upgrade.  The affinity rules installed by default
 // prior to the 1.4 release conflict with the new affinity rules being overridden
@@ -1414,6 +1446,7 @@ func upgradeStatefulSet(ctx spi.ComponentContext) error {
 
 	// Scale replica count to 0 to cause all pods to terminate, upgrade will restore replica count
 	*statefulSet.Spec.Replicas = 0
+
 	err = client.Update(context.TODO(), &statefulSet)
 	if err != nil {
 		return err

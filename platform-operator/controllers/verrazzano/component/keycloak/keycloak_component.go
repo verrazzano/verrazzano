@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package keycloak
@@ -168,6 +168,12 @@ func (c KeycloakComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := upgradeStatefulSet(ctx); err != nil {
 		return err
 	}
+
+	// Delete the StatefulSet before the upgrade
+	if err := removeStatefulSet(ctx); err != nil {
+		return err
+	}
+
 	return c.HelmComponent.PreUpgrade(ctx)
 }
 
