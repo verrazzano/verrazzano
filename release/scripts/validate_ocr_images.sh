@@ -19,7 +19,7 @@ while IFS= read -r line
 do
     IMAGE_NAME_AND_TAG=$(echo "$line")
     IMAGE_PULL=$(docker pull -q "$DOCKER_REPO"/"$IMAGE_NAME_AND_TAG")
-    if [[ "$IMAGE_PULL" -eq 0 ]]; then
+    if [[ "$IMAGE_PULL" -eq 1 ]]; then
         echo Success Downloading image ...
         echo "$IMAGE_PULL"
         SUCCESSFULLY_PULLED_IMAGES+=("$IMAGE_PULL")
@@ -27,4 +27,7 @@ do
 
 done < "$VZ_IMAGE_TXT"
 
-echo "$SUCCESSFULLY_PULLED_IMAGES"
+for value in "${SUCCESSFULLY_PULLED_IMAGES[@]}"
+do
+     echo $value
+done
