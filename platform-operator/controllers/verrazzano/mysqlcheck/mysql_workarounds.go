@@ -23,12 +23,12 @@ import (
 )
 
 const (
-	mySQLComponentLabel = "component"
-	mySQLDComponentName = "mysqld"
-	helmReleaseName     = "mysql"
-	componentNamespace  = "keycloak"
-	componentName       = "mysql"
-	repairTimeoutPeriod = 5 * time.Minute
+	mySQLComponentLabel      = "component"
+	mySQLDComponentName      = "mysqld"
+	helmReleaseName          = "mysql"
+	componentNamespace       = "keycloak"
+	componentName            = "mysql"
+	mysqlRouterComponentName = "mysqlrouter"
 )
 
 var (
@@ -117,23 +117,9 @@ func RepairICStuckDeleting(ctx spi.ComponentContext) error {
 	}
 
 	// Initiate repair only if time to wait period has been exceeded
-	expiredTime := getInitialTimeICUninstallChecked().Add(repairTimeoutPeriod)
+	expiredTime := getInitialTimeICUninstallChecked().Add(GetMySQLChecker().RepairTimeout)
 	if time.Now().After(expiredTime) {
-		// Restart the mysql-operator to see if it will finish deleting the IC object
-		ctx.Log().Info("Restarting the mysql-operator to see if it will repair InnoDBCluster stuck deleting")
-
-		operPod, err := getMySQLOperatorPod(ctx.Log(), ctx.Client())
-		if err != nil {
-			return fmt.Errorf("Failed restarting the mysql-operator to repair InnoDBCluster stuck deleting: %v", err)
-		}
-
-		if err = ctx.Client().Delete(context.TODO(), operPod, &clipkg.DeleteOptions{}); err != nil {
-			return err
-		}
-
-		// Clear the timer
-		resetInitialTimeICUninstallChecked()
-		return nil
+		return restartMySQLOperator(ctx.Log(), ctx.Client(), "InnoDBCluster stuck deleting")
 	}
 
 	ctx.Log().Progressf("Waiting for InnoDBCluster %s/%s to be deleted", componentNamespace, helmReleaseName)
@@ -156,7 +142,7 @@ func (mc *MySQLChecker) RepairMySQLPodsWaitingReadinessGates() error {
 		}
 
 		// Initiate repair only if time to wait period has been exceeded
-		expiredTime := getLastTimeReadinessGateChecked().Add(repairTimeoutPeriod)
+		expiredTime := getLastTimeReadinessGateChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
 			return restartMySQLOperator(mc.log, mc.client, "MySQL pods waiting for readiness gates")
 		}
@@ -259,7 +245,7 @@ func (mc *MySQLChecker) RepairMySQLPodStuckDeleting() error {
 		}
 
 		// Initiate repair only if time to wait period has been exceeded
-		expiredTime := getInitialTimeMySQLPodsStuckChecked().Add(repairTimeoutPeriod)
+		expiredTime := getInitialTimeMySQLPodsStuckChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
 			if err := restartMySQLOperator(mc.log, mc.client, "MySQL pods stuck terminating"); err != nil {
 				return err
@@ -275,9 +261,36 @@ func (mc *MySQLChecker) RepairMySQLPodStuckDeleting() error {
 	return nil
 }
 
+// RepairMySQLRouterPodsCrashLoopBackoff - repair mysql-router pods stuck in CrashLoopBackoff.
+// The workaround is to delete the pod.
+func (mc *MySQLChecker) RepairMySQLRouterPodsCrashLoopBackoff() error {
+	selector := metav1.LabelSelectorRequirement{Key: mySQLComponentLabel, Operator: metav1.LabelSelectorOpIn, Values: []string{mysqlRouterComponentName}}
+	podList := k8sready.GetPodsList(mc.log, mc.client, types.NamespacedName{Namespace: componentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{selector}})
+	if podList == nil || len(podList.Items) == 0 {
+		// No MySQL pods found
+		return nil
+	}
+
+	for i := range podList.Items {
+		pod := podList.Items[i]
+		for _, container := range pod.Status.ContainerStatuses {
+			if waiting := container.State.Waiting; waiting != nil {
+				if waiting.Reason == "CrashLoopBackOff" {
+					// Terminate the pod
+					mc.log.Infof("Terminating pod %s/%s because it was stuck in CrashLoopBackOff", pod.Namespace, pod.Name)
+					if err := mc.client.Delete(context.TODO(), &pod, &clipkg.DeleteOptions{}); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
 // restartMySQLOperator - restart the MySQL Operator pod
 func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client, reason string) error {
-	log.Info("Restarting the mysql-operator to see if it will repair: %s", reason)
+	log.Infof("Restarting the mysql-operator to see if it will repair: %s", reason)
 
 	operPod, err := getMySQLOperatorPod(log, client)
 	if err != nil {

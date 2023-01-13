@@ -26,6 +26,7 @@ func TestConfigDefaults(t *testing.T) {
 	asserts.Equal(":8080", conf.MetricsAddr, "MetricsAddr is incorrect")
 	asserts.Equal(int64(60), conf.HealthCheckPeriodSeconds, "Default health check period is correct")
 	asserts.Equal(int64(60), conf.MySQLCheckPeriodSeconds, "Default MySQL check period is correct")
+	asserts.Equal(int64(120), conf.MySQLRepairTimeoutSeconds, "Default MySQL repair timeout is correct")
 	asserts.True(conf.VersionCheckEnabled, "VersionCheckEnabled is incorrect")
 	asserts.False(conf.RunWebhooks, "RunWebhooks is incorrect")
 	asserts.True(conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
