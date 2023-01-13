@@ -38,7 +38,7 @@ spec:
           spec:
             description: The desired state of a Verrazzano Helidon workload.
             properties:
-              ServiceTemplateTemplate:
+              ServiceTemplate:
                 description: An embedded Helidon application service
                 properties:
                   metadata:
@@ -7704,7 +7704,6 @@ spec:
                 - podSpec
                 type: object
             required:
-            - ServiceTemplateTemplate
             - deploymentTemplate
             type: object
           status:
