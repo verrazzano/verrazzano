@@ -22,7 +22,7 @@ echo "$OCR_CREDS_PSW" | docker login "$DOCKER_REPO" -u "$OCR_CREDS_USR" --passwo
 #     docker pull "$DOCKER_REPO"/"$VZ_IMAGE_NAME"
 # done < "$OBJ_STORAGE_VZ_IMAGE_TXT"
 
-printf "\n\nThe following Images were found/not found in OCR ..."
+printf "\n\nThe following Images were NOT found in OCR ..."
 # while IFS= read -r line
 # do  
 #     VZ_IMAGE_NAME=$(echo "$line")
@@ -38,26 +38,25 @@ while IFS= read -r line
 do  
     VZ_IMAGE_NAME=$(echo "$line")
     INSPECT_EXIT_CODE=$(docker run --rm quay.io/skopeo/stable:latest inspect docker://"$DOCKER_REPO"/"$VZ_IMAGE_NAME")
-    if [[ $? -eq 1 ]]; then
-        echo "$VZ_IMAGE_NAME" NOT found
-        IMAGES_NOT_FOUND_IN_OCR+=("$VZ_IMAGE_NAME")
-    else
-        echo "$VZ_IMAGE_NAME" was found
+    if [[ $? -eq 0 ]]; then
         IMAGES_FOUND_IN_OCR+=("$VZ_IMAGE_NAME")
+    else
+        IMAGES_NOT_FOUND_IN_OCR+=("$VZ_IMAGE_NAME")
     fi
 done < "$OBJ_STORAGE_VZ_IMAGE_TXT"
 
-
+# Print Images NOT found in OCR
+printf "\n\nThe following Images were NOT found in OCR ..."
 for value in "${IMAGES_NOT_FOUND_IN_OCR[@]}"
 do
      echo $value
 done
 
-echo "\n\nThe following Images were found in OCR ..."
+# Print Images found in OCR
+printf "\n\nThe following Images were found in OCR ..."
 for value in "${IMAGES_FOUND_IN_OCR[@]}"
 do
      echo $value
 done
-
 
 echo "Done."
