@@ -8,6 +8,10 @@ customLabels:
 prometheus:
   monitor:
     honorLabels: true
+    relabelings:
+      - action: replace
+        replacement: local
+        targetLabel: verrazzano_cluster
 metricLabelsAllowlist:
   - deployments=[app.oam.dev/name,app.oam.dev/component],pods=[app.oam.dev/name,app.oam.dev/component]
 
