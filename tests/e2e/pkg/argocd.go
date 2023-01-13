@@ -140,7 +140,7 @@ func GetApplicationsWithClient(log *zap.SugaredLogger, argoCDURL string, token s
 	if err != nil {
 		return false, err
 	}
-	
+
 	httpClient, err := GetVerrazzanoHTTPClient(kubeConfigPath)
 	if err != nil {
 		log.Error(fmt.Sprintf("Error getting argocd admin password: %v", err))
