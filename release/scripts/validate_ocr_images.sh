@@ -25,7 +25,7 @@ done < "$OBJ_STORAGE_VZ_IMAGE_TXT"
 while IFS= read -r line
 do  
     IMAGE_NAME_AND_TAG=$(echo "$line" | awk -F '/' '{print $2}')
-    docer image inspect "$IMAGE_NAME_AND_TAG"
+    docker image inspect "$IMAGE_NAME_AND_TAG"
 done < "$OBJ_STORAGE_VZ_IMAGE_TXT"
 
 # echo List of images that were successfully pulled ...
