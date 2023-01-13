@@ -5,8 +5,14 @@ package containerizedworkload
 
 import (
 	"context"
+	commonv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
+	fakes "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"strings"
 	"testing"
 
@@ -143,6 +149,57 @@ func TestReconcileKubeSystem(t *testing.T) {
 	mocker.Finish()
 	assert.NoError(err)
 	assert.True(result.IsZero())
+}
+
+// TestGetWorkloadService tests to make sure the workload service is being picked up
+func TestGetWorkloadService(t *testing.T) {
+	a := asserts.New(t)
+	log := vzlog.DefaultLogger()
+
+	// GIVEN a ContainerizedWorkload resource
+	// WHEN the status is not populated with a service
+	// THEN no service is returned
+	emptyWorkload := oamv1.ContainerizedWorkload{}
+	cli := fakes.NewClientBuilder().Build()
+	reconciler := newReconciler(cli)
+	svc, err := reconciler.getWorkloadService(context.TODO(), emptyWorkload, log)
+	a.Nil(svc)
+	a.NoError(err)
+
+	// GIVEN a ContainerizedWorkload resource
+	// WHEN the status is populated with a service that doesn't exist
+	// THEN an error is returned
+	service := corev1.Service{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Service",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-service",
+			UID:  "test-uid",
+		},
+	}
+	statusWorkload := oamv1.ContainerizedWorkload{
+		Status: oamv1.ContainerizedWorkloadStatus{
+			Resources: []commonv1.TypedReference{*meta.TypedReferenceTo(&service, service.GroupVersionKind())},
+		},
+	}
+	cli = fakes.NewClientBuilder().Build()
+	reconciler = newReconciler(cli)
+	svc, err = reconciler.getWorkloadService(context.TODO(), statusWorkload, log)
+	a.Nil(svc)
+	a.Error(err)
+
+	// GIVEN a ContainerizedWorkload resource
+	// WHEN the status is populated with a service that exists
+	// THEN the service is returned
+	cli = fakes.NewClientBuilder().WithObjects(&service).Build()
+	reconciler = newReconciler(cli)
+	svc, err = reconciler.getWorkloadService(context.TODO(), statusWorkload, log)
+	a.Equal(svc.Name, service.Name)
+	a.Equal(svc.UID, service.UID)
+	a.NoError(err)
+
 }
 
 // updateObjectFromYAMLTemplate updates an object from a populated YAML template file.

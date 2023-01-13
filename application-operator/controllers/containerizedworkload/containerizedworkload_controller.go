@@ -154,10 +154,9 @@ func (r *Reconciler) updateServiceLabels(ctx context.Context, workload oamv1.Con
 
 // getWorkloadService retrieves the Service associated with the workload
 func (r *Reconciler) getWorkloadService(ctx context.Context, workload oamv1.ContainerizedWorkload, log vzlog2.VerrazzanoLogger) (*corev1.Service, error) {
-	service := corev1.Service{}
 	svcName := ""
 	for _, res := range workload.Status.Resources {
-		if res.Kind == service.Kind && res.APIVersion == service.APIVersion {
+		if res.Kind == "Service" && res.APIVersion == "v1" {
 			svcName = res.Name
 		}
 	}
