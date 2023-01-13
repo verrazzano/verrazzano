@@ -4,7 +4,6 @@
 package pkg
 
 import (
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -137,18 +136,27 @@ func getArgoCDUserToken(log *zap.SugaredLogger, argoCDURL string, username strin
 }
 
 func GetApplicationsWithClient(log *zap.SugaredLogger, argoCDURL string, token string) (bool, error) {
-	argoCDLoginURL := fmt.Sprintf("%s/%s", argoCDURL, "api/v1/applications")
-	client := &http.Client{}
-	var bearer = "Bearer " + token
-
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true} /* #nosec G402 */
-	req, err := http.NewRequest("GET", argoCDLoginURL, nil)
+	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		return false, err
 	}
+	
+	httpClient, err := GetVerrazzanoHTTPClient(kubeConfigPath)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error getting argocd admin password: %v", err))
+		return false, err
+	}
+
+	argoCDLoginURL := fmt.Sprintf("%s/%s", argoCDURL, "api/v1/applications")
+	req, err := retryablehttp.NewRequest("GET", argoCDLoginURL, nil)
+	if err != nil {
+		log.Error("Unexpected error while creating new request=%v", err)
+		return false, err
+	}
+	var bearer = "Bearer " + token
 
 	req.Header.Add("Authorization", bearer)
-	response, err := client.Do(req)
+	response, err := httpClient.Do(req)
 	if err != nil {
 		return false, err
 	}
@@ -179,7 +187,7 @@ func GetApplicationsWithClient(log *zap.SugaredLogger, argoCDURL string, token s
 
 }
 
-// CreateGitRepoAndApplication Creates a Fake Git Repo
+// CreateArgoCDGitApplication Creates a Fake Git Repo
 // Adds the Hello Helidon component and application files to the Git repo
 // Commits the changes to the repo
 // Applies the Argo CD Application to the kubernetes cluster
