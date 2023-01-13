@@ -16,15 +16,17 @@ echo "$OCR_CREDS_PSW" | docker login "$DOCKER_REPO" -u "$OCR_CREDS_USR" --passwo
 
 echo Pulling images from OCR ... 
 while IFS= read -r line
-do
-    IMAGE_NAME_AND_TAG=$(echo "$line")
-    IMAGE_PULL=$(docker pull "$DOCKER_REPO"/"$IMAGE_NAME_AND_TAG")
-    if [[ "$IMAGE_PULL" != *"up to date"* ]]; then
-        echo Success Downloading image ... "$IMAGE_NAME_AND_TAG"
-        # SUCCESSFULLY_PULLED_IMAGES+=("$IMAGE_NAME_AND_TAG")
-    else
-        echo Image "$IMAGE_NAME_AND_TAG" NOT found
-    fi    
+do  
+    IMAGE_NAME_AND_TAG=$(echo "$line" | awk -F '/' '{print $2}')
+    VZ_IMAGE_NAME=$(echo "$line")
+    docker pull "$DOCKER_REPO"/"$VZ_IMAGE_NAME"
+    docer image inspect "$IMAGE_NAME_AND_TAG"
+done < "$OBJ_STORAGE_VZ_IMAGE_TXT"
+
+while IFS= read -r line
+do  
+    IMAGE_NAME_AND_TAG=$(echo "$line" | awk -F '/' '{print $2}')
+    docer image inspect "$IMAGE_NAME_AND_TAG"
 done < "$OBJ_STORAGE_VZ_IMAGE_TXT"
 
 # echo List of images that were successfully pulled ...
