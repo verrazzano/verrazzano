@@ -12,7 +12,16 @@ ingressShim:
 # file (verrazzano-bom.json), and the override string is built in the install_cert_manager() shell function
 # in the 2-install-system-components.sh install script
 
+# Pod Security Context
+# ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 securityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container Security Context to be set on the controller component container
+# ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+containerSecurityContext:
   allowPrivilegeEscalation: false
   privileged: false
   readOnlyRootFilesystem: true
@@ -20,9 +29,5 @@ securityContext:
   runAsUser: 65534
   runAsGroup: 65534
   capabilities:
-    drop:
-      - ALL
-
-podSecurityContext:
-  seccompProfile:
-    type: RuntimeDefault
+   drop:
+   - ALL
