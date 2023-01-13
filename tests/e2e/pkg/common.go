@@ -18,22 +18,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"sigs.k8s.io/yaml"
-
+	"github.com/hashicorp/go-retryablehttp"
+	"github.com/onsi/ginkgo/v2"
 	v12 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-
-	retryablehttp "github.com/hashicorp/go-retryablehttp"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-
-	"github.com/onsi/ginkgo/v2"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	v1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -181,6 +178,10 @@ func SpecificPodsRunning(namespace, labels string) (bool, error) {
 	return result, err
 }
 
+func SecretExists(namespace string, name []string) (bool, error) {
+	return false, nil
+}
+
 // GetVerrazzanoRetentionPolicy returns the retention policy configured in the VZ CR
 // If not explicitly configured, it returns the default retention policy with retention
 // period of 7 days.
@@ -242,7 +243,7 @@ func IsOpensearchEnabled(kubeconfigPath string) bool {
 	return true
 }
 
-// PodsRunning checks if all the pods identified by namePrefixes are ready and running in the given cluster
+// PodsRunningInCluster checks if all the pods identified by namePrefixes are ready and running in the given cluster
 func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPath string) (bool, error) {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {

@@ -305,6 +305,21 @@ func GetIngress(namespace string, ingressName string) (*netv1.Ingress, error) {
 	return ingress, nil
 }
 
+// DoesVirtualServiceExist returns whether a VirtualService with the given name and namespace exists for the cluster
+func DoesVirtualServiceExist(namespace string, name string) (bool, error) {
+	services, err := GetVirtualServiceList(namespace)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to list VirtualServices from namespace %s: %v", namespace, err))
+		return false, err
+	}
+	for i := range services.Items {
+		if strings.HasPrefix(services.Items[i].Name, name) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // GetVirtualServiceList returns a list of virtual services in the given namespace
 func GetVirtualServiceList(namespace string) (*istionetv1beta1.VirtualServiceList, error) {
 	// Get the Istio clientset
@@ -318,6 +333,21 @@ func GetVirtualServiceList(namespace string) (*istionetv1beta1.VirtualServiceLis
 		return nil, err
 	}
 	return VirtualServiceList, nil
+}
+
+// DoesSecretExist returns whether a Secret with the given name and namespace exists for the cluster
+func DoesSecretExist(namespace string, name string) (bool, error) {
+	secrets, err := ListSecrets(namespace)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to list Secrets from namespace %s: %v", namespace, err))
+		return false, err
+	}
+	for i := range secrets.Items {
+		if strings.HasPrefix(secrets.Items[i].Name, name) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // GetCertificateList returns a list of certificates in the given namespace
