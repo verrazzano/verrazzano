@@ -56,19 +56,19 @@ extraVolumeMounts: |
 
 extraPorts:
   - name: jgroups
-    containerPort: 7600
+    containerPort: 7800
     protocol: TCP
 
 service:
   port: 8083
   extraPorts:
     - name: jgroups
-      port: 7600
+      port: 7800
       targetPort: jgroups
 
 podAnnotations:
-  traffic.sidecar.istio.io/excludeInboundPorts: "7600"
-  traffic.sidecar.istio.io/excludeOutboundPorts: "7600"
+  traffic.sidecar.istio.io/excludeInboundPorts: "7800"
+  traffic.sidecar.istio.io/excludeOutboundPorts: "7800"
 
 ingress:
   enabled: true
