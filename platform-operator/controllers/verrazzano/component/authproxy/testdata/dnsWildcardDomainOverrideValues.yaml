@@ -10,6 +10,7 @@ replicas: 1
 proxy:
   OidcProviderHost: keycloak.default.11.22.33.44.sslip.io
   OidcProviderHostInCluster: keycloak-http.keycloak.svc.cluster.local
+  PKCEClientID: verrazzano-pkce
 
 config:
   dnsSuffix: 11.22.33.44.sslip.io
