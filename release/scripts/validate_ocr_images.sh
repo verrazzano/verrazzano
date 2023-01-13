@@ -37,7 +37,7 @@ printf "\n\nThe following Images were found/not found in OCR ..."
 while IFS= read -r line
 do  
     VZ_IMAGE_NAME=$(echo "$line")
-    INSPECT_EXIT_CODE=$(skopeo inspect docker://"$DOCKER_REPO"/"$VZ_IMAGE_NAME")
+    INSPECT_EXIT_CODE=$(docker run --rm quay.io/skopeo/stable:latest inspect docker://"$DOCKER_REPO"/"$VZ_IMAGE_NAME")
     if [[ $? -eq 1 ]]; then
         echo "$VZ_IMAGE_NAME" NOT found
         IMAGES_NOT_FOUND_IN_OCR+=("$VZ_IMAGE_NAME")
