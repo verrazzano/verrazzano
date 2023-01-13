@@ -126,8 +126,8 @@ func RepairICStuckDeleting(ctx spi.ComponentContext) error {
 			UID:             innoDBCluster.GetUID(),
 			ResourceVersion: innoDBCluster.GetResourceVersion(),
 		}
-		msg := "InnoDBCluster stuck deleting"
-		createEvent(ctx.Log(), ctx.Client(), metaData, "innodbcluster", "ICStuckDeleting", msg)
+		msg := fmt.Sprintf("InnoDBCluster stuck deleting for a minimum of %s", GetMySQLChecker().RepairTimeout.String())
+		createEvent(ctx.Log(), ctx.Client(), metaData, getInitialTimeICUninstallChecked(), "innodbcluster", "StuckDeleting", msg)
 		return restartMySQLOperator(ctx.Log(), ctx.Client(), msg)
 	}
 
@@ -258,7 +258,7 @@ func (mc *MySQLChecker) RepairMySQLPodStuckDeleting() error {
 		// Initiate repair only if time to wait period has been exceeded
 		expiredTime := getInitialTimeMySQLPodsStuckChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
-			createEvent(mc.log, mc.client, podStuckDeleting.ObjectMeta, "pod-stuck", "PodStuckDeleting", fmt.Sprintf("Pod stuck deleting for a minimum of %s", mc.RepairTimeout.String()))
+			createEvent(mc.log, mc.client, podStuckDeleting.ObjectMeta, getInitialTimeMySQLPodsStuckChecked(), "pod-stuck", "PodStuckDeleting", fmt.Sprintf("Pod stuck deleting for a minimum of %s", mc.RepairTimeout.String()))
 			if err := restartMySQLOperator(mc.log, mc.client, "MySQL pods stuck terminating"); err != nil {
 				return err
 			}
@@ -291,7 +291,7 @@ func (mc *MySQLChecker) RepairMySQLRouterPodsCrashLoopBackoff() error {
 					// Terminate the pod
 					msg := fmt.Sprintf("Terminating pod %s/%s because it is stuck in CrashLoopBackOff", pod.Namespace, pod.Name)
 					mc.log.Infof("%s", msg)
-					createEvent(mc.log, mc.client, pod.ObjectMeta, "mysql-router", waiting.Reason, msg)
+					createEvent(mc.log, mc.client, pod.ObjectMeta, time.Now(), "mysql-router", waiting.Reason, msg)
 					if err := mc.client.Delete(context.TODO(), &pod, &clipkg.DeleteOptions{}); err != nil {
 						return err
 					}
@@ -307,17 +307,17 @@ func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client, reas
 	alertName := "mysql-operator"
 	message := fmt.Sprintf("Restarting the mysql-operator to repair: %s", reason)
 	log.Infof(message)
-	createEvent(log, client, metav1.ObjectMeta{}, alertName, "RestartMySQLOperator", message)
+	createEvent(log, client, metav1.ObjectMeta{}, time.Now(), alertName, "RestartMySQLOperator", message)
 
 	operPod, err := getMySQLOperatorPod(log, client)
 	if err != nil {
 		msg := fmt.Sprintf("Failed restarting the mysql-operator to repair stuck resources: %v", err)
-		createEvent(log, client, metav1.ObjectMeta{}, alertName, "PodNotFound", msg)
+		createEvent(log, client, metav1.ObjectMeta{}, time.Now(), alertName, "PodNotFound", msg)
 		return fmt.Errorf("%s", msg)
 	}
 
 	if err = client.Delete(context.TODO(), operPod, &clipkg.DeleteOptions{}); err != nil {
-		createEvent(log, client, operPod.ObjectMeta, alertName, "PodNotDeleted", fmt.Sprintf("Failed to delete the mysql-operator pod: %v", err))
+		createEvent(log, client, operPod.ObjectMeta, time.Now(), alertName, "PodNotDeleted", fmt.Sprintf("Failed to delete the mysql-operator pod: %v", err))
 		return err
 	}
 
@@ -330,8 +330,7 @@ func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client, reas
 }
 
 // createEvent - generate an event that describes a workaround action taken
-func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, objectMetadata metav1.ObjectMeta, alertName string, reason string, message string) {
-	timestamp := metav1.Now()
+func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, objectMetadata metav1.ObjectMeta, initialTime time.Time, alertName string, reason string, message string) {
 	event := &v1.Event{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "verrazzano-" + alertName,
@@ -349,8 +348,8 @@ func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, objectMetadat
 			return v1.ObjectReference{}
 		}(),
 		Type:                "Warning",
-		FirstTimestamp:      timestamp,
-		LastTimestamp:       timestamp,
+		FirstTimestamp:      metav1.Time{Time: initialTime},
+		LastTimestamp:       metav1.Now(),
 		Reason:              reason,
 		Message:             message,
 		ReportingController: controllerName,
