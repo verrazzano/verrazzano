@@ -258,7 +258,7 @@ func (mc *MySQLChecker) RepairMySQLPodStuckDeleting() error {
 		// Initiate repair only if time to wait period has been exceeded
 		expiredTime := getInitialTimeMySQLPodsStuckChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
-			createEvent(mc.log, mc.client, podStuckDeleting.ObjectMeta, getInitialTimeMySQLPodsStuckChecked(), "pod-stuck", "PodStuckDeleting", fmt.Sprintf("Pod stuck deleting for a minimum of %s", mc.RepairTimeout.String()))
+			mc.logEvent(podStuckDeleting.ObjectMeta, getInitialTimeMySQLPodsStuckChecked(), "pod-stuck", "PodStuckDeleting", fmt.Sprintf("Pod stuck deleting for a minimum of %s", mc.RepairTimeout.String()))
 			if err := restartMySQLOperator(mc.log, mc.client, "MySQL pods stuck terminating"); err != nil {
 				return err
 			}
@@ -291,7 +291,7 @@ func (mc *MySQLChecker) RepairMySQLRouterPodsCrashLoopBackoff() error {
 					// Terminate the pod
 					msg := fmt.Sprintf("Terminating pod %s/%s because it is stuck in CrashLoopBackOff", pod.Namespace, pod.Name)
 					mc.log.Infof("%s", msg)
-					createEvent(mc.log, mc.client, pod.ObjectMeta, time.Now(), "mysql-router", waiting.Reason, msg)
+					mc.logEvent(pod.ObjectMeta, time.Now(), "mysql-router", waiting.Reason, msg)
 					if err := mc.client.Delete(context.TODO(), &pod, &clipkg.DeleteOptions{}); err != nil {
 						return err
 					}
@@ -327,6 +327,10 @@ func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client, reas
 	resetInitialTimeICUninstallChecked()
 
 	return nil
+}
+
+func (mc *MySQLChecker) logEvent(involvedObject metav1.ObjectMeta, initialTime time.Time, alertName string, reason string, message string) {
+	createEvent(mc.log, mc.client, involvedObject, initialTime, alertName, reason, message)
 }
 
 // createEvent - generate an event that describes a workaround action taken
