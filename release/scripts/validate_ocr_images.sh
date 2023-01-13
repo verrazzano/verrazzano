@@ -6,6 +6,8 @@
 
 # We enabled the experimental Docker CLI to be able to run 'docker pull'
 export DOCKER_CLI_EXPERIMENTAL=enabled
+IMAGES_FOUND_IN_OCR=("")
+IMAGES_NOT_FOUND_IN_OCR=("")
 
 echo "Running OCR image checks ..."
 OBJ_STORAGE_VZ_IMAGE_TXT=verrazzano_images.txt
@@ -21,16 +23,41 @@ do
 done < "$OBJ_STORAGE_VZ_IMAGE_TXT"
 
 printf "\n\nThe following Images were found/not found in OCR ..."
+# while IFS= read -r line
+# do  
+#     VZ_IMAGE_NAME=$(echo "$line")
+#     INSPECT_EXIT_CODE=$(docker image inspect "$DOCKER_REPO"/"$VZ_IMAGE_NAME")
+#     if [[ $? -eq 1 ]]; then
+#         echo "$VZ_IMAGE_NAME" NOT found
+#     else
+#         echo "$VZ_IMAGE_NAME" was found
+#     fi
+# done < "$OBJ_STORAGE_VZ_IMAGE_TXT"
+
 while IFS= read -r line
 do  
     VZ_IMAGE_NAME=$(echo "$line")
-    INSPECT_EXIT_CODE=$(docker image inspect "$DOCKER_REPO"/"$VZ_IMAGE_NAME")
+    INSPECT_EXIT_CODE=$(skopeo inspect docker://"$DOCKER_REPO"/"$VZ_IMAGE_NAME")
     if [[ $? -eq 1 ]]; then
         echo "$VZ_IMAGE_NAME" NOT found
+        IMAGES_NOT_FOUND_IN_OCR+=("$VZ_IMAGE_NAME")
     else
         echo "$VZ_IMAGE_NAME" was found
+        IMAGES_FOUND_IN_OCR+=("$VZ_IMAGE_NAME")
     fi
 done < "$OBJ_STORAGE_VZ_IMAGE_TXT"
 
-echo "Done."
 
+for value in "${IMAGES_NOT_FOUND_IN_OCR[@]}"
+do
+     echo $value
+done
+
+echo "\n\nThe following Images were found in OCR ..."
+for value in "${IMAGES_FOUND_IN_OCR[@]}"
+do
+     echo $value
+done
+
+
+echo "Done."
