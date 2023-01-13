@@ -82,7 +82,7 @@ pipeline {
             }
         }
 
-        stage('Get Images') {
+        stage('Get Images from Object Storage') {
             environment {
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                 OCI_OS_BUCKET="verrazzano-builds"

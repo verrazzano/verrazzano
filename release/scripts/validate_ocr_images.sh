@@ -17,15 +17,15 @@ echo "$OCR_CREDS_PSW" | docker login "$DOCKER_REPO" -u "$OCR_CREDS_USR" --passwo
 echo Pulling images from OCR ... 
 while IFS= read -r line
 do  
-    IMAGE_NAME_AND_TAG=$(echo "$line" | awk -F '/' '{print $2}')
     VZ_IMAGE_NAME=$(echo "$line")
     docker pull "$DOCKER_REPO"/"$VZ_IMAGE_NAME"
 done < "$OBJ_STORAGE_VZ_IMAGE_TXT"
 
 while IFS= read -r line
 do  
-    IMAGE_NAME_AND_TAG=$(echo "$line" | awk -F '/' '{print $2}')
-    docker image inspect "$IMAGE_NAME_AND_TAG"
+    VZ_IMAGE_NAME=$(echo "$line")
+    # IMAGE_NAME_AND_TAG=$(echo "$line" | awk -F '/' '{print $2}')
+    docker image inspect "$DOCKER_REPO"/"$VZ_IMAGE_NAME"
 done < "$OBJ_STORAGE_VZ_IMAGE_TXT"
 
 # echo List of images that were successfully pulled ...
