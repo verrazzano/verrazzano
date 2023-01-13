@@ -15,12 +15,12 @@ OBJ_STORAGE_VZ_IMAGE_TXT=verrazzano_images.txt
 echo "Logging into Docker ..."
 echo "$OCR_CREDS_PSW" | docker login "$DOCKER_REPO" -u "$OCR_CREDS_USR" --password-stdin
 
-echo "Pulling images from OCR ..." 
-while IFS= read -r line
-do  
-    VZ_IMAGE_NAME=$(echo "$line")
-    docker pull "$DOCKER_REPO"/"$VZ_IMAGE_NAME"
-done < "$OBJ_STORAGE_VZ_IMAGE_TXT"
+# echo "Pulling images from OCR ..." 
+# while IFS= read -r line
+# do  
+#     VZ_IMAGE_NAME=$(echo "$line")
+#     docker pull "$DOCKER_REPO"/"$VZ_IMAGE_NAME"
+# done < "$OBJ_STORAGE_VZ_IMAGE_TXT"
 
 printf "\n\nThe following Images were found/not found in OCR ..."
 # while IFS= read -r line
