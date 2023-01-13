@@ -31,3 +31,39 @@ containerSecurityContext:
   capabilities:
    drop:
    - ALL
+
+# Pod Security Context for cert-manager-cainjector
+cainjector.securityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container Security Context for cert-manager-cainjector
+cainjector.containerSecurityContext:
+  allowPrivilegeEscalation: false
+  privileged: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65534
+  runAsGroup: 65534
+  capabilities:
+    drop:
+      - ALL
+
+# Pod Security Context for cert-manager-webhook
+webhook.securityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container Security Context for cert-manager-webhook
+webhook.containerSecurityContext:
+  allowPrivilegeEscalation: false
+  privileged: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65534
+  runAsGroup: 65534
+  capabilities:
+    drop:
+      - ALL
