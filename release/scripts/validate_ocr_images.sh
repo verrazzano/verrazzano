@@ -20,15 +20,17 @@ do
     docker pull "$DOCKER_REPO"/"$VZ_IMAGE_NAME"
 done < "$OBJ_STORAGE_VZ_IMAGE_TXT"
 
-echo "The following Images were not found in OCR ..."
+printf "\n\nThe following Images were found/not found in OCR ..."
 while IFS= read -r line
 do  
     VZ_IMAGE_NAME=$(echo "$line")
     INSPECT_EXIT_CODE=$(docker image inspect "$DOCKER_REPO"/"$VZ_IMAGE_NAME")
     if [[ $? -eq 1 ]]; then
-        echo "$VZ_IMAGE_NAME"
+        echo "$VZ_IMAGE_NAME" NOT found
+    else
+        echo "$VZ_IMAGE_NAME" was found
     fi
 done < "$OBJ_STORAGE_VZ_IMAGE_TXT"
 
- echo "Done."
+echo "Done."
 
