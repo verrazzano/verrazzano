@@ -139,11 +139,11 @@ func RepairICStuckDeleting(ctx spi.ComponentContext) error {
 // RepairMySQLPodsWaitingReadinessGates - temporary workaround to repair issue were a MySQL pod
 // can be stuck waiting for its readiness gates to be met.  The workaround is to recycle the mysql-operator.
 func (mc *MySQLChecker) RepairMySQLPodsWaitingReadinessGates() error {
-	podsWaiting, err := isPodsWaitingForReadinessGates(mc.log, mc.client)
+	podsWaiting, err := getPodsWaitingForReadinessGates(mc.log, mc.client)
 	if err != nil {
 		return err
 	}
-	if podsWaiting {
+	if len(podsWaiting) > 0 {
 		// Start a timer the first time pods are waiting for readiness gates
 		if getLastTimeReadinessGateChecked().IsZero() {
 			setInitialTimeReadinessGateChecked(time.Now())
@@ -153,6 +153,9 @@ func (mc *MySQLChecker) RepairMySQLPodsWaitingReadinessGates() error {
 		// Initiate repair only if time to wait period has been exceeded
 		expiredTime := getLastTimeReadinessGateChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
+			for _, pod := range podsWaiting {
+				mc.logEvent(pod.ObjectMeta, "readiness-gate", "WaitingReadinessGate", "Pod stuck waiting for readiness gates to be met")
+			}
 			return restartMySQLOperator(mc.log, mc.client, "MySQL pods waiting for readiness gates")
 		}
 	}
@@ -162,13 +165,16 @@ func (mc *MySQLChecker) RepairMySQLPodsWaitingReadinessGates() error {
 	return nil
 }
 
-func isPodsWaitingForReadinessGates(log vzlog.VerrazzanoLogger, client clipkg.Client) (bool, error) {
+// getPodsWaitingForReadinessGates - return the list of pods waiting for readiness gates
+func getPodsWaitingForReadinessGates(log vzlog.VerrazzanoLogger, client clipkg.Client) ([]v1.Pod, error) {
+	var podsWaiting []v1.Pod
+
 	log.Debug("Checking if MySQL pods waiting for readiness gates")
 
 	selector := metav1.LabelSelectorRequirement{Key: mySQLComponentLabel, Operator: metav1.LabelSelectorOpIn, Values: []string{mySQLDComponentName}}
 	podList := k8sready.GetPodsList(log, client, types.NamespacedName{Namespace: componentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{selector}})
 	if podList == nil || len(podList.Items) == 0 {
-		return false, nil
+		return podsWaiting, nil
 	}
 
 	for i := range podList.Items {
@@ -176,13 +182,13 @@ func isPodsWaitingForReadinessGates(log vzlog.VerrazzanoLogger, client clipkg.Cl
 		// Check if the readiness conditions have been met
 		conditions := pod.Status.Conditions
 		if len(conditions) == 0 {
-			return false, fmt.Errorf("Failed checking MySQL readiness gates, no status conditions found for pod %s/%s", pod.Namespace, pod.Name)
+			return podsWaiting, fmt.Errorf("Failed checking MySQL readiness gates, no status conditions found for pod %s/%s", pod.Namespace, pod.Name)
 		}
 		if !isPodReadinessGatesReady(pod, conditions) {
-			return true, nil
+			podsWaiting = append(podsWaiting, pod)
 		}
 	}
-	return false, nil
+	return podsWaiting, nil
 }
 
 // isPodReadinessGatesReady - return boolean indicating if all readiness gate
