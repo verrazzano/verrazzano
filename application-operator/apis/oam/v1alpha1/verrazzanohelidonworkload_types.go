@@ -15,7 +15,7 @@ type VerrazzanoHelidonWorkloadSpec struct {
 	// An embedded Helidon application deployment.
 	DeploymentTemplate DeploymentTemplate `json:"deploymentTemplate"`
 	// An embedded Helidon application service
-	ServiceTemplate ServiceTemplate `json:"ServiceTemplateTemplate"`
+	ServiceTemplate ServiceTemplate `json:"ServiceTemplate,omitempty"`
 }
 
 // DeploymentTemplate specifies the metadata and pod spec of a Helidon workload.
