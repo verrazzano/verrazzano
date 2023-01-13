@@ -77,6 +77,8 @@ spec:
             {{- end }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
+          securityContext:
+{{ toYaml .Values.containerSecurityContext | indent 12 }}
       volumes:
       - name: cert
         secret:
