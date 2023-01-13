@@ -1486,10 +1486,7 @@ func TestDeleteStatefulSet(t *testing.T) {
 		},
 	}
 	scheme := k8scheme.Scheme
-	_ = certmanager.AddToScheme(scheme)
-
-	var ctx spi.ComponentContext
-	ctx = spi.NewFakeContext(fake.NewClientBuilder().WithScheme(scheme).WithObjects(statefulSet).Build(), &vzapi.Verrazzano{
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(scheme).WithObjects(statefulSet).Build(), &vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ComponentName,
 			Namespace: ComponentNamespace,
