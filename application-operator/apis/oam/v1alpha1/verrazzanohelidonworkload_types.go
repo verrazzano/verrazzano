@@ -14,6 +14,7 @@ import (
 type VerrazzanoHelidonWorkloadSpec struct {
 	// An embedded Helidon application deployment.
 	DeploymentTemplate DeploymentTemplate `json:"deploymentTemplate"`
+	ServiceTemplate    ServiceTemplate    `json:"deploymentTemplate"`
 }
 
 // DeploymentTemplate specifies the metadata and pod spec of a Helidon workload.
@@ -33,6 +34,20 @@ type DeploymentTemplate struct {
 	// +patchStrategy=retainKeys
 	// +optional
 	Strategy appsv1.DeploymentStrategy `json:"strategy,omitempty" patchStrategy:"retainKeys"  protobuf:"bytes,4,opt,name=strategy"`
+}
+
+// ServiceTemplate specifies the metadata and pod spec of a Helidon workload.
+type ServiceTemplate struct {
+	// Metadata about a Helidon application.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Metadata metav1.ObjectMeta `json:"metadata"`
+	// The pod spec of a Helidon application.
+	// +kubebuilder:validation:Required
+	ServiceSpec v1.ServiceSpec `json:"serviceSpec"`
+	// Label selector of a Helidon application.
+	// +optional
+	Selector metav1.LabelSelector `json:"selector,omitempty" patchStrategy:"retainKeys"`
 }
 
 // VerrazzanoHelidonWorkloadStatus defines the observed state of Verrazzano Helidon workload.
