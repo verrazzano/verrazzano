@@ -331,6 +331,7 @@ func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client, reas
 
 // createEvent - generate an event that describes a workaround action taken
 func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, objectMetadata metav1.ObjectMeta, alertName string, reason string, message string) {
+	timestamp := metav1.Now()
 	event := &v1.Event{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "verrazzano-" + alertName,
@@ -347,9 +348,12 @@ func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, objectMetadat
 			}
 			return v1.ObjectReference{}
 		}(),
-		Type:    "Warning",
-		Reason:  reason,
-		Message: message,
+		Type:                "Warning",
+		FirstTimestamp:      timestamp,
+		LastTimestamp:       timestamp,
+		Reason:              reason,
+		Message:             message,
+		ReportingController: controllerName,
 	}
 
 	if err := client.Create(context.TODO(), event); err != nil {
