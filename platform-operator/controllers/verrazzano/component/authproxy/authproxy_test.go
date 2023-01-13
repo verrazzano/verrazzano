@@ -291,6 +291,7 @@ func TestRemoveResourcePolicyAnnotation(t *testing.T) {
 //	WHEN I call the method when a registration secret is present
 //	THEN the proxy override for client ID is set
 func TestAppendOverridesIfManagedCluster(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
