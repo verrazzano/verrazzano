@@ -154,7 +154,7 @@ func (mc *MySQLChecker) RepairMySQLPodsWaitingReadinessGates() error {
 		expiredTime := getLastTimeReadinessGateChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
 			for _, pod := range podsWaiting {
-				mc.logEvent(pod.ObjectMeta, "readiness-gate", "WaitingReadinessGate", "Pod stuck waiting for readiness gates to be met")
+				mc.logEvent(pod.ObjectMeta, "readiness-gate", "WaitingReadinessGate", fmt.Sprintf("Pod stuck waiting for readiness gates for a minimum of %s", mc.RepairTimeout.String()))
 			}
 			return restartMySQLOperator(mc.log, mc.client, "MySQL pods waiting for readiness gates")
 		}
