@@ -47,6 +47,9 @@ func VerifyArgoCDApplicationAccess(log *zap.SugaredLogger) error {
 	var err error
 
 	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		return err
+	}
 	argocdAdminPassword, err := eventuallyGetArgocdAdminPassword(log)
 	if err != nil {
 		return err
