@@ -161,7 +161,7 @@ func (r *Reconciler) getWorkloadService(ctx context.Context, workload oamv1.Cont
 		}
 	}
 	if svcName == "" {
-		log.Errorf("Service does not exist in status of ContainerizedWorkload %s/%s", workload.Namespace, workload.Name)
+		log.Progressf("Service does not exist in status of ContainerizedWorkload %s/%s", workload.Namespace, workload.Name)
 		return nil, nil
 	}
 	svc := corev1.Service{}
