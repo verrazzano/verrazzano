@@ -20,19 +20,21 @@ do
     IMAGE_NAME_AND_TAG=$(echo "$line")
     IMAGE_PULL=$(docker pull "$DOCKER_REPO"/"$IMAGE_NAME_AND_TAG")
     if [[ "$IMAGE_PULL" != *"up to date"* ]]; then
-        echo Success Downloading image ...
-        SUCCESSFULLY_PULLED_IMAGES+=("$IMAGE_NAME_AND_TAG")
-    fi
+        echo Success Downloading image ... "$IMAGE_NAME_AND_TAG"
+        # SUCCESSFULLY_PULLED_IMAGES+=("$IMAGE_NAME_AND_TAG")
+    else
+        echo Image "$IMAGE_NAME_AND_TAG" NOT found
+    fi    
 done < "$OBJ_STORAGE_VZ_IMAGE_TXT"
 
-echo List of images that were successfully pulled ...
-for image_name in "${SUCCESSFULLY_PULLED_IMAGES[@]}"
-do
-    IMAGE_FOUND_OR_NOT=$(grep -i "$image_name" "$OBJ_STORAGE_VZ_IMAGE_TXT")
-    if [[ $? -eq 0 ]]; then
-        echo Image "$image_name" found
-    else
-        echo Image "$image_name" not found
-    fi
-done
+# echo List of images that were successfully pulled ...
+# for image_name in "${SUCCESSFULLY_PULLED_IMAGES[@]}"
+# do
+#     IMAGE_FOUND_OR_NOT=$(grep -i "$image_name" "$OBJ_STORAGE_VZ_IMAGE_TXT")
+#     if [[ $? -eq 0 ]]; then
+#         echo Image "$image_name" found
+#     else
+#         echo Image "$image_name" not found
+#     fi
+# done
 
