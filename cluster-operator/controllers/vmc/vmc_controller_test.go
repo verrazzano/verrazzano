@@ -155,6 +155,11 @@ func doTestCreateVMC(t *testing.T, rancherEnabled bool) {
 	// expect status updated with condition Ready=true
 	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "", false)
 
+	// stub out keycloak client creation for these tests
+	createClient = func(r *VerrazzanoManagedClusterReconciler, vmc *v1alpha1.VerrazzanoManagedCluster) error {
+		return nil
+	}
+
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)

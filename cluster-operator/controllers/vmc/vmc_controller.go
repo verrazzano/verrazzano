@@ -511,7 +511,8 @@ func (r *VerrazzanoManagedClusterReconciler) getVerrazzanoResource() (*v1beta1.V
 	return &verrazzano.Items[0], nil
 }
 
-func (r *VerrazzanoManagedClusterReconciler) createManagedClusterKeycloakClient(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+// leveraged to replace method (unit testing)
+var createClient = func(r *VerrazzanoManagedClusterReconciler, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
 	const prometheusHostPrefix = "prometheus.vmi.system"
 
 	// login to keycloak
@@ -543,6 +544,11 @@ func (r *VerrazzanoManagedClusterReconciler) createManagedClusterKeycloakClient(
 	}
 
 	return nil
+}
+
+// createManagedClusterKeycloakClient creates a Keycloak client for the managed cluster
+func (r *VerrazzanoManagedClusterReconciler) createManagedClusterKeycloakClient(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	return createClient(r, vmc)
 }
 
 // Create a new Result that will cause a reconcile requeue after a short delay
