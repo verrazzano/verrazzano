@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -58,6 +58,10 @@ pipeline {
                 choices: [ "nip.io", "sslip.io"])
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+        string (name: 'TAGGED_TESTS',
+                defaultValue: '',
+                description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
+                trim: true)
         string (name: 'INCLUDED_TESTS',
                 defaultValue: '.*',
                 description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*',
@@ -340,11 +344,13 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/helidon-install"
                     }
                     steps{
-                        runGinkgo("examples/helidon", "--namespace=${HELIDON_TEST_NAMESPACE} --skipUndeploy=true --appconfig=examples/hello-helidon/hello-helidon-app-scaler-trait.yaml")
+                        runGinkgo("examples/helidon", "--namespace=${HELIDON_TEST_NAMESPACE} --skipUndeploy=true --appconfig=examples/hello-helidon/hello-helidon-app.yaml")
                     }
                     post {
                         always {
                             sh """
+                                kubectl patch deployment -n ${HELIDON_TEST_NAMESPACE} hello-helidon-deployment -p '{"spec":{"replicas":3}}' --type=merge
+                                kubectl wait --for=condition=Ready pods --all -n ${HELIDON_TEST_NAMESPACE} --timeout=300s
                                 kubectl get pods -l app=hello-helidon -A
                             """
                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true

@@ -27,23 +27,59 @@ const (
 
 	// Only allowed capability in restricted mode
 	capNetBindService = "NET_BIND_SERVICE"
+	capDacOverride    = "DAC_OVERRIDE"
 )
 
 var skipPods = map[string][]string{
+	"keycloak": {
+		"mysql",
+	},
 	"verrazzano-install": {
 		"mysql",
 	},
 	"verrazzano-system": {
 		"coherence-operator",
-		"fluentd",
-		"oam-kubernetes-runtime",
 		"vmi-system",
 		"weblogic-operator",
 	},
+	"verrazzano-backup": {
+		"restic",
+	},
 }
 
-var skipContainers = []string{"istio-proxy"}
+var skipContainers = []string{"jaeger-collector", "jaeger-query", "jaeger-agent"}
 var skipInitContainers = []string{"istio-init"}
+
+type podExceptions struct {
+	allowHostPath    bool
+	allowHostNetwork bool
+	allowHostPID     bool
+	allowHostPort    bool
+	containers       map[string]containerException
+}
+
+type containerException struct {
+	allowedCapabilities map[string]bool
+}
+
+var exceptionPods = map[string]podExceptions{
+	"node-exporter": {
+		allowHostPath:    true,
+		allowHostNetwork: true,
+		allowHostPID:     true,
+		allowHostPort:    true,
+	},
+	"fluentd": {
+		allowHostPath: true,
+		containers: map[string]containerException{
+			"fluentd": {
+				allowedCapabilities: map[string]bool{
+					capDacOverride: true,
+				},
+			},
+		},
+	},
+}
 
 var (
 	clientset *kubernetes.Clientset
@@ -90,6 +126,7 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 		for _, pod := range pods {
 			t.Logs.Debugf("Checking pod %s/%s", ns, pod.Name)
 			if shouldSkipPod(pod.Name, ns) {
+				t.Logs.Debugf("Pod %s/%s on skip list, continuing...", ns, pod.Name)
 				continue
 			}
 			errors = append(errors, expectPodSecurityForNamespace(pod)...)
@@ -99,16 +136,48 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 	t.DescribeTable("Check pod security in system namespaces", testFunc,
 		Entry("Checking pod security in verrazzano-install", "verrazzano-install"),
 		Entry("Checking pod security in verrazzano-system", "verrazzano-system"),
+		Entry("Checking pod security in verrazzano-monitoring", "verrazzano-monitoring"),
+		Entry("Checking pod security in verrazzano-backup", "verrazzano-backup"),
+		Entry("Checking pod security in ingress-nginx", "ingress-nginx"),
+		Entry("Checking pod security in mysql-operator", "mysql-operator"),
 	)
 })
 
 func expectPodSecurityForNamespace(pod corev1.Pod) []error {
 	var errors []error
-	// ensure hostpath is not set
-	for _, vol := range pod.Spec.Volumes {
-		if vol.HostPath != nil {
-			errors = append(errors, fmt.Errorf("Pod Security not configured for pod %s, HostPath is set, HostPath = %s  Type = %s",
-				pod.Name, vol.HostPath.Path, *vol.HostPath.Type))
+
+	// get pod exceptions
+	isException, exception := isExceptionPod(pod.Name)
+
+	// ensure hostpath is not set unless it is an exception
+	if !isException || !exception.allowHostPath {
+		for _, vol := range pod.Spec.Volumes {
+			if vol.HostPath != nil {
+				errors = append(errors, fmt.Errorf("Pod Security not configured for pod %s, HostPath is set, HostPath = %s  Type = %s",
+					pod.Name, vol.HostPath.Path, *vol.HostPath.Type))
+			}
+		}
+	}
+
+	// ensure hostnetwork is not set unless it is an exception
+	if pod.Spec.HostNetwork && (!isException || !exception.allowHostNetwork) {
+		errors = append(errors, fmt.Errorf("Pod Security not configured for pod %s, HostNetwork is set", pod.Name))
+	}
+
+	// ensure hostPID is not set unless it is an exception
+	if pod.Spec.HostPID && (!isException || !exception.allowHostPID) {
+		errors = append(errors, fmt.Errorf("Pod Security not configured for pod %s, HostPID is set", pod.Name))
+	}
+
+	// ensure host port is not set unless it is an exception
+	if !isException || !exception.allowHostPort {
+		for _, container := range pod.Spec.Containers {
+			for _, port := range container.Ports {
+				if port.HostPort != 0 {
+					errors = append(errors, fmt.Errorf("Pod Security not configured for pod %s, HostPort is set, HostPort = %v",
+						pod.Name, port.HostPort))
+				}
+			}
 		}
 	}
 
@@ -160,6 +229,12 @@ func ensurePodSecurityContext(sc *corev1.PodSecurityContext, podName string) []e
 }
 
 func ensureContainerSecurityContext(sc *corev1.SecurityContext, podName, containerName string) []error {
+	exceptionContainer := false
+	exceptionPod, exception := isExceptionPod(podName)
+	if exceptionPod && exception.containers != nil {
+		_, exceptionContainer = exception.containers[containerName]
+	}
+
 	if sc == nil {
 		return []error{fmt.Errorf("SecurityContext is nil for pod %s, container %s", podName, containerName)}
 	}
@@ -191,9 +266,14 @@ func ensureContainerSecurityContext(sc *corev1.SecurityContext, podName, contain
 	if !dropCapabilityFound {
 		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, Missing `Drop -ALL` capabilities", podName, containerName))
 	}
-	if len(sc.Capabilities.Add) > 0 {
+	if len(sc.Capabilities.Add) > 0 && !exceptionContainer {
 		if len(sc.Capabilities.Add) > 1 || sc.Capabilities.Add[0] != capNetBindService {
 			errors = append(errors, fmt.Errorf("only %s capability allowed, found unexpected capabilities added to container %s in pod %s: %v", capNetBindService, containerName, podName, sc.Capabilities.Add))
+		}
+	}
+	if exceptionContainer && len(sc.Capabilities.Add) > 0 {
+		if !capExceptions(exception.containers[containerName].allowedCapabilities, sc.Capabilities.Add) {
+			errors = append(errors, fmt.Errorf("%v capabilities are allowed, found unexpected capabilities for pod %s container %s: %v", exception.containers[containerName].allowedCapabilities, podName, containerName, sc.Capabilities.Add))
 		}
 	}
 	return errors
@@ -215,4 +295,22 @@ func shouldSkipContainer(containerName string, skip []string) bool {
 		}
 	}
 	return false
+}
+
+func isExceptionPod(podName string) (bool, podExceptions) {
+	for exceptionPod := range exceptionPods {
+		if strings.Contains(podName, exceptionPod) {
+			return true, exceptionPods[exceptionPod]
+		}
+	}
+	return false, podExceptions{}
+}
+
+func capExceptions(allowedCaps map[string]bool, givenCaps []corev1.Capability) bool {
+	exceptionsOk := true
+	for _, givenCap := range givenCaps {
+		_, ok := allowedCaps[string(givenCap)]
+		exceptionsOk = exceptionsOk && ok
+	}
+	return exceptionsOk
 }
