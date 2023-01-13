@@ -1,7 +1,7 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package issues
+package image
 
 import (
 	"context"
@@ -23,29 +23,36 @@ var (
 const (
 	ImagePullNotFound string = "ISSUE (ImagePullNotFound)"
 	//ImagePullBackOff string = "ISSUE (ImagePullBackOff)"
+	NameSpace string = "verrazzano-system"
+	DeploymentToBePatched string = "verrazzano-console" // tbd : this could be fetched dynamically from list of deployments
 )
 
 var err error
 var t = framework.NewTestFramework("Vz Tools Analysis Image Issues")
 var _ = BeforeSuite(beforeSuite)
 var _ = t.AfterEach(func() {})
-
 var beforeSuite = t.BeforeSuiteFunc(func() {
 })
 
-func patchImage(patchImage, patchImageName, namespace string) error {
+func patchImage(deploymentName, namespace string, patch bool) error {
 	c, err := k8util.GetKubernetesClientset()
 	if err != nil {
 		Fail(err.Error())
 	}
 	deploymentsClient := c.AppsV1().Deployments(namespace)
-	result, getErr := deploymentsClient.Get(context.TODO(), patchImageName, v1.GetOptions{})
+	result, getErr := deploymentsClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
 	if getErr != nil {
 		return getErr
 	}
 	for i, container := range result.Spec.Template.Spec.Containers {
-		if container.Name == patchImageName {
-			result.Spec.Template.Spec.Containers[i].Image = patchImage
+		if container.Name == deploymentName {
+			image := result.Spec.Template.Spec.Containers[i].Image
+			if patch {
+				result.Spec.Template.Spec.Containers[i].Image = image + "X"
+				break
+			}
+			result.Spec.Template.Spec.Containers[i].Image = image[:len(image)-1]
+			break
 		}
 	}
 	_, updateErr := deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
@@ -57,10 +64,9 @@ func patchImage(patchImage, patchImageName, namespace string) error {
 
 var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 	t.Context("During Image Issue Analysis", func() {
-		imageTobePatched := []string{"ghcr.io/verrazzano/console:v1.5.X-20221118195745-5347193", "ghcr.io/verrazzano/console:v1.5.0-20221118195745-5347193"}
-		out := make([]string, len(imageTobePatched))
-		for i := 0; i < len(imageTobePatched); i++ {
-			patchErr := patchImage(imageTobePatched[i], "verrazzano-console", "verrazzano-system")
+		out := make([]string, 2)
+		for i := 0; i < len(out); i++ {
+			patchErr := patchImage(DeploymentToBePatched, NameSpace, i==0)
 			if patchErr != nil {
 				Fail(patchErr.Error())
 			}
@@ -69,10 +75,9 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 			if err != nil {
 				Fail(err.Error())
 			}
-			if i == 1 {
-				continue
+			if i == 0 {
+				time.Sleep(time.Second * 30)
 			}
-			time.Sleep(time.Second * 30)
 		}
 		t.It("Should Have ImagePullNotFound Issue Post Bad Image Inject", func() {
 			Eventually(func() bool {
