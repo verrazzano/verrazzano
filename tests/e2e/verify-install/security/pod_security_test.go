@@ -217,9 +217,6 @@ func ensurePodSecurityContext(sc *corev1.PodSecurityContext, podName string) []e
 	if sc.RunAsUser != nil && *sc.RunAsUser == 0 {
 		errors = append(errors, fmt.Errorf("PodSecurityContext not configured correctly for pod %s, RunAsUser is 0", podName))
 	}
-	if sc.RunAsGroup != nil && *sc.RunAsGroup == 0 {
-		errors = append(errors, fmt.Errorf("PodSecurityContext not configured correctly for pod %s, RunAsGroup is 0", podName))
-	}
 	if sc.RunAsNonRoot != nil && !*sc.RunAsNonRoot {
 		errors = append(errors, fmt.Errorf("PodSecurityContext not configured correctly for pod %s, RunAsNonRoot != true", podName))
 	}
@@ -242,9 +239,6 @@ func ensureContainerSecurityContext(sc *corev1.SecurityContext, podName, contain
 	var errors []error
 	if sc.RunAsUser != nil && *sc.RunAsUser == 0 {
 		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s,  RunAsUser is 0", podName, containerName))
-	}
-	if sc.RunAsGroup != nil && *sc.RunAsGroup == 0 {
-		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, RunAsGroup is 0", podName, containerName))
 	}
 	if sc.RunAsNonRoot != nil && !*sc.RunAsNonRoot {
 		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, RunAsNonRoot != true", podName, containerName))
