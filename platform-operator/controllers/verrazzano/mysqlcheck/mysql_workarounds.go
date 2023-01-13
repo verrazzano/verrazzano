@@ -127,7 +127,7 @@ func RepairICStuckDeleting(ctx spi.ComponentContext) error {
 			ResourceVersion: innoDBCluster.GetResourceVersion(),
 		}
 		msg := fmt.Sprintf("InnoDBCluster stuck deleting for a minimum of %s", GetMySQLChecker().RepairTimeout.String())
-		createEvent(ctx.Log(), ctx.Client(), metaData, getInitialTimeICUninstallChecked(), "innodbcluster", "StuckDeleting", msg)
+		createEvent(ctx.Log(), ctx.Client(), metaData, "innodbcluster", "StuckDeleting", msg)
 		return restartMySQLOperator(ctx.Log(), ctx.Client(), msg)
 	}
 
@@ -258,7 +258,7 @@ func (mc *MySQLChecker) RepairMySQLPodStuckDeleting() error {
 		// Initiate repair only if time to wait period has been exceeded
 		expiredTime := getInitialTimeMySQLPodsStuckChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
-			mc.logEvent(podStuckDeleting.ObjectMeta, getInitialTimeMySQLPodsStuckChecked(), "pod-stuck", "PodStuckDeleting", fmt.Sprintf("Pod stuck deleting for a minimum of %s", mc.RepairTimeout.String()))
+			mc.logEvent(podStuckDeleting.ObjectMeta, "pod-stuck", "PodStuckDeleting", fmt.Sprintf("Pod stuck deleting for a minimum of %s", mc.RepairTimeout.String()))
 			if err := restartMySQLOperator(mc.log, mc.client, "MySQL pods stuck terminating"); err != nil {
 				return err
 			}
@@ -291,7 +291,7 @@ func (mc *MySQLChecker) RepairMySQLRouterPodsCrashLoopBackoff() error {
 					// Terminate the pod
 					msg := fmt.Sprintf("Terminating pod %s/%s because it is stuck in CrashLoopBackOff", pod.Namespace, pod.Name)
 					mc.log.Infof("%s", msg)
-					mc.logEvent(pod.ObjectMeta, time.Now(), "mysql-router", waiting.Reason, msg)
+					mc.logEvent(pod.ObjectMeta, "mysql-router", waiting.Reason, msg)
 					if err := mc.client.Delete(context.TODO(), &pod, &clipkg.DeleteOptions{}); err != nil {
 						return err
 					}
@@ -305,19 +305,19 @@ func (mc *MySQLChecker) RepairMySQLRouterPodsCrashLoopBackoff() error {
 // restartMySQLOperator - restart the MySQL Operator pod
 func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client, reason string) error {
 	alertName := "mysql-operator"
-	message := fmt.Sprintf("Restarting the mysql-operator to repair: %s", reason)
-	log.Infof(message)
-	createEvent(log, client, metav1.ObjectMeta{Namespace: componentNamespace}, time.Now(), alertName, "RestartMySQLOperator", message)
 
 	operPod, err := getMySQLOperatorPod(log, client)
 	if err != nil {
 		msg := fmt.Sprintf("Failed restarting the mysql-operator to repair stuck resources: %v", err)
-		createEvent(log, client, metav1.ObjectMeta{Namespace: componentNamespace}, time.Now(), alertName, "PodNotFound", msg)
+		createEvent(log, client, metav1.ObjectMeta{Namespace: componentNamespace}, alertName, "PodNotFound", msg)
 		return fmt.Errorf("%s", msg)
 	}
+	message := fmt.Sprintf("Restarting the mysql-operator to repair: %s", reason)
+	log.Infof(message)
+	createEvent(log, client, operPod.ObjectMeta, alertName, "RestartMySQLOperator", message)
 
 	if err = client.Delete(context.TODO(), operPod, &clipkg.DeleteOptions{}); err != nil {
-		createEvent(log, client, operPod.ObjectMeta, time.Now(), alertName, "PodNotDeleted", fmt.Sprintf("Failed to delete the mysql-operator pod: %v", err))
+		createEvent(log, client, operPod.ObjectMeta, alertName, "PodNotDeleted", fmt.Sprintf("Failed to delete the mysql-operator pod: %v", err))
 		return err
 	}
 
@@ -329,12 +329,13 @@ func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client, reas
 	return nil
 }
 
-func (mc *MySQLChecker) logEvent(involvedObject metav1.ObjectMeta, initialTime time.Time, alertName string, reason string, message string) {
-	createEvent(mc.log, mc.client, involvedObject, initialTime, alertName, reason, message)
+func (mc *MySQLChecker) logEvent(involvedObject metav1.ObjectMeta, alertName string, reason string, message string) {
+	createEvent(mc.log, mc.client, involvedObject, alertName, reason, message)
 }
 
 // createEvent - generate an event that describes a workaround action taken
-func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, involvedObject metav1.ObjectMeta, initialTime time.Time, alertName string, reason string, message string) {
+func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, involvedObject metav1.ObjectMeta, alertName string, reason string, message string) {
+	timestamp := metav1.Now()
 	event := &v1.Event{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "verrazzano-" + alertName,
@@ -352,8 +353,8 @@ func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, involvedObjec
 			return v1.ObjectReference{}
 		}(),
 		Type:                "Warning",
-		FirstTimestamp:      metav1.Time{Time: initialTime},
-		LastTimestamp:       metav1.Now(),
+		FirstTimestamp:      timestamp,
+		LastTimestamp:       timestamp,
 		Reason:              reason,
 		Message:             message,
 		ReportingController: controllerName,
