@@ -5,10 +5,10 @@ package authproxy
 
 import (
 	"fmt"
+	"sigs.k8s.io/yaml"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -25,8 +25,6 @@ const (
 	explicitReplicas    = uint32(3)
 	waitTimeout         = 20 * time.Minute
 	pollingInterval     = 10 * time.Second
-
-	verrazzanoAuthproxyDeployment = "verrazzano-authproxy"
 )
 
 type AuthProxyReplicasModifier struct {
@@ -57,6 +55,7 @@ func (u AuthProxyReplicasModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		cr.Spec.Components.AuthProxy.Kubernetes = &vzapi.AuthProxyKubernetesSection{}
 	}
 	cr.Spec.Components.AuthProxy.Kubernetes.Replicas = u.replicas
+	t.Logs.Debugf("AuthProxyReplicasModifier CR: %v", marshalCRToString(cr.Spec))
 }
 
 func (u AuthProxyReplicasModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
@@ -65,6 +64,7 @@ func (u AuthProxyReplicasModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano
 	}
 	authProxyReplicasOverridesYaml := fmt.Sprintf(`replicas: %v`, u.replicas)
 	cr.Spec.Components.AuthProxy.ValueOverrides = pkg.CreateOverridesOrDie(authProxyReplicasOverridesYaml)
+	t.Logs.Debugf("AuthProxyReplicasModifierV1beta1 CR: %s", marshalCRToString(cr.Spec))
 }
 
 func (u AuthProxyPodPerNodeAffintyModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
@@ -84,6 +84,7 @@ func (u AuthProxyPodPerNodeAffintyModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.V
                     topologyKey: kubernetes.io/hostname
                   weight: 100`, authProxyLabelKey, authProxyLabelValue)
 	cr.Spec.Components.AuthProxy.ValueOverrides = pkg.CreateOverridesOrDie(authProxyAffinityOverridesYaml)
+	t.Logs.Debugf("AuthProxyPodPerNodeAffintyModifierV1beta1 CR: %v", marshalCRToString(cr.Spec))
 }
 
 func (u AuthProxyPodPerNodeAffintyModifier) ModifyCR(cr *vzapi.Verrazzano) {
@@ -116,14 +117,17 @@ func (u AuthProxyPodPerNodeAffintyModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		TopologyKey: "kubernetes.io/hostname",
 	})
 	cr.Spec.Components.AuthProxy.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = list
+	t.Logs.Debugf("AuthProxyPodPerNodeAffintyModifier CR: %v", marshalCRToString(cr.Spec))
 }
 
 func (u AuthProxyDefaultModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{}
+	t.Logs.Debugf("AuthProxyDefaultModifier CR: %v", cr.Spec)
 }
 
 func (u AuthProxyDefaultModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
 	cr.Spec.Components.AuthProxy = &v1beta1.AuthProxyComponent{}
+	t.Logs.Debugf("AuthProxyDefaultModifierV1beta1 CR: %v", marshalCRToString(cr.Spec))
 }
 
 var t = framework.NewTestFramework("update authproxy")
@@ -143,14 +147,7 @@ var _ = BeforeSuite(beforeSuite)
 var afterSuite = t.AfterSuiteFunc(func() {
 	m := AuthProxyDefaultModifier{}
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-
-	cr := update.GetCR()
-	expectedRunning := uint32(1)
-	if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
-		expectedRunning = 2
-	}
-	update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
-
+	update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, uint32(1), false)
 })
 
 var _ = AfterSuite(afterSuite)
@@ -158,17 +155,7 @@ var _ = AfterSuite(afterSuite)
 var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy verify", Label("f:platform-lcm.authproxy-verify"), func() {
 		t.It("authproxy default replicas", func() {
-			cr := update.GetCR()
-
-			expectedRunning := int32(1)
-			deployment, err := pkg.GetDeployment(constants.VerrazzanoSystemNamespace, verrazzanoAuthproxyDeployment)
-			gomega.Expect(err).To(gomega.BeNil())
-			if deployment.Spec.Replicas != nil {
-				expectedRunning = *deployment.Spec.Replicas
-			} else if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
-				expectedRunning = 2
-			}
-			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, uint32(expectedRunning), false)
+			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, uint32(1), false)
 		})
 	})
 
@@ -186,8 +173,12 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 			m := AuthProxyPodPerNodeAffintyModifier{}
 			update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 
-			expectedRunning := nodeCount
+			expectedRunning := nodeCount - 1
 			expectedPending := true
+			if nodeCount == 1 {
+				expectedRunning = nodeCount
+				expectedPending = false
+			}
 			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, expectedPending)
 		})
 	})
@@ -211,3 +202,12 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	})
 
 })
+
+func marshalCRToString(cr interface{}) string {
+	data, err := yaml.Marshal(cr)
+	if err != nil {
+		t.Logs.Errorf("Error marshalling CR to string")
+		return ""
+	}
+	return string(data)
+}
