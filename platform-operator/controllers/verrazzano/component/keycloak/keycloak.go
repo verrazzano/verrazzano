@@ -1535,7 +1535,7 @@ func GetOverrides(object runtime.Object) interface{} {
 	return []vzapi.Overrides{}
 }
 
-// deleteStatefulSet removes the StatefulSet and the associated headless service before upgrade
+// deleteStatefulSet deletes the Keycloak StatefulSet before upgrade
 // The StatefulSet defined by the helm chart for Keycloak 20.0.1 contains changes to fields other than
 // 'replicas', 'template', and 'updateStrategy'. The work around is to delete the StatefulSet prior upgrading to 1.5 or
 // later and then do the upgrade
@@ -1558,9 +1558,18 @@ func deleteStatefulSet(ctx spi.ComponentContext) error {
 	if err := ctxClient.Delete(context.TODO(), &statefulSet, deleteOpts...); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to delete StatefulSet %s/%s: %v", ComponentNamespace, ComponentName, err)
 	}
+	return nil
+}
 
+// deleteHeadlessService deletes the keycloak-headless service after deleting the StatefulSet, before the upgrade
+func deleteHeadlessService(ctx spi.ComponentContext) error {
+	keycloakComp := ctx.EffectiveCR().Spec.Components.Keycloak
+	if keycloakComp == nil {
+		return nil
+	}
 	// Get and delete the headless service associated with the StatefulSet
 	service := &corev1.Service{}
+	ctxClient := ctx.Client()
 	if err := ctxClient.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: headlessService}, service); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to get service %s/%s: %v", ComponentNamespace, headlessService, err)
 	}

@@ -169,6 +169,10 @@ func (c KeycloakComponent) PreUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	// Delete the headless service before the upgrade
+	if err := deleteHeadlessService(ctx); err != nil {
+		return err
+	}
 	return c.HelmComponent.PreUpgrade(ctx)
 }
 
