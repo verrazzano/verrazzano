@@ -140,7 +140,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
-	t.Logs.Info("Schedulable nodes: %v", nodeCount)
+	t.Logs.Infof("Schedulable nodes: %v", nodeCount)
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -174,11 +174,11 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 			m := AuthProxyPodPerNodeAffintyModifier{}
 			update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 
+			// Because the authproxy rollout strategy requires maxUnavailable == 0, k8s tries to spin
+			// up a new pod after the edit to the deployment which gets stuck in pending, regardless of the number
+			// of nodes
 			expectedRunning := nodeCount
 			expectedPending := true
-			if nodeCount == 1 {
-				expectedPending = false
-			}
 			t.Logs.Debugf("Expected running: %v, expected pending %v", expectedRunning, expectedPending)
 			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, expectedPending)
 		})
