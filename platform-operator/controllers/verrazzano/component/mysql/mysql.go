@@ -186,13 +186,6 @@ func (c mysqlComponent) isMySQLReady(ctx spi.ComponentContext) bool {
 	}
 	ready := k8sready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.StatefulsetNames, int32(serverReplicas), prefix)
 
-	// Temporary work around for issue where MySQL pod readiness gates not all met
-	if !ready {
-		if err = mysqlcheck.RepairMySQLPodsWaitingReadinessGates(ctx); err != nil {
-			return false
-		}
-	}
-
 	if ready && routerReplicas > 0 {
 		ready = k8sready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployment, int32(routerReplicas), prefix)
 	}

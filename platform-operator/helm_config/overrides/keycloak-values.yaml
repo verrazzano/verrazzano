@@ -1,4 +1,4 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 # NOTE: The extraInitContainers value is now set in the installation script (4-install-keycloak.sh) so that we can specify the
@@ -98,7 +98,17 @@ ingress:
       secretName: "{{ .Values.tlsSecret }}"
 
 securityContext:
-  runAsUser: 0
-  runAsNonRoot: false
+  allowPrivilegeEscalation: false
+  privileged: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 0
+  capabilities:
+    drop:
+      - ALL
+
+podSecurityContext:
+  seccompProfile:
+    type: RuntimeDefault
 
 replicas: 1

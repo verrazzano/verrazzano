@@ -26,6 +26,6 @@ func TestStart(t *testing.T) {
 
 func newTestMySQLCheck() *MySQLChecker {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	mysqlChecker, _ := NewMySQLChecker(c, 1*time.Second)
+	mysqlChecker, _ := NewMySQLChecker(c, 1*time.Second, 1*time.Second)
 	return mysqlChecker
 }
