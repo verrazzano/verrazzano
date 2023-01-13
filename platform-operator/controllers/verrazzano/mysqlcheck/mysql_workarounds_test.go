@@ -347,7 +347,7 @@ func TestCreateEvent(t *testing.T) {
 	message := "Pod was stuck terminating"
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLRouterPod).Build()
 	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
-	createEvent(fakeCtx.Log(), cli, mySQLRouterPod.ObjectMeta, alertName, reason, message)
+	createEvent(fakeCtx.Log(), cli, mySQLRouterPod.ObjectMeta, time.Now(), alertName, reason, message)
 
 	event := v1.Event{}
 	err := cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: fmt.Sprintf("verrazzano-%s", alertName)}, &event)
@@ -356,7 +356,7 @@ func TestCreateEvent(t *testing.T) {
 	assert.Equal(t, message, event.Message)
 
 	// Test with empty object
-	createEvent(fakeCtx.Log(), cli, metav1.ObjectMeta{}, alertName+"2", reason, message)
+	createEvent(fakeCtx.Log(), cli, metav1.ObjectMeta{}, time.Now(), alertName+"2", reason, message)
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: fmt.Sprintf("verrazzano-%s", alertName+"2")}, &event)
 	assert.NoError(t, err)
 }
