@@ -261,7 +261,7 @@ func TestGetHostnameFromGatewayGatewayForAppConfigDoesNotExist(t *testing.T) {
 	gateway1.Name = "test1"
 	gateway2 := istiov1alpha3.Gateway{}
 	gateway2.Name = "test2"
-	hostname, _ := k8sutil.GetHostnameFromGateway(appConfigNamespace, appConfigName, gateway1, gateway2)
+	hostname, _ := k8sutil.GetHostnameFromGateway(appConfigNamespace, appConfigName, &gateway1, &gateway2)
 	asserts.Empty(hostname)
 	// Reset env variables
 	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
@@ -287,7 +287,7 @@ func TestGetHostnameFromGatewayGatewaysForAppConfigExists(t *testing.T) {
 
 	gateway2 := istiov1alpha3.Gateway{}
 	gateway2.Name = "test1"
-	hostname, _ := k8sutil.GetHostnameFromGateway(appConfigNamespace, appConfigName, gateway1, gateway2)
+	hostname, _ := k8sutil.GetHostnameFromGateway(appConfigNamespace, appConfigName, &gateway1, &gateway2)
 	asserts.Equal(serverHost, hostname)
 	// Reset env variables
 	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
