@@ -48,11 +48,6 @@ var skipPods = map[string][]string{
 	"verrazzano-backup": {
 		"restic",
 	},
-	"cert-manager": {
-		"cert-manager",
-		"cert-manager-cainjector",
-		"cert-manager-webhook",
-	},
 }
 
 var skipContainers = []string{}
