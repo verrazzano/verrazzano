@@ -307,12 +307,12 @@ func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client, reas
 	alertName := "mysql-operator"
 	message := fmt.Sprintf("Restarting the mysql-operator to repair: %s", reason)
 	log.Infof(message)
-	createEvent(log, client, metav1.ObjectMeta{}, time.Now(), alertName, "RestartMySQLOperator", message)
+	createEvent(log, client, metav1.ObjectMeta{Namespace: componentNamespace}, time.Now(), alertName, "RestartMySQLOperator", message)
 
 	operPod, err := getMySQLOperatorPod(log, client)
 	if err != nil {
 		msg := fmt.Sprintf("Failed restarting the mysql-operator to repair stuck resources: %v", err)
-		createEvent(log, client, metav1.ObjectMeta{}, time.Now(), alertName, "PodNotFound", msg)
+		createEvent(log, client, metav1.ObjectMeta{Namespace: componentNamespace}, time.Now(), alertName, "PodNotFound", msg)
 		return fmt.Errorf("%s", msg)
 	}
 
@@ -330,19 +330,19 @@ func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client, reas
 }
 
 // createEvent - generate an event that describes a workaround action taken
-func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, objectMetadata metav1.ObjectMeta, initialTime time.Time, alertName string, reason string, message string) {
+func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, involvedObject metav1.ObjectMeta, initialTime time.Time, alertName string, reason string, message string) {
 	event := &v1.Event{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "verrazzano-" + alertName,
 			Namespace: componentNamespace,
 		},
 		InvolvedObject: func() v1.ObjectReference {
-			if !reflect.DeepEqual(objectMetadata, metav1.ObjectMeta{}) {
+			if !reflect.DeepEqual(involvedObject, metav1.ObjectMeta{}) {
 				return v1.ObjectReference{
-					Namespace:       objectMetadata.Namespace,
-					Name:            objectMetadata.Name,
-					UID:             objectMetadata.UID,
-					ResourceVersion: objectMetadata.ResourceVersion,
+					Namespace:       involvedObject.Namespace,
+					Name:            involvedObject.Name,
+					UID:             involvedObject.UID,
+					ResourceVersion: involvedObject.ResourceVersion,
 				}
 			}
 			return v1.ObjectReference{}
