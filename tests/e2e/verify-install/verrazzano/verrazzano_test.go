@@ -861,9 +861,8 @@ func validateArgoCDResources() {
 	var err error
 
 	if argocdEnabled {
-		var pods []corev1.Pod
-
 		Eventually(func() bool {
+			var pods []corev1.Pod
 			pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/instance": "argocd"}}, constants.ArgoCDNamespace)
 			if err != nil {
 				t.Logs.Error("Failed to get Argocd pods: %v", err)

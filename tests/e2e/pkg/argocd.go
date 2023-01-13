@@ -14,14 +14,21 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 )
 
+const (
+	argoCdHelidonApplicationFile = "tests/e2e/config/scripts/hello-helidon-argocd-application.yaml"
+)
+
 // VerifyArgoCDAccess verifies that Argocd is accessible.
-func VerifyArgoCDAccess(log *zap.SugaredLogger, kubeconfigPath string) error {
+func VerifyArgoCDAccess(log *zap.SugaredLogger) error {
 	var err error
 
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	api := EventuallyGetAPIEndpoint(kubeconfigPath)
 	argocdURL := EventuallyGetURLForIngress(log, api, constants.ArgoCDNamespace, "argocd-server", "https")
 	httpClient := EventuallyVerrazzanoRetryableHTTPClient()
@@ -36,9 +43,10 @@ func VerifyArgoCDAccess(log *zap.SugaredLogger, kubeconfigPath string) error {
 	return nil
 }
 
-func VerifyArgocdApplicationAccess(log *zap.SugaredLogger, kubeConfigPath string) error {
+func VerifyArgoCDApplicationAccess(log *zap.SugaredLogger) error {
 	var err error
 
+	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 	argocdAdminPassword, err := eventuallyGetArgocdAdminPassword(log)
 	if err != nil {
 		return err
@@ -166,4 +174,21 @@ func GetApplicationsWithClient(log *zap.SugaredLogger, argoCDURL string, token s
 	exists := strings.Contains(token, "resourceVersion")
 	return exists, nil
 
+}
+
+// CreateGitRepoAndApplication Creates a Fake Git Repo
+// Adds the Hello Helidon component and application files to the Git repo
+// Commits the changes to the repo
+// Applies the Argo CD Application to the kubernetes cluster
+func CreateArgoCDGitApplication() error {
+	Log(Info, "Create Argo CD Application Project")
+	gomega.Eventually(func() error {
+		file, err := FindTestDataFile(argoCdHelidonApplicationFile)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, "argocd")
+	}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create Argo CD Application Project file")
+
+	return nil
 }

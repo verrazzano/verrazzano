@@ -8,27 +8,32 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 )
 
-var _ = t.Describe("argocd", Label("f:infra-lcm",
+var _ = t.Describe("Argo CD", Label("f:infra-lcm",
 	"f:ui.console"), func() {
-	t.Context("test to", func() {
-		t.It("Verify argocd access and configuration", func() {
-			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-			if err != nil {
-				t.Logs.Error(fmt.Sprintf("Error getting kubeconfig: %v", err))
-				t.Fail(err.Error())
-			}
 
-			if pkg.IsArgoCDEnabled(kubeconfigPath) {
-				Skip("Skipping Argo CD access test as Argo CD is not enabled.")
-			}
+	t.BeforeEach(func() {
+		var err error
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		Expect(err).ShouldNot(HaveOccurred())
 
+		//Skip the test if Argo CD is disabled
+		if !pkg.IsArgoCDEnabled(kubeconfigPath) {
+			Skip("Skipping Argo CD access test as Argo CD is not enabled.")
+		}
+
+	})
+
+	t.Context("is enabled", func() {
+		t.It("Web URL and the applications page is accessible", func() {
 			start := time.Now()
-			err = pkg.VerifyArgoCDAccess(t.Logs, kubeconfigPath)
+			// Verifying if the Argo CD Ingress URL is accessible
+			err := pkg.VerifyArgoCDAccess(t.Logs)
 			if err != nil {
 				t.Logs.Error(fmt.Sprintf("Error verifying access to Argocd: %v", err))
 				t.Fail(err.Error())
@@ -38,9 +43,10 @@ var _ = t.Describe("argocd", Label("f:infra-lcm",
 
 			start = time.Now()
 			t.Logs.Info("Accessing the Argocd Applications")
-			err = pkg.VerifyArgocdApplicationAccess(t.Logs, kubeconfigPath)
+			//Verifying if the Applications page is accessible after login
+			err = pkg.VerifyArgoCDApplicationAccess(t.Logs)
 			if err != nil {
-				t.Logs.Error(fmt.Sprintf("Error verifying access to Argocd: %v", err))
+				t.Logs.Error(fmt.Sprintf("Error verifying access to Argocd application: %v", err))
 				t.Fail(err.Error())
 			}
 
