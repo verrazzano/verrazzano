@@ -35,8 +35,8 @@ require (
 	golang.org/x/tools v0.1.12
 	gopkg.in/yaml.v2 v2.4.0
 	helm.sh/helm/v3 v3.9.2
-	istio.io/api v0.0.0-20200911191701-0dc35ad5c478
-	istio.io/client-go v0.0.0-20200807182027-d287a5abb594
+	istio.io/api v0.0.0-20221208152505-d807bc07da6a
+	istio.io/client-go v1.15.4
 	k8s.io/api v0.25.0
 	k8s.io/apiextensions-apiserver v0.25.0
 	k8s.io/apimachinery v0.25.0
