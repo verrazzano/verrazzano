@@ -339,34 +339,56 @@ func (mc *MySQLChecker) logEvent(involvedObject metav1.ObjectMeta, alertName str
 	createEvent(mc.log, mc.client, involvedObject, alertName, reason, message)
 }
 
-// createEvent - generate an event that describes a workaround action taken
+// createEvent - create or update an event
 func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, involvedObject metav1.ObjectMeta, alertName string, reason string, message string) {
-	timestamp := metav1.Now()
-	event := &v1.Event{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "verrazzano-" + alertName,
-			Namespace: componentNamespace,
-		},
-		InvolvedObject: func() v1.ObjectReference {
-			if !reflect.DeepEqual(involvedObject, metav1.ObjectMeta{}) {
-				return v1.ObjectReference{
-					Namespace:       involvedObject.Namespace,
-					Name:            involvedObject.Name,
-					UID:             involvedObject.UID,
-					ResourceVersion: involvedObject.ResourceVersion,
-				}
-			}
-			return v1.ObjectReference{}
-		}(),
-		Type:                "Warning",
-		FirstTimestamp:      timestamp,
-		LastTimestamp:       timestamp,
-		Reason:              reason,
-		Message:             message,
-		ReportingController: controllerName,
-	}
+	event := &v1.Event{}
+	ctx := context.TODO()
 
-	if err := client.Create(context.TODO(), event); err != nil {
+	err := client.Get(ctx, types.NamespacedName{Namespace: componentNamespace, Name: generateAlertName(alertName)}, event)
+	if err != nil && !errors.IsNotFound(err) {
 		log.ErrorfThrottled("%v", err)
 	}
+
+	// Create a new event if not found
+	if err != nil {
+		event := &v1.Event{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      generateAlertName(alertName),
+				Namespace: componentNamespace,
+			},
+			InvolvedObject: func() v1.ObjectReference {
+				if !reflect.DeepEqual(involvedObject, metav1.ObjectMeta{}) {
+					return v1.ObjectReference{
+						Namespace:       involvedObject.Namespace,
+						Name:            involvedObject.Name,
+						UID:             involvedObject.UID,
+						ResourceVersion: involvedObject.ResourceVersion,
+					}
+				}
+				return v1.ObjectReference{}
+			}(),
+			Type:                "Warning",
+			FirstTimestamp:      metav1.Now(),
+			LastTimestamp:       metav1.Now(),
+			Reason:              reason,
+			Message:             message,
+			ReportingController: controllerName,
+		}
+
+		if err := client.Create(context.TODO(), event); err != nil {
+			log.ErrorfThrottled("%v", err)
+		}
+	} else {
+		// Update the existing event
+		event.Reason = reason
+		event.Message = message
+		event.LastTimestamp = metav1.Now()
+		if err := client.Update(context.TODO(), event); err != nil {
+			log.ErrorfThrottled("%v", err)
+		}
+	}
+}
+
+func generateAlertName(alertName string) string {
+	return fmt.Sprintf("verrazzano-%s", alertName)
 }

@@ -357,6 +357,16 @@ func TestCreateEvent(t *testing.T) {
 	assert.Equal(t, reason, event.Reason)
 	assert.Equal(t, message, event.Message)
 
+	// Update the same event and expect the last time to change
+	saveFirstTime := event.FirstTimestamp
+	saveLastTime := event.LastTimestamp
+	time.Sleep(2 * time.Second)
+	mysqlCheck.logEvent(mySQLRouterPod.ObjectMeta, alertName, reason, message)
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: fmt.Sprintf("verrazzano-%s", alertName)}, &event)
+	assert.NoError(t, err)
+	assert.Equal(t, saveFirstTime, event.FirstTimestamp)
+	assert.NotEqual(t, saveLastTime, event.LastTimestamp)
+
 	// Test with empty object
 	mysqlCheck.logEvent(metav1.ObjectMeta{}, alertName+"2", reason, message)
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: fmt.Sprintf("verrazzano-%s", alertName+"2")}, &event)
