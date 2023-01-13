@@ -7,7 +7,6 @@ command:
   - "/opt/keycloak/bin/kc.sh"
   - "start"
   - "--http-enabled=true"
-  - "--http-port=8080"
   - "--hostname-strict=false"
   - "--hostname-strict-https=false"
   - "--spi-login-protocol-openid-connect-legacy-logout-redirect-uri=true"
@@ -15,11 +14,6 @@ command:
 
 fullnameOverride: "keycloak"
 nameOverride: "keycloak"
-
-postgresql:
-  enabled: false
-mysql:
-  enabled: true
 
 extraEnv: |
   - name: KEYCLOAK_ADMIN
@@ -85,7 +79,7 @@ ingress:
     nginx.ingress.kubernetes.io/service-upstream: "true"
     nginx.ingress.kubernetes.io/upstream-vhost: "keycloak-http.${namespace}.svc.cluster.local"
     nginx.ingress.kubernetes.io/affinity: "cookie"
-    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "256k"
     nginx.ingress.kubernetes.io/session-cookie-conditional-samesite-none: "true"
     nginx.ingress.kubernetes.io/session-cookie-expires: "86400"
     nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"

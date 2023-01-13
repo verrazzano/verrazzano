@@ -164,13 +164,8 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 
 // PreUpgrade - component level processing for pre-upgrade
 func (c KeycloakComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	// Determine if additional processing is required for the upgrade of the StatefulSet
-	if err := upgradeStatefulSet(ctx); err != nil {
-		return err
-	}
-
 	// Delete the StatefulSet before the upgrade
-	if err := removeStatefulSet(ctx); err != nil {
+	if err := deleteStatefulSet(ctx); err != nil {
 		return err
 	}
 

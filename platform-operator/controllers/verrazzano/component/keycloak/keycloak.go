@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 	"text/template"
 
@@ -35,7 +34,6 @@ import (
 	restclient "k8s.io/client-go/rest"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -1537,13 +1535,17 @@ func GetOverrides(object runtime.Object) interface{} {
 	return []vzapi.Overrides{}
 }
 
-// removeStatefulSet removes the StatefulSet and the associated headless service before upgrade
-func removeStatefulSet(ctx spi.ComponentContext) error {
+// deleteStatefulSet removes the StatefulSet and the associated headless service before upgrade
+// The StatefulSet defined by the helm chart for Keycloak 20.0.1 contains changes to fields other than
+// 'replicas', 'template', and 'updateStrategy'. The work around is to delete the StatefulSet prior upgrading to 1.5 or
+// later and then do the upgrade
+func deleteStatefulSet(ctx spi.ComponentContext) error {
 	keycloakComp := ctx.EffectiveCR().Spec.Components.Keycloak
 	if keycloakComp == nil {
 		return nil
 	}
 
+	// Get the StatefulSet for Keycloak
 	ctxClient := ctx.Client()
 	statefulSet := appv1.StatefulSet{}
 	err := ctxClient.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &statefulSet)
@@ -1557,7 +1559,7 @@ func removeStatefulSet(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to delete StatefulSet %s/%s: %v", ComponentNamespace, ComponentName, err)
 	}
 
-	// Delete the headless service associated with the StatefulSet
+	// Get and delete the headless service associated with the StatefulSet
 	service := &corev1.Service{}
 	if err := ctxClient.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: headlessService}, service); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to get service %s/%s: %v", ComponentNamespace, headlessService, err)
@@ -1565,71 +1567,6 @@ func removeStatefulSet(ctx spi.ComponentContext) error {
 	if err := ctxClient.Delete(context.TODO(), service); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to delete service %s/%s: %v", ComponentNamespace, headlessService, err)
 	}
-	return nil
-}
-
-// upgradeStatefulSet - determine if the replica count for the StatefulSet needs
-// to be scaled down before the upgrade.  The affinity rules installed by default
-// prior to the 1.4 release conflict with the new affinity rules being overridden
-// by Verrazzano (the upgrade will never complete).  The work around is to scale
-// down the replica count prior to upgrade, which terminates the Keycloak pods, and
-// then do the upgrade.
-func upgradeStatefulSet(ctx spi.ComponentContext) error {
-	keycloakComp := ctx.EffectiveCR().Spec.Components.Keycloak
-	if keycloakComp == nil {
-		return nil
-	}
-
-	// Get the combine set of value overrides into a single array of string
-	overrides, err := common.GetInstallOverridesYAML(ctx, keycloakComp.ValueOverrides)
-	if err != nil {
-		return err
-	}
-
-	// Is there an override for affinity?
-	found := false
-	affinityOverride := &corev1.Affinity{}
-	for _, overrideYaml := range overrides {
-		if strings.Contains(overrideYaml, "affinity: |") {
-			found = true
-
-			// Convert the affinity override from yaml to a struct
-			affinityField, err := common.ExtractValueFromOverrideString(overrideYaml, "affinity")
-			if err != nil {
-				return err
-			}
-			err = yaml.Unmarshal([]byte(fmt.Sprintf("%v", affinityField)), affinityOverride)
-			if err != nil {
-				return err
-			}
-			break
-		}
-	}
-	if !found {
-		return nil
-	}
-
-	// Get the StatefulSet for Keycloak
-	client := ctx.Client()
-	statefulSet := appv1.StatefulSet{}
-	err = client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &statefulSet)
-	if err != nil {
-		return err
-	}
-
-	// Nothing to do if the affinity definitions are the same
-	if reflect.DeepEqual(affinityOverride, statefulSet.Spec.Template.Spec.Affinity) {
-		return nil
-	}
-
-	// Scale replica count to 0 to cause all pods to terminate, upgrade will restore replica count
-	*statefulSet.Spec.Replicas = 0
-
-	err = client.Update(context.TODO(), &statefulSet)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
