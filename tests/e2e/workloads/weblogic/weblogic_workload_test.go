@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package weblogic
@@ -205,28 +205,15 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 	})
 
 	t.Context("Metrics", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
-		// Verify application Prometheus scraped metrics
+		// Verify application Prometheus scraped targets
 		// GIVEN the sample WebLogic app is deployed
 		// WHEN the application configuration uses a default metrics trait
-		// THEN confirm that metrics are being collected
-		t.It("Retrieve application Prometheus scraped metrics", func() {
-			pkg.Concurrently(
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", wlDomain)
-					}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", wlDomain)
-					}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("wls_server_state_val", "weblogic_domainName", wlDomain)
-					}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-			)
+		// THEN confirm that all the scrape targets are healthy
+		t.It("Verify all scrape targets are healthy for the application", func() {
+			Eventually(func() (bool, error) {
+				var componentNames = []string{"hello-domain"}
+				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "hello-appconf", componentNames))
+			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
 
 		// Verify Istio Prometheus scraped metrics

@@ -783,6 +783,7 @@ defaultBackend:
     runAsNonRoot: true
     readOnlyRootFilesystem: true
     allowPrivilegeEscalation: false
+    privileged: false
 
   # -- Use an existing PSP instead of creating one
   existingPsp: ""
