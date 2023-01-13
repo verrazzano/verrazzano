@@ -193,7 +193,6 @@ func captureAdditionalLogs(client clipkg.Client, kubeClient kubernetes.Interface
 	ecl := make(chan ErrorsChannelLogs, 1)
 	for _, ns := range namespaces {
 		podList, _ := pkghelpers.GetPodListAll(client, ns)
-		fmt.Println("length after", len(podList))
 		go captureLogsAllPods(wg, ecl, kubeClient, Pods{PodList: podList, Namespace: ns}, bugReportDir, vzHelper, duration)
 	}
 

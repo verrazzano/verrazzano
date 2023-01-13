@@ -142,7 +142,6 @@ func GetPodListAll(client clipkg.Client, namespace string) ([]corev1.Pod, error)
 	if err != nil {
 		return nil, fmt.Errorf("an error while listing pods: %s", err.Error())
 	}
-	fmt.Println("before list", len(podList.Items))
 	switch namespace {
 	case vzconstants.VerrazzanoInstallNamespace:
 		return removePod(podList.Items, constants.VerrazzanoPlatformOperator), nil
