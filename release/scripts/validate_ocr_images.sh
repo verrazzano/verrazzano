@@ -20,7 +20,6 @@ do
     IMAGE_NAME_AND_TAG=$(echo "$line" | awk -F '/' '{print $2}')
     VZ_IMAGE_NAME=$(echo "$line")
     docker pull "$DOCKER_REPO"/"$VZ_IMAGE_NAME"
-    docer image inspect "$IMAGE_NAME_AND_TAG"
 done < "$OBJ_STORAGE_VZ_IMAGE_TXT"
 
 while IFS= read -r line
