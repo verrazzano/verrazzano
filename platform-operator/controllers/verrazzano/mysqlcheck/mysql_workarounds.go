@@ -6,7 +6,6 @@ package mysqlcheck
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"time"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -18,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -154,7 +154,7 @@ func (mc *MySQLChecker) RepairMySQLPodsWaitingReadinessGates() error {
 		expiredTime := getLastTimeReadinessGateChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
 			for _, pod := range podsWaiting {
-				mc.logEvent(pod.ObjectMeta, "readiness-gate", "WaitingReadinessGate", fmt.Sprintf("Pod stuck waiting for readiness gates for a minimum of %s", mc.RepairTimeout.String()))
+				mc.logEvent(pod, "readiness-gate", "WaitingReadinessGate", fmt.Sprintf("Pod stuck waiting for readiness gates for a minimum of %s", mc.RepairTimeout.String()))
 			}
 			return restartMySQLOperator(mc.log, mc.client, "MySQL pods waiting for readiness gates")
 		}
@@ -264,7 +264,7 @@ func (mc *MySQLChecker) RepairMySQLPodStuckDeleting() error {
 		// Initiate repair only if time to wait period has been exceeded
 		expiredTime := getInitialTimeMySQLPodsStuckChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
-			mc.logEvent(podStuckDeleting.ObjectMeta, "pod-stuck", "PodStuckDeleting", fmt.Sprintf("Pod stuck deleting for a minimum of %s", mc.RepairTimeout.String()))
+			mc.logEvent(podStuckDeleting, "pod-stuck", "PodStuckDeleting", fmt.Sprintf("Pod stuck deleting for a minimum of %s", mc.RepairTimeout.String()))
 			if err := restartMySQLOperator(mc.log, mc.client, "MySQL pods stuck terminating"); err != nil {
 				return err
 			}
@@ -297,7 +297,7 @@ func (mc *MySQLChecker) RepairMySQLRouterPodsCrashLoopBackoff() error {
 					// Terminate the pod
 					msg := fmt.Sprintf("Terminating pod %s/%s because it is stuck in CrashLoopBackOff", pod.Namespace, pod.Name)
 					mc.log.Infof("%s", msg)
-					mc.logEvent(pod.ObjectMeta, "mysql-router", waiting.Reason, msg)
+					mc.logEvent(pod, "mysql-router", waiting.Reason, msg)
 					if err := mc.client.Delete(context.TODO(), &pod, &clipkg.DeleteOptions{}); err != nil {
 						return err
 					}
@@ -315,7 +315,7 @@ func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client, reas
 	operPod, err := getMySQLOperatorPod(log, client)
 	if err != nil {
 		msg := fmt.Sprintf("Failed restarting the mysql-operator to repair stuck resources: %v", err)
-		createEvent(log, client, metav1.ObjectMeta{Namespace: componentNamespace}, alertName, "PodNotFound", msg)
+		createEvent(log, client, metav1.ObjectMeta{Namespace: mysqloperator.ComponentNamespace}, alertName, "PodNotFound", msg)
 		return fmt.Errorf("%s", msg)
 	}
 	message := fmt.Sprintf("Restarting the mysql-operator to repair: %s", reason)
@@ -323,7 +323,7 @@ func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client, reas
 	createEvent(log, client, operPod.ObjectMeta, alertName, "RestartMySQLOperator", message)
 
 	if err = client.Delete(context.TODO(), operPod, &clipkg.DeleteOptions{}); err != nil {
-		createEvent(log, client, operPod.ObjectMeta, alertName, "PodNotDeleted", fmt.Sprintf("Failed to delete the mysql-operator pod: %v", err))
+		createEvent(log, client, operPod, alertName, "PodNotDeleted", fmt.Sprintf("Failed to delete the mysql-operator pod: %v", err))
 		return err
 	}
 
@@ -335,16 +335,24 @@ func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client, reas
 	return nil
 }
 
-func (mc *MySQLChecker) logEvent(involvedObject metav1.ObjectMeta, alertName string, reason string, message string) {
+func (mc *MySQLChecker) logEvent(involvedObject interface{}, alertName string, reason string, message string) {
 	createEvent(mc.log, mc.client, involvedObject, alertName, reason, message)
 }
 
 // createEvent - create or update an event
-func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, involvedObject metav1.ObjectMeta, alertName string, reason string, message string) {
+func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, involvedObjectInt interface{}, alertName string, reason string, message string) {
 	event := &v1.Event{}
 	ctx := context.TODO()
 
-	err := client.Get(ctx, types.NamespacedName{Namespace: componentNamespace, Name: generateAlertName(alertName)}, event)
+	// Convert involved object to unstructured
+	unstructuredInt, err := runtime.DefaultUnstructuredConverter.ToUnstructured(involvedObjectInt)
+	if err != nil {
+		log.ErrorfThrottled("%v", err)
+		return
+	}
+	involvedObject := unstructured.Unstructured{Object: unstructuredInt}
+
+	err = client.Get(ctx, types.NamespacedName{Namespace: involvedObject.GetNamespace(), Name: generateAlertName(alertName)}, event)
 	if err != nil && !errors.IsNotFound(err) {
 		log.ErrorfThrottled("%v", err)
 	}
@@ -354,18 +362,12 @@ func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, involvedObjec
 		event := &v1.Event{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      generateAlertName(alertName),
-				Namespace: componentNamespace,
+				Namespace: involvedObject.GetNamespace(),
 			},
 			InvolvedObject: func() v1.ObjectReference {
-				if !reflect.DeepEqual(involvedObject, metav1.ObjectMeta{}) {
-					return v1.ObjectReference{
-						Namespace:       involvedObject.Namespace,
-						Name:            involvedObject.Name,
-						UID:             involvedObject.UID,
-						ResourceVersion: involvedObject.ResourceVersion,
-					}
-				}
-				return v1.ObjectReference{}
+				objectRef := v1.ObjectReference{}
+				setObjectReference(&objectRef, involvedObject)
+				return objectRef
 			}(),
 			Type:                "Warning",
 			FirstTimestamp:      metav1.Now(),
@@ -383,12 +385,24 @@ func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, involvedObjec
 		event.Reason = reason
 		event.Message = message
 		event.LastTimestamp = metav1.Now()
+		setObjectReference(&event.InvolvedObject, involvedObject)
 		if err := client.Update(context.TODO(), event); err != nil {
 			log.ErrorfThrottled("%v", err)
 		}
 	}
 }
 
+// setObjectReference - populate the ObjectReference object from the involved object
+func setObjectReference(objectRef *v1.ObjectReference, involvedObject unstructured.Unstructured) {
+	objectRef.Kind = involvedObject.GetKind()
+	objectRef.APIVersion = involvedObject.GetAPIVersion()
+	objectRef.Namespace = involvedObject.GetNamespace()
+	objectRef.Name = involvedObject.GetName()
+	objectRef.UID = involvedObject.GetUID()
+	objectRef.ResourceVersion = involvedObject.GetResourceVersion()
+}
+
+// generateAlertName - generate the alert name
 func generateAlertName(alertName string) string {
 	return fmt.Sprintf("verrazzano-%s", alertName)
 }

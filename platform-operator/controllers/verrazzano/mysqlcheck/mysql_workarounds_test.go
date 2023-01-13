@@ -326,49 +326,71 @@ func TestRepairMySQLRouterPodsCrashLoopBackoff(t *testing.T) {
 
 // TestCreateEvent tests the creation of events
 // GIVEN an event to record
-// WHEN there is object metadata
-// THEN no error logging the event
-// WHEN there is no object metadata
-// THEN no error logging the event
+// WHEN it is the first time for the event
+// THEN event gets created
+// WHEN it is second time for the event
+// THEN event gets updated
 func TestCreateEvent(t *testing.T) {
-	routerName := "mysql-router-0"
-	mySQLRouterPod := &v1.Pod{
+	router1Name := "mysql-router-1"
+	router2Name := "mysql-router-2"
+	mySQLRouterPod1 := &v1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "pod",
+			APIVersion: "v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      routerName,
-			Namespace: componentNamespace,
-			Labels: map[string]string{
-				mySQLComponentLabel: mysqlRouterComponentName,
-			},
+			Name:            router1Name,
+			Namespace:       componentNamespace,
+			UID:             "uid1",
+			ResourceVersion: "resource-version1",
+		},
+	}
+	mySQLRouterPod2 := &v1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "pod",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            router2Name,
+			Namespace:       componentNamespace,
+			UID:             "uid2",
+			ResourceVersion: "resource-version2",
 		},
 	}
 
 	alertName := "test"
 	reason := "PodStuck"
 	message := "Pod was stuck terminating"
-	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLRouterPod).Build()
+	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLRouterPod1).Build()
 	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
 	mysqlCheck, err := NewMySQLChecker(fakeCtx.Client(), checkPeriodDuration, timeoutDuration)
 	assert.NoError(t, err)
-	mysqlCheck.logEvent(mySQLRouterPod.ObjectMeta, alertName, reason, message)
 
-	event := v1.Event{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: generateAlertName(alertName)}, &event)
+	mysqlCheck.logEvent(mySQLRouterPod1, alertName, reason, message)
+	event := &v1.Event{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: generateAlertName(alertName)}, event)
 	assert.NoError(t, err)
 	assert.Equal(t, reason, event.Reason)
 	assert.Equal(t, message, event.Message)
+	createEventAsserts(t, mySQLRouterPod1, event)
 
-	// Update the same event and expect the last time to change
+	// Log the same event again with a different involved object
 	saveFirstTime := event.FirstTimestamp
 	saveLastTime := event.LastTimestamp
 	time.Sleep(2 * time.Second)
-	mysqlCheck.logEvent(mySQLRouterPod.ObjectMeta, alertName, reason, message)
-	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: generateAlertName(alertName)}, &event)
+	mysqlCheck.logEvent(mySQLRouterPod2, alertName, reason, message)
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: generateAlertName(alertName)}, event)
 	assert.NoError(t, err)
 	assert.Equal(t, saveFirstTime, event.FirstTimestamp)
 	assert.NotEqual(t, saveLastTime, event.LastTimestamp)
+	createEventAsserts(t, mySQLRouterPod2, event)
+}
 
-	// Test with empty object
-	mysqlCheck.logEvent(metav1.ObjectMeta{}, alertName+"2", reason, message)
-	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: generateAlertName(alertName)}, &event)
-	assert.NoError(t, err)
+func createEventAsserts(t *testing.T, pod *v1.Pod, event *v1.Event) {
+	assert.Equal(t, pod.Kind, event.InvolvedObject.Kind)
+	assert.Equal(t, pod.APIVersion, event.InvolvedObject.APIVersion)
+	assert.Equal(t, pod.Namespace, event.InvolvedObject.Namespace)
+	assert.Equal(t, pod.Name, event.InvolvedObject.Name)
+	assert.Equal(t, pod.UID, event.InvolvedObject.UID)
+	assert.Equal(t, pod.ResourceVersion, event.InvolvedObject.ResourceVersion)
 }
