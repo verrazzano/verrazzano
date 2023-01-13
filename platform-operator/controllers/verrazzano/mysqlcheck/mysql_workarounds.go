@@ -30,6 +30,10 @@ const (
 	componentNamespace       = "keycloak"
 	componentName            = "mysql"
 	mysqlRouterComponentName = "mysqlrouter"
+
+	// Alert Names
+	alertInnoDBCluster = "innodbcluster"
+	alertMySQLOperator = "mysql-operator"
 )
 
 var (
@@ -120,14 +124,8 @@ func RepairICStuckDeleting(ctx spi.ComponentContext) error {
 	// Initiate repair only if time to wait period has been exceeded
 	expiredTime := getInitialTimeICUninstallChecked().Add(GetMySQLChecker().RepairTimeout)
 	if time.Now().After(expiredTime) {
-		metaData := metav1.ObjectMeta{
-			Name:            innoDBCluster.GetName(),
-			Namespace:       innoDBCluster.GetNamespace(),
-			UID:             innoDBCluster.GetUID(),
-			ResourceVersion: innoDBCluster.GetResourceVersion(),
-		}
 		msg := fmt.Sprintf("InnoDBCluster stuck deleting for a minimum of %s", GetMySQLChecker().RepairTimeout.String())
-		createEvent(ctx.Log(), ctx.Client(), metaData, "innodbcluster", "StuckDeleting", msg)
+		createEvent(ctx.Log(), ctx.Client(), innoDBCluster, alertInnoDBCluster, "StuckDeleting", msg)
 		return restartMySQLOperator(ctx.Log(), ctx.Client(), msg)
 	}
 
@@ -310,20 +308,18 @@ func (mc *MySQLChecker) RepairMySQLRouterPodsCrashLoopBackoff() error {
 
 // restartMySQLOperator - restart the MySQL Operator pod
 func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client, reason string) error {
-	alertName := "mysql-operator"
-
 	operPod, err := getMySQLOperatorPod(log, client)
 	if err != nil {
 		msg := fmt.Sprintf("Failed restarting the mysql-operator to repair stuck resources: %v", err)
-		createEvent(log, client, metav1.ObjectMeta{Namespace: mysqloperator.ComponentNamespace}, alertName, "PodNotFound", msg)
+		createEvent(log, client, metav1.ObjectMeta{Namespace: mysqloperator.ComponentNamespace}, alertMySQLOperator, "PodNotFound", msg)
 		return fmt.Errorf("%s", msg)
 	}
 	message := fmt.Sprintf("Restarting the mysql-operator to repair: %s", reason)
 	log.Infof(message)
-	createEvent(log, client, operPod.ObjectMeta, alertName, "RestartMySQLOperator", message)
+	createEvent(log, client, operPod, alertMySQLOperator, "RestartMySQLOperator", message)
 
 	if err = client.Delete(context.TODO(), operPod, &clipkg.DeleteOptions{}); err != nil {
-		createEvent(log, client, operPod, alertName, "PodNotDeleted", fmt.Sprintf("Failed to delete the mysql-operator pod: %v", err))
+		createEvent(log, client, operPod, alertMySQLOperator, "PodNotDeleted", fmt.Sprintf("Failed to delete the mysql-operator pod: %v", err))
 		return err
 	}
 
