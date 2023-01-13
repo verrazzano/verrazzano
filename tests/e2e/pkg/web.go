@@ -214,7 +214,7 @@ func GetVerrazzanoRetryableHTTPClient() (*retryablehttp.Client, error) {
 }
 
 func GetEnvName(kubeconfigPath string) (string, error) {
-	vz, err := GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
 		return "", err
 	}
