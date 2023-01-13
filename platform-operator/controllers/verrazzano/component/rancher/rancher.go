@@ -156,6 +156,7 @@ const (
 
 // roles and groups
 const (
+	ClusterAdminRoleName        = "cluster-admin"
 	AdminRoleName               = "admin"
 	VerrazzanoAdminRoleName     = "verrazzano-admin"
 	ViewRoleName                = "view"
@@ -192,7 +193,7 @@ var GVKRoleTemplate = common.GetRancherMgmtAPIGVKForKind("RoleTemplate")
 var GroupRolePairs = []map[string]string{
 	{
 		GroupKey:       VerrazzanoAdminsGroupName,
-		ClusterRoleKey: AdminRoleName,
+		ClusterRoleKey: ClusterAdminRoleName,
 	},
 	{
 		GroupKey:       VerrazzanoAdminsGroupName,
