@@ -18,6 +18,7 @@ spec:
         installList:
           - plugin1
           - plugin2
+      disableDefaultPolicy: true
       nodes:
         - name: es-master
           replicas: 3
