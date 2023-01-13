@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vmc
@@ -537,8 +537,8 @@ var createClient = func(r *VerrazzanoManagedClusterReconciler, vmc *clustersv1al
 		return fmt.Errorf("Prometheus host not yet available from VMC Status")
 	}
 	dnsSubdomain := promHost[len(prometheusHostPrefix)+1:]
-	clientId := fmt.Sprintf("verrazzano-%s", vmc.Name)
-	err = keycloak.CreateOrUpdateClient(ctx, cfg, cli, clientId, keycloak.ManagedClusterClientTmpl, keycloak.ManagedClusterClientUrisTemplate, false, &dnsSubdomain)
+	clientID := fmt.Sprintf("verrazzano-%s", vmc.Name)
+	err = keycloak.CreateOrUpdateClient(ctx, cfg, cli, clientID, keycloak.ManagedClusterClientTmpl, keycloak.ManagedClusterClientUrisTemplate, false, &dnsSubdomain)
 	if err != nil {
 		return err
 	}

@@ -175,7 +175,7 @@ const pkceTmpl = `
 `
 const ManagedClusterClientTmpl = `
 {
-      "clientId" : "{{.ClientId}}",
+      "clientId" : "{{.ClientID}}",
       "enabled": true,
       "surrogateAuthRequired": false,
       "alwaysDisplayInConsole": false,
@@ -669,7 +669,7 @@ type KeycloakClientSecret struct {
 type templateData struct {
 	DNSSubDomain string
 	OSHostExists bool
-	ClientId     string
+	ClientID     string
 }
 
 // imageData needed for template rendering
@@ -1694,7 +1694,7 @@ func upgradeStatefulSet(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func populateClientTemplate(ctx spi.ComponentContext, tmpl string, clientId string, subdomain *string) (string, error) {
+func populateClientTemplate(ctx spi.ComponentContext, tmpl string, clientID string, subdomain *string) (string, error) {
 	data := templateData{}
 
 	// Update verrazzano-pkce client redirect and web origin uris if deprecated host exists in the ingress
@@ -1720,7 +1720,7 @@ func populateClientTemplate(ctx spi.ComponentContext, tmpl string, clientId stri
 
 	data.DNSSubDomain = dnsSubDomain
 
-	data.ClientId = clientId
+	data.ClientID = clientID
 
 	// use template to get populate template with data
 	var b bytes.Buffer
