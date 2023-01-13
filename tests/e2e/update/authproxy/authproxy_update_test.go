@@ -136,10 +136,11 @@ var nodeCount uint32
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
-	nodeCount, err = pkg.GetNodeCount()
+	nodeCount, err = pkg.GetSchedulableNodeCount()
 	if err != nil {
 		Fail(err.Error())
 	}
+	t.Logs.Info("Schedulable nodes: %v", nodeCount)
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -160,7 +161,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	})
 
 	t.Describe("verrazzano-authproxy update replicas", Label("f:platform-lcm.authproxy-update-replicas"), func() {
-		t.It("authproxy explicit replicas", func() {
+		t.It("authproxy explicit replicas v1alpha1", func() {
 			m := AuthProxyReplicasModifier{replicas: nodeCount}
 			update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 			expectedRunning := nodeCount
@@ -169,22 +170,22 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	})
 
 	t.Describe("verrazzano-authproxy update affinity", Label("f:platform-lcm.authproxy-update-affinity"), func() {
-		t.It("authproxy explicit affinity", func() {
+		t.It("authproxy explicit affinity v1alpha1", func() {
 			m := AuthProxyPodPerNodeAffintyModifier{}
 			update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 
-			expectedRunning := nodeCount - 1
+			expectedRunning := nodeCount
 			expectedPending := true
 			if nodeCount == 1 {
-				expectedRunning = nodeCount
 				expectedPending = false
 			}
+			t.Logs.Debugf("Expected running: %v, expected pending %v", expectedRunning, expectedPending)
 			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, expectedPending)
 		})
 	})
 
 	t.Describe("verrazzano-authproxy update replicas with v1beta1 client", Label("f:platform-lcm.authproxy-update-replicas"), func() {
-		t.It("authproxy explicit replicas", func() {
+		t.It("authproxy explicit replicas v1beta1", func() {
 			m := AuthProxyReplicasModifierV1beta1{replicas: explicitReplicas}
 			update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
 			expectedRunning := explicitReplicas
@@ -193,7 +194,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	})
 
 	t.Describe("verrazzano-authproxy update affinity using v1beta1 client", Label("f:platform-lcm.authproxy-update-affinity"), func() {
-		t.It("authproxy explicit affinity", func() {
+		t.It("authproxy explicit affinity v1beta1", func() {
 			m := AuthProxyPodPerNodeAffintyModifierV1beta1{}
 			update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
 			expectedRunning := explicitReplicas
