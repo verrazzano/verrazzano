@@ -28,6 +28,7 @@ import (
 	"os"
 	"path/filepath"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 )
 
 var errBugReport = "an error occurred while creating the bug report: %s"
@@ -140,6 +141,19 @@ func GetPodListAll(client clipkg.Client, namespace string) ([]corev1.Pod, error)
 		})
 	if err != nil {
 		return nil, fmt.Errorf("an error while listing pods: %s", err.Error())
+	}
+	fmt.Println("before list", len(podList.Items))
+	switch namespace {
+	case vzconstants.VerrazzanoInstallNamespace:
+		//return removePod(podList.Items, constants.VerrazzanoPlatformOperator), nil
+		return removePods(podList.Items, []string{constants.VerrazzanoPlatformOperator}), nil
+	case vzconstants.VerrazzanoSystemNamespace:
+		//tempList := removePod(podList.Items, constants.VerrazzanoApplicationOperator)
+		return removePods(podList.Items, []string{constants.VerrazzanoApplicationOperator, constants.VerrazzanoMonitoringOperator}), nil
+		//return removePod(tempList, constants.VerrazzanoMonitoringOperator), nil
+	case vzconstants.CertManager:
+		return removePod(podList.Items, vzconstants.ExternalDNS), nil
+		//return removePods(podList.Items, []string{vzconstants.ExternalDNS}), nil
 	}
 	return podList.Items, nil
 }
@@ -733,4 +747,36 @@ func LogMessage(msg string) {
 // SetVerboseOutput sets the verbose output for the commands bug-report and analyze
 func SetVerboseOutput(enableVerbose bool) {
 	isVerbose = enableVerbose
+}
+
+// removePod removes pod from PodList
+// which are already taken care
+func removePod(podList []corev1.Pod, podName string) []corev1.Pod {
+	returnList := make([]corev1.Pod, 0)
+	for index, pod := range podList {
+		if strings.Contains(pod.Name, podName) {
+			returnList = append(returnList, podList[:index]...)
+			return append(returnList, podList[index+1:]...)
+		}
+	}
+	return nil
+}
+
+// removePods removes pod from PodList
+// which are already taken care
+func removePods(podList []corev1.Pod, pods []string) []corev1.Pod {
+	returnList := make([]corev1.Pod, 0)
+	for _, p := range pods {
+		returnList = nil
+		for index, pod := range podList {
+			if strings.Contains(pod.Name, p) {
+				returnList = append(returnList, podList[:index]...)
+				returnList = append(returnList, podList[index+1:]...)
+			}
+		}
+	}
+	//}
+	fmt.Println("length final iteration", len(returnList))
+	fmt.Println("dinnnnnnnn", len(podList)-len(pods))
+	return returnList
 }

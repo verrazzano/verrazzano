@@ -182,7 +182,8 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bug
 	return nil
 }
 
-func captureResourcesCustom(client clipkg.Client, kubeClient kubernetes.Interface, bugReportDir string, vzHelper pkghelpers.VZHelper, namespaces []string, duration int64) error {
+// captureAdditionalLogs will be used for capture logs from additional namespace.
+func captureAdditionalLogs(client clipkg.Client, kubeClient kubernetes.Interface, bugReportDir string, vzHelper pkghelpers.VZHelper, namespaces []string, duration int64) error {
 	wgCount := len(namespaces)
 	wg := &sync.WaitGroup{}
 	wg.Add(wgCount)
@@ -192,7 +193,8 @@ func captureResourcesCustom(client clipkg.Client, kubeClient kubernetes.Interfac
 	ecl := make(chan ErrorsChannelLogs, 1)
 	for _, ns := range namespaces {
 		podList, _ := pkghelpers.GetPodListAll(client, ns)
-		go captureLogsAll(wg, ecl, kubeClient, Pods{PodList: podList, Namespace: ns}, bugReportDir, vzHelper, duration)
+		fmt.Println("length after", len(podList))
+		go captureLogsAllPods(wg, ecl, kubeClient, Pods{PodList: podList, Namespace: ns}, bugReportDir, vzHelper, duration)
 	}
 
 	wg.Wait()
@@ -277,8 +279,8 @@ func collectNamespaces(kubeClient kubernetes.Interface, includedNS []string, vz 
 	return nsList, additionalNS
 }
 
-// capture customer/additional namespace pods logs without filtering
-func captureLogsAll(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient kubernetes.Interface, pods Pods, bugReportDir string, vzHelper pkghelpers.VZHelper, duration int64) {
+// captureLogsAllPods captures logs from all pods without filtering in given namespace.
+func captureLogsAllPods(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient kubernetes.Interface, pods Pods, bugReportDir string, vzHelper pkghelpers.VZHelper, duration int64) {
 
 	defer wg.Done()
 	if len(pods.PodList) == 0 {
@@ -299,7 +301,7 @@ func captureAdditionalResources(client clipkg.Client, kubeClient kubernetes.Inte
 		pkghelpers.LogError(fmt.Sprintf("There is an error in capturing the resources : %s", err.Error()))
 	}
 	if podLogs.IsPodLog {
-		if err := captureResourcesCustom(client, kubeClient, bugReportDir, vzHelper, additionalNS, podLogs.Duration); err != nil {
+		if err := captureAdditionalLogs(client, kubeClient, bugReportDir, vzHelper, additionalNS, podLogs.Duration); err != nil {
 			pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the logs: %s", err.Error()))
 		}
 	}
