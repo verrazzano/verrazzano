@@ -6,10 +6,6 @@ package helidonworkload
 import (
 	"context"
 	"errors"
-	"reflect"
-	"strconv"
-	"strings"
-
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
@@ -30,12 +26,15 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/yaml"
+	"strconv"
+	"strings"
 )
 
 const (
@@ -273,42 +272,54 @@ func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelid
 				Kind:       serviceKind,
 				APIVersion: serviceAPIVersion,
 			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      deploy.GetName(),
-				Namespace: deploy.GetNamespace(),
-				Labels: map[string]string{
-					labelKey: string(workload.GetUID()),
-				},
-			},
-			Spec: corev1.ServiceSpec{
-				Selector: deploy.Spec.Selector.MatchLabels,
-				Ports:    []corev1.ServicePort{},
-				Type:     corev1.ServiceTypeClusterIP,
-			},
+			//
+			ObjectMeta: workload.Spec.ServiceTemplate.Metadata,
+			//
+			Spec: workload.Spec.ServiceTemplate.ServiceSpec,
 		}
 
-		for _, container := range deploy.Spec.Template.Spec.Containers {
-			if len(container.Ports) > 0 {
-				for _, port := range container.Ports {
-					// All ports within a ServiceSpec must have unique names.
-					// When considering the endpoints for a Service, this must match the 'name' field in the EndpointPort.
-					name := strings.ToLower(string(corev1.ProtocolTCP)) + "-" + container.Name + "-" + strconv.FormatInt(int64(port.ContainerPort), 10)
-					protocol := corev1.ProtocolTCP
-					if len(port.Protocol) > 0 {
-						protocol = port.Protocol
-					}
+		if s.GetName() == "" {
+			s.Name = deploy.GetName()
+		}
+		if s.GetName() == "" {
+			s.Namespace = deploy.GetNamespace()
+		}
+		if s.Labels == nil {
+			s.Labels = map[string]string{}
+		}
+		s.Labels[labelKey] = string(workload.GetUID())
 
-					servicePort := corev1.ServicePort{
-						Name:       name,
-						Port:       port.ContainerPort,
-						TargetPort: intstr.FromInt(int(port.ContainerPort)),
-						Protocol:   protocol,
+		if s.Spec.Selector == nil {
+			s.Spec.Selector = deploy.Spec.Selector.MatchLabels
+		}
+		if s.Spec.Type == "" {
+			s.Spec.Type = corev1.ServiceTypeClusterIP
+		}
+		if s.Spec.Ports == nil {
+			for _, container := range deploy.Spec.Template.Spec.Containers {
+				if len(container.Ports) > 0 {
+					for _, port := range container.Ports {
+						// All ports within a ServiceSpec must have unique names.
+						// When considering the endpoints for a Service, this must match the 'name' field in the EndpointPort.
+						name := strings.ToLower(string(corev1.ProtocolTCP)) + "-" + container.Name + "-" + strconv.FormatInt(int64(port.ContainerPort), 10)
+						protocol := corev1.ProtocolTCP
+						if len(port.Protocol) > 0 {
+							protocol = port.Protocol
+						}
+
+						servicePort := corev1.ServicePort{
+							Name:       name,
+							Port:       port.ContainerPort,
+							TargetPort: intstr.FromInt(int(port.ContainerPort)),
+							Protocol:   protocol,
+						}
+						log.Debugf("Appending port %s to service", servicePort)
+						s.Spec.Ports = append(s.Spec.Ports, servicePort)
 					}
-					log.Debugf("Appending port %s to service", servicePort)
-					s.Spec.Ports = append(s.Spec.Ports, servicePort)
 				}
 			}
 		}
+
 		if y, err := yaml.Marshal(s); err != nil {
 			log.Errorf("Failed to convert service to yaml: %v", err)
 			log.Debugf("Service in json format: %s", s)

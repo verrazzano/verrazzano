@@ -10,11 +10,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// VerrazzanoHelidonWorkloadSpec wraps a Helidon application deployment.
+// VerrazzanoHelidonWorkloadSpec wraps a Helidon application deployment and service.
 type VerrazzanoHelidonWorkloadSpec struct {
 	// An embedded Helidon application deployment.
 	DeploymentTemplate DeploymentTemplate `json:"deploymentTemplate"`
-	ServiceTemplate    ServiceTemplate    `json:"deploymentTemplate"`
+	// An embedded Helidon application service
+	ServiceTemplate ServiceTemplate `json:"ServiceTemplateTemplate"`
 }
 
 // DeploymentTemplate specifies the metadata and pod spec of a Helidon workload.
@@ -42,7 +43,7 @@ type ServiceTemplate struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:pruning:PreserveUnknownFields
 	Metadata metav1.ObjectMeta `json:"metadata"`
-	// The pod spec of a Helidon application.
+	// The service spec of a Helidon application.
 	// +kubebuilder:validation:Required
 	ServiceSpec v1.ServiceSpec `json:"serviceSpec"`
 	// Label selector of a Helidon application.
