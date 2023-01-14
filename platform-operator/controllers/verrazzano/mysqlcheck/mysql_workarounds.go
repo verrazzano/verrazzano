@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"time"
 
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	k8sready "github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
@@ -34,6 +33,7 @@ const (
 	// Alert Names
 	alertInnoDBCluster = "innodbcluster"
 	alertMySQLOperator = "mysql-operator"
+	alertReadinessGate = "readiness-gate"
 )
 
 var (
@@ -117,8 +117,8 @@ func RepairICStuckDeleting(ctx spi.ComponentContext) error {
 	// Found an IC object with a deletion timestamp. Start a timer if this is the first time.
 	if getInitialTimeICUninstallChecked().IsZero() {
 		setInitialTimeICUninstallChecked(time.Now())
-		ctx.Log().Progressf("Starting check to insure the InnoDBCluster %s/%s is not stuck deleting", componentNamespace, helmReleaseName)
-		return ctrlerrors.RetryableError{}
+		ctx.Log().Debugf("Starting check to insure the InnoDBCluster %s/%s is not stuck deleting", componentNamespace, helmReleaseName)
+		return nil
 	}
 
 	// Initiate repair only if time to wait period has been exceeded
@@ -128,10 +128,7 @@ func RepairICStuckDeleting(ctx spi.ComponentContext) error {
 		createEvent(ctx.Log(), ctx.Client(), innoDBCluster, alertInnoDBCluster, "StuckDeleting", msg)
 		return restartMySQLOperator(ctx.Log(), ctx.Client(), msg)
 	}
-
-	ctx.Log().Progressf("Waiting for InnoDBCluster %s/%s to be deleted", componentNamespace, helmReleaseName)
-
-	return ctrlerrors.RetryableError{}
+	return nil
 }
 
 // RepairMySQLPodsWaitingReadinessGates - temporary workaround to repair issue were a MySQL pod
@@ -151,8 +148,8 @@ func (mc *MySQLChecker) RepairMySQLPodsWaitingReadinessGates() error {
 		// Initiate repair only if time to wait period has been exceeded
 		expiredTime := getLastTimeReadinessGateChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
-			for _, pod := range podsWaiting {
-				mc.logEvent(pod, "readiness-gate", "WaitingReadinessGate", fmt.Sprintf("Pod stuck waiting for readiness gates for a minimum of %s", mc.RepairTimeout.String()))
+			for i, _ := range podsWaiting {
+				mc.logEvent(podsWaiting[i], alertReadinessGate, "WaitingReadinessGate", fmt.Sprintf("Pod stuck waiting for readiness gates for a minimum of %s", mc.RepairTimeout.String()))
 			}
 			return restartMySQLOperator(mc.log, mc.client, "MySQL pods waiting for readiness gates")
 		}
@@ -341,7 +338,7 @@ func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, involvedObjec
 	ctx := context.TODO()
 
 	// Convert involved object to unstructured
-	unstructuredInt, err := runtime.DefaultUnstructuredConverter.ToUnstructured(involvedObjectInt)
+	unstructuredInt, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&involvedObjectInt)
 	if err != nil {
 		log.ErrorfThrottled("%v", err)
 		return

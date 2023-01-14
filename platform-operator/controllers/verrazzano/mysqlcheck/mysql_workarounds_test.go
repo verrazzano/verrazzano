@@ -44,6 +44,10 @@ func init() {
 // THEN recycle the mysql-operator
 func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	mySQLOperatorPod := &v1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "pod",
+			APIVersion: "v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      mysqloperator.ComponentName,
 			Namespace: mysqloperator.ComponentNamespace,
@@ -54,6 +58,10 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	}
 
 	mySQLPod := &v1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "pod",
+			APIVersion: "v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "mysql-0",
 			Namespace: componentNamespace,
@@ -80,12 +88,17 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	assert.True(t, getLastTimeReadinessGateChecked().IsZero())
 
 	// Timer should remain zero when all conditions are true. Expect no error and mysql-operator pod to still exist.
+	// No readiness gate event should be created
 	err = mysqlCheck.RepairMySQLPodsWaitingReadinessGates()
 	assert.NoError(t, err)
 	assert.True(t, getLastTimeReadinessGateChecked().IsZero())
-	pod := v1.Pod{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
+	pod := &v1.Pod{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, pod)
 	assert.NoError(t, err)
+
+	event := &v1.Event{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: generateAlertName(alertReadinessGate)}, event)
+	assert.True(t, errors.IsNotFound(err))
 
 	// Set one of the conditions to false
 	mySQLPod.Status.Conditions = []v1.PodCondition{{Type: "gate1", Status: v1.ConditionTrue}, {Type: "gate2", Status: v1.ConditionFalse}}
@@ -95,20 +108,28 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Expect timer to get started when ond of the conditions is not met.  The mysql-operator pod should still exist.
+	// No readiness gate event should be created
 	err = mysqlCheck.RepairMySQLPodsWaitingReadinessGates()
 	assert.NoError(t, err)
 	assert.False(t, getLastTimeReadinessGateChecked().IsZero())
-	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, pod)
 	assert.NoError(t, err)
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: generateAlertName(alertReadinessGate)}, event)
+	assert.True(t, errors.IsNotFound(err))
 
 	// Set the last time readiness gate checked to exceed the RepairTimeout period.  Expect the mysql-operator to get recycled.
+	// Expect readiness gate event and mysql-operator event
 	setInitialTimeReadinessGateChecked(time.Now().Add(-time.Hour * 2))
 	err = mysqlCheck.RepairMySQLPodsWaitingReadinessGates()
 	assert.NoError(t, err, fmt.Sprintf("unexpected error: %v", err))
 	assert.True(t, getLastTimeReadinessGateChecked().IsZero())
-	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, pod)
 	assert.Error(t, err)
 	assert.True(t, errors.IsNotFound(err))
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: generateAlertName(alertReadinessGate)}, event)
+	assert.NoError(t, err)
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: generateAlertName(alertMySQLOperator)}, event)
+	assert.NoError(t, err)
 }
 
 // TestRepairICStuckDeleting tests the temporary workaround for MySQL
@@ -150,16 +171,16 @@ func TestRepairICStuckDeleting(t *testing.T) {
 
 	assert.True(t, getInitialTimeICUninstallChecked().IsZero())
 	err = RepairICStuckDeleting(fakeCtx)
-	assert.Error(t, err)
+	assert.NoError(t, err)
 	assert.False(t, getInitialTimeICUninstallChecked().IsZero())
 
 	pod := &v1.Pod{}
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, pod)
 	assert.NoError(t, err, "expected the mysql-operator pod to be found")
 
-	// Call repair after the timer has started, but not expired.  Expect an error because the IC object is not deleted yet.
+	// Call repair after the timer has started, but not expired.
 	err = RepairICStuckDeleting(fakeCtx)
-	assert.Error(t, err)
+	assert.NoError(t, err)
 
 	// Force the timer to be expired, expect the mysql-operator pod to be deleted.
 	// Expect event to be created for IC stuck deleting
@@ -183,7 +204,6 @@ func TestRepairICStuckDeleting(t *testing.T) {
 	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
 	err = RepairICStuckDeleting(fakeCtx)
 	assert.NoError(t, err)
-
 }
 
 // TestRepairMySQLPodsStuckTerminating tests the temporary workaround for MySQL
