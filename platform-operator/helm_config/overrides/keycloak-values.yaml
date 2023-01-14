@@ -28,8 +28,7 @@ extraEnv: |
       -Djgroups.dns.query={{ include "keycloak.fullname" . }}-headless
 
 proxy:
-  enabled: true
-  mode: edge
+  mode: none
 
 database:
   vendor: mysql
