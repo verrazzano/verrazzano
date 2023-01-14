@@ -15,6 +15,9 @@ OBJ_STORAGE_VZ_IMAGE_TXT=verrazzano_images.txt
 echo "Logging into Docker ..."
 echo "$OCR_CREDS_PSW" | docker login "$DOCKER_REPO" -u "$OCR_CREDS_USR" --password-stdin
 
+echo "Loggin into Skopeo ..."
+echo "$OCR_CREDS_PSW" | skopeo login "$DOCKER_REPO" -u "$OCR_CREDS_USR" --password-stdin
+
 # echo "Pulling images from OCR ..." 
 # while IFS= read -r line
 # do  
