@@ -333,12 +333,12 @@ func (mc *MySQLChecker) logEvent(involvedObject interface{}, alertName string, r
 }
 
 // createEvent - create or update an event
-func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, involvedObjectInt interface{}, alertName string, reason string, message string) {
+func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, objectInt interface{}, alertName string, reason string, message string) {
 	event := &v1.Event{}
 	ctx := context.TODO()
 
 	// Convert involved object to unstructured
-	unstructuredInt, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&involvedObjectInt)
+	unstructuredInt, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&objectInt)
 	if err != nil {
 		log.ErrorfThrottled("%v", err)
 		return
