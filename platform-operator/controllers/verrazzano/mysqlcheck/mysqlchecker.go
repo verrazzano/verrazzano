@@ -76,7 +76,7 @@ func (mc *MySQLChecker) Start() {
 			select {
 			case <-ticker.C:
 				// timer event causes MySQL checks
-				if err = mc.RepairMySQLPodStuckDeleting(); err != nil {
+				if err = mc.RepairMySQLPodStuckTerminating(); err != nil {
 					mc.log.ErrorfThrottled("Failed to repair MySQL pods stuck terminating: %v", err)
 				}
 				if err = mc.RepairMySQLPodsWaitingReadinessGates(); err != nil {

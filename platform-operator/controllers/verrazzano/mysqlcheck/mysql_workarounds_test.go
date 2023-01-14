@@ -281,7 +281,7 @@ func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	mysqlCheck, err := NewMySQLChecker(fakeCtx.Client(), checkPeriodDuration, timeoutDuration)
 	assert.NoError(t, err)
 
-	err = mysqlCheck.RepairMySQLPodStuckDeleting()
+	err = mysqlCheck.RepairMySQLPodStuckTerminating()
 	assert.NoError(t, err)
 	assert.True(t, getInitialTimeMySQLPodsStuckChecked().IsZero())
 	assert.False(t, isPodStuckTerminatingEvent(fakeCtx))
@@ -295,7 +295,7 @@ func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	mysqlCheck, err = NewMySQLChecker(fakeCtx.Client(), checkPeriodDuration, timeoutDuration)
 	assert.NoError(t, err)
 
-	err = mysqlCheck.RepairMySQLPodStuckDeleting()
+	err = mysqlCheck.RepairMySQLPodStuckTerminating()
 	assert.NoError(t, err)
 	assert.False(t, getInitialTimeMySQLPodsStuckChecked().IsZero())
 	assert.False(t, isPodStuckTerminatingEvent(fakeCtx))
@@ -309,7 +309,7 @@ func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	mysqlCheck, err = NewMySQLChecker(fakeCtx.Client(), checkPeriodDuration, timeoutDuration)
 	assert.NoError(t, err)
 
-	err = mysqlCheck.RepairMySQLPodStuckDeleting()
+	err = mysqlCheck.RepairMySQLPodStuckTerminating()
 	assert.NoError(t, err)
 	assert.True(t, getInitialTimeMySQLPodsStuckChecked().IsZero())
 	assert.True(t, isPodStuckTerminatingEvent(fakeCtx))
@@ -328,7 +328,7 @@ func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	mysqlCheck, err = NewMySQLChecker(fakeCtx.Client(), checkPeriodDuration, timeoutDuration)
 	assert.NoError(t, err)
 
-	err = mysqlCheck.RepairMySQLPodStuckDeleting()
+	err = mysqlCheck.RepairMySQLPodStuckTerminating()
 	assert.NoError(t, err)
 	assert.True(t, getInitialTimeMySQLPodsStuckChecked().IsZero())
 	assert.False(t, isPodStuckTerminatingEvent(fakeCtx))

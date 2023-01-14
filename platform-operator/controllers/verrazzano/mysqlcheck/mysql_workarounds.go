@@ -226,9 +226,9 @@ func getInnoDBCluster(ctx spi.ComponentContext) (*unstructured.Unstructured, err
 	return &innoDBCluster, nil
 }
 
-// RepairMySQLPodStuckDeleting - temporary workaround to repair issue where a MySQL pod
+// RepairMySQLPodStuckTerminating - temporary workaround to repair issue where a MySQL pod
 // can be stuck terminating (e.g. during uninstall).  The workaround is to recycle the mysql-operator.
-func (mc *MySQLChecker) RepairMySQLPodStuckDeleting() error {
+func (mc *MySQLChecker) RepairMySQLPodStuckTerminating() error {
 	// Check if any MySQL pods are in the process of terminating
 	selector := metav1.LabelSelectorRequirement{Key: mySQLComponentLabel, Operator: metav1.LabelSelectorOpIn, Values: []string{mySQLDComponentName}}
 	podList := k8sready.GetPodsList(mc.log, mc.client, types.NamespacedName{Namespace: componentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{selector}})
