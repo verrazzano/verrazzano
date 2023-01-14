@@ -92,13 +92,12 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	err = mysqlCheck.RepairMySQLPodsWaitingReadinessGates()
 	assert.NoError(t, err)
 	assert.True(t, getLastTimeReadinessGateChecked().IsZero())
+	assert.False(t, isReadinessGateEvent(fakeCtx))
+	assert.False(t, isMySQLOperatorEvent(fakeCtx))
+
 	pod := &v1.Pod{}
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, pod)
 	assert.NoError(t, err)
-
-	event := &v1.Event{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: generateAlertName(alertReadinessGate)}, event)
-	assert.True(t, errors.IsNotFound(err))
 
 	// Set one of the conditions to false
 	mySQLPod.Status.Conditions = []v1.PodCondition{{Type: "gate1", Status: v1.ConditionTrue}, {Type: "gate2", Status: v1.ConditionFalse}}
@@ -114,8 +113,8 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	assert.False(t, getLastTimeReadinessGateChecked().IsZero())
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, pod)
 	assert.NoError(t, err)
-	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: generateAlertName(alertReadinessGate)}, event)
-	assert.True(t, errors.IsNotFound(err))
+	assert.False(t, isReadinessGateEvent(fakeCtx))
+	assert.False(t, isMySQLOperatorEvent(fakeCtx))
 
 	// Set the last time readiness gate checked to exceed the RepairTimeout period.  Expect the mysql-operator to get recycled.
 	// Expect readiness gate event and mysql-operator event
@@ -126,10 +125,8 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, pod)
 	assert.Error(t, err)
 	assert.True(t, errors.IsNotFound(err))
-	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: generateAlertName(alertReadinessGate)}, event)
-	assert.NoError(t, err)
-	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: generateAlertName(alertMySQLOperator)}, event)
-	assert.NoError(t, err)
+	assert.True(t, isReadinessGateEvent(fakeCtx))
+	assert.True(t, isMySQLOperatorEvent(fakeCtx))
 }
 
 // TestRepairICStuckDeleting tests the temporary workaround for MySQL
@@ -434,13 +431,19 @@ func commonEventAsserts(t *testing.T, pod *v1.Pod, event *v1.Event) {
 }
 
 func isInnobDBClusterEvent(ctx spi.ComponentContext) bool {
-	event := &v1.Event{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: generateAlertName(alertInnoDBCluster)}, event)
-	return err == nil
+	return isEvent(ctx, alertInnoDBCluster, componentNamespace)
 }
 
 func isMySQLOperatorEvent(ctx spi.ComponentContext) bool {
+	return isEvent(ctx, alertMySQLOperator, mysqloperator.ComponentNamespace)
+}
+
+func isReadinessGateEvent(ctx spi.ComponentContext) bool {
+	return isEvent(ctx, alertReadinessGate, componentNamespace)
+}
+
+func isEvent(ctx spi.ComponentContext, alertName string, namespace string) bool {
 	event := &v1.Event{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: generateAlertName(alertMySQLOperator)}, event)
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: generateAlertName(alertName)}, event)
 	return err == nil
 }
