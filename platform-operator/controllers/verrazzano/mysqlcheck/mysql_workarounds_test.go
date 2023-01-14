@@ -149,6 +149,7 @@ func TestRepairICStuckDeleting(t *testing.T) {
 	}
 
 	// Test without a deletion timestamp, the timer should not get initialized
+	// No events should be created
 	innoDBCluster := newInnoDBCluster(innoDBClusterStatusOnline)
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLOperatorPod, innoDBCluster).Build()
 	resetInitialTimeICUninstallChecked()
@@ -160,9 +161,12 @@ func TestRepairICStuckDeleting(t *testing.T) {
 	err = RepairICStuckDeleting(fakeCtx)
 	assert.NoError(t, err)
 	assert.True(t, getInitialTimeICUninstallChecked().IsZero())
+	assert.False(t, isInnobDBClusterEvent(fakeCtx))
+	assert.False(t, isMySQLOperatorEvent(fakeCtx))
 
 	// Test first time calling with a deletion timestamp, the timer should get initialized
 	// and the mysql-operator pod should not get deleted.
+	// No events should be created.
 	innoDBCluster = newInnoDBCluster(innoDBClusterStatusOnline)
 	startTime := metav1.Now()
 	innoDBCluster.SetDeletionTimestamp(&startTime)
@@ -173,6 +177,8 @@ func TestRepairICStuckDeleting(t *testing.T) {
 	err = RepairICStuckDeleting(fakeCtx)
 	assert.NoError(t, err)
 	assert.False(t, getInitialTimeICUninstallChecked().IsZero())
+	assert.False(t, isInnobDBClusterEvent(fakeCtx))
+	assert.False(t, isMySQLOperatorEvent(fakeCtx))
 
 	pod := &v1.Pod{}
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, pod)
@@ -181,6 +187,8 @@ func TestRepairICStuckDeleting(t *testing.T) {
 	// Call repair after the timer has started, but not expired.
 	err = RepairICStuckDeleting(fakeCtx)
 	assert.NoError(t, err)
+	assert.False(t, isInnobDBClusterEvent(fakeCtx))
+	assert.False(t, isMySQLOperatorEvent(fakeCtx))
 
 	// Force the timer to be expired, expect the mysql-operator pod to be deleted.
 	// Expect event to be created for IC stuck deleting
@@ -188,22 +196,20 @@ func TestRepairICStuckDeleting(t *testing.T) {
 	setInitialTimeICUninstallChecked(time.Now().Add(-time.Hour * 2))
 	err = RepairICStuckDeleting(fakeCtx)
 	assert.NoError(t, err)
+	assert.True(t, isInnobDBClusterEvent(fakeCtx))
+	assert.True(t, isMySQLOperatorEvent(fakeCtx))
 
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, pod)
 	assert.Error(t, err)
 	assert.True(t, errors.IsNotFound(err))
-
-	event := &v1.Event{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: generateAlertName(alertInnoDBCluster)}, event)
-	assert.NoError(t, err)
-	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: generateAlertName(alertMySQLOperator)}, event)
-	assert.NoError(t, err)
 
 	// If the IC object is already deleted, then no error should be returned
 	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLOperatorPod).Build()
 	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
 	err = RepairICStuckDeleting(fakeCtx)
 	assert.NoError(t, err)
+	assert.False(t, isInnobDBClusterEvent(fakeCtx))
+	assert.False(t, isMySQLOperatorEvent(fakeCtx))
 }
 
 // TestRepairMySQLPodsStuckTerminating tests the temporary workaround for MySQL
@@ -425,4 +431,16 @@ func commonEventAsserts(t *testing.T, pod *v1.Pod, event *v1.Event) {
 	assert.Equal(t, pod.Name, event.InvolvedObject.Name)
 	assert.Equal(t, pod.UID, event.InvolvedObject.UID)
 	assert.Equal(t, pod.ResourceVersion, event.InvolvedObject.ResourceVersion)
+}
+
+func isInnobDBClusterEvent(ctx spi.ComponentContext) bool {
+	event := &v1.Event{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: generateAlertName(alertInnoDBCluster)}, event)
+	return err == nil
+}
+
+func isMySQLOperatorEvent(ctx spi.ComponentContext) bool {
+	event := &v1.Event{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: generateAlertName(alertMySQLOperator)}, event)
+	return err == nil
 }
