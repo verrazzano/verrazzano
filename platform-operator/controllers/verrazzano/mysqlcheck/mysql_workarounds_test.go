@@ -216,6 +216,10 @@ func TestRepairICStuckDeleting(t *testing.T) {
 // THEN recycle the mysql-operator
 func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	mySQLOperatorPod := &v1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "pod",
+			APIVersion: "v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      mysqloperator.ComponentName,
 			Namespace: mysqloperator.ComponentNamespace,
@@ -226,6 +230,10 @@ func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	}
 
 	mySQLPod0 := &v1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "pod",
+			APIVersion: "v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "mysql-0",
 			Namespace: componentNamespace,
@@ -236,6 +244,10 @@ func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	}
 
 	mySQLPod1 := &v1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "pod",
+			APIVersion: "v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "mysql-1",
 			Namespace: componentNamespace,
@@ -247,6 +259,10 @@ func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 
 	mySQLPod2DeleteTime := metav1.Now()
 	mySQLPod2 := &v1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "pod",
+			APIVersion: "v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "mysql-2",
 			Namespace: componentNamespace,
@@ -258,6 +274,7 @@ func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	}
 
 	// Call with no MySQL pods being deleted, expect success
+	// No events should be generated
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLPod0, mySQLPod1).Build()
 	resetInitialTimeMySQLPodsStuckChecked()
 	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
@@ -267,8 +284,11 @@ func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	err = mysqlCheck.RepairMySQLPodStuckDeleting()
 	assert.NoError(t, err)
 	assert.True(t, getInitialTimeMySQLPodsStuckChecked().IsZero())
+	assert.False(t, isPodStuckTerminatingEvent(fakeCtx))
+	assert.False(t, isMySQLOperatorEvent(fakeCtx))
 
 	// Call with MySQL pods being deleted, first time expect timer to start
+	// No events should be generated
 	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLPod0, mySQLPod1, mySQLPod2).Build()
 	resetInitialTimeMySQLPodsStuckChecked()
 	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
@@ -278,8 +298,11 @@ func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	err = mysqlCheck.RepairMySQLPodStuckDeleting()
 	assert.NoError(t, err)
 	assert.False(t, getInitialTimeMySQLPodsStuckChecked().IsZero())
+	assert.False(t, isPodStuckTerminatingEvent(fakeCtx))
+	assert.False(t, isMySQLOperatorEvent(fakeCtx))
 
 	// Call with MySQL pods being deleted and timer expired, expect mysql-operator pod to be deleted
+	// Events should be generated
 	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLOperatorPod, mySQLPod0, mySQLPod1, mySQLPod2).Build()
 	setInitialTimeMySQLPodsStuckChecked(time.Now().Add(-time.Hour * 2))
 	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
@@ -289,13 +312,16 @@ func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	err = mysqlCheck.RepairMySQLPodStuckDeleting()
 	assert.NoError(t, err)
 	assert.True(t, getInitialTimeMySQLPodsStuckChecked().IsZero())
+	assert.True(t, isPodStuckTerminatingEvent(fakeCtx))
+	assert.True(t, isMySQLOperatorEvent(fakeCtx))
 
-	pod := v1.Pod{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
+	pod := &v1.Pod{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, pod)
 	assert.Error(t, err)
 	assert.True(t, errors.IsNotFound(err))
 
 	// Call with no MySQL pods, expect success
+	// No events should be generated
 	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects().Build()
 	resetInitialTimeMySQLPodsStuckChecked()
 	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
@@ -305,6 +331,8 @@ func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	err = mysqlCheck.RepairMySQLPodStuckDeleting()
 	assert.NoError(t, err)
 	assert.True(t, getInitialTimeMySQLPodsStuckChecked().IsZero())
+	assert.False(t, isPodStuckTerminatingEvent(fakeCtx))
+	assert.False(t, isMySQLOperatorEvent(fakeCtx))
 }
 
 func newInnoDBCluster(status string) *unstructured.Unstructured {
@@ -440,6 +468,10 @@ func isMySQLOperatorEvent(ctx spi.ComponentContext) bool {
 
 func isReadinessGateEvent(ctx spi.ComponentContext) bool {
 	return isEvent(ctx, alertReadinessGate, componentNamespace)
+}
+
+func isPodStuckTerminatingEvent(ctx spi.ComponentContext) bool {
+	return isEvent(ctx, alertPodStuckTerminating, componentNamespace)
 }
 
 func isEvent(ctx spi.ComponentContext, alertName string, namespace string) bool {

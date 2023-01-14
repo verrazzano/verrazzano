@@ -31,9 +31,10 @@ const (
 	mysqlRouterComponentName = "mysqlrouter"
 
 	// Alert Names
-	alertInnoDBCluster = "innodbcluster"
-	alertMySQLOperator = "mysql-operator"
-	alertReadinessGate = "readiness-gate"
+	alertPodStuckTerminating = "pod-stuck"
+	alertInnoDBCluster       = "innodbcluster"
+	alertMySQLOperator       = "mysql-operator"
+	alertReadinessGate       = "readiness-gate"
 )
 
 var (
@@ -259,7 +260,7 @@ func (mc *MySQLChecker) RepairMySQLPodStuckDeleting() error {
 		// Initiate repair only if time to wait period has been exceeded
 		expiredTime := getInitialTimeMySQLPodsStuckChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
-			mc.logEvent(podStuckDeleting, "pod-stuck", "PodStuckDeleting", fmt.Sprintf("Pod stuck deleting for a minimum of %s", mc.RepairTimeout.String()))
+			mc.logEvent(podStuckDeleting, alertPodStuckTerminating, "PodStuckTerminating", fmt.Sprintf("Pod stuck deleting for a minimum of %s", mc.RepairTimeout.String()))
 			if err := restartMySQLOperator(mc.log, mc.client, "MySQL pods stuck terminating"); err != nil {
 				return err
 			}
