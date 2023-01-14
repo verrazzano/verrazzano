@@ -352,6 +352,10 @@ func newInnoDBCluster(status string) *unstructured.Unstructured {
 func TestRepairMySQLRouterPodsCrashLoopBackoff(t *testing.T) {
 	routerName := "mysql-router-0"
 	mySQLRouterPod := &v1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "pod",
+			APIVersion: "v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      routerName,
 			Namespace: componentNamespace,
@@ -378,12 +382,12 @@ func TestRepairMySQLRouterPodsCrashLoopBackoff(t *testing.T) {
 	assert.NoError(t, err)
 	err = mysqlCheck.RepairMySQLRouterPodsCrashLoopBackoff()
 	assert.NoError(t, err)
+	assert.True(t, isMySQLRouterEvent(fakeCtx))
 
-	pod := v1.Pod{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: routerName}, &pod)
+	pod := &v1.Pod{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: routerName}, pod)
 	assert.Error(t, err)
 	assert.True(t, errors.IsNotFound(err))
-
 }
 
 // TestCreateEvent tests the creation of events
@@ -472,6 +476,10 @@ func isReadinessGateEvent(ctx spi.ComponentContext) bool {
 
 func isPodStuckTerminatingEvent(ctx spi.ComponentContext) bool {
 	return isEvent(ctx, alertPodStuckTerminating, componentNamespace)
+}
+
+func isMySQLRouterEvent(ctx spi.ComponentContext) bool {
+	return isEvent(ctx, alertMySQLRouter, componentNamespace)
 }
 
 func isEvent(ctx spi.ComponentContext, alertName string, namespace string) bool {

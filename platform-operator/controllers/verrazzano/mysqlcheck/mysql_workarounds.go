@@ -35,6 +35,7 @@ const (
 	alertInnoDBCluster       = "innodbcluster"
 	alertMySQLOperator       = "mysql-operator"
 	alertReadinessGate       = "readiness-gate"
+	alertMySQLRouter         = "mysql-router"
 )
 
 var (
@@ -149,7 +150,7 @@ func (mc *MySQLChecker) RepairMySQLPodsWaitingReadinessGates() error {
 		// Initiate repair only if time to wait period has been exceeded
 		expiredTime := getLastTimeReadinessGateChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
-			for i, _ := range podsWaiting {
+			for i := range podsWaiting {
 				mc.logEvent(podsWaiting[i], alertReadinessGate, "WaitingReadinessGate", fmt.Sprintf("Pod stuck waiting for readiness gates for a minimum of %s", mc.RepairTimeout.String()))
 			}
 			return restartMySQLOperator(mc.log, mc.client, "MySQL pods waiting for readiness gates")
@@ -293,7 +294,7 @@ func (mc *MySQLChecker) RepairMySQLRouterPodsCrashLoopBackoff() error {
 					// Terminate the pod
 					msg := fmt.Sprintf("Terminating pod %s/%s because it is stuck in CrashLoopBackOff", pod.Namespace, pod.Name)
 					mc.log.Infof("%s", msg)
-					mc.logEvent(pod, "mysql-router", waiting.Reason, msg)
+					mc.logEvent(pod, alertMySQLRouter, waiting.Reason, msg)
 					if err := mc.client.Delete(context.TODO(), &pod, &clipkg.DeleteOptions{}); err != nil {
 						return err
 					}
