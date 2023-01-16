@@ -7,6 +7,12 @@ metadata:
   name: verrazzano-application-operator
 rules:
   - apiGroups:
+      - fluentd.fluent.io
+    resources:
+      - fluentds
+    verbs:
+      - '*'
+  - apiGroups:
       - fluentbit.fluent.io
     resources:
       - fluentbits
