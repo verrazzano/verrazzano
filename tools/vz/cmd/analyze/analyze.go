@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package analyze
@@ -104,7 +104,11 @@ func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		helpers.SetIsLiveCluster()
 
 		// Capture cluster snapshot
-		err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, reportDirectory, moreNS, vzHelper)
+		podLogs := vzbugreport.PodLogs{
+			IsPodLog: true,
+			Duration: int64(0),
+		}
+		err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, reportDirectory, moreNS, vzHelper, podLogs)
 
 		if err != nil {
 			return fmt.Errorf(err.Error())
