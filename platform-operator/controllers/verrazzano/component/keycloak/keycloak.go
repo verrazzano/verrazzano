@@ -1548,9 +1548,12 @@ func deleteStatefulSet(ctx spi.ComponentContext) error {
 	// Get the StatefulSet for Keycloak
 	ctxClient := ctx.Client()
 	statefulSet := appv1.StatefulSet{}
+
+	ctx.Log().Infof("Delete StatefulSet %s/%s, if it exists", ComponentNamespace, ComponentName)
 	err := ctxClient.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &statefulSet)
 	if err != nil {
-		return err
+		ctx.Log().Infof("StatefulSet %s/%s doesn't exist", ComponentNamespace, ComponentName)
+		return nil
 	}
 
 	// Delete the StatefulSet
@@ -1570,11 +1573,13 @@ func deleteHeadlessService(ctx spi.ComponentContext) error {
 	// Get and delete the headless service associated with the StatefulSet
 	service := &corev1.Service{}
 	ctxClient := ctx.Client()
+	ctx.Log().Infof("Delete headless service %s/%s, if it exists", ComponentNamespace, headlessService)
 	if err := ctxClient.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: headlessService}, service); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to get service %s/%s: %v", ComponentNamespace, headlessService, err)
+		ctx.Log().Infof("Headless service %s/%s doesn't exist", ComponentNamespace, headlessService)
+		return nil
 	}
 	if err := ctxClient.Delete(context.TODO(), service); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to delete service %s/%s: %v", ComponentNamespace, headlessService, err)
+		return ctx.Log().ErrorfNewErr("Failed to delete headless service %s/%s: %v", ComponentNamespace, headlessService, err)
 	}
 	return nil
 }
