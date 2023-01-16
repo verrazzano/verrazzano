@@ -112,8 +112,5 @@ func RunVzAnalyze() (string, error) {
 }
 
 func verifyIssue(out, issueType string) bool {
-	if strings.Contains(out, issueType) {
-		return true
-	}
-	return false
+	return strings.Contains(out, issueType)
 }
