@@ -214,6 +214,83 @@ pipeline {
                 }
             }
         }
+        stage('Acceptance Tests') {
+                    stages {
+                        stage('Prepare AT environment') {
+                            environment {
+                                KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
+                                OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                                REALM_USER_PASSWORD = credentials('todo-mysql-password')
+                                REALM_NAME = "test-realm"
+                            }
+                            steps {
+                                script {
+                                    if (params.INSTALL_HA) {
+                                        sh """
+                                            cp ${env.INSTALL_CONFIG_FILE_KIND_HA} ${env.INSTALL_CONFIG_FILE_KIND}
+                                            cd ${GO_REPO_PATH}/verrazzano
+                                            ci/scripts/prepare_ha_test_at_environment.sh ${env.INSTALL_CONFIG_FILE_KIND}
+                                        """
+                                    } else {
+                                        sh """
+                                            cp ${env.INSTALL_CONFIG_FILE_KIND_TESTS} ${env.INSTALL_CONFIG_FILE_KIND}
+                                        """
+                                    }
+                                }
+                                sh """
+                                    cd ${GO_REPO_PATH}/verrazzano
+                                    ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN} ${params.USE_DB_FOR_GRAFANA}
+                                """
+                                script {
+                                    if (params.ENABLE_JWT_TESTING) {
+                                        sh """
+                                            # setup test realm for JWT testing scenarios
+                                            keycloakPassword=\$(kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo)
+                                            sed -i "s|##KEYCLOAK_PASSWORD##|\$keycloakPassword|g" ci/scripts/create_test_realm.sh
+                                            sed -i "s|##REALM_USER_PASSWORD##|${env.REALM_USER_PASSWORD}|g" ci/scripts/create_test_realm.sh
+                                            sed -i "s|##REALM_NAME##|${env.REALM_NAME}|g" ci/scripts/create_test_realm.sh
+                                            kubectl exec keycloak-0 -n keycloak -- /bin/sh -c "`cat ci/scripts/create_test_realm.sh`"
+                                            # setup request authentication policy
+                                            keycloakURI=\$(kubectl get ingress -n keycloak keycloak -o jsonpath="{.spec.rules[0].host}")
+                                            sed -i "s|##KEYCLOAK_URI##|\$keycloakURI|g" tests/testdata/jwt/helidon/test-realm-reqauth.yaml
+                                            jwks=\$(curl -sk https://\$keycloakURI/auth/realms/test-realm/protocol/openid-connect/certs | jq -c 'del(.keys[] | select( .use == "enc"))')
+                                            sed -i "s|##JWKS_KEY##|\$jwks|g" tests/testdata/jwt/helidon/test-realm-reqauth.yaml
+                                            kubectl apply -f tests/testdata/jwt/helidon/test-realm-reqauth.yaml
+                                        """
+                                    }
+                                }
+                            }
+                            post {
+                                failure {
+                                    archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                                }
+                                always {
+                                    archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
+                                    // enable debug logging of Verrazzano api istio proxy
+                                    script {
+                                        if (params.ENABLE_API_ENVOY_LOGGING) {
+                                            sh '''
+                                                vz_api_pod=\$(kubectl get pod -n verrazzano-system -l app=verrazzano-authproxy --no-headers -o custom-columns=\":metadata.name\")
+                                                if [ -z "\$vz_api_pod" ]; then
+                                                  echo "Could not find verrazzano-authproxy pod, not enabling debug logging"
+                                                else
+                                                  kubectl exec \$vz_api_pod -c istio-proxy -n verrazzano-system -- curl -X POST http://localhost:15000/logging?level=debug
+                                                fi
+                                                nginx_ing_pod=\$(kubectl get pod -n ingress-nginx -l app.kubernetes.io/component=controller --no-headers -o custom-columns=\":metadata.name\")
+                                                if [ -z "\$nginx_ing_pod" ]; then
+                                                  echo "Could not find nginx ingress controller pod, not enabling debug logging"
+                                                else
+                                                  kubectl exec \$nginx_ing_pod -c istio-proxy -n ingress-nginx -- curl -X POST http://localhost:15000/logging?level=debug
+                                                fi
+                                            '''
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                    }
+                    }
 
             stage('Verify analyze-tool') {
                     environment {
