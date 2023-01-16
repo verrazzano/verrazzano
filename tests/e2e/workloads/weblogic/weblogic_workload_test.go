@@ -5,19 +5,18 @@ package weblogic
 
 import (
 	"fmt"
-	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
-	"net/http"
-	"time"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"net/http"
+	"time"
 )
 
 const (
@@ -205,15 +204,28 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 	})
 
 	t.Context("Metrics", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
-		// Verify application Prometheus scraped targets
+		// Verify application Prometheus scraped metrics
 		// GIVEN the sample WebLogic app is deployed
 		// WHEN the application configuration uses a default metrics trait
-		// THEN confirm that all the scrape targets are healthy
-		t.It("Verify all scrape targets are healthy for the application", func() {
-			Eventually(func() (bool, error) {
-				var componentNames = []string{"hello-domain"}
-				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "hello-appconf", componentNames))
-			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+		// THEN confirm that metrics are being collected
+		t.It("Retrieve application Prometheus scraped metrics", func() {
+			pkg.Concurrently(
+				func() {
+					Eventually(func() bool {
+						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", wlDomain)
+					}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(func() bool {
+						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", wlDomain)
+					}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(func() bool {
+						return pkg.MetricsExist("wls_server_state_val", "weblogic_domainName", wlDomain)
+					}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+			)
 		})
 
 		// Verify Istio Prometheus scraped metrics
