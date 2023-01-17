@@ -7,6 +7,7 @@ package image
 
 import (
 	"context"
+	"fmt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	k8util "github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -55,6 +56,8 @@ func feedAnalysisReport() []string {
 		}
 		time.Sleep(waitTimeout)
 		out[i], err = RunVzAnalyze()
+		fmt.Println("stucccccckkkkkkkk")
+		fmt.Println(out[i], err)
 		if err != nil {
 			Fail(err.Error())
 		}
@@ -63,6 +66,8 @@ func feedAnalysisReport() []string {
 		}
 	}
 	reportAnalysis = append(reportAnalysis, out[0], out[1])
+	fmt.Println("report analysisss")
+	fmt.Println(reportAnalysis)
 	return reportAnalysis
 }
 
@@ -113,8 +118,7 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 
 // utility method to run vz analyze and deliver its report
 func RunVzAnalyze() (string, error) {
-	cmd := exec.Command("/home/opc/go/src/github.com/verrazzano/vz", "analyze")
-	out, err := cmd.Output()
+	out, err := exec.Command("/home/opc/go/src/github.com/verrazzano/vz", "analyze").Output()
 	return string(out), err
 }
 
