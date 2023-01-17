@@ -83,6 +83,7 @@ var allowedNamespaces = []string{
 	"^keycloak",
 	"^monitoring",
 	"^verrazzano-*",
+	"^argocd",
 }
 
 var vBom verrazzanoBom                                  // BOM from platform operator in struct form
