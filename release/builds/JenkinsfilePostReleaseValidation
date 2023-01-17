@@ -106,6 +106,7 @@ pipeline {
                 script {
                     sh """
                         ${WORKSPACE}/release/scripts/validate_ocr_images.sh
+                        ${WORKSPACE}release/scripts/verify_github_release.sh
                     """
                 }
             }
