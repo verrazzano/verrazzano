@@ -424,7 +424,7 @@ func TestCreateEvent(t *testing.T) {
 		},
 	}
 
-	alertName := "test"
+	eventName := "test"
 	reason := "PodStuck"
 	message := "Pod was stuck terminating"
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLRouterPod1).Build()
@@ -432,9 +432,9 @@ func TestCreateEvent(t *testing.T) {
 	mysqlCheck, err := NewMySQLChecker(fakeCtx.Client(), checkPeriodDuration, timeoutDuration)
 	assert.NoError(t, err)
 
-	mysqlCheck.logEvent(mySQLRouterPod1, alertName, reason, message)
+	mysqlCheck.logEvent(mySQLRouterPod1, eventName, reason, message)
 	event := &v1.Event{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: generateAlertName(alertName)}, event)
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: generateEventName(eventName)}, event)
 	assert.NoError(t, err)
 	assert.Equal(t, reason, event.Reason)
 	assert.Equal(t, message, event.Message)
@@ -444,8 +444,8 @@ func TestCreateEvent(t *testing.T) {
 	saveFirstTime := event.FirstTimestamp
 	saveLastTime := event.LastTimestamp
 	time.Sleep(2 * time.Second)
-	mysqlCheck.logEvent(mySQLRouterPod2, alertName, reason, message)
-	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: generateAlertName(alertName)}, event)
+	mysqlCheck.logEvent(mySQLRouterPod2, eventName, reason, message)
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: componentNamespace, Name: generateEventName(eventName)}, event)
 	assert.NoError(t, err)
 	assert.Equal(t, saveFirstTime, event.FirstTimestamp)
 	assert.NotEqual(t, saveLastTime, event.LastTimestamp)
@@ -463,27 +463,27 @@ func commonEventAsserts(t *testing.T, pod *v1.Pod, event *v1.Event) {
 }
 
 func isInnobDBClusterEvent(ctx spi.ComponentContext) bool {
-	return isEvent(ctx, alertInnoDBCluster, componentNamespace)
+	return isEvent(ctx, eventInnoDBCluster, componentNamespace)
 }
 
 func isMySQLOperatorEvent(ctx spi.ComponentContext) bool {
-	return isEvent(ctx, alertMySQLOperator, mysqloperator.ComponentNamespace)
+	return isEvent(ctx, eventMySQLOperator, mysqloperator.ComponentNamespace)
 }
 
 func isReadinessGateEvent(ctx spi.ComponentContext) bool {
-	return isEvent(ctx, alertReadinessGate, componentNamespace)
+	return isEvent(ctx, eventReadinessGate, componentNamespace)
 }
 
 func isPodStuckTerminatingEvent(ctx spi.ComponentContext) bool {
-	return isEvent(ctx, alertPodStuckTerminating, componentNamespace)
+	return isEvent(ctx, eventPodStuckTerminating, componentNamespace)
 }
 
 func isMySQLRouterEvent(ctx spi.ComponentContext) bool {
-	return isEvent(ctx, alertMySQLRouter, componentNamespace)
+	return isEvent(ctx, eventMySQLRouter, componentNamespace)
 }
 
-func isEvent(ctx spi.ComponentContext, alertName string, namespace string) bool {
+func isEvent(ctx spi.ComponentContext, eventName string, namespace string) bool {
 	event := &v1.Event{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: generateAlertName(alertName)}, event)
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: generateEventName(eventName)}, event)
 	return err == nil
 }

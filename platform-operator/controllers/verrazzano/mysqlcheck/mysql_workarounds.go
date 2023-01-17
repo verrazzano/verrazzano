@@ -30,14 +30,14 @@ const (
 	componentName            = "mysql"
 	mysqlRouterComponentName = "mysqlrouter"
 
-	// Alert Names
-	alertPodStuckTerminating = "pod-stuck"
-	alertInnoDBCluster       = "innodbcluster"
-	alertMySQLOperator       = "mysql-operator"
-	alertReadinessGate       = "readiness-gate"
-	alertMySQLRouter         = "mysql-router"
+	// Event Names
+	eventPodStuckTerminating = "pod-stuck"
+	eventInnoDBCluster       = "innodbcluster"
+	eventMySQLOperator       = "mysql-operator"
+	eventReadinessGate       = "readiness-gate"
+	eventMySQLRouter         = "mysql-router"
 
-	// Alert Reasons
+	// Event Reasons
 	reasonStuckDeleting        = "StuckDeleting"
 	reasonStuckTerminating     = "StuckTerminating"
 	reasonWaitingReadinessGate = "WaitingReadinessGate"
@@ -136,7 +136,7 @@ func RepairICStuckDeleting(ctx spi.ComponentContext) error {
 	expiredTime := getInitialTimeICUninstallChecked().Add(GetMySQLChecker().RepairTimeout)
 	if time.Now().After(expiredTime) {
 		msg := fmt.Sprintf("InnoDBCluster %s/%s is stuck deleting for a minimum of %s", innoDBCluster.GetNamespace(), innoDBCluster.GetName(), GetMySQLChecker().RepairTimeout.String())
-		createEvent(ctx.Log(), ctx.Client(), innoDBCluster, alertInnoDBCluster, reasonStuckDeleting, msg)
+		createEvent(ctx.Log(), ctx.Client(), innoDBCluster, eventInnoDBCluster, reasonStuckDeleting, msg)
 		return restartMySQLOperator(ctx.Log(), ctx.Client(), msg)
 	}
 	return nil
@@ -161,7 +161,7 @@ func (mc *MySQLChecker) RepairMySQLPodsWaitingReadinessGates() error {
 		expiredTime := getLastTimeReadinessGateChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
 			for i, pod := range podsWaiting {
-				mc.logEvent(podsWaiting[i], alertReadinessGate, reasonWaitingReadinessGate, fmt.Sprintf("Pod %s/%s stuck waiting for readiness gates for a minimum of %s", pod.Namespace, pod.Name, mc.RepairTimeout.String()))
+				mc.logEvent(podsWaiting[i], eventReadinessGate, reasonWaitingReadinessGate, fmt.Sprintf("Pod %s/%s stuck waiting for readiness gates for a minimum of %s", pod.Namespace, pod.Name, mc.RepairTimeout.String()))
 			}
 			return restartMySQLOperator(mc.log, mc.client, "MySQL pods waiting for readiness gates")
 		}
@@ -255,7 +255,7 @@ func (mc *MySQLChecker) RepairMySQLPodStuckTerminating() error {
 		expiredTime := getInitialTimeMySQLPodsStuckChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
 			for i, pod := range podsTerminating {
-				mc.logEvent(podsTerminating[i], alertPodStuckTerminating, reasonStuckTerminating, fmt.Sprintf("Pod %s/%s stuck deleting for a minimum of %s", pod.Namespace, pod.Name, mc.RepairTimeout.String()))
+				mc.logEvent(podsTerminating[i], eventPodStuckTerminating, reasonStuckTerminating, fmt.Sprintf("Pod %s/%s stuck deleting for a minimum of %s", pod.Namespace, pod.Name, mc.RepairTimeout.String()))
 			}
 			if err := restartMySQLOperator(mc.log, mc.client, "MySQL pods stuck terminating"); err != nil {
 				return err
@@ -309,10 +309,10 @@ func (mc *MySQLChecker) RepairMySQLRouterPodsCrashLoopBackoff() error {
 				if waiting.Reason == reasonCrashLoopBackOff {
 					// Terminate the pod
 					msg := fmt.Sprintf("Terminating pod %s/%s stuck in CrashLoopBackOff", pod.Namespace, pod.Name)
-					mc.logEvent(pod, alertMySQLRouter, reasonCrashLoopBackOff, msg)
+					mc.logEvent(pod, eventMySQLRouter, reasonCrashLoopBackOff, msg)
 					if err := mc.client.Delete(context.TODO(), &pod, &clipkg.DeleteOptions{}); err != nil {
 						msg = fmt.Sprintf("Failed to terminate pod %s/%s stuck in CrashLoopBackOff: %v", pod.Namespace, pod.Name, err)
-						mc.logEvent(pod, alertMySQLRouter, reasonCrashLoopBackOff, msg)
+						mc.logEvent(pod, eventMySQLRouter, reasonCrashLoopBackOff, msg)
 						return err
 					}
 				}
@@ -327,14 +327,14 @@ func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client, reas
 	pod, err := getMySQLOperatorPod(log, client)
 	if err != nil {
 		msg := fmt.Sprintf("Failed restarting the mysql-operator to repair stuck resources: %v", err)
-		createEvent(log, client, metav1.ObjectMeta{Namespace: mysqloperator.ComponentNamespace}, alertMySQLOperator, reasonNotFound, msg)
+		createEvent(log, client, metav1.ObjectMeta{Namespace: mysqloperator.ComponentNamespace}, eventMySQLOperator, reasonNotFound, msg)
 		return fmt.Errorf("%s", msg)
 	}
 	message := fmt.Sprintf("Restarting the mysql-operator to repair: %s", reason)
-	createEvent(log, client, pod, alertMySQLOperator, reasonRestart, message)
+	createEvent(log, client, pod, eventMySQLOperator, reasonRestart, message)
 
 	if err = client.Delete(context.TODO(), pod, &clipkg.DeleteOptions{}); err != nil {
-		createEvent(log, client, pod, alertMySQLOperator, reasonNotDeleted, fmt.Sprintf("Failed to delete the mysql-operator pod %s/%s: %v", pod.Namespace, pod.Name, err))
+		createEvent(log, client, pod, eventMySQLOperator, reasonNotDeleted, fmt.Sprintf("Failed to delete the mysql-operator pod %s/%s: %v", pod.Namespace, pod.Name, err))
 		return err
 	}
 
@@ -346,12 +346,12 @@ func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client, reas
 	return nil
 }
 
-func (mc *MySQLChecker) logEvent(involvedObject interface{}, alertName string, reason string, message string) {
-	createEvent(mc.log, mc.client, involvedObject, alertName, reason, message)
+func (mc *MySQLChecker) logEvent(involvedObject interface{}, eventName string, reason string, message string) {
+	createEvent(mc.log, mc.client, involvedObject, eventName, reason, message)
 }
 
 // createEvent - create or update an event, and record the message in the log file
-func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, objectInt interface{}, alertName string, reason string, message string) {
+func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, objectInt interface{}, eventName string, reason string, message string) {
 	event := &v1.Event{}
 	ctx := context.TODO()
 
@@ -363,7 +363,7 @@ func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, objectInt int
 	}
 	involvedObject := unstructured.Unstructured{Object: unstructuredInt}
 
-	err = client.Get(ctx, types.NamespacedName{Namespace: involvedObject.GetNamespace(), Name: generateAlertName(alertName)}, event)
+	err = client.Get(ctx, types.NamespacedName{Namespace: involvedObject.GetNamespace(), Name: generateEventName(eventName)}, event)
 	if err != nil && !errors.IsNotFound(err) {
 		log.ErrorfThrottled("%v", err)
 	}
@@ -372,7 +372,7 @@ func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, objectInt int
 	if err != nil {
 		event := &v1.Event{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      generateAlertName(alertName),
+				Name:      generateEventName(eventName),
 				Namespace: involvedObject.GetNamespace(),
 			},
 			InvolvedObject: func() v1.ObjectReference {
@@ -416,7 +416,7 @@ func setObjectReference(objectRef *v1.ObjectReference, involvedObject unstructur
 	objectRef.ResourceVersion = involvedObject.GetResourceVersion()
 }
 
-// generateAlertName - generate the alert name
-func generateAlertName(alertName string) string {
-	return fmt.Sprintf("verrazzano-%s", alertName)
+// generateEventName - generate the event name
+func generateEventName(eventName string) string {
+	return fmt.Sprintf("verrazzano-%s", eventName)
 }
