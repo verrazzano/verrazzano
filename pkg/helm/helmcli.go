@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helm
@@ -230,7 +230,7 @@ func runHelm(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 			log.Debugf("Successfully ran Helm command for operation %s and release %s", operation, releaseName)
 			break
 		}
-		if i == 1 || i == maxRetry {
+		if i == maxRetry {
 			log.Errorf("Failed running Helm command for release %s: stderr %s",
 				releaseName, string(stderr))
 			return stdout, stderr, err
