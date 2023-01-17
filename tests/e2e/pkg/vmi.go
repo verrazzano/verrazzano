@@ -12,7 +12,7 @@ import (
 	"github.com/onsi/gomega"
 	"go.uber.org/zap"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	v1 "k8s.io/api/core/v1"

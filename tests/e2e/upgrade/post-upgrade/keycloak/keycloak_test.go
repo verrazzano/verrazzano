@@ -8,7 +8,7 @@ import (
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"time"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

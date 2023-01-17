@@ -25,7 +25,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.59.1
 	github.com/prometheus/client_golang v1.12.1
-	github.com/spf13/cobra v1.5.0
+	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.2
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.31-0.20230113011423-4f6341896f77
@@ -33,7 +33,7 @@ require (
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
 	golang.org/x/text v0.3.7
 	golang.org/x/tools v0.1.12
-	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.9.2
 	istio.io/api v0.0.0-20200911191701-0dc35ad5c478
 	istio.io/client-go v0.0.0-20200807182027-d287a5abb594
@@ -93,7 +93,7 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
@@ -144,7 +144,7 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.66.4 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	istio.io/gogo-genproto v0.0.0-20190930162913-45029607206a // indirect
 	k8s.io/apiserver v0.25.0 // indirect
 	k8s.io/cluster-bootstrap v0.24.0 // indirect
@@ -174,10 +174,10 @@ replace (
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 	github.com/onsi/ginkgo/v2 => github.com/onsi/ginkgo/v2 v2.0.0
 	github.com/onsi/gomega => github.com/onsi/gomega v1.17.0
-	github.com/spf13/cobra => github.com/spf13/cobra v1.1.1
+	github.com/spf13/cobra => github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify => github.com/stretchr/testify v1.7.1
 	golang.org/x/lint => golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
-	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
+	gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.1
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.11.2
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.8.0
 	sigs.k8s.io/kind => github.com/verrazzano/kind v0.0.0-20221129215948-885481909133
