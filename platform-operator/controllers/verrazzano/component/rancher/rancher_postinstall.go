@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -6,17 +6,19 @@ package rancher
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"strings"
 
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 )
 
 const (
@@ -159,6 +161,9 @@ func labelNamespace(c client.Client) error {
 		return err
 	}
 	for i := range nsList.Items {
+		if nsList.Items[i].Labels == nil {
+			nsList.Items[i].Labels = map[string]string{}
+		}
 		if _, found := nsList.Items[i].Labels[constants.VerrazzanoManagedKey]; isRancherNamespace(&(nsList.Items[i])) && !found {
 			nsList.Items[i].Labels[constants.VerrazzanoManagedKey] = nsList.Items[i].Name
 			c.Update(context.TODO(), &(nsList.Items[i]), &client.UpdateOptions{})
