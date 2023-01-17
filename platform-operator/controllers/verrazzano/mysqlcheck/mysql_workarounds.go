@@ -153,6 +153,7 @@ func (mc *MySQLChecker) RepairMySQLPodsWaitingReadinessGates() error {
 		// Start a timer the first time pods are waiting for readiness gates
 		if getLastTimeReadinessGateChecked().IsZero() {
 			setInitialTimeReadinessGateChecked(time.Now())
+			mc.log.Debug("Starting check to determine if MySQL pods are stuck waiting for readiness gates")
 			return nil
 		}
 
@@ -261,7 +262,7 @@ func (mc *MySQLChecker) RepairMySQLPodStuckTerminating() error {
 		// First time through start a timer
 		if getInitialTimeMySQLPodsStuckChecked().IsZero() {
 			setInitialTimeMySQLPodsStuckChecked(time.Now())
-			mc.log.Progressf("Waiting for MySQL pods to terminate in namespace %s", componentNamespace)
+			mc.log.Debugf("Waiting for MySQL pods to terminate in namespace %s", componentNamespace)
 			return nil
 		}
 
@@ -299,9 +300,11 @@ func (mc *MySQLChecker) RepairMySQLRouterPodsCrashLoopBackoff() error {
 			if waiting := container.State.Waiting; waiting != nil {
 				if waiting.Reason == reasonCrashLoopBackOff {
 					// Terminate the pod
-					msg := fmt.Sprintf("Terminating pod %s/%s because it is stuck in CrashLoopBackOff", pod.Namespace, pod.Name)
-					mc.logEvent(pod, alertMySQLRouter, waiting.Reason, msg)
+					msg := fmt.Sprintf("Terminating pod %s/%s stuck in CrashLoopBackOff", pod.Namespace, pod.Name)
+					mc.logEvent(pod, alertMySQLRouter, reasonCrashLoopBackOff, msg)
 					if err := mc.client.Delete(context.TODO(), &pod, &clipkg.DeleteOptions{}); err != nil {
+						msg = fmt.Sprintf("Failed to terminate pod %s/%s stuck in CrashLoopBackOff: %v", pod.Namespace, pod.Name, err)
+						mc.logEvent(pod, alertMySQLRouter, reasonCrashLoopBackOff, msg)
 						return err
 					}
 				}
@@ -313,17 +316,17 @@ func (mc *MySQLChecker) RepairMySQLRouterPodsCrashLoopBackoff() error {
 
 // restartMySQLOperator - restart the MySQL Operator pod
 func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client, reason string) error {
-	operPod, err := getMySQLOperatorPod(log, client)
+	pod, err := getMySQLOperatorPod(log, client)
 	if err != nil {
 		msg := fmt.Sprintf("Failed restarting the mysql-operator to repair stuck resources: %v", err)
 		createEvent(log, client, metav1.ObjectMeta{Namespace: mysqloperator.ComponentNamespace}, alertMySQLOperator, reasonNotFound, msg)
 		return fmt.Errorf("%s", msg)
 	}
 	message := fmt.Sprintf("Restarting the mysql-operator to repair: %s", reason)
-	createEvent(log, client, operPod, alertMySQLOperator, reasonRestart, message)
+	createEvent(log, client, pod, alertMySQLOperator, reasonRestart, message)
 
-	if err = client.Delete(context.TODO(), operPod, &clipkg.DeleteOptions{}); err != nil {
-		createEvent(log, client, operPod, alertMySQLOperator, reasonNotDeleted, fmt.Sprintf("Failed to delete the mysql-operator pod: %v", err))
+	if err = client.Delete(context.TODO(), pod, &clipkg.DeleteOptions{}); err != nil {
+		createEvent(log, client, pod, alertMySQLOperator, reasonNotDeleted, fmt.Sprintf("Failed to delete the mysql-operator pod %s/%s: %v", pod.Namespace, pod.Name, err))
 		return err
 	}
 
