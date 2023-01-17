@@ -36,6 +36,15 @@ const (
 	alertMySQLOperator       = "mysql-operator"
 	alertReadinessGate       = "readiness-gate"
 	alertMySQLRouter         = "mysql-router"
+
+	// Alert Reasons
+	reasonStuckDeleting        = "StuckDeleting"
+	reasonStuckTerminating     = "StuckTerminating"
+	reasonWaitingReadinessGate = "WaitingReadinessGate"
+	reasonNotFound             = "NotFound"
+	reasonNotDeleted           = "NotDeleted"
+	reasonCrashLoopBackOff     = "CrashLoopBackOff"
+	reasonRestart              = "Restart"
 )
 
 var (
@@ -127,7 +136,7 @@ func RepairICStuckDeleting(ctx spi.ComponentContext) error {
 	expiredTime := getInitialTimeICUninstallChecked().Add(GetMySQLChecker().RepairTimeout)
 	if time.Now().After(expiredTime) {
 		msg := fmt.Sprintf("InnoDBCluster stuck deleting for a minimum of %s", GetMySQLChecker().RepairTimeout.String())
-		createEvent(ctx.Log(), ctx.Client(), innoDBCluster, alertInnoDBCluster, "StuckDeleting", msg)
+		createEvent(ctx.Log(), ctx.Client(), innoDBCluster, alertInnoDBCluster, reasonStuckDeleting, msg)
 		return restartMySQLOperator(ctx.Log(), ctx.Client(), msg)
 	}
 	return nil
@@ -150,8 +159,8 @@ func (mc *MySQLChecker) RepairMySQLPodsWaitingReadinessGates() error {
 		// Initiate repair only if time to wait period has been exceeded
 		expiredTime := getLastTimeReadinessGateChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
-			for i := range podsWaiting {
-				mc.logEvent(podsWaiting[i], alertReadinessGate, "WaitingReadinessGate", fmt.Sprintf("Pod stuck waiting for readiness gates for a minimum of %s", mc.RepairTimeout.String()))
+			for i, pod := range podsWaiting {
+				mc.logEvent(podsWaiting[i], alertReadinessGate, reasonWaitingReadinessGate, fmt.Sprintf("Pod %s/%s stuck waiting for readiness gates for a minimum of %s", pod.Namespace, pod.Name, mc.RepairTimeout.String()))
 			}
 			return restartMySQLOperator(mc.log, mc.client, "MySQL pods waiting for readiness gates")
 		}
@@ -165,8 +174,6 @@ func (mc *MySQLChecker) RepairMySQLPodsWaitingReadinessGates() error {
 // getPodsWaitingForReadinessGates - return the list of pods waiting for readiness gates
 func getPodsWaitingForReadinessGates(log vzlog.VerrazzanoLogger, client clipkg.Client) ([]v1.Pod, error) {
 	var podsWaiting []v1.Pod
-
-	log.Debug("Checking if MySQL pods waiting for readiness gates")
 
 	selector := metav1.LabelSelectorRequirement{Key: mySQLComponentLabel, Operator: metav1.LabelSelectorOpIn, Values: []string{mySQLDComponentName}}
 	podList := k8sready.GetPodsList(log, client, types.NamespacedName{Namespace: componentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{selector}})
@@ -261,7 +268,7 @@ func (mc *MySQLChecker) RepairMySQLPodStuckTerminating() error {
 		// Initiate repair only if time to wait period has been exceeded
 		expiredTime := getInitialTimeMySQLPodsStuckChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
-			mc.logEvent(podStuckDeleting, alertPodStuckTerminating, "PodStuckTerminating", fmt.Sprintf("Pod stuck deleting for a minimum of %s", mc.RepairTimeout.String()))
+			mc.logEvent(podStuckDeleting, alertPodStuckTerminating, reasonStuckTerminating, fmt.Sprintf("Pod stuck deleting for a minimum of %s", mc.RepairTimeout.String()))
 			if err := restartMySQLOperator(mc.log, mc.client, "MySQL pods stuck terminating"); err != nil {
 				return err
 			}
@@ -290,10 +297,9 @@ func (mc *MySQLChecker) RepairMySQLRouterPodsCrashLoopBackoff() error {
 		pod := podList.Items[i]
 		for _, container := range pod.Status.ContainerStatuses {
 			if waiting := container.State.Waiting; waiting != nil {
-				if waiting.Reason == "CrashLoopBackOff" {
+				if waiting.Reason == reasonCrashLoopBackOff {
 					// Terminate the pod
 					msg := fmt.Sprintf("Terminating pod %s/%s because it is stuck in CrashLoopBackOff", pod.Namespace, pod.Name)
-					mc.log.Infof("%s", msg)
 					mc.logEvent(pod, alertMySQLRouter, waiting.Reason, msg)
 					if err := mc.client.Delete(context.TODO(), &pod, &clipkg.DeleteOptions{}); err != nil {
 						return err
@@ -310,15 +316,14 @@ func restartMySQLOperator(log vzlog.VerrazzanoLogger, client clipkg.Client, reas
 	operPod, err := getMySQLOperatorPod(log, client)
 	if err != nil {
 		msg := fmt.Sprintf("Failed restarting the mysql-operator to repair stuck resources: %v", err)
-		createEvent(log, client, metav1.ObjectMeta{Namespace: mysqloperator.ComponentNamespace}, alertMySQLOperator, "PodNotFound", msg)
+		createEvent(log, client, metav1.ObjectMeta{Namespace: mysqloperator.ComponentNamespace}, alertMySQLOperator, reasonNotFound, msg)
 		return fmt.Errorf("%s", msg)
 	}
 	message := fmt.Sprintf("Restarting the mysql-operator to repair: %s", reason)
-	log.Infof(message)
-	createEvent(log, client, operPod, alertMySQLOperator, "RestartMySQLOperator", message)
+	createEvent(log, client, operPod, alertMySQLOperator, reasonRestart, message)
 
 	if err = client.Delete(context.TODO(), operPod, &clipkg.DeleteOptions{}); err != nil {
-		createEvent(log, client, operPod, alertMySQLOperator, "PodNotDeleted", fmt.Sprintf("Failed to delete the mysql-operator pod: %v", err))
+		createEvent(log, client, operPod, alertMySQLOperator, reasonNotDeleted, fmt.Sprintf("Failed to delete the mysql-operator pod: %v", err))
 		return err
 	}
 
@@ -334,7 +339,7 @@ func (mc *MySQLChecker) logEvent(involvedObject interface{}, alertName string, r
 	createEvent(mc.log, mc.client, involvedObject, alertName, reason, message)
 }
 
-// createEvent - create or update an event
+// createEvent - create or update an event, and record the message in the log file
 func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, objectInt interface{}, alertName string, reason string, message string) {
 	event := &v1.Event{}
 	ctx := context.TODO()
@@ -385,6 +390,9 @@ func createEvent(log vzlog.VerrazzanoLogger, client clipkg.Client, objectInt int
 			log.ErrorfThrottled("%v", err)
 		}
 	}
+
+	// Record the message in the log file in addition to generating an event
+	log.Info(message)
 }
 
 // setObjectReference - populate the ObjectReference object from the involved object
