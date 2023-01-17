@@ -873,7 +873,7 @@ func validateArgoCDResources() {
 				return false
 			}
 			return true
-		}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+		}, waitTimeout, pollingInterval).Should(BeTrue())
 
 		Eventually(func() (bool, error) {
 			return pkg.DoesStatefulSetExist(constants.ArgoCDNamespace, "argocd-application-controller")

@@ -11,7 +11,6 @@ import (
 )
 
 var skipDeploy bool
-var skipUndeploy bool
 var namespace string
 var skipVerify bool
 

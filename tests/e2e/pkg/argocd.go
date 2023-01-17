@@ -135,6 +135,7 @@ func getArgoCDUserToken(log *zap.SugaredLogger, argoCDURL string, username strin
 	return token, nil
 }
 
+// GetApplicationsWithClient returns true if the user is able to access the applications page post Argo CD install
 func GetApplicationsWithClient(log *zap.SugaredLogger, argoCDURL string, token string) (bool, error) {
 	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -187,9 +188,7 @@ func GetApplicationsWithClient(log *zap.SugaredLogger, argoCDURL string, token s
 
 }
 
-// CreateArgoCDGitApplication Creates a Fake Git Repo
-// Adds the Hello Helidon component and application files to the Git repo
-// Commits the changes to the repo
+// CreateArgoCDGitApplication creates an application in Argo CD by conencting to the Git repo
 // Applies the Argo CD Application to the kubernetes cluster
 func CreateArgoCDGitApplication() error {
 	Log(Info, "Create Argo CD Application Project")

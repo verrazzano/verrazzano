@@ -581,12 +581,12 @@ func verifyArgoCDClientURIs(keycloakClient *Client, env string) bool {
 		return false
 	}
 
-	// Verify rancher redirectUI
+	// Verify Argo CD redirectUI
 	if !verifyURIs(keycloakClient.RedirectUris, argocdURI+env, 1) {
 		t.Logs.Error(fmt.Printf("Expected 1 ArgoCD redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
-	// Verify rancher web origin
+	// Verify Argo CD web origin
 	if !verifyURIs(keycloakClient.WebOrigins, argocdURI+env, 1) {
 		t.Logs.Error(fmt.Printf("Expected 1 ArgoCD weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
