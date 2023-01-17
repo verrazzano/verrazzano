@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1673624306771,
+  "iteration": 1673975671442,
   "links": [],
   "panels": [
     {
@@ -279,8 +279,8 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 10,
-        "w": 24,
+        "h": 8,
+        "w": 12,
         "x": 0,
         "y": 9
       },
@@ -330,102 +330,6 @@
             "renameByName": {
               "Value": "Status",
               "component": "Verrazzao Component"
-            }
-          }
-        }
-      ],
-      "type": "table"
-    },
-    {
-      "collapsed": false,
-      "datasource": null,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 19
-      },
-      "id": 20,
-      "panels": [],
-      "title": "Clusters",
-      "type": "row"
-    },
-    {
-      "datasource": null,
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": null,
-            "filterable": false
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 20
-      },
-      "id": 22,
-      "options": {
-        "showHeader": true
-      },
-      "pluginVersion": "7.5.17",
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "sum(apiserver_storage_objects) by (verrazzano_cluster)",
-          "format": "table",
-          "instant": true,
-          "interval": "",
-          "legendFormat": "",
-          "refId": "A"
-        }
-      ],
-      "title": "Verrazzano Clusters",
-      "transformations": [
-        {
-          "id": "labelsToFields",
-          "options": {}
-        },
-        {
-          "id": "filterFieldsByName",
-          "options": {
-            "include": {
-              "names": [
-                "verrazzano_cluster"
-              ]
-            }
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": false,
-              "Value": false
-            },
-            "indexByName": {},
-            "renameByName": {
-              "verrazzano_cluster": "Verrazzano Cluster"
             }
           }
         }
@@ -486,7 +390,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 20
+        "y": 9
       },
       "id": 23,
       "options": {
@@ -586,7 +490,7 @@
       {
         "allValue": null,
         "current": {
-          "selected": true,
+          "selected": false,
           "text": "local",
           "value": "local"
         },
