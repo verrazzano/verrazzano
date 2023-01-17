@@ -423,6 +423,38 @@ func GetNodeCount() (uint32, error) {
 	return uint32(len(nodes.Items)), nil
 }
 
+// GetSchedulableNodeCount returns the number of schedulabe nodes in the cluster
+func GetSchedulableNodeCount() (uint32, error) {
+	nodes, err := ListNodes()
+	if err != nil {
+		return 0, err
+	}
+	nodeCount := 0
+	for _, node := range nodes.Items {
+		if NodeIsSchedulable(node) {
+			nodeCount++
+		}
+	}
+	if nodeCount < 1 {
+		return 0, fmt.Errorf("can not find node in the cluster")
+	}
+	return uint32(nodeCount), nil
+}
+
+// NodeIsSchedulable returns false if a node has the control-plane/master taint and is unschedulable, true otherwise
+func NodeIsSchedulable(node corev1.Node) bool {
+	for _, taint := range node.Spec.Taints {
+		switch taint.Key {
+		case "node-role.kubernetes.io/control-plane":
+		case "node-role.kubernetes.io/master":
+			if taint.Effect == corev1.TaintEffectNoSchedule {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // GetPodsFromSelector returns a collection of pods for the given namespace and selector
 func GetPodsFromSelector(selector *metav1.LabelSelector, namespace string) ([]corev1.Pod, error) {
 	var pods *corev1.PodList
@@ -943,6 +975,19 @@ func IsRancherBackupEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	return *vz.Spec.Components.RancherBackup.Enabled
+}
+
+// IsArgoCDEnabled returns false if the Argocd component is not set, or the value of its Enabled field otherwise
+func IsArgoCDEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.ArgoCD == nil || vz.Spec.Components.ArgoCD.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.ArgoCD.Enabled
 }
 
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.

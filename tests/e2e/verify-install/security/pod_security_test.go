@@ -32,7 +32,7 @@ const (
 
 var skipPods = map[string][]string{
 	"keycloak": {
-		"mysql-0",
+		"mysql-",
 	},
 	"verrazzano-install": {
 		"mysql",
@@ -48,6 +48,9 @@ var skipPods = map[string][]string{
 	},
 	"verrazzano-backup": {
 		"restic",
+	},
+	"cert-manager": {
+		"external-dns",
 	},
 }
 
@@ -144,6 +147,7 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 		Entry("Checking pod security in verrazzano-backup", "verrazzano-backup"),
 		Entry("Checking pod security in ingress-nginx", "ingress-nginx"),
 		Entry("Checking pod security in mysql-operator", "mysql-operator"),
+		Entry("Checking pod security in cert-manager", "cert-manager"),
 		Entry("Checking pod security in keycloak", "keycloak"),
 	)
 })
