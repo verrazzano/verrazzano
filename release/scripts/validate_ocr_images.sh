@@ -15,6 +15,9 @@ OBJ_STORAGE_VZ_IMAGE_TXT=verrazzano_images.txt
 echo "Logging into Docker ..."
 echo "$OCR_CREDS_PSW" | docker login "$DOCKER_REPO" -u "$OCR_CREDS_USR" --password-stdin
 
+ls $AUTHFILE
+cat $AUTHFILE/auth.json
+
 echo "Logging into Skopeo ..."
 # docker run quay.io/skopeo/stable:latest login -u "$OCR_CREDS_USR" --password-stdin docker://"$DOCKER_REPO"
 
@@ -41,7 +44,7 @@ while IFS= read -r line
 do  
     VZ_IMAGE_NAME=$(echo "$line")
     # INSPECT_EXIT_CODE=$(docker run quay.io/skopeo/stable:latest inspect docker://"$DOCKER_REPO"/"$VZ_IMAGE_NAME")
-    INSPECT_EXIT_CODE=$(docker run --rm quay.io/skopeo/stable:latest inspect --authfile "$AUTHFILE"/auth.json docker://"$DOCKER_REPO"/"$VZ_IMAGE_NAME")
+    # INSPECT_EXIT_CODE=$(docker run --rm quay.io/skopeo/stable:latest inspect --authfile "$AUTHFILE"/auth.json docker://"$DOCKER_REPO"/"$VZ_IMAGE_NAME")
     if [[ $? -eq 0 ]]; then
         IMAGES_FOUND_IN_OCR+=("$VZ_IMAGE_NAME")
     else
