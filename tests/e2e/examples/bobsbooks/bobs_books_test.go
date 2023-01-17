@@ -6,6 +6,7 @@ package bobsbooks
 import (
 	"fmt"
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -26,6 +27,8 @@ const (
 	longPollingInterval      = 20 * time.Second
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
+
+	targetsVersion = "1.4.0"
 
 	// application specific constants
 	robertCoh            = "robert-coh"
@@ -55,7 +58,8 @@ var (
 		"bobbys-helidon-stock-application",
 		"robert-helidon",
 		"mysql"}
-	appName = "bobs-books"
+	appName    = "bobs-books"
+	kubeConfig = os.Getenv("KUBECONFIG")
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -281,7 +285,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		// GIVEN a deployed Bob's Books application
 		// WHEN the application configuration uses a default metrics trait
 		// THEN confirm that all the scrape targets are healthy
-		t.It("Verify all scrape targets are healthy for the application", func() {
+		t.ItMinimumVersion("Verify all scrape targets are healthy for the application", targetsVersion, kubeConfig, func() {
 			Eventually(func() (bool, error) {
 				var componentNames = []string{"bobby-coh", "bobby-helidon", "bobby-wls", "bobs-mysql-deployment", "bobs-mysql-service", "bobs-orders-wls", robertCoh, "robert-helidon"}
 				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "bob-books", componentNames))

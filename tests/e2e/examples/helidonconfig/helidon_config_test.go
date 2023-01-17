@@ -15,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"os"
 	"time"
 )
 
@@ -25,11 +26,13 @@ const (
 	shortWaitTimeout         = 5 * time.Minute
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
+	targetsVersion           = "1.4.0"
 )
 
 var (
 	t                  = framework.NewTestFramework("helidonconfig")
 	generatedNamespace = pkg.GenerateNamespace("helidon-config")
+	kubeConfig         = os.Getenv("KUBECONFIG")
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -176,7 +179,7 @@ var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 	// WHEN the component and appconfig without metrics-trait(using default) are created
 	// THEN the application scrape targets must be healthy
 	t.Describe("Metrics.", Label("f:observability.monitoring.prom"), func() {
-		t.It("Verify all scrape targets are healthy for the application", func() {
+		t.ItMinimumVersion("Verify all scrape targets are healthy for the application", targetsVersion, kubeConfig, func() {
 			Eventually(func() (bool, error) {
 				var componentNames = []string{"helidon-config-component"}
 				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "helidon-config-appconf", componentNames))

@@ -31,6 +31,7 @@ const (
 	helloHelidon               = "hello-helidon"
 	nodeExporterJobName        = "node-exporter"
 	helloHelidonDeploymentName = "hello-helidon-deployment"
+	targetsVersion             = "1.4.0"
 )
 
 var (
@@ -38,6 +39,7 @@ var (
 	generatedNamespace = pkg.GenerateNamespace(helloHelidon)
 	// yamlApplier              = k8sutil.YAMLApplier{}
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
+	kubeConfig               = os.Getenv("KUBECONFIG")
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -136,7 +138,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// WHEN the component and appconfig without metrics-trait(using default) are created
 	// THEN the application's all scrape targets must be healthy
 	t.Describe("for Metrics.", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
-		t.It("Verify all scrape targets are healthy for the application", func() {
+		t.ItMinimumVersion("Verify all scrape targets are healthy for the application", targetsVersion, kubeConfig, func() {
 			if skipVerify {
 				Skip(skipVerifications)
 			}

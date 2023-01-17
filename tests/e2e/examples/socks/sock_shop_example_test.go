@@ -39,6 +39,7 @@ const (
 	sampleSpringMetric       = "http_server_requests_seconds_count"
 	sampleMicronautMetric    = "process_start_time_seconds"
 	oamComponent             = "app_oam_dev_component"
+	targetsVersion           = "1.4.0"
 )
 
 var sockShop SockShop
@@ -48,6 +49,7 @@ var (
 	t                  = framework.NewTestFramework("socks")
 	generatedNamespace = pkg.GenerateNamespace("sockshop")
 	clusterDump        = dump.NewClusterDumpWrapper(t, generatedNamespace)
+	kubeConfig         = os.Getenv("KUBECONFIG")
 )
 
 // creates the sockshop namespace and applies the components and application yaml
@@ -277,7 +279,7 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 		if err != nil {
 			Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 		}
-		if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath); ok {
+		if ok, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath); ok {
 			t.It("Verify all scrape targets are healthy for the application", func() {
 				Eventually(func() (bool, error) {
 					var componentNames = []string{"carts", "catalog", "orders", "payment", "shipping", "users"}
