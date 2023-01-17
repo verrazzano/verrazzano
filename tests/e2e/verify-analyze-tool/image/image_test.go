@@ -113,7 +113,7 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 
 // utility method to run vz analyze and deliver its report
 func RunVzAnalyze() (string, error) {
-	cmd := exec.Command("vz", "analyze")
+	cmd := exec.Command("/home/opc/go/src/github.com/verrazzano/vz", "analyze")
 	out, err := cmd.Output()
 	return string(out), err
 }
