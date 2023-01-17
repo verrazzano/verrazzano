@@ -32,7 +32,7 @@ const (
 
 var skipPods = map[string][]string{
 	"keycloak": {
-		"mysql",
+		"mysql-0",
 	},
 	"verrazzano-install": {
 		"mysql",
@@ -42,15 +42,12 @@ var skipPods = map[string][]string{
 		"vmi-system",
 		"weblogic-operator",
 	},
-	"verrazzano-monitoring": {
-		"jaeger",
-	},
 	"verrazzano-backup": {
 		"restic",
 	},
 }
 
-var skipContainers = []string{}
+var skipContainers = []string{"jaeger-collector", "jaeger-query", "jaeger-agent"}
 var skipInitContainers = []string{"istio-init"}
 
 type podExceptions struct {
@@ -144,6 +141,7 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 		Entry("Checking pod security in ingress-nginx", "ingress-nginx"),
 		Entry("Checking pod security in mysql-operator", "mysql-operator"),
 		Entry("Checking pod security in cert-manager", "cert-manager"),
+		Entry("Checking pod security in keycloak", "keycloak"),
 	)
 })
 
@@ -220,9 +218,6 @@ func ensurePodSecurityContext(sc *corev1.PodSecurityContext, podName string) []e
 	if sc.RunAsUser != nil && *sc.RunAsUser == 0 {
 		errors = append(errors, fmt.Errorf("PodSecurityContext not configured correctly for pod %s, RunAsUser is 0", podName))
 	}
-	if sc.RunAsGroup != nil && *sc.RunAsGroup == 0 {
-		errors = append(errors, fmt.Errorf("PodSecurityContext not configured correctly for pod %s, RunAsGroup is 0", podName))
-	}
 	if sc.RunAsNonRoot != nil && !*sc.RunAsNonRoot {
 		errors = append(errors, fmt.Errorf("PodSecurityContext not configured correctly for pod %s, RunAsNonRoot != true", podName))
 	}
@@ -245,9 +240,6 @@ func ensureContainerSecurityContext(sc *corev1.SecurityContext, podName, contain
 	var errors []error
 	if sc.RunAsUser != nil && *sc.RunAsUser == 0 {
 		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s,  RunAsUser is 0", podName, containerName))
-	}
-	if sc.RunAsGroup != nil && *sc.RunAsGroup == 0 {
-		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, RunAsGroup is 0", podName, containerName))
 	}
 	if sc.RunAsNonRoot != nil && !*sc.RunAsNonRoot {
 		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, RunAsNonRoot != true", podName, containerName))

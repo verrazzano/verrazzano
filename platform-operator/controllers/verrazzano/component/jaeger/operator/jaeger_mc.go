@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package operator
@@ -47,18 +47,42 @@ spec:
 {{end}}
   ingress:
     enabled: false
+    securityContext:
+      runAsGroup: 65534
+      runAsNonRoot: true
+      runAsUser: 65534
+      seccompProfile:
+        type: RuntimeDefault
   strategy: production
   query:
     replicas: 0
+    securityContext:
+      runAsGroup: 65534
+      runAsNonRoot: true
+      runAsUser: 65534
+      seccompProfile:
+        type: RuntimeDefault
   collector:
     options:
       collector:
         tags: verrazzano_cluster={{.ClusterName}}
+    securityContext:
+      runAsGroup: 65534
+      runAsNonRoot: true
+      runAsUser: 65534
+      seccompProfile:
+        type: RuntimeDefault
   storage:
     dependencies:
       enabled: false
     esIndexCleaner:
       enabled: false
+      securityContext:
+        runAsGroup: 65534
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
     type: elasticsearch
     options:
       es:
