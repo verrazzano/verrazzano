@@ -178,10 +178,6 @@ func SpecificPodsRunning(namespace, labels string) (bool, error) {
 	return result, err
 }
 
-func SecretExists(namespace string, name []string) (bool, error) {
-	return false, nil
-}
-
 // GetVerrazzanoRetentionPolicy returns the retention policy configured in the VZ CR
 // If not explicitly configured, it returns the default retention policy with retention
 // period of 7 days.
