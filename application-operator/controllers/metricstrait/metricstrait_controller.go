@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package metricstrait
@@ -11,8 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Jeffail/gabs/v2"
+	gabs "github.com/Jeffail/gabs/v2"
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -72,10 +73,6 @@ const (
 	verrazzanoMetricsPortAnnotation    = "verrazzano.io/metricsPort%s"
 	verrazzanoMetricsPathAnnotation    = "verrazzano.io/metricsPath%s"
 	verrazzanoMetricsEnabledAnnotation = "verrazzano.io/metricsEnabled%s"
-
-	// Label names for the OAM application and component references
-	appObjectMetaLabel  = "app.oam.dev/name"
-	compObjectMetaLabel = "app.oam.dev/component"
 
 	// basicAuthLabel config label for Prometheus basic auth
 	basicAuthLabel = "basic_auth"
@@ -780,7 +777,7 @@ func MutateLabels(trait *vzapi.MetricsTrait, workload *unstructured.Unstructured
 	mutated := labels
 	// If the trait is not being deleted, copy specific labels from the trait.
 	if trait.DeletionTimestamp.IsZero() {
-		mutated = copyStringMapEntries(mutated, trait.Labels, appObjectMetaLabel, compObjectMetaLabel)
+		mutated = copyStringMapEntries(mutated, trait.Labels, oam.LabelAppName, oam.LabelAppComponent)
 	}
 	return mutated
 }
@@ -814,8 +811,8 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 			portOrderStr = strconv.Itoa(portIncrement)
 		}
 		context := map[string]string{
-			appNameHolder:       trait.Labels[appObjectMetaLabel],
-			compNameHolder:      trait.Labels[compObjectMetaLabel],
+			appNameHolder:       trait.Labels[oam.LabelAppName],
+			compNameHolder:      trait.Labels[oam.LabelAppComponent],
 			jobNameHolder:       job,
 			portOrderHolder:     portOrderStr,
 			namespaceHolder:     trait.Namespace,
@@ -890,7 +887,7 @@ func (r *Reconciler) removedTraitReferencesFromOwner(ctx context.Context, ownerR
 						log.Debugf("Unable to convert trait for component: %s of application configuration: %s/%s, error: %v", component.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
 					} else {
 						if componentTraitUnstructured.GetAPIVersion() == trait.APIVersion && componentTraitUnstructured.GetKind() == trait.Kind {
-							if compName, ok := trait.Labels[compObjectMetaLabel]; ok && compName == component.ComponentName {
+							if compName, ok := trait.Labels[oam.LabelAppComponent]; ok && compName == component.ComponentName {
 								log.Infof("Removing trait %s/%s for component: %s of application configuration: %s/%s", componentTraitUnstructured.GetAPIVersion(), componentTraitUnstructured.GetKind(), component.ComponentName, appConfig.GetNamespace(), appConfig.GetName())
 								remainingTraits = remainingTraits[:len(remainingTraits)-1]
 							}

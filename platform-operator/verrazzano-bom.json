@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.8-20230112143713-d3322376b",
-              "dashboard": "v2.6.8-20230112142527-ce6d7345",
+              "tag": "v2.6.8-20230113234833-d3322376b",
+              "dashboard": "v2.6.8-20230113233757-a8d21663",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20230112143713-d3322376b"
+              "tag": "v2.6.8-20230113234833-d3322376b"
             }
           ]
         },
@@ -219,7 +219,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.5.0-20221223051839-d6a49f9",
+              "tag": "v1.5.0-20230116075325-ad7c813",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },

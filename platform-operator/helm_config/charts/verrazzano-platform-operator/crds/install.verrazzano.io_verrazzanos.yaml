@@ -781,6 +781,8 @@ spec:
                     type: object
                   elasticsearch:
                     properties:
+                      disableDefaultPolicy:
+                        type: boolean
                       enabled:
                         type: boolean
                       installArgs:
@@ -5698,6 +5700,8 @@ spec:
                     type: object
                   opensearch:
                     properties:
+                      disableDefaultPolicy:
+                        type: boolean
                       enabled:
                         type: boolean
                       nodes:
