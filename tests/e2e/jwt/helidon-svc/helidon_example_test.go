@@ -9,6 +9,7 @@ import (
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -32,6 +33,7 @@ const (
 	imagePullPollingInterval = 30 * time.Second
 	skipVerifications        = "Skip Verifications"
 	nodeExporterJobName      = "node-exporter"
+	targetsVersion           = "1.4.0"
 )
 
 const (
@@ -44,6 +46,7 @@ var (
 	generatedNamespace = pkg.GenerateNamespace("hello-helidon-svc")
 	//yamlApplier              = k8sutil.YAMLApplier{}
 	expectedPodsHelloHelidon = []string{"hello-helidon-svc-deployment"}
+	kubeConfig               = os.Getenv("KUBECONFIG")
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -145,7 +148,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// WHEN the component and appconfig without metrics-trait(using default) are created
 	// THEN the application scrape targets must be healthy
 	t.Describe("for Metrics.", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
-		t.It("Verify all scrape targets are healthy for the application", func() {
+		t.ItMinimumVersion("Verify all scrape targets are healthy for the application", targetsVersion, kubeConfig, func() {
 			if skipVerify {
 				Skip(skipVerifications)
 			}
