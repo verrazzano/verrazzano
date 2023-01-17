@@ -65,6 +65,11 @@ done
 
 docker run --rm quay.io/skopeo/stable:latest inspect --authfile "$AUTHFILE"/auth.json docker://"$DOCKER_REPO"/verrazzano/example-bobbys-coherence:1.0.0-1-20210728181814-eb1e622
 docker run --rm quay.io/skopeo/stable:latest inspect docker://"$DOCKER_REPO"/verrazzano/example-bobbys-coherence:1.0.0-1-20210728181814-eb1e622
+docker run --rm quay.io/skopeo/stable:latest inspect docker://"$DOCKER_REPO"/verrazzano/velero:v1.9.1-20220928065349-147272cf
+
+ls $HOME
+ls $HOME/.docker/
+cat $HOME/.docker/config.json
 
 
 echo "Done."
