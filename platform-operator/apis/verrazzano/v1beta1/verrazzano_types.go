@@ -430,9 +430,11 @@ type OpenSearchComponent struct {
 	// to enable on OpenSearch.
 	// +optional
 	Policies []vmov1.IndexManagementPolicy `json:"policies,omitempty"`
-	// Enable to add 3rd Party / Custom plugins not offered in the default OpenSearch image
+	// Enable to add 3rd Party / Custom plugins not offered in the default OpenSearch image.
 	// +optional
 	Plugins vmov1.OpenSearchPlugins `json:"plugins,omitempty"`
+	// To disable the default ISM policies.
+	DisableDefaultPolicy bool `json:"disableDefaultPolicy,omitempty"`
 }
 
 // OpenSearchNode specifies a node group in the OpenSearch cluster.
