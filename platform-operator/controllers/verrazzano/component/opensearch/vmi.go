@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package opensearch
@@ -92,6 +92,9 @@ func newOpenSearch(effectiveCR, actualCR *vzapi.Verrazzano, storage *common.Reso
 
 	// Set the OpenSearch Plugins to the VMI
 	opensearch.Plugins = opensearchComponent.Plugins
+
+	// Set the DisableDefaultPolicy flag to VMI
+	opensearch.DisableDefaultPolicy = opensearchComponent.DisableDefaultPolicy
 
 	// Set the values in the OpenSearch object from the Verrazzano component InstallArgs
 	if err := populateOpenSearchFromInstallArgs(opensearch, opensearchComponent); err != nil {
