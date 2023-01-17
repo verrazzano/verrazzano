@@ -238,25 +238,12 @@ func getInnoDBCluster(ctx spi.ComponentContext) (*unstructured.Unstructured, err
 // RepairMySQLPodStuckTerminating - temporary workaround to repair issue where a MySQL pod
 // can be stuck terminating (e.g. during uninstall).  The workaround is to recycle the mysql-operator.
 func (mc *MySQLChecker) RepairMySQLPodStuckTerminating() error {
-	// Check if any MySQL pods are in the process of terminating
-	selector := metav1.LabelSelectorRequirement{Key: mySQLComponentLabel, Operator: metav1.LabelSelectorOpIn, Values: []string{mySQLDComponentName}}
-	podList := k8sready.GetPodsList(mc.log, mc.client, types.NamespacedName{Namespace: componentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{selector}})
-	if podList == nil || len(podList.Items) == 0 {
-		// No MySQL pods found, assume they have finished deleting
-		resetInitialTimeMySQLPodsStuckChecked()
-		return nil
+	podsTerminating, err := getPodsTerminating(mc.log, mc.client)
+	if err != nil {
+		return err
 	}
 
-	var podsDeleting []v1.Pod
-	for i := range podList.Items {
-		pod := podList.Items[i]
-		if !pod.GetDeletionTimestamp().IsZero() {
-			podsDeleting = append(podsDeleting, pod)
-			break
-		}
-	}
-
-	if len(podsDeleting) > 0 {
+	if len(podsTerminating) > 0 {
 		// First time through start a timer
 		if getInitialTimeMySQLPodsStuckChecked().IsZero() {
 			setInitialTimeMySQLPodsStuckChecked(time.Now())
@@ -267,8 +254,8 @@ func (mc *MySQLChecker) RepairMySQLPodStuckTerminating() error {
 		// Initiate repair only if time to wait period has been exceeded
 		expiredTime := getInitialTimeMySQLPodsStuckChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
-			for i, pod := range podsDeleting {
-				mc.logEvent(podsDeleting[i], alertPodStuckTerminating, reasonStuckTerminating, fmt.Sprintf("Pod %s/%s stuck deleting for a minimum of %s", pod.Namespace, pod.Name, mc.RepairTimeout.String()))
+			for i, pod := range podsTerminating {
+				mc.logEvent(podsTerminating[i], alertPodStuckTerminating, reasonStuckTerminating, fmt.Sprintf("Pod %s/%s stuck deleting for a minimum of %s", pod.Namespace, pod.Name, mc.RepairTimeout.String()))
 			}
 			if err := restartMySQLOperator(mc.log, mc.client, "MySQL pods stuck terminating"); err != nil {
 				return err
@@ -277,11 +264,32 @@ func (mc *MySQLChecker) RepairMySQLPodStuckTerminating() error {
 			// Keep trying until no pods deleting or timer expires
 			return nil
 		}
+	} else {
+		// No MySQL pods found, assume they have finished deleting
+		resetInitialTimeMySQLPodsStuckChecked()
 	}
 
 	// Clear the timer
 	resetInitialTimeMySQLPodsStuckChecked()
 	return nil
+}
+
+// getPodsDeleting - return the list of MySQL pods that are terminating
+func getPodsTerminating(log vzlog.VerrazzanoLogger, client clipkg.Client) ([]v1.Pod, error) {
+	var podsDeleting []v1.Pod
+
+	// Check if any MySQL pods are in the process of terminating
+	selector := metav1.LabelSelectorRequirement{Key: mySQLComponentLabel, Operator: metav1.LabelSelectorOpIn, Values: []string{mySQLDComponentName}}
+	podList := k8sready.GetPodsList(log, client, types.NamespacedName{Namespace: componentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{selector}})
+
+	for i := range podList.Items {
+		pod := podList.Items[i]
+		if !pod.GetDeletionTimestamp().IsZero() {
+			podsDeleting = append(podsDeleting, pod)
+			break
+		}
+	}
+	return podsDeleting, nil
 }
 
 // RepairMySQLRouterPodsCrashLoopBackoff - repair mysql-router pods stuck in CrashLoopBackoff.
