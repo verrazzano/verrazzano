@@ -83,10 +83,6 @@ global:
   # -- Toggle and define pod-level security context.
   # @default -- `{}` (See [values.yaml])
   securityContext:
-    runAsUser: 1001
-    runAsGroup: 1001
-    fsGroup: 1001
-    runAsNonRoot: true
     seccompProfile:
       type: RuntimeDefault
 
@@ -565,6 +561,8 @@ controller:
     runAsNonRoot: true
     readOnlyRootFilesystem: true
     allowPrivilegeEscalation: false
+    runAsGroup: 1001
+    runAsUser: 1001
     seccompProfile:
       type: RuntimeDefault
     capabilities:
@@ -1070,6 +1068,9 @@ redis:
   containerSecurityContext:
     privileged: false
     allowPrivilegeEscalation: false
+    runAsGroup: 1001
+    runAsNonRoot: true
+    runAsUser: 1001
     capabilities:
       drop:
         - ALL
@@ -1436,6 +1437,8 @@ server:
     readOnlyRootFilesystem: true
     allowPrivilegeEscalation: false
     privileged: false
+    runAsGroup: 1001
+    runAsUser: 1001
     seccompProfile:
       type: RuntimeDefault
     capabilities:
@@ -2004,6 +2007,8 @@ repoServer:
     readOnlyRootFilesystem: true
     privileged: false
     allowPrivilegeEscalation: false
+    runAsGroup: 1001
+    runAsUser: 1001
     seccompProfile:
       type: RuntimeDefault
     capabilities:
@@ -2278,7 +2283,9 @@ applicationSet:
   # -- ApplicationSet controller container-level security context
   # @default -- See [values.yaml]
   containerSecurityContext:
+    runAsGroup: 1001
     runAsNonRoot: true
+    runAsUser: 1001
     readOnlyRootFilesystem: true
     privileged: false
     allowPrivilegeEscalation: false
@@ -2574,7 +2581,9 @@ notifications:
   # -- Notification controller container-level security Context
   # @default -- See [values.yaml]
   containerSecurityContext:
+    runAsGroup: 1001
     runAsNonRoot: true
+    runAsUser: 1001
     readOnlyRootFilesystem: true
     privileged: false
     allowPrivilegeEscalation: false
