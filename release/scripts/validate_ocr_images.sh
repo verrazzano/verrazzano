@@ -16,7 +16,9 @@ echo "Logging into Docker ..."
 echo "$OCR_CREDS_PSW" | docker login "$DOCKER_REPO" -u "$OCR_CREDS_USR" --password-stdin
 
 echo "Logging into Skopeo ..."
-docker run --rm quay.io/skopeo/stable:latest login -u "$OCR_CREDS_USR" --password-stdin "docker://$DOCKER_REPO"
+# docker run --rm quay.io/skopeo/stable:latest login -u "$OCR_CREDS_USR" --password-stdin docker://"$DOCKER_REPO"
+skopeo login -u "$OCR_CREDS_USR" --password-stdin "$DOCKER_REPO"
+
 
 # echo "Pulling images from OCR ..." 
 # while IFS= read -r line
