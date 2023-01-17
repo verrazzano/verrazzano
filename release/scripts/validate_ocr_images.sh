@@ -16,7 +16,7 @@ echo "Logging into Docker ..."
 echo "$OCR_CREDS_PSW" | docker login "$DOCKER_REPO" -u "$OCR_CREDS_USR" --password-stdin
 
 echo "Logging into Skopeo ..."
-# docker run quay.io/skopeo/stable:latest login -u "$OCR_CREDS_USR" --password-stdin docker://"$DOCKER_REPO"
+docker run quay.io/skopeo/stable:latest login
 
 # echo "Pulling images from OCR ..." 
 # while IFS= read -r line
@@ -25,7 +25,7 @@ echo "Logging into Skopeo ..."
 #     docker pull "$DOCKER_REPO"/"$VZ_IMAGE_NAME"
 # done < "$OBJ_STORAGE_VZ_IMAGE_TXT"
 
-printf "\n\nThe following Images were NOT found in OCR ..."
+# printf "\n\nThe following Images were NOT found in OCR ..."
 # while IFS= read -r line
 # do  
 #     VZ_IMAGE_NAME=$(echo "$line")
@@ -41,7 +41,7 @@ while IFS= read -r line
 do  
     VZ_IMAGE_NAME=$(echo "$line")
     # INSPECT_EXIT_CODE=$(docker run quay.io/skopeo/stable:latest inspect docker://"$DOCKER_REPO"/"$VZ_IMAGE_NAME")
-    # INSPECT_EXIT_CODE=$(docker run --rm quay.io/skopeo/stable:latest inspect --authfile "$AUTHFILE"/auth.json docker://"$DOCKER_REPO"/"$VZ_IMAGE_NAME")
+    INSPECT_EXIT_CODE=$(docker run quay.io/skopeo/stable:latest inspect --authfile "$AUTHFILE"/auth.json docker://"$DOCKER_REPO"/"$VZ_IMAGE_NAME")
     if [[ $? -eq 0 ]]; then
         IMAGES_FOUND_IN_OCR+=("$VZ_IMAGE_NAME")
     else
@@ -67,9 +67,8 @@ docker run --rm quay.io/skopeo/stable:latest inspect --authfile "$AUTHFILE"/auth
 docker run --rm quay.io/skopeo/stable:latest inspect docker://"$DOCKER_REPO"/verrazzano/example-bobbys-coherence:1.0.0-1-20210728181814-eb1e622
 docker run --rm quay.io/skopeo/stable:latest inspect docker://"$DOCKER_REPO"/verrazzano/velero:v1.9.1-20220928065349-147272cf
 
-ls $HOME
-ls $HOME/.docker/
-cat $HOME/.docker/config.json
+ls ~/
+ls ~/.docker/
 
 
 echo "Done."
