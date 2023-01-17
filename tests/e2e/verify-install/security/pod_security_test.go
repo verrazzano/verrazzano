@@ -253,9 +253,15 @@ func ensureContainerSecurityContext(sc *corev1.SecurityContext, podName, contain
 	if sc.AllowPrivilegeEscalation == nil || *sc.AllowPrivilegeEscalation {
 		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, AllowPrivilegeEscalation != false", podName, containerName))
 	}
+	errors = append(errors, checkContainerCapabilities(sc, podName, containerName, exceptionContainer, exception)...)
+	return errors
+}
+
+func checkContainerCapabilities(sc *corev1.SecurityContext, podName string, containerName string, exceptionContainer bool, exception podExceptions) []error {
 	if sc.Capabilities == nil {
-		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, Capabilities is nil", podName, containerName))
+		return []error{fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, Capabilities is nil", podName, containerName)}
 	}
+	var errors []error
 	dropCapabilityFound := false
 	for _, c := range sc.Capabilities.Drop {
 		if string(c) == "ALL" {
