@@ -188,7 +188,7 @@ func GetApplicationsWithClient(log *zap.SugaredLogger, argoCDURL string, token s
 
 }
 
-// CreateArgoCDGitApplication creates an application in Argo CD by conencting to the Git repo
+// CreateArgoCDGitApplication creates an application in Argo CD by connecting to the Git repo
 // Applies the Argo CD Application to the kubernetes cluster
 func CreateArgoCDGitApplication() error {
 	Log(Info, "Create Argo CD Application Project")
