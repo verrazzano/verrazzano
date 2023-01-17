@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
@@ -28,6 +28,7 @@ import (
 	"os"
 	"path/filepath"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 )
 
 var errBugReport = "an error occurred while creating the bug report: %s"
@@ -124,6 +125,30 @@ func GetPodList(client clipkg.Client, appLabel, appName, namespace string) ([]co
 		})
 	if err != nil {
 		return nil, fmt.Errorf("an error while listing pods: %s", err.Error())
+	}
+	return podList.Items, nil
+}
+
+// GetPodListAll returns list of pods in the given namespace
+// Will be used to fetch all pods in additional namespace
+func GetPodListAll(client clipkg.Client, namespace string) ([]corev1.Pod, error) {
+	podList := corev1.PodList{}
+	err := client.List(
+		context.TODO(),
+		&podList,
+		&clipkg.ListOptions{
+			Namespace: namespace,
+		})
+	if err != nil {
+		return nil, fmt.Errorf("an error while listing pods: %s", err.Error())
+	}
+	switch namespace {
+	case vzconstants.VerrazzanoInstallNamespace:
+		return removePod(podList.Items, constants.VerrazzanoPlatformOperator), nil
+	case vzconstants.VerrazzanoSystemNamespace:
+		return removePods(podList.Items, []string{constants.VerrazzanoApplicationOperator, constants.VerrazzanoMonitoringOperator}), nil
+	case vzconstants.CertManager:
+		return removePod(podList.Items, vzconstants.ExternalDNS), nil
 	}
 	return podList.Items, nil
 }
@@ -259,7 +284,7 @@ func captureWorkLoads(kubeClient kubernetes.Interface, namespace, captureDir str
 }
 
 // captureLog captures the log from the pod in the captureDir
-func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, captureDir string, vzHelper VZHelper) error {
+func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, captureDir string, vzHelper VZHelper, duration int64) error {
 	podName := pod.Name
 	if len(podName) == 0 {
 		return nil
@@ -282,16 +307,18 @@ func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, c
 
 	// Capture logs for both init containers and containers
 	var cs []corev1.Container
+	var podLogOptions corev1.PodLogOptions
+	if duration != 0 {
+		podLogOptions.SinceSeconds = &duration
+	}
 	cs = append(cs, pod.Spec.InitContainers...)
 	cs = append(cs, pod.Spec.Containers...)
-
 	// Write the log from all the containers to a single file, with lines differentiating the logs from each of the containers
 	for _, c := range cs {
 		writeToFile := func(contName string) error {
-			podLog, err := kubeClient.CoreV1().Pods(namespace).GetLogs(podName, &corev1.PodLogOptions{
-				Container:                    contName,
-				InsecureSkipTLSVerifyBackend: true,
-			}).Stream(context.TODO())
+			podLogOptions.Container = contName
+			podLogOptions.InsecureSkipTLSVerifyBackend = true
+			podLog, err := kubeClient.CoreV1().Pods(namespace).GetLogs(podName, &podLogOptions).Stream(context.TODO())
 			if err != nil {
 				LogError(fmt.Sprintf("An error occurred while reading the logs from pod %s: %s\n", podName, err.Error()))
 				return nil
@@ -715,4 +742,24 @@ func LogMessage(msg string) {
 // SetVerboseOutput sets the verbose output for the commands bug-report and analyze
 func SetVerboseOutput(enableVerbose bool) {
 	isVerbose = enableVerbose
+}
+
+// removePod removes given podName from PodList
+func removePod(podList []corev1.Pod, podName string) []corev1.Pod {
+	returnList := make([]corev1.Pod, 0)
+	for index, pod := range podList {
+		if strings.Contains(pod.Name, podName) {
+			returnList = append(returnList, podList[:index]...)
+			return append(returnList, podList[index+1:]...)
+		}
+	}
+	return nil
+}
+
+// removePods removes pods from PodList
+func removePods(podList []corev1.Pod, pods []string) []corev1.Pod {
+	for _, p := range pods {
+		podList = removePod(podList, p)
+	}
+	return podList
 }

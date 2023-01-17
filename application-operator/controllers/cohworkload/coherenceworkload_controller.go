@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package cohworkload
@@ -94,6 +94,8 @@ const (
 
 var specLabelsFields = []string{specField, "labels"}
 var specAnnotationsFields = []string{specField, "annotations"}
+var specPortsField = []string{specField, "ports"}
+var specPortSvcFieldName = "service"
 
 // additional JVM args that need to get added to the Coherence spec to enable logging
 var additionalJvmArgs = []interface{}{
@@ -211,7 +213,10 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload *vzapi.Verrazzano
 	u.SetKind(kind)
 
 	// mutate the Coherence resource, copy labels, add logging, etc.
-	if err = copyLabels(log, workload.ObjectMeta.GetLabels(), u); err != nil {
+	if err = copySpecLabels(log, workload.ObjectMeta.GetLabels(), u); err != nil {
+		return reconcile.Result{}, err
+	}
+	if err = copyServiceLabels(log, workload.ObjectMeta.GetLabels(), u); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -330,8 +335,8 @@ func (r *Reconciler) fetchWorkload(ctx context.Context, name types.NamespacedNam
 	return &workload, nil
 }
 
-// copyLabels copies specific labels from the Verrazzano workload to the contained Coherence resource
-func copyLabels(log vzlog2.VerrazzanoLogger, workloadLabels map[string]string, coherence *unstructured.Unstructured) error {
+// copySpecLabels copies specific labels from the Verrazzano workload to the contained Coherence resource's spec section
+func copySpecLabels(log vzlog2.VerrazzanoLogger, workloadLabels map[string]string, coherence *unstructured.Unstructured) error {
 	labels, found, _ := unstructured.NestedStringMap(coherence.Object, specLabelsFields...)
 	if !found {
 		labels = map[string]string{}
@@ -352,6 +357,37 @@ func copyLabels(log vzlog2.VerrazzanoLogger, workloadLabels map[string]string, c
 		return err
 	}
 
+	return nil
+}
+
+// copySpecLabels copies specific labels from the Verrazzano workload to the contained Coherence resource's service section
+func copyServiceLabels(log vzlog2.VerrazzanoLogger, workloadLabels map[string]string, coherence *unstructured.Unstructured) error {
+	portFields, found, _ := unstructured.NestedSlice(coherence.Object, specPortsField...)
+	if !found {
+		return nil
+	}
+	for _, portFld := range portFields {
+		port := portFld.(map[string]interface{})
+		var svc map[string]interface{}
+		if port[specPortSvcFieldName] == nil {
+			svc = map[string]interface{}{"labels": map[string]interface{}{}}
+			port[specPortSvcFieldName] = svc
+		} else {
+			svc = port[specPortSvcFieldName].(map[string]interface{})
+			if svc["labels"] == nil {
+				svc["labels"] = map[string]interface{}{}
+			}
+		}
+		svcLabels := svc["labels"].(map[string]interface{})
+		// copy the oam component and app name labels
+		if componentName, ok := workloadLabels[oam.LabelAppComponent]; ok {
+			svcLabels[oam.LabelAppComponent] = componentName
+		}
+		if appName, ok := workloadLabels[oam.LabelAppName]; ok {
+			svcLabels[oam.LabelAppName] = appName
+		}
+	}
+	unstructured.SetNestedSlice(coherence.Object, portFields, specPortsField...)
 	return nil
 }
 
