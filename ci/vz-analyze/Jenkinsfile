@@ -295,7 +295,7 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-analyze-tool"
                     }
                     steps {
-                        runGinkgoRandomize('verify-analyze-tool')
+                        runGinkgo('verify-analyze-tool')
                     }
                     post {
                         always {
