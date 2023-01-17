@@ -947,6 +947,19 @@ func IsRancherBackupEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.RancherBackup.Enabled
 }
 
+// IsArgoCDEnabled returns false if the Argocd component is not set, or the value of its Enabled field otherwise
+func IsArgoCDEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.ArgoCD == nil || vz.Spec.Components.ArgoCD.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.ArgoCD.Enabled
+}
+
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
 func APIExtensionsClientSet() (*apiextv1.ApiextensionsV1Client, error) {
 	config, err := k8sutil.GetKubeConfig()
