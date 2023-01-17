@@ -15,9 +15,6 @@ OBJ_STORAGE_VZ_IMAGE_TXT=verrazzano_images.txt
 echo "Logging into Docker ..."
 echo "$OCR_CREDS_PSW" | docker login "$DOCKER_REPO" -u "$OCR_CREDS_USR" --password-stdin
 
-ls $AUTHFILE
-cat $AUTHFILE/auth.json
-
 echo "Logging into Skopeo ..."
 # docker run quay.io/skopeo/stable:latest login -u "$OCR_CREDS_USR" --password-stdin docker://"$DOCKER_REPO"
 
@@ -65,5 +62,9 @@ for value in "${IMAGES_FOUND_IN_OCR[@]}"
 do
      echo $value
 done
+
+docker run --rm quay.io/skopeo/stable:latest inspect --authfile "$AUTHFILE"/auth.json docker://"$DOCKER_REPO"/verrazzano/example-bobbys-coherence:1.0.0-1-20210728181814-eb1e622
+docker run --rm quay.io/skopeo/stable:latest inspect docker://"$DOCKER_REPO"/verrazzano/example-bobbys-coherence:1.0.0-1-20210728181814-eb1e622
+
 
 echo "Done."
