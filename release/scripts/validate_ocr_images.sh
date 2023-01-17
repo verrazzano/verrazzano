@@ -16,7 +16,7 @@ echo "Logging into Docker ..."
 echo "$OCR_CREDS_PSW" | docker login "$DOCKER_REPO" -u "$OCR_CREDS_USR" --password-stdin
 
 echo "Logging into Skopeo ..."
-docker run quay.io/skopeo/stable:latest login
+docker run quay.io/skopeo/stable:latest login "$DOCKER_REPO"
 
 # echo "Pulling images from OCR ..." 
 # while IFS= read -r line
@@ -63,12 +63,9 @@ do
      echo $value
 done
 
-docker run --rm quay.io/skopeo/stable:latest inspect --authfile "$AUTHFILE"/auth.json docker://"$DOCKER_REPO"/verrazzano/example-bobbys-coherence:1.0.0-1-20210728181814-eb1e622
-docker run --rm quay.io/skopeo/stable:latest inspect docker://"$DOCKER_REPO"/verrazzano/example-bobbys-coherence:1.0.0-1-20210728181814-eb1e622
-docker run --rm quay.io/skopeo/stable:latest inspect docker://"$DOCKER_REPO"/verrazzano/velero:v1.9.1-20220928065349-147272cf
-
-ls ~/
-ls ~/.docker/
+# docker run --rm quay.io/skopeo/stable:latest inspect --authfile "$AUTHFILE"/auth.json docker://"$DOCKER_REPO"/verrazzano/example-bobbys-coherence:1.0.0-1-20210728181814-eb1e622
+# docker run --rm quay.io/skopeo/stable:latest inspect docker://"$DOCKER_REPO"/verrazzano/example-bobbys-coherence:1.0.0-1-20210728181814-eb1e622
+# docker run --rm quay.io/skopeo/stable:latest inspect docker://"$DOCKER_REPO"/verrazzano/velero:v1.9.1-20220928065349-147272cf
 
 
 echo "Done."
