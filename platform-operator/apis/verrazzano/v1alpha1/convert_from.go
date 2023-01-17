@@ -219,10 +219,11 @@ func convertOpenSearchFromV1Beta1(in *v1beta1.OpenSearchComponent) *Elasticsearc
 		return nil
 	}
 	return &ElasticsearchComponent{
-		Enabled:  in.Enabled,
-		Policies: in.Policies,
-		Nodes:    convertOSNodesFromV1Beta1(in.Nodes),
-		Plugins:  in.Plugins,
+		Enabled:              in.Enabled,
+		Policies:             in.Policies,
+		Nodes:                convertOSNodesFromV1Beta1(in.Nodes),
+		Plugins:              in.Plugins,
+		DisableDefaultPolicy: in.DisableDefaultPolicy,
 	}
 }
 
