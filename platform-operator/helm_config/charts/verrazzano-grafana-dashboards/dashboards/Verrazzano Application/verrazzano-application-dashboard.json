@@ -15,8 +15,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 43,
-  "iteration": 1673980313112,
+  "id": 17,
+  "iteration": 1673989572888,
   "links": [],
   "panels": [
     {
@@ -80,7 +80,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{container=~\".+\"} and on (pod) \nkube_pod_labels{label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"})\n",
+          "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{container=~\".+\"} and on (pod) \nkube_pod_labels{label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"})\n",
           "interval": "",
           "legendFormat": "$component",
           "refId": "A"
@@ -178,7 +178,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(max(container_memory_working_set_bytes{container!=\"\", image!=\"\"}  and on (pod)\nkube_pod_labels{label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}) by (container))",
+          "expr": "sum(max(container_memory_working_set_bytes{container!=\"\", image!=\"\"}  and on (pod)\nkube_pod_labels{label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}) by (container))",
           "interval": "",
           "intervalFactor": 2,
           "legendFormat": "$component",
@@ -494,7 +494,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(istio_requests_total[1m]) and on (destination_service_name) label_replace(kube_service_labels{label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\"))",
+          "expr": "sum(rate(istio_requests_total[1m]) and on (destination_service_name) label_replace(kube_service_labels{label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\"))",
           "interval": "",
           "legendFormat": "$component",
           "refId": "A"
@@ -588,7 +588,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(istio_requests_total{response_code=~\"5.*\"}[1m]) and on (destination_service_name) label_replace(kube_service_labels{label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\"))",
+          "expr": "sum(rate(istio_requests_total{response_code=~\"5.*\"}[1m]) and on (destination_service_name) label_replace(kube_service_labels{label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\"))",
           "interval": "",
           "legendFormat": "$component",
           "refId": "A"
@@ -682,7 +682,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(istio_request_duration_milliseconds_sum and on (destination_service_name) label_replace(kube_service_labels{label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\")) / sum(istio_request_duration_milliseconds_count and on (destination_service_name) label_replace(kube_service_labels{label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\"))",
+          "expr": "sum(istio_request_duration_milliseconds_sum and on (destination_service_name) label_replace(kube_service_labels{label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\")) / sum(istio_request_duration_milliseconds_count and on (destination_service_name) label_replace(kube_service_labels{label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\"))",
           "interval": "",
           "legendFormat": "$component",
           "refId": "A"
