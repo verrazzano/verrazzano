@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package metricstrait
@@ -7,12 +7,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"testing"
+	"time"
+
+	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"testing"
-	"time"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -320,7 +322,7 @@ func TestWorkloadFetchError(t *testing.T) {
 			ObjectMeta: k8smeta.ObjectMeta{
 				Namespace: "test-namespace",
 				Name:      "test-trait-name",
-				Labels:    map[string]string{appObjectMetaLabel: "test-app", compObjectMetaLabel: "test-comp"},
+				Labels:    map[string]string{oam.LabelAppName: "test-app", oam.LabelAppComponent: "test-comp"},
 			},
 			Spec: vzapi.MetricsTraitSpec{
 				WorkloadReference: oamrt.TypedReference{
@@ -377,8 +379,8 @@ func TestDeploymentUpdateError(t *testing.T) {
 				Namespace: name.Namespace,
 				Name:      name.Name,
 				Labels: map[string]string{
-					appObjectMetaLabel:  "test-app",
-					compObjectMetaLabel: "test-comp",
+					oam.LabelAppName:      "test-app",
+					oam.LabelAppComponent: "test-comp",
 				}}
 			trait.Spec.WorkloadReference = oamrt.TypedReference{
 				APIVersion: oamcore.SchemeGroupVersion.Identifier(),
@@ -500,7 +502,7 @@ func TestUnsupportedWorkloadType(t *testing.T) {
 			ObjectMeta: k8smeta.ObjectMeta{
 				Namespace: "test-namespace",
 				Name:      "test-trait-name",
-				Labels:    map[string]string{appObjectMetaLabel: "test-app", compObjectMetaLabel: "test-comp"},
+				Labels:    map[string]string{oam.LabelAppName: "test-app", oam.LabelAppComponent: "test-comp"},
 			},
 			Spec: vzapi.MetricsTraitSpec{
 				WorkloadReference: oamrt.TypedReference{
@@ -881,8 +883,8 @@ func TestCreateScrapeConfigFromTrait(t *testing.T) {
 			vzapi.MetricsTrait{
 				ObjectMeta: k8smeta.ObjectMeta{
 					Labels: map[string]string{
-						appObjectMetaLabel:  foo,
-						compObjectMetaLabel: bar,
+						oam.LabelAppName:      foo,
+						oam.LabelAppComponent: bar,
 					},
 				},
 			},
@@ -900,7 +902,7 @@ func TestCreateScrapeConfigFromTrait(t *testing.T) {
 			vzapi.MetricsTrait{
 				ObjectMeta: k8smeta.ObjectMeta{
 					Labels: map[string]string{
-						compObjectMetaLabel: bar,
+						oam.LabelAppComponent: bar,
 					},
 				},
 			},
@@ -918,7 +920,7 @@ func TestCreateScrapeConfigFromTrait(t *testing.T) {
 			vzapi.MetricsTrait{
 				ObjectMeta: k8smeta.ObjectMeta{
 					Labels: map[string]string{
-						appObjectMetaLabel: foo,
+						oam.LabelAppName: foo,
 					},
 				},
 			},
@@ -936,8 +938,8 @@ func TestCreateScrapeConfigFromTrait(t *testing.T) {
 			vzapi.MetricsTrait{
 				ObjectMeta: k8smeta.ObjectMeta{
 					Labels: map[string]string{
-						appObjectMetaLabel:  foo,
-						compObjectMetaLabel: bar,
+						oam.LabelAppName:      foo,
+						oam.LabelAppComponent: bar,
 					},
 				},
 			},
@@ -955,8 +957,8 @@ func TestCreateScrapeConfigFromTrait(t *testing.T) {
 			vzapi.MetricsTrait{
 				ObjectMeta: k8smeta.ObjectMeta{
 					Labels: map[string]string{
-						appObjectMetaLabel:  foo,
-						compObjectMetaLabel: bar,
+						oam.LabelAppName:      foo,
+						oam.LabelAppComponent: bar,
 					},
 				},
 			},
@@ -971,8 +973,8 @@ func TestCreateScrapeConfigFromTrait(t *testing.T) {
 			vzapi.MetricsTrait{
 				ObjectMeta: k8smeta.ObjectMeta{
 					Labels: map[string]string{
-						appObjectMetaLabel:  foo,
-						compObjectMetaLabel: bar,
+						oam.LabelAppName:      foo,
+						oam.LabelAppComponent: bar,
 					},
 				},
 			},
@@ -1013,8 +1015,8 @@ func TestRemovedTraitReferencesFromOwner(t *testing.T) {
 	testTrait := vzapi.MetricsTrait{
 		ObjectMeta: k8smeta.ObjectMeta{
 			Labels: map[string]string{
-				appObjectMetaLabel:  foo,
-				compObjectMetaLabel: bar,
+				oam.LabelAppName:      foo,
+				oam.LabelAppComponent: bar,
 			},
 		},
 	}
@@ -1282,8 +1284,8 @@ func TestUpdatePrometheusScraperConfigMap(t *testing.T) {
 	testTrait := vzapi.MetricsTrait{
 		ObjectMeta: k8smeta.ObjectMeta{
 			Labels: map[string]string{
-				appObjectMetaLabel:  foo,
-				compObjectMetaLabel: bar,
+				oam.LabelAppName:      foo,
+				oam.LabelAppComponent: bar,
 			},
 		},
 		Spec: vzapi.MetricsTraitSpec{Port: &port, Path: &path},
@@ -1407,7 +1409,7 @@ func containerizedWorkloadClient(deleting, deploymentDeleted, traitDisabled bool
 		ObjectMeta: k8smeta.ObjectMeta{
 			Namespace: testNamespace,
 			Name:      "test-trait-name",
-			Labels:    map[string]string{appObjectMetaLabel: "test-app", compObjectMetaLabel: "test-comp"},
+			Labels:    map[string]string{oam.LabelAppName: "test-app", oam.LabelAppComponent: "test-comp"},
 		},
 		Spec: vzapi.MetricsTraitSpec{
 			WorkloadReference: oamrt.TypedReference{
@@ -1517,7 +1519,7 @@ func deploymentWorkloadClient(deleting bool) client.WithWatch {
 		ObjectMeta: k8smeta.ObjectMeta{
 			Namespace: testNamespace,
 			Name:      "test-trait-name",
-			Labels:    map[string]string{appObjectMetaLabel: "test-app", compObjectMetaLabel: "test-comp"},
+			Labels:    map[string]string{oam.LabelAppName: "test-app", oam.LabelAppComponent: "test-comp"},
 		},
 		Spec: vzapi.MetricsTraitSpec{
 			WorkloadReference: oamrt.TypedReference{
@@ -1600,7 +1602,7 @@ func wlsWorkloadClient(deleting bool) client.WithWatch {
 		ObjectMeta: k8smeta.ObjectMeta{
 			Namespace: testNamespace,
 			Name:      "test-trait-name",
-			Labels:    map[string]string{appObjectMetaLabel: "test-app", compObjectMetaLabel: "test-comp"},
+			Labels:    map[string]string{oam.LabelAppName: "test-app", oam.LabelAppComponent: "test-comp"},
 		},
 		Spec: vzapi.MetricsTraitSpec{
 			WorkloadReference: oamrt.TypedReference{
@@ -1726,7 +1728,7 @@ func cohWorkloadClient(deleting bool, portNum int, ports ...int) client.WithWatc
 		ObjectMeta: k8smeta.ObjectMeta{
 			Namespace: testNamespace,
 			Name:      "test-trait-name",
-			Labels:    map[string]string{appObjectMetaLabel: "test-app", compObjectMetaLabel: "test-comp"},
+			Labels:    map[string]string{oam.LabelAppName: "test-app", oam.LabelAppComponent: "test-comp"},
 		},
 		Spec: vzapi.MetricsTraitSpec{
 			WorkloadReference: oamrt.TypedReference{
