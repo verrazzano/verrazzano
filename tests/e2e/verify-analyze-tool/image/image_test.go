@@ -7,6 +7,7 @@ package image
 
 import (
 	"context"
+	"fmt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	k8util "github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -114,8 +115,9 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 
 // utility method to run vz analyze and deliver its report
 func RunVzAnalyze() (string, error) {
-	cmd := exec.Command("vz", "analyze")
+	cmd := exec.Command("./vz", "analyze")
 	if goRepoPath := os.Getenv("GO_REPO_PATH"); goRepoPath != "" {
+		fmt.Println("goRepoPath : ", goRepoPath)
 		cmd.Dir = goRepoPath
 	}
 	out, err := cmd.Output()
