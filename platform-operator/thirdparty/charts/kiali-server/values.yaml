@@ -71,6 +71,7 @@ deployment:
       memory: "1Gi"
   secret_name: "kiali"
   security_context: {}
+  pod_security_context: {}
   service_annotations: {}
   service_type: ""
   tolerations: []

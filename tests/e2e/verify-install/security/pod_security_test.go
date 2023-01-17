@@ -39,7 +39,11 @@ var skipPods = map[string][]string{
 	},
 	"verrazzano-system": {
 		"coherence-operator",
-		"vmi-system",
+		"vmi-system-es-master",
+		"vmi-system-es-data",
+		"vmi-system-es-ingest",
+		"vmi-system-osd",
+		"vmi-system-grafana",
 		"weblogic-operator",
 	},
 	"verrazzano-backup": {
