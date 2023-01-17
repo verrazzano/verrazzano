@@ -41,7 +41,7 @@ while IFS= read -r line
 do  
     VZ_IMAGE_NAME=$(echo "$line")
     # INSPECT_EXIT_CODE=$(docker run quay.io/skopeo/stable:latest inspect docker://"$DOCKER_REPO"/"$VZ_IMAGE_NAME")
-    INSPECT_EXIT_CODE=$(docker run --rm quay.io/skopeo/stable:latest --authfile "$AUTHFILE"/auth.json inspect docker://"$DOCKER_REPO"/"$VZ_IMAGE_NAME")
+    INSPECT_EXIT_CODE=$(docker run --rm quay.io/skopeo/stable:latest inspect --authfile "$AUTHFILE"/auth.json docker://"$DOCKER_REPO"/"$VZ_IMAGE_NAME")
     if [[ $? -eq 0 ]]; then
         IMAGES_FOUND_IN_OCR+=("$VZ_IMAGE_NAME")
     else
