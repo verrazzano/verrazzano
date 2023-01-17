@@ -45,9 +45,9 @@ var skipPods = map[string][]string{
 	"verrazzano-backup": {
 		"restic",
 	},
-    "cert-manager": {
-        "external-dns",
-    },
+	"cert-manager": {
+		"external-dns",
+	},
 }
 
 var skipContainers = []string{"jaeger-collector", "jaeger-query", "jaeger-agent"}
