@@ -44,7 +44,7 @@ crds:
 global:
   # -- Common labels for the all resources
   additionalLabels: {}
-    # app: argo-cd
+  # app: argo-cd
 
   # -- Number of old deployment ReplicaSets to retain. The rest will be garbage collected.
   revisionHistoryLimit: 3
@@ -82,10 +82,13 @@ global:
 
   # -- Toggle and define pod-level security context.
   # @default -- `{}` (See [values.yaml])
-  securityContext: {}
-  #  runAsUser: 999
-  #  runAsGroup: 999
-  #  fsGroup: 999
+  securityContext:
+    runAsUser: 1001
+    runAsGroup: 1001
+    fsGroup: 1001
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
 
   # -- Mapping between IP and hostnames that will be injected as entries in the pod's hosts files
   hostAliases: []
@@ -253,7 +256,7 @@ configs:
       # 4AEE18F83AFDEB23: |
       #   -----BEGIN PGP PUBLIC KEY BLOCK-----
       #   ...
-      #   -----END PGP PUBLIC KEY BLOCK-----
+    #   -----END PGP PUBLIC KEY BLOCK-----
 
 
   # -- Provide one or multiple [external cluster credentials]
@@ -281,7 +284,7 @@ configs:
     #     bearerToken: "<authentication token>"
     #     tlsClientConfig:
     #       insecure: false
-    #       caData: "<base64 encoded certificate>"
+  #       caData: "<base64 encoded certificate>"
 
   # -- Known Hosts configmap annotations
   knownHostsAnnotations: {}
@@ -340,7 +343,7 @@ configs:
     #     9w6CwG32pRlm0c8kkiQ7FXA6BYCqOsDI8f1VGQv331OpR2Ck+FTv+L7DAmg6l37W
     #     +LB9LGh4OAp68ImTjqf6ioGKG0RBSznwME+r4nXtT1S/qLR6ASWUS4ViWRhbRlNK
     #     XWyb96wrUlv+E8I=
-    #     -----END CERTIFICATE-----
+  #     -----END CERTIFICATE-----
 
   # -- Repository credentials to be used as Templates for other repos
   ## Creates a secret for each key/value specified below to create repository credentials
@@ -363,7 +366,7 @@ configs:
     #  sshPrivateKey: |
     #    -----BEGIN OPENSSH PRIVATE KEY-----
     #    ...
-    #    -----END OPENSSH PRIVATE KEY-----
+  #    -----END OPENSSH PRIVATE KEY-----
 
   # -- Annotations to be added to `configs.credentialTemplates` Secret
   credentialTemplatesAnnotations: {}
@@ -383,7 +386,7 @@ configs:
     #   password: my-password
     #   username: my-username
     # private-repo:
-    #   url: https://github.com/argoproj/private-repo
+  #   url: https://github.com/argoproj/private-repo
 
   # -- Annotations to be added to `configs.repositories` Secret
   repositoriesAnnotations: {}
@@ -413,7 +416,7 @@ configs:
     ## Note that all values must be non-empty.
     extra:
       {}
-      # LDAP_PASSWORD: "mypassword"
+    # LDAP_PASSWORD: "mypassword"
 
     # -- Argo TLS Data
     # DEPRECATED - Use server.certificate or server.certificateSecret
@@ -465,7 +468,7 @@ extraObjects: []
   #       secretName: argocd-secrets-store
   #       type: Opaque
   #       labels:
-  #         app.kubernetes.io/part-of: argocd
+#         app.kubernetes.io/part-of: argocd
 
 ## Application controller
 controller:
@@ -558,6 +561,7 @@ controller:
   # -- Application controller container-level security context
   # @default -- See [values.yaml]
   containerSecurityContext:
+    privileged: false
     runAsNonRoot: true
     readOnlyRootFilesystem: true
     allowPrivilegeEscalation: false
@@ -565,7 +569,9 @@ controller:
       type: RuntimeDefault
     capabilities:
       drop:
-      - ALL
+        - ALL
+      add:
+        - NET_BIND_SERVICE
 
   # -- Application controller listening port
   containerPort: 8082
@@ -660,7 +666,7 @@ controller:
       metricRelabelings: []
       # -- Prometheus ServiceMonitor selector
       selector: {}
-        # prometheus: kube-prometheus
+      # prometheus: kube-prometheus
 
       # -- Prometheus ServiceMonitor scheme
       scheme: ""
@@ -772,7 +778,7 @@ dex:
       metricRelabelings: []
       # -- Prometheus ServiceMonitor selector
       selector: {}
-        # prometheus: kube-prometheus
+      # prometheus: kube-prometheus
 
       # -- Prometheus ServiceMonitor scheme
       scheme: ""
@@ -874,7 +880,7 @@ dex:
       type: RuntimeDefault
     capabilities:
       drop:
-      - ALL
+        - ALL
 
   ## Probes for Dex server
   ## Supported from Dex >= 2.28.0
@@ -1054,17 +1060,21 @@ redis:
   # @default -- See [values.yaml]
   securityContext:
     runAsNonRoot: true
-    runAsUser: 999
+    runAsUser: 1001
+    runAsGroup: 1001
     seccompProfile:
       type: RuntimeDefault
 
   # -- Redis container-level security context
   # @default -- See [values.yaml]
   containerSecurityContext:
+    privileged: false
     allowPrivilegeEscalation: false
     capabilities:
       drop:
-      - ALL
+        - ALL
+      add:
+        - NET_BIND_SERVICE
 
   # -- [Node selector]
   nodeSelector: {}
@@ -1156,7 +1166,7 @@ redis:
         type: RuntimeDefault
       capabilities:
         drop:
-        - ALL
+          - ALL
 
     # -- Resource limits and requests for redis-exporter sidecar
     resources: {}
@@ -1165,7 +1175,7 @@ redis:
       #   memory: 64Mi
       # requests:
       #   cpu: 10m
-      #   memory: 32Mi
+    #   memory: 32Mi
     service:
       # -- Metrics service type
       type: ClusterIP
@@ -1190,7 +1200,7 @@ redis:
       metricRelabelings: []
       # -- Prometheus ServiceMonitor selector
       selector: {}
-        # prometheus: kube-prometheus
+      # prometheus: kube-prometheus
 
       # -- Prometheus ServiceMonitor scheme
       scheme: ""
@@ -1299,7 +1309,7 @@ server:
       #   policies:
       #   - type: Pods
       #     value: 2
-      #     periodSeconds: 60
+    #     periodSeconds: 60
 
   ## Argo CD server Pod Disruption Budget
   ## Ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
@@ -1425,11 +1435,14 @@ server:
     runAsNonRoot: true
     readOnlyRootFilesystem: true
     allowPrivilegeEscalation: false
+    privileged: false
     seccompProfile:
       type: RuntimeDefault
     capabilities:
       drop:
-      - ALL
+        - ALL
+      add:
+        - NET_BIND_SERVICE
 
   # -- Resource limits and requests for the Argo CD server
   resources: {}
@@ -1552,7 +1565,7 @@ server:
       metricRelabelings: []
       # -- Prometheus ServiceMonitor selector
       selector: {}
-        # prometheus: kube-prometheus
+      # prometheus: kube-prometheus
 
       # -- Prometheus ServiceMonitor scheme
       scheme: ""
@@ -1593,7 +1606,7 @@ server:
     ## Secrets must be manually created in the namespace
     hosts:
       []
-      # - argocd.example.com
+    # - argocd.example.com
 
     # -- List of ingress paths
     paths:
@@ -1614,14 +1627,14 @@ server:
       #     service:
       #       name: ssl-redirect
       #       port:
-      #         name: use-annotation
+    #         name: use-annotation
 
     # -- Ingress TLS configuration
     tls:
       []
       # - secretName: your-certificate-name
       #   hosts:
-      #     - argocd.example.com
+    #     - argocd.example.com
 
     # -- Uses `server.service.servicePortHttps` instead `server.service.servicePortHttp`
     https: false
@@ -1659,7 +1672,7 @@ server:
     ##
     hosts:
       []
-      # - argocd.example.com
+    # - argocd.example.com
 
     # -- List of ingress paths for dedicated [gRPC-ingress]
     paths:
@@ -1680,14 +1693,14 @@ server:
       #     service:
       #       name: ssl-redirect
       #       port:
-      #         name: use-annotation
+    #         name: use-annotation
 
     # -- Ingress TLS configuration for dedicated [gRPC-ingress]
     tls:
       []
       # - secretName: your-certificate-name
       #   hosts:
-      #     - argocd.example.com
+    #     - argocd.example.com
 
     # -- Uses `server.service.servicePortHttps` instead `server.service.servicePortHttp`
     https: false
@@ -1732,7 +1745,7 @@ server:
     enabled: false
     # -- Domains for the Google Managed Certificate
     domains:
-    - argocd.example.com
+      - argocd.example.com
 
   ## Create a Google FrontendConfig Custom Resource, for use with the GKE Ingress Controller
   ## https://cloud.google.com/kubernetes-engine/docs/how-to/ingress-features#configuring_ingress_features_through_frontendconfig_parameters
@@ -1810,13 +1823,15 @@ server:
     containerSecurityContext:
       runAsNonRoot: true
       readOnlyRootFilesystem: true
+      privileged: false
       allowPrivilegeEscalation: false
       seccompProfile:
         type: RuntimeDefault
       capabilities:
         drop:
-        - ALL
-
+          - ALL
+        add:
+          - NET_BIND_SERVICE
     # -- Resource limits and requests for the argocd-extensions container
     resources: {}
     #  limits:
@@ -1860,7 +1875,7 @@ repoServer:
       #   policies:
       #   - type: Pods
       #     value: 2
-      #     periodSeconds: 60
+    #     periodSeconds: 60
 
   ## Repo server Pod Disruption Budget
   ## Ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
@@ -1987,12 +2002,15 @@ repoServer:
   containerSecurityContext:
     runAsNonRoot: true
     readOnlyRootFilesystem: true
+    privileged: false
     allowPrivilegeEscalation: false
     seccompProfile:
       type: RuntimeDefault
     capabilities:
       drop:
-      - ALL
+        - ALL
+      add:
+        - NET_BIND_SERVICE
 
   # -- Resource limits and requests for the repo server pods
   resources: {}
@@ -2055,7 +2073,7 @@ repoServer:
       metricRelabelings: []
       # -- Prometheus ServiceMonitor selector
       selector: {}
-        # prometheus: kube-prometheus
+      # prometheus: kube-prometheus
 
       # -- Prometheus ServiceMonitor scheme
       scheme: ""
@@ -2213,7 +2231,7 @@ applicationSet:
       metricRelabelings: []
       # -- Prometheus ServiceMonitor selector
       selector: {}
-        # prometheus: kube-prometheus
+      # prometheus: kube-prometheus
 
       # -- Prometheus ServiceMonitor scheme
       scheme: ""
@@ -2262,12 +2280,15 @@ applicationSet:
   containerSecurityContext:
     runAsNonRoot: true
     readOnlyRootFilesystem: true
+    privileged: false
     allowPrivilegeEscalation: false
     seccompProfile:
       type: RuntimeDefault
     capabilities:
       drop:
-      - ALL
+        - ALL
+      add:
+        - NET_BIND_SERVICE
 
   ## Probes for ApplicationSet controller (optional)
   ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/
@@ -2310,7 +2331,7 @@ applicationSet:
     #   memory: 128Mi
     # requests:
     #   cpu: 100m
-    #   memory: 128Mi
+  #   memory: 128Mi
 
   # -- [Node selector]
   nodeSelector: {}
@@ -2327,12 +2348,12 @@ applicationSet:
   # -- List of extra mounts to add (normally used with extraVolumes)
   extraVolumeMounts: []
     # - mountPath: /tmp/foobar
-    #   name: foobar
+  #   name: foobar
 
   # -- List of extra volumes to add
   extraVolumes: []
     # - name: foobar
-    #   emptyDir: {}
+  #   emptyDir: {}
 
   # -- List of extra cli args to add
   extraArgs: []
@@ -2340,7 +2361,7 @@ applicationSet:
   # -- Environment variables to pass to the controller
   extraEnv: []
     # - name: "MY_VAR"
-    #   value: "value"
+  #   value: "value"
 
   # -- envFrom to pass to the controller
   # @default -- `[]` (See [values.yaml])
@@ -2348,7 +2369,7 @@ applicationSet:
     # - configMapRef:
     #     name: config-map-name
     # - secretRef:
-    #     name: secret-name
+  #     name: secret-name
 
   ## Webhook for the Git Generator
   ## Ref: https://argocd-applicationset.readthedocs.io/en/master/Generators-Git/#webhook-configuration)
@@ -2367,7 +2388,7 @@ applicationSet:
       ## Hostnames must be provided if Ingress is enabled.
       ## Secrets must be manually created in the namespace
       hosts: []
-        # - argocd-applicationset.example.com
+      # - argocd-applicationset.example.com
 
       # -- List of ingress paths
       paths:
@@ -2387,13 +2408,13 @@ applicationSet:
         #     service:
         #       name: ssl-redirect
         #       port:
-        #         name: use-annotation
+      #         name: use-annotation
 
       # -- Ingress TLS configuration
       tls: []
         # - secretName: argocd-applicationset-tls
         #   hosts:
-        #     - argocd-applicationset.example.com
+      #     - argocd-applicationset.example.com
 
 ## Notifications controller
 notifications:
@@ -2448,7 +2469,7 @@ notifications:
   ## For more information: https://argocd-notifications.readthedocs.io/en/stable/templates/#defining-user-defined-context
   context: {}
     # region: east
-    # environmentName: staging
+  # environmentName: staging
 
   secret:
     # -- Whether helm chart creates controller secret
@@ -2471,7 +2492,7 @@ notifications:
 
       # email-username:
       # email-password:
-        # For more information: https://argocd-notifications.readthedocs.io/en/stable/services/email/
+    # For more information: https://argocd-notifications.readthedocs.io/en/stable/services/email/
 
   # -- Application controller log format. Either `text` or `json`
   # @default -- `""` (defaults to global.logging.format)
@@ -2492,17 +2513,17 @@ notifications:
     # - configMapRef:
     #     name: config-map-name
     # - secretRef:
-    #     name: secret-name
+  #     name: secret-name
 
   # -- List of extra mounts to add (normally used with extraVolumes)
   extraVolumeMounts: []
     # - mountPath: /tmp/foobar
-    #   name: foobar
+  #   name: foobar
 
   # -- List of extra volumes to add
   extraVolumes: []
     # - name: foobar
-    #   emptyDir: {}
+  #   emptyDir: {}
 
   metrics:
     # -- Enables prometheus metrics server
@@ -2521,7 +2542,7 @@ notifications:
       enabled: false
       # -- Prometheus ServiceMonitor selector
       selector: {}
-        # prometheus: kube-prometheus
+      # prometheus: kube-prometheus
       # -- Prometheus ServiceMonitor labels
       additionalLabels: {}
       # -- Prometheus ServiceMonitor annotations
@@ -2539,7 +2560,7 @@ notifications:
   ## For more information: https://argocd-notifications.readthedocs.io/en/stable/services/overview/
   notifiers: {}
     # service.slack: |
-    #   token: $slack-token
+  #   token: $slack-token
 
   # -- Annotations to be applied to the notifications controller Deployment
   deploymentAnnotations: {}
@@ -2555,12 +2576,15 @@ notifications:
   containerSecurityContext:
     runAsNonRoot: true
     readOnlyRootFilesystem: true
+    privileged: false
     allowPrivilegeEscalation: false
     seccompProfile:
       type: RuntimeDefault
     capabilities:
       drop:
-      - ALL
+        - ALL
+      add:
+        - NET_BIND_SERVICE
 
   # -- Priority class for the controller pods
   priorityClassName: ""
@@ -2572,7 +2596,7 @@ notifications:
     #   memory: 128Mi
     # requests:
     #   cpu: 100m
-    #   memory: 128Mi
+  #   memory: 128Mi
 
   serviceAccount:
     # -- Specifies whether a service account should be created
@@ -2605,7 +2629,7 @@ notifications:
     #   - slack:test3
     #   selector: test=true
     #   triggers:
-    #   - on-sync-status-unknown
+  #   - on-sync-status-unknown
 
   # -- The notification template is used to generate the notification content
   ## For more information: https://argocd-notifications.readthedocs.io/en/stable/templates/
@@ -2822,7 +2846,7 @@ notifications:
     #         }
     #         {{end}}
     #         ]
-    #       }]
+  #       }]
 
   # -- [Tolerations] for use with node taints
   tolerations: []
@@ -2864,7 +2888,7 @@ notifications:
     #
     # For more information: https://argocd-notifications.readthedocs.io/en/stable/triggers/#default-triggers
     # defaultTriggers: |
-    #   - on-sync-status-unknown
+  #   - on-sync-status-unknown
 
   ## The optional bot component simplifies managing subscriptions
   ## For more information: https://argocd-notifications.readthedocs.io/en/stable/bots/overview/
@@ -2935,7 +2959,7 @@ notifications:
           type: RuntimeDefault
         capabilities:
           drop:
-          - ALL
+            - ALL
 
       # -- Resource limits and requests for the Slack bot
       resources: {}
