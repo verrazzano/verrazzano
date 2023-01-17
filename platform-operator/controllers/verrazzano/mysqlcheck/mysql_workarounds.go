@@ -128,14 +128,14 @@ func RepairICStuckDeleting(ctx spi.ComponentContext) error {
 	// Found an IC object with a deletion timestamp. Start a timer if this is the first time.
 	if getInitialTimeICUninstallChecked().IsZero() {
 		setInitialTimeICUninstallChecked(time.Now())
-		ctx.Log().Debugf("Starting check to insure the InnoDBCluster %s/%s is not stuck deleting", componentNamespace, helmReleaseName)
+		ctx.Log().Debugf("Starting check to insure the InnoDBCluster %s/%s is not stuck deleting", innoDBCluster.GetNamespace(), innoDBCluster.GetName())
 		return nil
 	}
 
 	// Initiate repair only if time to wait period has been exceeded
 	expiredTime := getInitialTimeICUninstallChecked().Add(GetMySQLChecker().RepairTimeout)
 	if time.Now().After(expiredTime) {
-		msg := fmt.Sprintf("InnoDBCluster stuck deleting for a minimum of %s", GetMySQLChecker().RepairTimeout.String())
+		msg := fmt.Sprintf("InnoDBCluster %s/%s is stuck deleting for a minimum of %s", innoDBCluster.GetNamespace(), innoDBCluster.GetName(), GetMySQLChecker().RepairTimeout.String())
 		createEvent(ctx.Log(), ctx.Client(), innoDBCluster, alertInnoDBCluster, reasonStuckDeleting, msg)
 		return restartMySQLOperator(ctx.Log(), ctx.Client(), msg)
 	}
@@ -247,18 +247,16 @@ func (mc *MySQLChecker) RepairMySQLPodStuckTerminating() error {
 		return nil
 	}
 
-	foundPodsDeleting := false
-	podStuckDeleting := v1.Pod{}
+	var podsDeleting []v1.Pod
 	for i := range podList.Items {
 		pod := podList.Items[i]
 		if !pod.GetDeletionTimestamp().IsZero() {
-			foundPodsDeleting = true
-			podStuckDeleting = pod
+			podsDeleting = append(podsDeleting, pod)
 			break
 		}
 	}
 
-	if foundPodsDeleting {
+	if len(podsDeleting) > 0 {
 		// First time through start a timer
 		if getInitialTimeMySQLPodsStuckChecked().IsZero() {
 			setInitialTimeMySQLPodsStuckChecked(time.Now())
@@ -269,7 +267,9 @@ func (mc *MySQLChecker) RepairMySQLPodStuckTerminating() error {
 		// Initiate repair only if time to wait period has been exceeded
 		expiredTime := getInitialTimeMySQLPodsStuckChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
-			mc.logEvent(podStuckDeleting, alertPodStuckTerminating, reasonStuckTerminating, fmt.Sprintf("Pod stuck deleting for a minimum of %s", mc.RepairTimeout.String()))
+			for i, pod := range podsDeleting {
+				mc.logEvent(podsDeleting[i], alertPodStuckTerminating, reasonStuckTerminating, fmt.Sprintf("Pod %s/%s stuck deleting for a minimum of %s", pod.Namespace, pod.Name, mc.RepairTimeout.String()))
+			}
 			if err := restartMySQLOperator(mc.log, mc.client, "MySQL pods stuck terminating"); err != nil {
 				return err
 			}
