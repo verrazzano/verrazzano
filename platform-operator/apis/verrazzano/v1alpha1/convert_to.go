@@ -293,10 +293,11 @@ func convertOpenSearchToV1Beta1(src *ElasticsearchComponent) (*v1beta1.OpenSearc
 		return nil, err
 	}
 	return &v1beta1.OpenSearchComponent{
-		Enabled:  src.Enabled,
-		Policies: src.Policies,
-		Nodes:    nodes,
-		Plugins:  src.Plugins,
+		Enabled:              src.Enabled,
+		Policies:             src.Policies,
+		Nodes:                nodes,
+		Plugins:              src.Plugins,
+		DisableDefaultPolicy: src.DisableDefaultPolicy,
 	}, nil
 }
 
