@@ -36,7 +36,7 @@ const (
 	wlsUser        = "weblogic"
 	wlDomain       = "hellodomain"
 	wlsAdminServer = "hellodomain-adminserver"
-	trait          = "hellodomain-trait"
+	trait          = "hello-domain-trait"
 	gateway        = "hello-appconf-gw"
 
 	helloDomainRepoCreds     = "hellodomain-repo-credentials"
