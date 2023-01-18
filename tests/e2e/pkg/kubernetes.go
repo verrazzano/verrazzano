@@ -332,7 +332,7 @@ func GetVirtualServiceList(namespace string) (*istionetv1beta1.VirtualServiceLis
 	}
 	VirtualServiceList, err := clientSet.NetworkingV1beta1().VirtualServices(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		Log(Info, fmt.Sprintf("Failed to get Gateways in namespace %s: %v ", namespace, err))
+		Log(Error, fmt.Sprintf("Failed to get Gateways in namespace %s: %v ", namespace, err))
 		return nil, err
 	}
 	return VirtualServiceList, nil
