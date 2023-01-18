@@ -204,7 +204,7 @@ The `prometheus-community/prometheus-node-exporter` folder was created by runnin
 export PROMETHEUS_NODE_EXPORTER_CHART_VERSION=3.1.0
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
-rm -rf prometheus-community
+rm -rf prometheus-community/prometheus-node-exporter 
 helm fetch prometheus-community/prometheus-node-exporter --untar=true --version=${PROMETHEUS_NODE_EXPORTER_CHART_VERSION}
 ```
 
