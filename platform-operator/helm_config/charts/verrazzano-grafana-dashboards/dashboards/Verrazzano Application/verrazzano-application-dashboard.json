@@ -15,8 +15,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 69,
-  "iteration": 1674068646757,
+  "id": 70,
+  "iteration": 1674069174741,
   "links": [],
   "panels": [
     {
@@ -743,9 +743,9 @@
       {
         "allValue": null,
         "current": {
-          "selected": false,
-          "text": "All",
-          "value": "All"
+          "selected": true,
+          "text": "local",
+          "value": "local"
         },
         "datasource": null,
         "definition": "label_values(verrazzano_cluster)",
@@ -816,7 +816,7 @@
       {
         "allValue": null,
         "current": {
-          "selected": false,
+          "selected": true,
           "text": [
             "All"
           ],
@@ -858,5 +858,5 @@
   "timezone": "",
   "title": "Application Status",
   "uid": "gwdOx4h4z4345er",
-  "version": 11
+  "version": 1
 }
