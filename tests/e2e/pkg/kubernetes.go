@@ -312,8 +312,12 @@ func DoesVirtualServiceExist(namespace string, name string) (bool, error) {
 		Log(Error, fmt.Sprintf("Failed to list VirtualServices from namespace %s: %v", namespace, err))
 		return false, err
 	}
-	for i := range services.Items {
-		if strings.HasPrefix(services.Items[i].Name, name) {
+
+	// Verify that the virtual services contain the expected environment name
+	for _, virtualService := range services.Items {
+		service := virtualService.Name
+		Log(Info, "Checking service: "+service)
+		if strings.Contains(service, name) {
 			return true, nil
 		}
 	}
@@ -329,7 +333,7 @@ func GetVirtualServiceList(namespace string) (*istionetv1beta1.VirtualServiceLis
 	}
 	VirtualServiceList, err := clientSet.NetworkingV1beta1().VirtualServices(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get Gateways in namespace %s: %v ", namespace, err))
+		Log(Info, fmt.Sprintf("Failed to get Gateways in namespace %s: %v ", namespace, err))
 		return nil, err
 	}
 	return VirtualServiceList, nil
