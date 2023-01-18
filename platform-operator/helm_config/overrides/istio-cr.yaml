@@ -1,4 +1,4 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: install.istio.io/v1alpha1
@@ -9,38 +9,30 @@ spec:
     egressGateways:
       - name: istio-egressgateway
         enabled: true
+        k8s:
+          securityContext:
+            runAsUser: 1337
+            runAsGroup: 1337
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+    ingressGateways:
+      - name: istio-ingressgateway
+        k8s:
+          securityContext:
+            runAsUser: 1337
+            runAsGroup: 1337
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+    pilot:
+      k8s:
         securityContext:
           runAsUser: 1337
           runAsGroup: 1337
           runAsNonRoot: true
-          privileged: false
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
-          capabilities:
-            drop:
-              - ALL
-    ingressGateways:
-      - securityContext:
-          runAsUser: 1337
-          runAsGroup: 1337
-          runAsNonRoot: true
-          privileged: false
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
-          capabilities:
-            drop:
-              - ALL
-    pilot:
-      - securityContext:
-          runAsUser: 1337
-          runAsGroup: 1337
-          runAsNonRoot: true
-          privileged: false
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
-          capabilities:
-            drop:
-              - ALL
+          seccompProfile:
+            type: RuntimeDefault
 
   # Global values passed through to helm global.yaml.
   # Please keep this in sync with manifests/charts/global.yaml
@@ -62,6 +54,16 @@ spec:
 
     pilot:
       autoscaleEnabled: false
+      securityContext:
+        runAsUser: 1337
+        runAsGroup: 1337
+        runAsNonRoot: true
+        privileged: false
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
 
     gateways:
       istio-egressgateway:
@@ -69,8 +71,28 @@ spec:
           # Needed to route traffic via egress gateway if desired.
           ISTIO_META_REQUESTED_NETWORK_VIEW: "external"
         autoscaleEnabled: false
+        securityContext:
+          runAsUser: 1337
+          runAsGroup: 1337
+          runAsNonRoot: true
+          privileged: false
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
       istio-ingressgateway:
         autoscaleEnabled: false
+        securityContext:
+          runAsUser: 1337
+          runAsGroup: 1337
+          runAsNonRoot: true
+          privileged: false
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
 
     meshConfig:
       enablePrometheusMerge: false
