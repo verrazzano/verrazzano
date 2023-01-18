@@ -1,9 +1,16 @@
+# This is an example configuration, for production grade configuration see the Keycloak documentation.
+# See https://www.keycloak.org/server/configuration
+# See https://www.keycloak.org/server/all-config
 command:
   - "/opt/keycloak/bin/kc.sh"
   - "--verbose"
   - "start"
-  - --hostname-strict=false
-  - --hostname-strict-https=false
+  - "--http-enabled=true"
+  - "--http-port=8080"
+  - "--hostname-strict=false"
+  - "--hostname-strict-https=false"
+  - "--spi-events-listener-jboss-logging-success-level=info"
+  - "--spi-events-listener-jboss-logging-error-level=warn"
 
 extraEnv: |
   - name: KEYCLOAK_ADMIN
@@ -23,8 +30,16 @@ extraEnv: |
       -Djava.awt.headless=true
       -Djgroups.dns.query={{ include "keycloak.fullname" . }}-headless
 
+dbchecker:
+  enabled: true
+
 database:
-  vendor: dev-file
+  vendor: postgres
+  hostname: keycloak-db-postgresql
+  port: 5432
+  username: dbusername
+  password: dbpassword
+  database: keycloak
 
 secrets:
   admin-creds:
@@ -33,6 +48,3 @@ secrets:
     stringData:
       user: admin
       password: secret
-
-test:
-  enabled: true

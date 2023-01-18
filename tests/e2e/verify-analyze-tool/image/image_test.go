@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -24,7 +25,7 @@ var (
 )
 
 const (
-	ImagePullNotFound     string = "ISSUE (ImagePullNotFound)"
+	ImagePullNotFound     string = "ImagePullNotFound"
 	NameSpace             string = "verrazzano-system"
 	DeploymentToBePatched string = "verrazzano-console"
 )
@@ -113,7 +114,10 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 
 // utility method to run vz analyze and deliver its report
 func RunVzAnalyze() (string, error) {
-	cmd := exec.Command("vz", "analyze")
+	cmd := exec.Command("./vz", "analyze")
+	if goRepoPath := os.Getenv("GO_REPO_PATH"); goRepoPath != "" {
+		cmd.Dir = goRepoPath
+	}
 	out, err := cmd.Output()
 	return string(out), err
 }
