@@ -218,8 +218,10 @@
           "name": "verrazzano-monitoring-operator",
           "images": [
             {
-              "image": "verrazzano-monitoring-operator",
-              "tag": "v1.5.0-20230117174214-101ecd2",
+              "registry": "iad.ocir.io/odsbuilddev",
+              "repository": "sandboxes/robert.donat",
+              "image": "verrazzano-monitoring-operator-dev",
+              "tag": "local-ebe51c0",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
