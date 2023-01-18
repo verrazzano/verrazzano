@@ -6,6 +6,8 @@ package security
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
+	"regexp"
 	"strings"
 	"time"
 
@@ -28,25 +30,28 @@ const (
 	// Only allowed capability in restricted mode
 	capNetBindService = "NET_BIND_SERVICE"
 	capDacOverride    = "DAC_OVERRIDE"
+
+	// MySQL ignore pattern
+	mysqlPattern = "^mysql-([\\d]+)$"
 )
 
 var skipPods = map[string][]string{
 	"keycloak": {
-		"mysql-",
+		mysqlPattern,
 	},
 	"verrazzano-install": {
-		"mysql",
+		mysqlPattern,
 	},
 	"verrazzano-system": {
-		"coherence-operator",
-		"vmi-system-grafana",
-		"weblogic-operator",
+		"^coherence-operator.*$",
+		"^vmi-system-grafana.*$",
+		"^weblogic-operator.*$",
 	},
 	"verrazzano-backup": {
-		"restic",
+		"^restic.*$",
 	},
 	"cert-manager": {
-		"external-dns",
+		"^external-dns.*$",
 	},
 }
 
@@ -128,7 +133,7 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 		pods := podList.Items
 		for _, pod := range pods {
 			t.Logs.Debugf("Checking pod %s/%s", ns, pod.Name)
-			if shouldSkipPod(pod.Name, ns) {
+			if shouldSkipPod(t.Logs, pod.Name, ns) {
 				t.Logs.Debugf("Pod %s/%s on skip list, continuing...", ns, pod.Name)
 				continue
 			}
@@ -253,9 +258,15 @@ func ensureContainerSecurityContext(sc *corev1.SecurityContext, podName, contain
 	if sc.AllowPrivilegeEscalation == nil || *sc.AllowPrivilegeEscalation {
 		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, AllowPrivilegeEscalation != false", podName, containerName))
 	}
+	errors = append(errors, checkContainerCapabilities(sc, podName, containerName, exceptionContainer, exception)...)
+	return errors
+}
+
+func checkContainerCapabilities(sc *corev1.SecurityContext, podName string, containerName string, exceptionContainer bool, exception podExceptions) []error {
 	if sc.Capabilities == nil {
-		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, Capabilities is nil", podName, containerName))
+		return []error{fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, Capabilities is nil", podName, containerName)}
 	}
+	var errors []error
 	dropCapabilityFound := false
 	for _, c := range sc.Capabilities.Drop {
 		if string(c) == "ALL" {
@@ -278,9 +289,15 @@ func ensureContainerSecurityContext(sc *corev1.SecurityContext, podName, contain
 	return errors
 }
 
-func shouldSkipPod(podName, ns string) bool {
-	for _, pod := range skipPods[ns] {
-		if strings.Contains(podName, pod) {
+func shouldSkipPod(log *zap.SugaredLogger, podName, ns string) bool {
+	for _, pattern := range skipPods[ns] {
+		podNamePattern := pattern
+		match, err := regexp.MatchString(podNamePattern, podName)
+		if err != nil {
+			log.Errorf("Error parsing regex %s: %s", podNamePattern, err.Error())
+		}
+		log.Debugf("Matching pod %s against regex %s, result: %v", podName, podNamePattern, match)
+		if match {
 			return true
 		}
 	}
