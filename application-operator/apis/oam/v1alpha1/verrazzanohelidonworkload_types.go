@@ -15,7 +15,7 @@ type VerrazzanoHelidonWorkloadSpec struct {
 	// An embedded Helidon application deployment.
 	DeploymentTemplate DeploymentTemplate `json:"deploymentTemplate"`
 	// An embedded Helidon application service
-	ServiceTemplate ServiceTemplate `json:"ServiceTemplate,omitempty"`
+	ServiceTemplate ServiceTemplate `json:"serviceTemplate,omitempty"`
 }
 
 // DeploymentTemplate specifies the metadata and pod spec of a Helidon workload.
@@ -39,12 +39,9 @@ type DeploymentTemplate struct {
 
 // ServiceTemplate specifies the metadata and pod spec of a Helidon workload.
 type ServiceTemplate struct {
-	// Metadata about a Helidon application.
-	// +kubebuilder:validation:Required
-	// +kubebuilder:pruning:PreserveUnknownFields
-	Metadata metav1.ObjectMeta `json:"metadata"`
 	// The service spec of a Helidon application.
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
+	// +optional
 	ServiceSpec v1.ServiceSpec `json:"serviceSpec"`
 	// Label selector of a Helidon application.
 	// +optional
