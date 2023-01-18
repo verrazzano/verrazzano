@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package keycloak
@@ -164,14 +164,19 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 
 // PreUpgrade - component level processing for pre-upgrade
 func (c KeycloakComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	// Determine if additional processing is required for the upgrade of the StatefulSet
-	if err := upgradeStatefulSet(ctx); err != nil {
+	// Delete the StatefulSet before the upgrade
+	if err := deleteStatefulSet(ctx); err != nil {
+		return err
+	}
+
+	// Delete the headless service before the upgrade
+	if err := deleteHeadlessService(ctx); err != nil {
 		return err
 	}
 	return c.HelmComponent.PreUpgrade(ctx)
 }
 
-// PostUpgrade Keycloak-post-upgrade processing, create or update the Kiali ingress
+// PostUpgrade Keycloak-post-upgrade processing, create or update the Keycloak ingress
 func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err

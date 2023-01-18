@@ -15,23 +15,9 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1673975671442,
+  "id": 24,
   "links": [],
   "panels": [
-    {
-      "collapsed": false,
-      "datasource": null,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
-      "id": 11,
-      "panels": [],
-      "title": "Summary",
-      "type": "row"
-    },
     {
       "datasource": null,
       "fieldConfig": {
@@ -56,7 +42,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 1
+        "y": 0
       },
       "id": 4,
       "options": {
@@ -74,13 +60,12 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "7.5.17",
+      "pluginVersion": "7.5.14",
       "targets": [
         {
           "exemplar": true,
-          "expr": "vz_platform_operator_component_health_total{verrazzano_cluster=\"$cluster\"}",
+          "expr": "vz_platform_operator_component_health_total",
           "format": "time_series",
-          "instant": true,
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -113,13 +98,13 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 1
+        "y": 0
       },
-      "id": 9,
+      "id": 6,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "justifyMode": "auto",
+        "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -128,16 +113,16 @@
           "fields": "",
           "values": false
         },
-        "text": {},
+        "text": {
+          "titleSize": 40
+        },
         "textMode": "auto"
       },
-      "pluginVersion": "7.5.17",
+      "pluginVersion": "7.5.14",
       "targets": [
         {
           "exemplar": true,
-          "expr": "vz_platform_operator_component_enabled_total{verrazzano_cluster=\"$cluster\"}",
-          "format": "time_series",
-          "instant": true,
+          "expr": "vz_platform_operator_component_enabled_total",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -169,7 +154,7 @@
             "mode": "percentage",
             "steps": [
               {
-                "color": "dark-red",
+                "color": "red",
                 "value": null
               },
               {
@@ -178,7 +163,7 @@
               }
             ]
           },
-          "unit": "percentunit"
+          "unit": "percent"
         },
         "overrides": []
       },
@@ -186,7 +171,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 1
+        "y": 0
       },
       "id": 2,
       "options": {
@@ -201,13 +186,12 @@
         "showThresholdMarkers": false,
         "text": {}
       },
-      "pluginVersion": "7.5.17",
+      "pluginVersion": "7.5.14",
       "targets": [
         {
           "exemplar": true,
-          "expr": "vz_platform_operator_component_health_total{verrazzano_cluster=\"$cluster\"}/vz_platform_operator_component_enabled_total{verrazzano_cluster=\"$cluster\"}",
+          "expr": "(vz_platform_operator_component_health_total/vz_platform_operator_component_enabled_total)*100",
           "format": "time_series",
-          "instant": true,
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -222,11 +206,6 @@
         "defaults": {
           "color": {
             "mode": "thresholds"
-          },
-          "custom": {
-            "align": "left",
-            "displayMode": "color-background",
-            "filterable": false
           },
           "mappings": [
             {
@@ -258,15 +237,11 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "rgba(0, 0, 0, 0)",
+                "color": "rgb(140, 139, 139)",
                 "value": null
               },
               {
-                "color": "rgb(156, 156, 156)",
-                "value": -1
-              },
-              {
-                "color": "dark-red",
+                "color": "red",
                 "value": 0
               },
               {
@@ -279,254 +254,57 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
+        "h": 10,
+        "w": 24,
         "x": 0,
-        "y": 9
+        "y": 8
       },
       "id": 8,
       "options": {
-        "showHeader": true,
-        "sortBy": [
-          {
-            "desc": false,
-            "displayName": "Verrazzao Component"
-          }
-        ]
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "limit": 10,
+          "values": false
+        },
+        "text": {
+          "titleSize": 11
+        },
+        "textMode": "value_and_name"
       },
-      "pluginVersion": "7.5.17",
+      "pluginVersion": "7.5.14",
       "targets": [
         {
           "exemplar": true,
-          "expr": "vz_platform_operator_component_health{verrazzano_cluster=\"$cluster\"}",
-          "instant": true,
+          "expr": "vz_platform_operator_component_health",
           "interval": "",
           "legendFormat": "{{component}}",
           "refId": "A"
         }
       ],
       "title": "Component Availability ",
-      "transformations": [
-        {
-          "id": "labelsToFields",
-          "options": {}
-        },
-        {
-          "id": "filterFieldsByName",
-          "options": {
-            "include": {
-              "names": [
-                "component",
-                "Value"
-              ]
-            }
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {},
-            "indexByName": {},
-            "renameByName": {
-              "Value": "Status",
-              "component": "Verrazzao Component"
-            }
-          }
-        }
-      ],
-      "type": "table"
-    },
-    {
-      "datasource": null,
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": null,
-            "displayMode": "color-background",
-            "filterable": false
-          },
-          "mappings": [
-            {
-              "from": "",
-              "id": 1,
-              "text": "Ok",
-              "to": "",
-              "type": 1,
-              "value": "1"
-            },
-            {
-              "from": "",
-              "id": 2,
-              "text": "Not OK",
-              "to": "",
-              "type": 1,
-              "value": "0"
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "rgba(0, 0, 0, 0)",
-                "value": null
-              },
-              {
-                "color": "dark-red",
-                "value": 0
-              },
-              {
-                "color": "dark-green",
-                "value": 1
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 9
-      },
-      "id": 23,
-      "options": {
-        "showHeader": true
-      },
-      "pluginVersion": "7.5.17",
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "kube_node_status_condition{condition=\"DiskPressure\", status=\"false\", verrazzano_cluster=\"$cluster\"}",
-          "format": "table",
-          "instant": true,
-          "interval": "",
-          "legendFormat": "",
-          "refId": "Disk Pressure"
-        },
-        {
-          "exemplar": true,
-          "expr": "kube_node_status_condition{condition=\"MemoryPressure\", status=\"false\", verrazzano_cluster=\"$cluster\"}",
-          "format": "table",
-          "hide": false,
-          "instant": true,
-          "interval": "",
-          "legendFormat": "",
-          "refId": "Memory Pressure"
-        },
-        {
-          "exemplar": true,
-          "expr": "kube_node_status_condition{condition=\"PIDPressure\", status=\"false\", verrazzano_cluster=\"$cluster\"}",
-          "format": "table",
-          "hide": false,
-          "instant": true,
-          "interval": "",
-          "legendFormat": "",
-          "refId": "PID pressure"
-        },
-        {
-          "exemplar": true,
-          "expr": "kube_node_status_condition{condition=\"Ready\", status=\"true\", verrazzano_cluster=\"$cluster\"}",
-          "format": "table",
-          "hide": false,
-          "instant": true,
-          "interval": "",
-          "legendFormat": "",
-          "refId": "Ready"
-        }
-      ],
-      "title": "Node Status",
-      "transformations": [
-        {
-          "id": "seriesToColumns",
-          "options": {
-            "byField": "node"
-          }
-        },
-        {
-          "id": "filterFieldsByName",
-          "options": {
-            "include": {
-              "names": [
-                "node",
-                "Value #Memory Pressure",
-                "Value #PID pressure",
-                "Value #Ready",
-                "Value #Disk Pressure"
-              ]
-            }
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": false,
-              "Value": false
-            },
-            "indexByName": {},
-            "renameByName": {
-              "Value #Disk Pressure": "Disk Pressure",
-              "Value #Memory Pressure": "Memory Pressure",
-              "Value #PID pressure": "PID Pressure",
-              "Value #Ready": "Ready",
-              "node": "Node",
-              "verrazzano_cluster": "Verrazzano Cluster"
-            }
-          }
-        }
-      ],
-      "type": "table"
+      "type": "stat"
     }
   ],
   "schemaVersion": 27,
   "style": "dark",
   "tags": [],
   "templating": {
-    "list": [
-      {
-        "allValue": null,
-        "current": {
-          "selected": false,
-          "text": "local",
-          "value": "local"
-        },
-        "datasource": null,
-        "definition": "label_values(verrazzano_cluster)",
-        "description": null,
-        "error": null,
-        "hide": 0,
-        "includeAll": false,
-        "label": "cluster",
-        "multi": false,
-        "name": "cluster",
-        "options": [],
-        "query": {
-          "query": "label_values(verrazzano_cluster)",
-          "refId": "StandardVariableQuery"
-        },
-        "refresh": 2,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
-        "tagValuesQuery": "",
-        "tags": [],
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
-      }
-    ]
+    "list": []
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-6h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "System Health",
-  "uid": "Q4BkmcOVk1",
+  "uid": "Q4BkmcOVk",
   "version": 1
 }
