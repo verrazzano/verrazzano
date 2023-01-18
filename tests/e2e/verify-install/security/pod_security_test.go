@@ -89,7 +89,6 @@ var (
 )
 
 var isMinVersion150 bool
-var isArgo bool
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -97,7 +96,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
 	isMinVersion150, err = pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
-	isArgo = pkg.IsArgoCDEnabled(kubeconfigPath)
 	if err != nil {
 		Fail(fmt.Sprintf("Error checking Verrazzano version: %s", err.Error()))
 	}
@@ -113,10 +111,6 @@ var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func() {
 	testFunc := func(ns string) {
-		if ns == "argocd" && !isArgo {
-			Skip("Skipping Argo CD as its not enabled")
-		}
-
 		if !isMinVersion150 {
 			t.Logs.Infof("Skipping test, minimum version requirement of v1.5.0 not met")
 			return
