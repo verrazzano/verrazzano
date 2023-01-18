@@ -316,7 +316,7 @@ func DoesVirtualServiceExist(namespace string, name string) (bool, error) {
 	// Verify that the virtual services contain the expected environment name
 	for _, virtualService := range services.Items {
 		service := virtualService.Name
-		Log(Info, "Checking service: "+service)
+		Log(Info, "Checking if service: "+service+"contains service: "+name)
 		if strings.Contains(service, name) {
 			return true, nil
 		}
