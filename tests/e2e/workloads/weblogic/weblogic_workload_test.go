@@ -36,7 +36,8 @@ const (
 	wlsUser        = "weblogic"
 	wlDomain       = "hellodomain"
 	wlsAdminServer = "hellodomain-adminserver"
-	gateway        = "namespace-hello-appconf-gw"
+	trait          = "hellodomain-trait"
+	gateway        = "hello-appconf-gw"
 
 	helloDomainRepoCreds     = "hellodomain-repo-credentials"
 	helloDomainWeblogicCreds = "hellodomain-weblogic-credentials"
@@ -68,42 +69,42 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 			AbortSuite(fmt.Sprintf("WebLogic admin server pod is not running in the namespace: %v, error: %v", namespace, err))
 		}
 		return result
-	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application")
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: Admin server pod is not ready")
 
 	t.Logs.Info("WebLogic Application - check expected VirtualService is ready")
 	Eventually(func() bool {
-		result, err := pkg.DoesVirtualServiceExist(namespace, gateway)
+		result, err := pkg.DoesVirtualServiceExist(namespace, trait)
 		if err != nil {
-			AbortSuite(fmt.Sprintf("WebLogic VirtualService is not running in the namespace: %v, error: %v", namespace, err))
+			AbortSuite(fmt.Sprintf("WebLogic VirtualService %s is not running in the namespace: %v, error: %v", trait, namespace, err))
 		}
 		return result
-	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application")
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: VirtualService is not ready")
 
-	//t.Logs.Info("WebLogic Application - check expected Gateway is ready")
-	//Eventually(func() bool {
-	//	result, err := pkg.DoesGatewayExist(namespace, expectedPods) //TODO
-	//	if err != nil {
-	//		AbortSuite(fmt.Sprintf("WebLogic Gateway is not running in the namespace: %v, error: %v", namespace, err))
-	//	}
-	//	return result
-	//}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application")
-
-	t.Logs.Info("WebLogic Application - check expected Secret exists")
+	t.Logs.Info("WebLogic Application - check expected Secrets exists")
 	Eventually(func() bool {
 		result, err := pkg.DoesSecretExist(namespace, helloDomainWeblogicCreds)
 		if err != nil {
-			AbortSuite(fmt.Sprintf("WebLogic Secret does not exist in the namespace: %v, error: %v", namespace, err))
+			AbortSuite(fmt.Sprintf("WebLogic Secret %s does not exist in the namespace: %v, error: %v", helloDomainWeblogicCreds, namespace, err))
 		}
 		return result
-	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application")
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: Secret does not exist")
+
+	Eventually(func() bool {
+		result, err := pkg.DoesSecretExist(namespace, helloDomainRepoCreds)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("WebLogic Secret %s does not exist in the namespace: %v, error: %v", helloDomainRepoCreds, namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: Secret does not exist")
 
 	var err error
 	// Get the host from the Istio gateway resource.
 	start := time.Now()
+	t.Logs.Info("WebLogic Application - check expected Gateway is ready")
 	Eventually(func() (string, error) {
 		host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 		return host, err
-	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
+	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Failed to deploy the WebLogic Application: Gateway is not ready")
 	metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 
 	beforeSuitePassed = true
