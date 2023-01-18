@@ -19,8 +19,6 @@ controller:
     capabilities:
       drop:
         - ALL
-      add:
-        - NET_BIND_SERVICE
 
 redis:
   securityContext:
@@ -39,8 +37,6 @@ redis:
     capabilities:
       drop:
         - ALL
-      add:
-        - NET_BIND_SERVICE
 
 server:
   extraArgs: ["--insecure"]
@@ -58,8 +54,6 @@ server:
     capabilities:
       drop:
         - ALL
-      add:
-        - NET_BIND_SERVICE
 
 dex:
   enabled: false
@@ -77,8 +71,6 @@ repoServer:
     capabilities:
       drop:
         - ALL
-      add:
-        - NET_BIND_SERVICE
 
 applicationSet:
   containerSecurityContext:
@@ -93,8 +85,6 @@ applicationSet:
     capabilities:
       drop:
         - ALL
-      add:
-        - NET_BIND_SERVICE
 
 notifications:
   containerSecurityContext:
@@ -109,5 +99,3 @@ notifications:
     capabilities:
       drop:
         - ALL
-      add:
-        - NET_BIND_SERVICE
