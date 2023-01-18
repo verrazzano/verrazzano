@@ -272,9 +272,11 @@ func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelid
 				Kind:       serviceKind,
 				APIVersion: serviceAPIVersion,
 			},
-			//
-			ObjectMeta: workload.Spec.ServiceTemplate.Metadata,
-			//
+			ObjectMeta: metav1.ObjectMeta{
+				Name: workload.Spec.DeploymentTemplate.Metadata.GetName(),
+				//make sure the namespace is set to the namespace of the component
+				Namespace: workload.GetNamespace(),
+			},
 			Spec: workload.Spec.ServiceTemplate.ServiceSpec,
 		}
 
