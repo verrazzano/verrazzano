@@ -65,7 +65,7 @@ func newOpenSearch(effectiveCR, actualCR *vzapi.Verrazzano, storage *common.Reso
 		return &vmov1.Elasticsearch{}, nil
 	}
 	opensearchComponent := effectiveCR.Spec.Components.Elasticsearch
-	opensearch := &vmov1.Elasticsearch{
+	opensearch := &vmov1.Opensearch{
 		Enabled: opensearchComponent.Enabled != nil && *opensearchComponent.Enabled,
 		Storage: vmov1.Storage{},
 		MasterNode: vmov1.ElasticsearchNode{
