@@ -470,6 +470,14 @@ pipeline {
                                         runGinkgoKeepGoing('examples/helidon')
                                     }
                                 }
+                                stage('argocd helidon deploy') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-argocd-helidon"
+                                    }
+                                    steps {
+                                        runGinkgoKeepGoing('examples/argocd-helidon')
+                                    }
+                                }
                                 stage('weblogic workload') {
                                     environment {
                                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"

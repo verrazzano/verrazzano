@@ -1,4 +1,4 @@
-{{- range $key, $serviceMonitor := dict "wildfly" .Values.serviceMonitor "extra" .Values.extraServiceMonitor }}
+{{- range $key, $serviceMonitor := dict "keycloakx" .Values.serviceMonitor "extra" .Values.extraServiceMonitor }}
 {{- with $serviceMonitor }}
 {{- if .enabled }}
 ---
@@ -8,6 +8,8 @@ metadata:
   name: {{ include "keycloak.fullname" $ }}-{{ $key }}
   {{- with .namespace }}
   namespace: {{ . }}
+  {{- else }}
+  namespace: {{ $.Release.Namespace }}
   {{- end }}
   {{- with .annotations }}
   annotations:
@@ -31,7 +33,7 @@ spec:
       app.kubernetes.io/component: http
   endpoints:
     - port: {{ .port }}
-      path: {{ .path }}
+      path: {{ tpl .path $ | quote }}
       interval: {{ .interval }}
       scrapeTimeout: {{ .scrapeTimeout }}
 {{- end }}

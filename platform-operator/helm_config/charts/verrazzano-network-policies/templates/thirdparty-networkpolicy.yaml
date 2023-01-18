@@ -197,7 +197,7 @@ spec:
               verrazzano.io/namespace: keycloak
       ports:
         - protocol: TCP
-          port: 7600
+          port: 7800
     - from:
       - namespaceSelector:
           matchLabels:
@@ -243,7 +243,7 @@ spec:
         - protocol: TCP
           port: 6449
         - protocol: TCP
-          port: 7600
+          port: 7800
     - from:
       - namespaceSelector:
           matchLabels:

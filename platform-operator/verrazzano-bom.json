@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.8-20230113234833-d3322376b",
-              "dashboard": "v2.6.8-20230113233757-a8d21663",
+              "tag": "v2.6.8-20230118020002-d3322376b",
+              "dashboard": "v2.6.8-20230118014847-b34cbd87",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20230113234833-d3322376b"
+              "tag": "v2.6.8-20230118020002-d3322376b"
             }
           ]
         },
@@ -219,7 +219,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.5.0-20230116075325-ad7c813",
+              "tag": "v1.5.0-20230117174214-101ecd2",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -442,7 +442,7 @@
     },
     {
       "name": "keycloak",
-      "version": "15.0.2",
+      "version": "20.0.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -450,7 +450,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v15.0.2-20221214054602-c01654ffed",
+              "tag": "v20.0.1-20230113160117-d8eedd8cfb",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

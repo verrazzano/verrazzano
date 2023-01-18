@@ -310,6 +310,7 @@ pipeline {
                             yq -i eval '.spec.components.grafana.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.console.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.verrazzano.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.argoCd.enabled = true' ${WORKSPACE}/vz-update1.yaml
                         """
                         script {
                             if(params.CRD_API_VERSION == "v1alpha1"){

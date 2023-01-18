@@ -32,17 +32,13 @@ const (
 
 var skipPods = map[string][]string{
 	"keycloak": {
-		"mysql-0",
+		"mysql-",
 	},
 	"verrazzano-install": {
 		"mysql",
 	},
 	"verrazzano-system": {
 		"coherence-operator",
-		"vmi-system-es-master",
-		"vmi-system-es-data",
-		"vmi-system-es-ingest",
-		"vmi-system-osd",
 		"vmi-system-grafana",
 		"weblogic-operator",
 	},
@@ -55,7 +51,7 @@ var skipPods = map[string][]string{
 }
 
 var skipContainers = []string{"jaeger-collector", "jaeger-query", "jaeger-agent"}
-var skipInitContainers = []string{"istio-init"}
+var skipInitContainers = []string{"istio-init", "elasticsearch-init"}
 
 type podExceptions struct {
 	allowHostPath    bool
