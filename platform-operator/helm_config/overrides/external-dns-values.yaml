@@ -15,3 +15,21 @@ sources:
   - ingress
   - istio-gateway
 triggerLoopOnEvent: true
+
+# Verrazzano container security standards
+securityContext:
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    privileged: false
+    readOnlyRootFilesystem: true
+
+# Verrazzano pod security standards
+podSecurityContext:
+  runAsGroup: 99
+  runAsNonRoot: true
+  runAsUser: 99
+  seccompProfile:
+    type: RuntimeDefault
