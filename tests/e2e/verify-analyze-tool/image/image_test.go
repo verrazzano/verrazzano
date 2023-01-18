@@ -25,7 +25,7 @@ var (
 )
 
 const (
-	ImagePullNotFound     string = "ISSUE (ImagePullNotFound)"
+	ImagePullNotFound     string = "ImagePullNotFound"
 	NameSpace             string = "verrazzano-system"
 	DeploymentToBePatched string = "verrazzano-console"
 )
