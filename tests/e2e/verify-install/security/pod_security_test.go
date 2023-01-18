@@ -44,7 +44,6 @@ var skipPods = map[string][]string{
 	},
 	"verrazzano-system": {
 		"^coherence-operator.*$",
-		"^vmi-system-grafana.*$",
 		"^weblogic-operator.*$",
 	},
 	"verrazzano-backup": {
