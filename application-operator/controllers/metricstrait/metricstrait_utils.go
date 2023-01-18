@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package metricstrait
@@ -9,7 +9,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Jeffail/gabs/v2"
+	gabs "github.com/Jeffail/gabs/v2"
+	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
@@ -129,11 +130,11 @@ func GetSupportedWorkloadType(apiVerKind string) string {
 // Format is {oam_app}_{cluster}_{namespace}_{oam_comp}
 func createJobOrServiceMonitorName(trait *vzapi.MetricsTrait, portNum int) (string, error) {
 	namespace := getNamespaceFromObjectMetaOrDefault(trait.ObjectMeta)
-	app, found := trait.Labels[appObjectMetaLabel]
+	app, found := trait.Labels[oam.LabelAppName]
 	if !found {
 		return "", fmt.Errorf("metrics trait missing application name label")
 	}
-	comp, found := trait.Labels[compObjectMetaLabel]
+	comp, found := trait.Labels[oam.LabelAppComponent]
 	if !found {
 		return "", fmt.Errorf("metrics trait missing component name label")
 	}

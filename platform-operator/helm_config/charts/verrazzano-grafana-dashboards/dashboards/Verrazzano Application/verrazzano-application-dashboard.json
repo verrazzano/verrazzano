@@ -15,8 +15,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 67,
-  "iteration": 1673449777530,
+  "id": 17,
+  "iteration": 1673989572888,
   "links": [],
   "panels": [
     {
@@ -80,9 +80,9 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{container=~\".+\"} and on (pod) \nkube_pod_labels{label_app_oam_dev_name=\"$application\"})\n",
+          "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{container=~\".+\"} and on (pod) \nkube_pod_labels{label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"})\n",
           "interval": "",
-          "legendFormat": "$application",
+          "legendFormat": "$component",
           "refId": "A"
         }
       ],
@@ -90,7 +90,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "CPU Usage (cores)",
+      "title": "Component CPU Usage (cores)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -178,10 +178,10 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(max(container_memory_working_set_bytes{container!=\"\", image!=\"\"}  and on (pod)\nkube_pod_labels{label_app_oam_dev_name=\"$application\"}) by (container))",
+          "expr": "sum(max(container_memory_working_set_bytes{container!=\"\", image!=\"\"}  and on (pod)\nkube_pod_labels{label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}) by (container))",
           "interval": "",
           "intervalFactor": 2,
-          "legendFormat": "$application",
+          "legendFormat": "$component",
           "refId": "A"
         }
       ],
@@ -189,7 +189,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Memory Usage (bytes)",
+      "title": "Component Memory Usage (bytes)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -431,6 +431,303 @@
         }
       ],
       "type": "table"
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "id": 4,
+      "panels": [],
+      "title": "Requests",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "description": "",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 17
+      },
+      "hiddenSeries": false,
+      "id": 37,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.5.17",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(rate(istio_requests_total[1m]) and on (destination_service_name) label_replace(kube_service_labels{label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\"))",
+          "interval": "",
+          "legendFormat": "$component",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "HTTP Requests/second",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 17
+      },
+      "hiddenSeries": false,
+      "id": 17,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.5.17",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(rate(istio_requests_total{response_code=~\"5.*\"}[1m]) and on (destination_service_name) label_replace(kube_service_labels{label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\"))",
+          "interval": "",
+          "legendFormat": "$component",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "5xx Responses/second",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 25
+      },
+      "hiddenSeries": false,
+      "id": 19,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.5.17",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(istio_request_duration_milliseconds_sum and on (destination_service_name) label_replace(kube_service_labels{label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\")) / sum(istio_request_duration_milliseconds_count and on (destination_service_name) label_replace(kube_service_labels{label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\"))",
+          "interval": "",
+          "legendFormat": "$component",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Avg Request Duration (ms)",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     }
   ],
   "refresh": "10s",
@@ -443,17 +740,13 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "sockshop-appconf",
-          "value": "sockshop-appconf"
+          "text": "springboot-appconf",
+          "value": "springboot-appconf"
         },
         "datasource": null,
         "definition": "label_values(app_oam_dev_name)",
         "description": null,
-        "error": {
-          "data": {
-            "message": "Unexpected error"
-          }
-        },
+        "error": null,
         "hide": 0,
         "includeAll": false,
         "label": null,
@@ -484,11 +777,7 @@
         "datasource": null,
         "definition": "label_values(up{app_oam_dev_name=\"$application\"}, app_oam_dev_component)",
         "description": null,
-        "error": {
-          "data": {
-            "message": "Unexpected error"
-          }
-        },
+        "error": null,
         "hide": 0,
         "includeAll": true,
         "label": null,
@@ -518,6 +807,6 @@
   "timepicker": {},
   "timezone": "",
   "title": "Application Status",
-  "uid": "gwdOx4h4z4345",
+  "uid": "gwdOx4h4z4345er",
   "version": 1
 }

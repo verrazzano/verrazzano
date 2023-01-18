@@ -279,9 +279,6 @@ pipeline {
                     }
                 }
                 stage('HA tests') {
-                    when {
-                        expression { false }
-                    }
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {

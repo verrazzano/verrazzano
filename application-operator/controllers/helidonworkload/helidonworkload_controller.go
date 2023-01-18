@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helidonworkload
@@ -224,11 +224,11 @@ func (r *Reconciler) convertWorkloadToDeployment(workload *vzapi.VerrazzanoHelid
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: workload.Spec.DeploymentTemplate.Metadata.GetName(),
-			//make sure the namespace is set to the namespace of the component
+			// make sure the namespace is set to the namespace of the component
 			Namespace: workload.GetNamespace(),
 		},
 		Spec: appsv1.DeploymentSpec{
-			//setting label selector for pod that this deployment will manage
+			// setting label selector for pod that this deployment will manage
 			Selector: &metav1.LabelSelector{
 				MatchLabels:      workload.Spec.DeploymentTemplate.Selector.MatchLabels,
 				MatchExpressions: workload.Spec.DeploymentTemplate.Selector.MatchExpressions,
@@ -277,7 +277,9 @@ func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelid
 				Name:      deploy.GetName(),
 				Namespace: deploy.GetNamespace(),
 				Labels: map[string]string{
-					labelKey: string(workload.GetUID()),
+					labelKey:              string(workload.GetUID()),
+					oam.LabelAppName:      deploy.ObjectMeta.Labels[oam.LabelAppName],
+					oam.LabelAppComponent: deploy.ObjectMeta.Labels[oam.LabelAppComponent],
 				},
 			},
 			Spec: corev1.ServiceSpec{

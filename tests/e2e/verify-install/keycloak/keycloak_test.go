@@ -36,6 +36,7 @@ const (
 	verrazzanoURI     = "verrazzano."
 	rancherURI        = "rancher."
 	kcAdminScript     = "/opt/keycloak/bin/kcadm.sh"
+	argocdURI         = "argocd."
 )
 
 // KeycloakClients represents an array of clients currently configured in Keycloak
@@ -120,6 +121,7 @@ var t = framework.NewTestFramework("keycloak")
 var isMinVersion140 bool
 var isMinVersion150 bool
 var isKeycloakEnabled bool
+var isArgoCDEnabled bool
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
@@ -135,6 +137,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	isKeycloakEnabled = pkg.IsKeycloakEnabled(kubeconfigPath)
 	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
 	isMinVersion150, err = pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
+	isArgoCDEnabled = pkg.IsArgoCDEnabled(kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
 	}
@@ -372,6 +375,18 @@ func verifyKeycloakClientURIs() bool {
 		}
 	}
 
+	if isArgoCDEnabled {
+		keycloakClient, err = getKeycloakClientByClientID(keycloakClients, "argocd")
+		if err != nil {
+			t.Logs.Error(fmt.Printf("Error retrieving Verrazzano argocd client: %s\n", err))
+			return false
+		}
+
+		if !verifyArgoCDClientURIs(keycloakClient, env) {
+			return false
+		}
+	}
+
 	return true
 }
 
@@ -548,6 +563,33 @@ func verifyRancherClientURIs(keycloakClient *Client, env string) bool {
 	// Verify rancher web origin
 	if !verifyURIs(keycloakClient.WebOrigins, rancherURI+env, 1) {
 		t.Logs.Error(fmt.Printf("Expected 1 Rancher weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
+		return false
+	}
+
+	return true
+}
+
+func verifyArgoCDClientURIs(keycloakClient *Client, env string) bool {
+	// Verify Correct number of RedirectURIs
+	if len(keycloakClient.RedirectUris) != 1 {
+		t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
+		return false
+	}
+
+	// Verify Correct number of WebOrigins
+	if len(keycloakClient.WebOrigins) != 1 {
+		t.Logs.Error(fmt.Printf("Incorrect Number of WebOrigins returned for client %+v\n", keycloakClient.WebOrigins))
+		return false
+	}
+
+	// Verify Argo CD redirectUI
+	if !verifyURIs(keycloakClient.RedirectUris, argocdURI+env, 1) {
+		t.Logs.Error(fmt.Printf("Expected 1 ArgoCD redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
+		return false
+	}
+	// Verify Argo CD web origin
+	if !verifyURIs(keycloakClient.WebOrigins, argocdURI+env, 1) {
+		t.Logs.Error(fmt.Printf("Expected 1 ArgoCD weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 

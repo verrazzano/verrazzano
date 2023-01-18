@@ -1,14 +1,15 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package wlsworkload
 
 import (
 	"context"
-	"github.com/go-logr/logr"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/go-logr/logr"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
@@ -182,6 +183,8 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 	componentName := "unit-test-component"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
 		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
+	svcLabels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
+		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
@@ -257,9 +260,13 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 			assert.Equal(APIVersionV8, u.GetAPIVersion())
 			assert.Equal(DomainKind, u.GetKind())
 
-			// make sure the OAM component and app name labels were copied
+			// make sure the OAM component and app name labels were copied to the pod spec
 			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerPodLabelsFields...)
 			assert.Equal(labels, specLabels)
+
+			// make sure the OAM component and app name labels were copied to the service spec
+			specServiceLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerServiceLabelsFields...)
+			assert.Equal(svcLabels, specServiceLabels)
 
 			// make sure configuration.istio.enabled is false
 			specIstioEnabled, _, _ := unstructured.NestedBool(u.Object, specConfigurationIstioEnabledFields...)
