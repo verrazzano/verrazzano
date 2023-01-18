@@ -201,10 +201,10 @@ helm fetch argocd/argo-cd --untar=true --version=${ARGOCD_CHART_VERSION}
 The `prometheus-community/prometheus-node-exporter` folder was created by running the followiong commands:
 
 ```shell
-export PROMETHEUS_NODE_EXPORTER_CHAT_VERSION=3.1.0
+export PROMETHEUS_NODE_EXPORTER_CHART_VERSION=3.1.0
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
-rm -rf prometheus-community
-helm fetch prometheus-community/prometheus-node-exporter --untar=true --version=${PROMETHEUS_NODE_EXPORTER_CHAT_VERSION}
+rm -rf prometheus-community/prometheus-node-exporter 
+helm fetch prometheus-community/prometheus-node-exporter --untar=true --version=${PROMETHEUS_NODE_EXPORTER_CHART_VERSION}
 ```
 
