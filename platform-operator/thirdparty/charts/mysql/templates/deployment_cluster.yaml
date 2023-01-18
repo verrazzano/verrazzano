@@ -20,6 +20,7 @@ spec:
             allowPrivilegeEscalation: false
             privileged: false
             runAsNonRoot: true
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
@@ -77,6 +78,7 @@ spec:
           runAsNonRoot: true
           runAsUser: 27
           runAsGroup: 27
+          readOnlyRootFilesystem: true
           capabilities:
             drop:
               - ALL
@@ -87,6 +89,7 @@ spec:
           runAsNonRoot: true
           runAsUser: 27
           runAsGroup: 27
+          readOnlyRootFilesystem: true
           capabilities:
             drop:
               - ALL
@@ -109,6 +112,7 @@ spec:
         runAsNonRoot: true
         runAsUser: 27
         runAsGroup: 27
+        readOnlyRootFilesystem: true
         capabilities:
           drop:
             - ALL
@@ -120,6 +124,7 @@ spec:
         runAsNonRoot: true
         runAsUser: 27
         runAsGroup: 27
+        readOnlyRootFilesystem: true
         capabilities:
           drop:
             - ALL

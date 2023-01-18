@@ -258,6 +258,9 @@ func ensureContainerSecurityContext(sc *corev1.SecurityContext, podName, contain
 	if sc.AllowPrivilegeEscalation == nil || *sc.AllowPrivilegeEscalation {
 		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, AllowPrivilegeEscalation != false", podName, containerName))
 	}
+	if sc.ReadOnlyRootFilesystem == nil || !*sc.ReadOnlyRootFilesystem {
+		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, ReadOnlyRootFilesystem != true", podName, containerName))
+	}
 	errors = append(errors, checkContainerCapabilities(sc, podName, containerName, exceptionContainer, exception)...)
 	return errors
 }

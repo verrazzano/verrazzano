@@ -28,6 +28,7 @@ spec:
           securityContext:
             privileged: false
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
@@ -54,6 +55,7 @@ spec:
         securityContext:
           privileged: false
           allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
           capabilities:
             drop:
               - ALL
@@ -117,6 +119,7 @@ spec:
           securityContext:
             privileged: false
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
@@ -143,6 +146,7 @@ spec:
           securityContext:
             privileged: false
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
