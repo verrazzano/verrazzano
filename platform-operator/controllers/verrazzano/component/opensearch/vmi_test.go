@@ -153,7 +153,7 @@ func TestNewOpenSearchValuesAreCopied(t *testing.T) {
 	pvcs := []string{"p1", "p2"}
 	testvmi := &vmov1.VerrazzanoMonitoringInstance{
 		Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
-			Elasticsearch: vmov1.Elasticsearch{
+			Opensearch: vmov1.Opensearch{
 				MasterNode: vmov1.ElasticsearchNode{
 					Replicas: 1,
 				},
@@ -191,10 +191,10 @@ func TestCreateOrUpdateVMI(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "vmi.system.default.blah", vmi.Spec.URI)
 	assert.Equal(t, "verrazzano-ingress.default.blah", vmi.Spec.IngressTargetDNSName)
-	assert.Equal(t, test100Gi, vmi.Spec.Elasticsearch.DataNode.Storage.Size)
-	assert.EqualValues(t, 2, vmi.Spec.Elasticsearch.IngestNode.Replicas)
-	assert.EqualValues(t, 1, vmi.Spec.Elasticsearch.MasterNode.Replicas)
-	assert.EqualValues(t, 3, vmi.Spec.Elasticsearch.DataNode.Replicas)
+	assert.Equal(t, test100Gi, vmi.Spec.Opensearch.DataNode.Storage.Size)
+	assert.EqualValues(t, 2, vmi.Spec.Opensearch.IngestNode.Replicas)
+	assert.EqualValues(t, 1, vmi.Spec.Opensearch.MasterNode.Replicas)
+	assert.EqualValues(t, 3, vmi.Spec.Opensearch.DataNode.Replicas)
 }
 
 // TestCreateOrUpdateVMINoNGINX tests a new VMI resources is created in K8s according to the CR
@@ -213,10 +213,10 @@ func TestCreateOrUpdateVMINoNGINX(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, vmi.Spec.URI)
 	assert.Empty(t, vmi.Spec.IngressTargetDNSName)
-	assert.Equal(t, test100Gi, vmi.Spec.Elasticsearch.DataNode.Storage.Size)
-	assert.EqualValues(t, 2, vmi.Spec.Elasticsearch.IngestNode.Replicas)
-	assert.EqualValues(t, 1, vmi.Spec.Elasticsearch.MasterNode.Replicas)
-	assert.EqualValues(t, 3, vmi.Spec.Elasticsearch.DataNode.Replicas)
+	assert.Equal(t, test100Gi, vmi.Spec.Opensearch.DataNode.Storage.Size)
+	assert.EqualValues(t, 2, vmi.Spec.Opensearch.IngestNode.Replicas)
+	assert.EqualValues(t, 1, vmi.Spec.Opensearch.MasterNode.Replicas)
+	assert.EqualValues(t, 3, vmi.Spec.Opensearch.DataNode.Replicas)
 }
 
 // TestHasDataNodeStorageOverride tests the detection of data node storage overrides
@@ -265,7 +265,7 @@ func TestNodeAdapter(t *testing.T) {
 	vmiStorage := test50Gi
 	vmi := &vmov1.VerrazzanoMonitoringInstance{
 		Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
-			Elasticsearch: vmov1.Elasticsearch{
+			Opensearch: vmov1.Opensearch{
 				Enabled: true,
 				Nodes: []vmov1.ElasticsearchNode{
 					{
@@ -345,8 +345,8 @@ func TestNodeAdapter(t *testing.T) {
 		}
 		assert.Equal(t, n1.Resources.RequestMemory, n2.Resources.RequestMemory)
 	}
-	compareNodes(&vmi.Spec.Elasticsearch.Nodes[0], &adaptedNodes[0])
-	compareNodes(&vmi.Spec.Elasticsearch.Nodes[1], &adaptedNodes[1])
+	compareNodes(&vmi.Spec.Opensearch.Nodes[0], &adaptedNodes[0])
+	compareNodes(&vmi.Spec.Opensearch.Nodes[1], &adaptedNodes[1])
 }
 
 // TestFindStorageForNodeDefaultVolumeSource verifies that the default volume source is used for a node when set to emptydir
