@@ -595,17 +595,7 @@
           "refId": "A"
         }
       ],
-      "thresholds": [
-        {
-          "$$hashKey": "object:761",
-          "colorMode": "critical",
-          "fill": true,
-          "line": true,
-          "op": "gt",
-          "value": 30,
-          "yaxis": "left"
-        }
-      ],
+      "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
