@@ -37,7 +37,6 @@ const (
 	wlDomain       = "hellodomain"
 	wlsAdminServer = "hellodomain-adminserver"
 	trait          = "hello-domain-trait"
-	gateway        = "hello-appconf-gw"
 
 	helloDomainRepoCreds     = "hellodomain-repo-credentials"
 	helloDomainWeblogicCreds = "hellodomain-weblogic-credentials"
@@ -80,7 +79,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return result
 	}, 1*time.Minute, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: VirtualService is not ready")
 
-	t.Logs.Info("WebLogic Application - check expected Secrets exists")
+	t.Logs.Info("WebLogic Application - check expected Secrets exist")
 	Eventually(func() bool {
 		result, err := pkg.DoesSecretExist(namespace, helloDomainWeblogicCreds)
 		if err != nil {
