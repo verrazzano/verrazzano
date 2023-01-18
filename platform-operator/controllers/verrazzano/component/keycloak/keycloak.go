@@ -1200,7 +1200,7 @@ func createOrUpdateClientScope(ctx spi.ComponentContext, cfg *restclient.Config,
 	}
 
 	// Create client scope
-	clientCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create -x client-scopes -r " + vzSysRealm + " -s name=groups -s protocol=openid-connect"
+	clientCreateCmd := kcAdminScript + " create -x client-scopes -r " + vzSysRealm + " -s name=groups -s protocol=openid-connect"
 	ctx.Log().Debugf("createOrUpdateClient: Create %s client Cmd = %s", groupname, clientCreateCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(clientCreateCmd))
 	if err != nil {
@@ -1466,7 +1466,7 @@ func getKeycloakClientScopes(ctx spi.ComponentContext) (KeycloakClientScopes, er
 		return nil, err
 	}
 	// Get the Client ID JSON array
-	out, _, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get client-scopes -r "+vzSysRealm+" --fields id,name"))
+	out, _, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD(kcAdminScript+" get client-scopes -r "+vzSysRealm+" --fields id,name"))
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving client-scopes: %s", err)
 		return nil, err
@@ -1718,7 +1718,7 @@ func (p DefaultArgoClientSecretProvider) GetClientSecret(ctx spi.ComponentContex
 
 	var clientSecret KeycloakClientSecret
 	// Get the Client secret JSON array
-	out, _, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get clients/"+id+"/client-secret -r "+vzSysRealm))
+	out, _, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD(kcAdminScript+" get clients/"+id+"/client-secret -r "+vzSysRealm))
 	if err != nil {
 		ctx.Log().Errorf("failed retrieving argocd client secret from keycloak: %s", err)
 		return "", err
