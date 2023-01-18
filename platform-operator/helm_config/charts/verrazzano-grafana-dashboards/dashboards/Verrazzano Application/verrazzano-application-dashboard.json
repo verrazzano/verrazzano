@@ -313,7 +313,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "(kube_pod_info{verrazzano_cluster=~\"$vzcluster\"} and on (pod)\nkube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) * on (pod) group_left(label_app_oam_dev_component) kube_pod_labels{verrazzano_cluster=~\"$vzcluster\"}",
+          "expr": "kube_pod_info and on (pod)\nkube_pod_labels{verrazzano_cluster=\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -322,7 +322,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{verrazzano_cluster=~\"$vzcluster\"} and on (pod)\nkube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (pod)",
+          "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate and on (pod)\nkube_pod_labels{verrazzano_cluster=\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (pod)",
           "format": "table",
           "hide": false,
           "instant": true,
@@ -332,7 +332,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(max(container_memory_working_set_bytes{verrazzano_cluster=~\"$vzcluster\", container!=\"\", image!=\"\"} and on (pod)\nkube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (container, pod)) by (pod)",
+          "expr": "sum(max(container_memory_working_set_bytes{container!=\"\", image!=\"\"} and on (pod)\nkube_pod_labels{verrazzano_cluster=\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (container, pod)) by (pod)",
           "format": "table",
           "hide": false,
           "instant": true,
@@ -342,7 +342,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(kube_pod_container_status_restarts_total{verrazzano_cluster=~\"$vzcluster\"} and on (pod)\nkube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (pod)",
+          "expr": "sum(kube_pod_container_status_restarts_total and on (pod)\nkube_pod_labels{verrazzano_cluster=\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (pod)",
           "format": "table",
           "hide": false,
           "instant": true,
@@ -352,7 +352,7 @@
         },
         {
           "exemplar": true,
-          "expr": "max(kube_pod_status_ready{verrazzano_cluster=~\"$vzcluster\", condition=\"true\"} and on (pod)\nkube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (pod)",
+          "expr": "max(kube_pod_status_ready{condition=\"true\"} and on (pod)\nkube_pod_labels{verrazzano_cluster=\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (pod)",
           "format": "table",
           "hide": false,
           "instant": true,
@@ -816,13 +816,9 @@
       {
         "allValue": null,
         "current": {
-          "selected": true,
-          "text": [
-            "All"
-          ],
-          "value": [
-            "$__all"
-          ]
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
         },
         "datasource": null,
         "definition": "label_values(up{verrazzano_cluster=~\"$vzcluster\", app_oam_dev_name=\"$application\"}, app_oam_dev_component)",
