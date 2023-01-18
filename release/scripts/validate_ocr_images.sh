@@ -18,6 +18,9 @@ echo "$OCR_CREDS_PSW" | docker login "$DOCKER_REPO" -u "$OCR_CREDS_USR" --passwo
 echo "Logging into Skopeo ..."
 docker run quay.io/skopeo/stable:latest login "$DOCKER_REPO"
 
+echo "Logging into Crane ..."
+crane auth login "$DOCKER_REPO" -u "$OCR_CREDS_USR" -p "$OCR_CREDS_PSW"
+
 # echo "Pulling images from OCR ..." 
 # while IFS= read -r line
 # do  
@@ -41,7 +44,8 @@ while IFS= read -r line
 do  
     VZ_IMAGE_NAME=$(echo "$line")
     # INSPECT_EXIT_CODE=$(docker run quay.io/skopeo/stable:latest inspect docker://"$DOCKER_REPO"/"$VZ_IMAGE_NAME")
-    INSPECT_EXIT_CODE=$(docker run quay.io/skopeo/stable:latest inspect --username="$OCR_CREDS_USR" --password="$OCR_CREDS_PSW" docker://"$DOCKER_REPO"/"$VZ_IMAGE_NAME")
+    # INSPECT_EXIT_CODE=$(docker run quay.io/skopeo/stable:latest inspect --username="$OCR_CREDS_USR" --password="$OCR_CREDS_PSW" docker://"$DOCKER_REPO"/"$VZ_IMAGE_NAME")
+    INSPECT_EXIT_CODE=$(crane manifest "$DOCKER_REPO/$VZ_IMAGE_NAME")
     if [[ $? -eq 0 ]]; then
         IMAGES_FOUND_IN_OCR+=("$VZ_IMAGE_NAME")
     else
