@@ -15,8 +15,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 67,
-  "iteration": 1674060219887,
+  "id": 69,
+  "iteration": 1674068646757,
   "links": [],
   "panels": [
     {
@@ -543,10 +543,11 @@
     },
     {
       "aliasColors": {},
-      "bars": false,
+      "bars": true,
       "dashLength": 10,
       "dashes": false,
       "datasource": null,
+      "description": "Total Requests per second divided by Requests with 5xx responses per second",
       "fieldConfig": {
         "defaults": {},
         "overrides": []
@@ -560,7 +561,7 @@
         "y": 17
       },
       "hiddenSeries": false,
-      "id": 17,
+      "id": 38,
       "legend": {
         "avg": false,
         "current": false,
@@ -570,7 +571,7 @@
         "total": false,
         "values": false
       },
-      "lines": true,
+      "lines": false,
       "linewidth": 1,
       "nullPointMode": "null",
       "options": {
@@ -588,17 +589,27 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(istio_requests_total{verrazzano_cluster=~\"$vzcluster\", response_code=~\"5.*\"}[1m]) and on (destination_service_name) label_replace(kube_service_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\"))",
+          "expr": "100 * sum(rate(istio_requests_total{verrazzano_cluster=~\"$vzcluster\", response_code=~\"5.*\"}[1m]) and on (destination_service_name) label_replace(kube_service_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\")) / sum(rate(istio_requests_total{verrazzano_cluster=~\"$vzcluster\"}[1m]) and on (destination_service_name) label_replace(kube_service_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\"))",
           "interval": "",
           "legendFormat": "$component",
           "refId": "A"
         }
       ],
-      "thresholds": [],
+      "thresholds": [
+        {
+          "$$hashKey": "object:761",
+          "colorMode": "critical",
+          "fill": true,
+          "line": true,
+          "op": "gt",
+          "value": 30,
+          "yaxis": "left"
+        }
+      ],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "5xx Responses/second",
+      "title": "5xx Response Rate",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -614,14 +625,17 @@
       },
       "yaxes": [
         {
-          "format": "short",
-          "label": null,
+          "$$hashKey": "object:796",
+          "decimals": null,
+          "format": "percent",
+          "label": "",
           "logBase": 1,
-          "max": null,
+          "max": "100",
           "min": null,
           "show": true
         },
         {
+          "$$hashKey": "object:797",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -739,9 +753,9 @@
       {
         "allValue": null,
         "current": {
-          "selected": true,
-          "text": "managed1",
-          "value": "managed1"
+          "selected": false,
+          "text": "All",
+          "value": "All"
         },
         "datasource": null,
         "definition": "label_values(verrazzano_cluster)",
@@ -754,12 +768,12 @@
         "name": "vzcluster",
         "options": [
           {
-            "selected": false,
+            "selected": true,
             "text": "local",
             "value": "local"
           },
           {
-            "selected": true,
+            "selected": false,
             "text": "managed1",
             "value": "managed1"
           }
@@ -782,8 +796,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "hello-helidon-appconf",
-          "value": "hello-helidon-appconf"
+          "text": "sockshop-appconf",
+          "value": "sockshop-appconf"
         },
         "datasource": null,
         "definition": "label_values(up{verrazzano_cluster=~\"$vzcluster\"}, app_oam_dev_name)",
@@ -812,7 +826,7 @@
       {
         "allValue": null,
         "current": {
-          "selected": true,
+          "selected": false,
           "text": [
             "All"
           ],
@@ -854,5 +868,5 @@
   "timezone": "",
   "title": "Application Status",
   "uid": "gwdOx4h4z4345er",
-  "version": 3
+  "version": 11
 }
