@@ -18,18 +18,18 @@ triggerLoopOnEvent: true
 
 # Verrazzano container security standards
 securityContext:
-  securityContext:
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop:
-        - ALL
-    privileged: false
-    readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  privileged: false
+  readOnlyRootFilesystem: true
 
 # Verrazzano pod security standards
 podSecurityContext:
+  fsGroup: 99 # Run as user/group nobody
   runAsGroup: 99
-  runAsNonRoot: true
   runAsUser: 99
+  runAsNonRoot: true
   seccompProfile:
     type: RuntimeDefault
