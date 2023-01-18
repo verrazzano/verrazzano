@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -41,6 +41,7 @@ type ConfigMapTemplate struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=mccm;mccms
 // +kubebuilder:subresource:status
+// +kubebuilder:deprecatedversion:warning="clusters.verrazzano.io/v1alpha1 MultiClusterConfigMap is deprecated and will be removed in v2.0.0. See https://verrazzano.io/latest/docs/reference/migration."
 
 // MultiClusterConfigMap specifies the MultiCluster ConfigMap API.
 type MultiClusterConfigMap struct {
