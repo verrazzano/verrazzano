@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package pkg
@@ -35,7 +35,7 @@ import (
 
 const (
 	// NumRetries - maximum number of retries
-	NumRetries = 7
+	NumRetries = 10
 
 	// RetryWaitMinimum - minimum retry wait
 	RetryWaitMinimum = 1 * time.Second
