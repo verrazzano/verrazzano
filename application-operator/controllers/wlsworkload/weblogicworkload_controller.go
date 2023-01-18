@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package wlsworkload
@@ -196,10 +196,12 @@ const defaultWDTConfigMapData = `
 var metaAnnotationFields = []string{metadataField, "annotations"}
 var specDomainUID = []string{specField, "domainUID"}
 var specServerPodFields = []string{specField, "serverPod"}
+var specServerServiceFields = []string{specField, "serverService"}
 var specServerPodLabelsFields = append(specServerPodFields, "labels")
 var specServerPodContainersFields = append(specServerPodFields, "containers")
 var specServerPodVolumesFields = append(specServerPodFields, "volumes")
 var specServerPodVolumeMountsFields = append(specServerPodFields, "volumeMounts")
+var specServerServiceLabelsFields = append(specServerServiceFields, "labels")
 var specConfigurationIstioEnabledFields = []string{specField, "configuration", "istio", "enabled"}
 var specConfigurationRuntimeEncryptionSecret = []string{specField, "configuration", "model", "runtimeEncryptionSecret"}
 var specConfigurationWDTConfigMap = []string{specField, "configuration", "model", "configMap"}
@@ -571,13 +573,21 @@ func copyLabels(log vzlog.VerrazzanoLogger, workloadLabels map[string]string, we
 		labels = map[string]string{}
 	}
 
+	// the WebLogic domain spec/serverService/labels field has labels that get propagated to the service
+	svcLabels, found, _ := unstructured.NestedStringMap(weblogic.Object, specServerServiceLabelsFields...)
+	if !found {
+		svcLabels = map[string]string{}
+	}
+
 	// copy the oam component and app name labels
 	if componentName, ok := workloadLabels[oam.LabelAppComponent]; ok {
 		labels[oam.LabelAppComponent] = componentName
+		svcLabels[oam.LabelAppComponent] = componentName
 	}
 
 	if appName, ok := workloadLabels[oam.LabelAppName]; ok {
 		labels[oam.LabelAppName] = appName
+		svcLabels[oam.LabelAppName] = appName
 	}
 
 	// Set the label indicating this is WebLogic workload
@@ -586,6 +596,11 @@ func copyLabels(log vzlog.VerrazzanoLogger, workloadLabels map[string]string, we
 	err := unstructured.SetNestedStringMap(weblogic.Object, labels, specServerPodLabelsFields...)
 	if err != nil {
 		log.Errorf("Failed to set labels in spec serverPod: %v", err)
+		return err
+	}
+	err = unstructured.SetNestedStringMap(weblogic.Object, labels, specServerServiceLabelsFields...)
+	if err != nil {
+		log.Errorf("Failed to set labels in spec serverService: %v", err)
 		return err
 	}
 	return nil
