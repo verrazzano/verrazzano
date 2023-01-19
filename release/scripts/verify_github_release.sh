@@ -102,10 +102,10 @@ function verify_released_artifacts() {
         curl -Ss -L --show-error --fail -o $i ${url} || { echo "Unable to download ${url}"; exit; }
       done
       ${SHA_CMD} verrazzano-platform-operator.yaml.sha256
-      ${SHA_CMD} verrazzano-{$LATEST_RELEASE_VERSION}-darwin-amd64.tar.gz.sha256
-      ${SHA_CMD} verrazzano-{$LATEST_RELEASE_VERSION}-darwin-arm64.tar.gz.sha256
-      ${SHA_CMD} verrazzano-{$LATEST_RELEASE_VERSION}-linux-amd64.tar.gz.sha256
-      ${SHA_CMD} verrazzano-{$LATEST_RELEASE_VERSION}-linux-arm64.tar.gz.sha256
+      ${SHA_CMD} verrazzano-${LATEST_RELEASE_VERSION}-darwin-amd64.tar.gz.sha256
+      ${SHA_CMD} verrazzano-${LATEST_RELEASE_VERSION}-darwin-arm64.tar.gz.sha256
+      ${SHA_CMD} verrazzano-${LATEST_RELEASE_VERSION}-linux-amd64.tar.gz.sha256
+      ${SHA_CMD} verrazzano-${LATEST_RELEASE_VERSION}-linux-arm64.tar.gz.sha256
   fi
 }
 
