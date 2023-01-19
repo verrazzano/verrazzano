@@ -40,6 +40,22 @@ fi
 # Grabs the minor release number to determine which github artifacts to download and check
 VERSION_NUMBER_MINOR=$(echo "$VERSION" | tail -c4 | head -c1)
 
+# Gets the github page at latest to extract the latest release verision number
+wget -O latest "https://github.com/verrazzano/verrazzano/releases/latest"
+LATEST_RELEASE_VERSION=$(grep -i '<title>' latest | awk -F 'release ' '{print $2}' | head -c6 | tail -c5)
+
+# Release artifacts for latest
+declare -a releaseArtifactsLatest=("verrazzano-platform-operator.yaml"
+                             "verrazzano-platform-operator.yaml.sha256"
+                             "verrazzano-${LATEST_RELEASE_VERSION}-darwin-amd64.tar.gz"
+                             "verrazzano-${LATEST_RELEASE_VERSION}-darwin-amd64.tar.gz.sha256"
+                             "verrazzano-${LATEST_RELEASE_VERSION}-darwin-arm64.tar.gz"
+                             "verrazzano-${LATEST_RELEASE_VERSION}-darwin-arm64.tar.gz.sha256"
+                             "verrazzano-${LATEST_RELEASE_VERSION}-linux-amd64.tar.gz"
+                             "verrazzano-${LATEST_RELEASE_VERSION}-linux-amd64.tar.gz.sha256"
+                             "verrazzano-${LATEST_RELEASE_VERSION}-linux-arm64.tar.gz"
+                             "verrazzano-${LATEST_RELEASE_VERSION}-linux-arm64.tar.gz.sha256")
+
 function verify_released_artifacts() {
   local releaseVersionDir=${TMPDIR}/release
   mkdir -p $releaseVersionDir
@@ -77,12 +93,8 @@ function verify_released_artifacts() {
       mkdir -p $latestVersionDir
       cd $latestVersionDir
 
-      # Gets the github page at latest to extract the latest release verision number
-      wget -O latest "https://github.com/verrazzano/verrazzano/releases/latest"
-      LATEST_RELEASE_VERSION=$(grep -i '<title>' latest | awk -F 'release ' '{print $2}' | head -c6 | tail -c5)
-      printf "Latest release version is: $LATEST_RELEASE_VERSION\n"
-
       # Iterate the array containing the release artifacts and download all of them
+      printf "Latest release version is: $LATEST_RELEASE_VERSION\n"
       echo "Downloading release artifacts for latest"
       for i in "${releaseArtifactsLatest[@]}"
       do
