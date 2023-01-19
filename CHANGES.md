@@ -24,7 +24,7 @@ Component version updates:
 - WebLogic Monitoring Exporter v2.1.0
 - OpenSearch v2.3.0
 - OpenSearch Dashboards v2.3.0
-- Istio v1.15.1
+- Istio v1.15.3
 - Jaeger v1.37.0
 - Kiali v1.57.1
 - Keycloak v20.0.1

@@ -1,4 +1,4 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: install.istio.io/v1alpha1
@@ -15,7 +15,7 @@ spec:
   values:
     global:
       hub: ghcr.io/verrazzano
-      tag: 1.15.1
+      tag: 1.15.3
       multiCluster:
         enabled: false
       istioNamespace: istio-system
