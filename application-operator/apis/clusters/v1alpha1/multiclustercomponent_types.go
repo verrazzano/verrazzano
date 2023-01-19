@@ -33,7 +33,7 @@ type ComponentTemplate struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=mccomp;mccomps
 // +kubebuilder:subresource:status
-// +kubebuilder:deprecatedversion:warning="clusters.verrazzano.io/v1alpha1 MultiClusterComponent is deprecated and will be removed in v2.0.0. See https://verrazzano.io/latest/docs/reference/migration."
+// +kubebuilder:deprecatedversion:warning="clusters.verrazzano.io/v1alpha1 MultiClusterComponent is deprecated and will be removed in v2.0.0. See https://verrazzano.io/v1.5/docs/reference/migration/#multicluster."
 
 // MultiClusterComponent specifies the MultiCluster Component API.
 type MultiClusterComponent struct {
