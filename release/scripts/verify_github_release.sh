@@ -79,21 +79,21 @@ function verify_released_artifacts() {
 
       # Gets the github page at latest to extract the latest release verision number
       wget -O latest "https://github.com/verrazzano/verrazzano/releases/latest"
-      export RELEASE_VERSION=$(grep -i '<title>' latest | awk -F 'release ' '{print $2}' | head -c6 | tail -c5)
-      printf "Latest release version is: $RELEASE_VERSION\n"
+      LATEST_VERSION=$(grep -i '<title>' latest | awk -F 'release ' '{print $2}' | head -c6 | tail -c5)
+      printf "Latest release version is: $LATEST_VERSION\n"
 
       # Iterate the array containing the release artifacts and download all of them
       echo "Downloading release artifacts for latest"
-      for i in "${releaseArtifacts[@]}"
+      for i in "${releaseArtifactsLatest[@]}"
       do
-        local url="https://github.com/verrazzano/verrazzano/releases/download/v$RELEASE_VERSION/$i"
+        local url="https://github.com/verrazzano/verrazzano/releases/download/v$LATEST_VERSION/$i"
         curl -Ss -L --show-error --fail -o $i ${url} || { echo "Unable to download ${url}"; exit; }
       done
       ${SHA_CMD} verrazzano-platform-operator.yaml.sha256
-      ${SHA_CMD} verrazzano-{$RELEASE_VERSION}-darwin-amd64.tar.gz.sha256
-      ${SHA_CMD} verrazzano-{$RELEASE_VERSION}-darwin-arm64.tar.gz.sha256
-      ${SHA_CMD} verrazzano-{$RELEASE_VERSION}-linux-amd64.tar.gz.sha256
-      ${SHA_CMD} verrazzano-{$RELEASE_VERSION}-linux-arm64.tar.gz.sha256
+      ${SHA_CMD} verrazzano-{$LATEST_VERSION}-darwin-amd64.tar.gz.sha256
+      ${SHA_CMD} verrazzano-{$LATEST_VERSION}-darwin-arm64.tar.gz.sha256
+      ${SHA_CMD} verrazzano-{$LATEST_VERSION}-linux-amd64.tar.gz.sha256
+      ${SHA_CMD} verrazzano-{$LATEST_VERSION}-linux-arm64.tar.gz.sha256
   fi
 }
 
