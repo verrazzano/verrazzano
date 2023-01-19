@@ -1802,33 +1802,33 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "jvm_threads_live_threads{verrazzano_cluster=~\"$vzcluster\", application=\"$application\", instance=\"$instance\"}",
+          "expr": "jvm_threads_live_threads{verrazzano_cluster=~\"$vzcluster\", application=\"$application\", instance=\"$instance\", container != \"istio-proxy\"}",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
-          "legendFormat": "live ({{container}})",
+          "legendFormat": "live",
           "metric": "",
           "refId": "A",
           "step": 2400
         },
         {
           "exemplar": true,
-          "expr": "jvm_threads_daemon_threads{verrazzano_cluster=~\"$vzcluster\", application=\"$application\", instance=\"$instance\"}",
+          "expr": "jvm_threads_daemon_threads{verrazzano_cluster=~\"$vzcluster\", application=\"$application\", instance=\"$instance\", container != \"istio-proxy\"}",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
-          "legendFormat": "daemon ({{container}})",
+          "legendFormat": "daemon",
           "metric": "",
           "refId": "B",
           "step": 2400
         },
         {
           "exemplar": true,
-          "expr": "jvm_threads_peak_threads{verrazzano_cluster=~\"$vzcluster\", application=\"$application\", instance=\"$instance\"}",
+          "expr": "jvm_threads_peak_threads{verrazzano_cluster=~\"$vzcluster\", application=\"$application\", instance=\"$instance\", container != \"istio-proxy\"}",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
-          "legendFormat": "peak ({{container}})",
+          "legendFormat": "peak",
           "refId": "C",
           "step": 2400
         },
