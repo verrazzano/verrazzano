@@ -76,8 +76,10 @@ function verify_released_artifacts() {
       local latestVersionDir=${TMPDIR}}/latest
       mkdir -p $latestVersionDir
       cd $latestVersionDir
-      wget "https://github.com/verrazzano/verrazzano/releases/latest"
+      wget -O latest "https://github.com/verrazzano/verrazzano/releases/latest"
       RELEASE_VERSION=$(grep -i '<title>' latest | awk -F 'release ' '{print $2}' | head -c6 | tail -c5)
+      echo "Release verion is:"
+      echo "$RELEASE_VERSION"
 
       # Iterate the array containing the release artifacts and download all of them
       echo "Downloading release artifacts for latest"
