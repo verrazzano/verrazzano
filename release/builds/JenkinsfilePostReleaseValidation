@@ -101,7 +101,8 @@ pipeline {
                 script {
                   println("Downloading image list from object store")
                   sh "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE} --file verrazzano_images.txt"
-                  sh "oci os object list --region us-phoenix-1 --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --prefix release-"
+                  sh "oci os object list --region us-phoenix-1 --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --prefix release- > object_storage_images.txt"
+                  sh "cat object_storage_images.txt"
                 }
               }
             }
