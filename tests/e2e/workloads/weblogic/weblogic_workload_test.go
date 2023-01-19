@@ -77,7 +77,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 			AbortSuite(fmt.Sprintf("WebLogic VirtualService %s is not running in the namespace: %v, error: %v", trait, namespace, err))
 		}
 		return result
-	}, 1*time.Minute, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: VirtualService is not ready")
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: VirtualService is not ready")
 
 	t.Logs.Info("WebLogic Application - check expected Secrets exist")
 	Eventually(func() bool {
