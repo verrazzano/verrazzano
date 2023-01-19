@@ -23,7 +23,6 @@ type authProxyValues struct {
 type proxyValues struct {
 	OidcRealm                    string `json:"OidcRealm,omitempty"`
 	PKCEClientID                 string `json:"PKCEClientID,omitempty"`
-	OIDCClientID                 string `json:"OIDCClientID,omitempty"`
 	PGClientID                   string `json:"PGClientID,omitempty"`
 	RequiredRealmRole            string `json:"RequiredRealmRole,omitempty"`
 	OidcCallbackPath             string `json:"OidcCallbackPath,omitempty"`

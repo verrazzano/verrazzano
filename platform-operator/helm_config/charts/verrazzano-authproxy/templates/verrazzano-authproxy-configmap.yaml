@@ -165,8 +165,7 @@ data:
     local validators = require "resty.jwt-validators"
 
     local oidcRealm = "{{ .OidcRealm }}"
-    local oidcClient = "{{ .OIDCClientID }}"
-    local masterOidcClient = "{{ .PKCEClientID }}"
+    local oidcClient = "{{ .PKCEClientID }}"
     local oidcDirectAccessClient = "{{ .PGClientID }}"
     local requiredRole = "{{ .RequiredRealmRole }}"
 
@@ -765,7 +764,7 @@ data:
         local claim_spec = {
             typ = validators.equals_any_of({ "Bearer", "ID" }),
             iss = validators.equals( oidcIssuerUri ),
-            azp = validators.equals_any_of({ oidcClient, masterOidcClient, oidcDirectAccessClient })
+            azp = validators.equals_any_of({ oidcClient, oidcDirectAccessClient })
         }
         me.oidcValidateTokenWithClaims(token, claim_spec)
     end
