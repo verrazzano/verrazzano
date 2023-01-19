@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # Verifies GitHub release artifacts.
@@ -41,6 +41,11 @@ function verify_released_artifacts() {
   local releaseVersionDir=${TMPDIR}/release
   mkdir -p $releaseVersionDir
   cd $releaseVersionDir
+
+
+  # If $VERSION < v1.4.0
+  VERSION_NUMBER=$(echo "$VERSION" | tail -c6)
+   
 
   # Iterate the array containing the release artifacts and download all of them
   echo "Downloading release artifacts for ${VERSION}"
