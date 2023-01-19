@@ -22,6 +22,9 @@ var Debug bool
 // cmdRunner needed for unit tests
 var runner vzos.CmdRunner = vzos.DefaultRunner{}
 
+// number of times runHelm will retry running its Helm command
+const maxRetry = 5
+
 // Helm chart status values: unknown, deployed, uninstalled, superseded, failed, uninstalling, pending-install, pending-upgrade or pending-rollback
 const ChartNotFound = "NotFound"
 const ChartStatusDeployed = "deployed"
@@ -213,7 +216,6 @@ func runHelm(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 
 	// Try to upgrade several times.  Sometimes upgrade fails with "already exists" or "no deployed release".
 	// We have seen from tests that doing a retry will eventually succeed if these 2 errors occur.
-	const maxRetry = 5
 	for i := 1; i <= maxRetry; i++ {
 		cmd := exec.Command("helm", cmdArgs...)
 
