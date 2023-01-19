@@ -18,7 +18,6 @@ do
     if [[ $? -eq 0 ]]; then
         IMAGES_FOUND_IN_OCR+=("$VZ_IMAGE_NAME")
     else
-        "$FAIL_NOT_IN_OCR" = false
         IMAGES_NOT_FOUND_IN_OCR+=("$VZ_IMAGE_NAME")
     fi
 done < "$OBJ_STORAGE_VZ_IMAGE_TXT"
