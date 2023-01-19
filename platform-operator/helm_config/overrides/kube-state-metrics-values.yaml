@@ -290,6 +290,10 @@ prometheus:
         - namespace
         - pod
         targetLabel: verrazzano_component
+    relabelings:
+      - action: replace
+        replacement: local
+        targetLabel: verrazzano_cluster
 metricLabelsAllowlist:
   - deployments=[app.oam.dev/name,app.oam.dev/component]
   - pods=[app.oam.dev/name,app.oam.dev/component]
