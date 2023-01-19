@@ -28,13 +28,13 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = common.ArgoCDName
+const ComponentName = common.ArgoCDCompName
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.ArgoCDNamespace
 
 // ComponentJSONName is the json name of the verrazzano component in CRD
-const ComponentJSONName = "argoCd"
+const ComponentJSONName = common.ArgoCDCompName
 
 type argoCDComponent struct {
 	keycloak.ArgoClientSecretProvider
