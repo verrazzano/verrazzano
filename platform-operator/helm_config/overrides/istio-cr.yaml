@@ -54,16 +54,6 @@ spec:
 
     pilot:
       autoscaleEnabled: false
-      securityContext:
-        runAsUser: 1337
-        runAsGroup: 1337
-        runAsNonRoot: true
-        privileged: false
-        allowPrivilegeEscalation: false
-        readOnlyRootFilesystem: true
-        capabilities:
-          drop:
-            - ALL
 
     gateways:
       istio-egressgateway:
@@ -71,28 +61,8 @@ spec:
           # Needed to route traffic via egress gateway if desired.
           ISTIO_META_REQUESTED_NETWORK_VIEW: "external"
         autoscaleEnabled: false
-        securityContext:
-          runAsUser: 1337
-          runAsGroup: 1337
-          runAsNonRoot: true
-          privileged: false
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
-          capabilities:
-            drop:
-              - ALL
       istio-ingressgateway:
         autoscaleEnabled: false
-        securityContext:
-          runAsUser: 1337
-          runAsGroup: 1337
-          runAsNonRoot: true
-          privileged: false
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
-          capabilities:
-            drop:
-              - ALL
 
     meshConfig:
       enablePrometheusMerge: false
