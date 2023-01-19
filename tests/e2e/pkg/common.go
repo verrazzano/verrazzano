@@ -18,7 +18,7 @@ import (
 	"sync"
 	"time"
 
-	retryablehttp "github.com/hashicorp/go-retryablehttp"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo/v2"
 	v12 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -239,7 +239,7 @@ func IsOpensearchEnabled(kubeconfigPath string) bool {
 	return true
 }
 
-// PodsRunning checks if all the pods identified by namePrefixes are ready and running in the given cluster
+// PodsRunningInCluster checks if all the pods identified by namePrefixes are ready and running in the given cluster
 func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPath string) (bool, error) {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
