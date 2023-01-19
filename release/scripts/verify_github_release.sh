@@ -42,16 +42,14 @@ function verify_released_artifacts() {
   mkdir -p $releaseVersionDir
   cd $releaseVersionDir
 
-
-  # If $VERSION < v1.4.0
-  VERSION_NUMBER=$(echo "$VERSION" | tail -c6)
-   
+  # Grabs the minor release number to determine which github artifacts to download and check
+  VERSION_NUMBER_MINOR=$(echo "$VERSION" | tail -c4 | head -c1)
 
   # Iterate the array containing the release artifacts and download all of them
   echo "Downloading release artifacts for ${VERSION}"
   for i in "${releaseArtifacts[@]}"
   do
-    local url="https://github.com/verrazzano/verrazzano/releases/download/$VERSION/$i"
+    local url="https://github.com/verrazzano/verrazzano/releases/download/v$VERSION/$i"
     curl -Ss -L --show-error --fail -o $i ${url} || { echo "Unable to download ${url}"; exit; }
   done
   ${SHA_CMD} verrazzano-platform-operator.yaml.sha256
@@ -78,5 +76,10 @@ function verify_released_artifacts() {
   ${SHA_CMD} verrazzano-${RELEASE_VERSION}-linux-amd64.tar.gz.sha256
   ${SHA_CMD} verrazzano-${RELEASE_VERSION}-linux-arm64.tar.gz.sha256
 }
-
 verify_released_artifacts
+if [[ "$VERSION_NUMBER_MINOR" -lt 4 ]]; then
+    printf "Version is PRIOR to v1.4.0"
+  else
+    printf "Version is after v1.4.0"
+    
+  fi
