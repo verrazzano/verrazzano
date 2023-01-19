@@ -26,6 +26,7 @@ Component version updates:
 - Istio v1.15.1
 - Jaeger v1.37.0
 - Kiali v1.57.1
+- Keycloak v20.0.1
 
 Components added:
 - MySQL Operator 8.0.30-2.0.6
