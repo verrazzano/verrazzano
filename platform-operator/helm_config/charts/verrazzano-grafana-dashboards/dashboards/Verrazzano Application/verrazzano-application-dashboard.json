@@ -15,8 +15,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 67,
-  "iteration": 1673633583040,
+  "id": 70,
+  "iteration": 1674069174741,
   "links": [],
   "panels": [
     {
@@ -80,9 +80,9 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{container=~\".+\"} and on (pod) \nkube_pod_labels{label_app_oam_dev_name=\"$application\"})\n",
+          "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{container=~\".+\"} and on (pod) \nkube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"})\n",
           "interval": "",
-          "legendFormat": "$application",
+          "legendFormat": "$component",
           "refId": "A"
         }
       ],
@@ -90,7 +90,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "CPU Usage (cores)",
+      "title": "Component CPU Usage (cores)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -178,10 +178,10 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(max(container_memory_working_set_bytes{container!=\"\", image!=\"\"}  and on (pod)\nkube_pod_labels{label_app_oam_dev_name=\"$application\"}) by (container))",
+          "expr": "sum(max(container_memory_working_set_bytes{verrazzano_cluster=~\"$vzcluster\", container!=\"\", image!=\"\"}  and on (pod)\nkube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}) by (container))",
           "interval": "",
           "intervalFactor": 2,
-          "legendFormat": "$application",
+          "legendFormat": "$component",
           "refId": "A"
         }
       ],
@@ -189,7 +189,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Memory Usage (bytes)",
+      "title": "Component Memory Usage (bytes)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -313,7 +313,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "(kube_pod_info and on (pod)\nkube_pod_labels{label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) * on (pod) group_left(label_app_oam_dev_component) kube_pod_labels",
+          "expr": "kube_pod_info and on (pod)\nkube_pod_labels{verrazzano_cluster=\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -322,7 +322,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate and on (pod)\nkube_pod_labels{label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (pod)",
+          "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate and on (pod)\nkube_pod_labels{verrazzano_cluster=\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (pod)",
           "format": "table",
           "hide": false,
           "instant": true,
@@ -332,7 +332,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(max(container_memory_working_set_bytes{container!=\"\", image!=\"\"} and on (pod)\nkube_pod_labels{label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (container, pod)) by (pod)",
+          "expr": "sum(max(container_memory_working_set_bytes{container!=\"\", image!=\"\"} and on (pod)\nkube_pod_labels{verrazzano_cluster=\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (container, pod)) by (pod)",
           "format": "table",
           "hide": false,
           "instant": true,
@@ -342,7 +342,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(kube_pod_container_status_restarts_total and on (pod)\nkube_pod_labels{label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (pod)",
+          "expr": "sum(kube_pod_container_status_restarts_total and on (pod)\nkube_pod_labels{verrazzano_cluster=\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (pod)",
           "format": "table",
           "hide": false,
           "instant": true,
@@ -352,7 +352,7 @@
         },
         {
           "exemplar": true,
-          "expr": "max(kube_pod_status_ready{condition=\"true\"} and on (pod)\nkube_pod_labels{label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (pod)",
+          "expr": "max(kube_pod_status_ready{condition=\"true\"} and on (pod)\nkube_pod_labels{verrazzano_cluster=\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (pod)",
           "format": "table",
           "hide": false,
           "instant": true,
@@ -494,7 +494,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(istio_requests_total[1m]) and on (destination_service_name) label_replace(kube_service_labels{label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\"))",
+          "expr": "sum(rate(istio_requests_total{verrazzano_cluster=~\"$vzcluster\"}[1m]) and on (destination_service_name) label_replace(kube_service_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\"))",
           "interval": "",
           "legendFormat": "$component",
           "refId": "A"
@@ -543,10 +543,11 @@
     },
     {
       "aliasColors": {},
-      "bars": false,
+      "bars": true,
       "dashLength": 10,
       "dashes": false,
       "datasource": null,
+      "description": "Total Requests per second divided by Requests with 5xx responses per second",
       "fieldConfig": {
         "defaults": {},
         "overrides": []
@@ -560,7 +561,7 @@
         "y": 17
       },
       "hiddenSeries": false,
-      "id": 16,
+      "id": 38,
       "legend": {
         "avg": false,
         "current": false,
@@ -570,7 +571,7 @@
         "total": false,
         "values": false
       },
-      "lines": true,
+      "lines": false,
       "linewidth": 1,
       "nullPointMode": "null",
       "options": {
@@ -588,9 +589,9 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(istio_requests_total{response_code=~\"2.*\"}[1m]) and on (destination_service_name) label_replace(kube_service_labels{label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\"))",
+          "expr": "100 * sum(rate(istio_requests_total{verrazzano_cluster=~\"$vzcluster\", response_code=~\"5.*\"}[1m]) and on (destination_service_name) label_replace(kube_service_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\")) / sum(rate(istio_requests_total{verrazzano_cluster=~\"$vzcluster\"}[1m]) and on (destination_service_name) label_replace(kube_service_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\"))",
           "interval": "",
-          "legendFormat": "{{destination_workload}}",
+          "legendFormat": "$component",
           "refId": "A"
         }
       ],
@@ -598,7 +599,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "2xx Responses/second",
+      "title": "5xx Response Rate",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -614,14 +615,17 @@
       },
       "yaxes": [
         {
-          "format": "short",
-          "label": null,
+          "$$hashKey": "object:796",
+          "decimals": null,
+          "format": "percent",
+          "label": "",
           "logBase": 1,
-          "max": null,
+          "max": "100",
           "min": null,
           "show": true
         },
         {
+          "$$hashKey": "object:797",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -654,100 +658,6 @@
         "y": 25
       },
       "hiddenSeries": false,
-      "id": 17,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "7.5.17",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "sum(rate(istio_requests_total{response_code=~\"5.*\"}[1m]) and on (destination_service_name) label_replace(kube_service_labels{label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\"))",
-          "interval": "",
-          "legendFormat": "{{destination_service_name}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "5xx Responses/second",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": null,
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 25
-      },
-      "hiddenSeries": false,
       "id": 19,
       "legend": {
         "avg": false,
@@ -776,9 +686,9 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(istio_request_duration_milliseconds_sum and on (destination_service_name) label_replace(kube_service_labels{label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\")) / sum(istio_request_duration_milliseconds_count and on (destination_service_name) label_replace(kube_service_labels{label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\"))",
+          "expr": "sum(istio_request_duration_milliseconds_sum{verrazzano_cluster=~\"$vzcluster\"} and on (destination_service_name) label_replace(kube_service_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\")) / sum(istio_request_duration_milliseconds_count{verrazzano_cluster=~\"$vzcluster\"} and on (destination_service_name) label_replace(kube_service_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\"))",
           "interval": "",
-          "legendFormat": "{{destination_service_name}}",
+          "legendFormat": "$component",
           "refId": "A"
         }
       ],
@@ -833,12 +743,54 @@
       {
         "allValue": null,
         "current": {
-          "selected": false,
-          "text": "springboot-appconf",
-          "value": "springboot-appconf"
+          "selected": true,
+          "text": "local",
+          "value": "local"
         },
         "datasource": null,
-        "definition": "label_values(app_oam_dev_name)",
+        "definition": "label_values(verrazzano_cluster)",
+        "description": null,
+        "error": null,
+        "hide": 0,
+        "includeAll": false,
+        "label": "Verrazzano Cluster",
+        "multi": false,
+        "name": "vzcluster",
+        "options": [
+          {
+            "selected": true,
+            "text": "local",
+            "value": "local"
+          },
+          {
+            "selected": false,
+            "text": "managed1",
+            "value": "managed1"
+          }
+        ],
+        "query": {
+          "query": "label_values(verrazzano_cluster)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 0,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {
+          "selected": false,
+          "text": "sockshop-appconf",
+          "value": "sockshop-appconf"
+        },
+        "datasource": null,
+        "definition": "label_values(up{verrazzano_cluster=~\"$vzcluster\"}, app_oam_dev_name)",
         "description": null,
         "error": null,
         "hide": 0,
@@ -848,7 +800,7 @@
         "name": "application",
         "options": [],
         "query": {
-          "query": "label_values(app_oam_dev_name)",
+          "query": "label_values(up{verrazzano_cluster=~\"$vzcluster\"}, app_oam_dev_name)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,
@@ -869,7 +821,7 @@
           "value": "$__all"
         },
         "datasource": null,
-        "definition": "label_values(up{app_oam_dev_name=\"$application\"}, app_oam_dev_component)",
+        "definition": "label_values(up{verrazzano_cluster=~\"$vzcluster\", app_oam_dev_name=\"$application\"}, app_oam_dev_component)",
         "description": null,
         "error": null,
         "hide": 0,
@@ -879,7 +831,7 @@
         "name": "component",
         "options": [],
         "query": {
-          "query": "label_values(up{app_oam_dev_name=\"$application\"}, app_oam_dev_component)",
+          "query": "label_values(up{verrazzano_cluster=~\"$vzcluster\", app_oam_dev_name=\"$application\"}, app_oam_dev_component)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,

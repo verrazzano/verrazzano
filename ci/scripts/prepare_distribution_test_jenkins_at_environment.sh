@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -88,6 +88,7 @@ yq eval -i '.spec.components.prometheusPushgateway.enabled = true' ${INSTALL_CON
 yq eval -i '.spec.components.velero.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
 yq eval -i '.spec.components.rancherBackup.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
 yq eval -i '.spec.components.jaegerOperator.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+yq eval -i '.spec.components.argoCd.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
 
 # Configure the custom resource to install Verrazzano on Kind
 ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
