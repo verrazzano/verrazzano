@@ -25,10 +25,10 @@ declare -a releaseArtifacts=("verrazzano-platform-operator.yaml"
                              "verrazzano-${RELEASE_VERSION}-linux-arm64.tar.gz.sha256")
 
 # Release artifacts for versions prior to v1.4.0
-declare -a releaseArtifactsPriorToV140=("${RELEASE_VERSION}/operator.yaml"
-                                        "${RELEASE_VERSION}/k8s-dump-cluster.sh"
-                                        "${RELEASE_VERSION}/k8s-dump-cluster.sh.sha256"
-                                        "${RELEASE_VERSION}/verrazzano-analysis-darwin-amd64.tar.gz"
-                                        "${RELEASE_VERSION}/verrazzano-analysis-darwin-amd64.tar.gz.sha256"
-                                        "${RELEASE_VERSION}/verrazzano-analysis-linux-amd64.tar.gz"
-                                        "${RELEASE_VERSION}/verrazzano-analysis-linux-amd64.tar.gz.sha256")
+declare -a releaseArtifactsPriorToV140=("operator.yaml"
+                                        "k8s-dump-cluster.sh"
+                                        "k8s-dump-cluster.sh.sha256"
+                                        "verrazzano-analysis-darwin-amd64.tar.gz"
+                                        "verrazzano-analysis-darwin-amd64.tar.gz.sha256"
+                                        "verrazzano-analysis-linux-amd64.tar.gz"
+                                        "verrazzano-analysis-linux-amd64.tar.gz.sha256")
