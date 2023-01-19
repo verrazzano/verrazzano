@@ -38,6 +38,7 @@ const (
 	tmpSuffix            = "yaml"
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
 	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
+	adminClusterOidcID   = "verrazzano-pkce"
 )
 
 var (
@@ -79,17 +80,22 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	if err != nil {
 		return nil, err
 	}
-	oidcClient := "verrazzano-pkce"
+	mgdClusterOidcClient := ""
 	if registrationSecret != nil {
 		// specify the cluster associated keycloak/OIDC client
 		clusterName := string(registrationSecret.Data[constants.ClusterNameData])
-		oidcClient = fmt.Sprintf("verrazzano-%s", clusterName)
+		mgdClusterOidcClient = fmt.Sprintf("verrazzano-%s", clusterName)
 	}
 
 	overrides.Proxy = &proxyValues{
 		OidcProviderHost:          fmt.Sprintf("keycloak.%s.%s", overrides.Config.EnvName, dnsSuffix),
 		OidcProviderHostInCluster: keycloakInClusterURL,
-		PKCEClientID:              oidcClient,
+		PKCEClientID:              adminClusterOidcID,
+	}
+	if len(mgdClusterOidcClient) > 0 {
+		overrides.Proxy.OIDCClientID = mgdClusterOidcClient
+	} else {
+		overrides.Proxy.OIDCClientID = adminClusterOidcID
 	}
 
 	// Image name and version

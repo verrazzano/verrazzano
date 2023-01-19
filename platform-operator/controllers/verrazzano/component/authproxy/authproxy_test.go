@@ -325,7 +325,8 @@ func TestAppendOverridesIfManagedCluster(t *testing.T) {
 	overrides := &authProxyValues{}
 	err = yaml.Unmarshal(data, overrides)
 	assert.NoError(t, err)
-	assert.Equal(t, "verrazzano-managed1", overrides.Proxy.PKCEClientID, "wrong client ID")
+	assert.Equal(t, "verrazzano-managed1", overrides.Proxy.OIDCClientID, "wrong client ID")
+	assert.Equal(t, "verrazzano-pkce", overrides.Proxy.PKCEClientID, "wrong client ID")
 }
 
 // TestUninstallResources tests the Fluentd Uninstall call
