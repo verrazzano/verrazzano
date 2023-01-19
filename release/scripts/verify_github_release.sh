@@ -76,12 +76,14 @@ function verify_released_artifacts() {
       local latestVersionDir=${TMPDIR}}/latest
       mkdir -p $latestVersionDir
       cd $latestVersionDir
+      wget "https://github.com/verrazzano/verrazzano/releases/latest"
+      RELEASE_VERSION=$(grep -i '<title>' latest | awk -F 'release ' '{print $2}' | head -c6 | tail -c5)
 
       # Iterate the array containing the release artifacts and download all of them
       echo "Downloading release artifacts for latest"
       for i in "${releaseArtifacts[@]}"
       do
-        local url="https://github.com/verrazzano/verrazzano/releases/latest/download/$i"
+        local url="https://github.com/verrazzano/verrazzano/releases/download/v$RELEASE_VERSION/$i"
         curl -Ss -L --show-error --fail -o $i ${url} || { echo "Unable to download ${url}"; exit; }
       done
       ${SHA_CMD} verrazzano-platform-operator.yaml.sha256
