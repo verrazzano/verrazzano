@@ -28,7 +28,7 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = common.ArgoCDCompName
+const ComponentName = common.ArgoCDName
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.ArgoCDNamespace
@@ -179,7 +179,7 @@ func ConfigureKeycloakOIDC(ctx spi.ComponentContext) error {
 
 	if vzcr.IsKeycloakEnabled(ctx.EffectiveCR()) && vzcr.IsArgoCDEnabled(ctx.EffectiveCR()) {
 
-		ctx.Log().Oncef("Configuring Keycloak as a ArgoCD authentication provider")
+		ctx.Log().Oncef("Configuring Keycloak as a argocd authentication provider")
 		component := NewComponent().(argoCDComponent)
 		if err := patchArgoCDSecret(component, ctx); err != nil {
 			return log.ErrorfThrottledNewErr("Failed patching ArgoCD secret: %s", err.Error())
