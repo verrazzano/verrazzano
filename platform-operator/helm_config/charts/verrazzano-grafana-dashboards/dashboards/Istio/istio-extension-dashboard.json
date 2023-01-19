@@ -40,24 +40,7 @@
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "align": null
-          },
-          "links": [],
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
+          "links": []
         },
         "overrides": []
       },
@@ -87,7 +70,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.2.1",
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -97,13 +80,15 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg(envoy_wasm_envoy_wasm_runtime_null_active)",
+          "exemplar": true,
+          "expr": "avg(envoy_wasm_envoy_wasm_runtime_null_active{verrazzano_cluster=~\"$vzcluster\"})",
           "interval": "",
           "legendFormat": "native",
           "refId": "A"
         },
         {
-          "expr": "avg(envoy_wasm_envoy_wasm_runtime_v8_active)",
+          "exemplar": true,
+          "expr": "avg(envoy_wasm_envoy_wasm_runtime_v8_active{verrazzano_cluster=~\"$vzcluster\"})",
           "interval": "",
           "legendFormat": "v8",
           "refId": "B"
@@ -160,7 +145,6 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -191,7 +175,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.2.1",
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -201,13 +185,15 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg(envoy_wasm_envoy_wasm_runtime_null_created)",
+          "exemplar": true,
+          "expr": "avg(envoy_wasm_envoy_wasm_runtime_null_created{verrazzano_cluster=~\"$vzcluster\"})",
           "interval": "",
           "legendFormat": "native",
           "refId": "A"
         },
         {
-          "expr": "avg(envoy_wasm_envoy_wasm_runtime_v8_created)",
+          "exemplar": true,
+          "expr": "avg(envoy_wasm_envoy_wasm_runtime_v8_created{verrazzano_cluster=~\"$vzcluster\"})",
           "interval": "",
           "legendFormat": "v8",
           "refId": "B"
@@ -278,7 +264,6 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -309,7 +294,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.2.1",
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -319,7 +304,8 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg(envoy_wasm_remote_load_cache_entries)",
+          "exemplar": true,
+          "expr": "avg(envoy_wasm_remote_load_cache_entries{verrazzano_cluster=~\"$vzcluster\"})",
           "interval": "",
           "legendFormat": "entries",
           "refId": "A"
@@ -376,7 +362,6 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -407,7 +392,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.2.1",
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -417,19 +402,22 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg(envoy_wasm_remote_load_cache_hits)",
+          "exemplar": true,
+          "expr": "avg(envoy_wasm_remote_load_cache_hits{verrazzano_cluster=~\"$vzcluster\"})",
           "interval": "",
           "legendFormat": "hits",
           "refId": "A"
         },
         {
-          "expr": "avg(envoy_wasm_remote_load_cache_misses)",
+          "exemplar": true,
+          "expr": "avg(envoy_wasm_remote_load_cache_misses{verrazzano_cluster=~\"$vzcluster\"})",
           "interval": "",
           "legendFormat": "misses",
           "refId": "B"
         },
         {
-          "expr": "avg(envoy_wasm_remote_load_cache_negative_hits)",
+          "exemplar": true,
+          "expr": "avg(envoy_wasm_remote_load_cache_negative_hits{verrazzano_cluster=~\"$vzcluster\"})",
           "interval": "",
           "legendFormat": "negative hits",
           "refId": "C"
@@ -486,7 +474,6 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -517,7 +504,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.2.1",
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -527,13 +514,15 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg(envoy_wasm_remote_load_fetch_failures)",
+          "exemplar": true,
+          "expr": "avg(envoy_wasm_remote_load_fetch_failures{verrazzano_cluster=~\"$vzcluster\"})",
           "interval": "",
           "legendFormat": "failures",
           "refId": "A"
         },
         {
-          "expr": "avg(envoy_wasm_remote_load_fetch_successes)",
+          "exemplar": true,
+          "expr": "avg(envoy_wasm_remote_load_fetch_successes{verrazzano_cluster=~\"$vzcluster\"})",
           "interval": "",
           "legendFormat": "successes",
           "refId": "B"
@@ -603,9 +592,7 @@
       "dashes": false,
       "datasource": "Prometheus",
       "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
+        "defaults": {},
         "overrides": []
       },
       "fill": 1,
@@ -635,7 +622,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.2.1",
+      "pluginVersion": "7.5.17",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -645,9 +632,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(container_memory_working_set_bytes{container=\"istio-proxy\"})",
+          "exemplar": true,
+          "expr": "sum(container_memory_working_set_bytes{container=\"istio-proxy\", verrazzano_cluster=~\"$vzcluster\"})",
           "format": "time_series",
           "hide": false,
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "Total (k8s)",
           "refId": "A",
@@ -704,9 +693,7 @@
       "dashes": false,
       "datasource": "Prometheus",
       "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
+        "defaults": {},
         "overrides": []
       },
       "fill": 1,
@@ -736,7 +723,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.2.1",
+      "pluginVersion": "7.5.17",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -746,9 +733,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{container=\"istio-proxy\"}[1m]))",
+          "exemplar": true,
+          "expr": "sum(rate(container_cpu_usage_seconds_total{container=\"istio-proxy\", verrazzano_cluster=~\"$vzcluster\"}[1m]))",
           "format": "time_series",
           "hide": false,
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "Total (k8s)",
           "refId": "A",
@@ -800,15 +789,52 @@
     }
   ],
   "refresh": false,
-  "schemaVersion": 26,
+  "schemaVersion": 27,
   "style": "dark",
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "allValue": null,
+        "current": {
+          "selected": true,
+          "tags": [],
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": null,
+        "definition": "label_values(verrazzano_cluster)",
+        "description": null,
+        "error": null,
+        "hide": 0,
+        "includeAll": true,
+        "label": "Verrazzano Cluster",
+        "multi": true,
+        "name": "vzcluster",
+        "options": [],
+        "query": {
+          "query": "label_values(verrazzano_cluster)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      }
+    ]
   },
   "time": {
-    "from": "2020-10-22T23:11:45.783Z",
-    "to": "2020-10-23T00:04:19.481Z"
+    "from": "now-5m",
+    "to": "now"
   },
   "timepicker": {
     "refresh_intervals": [
@@ -826,5 +852,5 @@
   "timezone": "",
   "title": "Istio Wasm Extension Dashboard",
   "uid": "7PAV7ctGz",
-  "version": 17
+  "version": 5
 }

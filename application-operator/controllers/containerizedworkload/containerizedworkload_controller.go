@@ -88,7 +88,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 func (r *Reconciler) doReconcile(ctx context.Context, workload oamv1.ContainerizedWorkload, log vzlog2.VerrazzanoLogger) (ctrl.Result, error) {
 	// Label the service with the OAM app and component, if the service exists. Errors will be logged in the method, we still
 	// need to process restart annotation even if there's an error
-	r.updateServiceLabels(ctx, workload, log)
+	if err := r.updateServiceLabels(ctx, workload, log); err != nil {
+		return reconcile.Result{}, err
+	}
 
 	// get the user-specified restart version - if it's missing then there's nothing to do here
 	restartVersion, ok := workload.Annotations[vzconst.RestartVersionAnnotation]
@@ -127,13 +129,13 @@ func (r *Reconciler) restartWorkload(ctx context.Context, restartVersion string,
 // updateServiceLabels looks up the Service associated with the workload, and updates its OAM
 // app and component labels if needed. Any errors will be logged and not returned since we don't want
 // this to fail anything.
-func (r *Reconciler) updateServiceLabels(ctx context.Context, workload oamv1.ContainerizedWorkload, log vzlog2.VerrazzanoLogger) {
+func (r *Reconciler) updateServiceLabels(ctx context.Context, workload oamv1.ContainerizedWorkload, log vzlog2.VerrazzanoLogger) error {
 	svc, err := r.getWorkloadService(ctx, workload, log)
 	if err != nil {
-		return
+		return err
 	}
 	if svc == nil {
-		return
+		return nil
 	}
 	if svc.Labels == nil {
 		svc.Labels = map[string]string{}
@@ -141,15 +143,16 @@ func (r *Reconciler) updateServiceLabels(ctx context.Context, workload oamv1.Con
 	if svc.Labels[oam.LabelAppName] == workload.Labels[oam.LabelAppName] &&
 		svc.Labels[oam.LabelAppComponent] == workload.Labels[oam.LabelAppComponent] {
 		// nothing to do, return
-		return
+		return nil
 	}
 	log.Infof("Updating service OAM app and component labels for %s/%s", svc.Namespace, svc.Name)
 	svc.Labels[oam.LabelAppName] = workload.Labels[oam.LabelAppName]
 	svc.Labels[oam.LabelAppComponent] = workload.Labels[oam.LabelAppComponent]
 	err = r.Update(ctx, svc)
 	if err != nil {
-		log.Errorf("Failed to update Service %s for ContainerizedWorkload %s/%s: %v", svc.Name, workload.Namespace, workload.Name, err)
+		return log.ErrorfNewErr("Failed to update Service %s for ContainerizedWorkload %s/%s: %v", svc.Name, workload.Namespace, workload.Name, err)
 	}
+	return nil
 }
 
 // getWorkloadService retrieves the Service associated with the workload
