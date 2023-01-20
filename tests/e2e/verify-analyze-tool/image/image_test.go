@@ -95,7 +95,7 @@ func patchImage(deploymentName, namespace, issueType string) error {
 					if getErr != nil {
 						return getErr
 					}
-					result.Spec.Template.Spec.Containers[i].Image = image[:len(image)-1]
+					result.Spec.Template.Spec.Containers[i].Image = image
 					_, updateErr = deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
 					if updateErr != nil {
 						return updateErr
@@ -106,6 +106,7 @@ func patchImage(deploymentName, namespace, issueType string) error {
 						return err
 					}
 					reportAnalysis[issueType] = action{out1, out2}
+					break
 				case ImagePullBackOff:
 
 					// PATCHING
@@ -136,6 +137,7 @@ func patchImage(deploymentName, namespace, issueType string) error {
 						return err
 					}
 					reportAnalysis[issueType] = action{out1, out2}
+					break
 			}
 		}
 	}
