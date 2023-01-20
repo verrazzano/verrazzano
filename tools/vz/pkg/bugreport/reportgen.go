@@ -76,7 +76,7 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 		return err
 	}
 	// If v1beta1 does not exist on the cluster, it is using v1alpha1
-	if meta.IsNoMatchError(err) {
+	if meta.IsNoMatchError(err) || len(vz.Items) == 0 {
 		// Loop through the existing v1alpha1 Verrazzano and convert them to v1beta1
 		// Add them to the vz list so that the bug report is not skipped
 		vzA1 := v1alpha1.VerrazzanoList{}
