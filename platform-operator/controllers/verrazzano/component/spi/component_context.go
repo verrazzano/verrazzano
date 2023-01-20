@@ -18,7 +18,7 @@ var _ ComponentContext = componentContext{}
 
 // NewContext creates a ComponentContext from a raw CR
 func NewContext(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *v1alpha1.Verrazzano, actualV1beta1CR *v1beta1.Verrazzano, dryRun bool) (ComponentContext, error) {
-	// Generate the effective CR based ond the declared profile and any overrides in the user-supplied one
+	// Generate the effective CR based on the declared profile and any overrides in the user-supplied one
 	effectiveCR, err := transform.GetEffectiveCR(actualCR)
 	if err != nil {
 		return nil, err
