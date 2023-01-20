@@ -107,12 +107,12 @@ pipeline {
                 
                 println("Downloading image list from object storage")
                 if ( ${params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE} == 'NONE' ) {
-                     sh '''#!/usr/bin/env bash
-                    echo Latest release number is ...
+                     sh '''
+                    echo "Latest release number is ..."
                     LIST_OF_RELEASE_NUM=($(grep -i 'images.txt' object_storage_images.json))
                     LATEST_RELEASE_NUMBER=$(echo ${LIST_OF_RELEASE_NUM[${#LIST_OF_RELEASE_NUM[@]}-1]} | cut -d  '"' -f 2)
                     echo $LATEST_RELEASE_NUMBER
-                    oci --region ${OCI_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${LATEST_RELEASE_NUMBER} --file verrazzano_images.txt
+                    oci --region ${OCI_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name $LATEST_RELEASE_NUMBER --file verrazzano_images.txt
                 '''
                   }
                   else {
