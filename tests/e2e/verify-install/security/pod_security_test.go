@@ -31,8 +31,8 @@ const (
 	capNetBindService = "NET_BIND_SERVICE"
 	capDacOverride    = "DAC_OVERRIDE"
 
-	// MySQL ignore pattern
-	mysqlPattern = "^mysql-([\\d]+)$"
+	// MySQL ignore pattern; skip mysql-# or mysql-xxxx-xxxx pod names, but not mysql-router-#
+	mysqlPattern = "^mysql-([\\d]+|[A-Za-z0-9]-[A-Za-z0-9]).*$"
 )
 
 var skipPods = map[string][]string{
