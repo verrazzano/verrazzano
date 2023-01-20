@@ -99,20 +99,24 @@ pipeline {
                 OCI_REGION = "us-phoenix-1"
             }
             steps {
-                script {
-                  sh "oci os object list --region us-phoenix-1 --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --all --stream-output --prefix release- > object_storage_images.json"
-                  
+                // script {
+                sh "oci os object list --region us-phoenix-1 --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --all --stream-output --prefix release- > object_storage_images.json"
                 // This file permission change is here because before the script was returning and Permission denied error
-                  sh "chmod +x ${WORKSPACE}/release/scripts/get_images_to_publish_latest.sh"
-                  sh "${WORKSPACE}/release/scripts/get_images_to_publish_latest.sh"
-                  println("Downloading image list from object storage")
-                  if ( ${params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE} == 'NONE' ) {
-                    sh "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${LATEST_RELEASE_NUMBER} --file verrazzano_images.txt"
+                //   sh "chmod +x ${WORKSPACE}/release/scripts/get_images_to_publish_latest.sh"
+                //   sh "${WORKSPACE}/release/scripts/get_images_to_publish_latest.sh"
+                echo "Latest release number is ..."
+                LIST_OF_RELEASE_NUM=($(grep -i 'images.txt' object_storage_images.json))
+                LATEST_RELEASE_NUMBER=$(echo ${LIST_OF_RELEASE_NUM[${#LIST_OF_RELEASE_NUM[@]}-1]} | cut -d  '"' -f 2)
+                echo "$LATEST_RELEASE_NUMBER"
+                println("Downloading image list from object storage")
+                if ( ${params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE} == 'NONE' ) {
+                    sh "oci --region ${OCI_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${LATEST_RELEASE_NUMBER} --file verrazzano_images.txt"
                   }
                   else {
-                    sh "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE} --file verrazzano_images.txt"
+                    sh "oci --region ${OCI_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE} --file verrazzano_images.txt"
                   }
-                }
+                
+                // }
               }
             }
         stage('Compare Images from Object storage to be Published') {
