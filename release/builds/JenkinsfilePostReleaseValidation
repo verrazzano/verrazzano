@@ -19,7 +19,7 @@ pipeline {
     parameters {
         string name: 'RELEASE_UTILS_BRANCH', defaultValue: 'master', description: 'Branch or tag or commit to checkout from the release utils repo', trim: true
         string (description: 'The release version (major.minor.patch format, e.g. 1.0.1)', name: 'RELEASE_VERSION', defaultValue: 'NONE', trim: true)
-        string name: 'IMAGES_TO_PUBLISH_OBJECT_STORE_FILE', description: 'The object store file from which to get the list of images to be published to OCR (if provided, IMAGES_TO_PUBLISH_JOB_NAME and IMAGES_TO_PUBLISH_BUILD are ignored)', defaultValue: 'release-1.4/verrazzano_1.4.3-images.txt'
+        string name: 'IMAGES_TO_PUBLISH_OBJECT_STORE_FILE', description: 'The object store file from which to get the list of images to be published to OCR (if provided, IMAGES_TO_PUBLISH_JOB_NAME and IMAGES_TO_PUBLISH_BUILD are ignored)', defaultValue: 'NONE'
         string name: 'IMAGES_TO_PUBLISH_JOB_NAME', defaultValue: 'verrazzano-new-oci-dns-acceptance-tests/master', description: 'Jenkins job whose built artifacts includes the list of images to push (needed if an object store location is not available for the images to publish)', trim: true
         buildSelector name: 'IMAGES_TO_PUBLISH_BUILD', defaultSelector: latestSavedBuild(), description: 'The specific build to get the images to push artifact from (needed if an object store location is not available for the images to publish)'
         booleanParam (description: 'Indicate whether this is a dry run - no images will be pulled or pushed', name: 'DRY_RUN', defaultValue: false)
@@ -99,32 +99,29 @@ pipeline {
             }
             steps {
                 script {
-                  println("Downloading image list from object store")
-                  sh "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE} --file verrazzano_images.txt"
                   sh "oci os object list --region us-phoenix-1 --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --all --stream-output --prefix release- > object_storage_images.json"
-                  sh """
-                    echo Latest release number ...
-                    LIST_OF_RELEASE_NUM=($(grep -i 'images.txt' release.json))
-                    echo ${LIST_OF_RELEASE_NUM[${#LIST_OF_RELEASE_NUM[@]}-1]} | cut -d  '"' -f 2
-                  """
+                  sh "${WORKSPACE}/release/scripts/get_images_to_publish_latest.sh"
+                  println("Downloading image list from object store")
+                  if ( ${params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE} == 'NONE' ) {
+                    sh "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${LATEST_RELEASE_NUMBER} --file verrazzano_images.txt"
+                  }
+                  else {
+                    sh "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE} --file verrazzano_images.txt"
+                  }
                 }
               }
             }
         stage('Compare Images from Object storage to be Published') {
             steps {
                 script {
-                    sh """
-                        ${WORKSPACE}/release/scripts/validate_ocr_images.sh
-                    """
+                    sh "${WORKSPACE}/release/scripts/validate_ocr_images.sh"
                 }
             }
         }
         stage('Verify Github artifacts') {
             steps {
                 script {
-                    sh """
-                        ${WORKSPACE}/release/scripts/verify_github_release.sh ${RELEASE_VERSION}
-                    """
+                    sh "${WORKSPACE}/release/scripts/verify_github_release.sh ${RELEASE_VERSION}"
                 }
             }
         }
