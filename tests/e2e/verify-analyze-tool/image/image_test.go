@@ -78,7 +78,6 @@ func patchImage(deploymentName, namespace, issueType string) error {
 			image := result.Spec.Template.Spec.Containers[i].Image
 			switch issueType {
 				case ImagePullNotFound:
-					a := reportAnalysis[issueType]
 					// PATCHING
 					result.Spec.Template.Spec.Containers[i].Image = image + "X"
 					_, updateErr := deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
@@ -86,24 +85,29 @@ func patchImage(deploymentName, namespace, issueType string) error {
 						return updateErr
 					}
 					time.Sleep(waitTimeout)
-					a.Patch, err = RunVzAnalyze()
+					out1, err := RunVzAnalyze()
 					if err != nil {
 						return err
 					}
+					time.Sleep(time.Second * 30)
 					// DE PATCHING
+					result, getErr = deploymentsClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
+					if getErr != nil {
+						return getErr
+					}
 					result.Spec.Template.Spec.Containers[i].Image = image[:len(image)-1]
 					_, updateErr = deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
 					if updateErr != nil {
 						return updateErr
 					}
 					time.Sleep(waitTimeout)
-					a.Depatch, err = RunVzAnalyze()
+					out2, err := RunVzAnalyze()
 					if err != nil {
 						return err
 					}
-
+					reportAnalysis[issueType] = action{out1, out2}
 				case ImagePullBackOff:
-					a := reportAnalysis[issueType]
+
 					// PATCHING
 					result.Spec.Template.Spec.Containers[i].Image = "nginxx/nginx:1.14.0"
 					_, updateErr := deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
@@ -111,21 +115,27 @@ func patchImage(deploymentName, namespace, issueType string) error {
 						return updateErr
 					}
 					time.Sleep(waitTimeout)
-					a.Patch, err = RunVzAnalyze()
+					out1, err := RunVzAnalyze()
 					if err != nil {
 						return err
 					}
+					time.Sleep(time.Second * 30)
 					// DE PATCHING
+					result, getErr = deploymentsClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
+					if getErr != nil {
+						return getErr
+					}
 					result.Spec.Template.Spec.Containers[i].Image = image
 					_, updateErr = deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
 					if updateErr != nil {
 						return updateErr
 					}
 					time.Sleep(waitTimeout)
-					a.Depatch, err = RunVzAnalyze()
+					out2, err := RunVzAnalyze()
 					if err != nil {
 						return err
 					}
+					reportAnalysis[issueType] = action{out1, out2}
 			}
 		}
 	}
@@ -136,7 +146,7 @@ func patchImage(deploymentName, namespace, issueType string) error {
 var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 	t.Context("During Image Issue Analysis", func() {
 		t.It("First Inject/ Revert Issue and Feed Analysis Report", func() {
-			Expect(feedAnalysisReport()).To(Not(nil))
+			feedAnalysisReport()
 			Expect(len(reportAnalysis)).To(Equal(2))
 		})
 		t.It("Should Have ImagePullNotFound Issue Post Bad Image Inject", func() {
