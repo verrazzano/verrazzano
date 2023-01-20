@@ -805,6 +805,8 @@ spec:
                       nodes:
                         items:
                           properties:
+                            javaOpts:
+                              type: string
                             name:
                               type: string
                             replicas:
@@ -5707,6 +5709,8 @@ spec:
                       nodes:
                         items:
                           properties:
+                            javaOpts:
+                              type: string
                             name:
                               type: string
                             replicas:
