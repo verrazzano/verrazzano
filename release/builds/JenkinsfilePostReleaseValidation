@@ -108,10 +108,8 @@ pipeline {
         stage('Compare Images from Object storage to be Published') {
             steps {
                 script {
-                    try {
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE'){
                         sh "${WORKSPACE}/release/scripts/validate_ocr_images.sh"
-                    } catch(error) {
-                        sh "exit 1"
                     }
                 }
             }
