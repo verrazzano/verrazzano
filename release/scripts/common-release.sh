@@ -31,14 +31,3 @@ declare -a releaseArtifactsPriorToV140=("operator.yaml"
                                         "verrazzano-analysis-darwin-amd64.tar.gz.sha256"
                                         "verrazzano-analysis-linux-amd64.tar.gz"
                                         "verrazzano-analysis-linux-amd64.tar.gz.sha256")
-# Release artifacts for latest
-declare -a releaseArtifactsLatest=("verrazzano-platform-operator.yaml"
-                             "verrazzano-platform-operator.yaml.sha256"
-                             "verrazzano-${LATEST_RELEASE_VERSION}-darwin-amd64.tar.gz"
-                             "verrazzano-${LATEST_RELEASE_VERSION}-darwin-amd64.tar.gz.sha256"
-                             "verrazzano-${LATEST_RELEASE_VERSION}-darwin-arm64.tar.gz"
-                             "verrazzano-${LATEST_RELEASE_VERSION}-darwin-arm64.tar.gz.sha256"
-                             "verrazzano-${LATEST_RELEASE_VERSION}-linux-amd64.tar.gz"
-                             "verrazzano-${LATEST_RELEASE_VERSION}-linux-amd64.tar.gz.sha256"
-                             "verrazzano-${LATEST_RELEASE_VERSION}-linux-arm64.tar.gz"
-                             "verrazzano-${LATEST_RELEASE_VERSION}-linux-arm64.tar.gz.sha256")
