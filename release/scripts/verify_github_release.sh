@@ -85,7 +85,7 @@ function verify_released_artifacts() {
   echo "Downloading release artifacts for latest"
   for i in "${releaseArtifactsLatest[@]}"
   do
-  local url="https://github.com/verrazzano/verrazzano/releases/latest/download/v$LATEST_RELEASE_VERSION/$i"
+  local url="https://github.com/verrazzano/verrazzano/releases/latest/download/$i"
   curl -Ss -L --show-error --fail -o $i ${url} || { echo "Unable to download ${url}"; exit; }
   done
   ${SHA_CMD} verrazzano-platform-operator.yaml.sha256
