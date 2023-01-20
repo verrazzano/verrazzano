@@ -185,7 +185,7 @@ func NewScheme() *runtime.Scheme {
 }
 
 // GetNamespacesForAllComponents returns the list of unique namespaces of all the components included in the Verrazzano resource
-func GetNamespacesForAllComponents(vz v1beta1.Verrazzano) []string {
+func GetNamespacesForAllComponents(vz *v1beta1.Verrazzano) []string {
 	allComponents := getAllComponents(vz)
 	var nsList []string
 	for _, eachComp := range allComponents {
@@ -201,7 +201,7 @@ func GetNamespacesForAllComponents(vz v1beta1.Verrazzano) []string {
 }
 
 // getAllComponents returns the list of components from the Verrazzano resource
-func getAllComponents(vzRes v1beta1.Verrazzano) []string {
+func getAllComponents(vzRes *v1beta1.Verrazzano) []string {
 	var compSlice = make([]string, 0)
 
 	for _, compStatusDetail := range vzRes.Status.Components {

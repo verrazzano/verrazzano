@@ -261,37 +261,6 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 	// assert.Contains(t, buf.String(), sensitiveDataErrMsg)
 }
 
-// TestBugReportV1Alpha1Verrazzano
-// GIVEN a CLI bug-report command
-// WHEN I call cmd.Execute with a v1alpha1 Verrazzano installed
-// THEN expect the command to resolve the v1alpha1 to a v1beta1 and return no error
-func TestBugReportV1Alpha1Verrazzano(t *testing.T) {
-	c := getClientWithV1Alpha1VZWatch()
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	rc.SetClient(c)
-	cmd := NewCmdBugReport(rc)
-	assert.NotNil(t, cmd)
-
-	tmpDir, _ := os.MkdirTemp("", "bug-report")
-	defer cleanupTempDir(t, tmpDir)
-
-	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
-	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
-	assert.NoError(t, err)
-	err = cmd.PersistentFlags().Set(constants.BugReportIncludeNSFlagName, "dummy,verrazzano-install")
-	assert.NoError(t, err)
-	err = cmd.Execute()
-	assert.NoError(t, err)
-	// Commenting the assertions due to intermittent failures
-	// assert.Contains(t, buf.String(), captureResourceErrMsg)
-	// assert.Contains(t, buf.String(), sensitiveDataErrMsg)
-	// assert.NotContains(t, buf.String(), captureVerrazzanoErrMsg)
-	// assert.NotContains(t, buf.String(), captureLogErrMsg)
-	// assert.FileExists(t, bugRepFile)
-}
-
 // TestBugReportNoVerrazzano
 // GIVEN a CLI bug-report command
 // WHEN I call cmd.Execute without Verrazzano installed

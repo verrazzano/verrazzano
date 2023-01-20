@@ -85,7 +85,7 @@ func TestVerrazzanoResource(t *testing.T) {
 	assert.Equal(t, "default", vz.Namespace)
 	assert.Equal(t, "verrazzano", vz.Name)
 	assert.Nil(t, UpdateVerrazzanoResource(client, vz))
-	assert.NotEmpty(t, GetNamespacesForAllComponents(*vz))
+	assert.NotEmpty(t, GetNamespacesForAllComponents(vz))
 	_, err = findVerazzanoResourceV1Alpha1(client)
 	assert.Error(t, failedToFindResourceError(err))
 }
@@ -240,7 +240,7 @@ func TestGetNamespacesForAllComponents(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := GetNamespacesForAllComponents(tt.component)
+			result := GetNamespacesForAllComponents(&tt.component)
 			for i := range tt.expected {
 				assert.Contains(t, result, tt.expected[i])
 			}
