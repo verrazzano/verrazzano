@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	kv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	"os"
 	"os/exec"
 	"strings"
@@ -31,16 +32,17 @@ const (
 	DeploymentToBePatched string = "verrazzano-console"
 )
 
-var err error
-
 type action struct {
 	Patch  string
 	Revive string
 }
 
+var err error
 var reportAnalysis = make(map[string]action)
 var issuesToBeDiagonosed = []string{ImagePullNotFound, ImagePullBackOff}
 var c = &kubernetes.Clientset{}
+var deploymentsClient kv1.DeploymentInterface
+
 var t = framework.NewTestFramework("Vz Analysis Tool Image Issues")
 
 // Get the K8s Client to fetch deployment info
@@ -50,6 +52,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
+	deploymentsClient = c.AppsV1().Deployments(NameSpace)
 })
 
 // This method invoke patch method & feed vz analyze report to reportAnalysis
@@ -57,20 +60,27 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 // Second Iteration undo the patch and captures vz analyze report
 func feedAnalysisReport() error {
 	for i := 0; i < len(issuesToBeDiagonosed); i++ {
-		patchErr := patchImage(DeploymentToBePatched, NameSpace, issuesToBeDiagonosed[i])
-		if patchErr != nil {
-			return patchErr
+		switch issuesToBeDiagonosed[i] {
+		case ImagePullNotFound:
+			patchErr := patchImage(DeploymentToBePatched, ImagePullNotFound, "X")
+			if patchErr != nil {
+				return patchErr
+			}
+		case ImagePullBackOff:
+			patchErr := patchImage(DeploymentToBePatched, ImagePullBackOff, "nginxx/nginx:1.14.0")
+			if patchErr != nil {
+				return patchErr
+			}
 		}
-		if i == 0 {
+		if i < len(issuesToBeDiagonosed)-1 {
 			time.Sleep(time.Second * 30)
 		}
 	}
 	return nil
 }
 
-// This Method implements the patch image execution on the basis of patch flag
-func patchImage(deploymentName, namespace, issueType string) error {
-	deploymentsClient := c.AppsV1().Deployments(namespace)
+// This Method implements the patch bad image & its revival
+func patchImage(deploymentName, issueType, patchImage string) error {
 	result, getErr := deploymentsClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
 	if getErr != nil {
 		return getErr
@@ -78,68 +88,38 @@ func patchImage(deploymentName, namespace, issueType string) error {
 	for i, container := range result.Spec.Template.Spec.Containers {
 		if container.Name == deploymentName {
 			image := result.Spec.Template.Spec.Containers[i].Image
-			switch issueType {
-			case ImagePullNotFound:
-				// PATCHING
-				result.Spec.Template.Spec.Containers[i].Image = image + "X"
-				_, updateErr := deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
-				if updateErr != nil {
-					return updateErr
-				}
-				time.Sleep(waitTimeout)
-				out1, err := RunVzAnalyze()
-				if err != nil {
-					return err
-				}
-				time.Sleep(time.Second * 30)
-				// DE PATCHING
-				result, getErr = deploymentsClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
-				if getErr != nil {
-					return getErr
-				}
-				result.Spec.Template.Spec.Containers[i].Image = image
-				_, updateErr = deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
-				if updateErr != nil {
-					return updateErr
-				}
-				time.Sleep(waitTimeout)
-				out2, err := RunVzAnalyze()
-				if err != nil {
-					return err
-				}
-				reportAnalysis[issueType] = action{out1, out2}
-
-			case ImagePullBackOff:
-
-				// PATCHING
-				result.Spec.Template.Spec.Containers[i].Image = "nginxx/nginx:1.14.0"
-				_, updateErr := deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
-				if updateErr != nil {
-					return updateErr
-				}
-				time.Sleep(waitTimeout)
-				out1, err := RunVzAnalyze()
-				if err != nil {
-					return err
-				}
-				time.Sleep(time.Second * 30)
-				// DE PATCHING
-				result, getErr = deploymentsClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
-				if getErr != nil {
-					return getErr
-				}
-				result.Spec.Template.Spec.Containers[i].Image = image
-				_, updateErr = deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
-				if updateErr != nil {
-					return updateErr
-				}
-				time.Sleep(waitTimeout)
-				out2, err := RunVzAnalyze()
-				if err != nil {
-					return err
-				}
-				reportAnalysis[issueType] = action{out1, out2}
+			// PATCHING
+			if issueType == ImagePullNotFound {
+				patchImage = image + patchImage
 			}
+			result.Spec.Template.Spec.Containers[i].Image = patchImage
+			_, updateErr := deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
+			if updateErr != nil {
+				return updateErr
+			}
+			time.Sleep(waitTimeout)
+			out1, err := RunVzAnalyze()
+			if err != nil {
+				return err
+			}
+			time.Sleep(time.Second * 30)
+			result, getErr = deploymentsClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
+			if getErr != nil {
+				return getErr
+			}
+			// REVIVING
+			result.Spec.Template.Spec.Containers[i].Image = image
+			_, updateErr = deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
+			if updateErr != nil {
+				return updateErr
+			}
+			time.Sleep(waitTimeout)
+			out2, err := RunVzAnalyze()
+			if err != nil {
+				return err
+			}
+			reportAnalysis[issueType] = action{out1, out2}
+			break
 		}
 	}
 	return nil
