@@ -38,7 +38,7 @@ pipeline {
         DOCKER_REPO = 'container-registry.oracle.com'
         RELEASE_VERSION = "${params.RELEASE_VERSION}"
         FAIL_NOT_IN_OCR = "${params.FAIL_IF_IMAGE_NOT_IN_OCR}"
-        LATEST_RELEASE_NUMBER = ""
+        OBJECT_STORE_FILE = "${params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE}"
     }
 
     stages {
@@ -99,19 +99,11 @@ pipeline {
                 OCI_REGION = "us-phoenix-1"
             }
             steps {
-                 script {
-                    sh "oci os object list --region us-phoenix-1 --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --all --stream-output --prefix release- > object_storage_images.json"
-                
+                 script {                
                     println("Downloading image list from object storage")
-                    if ( params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE == 'NONE' ) {
-
-                        // This file permission change is here because before the script was returning and Permission denied error
-                        sh "chmod +x ${WORKSPACE}/release/scripts/get_images_to_publish_latest.sh"
-                        sh "${WORKSPACE}/release/scripts/get_images_to_publish_latest.sh"
-                    }
-                    else {
-                        sh "oci --region ${OCI_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE} --file verrazzano_images.txt"
-                    }
+                    // This file permission change is here because the script kept returning: Permission denied error
+                    sh "chmod +x ${WORKSPACE}/release/scripts/get_images_to_publish_.sh"
+                    sh "${WORKSPACE}/release/scripts/get_images_to_publish.sh"
                 }
               }
             }
@@ -125,12 +117,7 @@ pipeline {
         stage('Verify Github artifacts') {
             steps {
                 script {
-                    if ( params.RELEASE_VERSION == 'NONE' ){
-                        sh "${WORKSPACE}/release/scripts/verify_github_release.sh ${LATEST_RELEASE_NUMBER}"
-                    }
-                    else{
-                        sh "${WORKSPACE}/release/scripts/verify_github_release.sh ${RELEASE_VERSION}"
-                    }
+                    sh "${WORKSPACE}/release/scripts/verify_github_release.sh ${RELEASE_VERSION}"
                 }
             }
         }
