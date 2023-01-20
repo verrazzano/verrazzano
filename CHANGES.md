@@ -10,7 +10,7 @@ Features:
 Component version updates:
 
 - Coherence Operator v3.2.9
-- MySQL Server 8.0.31
+- MySQL Server 8.0.32
 - oam-kubernetes-runtime 0.3.3
 - NGINX Ingress Controller v1.3.1
 - Prometheus v2.38.0
@@ -30,7 +30,7 @@ Component version updates:
 - Keycloak v20.0.1
 
 Components added:
-- MySQL Operator 8.0.30-2.0.6
+- MySQL Operator 8.0.32-2.0.8
 
 Fixes:
 
