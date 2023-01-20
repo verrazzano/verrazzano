@@ -26,16 +26,18 @@ var (
 
 const (
 	ImagePullNotFound     string = "ImagePullNotFound"
-	ImagePullBackOff	  string = "ImagePullBackOff"
+	ImagePullBackOff      string = "ImagePullBackOff"
 	NameSpace             string = "verrazzano-system"
 	DeploymentToBePatched string = "verrazzano-console"
 )
 
 var err error
+
 type action struct {
-	Patch   string
-	Depatch string
+	Patch  string
+	Revive string
 }
+
 var reportAnalysis = make(map[string]action)
 var issuesToBeDiagonosed = []string{ImagePullNotFound, ImagePullBackOff}
 var c = &kubernetes.Clientset{}
@@ -77,101 +79,100 @@ func patchImage(deploymentName, namespace, issueType string) error {
 		if container.Name == deploymentName {
 			image := result.Spec.Template.Spec.Containers[i].Image
 			switch issueType {
-				case ImagePullNotFound:
-					// PATCHING
-					result.Spec.Template.Spec.Containers[i].Image = image + "X"
-					_, updateErr := deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
-					if updateErr != nil {
-						return updateErr
-					}
-					time.Sleep(waitTimeout)
-					out1, err := RunVzAnalyze()
-					if err != nil {
-						return err
-					}
-					time.Sleep(time.Second * 30)
-					// DE PATCHING
-					result, getErr = deploymentsClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
-					if getErr != nil {
-						return getErr
-					}
-					result.Spec.Template.Spec.Containers[i].Image = image
-					_, updateErr = deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
-					if updateErr != nil {
-						return updateErr
-					}
-					time.Sleep(waitTimeout)
-					out2, err := RunVzAnalyze()
-					if err != nil {
-						return err
-					}
-					reportAnalysis[issueType] = action{out1, out2}
-					break
-				case ImagePullBackOff:
+			case ImagePullNotFound:
+				// PATCHING
+				result.Spec.Template.Spec.Containers[i].Image = image + "X"
+				_, updateErr := deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
+				if updateErr != nil {
+					return updateErr
+				}
+				time.Sleep(waitTimeout)
+				out1, err := RunVzAnalyze()
+				if err != nil {
+					return err
+				}
+				time.Sleep(time.Second * 30)
+				// DE PATCHING
+				result, getErr = deploymentsClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
+				if getErr != nil {
+					return getErr
+				}
+				result.Spec.Template.Spec.Containers[i].Image = image
+				_, updateErr = deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
+				if updateErr != nil {
+					return updateErr
+				}
+				time.Sleep(waitTimeout)
+				out2, err := RunVzAnalyze()
+				if err != nil {
+					return err
+				}
+				reportAnalysis[issueType] = action{out1, out2}
+				break
+			case ImagePullBackOff:
 
-					// PATCHING
-					result.Spec.Template.Spec.Containers[i].Image = "nginxx/nginx:1.14.0"
-					_, updateErr := deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
-					if updateErr != nil {
-						return updateErr
-					}
-					time.Sleep(waitTimeout)
-					out1, err := RunVzAnalyze()
-					if err != nil {
-						return err
-					}
-					time.Sleep(time.Second * 30)
-					// DE PATCHING
-					result, getErr = deploymentsClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
-					if getErr != nil {
-						return getErr
-					}
-					result.Spec.Template.Spec.Containers[i].Image = image
-					_, updateErr = deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
-					if updateErr != nil {
-						return updateErr
-					}
-					time.Sleep(waitTimeout)
-					out2, err := RunVzAnalyze()
-					if err != nil {
-						return err
-					}
-					reportAnalysis[issueType] = action{out1, out2}
-					break
+				// PATCHING
+				result.Spec.Template.Spec.Containers[i].Image = "nginxx/nginx:1.14.0"
+				_, updateErr := deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
+				if updateErr != nil {
+					return updateErr
+				}
+				time.Sleep(waitTimeout)
+				out1, err := RunVzAnalyze()
+				if err != nil {
+					return err
+				}
+				time.Sleep(time.Second * 30)
+				// DE PATCHING
+				result, getErr = deploymentsClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
+				if getErr != nil {
+					return getErr
+				}
+				result.Spec.Template.Spec.Containers[i].Image = image
+				_, updateErr = deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
+				if updateErr != nil {
+					return updateErr
+				}
+				time.Sleep(waitTimeout)
+				out2, err := RunVzAnalyze()
+				if err != nil {
+					return err
+				}
+				reportAnalysis[issueType] = action{out1, out2}
+				break
 			}
 		}
 	}
 	return nil
 }
 
-
 var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 	t.Context("During Image Issue Analysis", func() {
 		t.It("First Inject/ Revert Issue and Feed Analysis Report", func() {
 			feedAnalysisReport()
-			Expect(len(reportAnalysis)).To(Equal(2))
+			Expect(len(reportAnalysis)).To(Equal(len(issuesToBeDiagonosed)))
 		})
-		t.It("Should Have ImagePullNotFound Issue Post Bad Image Inject", func() {
+		t.It("Should Have ImagePullNotFound Issue Post Bad Image Injection", func() {
 			Eventually(func() bool {
 				return verifyIssue(reportAnalysis[ImagePullNotFound].Patch, ImagePullNotFound)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		t.It("Should Not Have ImagePullNotFound Issue Post Correct Image Inject", func() {
+		t.It("Should Not Have ImagePullNotFound Issue Post Reviving Bad Image", func() {
 			Eventually(func() bool {
-				return verifyIssue(reportAnalysis[ImagePullNotFound].Depatch, ImagePullNotFound)
+				return verifyIssue(reportAnalysis[ImagePullNotFound].Revive, ImagePullNotFound)
 			}, waitTimeout, pollingInterval).Should(BeFalse())
 		})
 
-		t.It("Should Have ImagePullBackOff Issue Post Bad Image Inject", func() {
+		t.It("Should Have ImagePullBackOff Issue Post Bad Image Injection", func() {
 			Eventually(func() bool {
 				return verifyIssue(reportAnalysis[ImagePullBackOff].Patch, ImagePullBackOff)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		t.It("Should Not Have ImagePullBackOff Issue Post Correct Image Inject", func() {
+		t.It("Should Not Have ImagePullBackOff Issue Post Reviving Bad Image", func() {
 			Eventually(func() bool {
-				return verifyIssue(reportAnalysis[ImagePullBackOff].Depatch, ImagePullBackOff)
+				return verifyIssue(reportAnalysis[ImagePullBackOff].Revive, ImagePullBackOff)
 			}, waitTimeout, pollingInterval).Should(BeFalse())
 		})
 	})
