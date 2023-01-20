@@ -100,6 +100,7 @@ pipeline {
             steps {
                 script {
                   sh "oci os object list --region us-phoenix-1 --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --all --stream-output --prefix release- > object_storage_images.json"
+                  sh "chmod +x ${WORKSPACE}/release/scripts/get_images_to_publish_latest.sh"
                   sh "${WORKSPACE}/release/scripts/get_images_to_publish_latest.sh"
                   println("Downloading image list from object store")
                   if ( ${params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE} == 'NONE' ) {
