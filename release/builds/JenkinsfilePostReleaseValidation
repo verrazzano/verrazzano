@@ -105,7 +105,7 @@ pipeline {
                     if ( params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE == 'NONE' ) {
 
                         // This file permission change is here because before the script was returning and Permission denied error
-                        // sh "chmod +x ${WORKSPACE}/release/scripts/get_images_to_publish_latest.sh"
+                        sh "chmod +x ${WORKSPACE}/release/scripts/get_images_to_publish_latest.sh"
                         sh "${WORKSPACE}/release/scripts/get_images_to_publish_latest.sh"
                     }
                     else {
