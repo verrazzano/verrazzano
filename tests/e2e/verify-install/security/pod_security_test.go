@@ -32,7 +32,9 @@ const (
 	capDacOverride    = "DAC_OVERRIDE"
 
 	// MySQL ignore pattern; skip mysql-# or mysql-xxxx-xxxx pod names, but not mysql-router-#
-	mysqlPattern = "^mysql-([\\d]+|[A-Za-z0-9]-[A-Za-z0-9]).*$"
+	mysqlPattern = "^mysql-([\\d]+)$"
+	// MySQL ignore pattern for Grafana DB test case; installs a mysql instance in verrazzano-install namespace
+	grafanaMysqlPattern = "^mysql-.*$"
 )
 
 var skipPods = map[string][]string{
@@ -40,7 +42,7 @@ var skipPods = map[string][]string{
 		mysqlPattern,
 	},
 	"verrazzano-install": {
-		mysqlPattern,
+		grafanaMysqlPattern,
 	},
 	"verrazzano-system": {
 		"^coherence-operator.*$",
