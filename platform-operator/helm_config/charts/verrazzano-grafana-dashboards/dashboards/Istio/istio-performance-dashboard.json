@@ -19,6 +19,7 @@
   "panels": [
     {
       "collapsed": true,
+      "datasource": null,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -28,7 +29,11 @@
       "id": 21,
       "panels": [
         {
-          "content": "The charts on this dashboard are intended to show Istio main components cost in terms of resources utilization under steady load.\n\n- **vCPU / 1k rps:** shows vCPU utilization by the main Istio components normalized by 1000 requests/second. When idle or low traffic, this chart will be blank. The curve for istio-proxy refers to the services sidecars only.\n- **vCPU:** vCPU utilization by Istio components, not normalized.\n- **Memory:** memory footprint for the components. Telemetry and policy are normalized by 1k rps, and no data is shown  when there is no traffic. For ingress and istio-proxy, the data is per instance.\n- **Bytes transferred / sec:** shows the number of bytes flowing through each Istio component.\n\n\n",
+          "datasource": null,
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
           "gridPos": {
             "h": 6,
             "w": 24,
@@ -37,7 +42,11 @@
           },
           "id": 19,
           "links": [],
-          "mode": "markdown",
+          "options": {
+            "content": "The charts on this dashboard are intended to show Istio main components cost in terms of resources utilization under steady load.\n\n- **vCPU / 1k rps:** shows vCPU utilization by the main Istio components normalized by 1000 requests/second. When idle or low traffic, this chart will be blank. The curve for istio-proxy refers to the services sidecars only.\n- **vCPU:** vCPU utilization by Istio components, not normalized.\n- **Memory:** memory footprint for the components. Telemetry and policy are normalized by 1k rps, and no data is shown  when there is no traffic. For ingress and istio-proxy, the data is per instance.\n- **Bytes transferred / sec:** shows the number of bytes flowing through each Istio component.\n\n\n",
+            "mode": "markdown"
+          },
+          "pluginVersion": "7.5.17",
           "timeFrom": null,
           "timeShift": null,
           "title": "Performance Dashboard README",
@@ -50,6 +59,7 @@
     },
     {
       "collapsed": false,
+      "datasource": null,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -67,13 +77,19 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
         "y": 2
       },
+      "hiddenSeries": false,
       "id": 4,
       "legend": {
         "avg": false,
@@ -88,7 +104,11 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -98,16 +118,20 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "(sum(irate(container_cpu_usage_seconds_total{pod=~\"istio-ingressgateway-.*\",container=\"istio-proxy\"}[1m])) / (round(sum(irate(istio_requests_total{source_workload=\"istio-ingressgateway\", reporter=\"source\"}[1m])), 0.001)/1000))",
+          "exemplar": true,
+          "expr": "(sum(irate(container_cpu_usage_seconds_total{pod=~\"istio-ingressgateway-.*\",container=\"istio-proxy\", verrazzano_cluster=~\"$vzcluster\"}[1m])) / (round(sum(irate(istio_requests_total{source_workload=\"istio-ingressgateway\", reporter=\"source\", verrazzano_cluster=~\"$vzcluster\"}[1m])), 0.001)/1000))",
           "format": "time_series",
           "hide": false,
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": "istio-ingressgateway",
           "refId": "A"
         },
         {
-          "expr": "(sum(irate(container_cpu_usage_seconds_total{namespace!=\"istio-system\",container=\"istio-proxy\"}[1m]))/ (round(sum(irate(istio_requests_total[1m])), 0.001)/1000))/ (sum(irate(istio_requests_total{source_workload=\"istio-ingressgateway\"}[1m])) >bool 10)",
+          "exemplar": true,
+          "expr": "(sum(irate(container_cpu_usage_seconds_total{namespace!=\"istio-system\",container=\"istio-proxy\", verrazzano_cluster=~\"$vzcluster\"}[1m]))/ (round(sum(irate(istio_requests_total{verrazzano_cluster=~\"$vzcluster\"}[1m])), 0.001)/1000))/ (sum(irate(istio_requests_total{source_workload=\"istio-ingressgateway\", verrazzano_cluster=~\"$vzcluster\"}[1m])) >bool 10)",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": "istio-proxy",
           "refId": "B"
@@ -133,6 +157,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:8672",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -141,6 +166,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:8673",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -160,13 +186,19 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 12,
         "y": 2
       },
+      "hiddenSeries": false,
       "id": 7,
       "legend": {
         "avg": false,
@@ -181,7 +213,11 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -191,15 +227,19 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{pod=~\"istio-ingressgateway-.*\",container=\"istio-proxy\"}[1m]))",
+          "exemplar": true,
+          "expr": "sum(rate(container_cpu_usage_seconds_total{pod=~\"istio-ingressgateway-.*\",container=\"istio-proxy\", verrazzano_cluster=~\"$vzcluster\"}[1m]))",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": "istio-ingressgateway",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace!=\"istio-system\",container=\"istio-proxy\"}[1m]))",
+          "exemplar": true,
+          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace!=\"istio-system\",container=\"istio-proxy\", verrazzano_cluster=~\"$vzcluster\"}[1m]))",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": "istio-proxy",
           "refId": "B"
@@ -225,6 +265,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:8725",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -233,6 +274,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:8726",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -248,6 +290,7 @@
     },
     {
       "collapsed": false,
+      "datasource": null,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -265,13 +308,19 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
         "y": 11
       },
+      "hiddenSeries": false,
       "id": 902,
       "legend": {
         "avg": false,
@@ -286,7 +335,11 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -296,15 +349,19 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(container_memory_working_set_bytes{pod=~\"istio-ingressgateway-.*\"}) / count(container_memory_working_set_bytes{pod=~\"istio-ingressgateway-.*\",container!=\"POD\"})",
+          "exemplar": true,
+          "expr": "sum(container_memory_working_set_bytes{pod=~\"istio-ingressgateway-.*\", verrazzano_cluster=~\"$vzcluster\"}) / count(container_memory_working_set_bytes{pod=~\"istio-ingressgateway-.*\",container!=\"POD\", verrazzano_cluster=~\"$vzcluster\"})",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": "per istio-ingressgateway",
           "refId": "A"
         },
         {
-          "expr": "sum(container_memory_working_set_bytes{namespace!=\"istio-system\",container=\"istio-proxy\"}) / count(container_memory_working_set_bytes{namespace!=\"istio-system\",container=\"istio-proxy\"})",
+          "exemplar": true,
+          "expr": "sum(container_memory_working_set_bytes{namespace!=\"istio-system\",container=\"istio-proxy\", verrazzano_cluster=~\"$vzcluster\"}) / count(container_memory_working_set_bytes{namespace!=\"istio-system\",container=\"istio-proxy\", verrazzano_cluster=~\"$vzcluster\"})",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": "per istio proxy",
           "refId": "B"
@@ -330,6 +387,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:8778",
           "format": "bytes",
           "label": null,
           "logBase": 1,
@@ -338,6 +396,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:8779",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -357,13 +416,19 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 12,
         "y": 11
       },
+      "hiddenSeries": false,
       "id": 11,
       "legend": {
         "avg": false,
@@ -378,7 +443,11 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -388,15 +457,19 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(irate(istio_response_bytes_sum{source_workload=\"istio-ingressgateway\", reporter=\"source\"}[1m]))",
+          "exemplar": true,
+          "expr": "sum(irate(istio_response_bytes_sum{source_workload=\"istio-ingressgateway\", reporter=\"source\", verrazzano_cluster=~\"$vzcluster\"}[1m]))",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": "istio-ingressgateway",
           "refId": "A"
         },
         {
-          "expr": "sum(irate(istio_response_bytes_sum{source_workload_namespace!=\"istio-system\", reporter=\"source\"}[1m])) + sum(irate(istio_request_bytes_sum{source_workload_namespace!=\"istio-system\", reporter=\"source\"}[1m]))",
+          "exemplar": true,
+          "expr": "sum(irate(istio_response_bytes_sum{source_workload_namespace!=\"istio-system\", reporter=\"source\", verrazzano_cluster=~\"$vzcluster\"}[1m])) + sum(irate(istio_request_bytes_sum{source_workload_namespace!=\"istio-system\", reporter=\"source\", verrazzano_cluster=~\"$vzcluster\"}[1m]))",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": "istio-proxy",
           "refId": "B"
@@ -422,6 +495,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:8996",
           "format": "Bps",
           "label": null,
           "logBase": 1,
@@ -430,6 +504,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:8997",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -445,6 +520,7 @@
     },
     {
       "collapsed": false,
+      "datasource": null,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -462,13 +538,19 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 8,
         "w": 24,
         "x": 0,
         "y": 20
       },
+      "hiddenSeries": false,
       "id": 15,
       "legend": {
         "avg": false,
@@ -483,7 +565,11 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -493,8 +579,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(istio_build) by (component, tag)",
+          "exemplar": true,
+          "expr": "sum(istio_build{verrazzano_cluster=~\"$vzcluster\"}) by (component, tag)",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": "{{ component }}: {{ tag }}",
           "refId": "A"
@@ -520,6 +608,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:9065",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -528,6 +617,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:9066",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -543,11 +633,12 @@
     },
     {
       "collapsed": false,
+      "datasource": null,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 31
+        "y": 28
       },
       "id": 71,
       "panels": [],
@@ -560,13 +651,19 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 7,
         "w": 6,
         "x": 0,
-        "y": 32
+        "y": 29
       },
+      "hiddenSeries": false,
       "id": 72,
       "legend": {
         "avg": false,
@@ -581,7 +678,11 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
+      "pluginVersion": "7.5.17",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -591,9 +692,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(container_memory_working_set_bytes{container=\"istio-proxy\"})",
+          "exemplar": true,
+          "expr": "sum(container_memory_working_set_bytes{container=\"istio-proxy\", verrazzano_cluster=~\"$vzcluster\"})",
           "format": "time_series",
           "hide": false,
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "Total (k8s)",
           "refId": "A",
@@ -620,6 +723,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:9118",
           "format": "bytes",
           "label": null,
           "logBase": 1,
@@ -628,6 +732,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:9119",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -647,13 +752,19 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 7,
         "w": 6,
         "x": 6,
-        "y": 32
+        "y": 29
       },
+      "hiddenSeries": false,
       "id": 73,
       "legend": {
         "avg": false,
@@ -668,7 +779,11 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
+      "pluginVersion": "7.5.17",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -678,9 +793,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{container=\"istio-proxy\"}[1m]))",
+          "exemplar": true,
+          "expr": "sum(rate(container_cpu_usage_seconds_total{container=\"istio-proxy\", verrazzano_cluster=~\"$vzcluster\"}[1m]))",
           "format": "time_series",
           "hide": false,
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "Total (k8s)",
           "refId": "A",
@@ -707,6 +824,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:9167",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -715,6 +833,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:9168",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -734,13 +853,19 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 7,
         "w": 6,
         "x": 12,
-        "y": 32
+        "y": 29
       },
+      "hiddenSeries": false,
       "id": 702,
       "legend": {
         "avg": false,
@@ -755,7 +880,11 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
+      "pluginVersion": "7.5.17",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -765,8 +894,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(container_fs_usage_bytes{container=\"istio-proxy\"})",
+          "exemplar": true,
+          "expr": "sum(container_fs_usage_bytes{container=\"istio-proxy\", verrazzano_cluster=~\"$vzcluster\"})",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "Total (k8s)",
           "refId": "A",
@@ -793,6 +924,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:9220",
           "format": "bytes",
           "label": "",
           "logBase": 1,
@@ -801,6 +933,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:9221",
           "decimals": null,
           "format": "none",
           "label": "",
@@ -817,11 +950,12 @@
     },
     {
       "collapsed": false,
+      "datasource": null,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 39
+        "y": 36
       },
       "id": 69,
       "panels": [],
@@ -834,13 +968,19 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 7,
         "w": 6,
         "x": 0,
-        "y": 40
+        "y": 37
       },
+      "hiddenSeries": false,
       "id": 5,
       "legend": {
         "avg": false,
@@ -855,7 +995,11 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
+      "pluginVersion": "7.5.17",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -865,76 +1009,94 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "process_virtual_memory_bytes{app=\"istiod\"}",
+          "exemplar": true,
+          "expr": "process_virtual_memory_bytes{app=\"istiod\", verrazzano_cluster=~\"$vzcluster\"}",
           "format": "time_series",
           "instant": false,
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "Virtual Memory",
           "refId": "I",
           "step": 2
         },
         {
-          "expr": "process_resident_memory_bytes{app=\"istiod\"}",
+          "exemplar": true,
+          "expr": "process_resident_memory_bytes{app=\"istiod\", verrazzano_cluster=~\"$vzcluster\"}",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "Resident Memory",
           "refId": "H",
           "step": 2
         },
         {
-          "expr": "go_memstats_heap_sys_bytes{app=\"istiod\"}",
+          "exemplar": true,
+          "expr": "go_memstats_heap_sys_bytes{app=\"istiod\", verrazzano_cluster=~\"$vzcluster\"}",
           "format": "time_series",
           "hide": true,
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "heap sys",
           "refId": "A"
         },
         {
-          "expr": "go_memstats_heap_alloc_bytes{app=\"istiod\"}",
+          "exemplar": true,
+          "expr": "go_memstats_heap_alloc_bytes{app=\"istiod\", verrazzano_cluster=~\"$vzcluster\"}",
           "format": "time_series",
           "hide": true,
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "heap alloc",
           "refId": "D"
         },
         {
-          "expr": "go_memstats_alloc_bytes{app=\"istiod\"}",
+          "exemplar": true,
+          "expr": "go_memstats_alloc_bytes{app=\"istiod\", verrazzano_cluster=~\"$vzcluster\"}",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "Alloc",
           "refId": "F",
           "step": 2
         },
         {
-          "expr": "go_memstats_heap_inuse_bytes{app=\"istiod\"}",
+          "exemplar": true,
+          "expr": "go_memstats_heap_inuse_bytes{app=\"istiod\", verrazzano_cluster=~\"$vzcluster\"}",
           "format": "time_series",
           "hide": false,
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "Heap in-use",
           "refId": "E",
           "step": 2
         },
         {
-          "expr": "go_memstats_stack_inuse_bytes{app=\"istiod\"}",
+          "exemplar": true,
+          "expr": "go_memstats_stack_inuse_bytes{app=\"istiod\", verrazzano_cluster=~\"$vzcluster\"}",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "Stack in-use",
           "refId": "G",
           "step": 2
         },
         {
-          "expr": "sum(container_memory_working_set_bytes{container=~\"discovery|istio-proxy\", pod=~\"istiod-.*\"})",
+          "exemplar": true,
+          "expr": "sum(container_memory_working_set_bytes{container=~\"discovery|istio-proxy\", pod=~\"istiod-.*\", verrazzano_cluster=~\"$vzcluster\"})",
           "format": "time_series",
           "hide": false,
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "Total (k8s)",
           "refId": "C",
           "step": 2
         },
         {
-          "expr": "container_memory_working_set_bytes{container=~\"discovery|istio-proxy\", pod=~\"istiod-.*\"}",
+          "exemplar": true,
+          "expr": "container_memory_working_set_bytes{container=~\"discovery|istio-proxy\", pod=~\"istiod-.*\", verrazzano_cluster=~\"$vzcluster\"}",
           "format": "time_series",
           "hide": false,
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "{{ container }} (k8s)",
           "refId": "B",
@@ -961,6 +1123,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:9269",
           "format": "bytes",
           "label": null,
           "logBase": 1,
@@ -969,6 +1132,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:9270",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -988,13 +1152,19 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 7,
         "w": 6,
         "x": 6,
-        "y": 40
+        "y": 37
       },
+      "hiddenSeries": false,
       "id": 602,
       "legend": {
         "avg": false,
@@ -1009,7 +1179,11 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
+      "pluginVersion": "7.5.17",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1019,27 +1193,33 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{container=~\"discovery|istio-proxy\", pod=~\"istiod-.*\"}[1m]))",
+          "exemplar": true,
+          "expr": "sum(rate(container_cpu_usage_seconds_total{container=~\"discovery|istio-proxy\", pod=~\"istiod-.*\", verrazzano_cluster=~\"$vzcluster\"}[1m]))",
           "format": "time_series",
           "hide": false,
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "Total (k8s)",
           "refId": "A",
           "step": 2
         },
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{container=~\"discovery|istio-proxy\", pod=~\"istiod-.*\"}[1m])) by (container)",
+          "exemplar": true,
+          "expr": "sum(rate(container_cpu_usage_seconds_total{container=~\"discovery|istio-proxy\", pod=~\"istiod-.*\", verrazzano_cluster=~\"$vzcluster\"}[1m])) by (container)",
           "format": "time_series",
           "hide": false,
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "{{ container }} (k8s)",
           "refId": "B",
           "step": 2
         },
         {
-          "expr": "irate(process_cpu_seconds_total{app=\"istiod\"}[1m])",
+          "exemplar": true,
+          "expr": "irate(process_cpu_seconds_total{app=\"istiod\", verrazzano_cluster=~\"$vzcluster\"}[1m])",
           "format": "time_series",
           "hide": false,
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "pilot (self-reported)",
           "refId": "C",
@@ -1066,6 +1246,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:9318",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -1074,6 +1255,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:9319",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -1093,13 +1275,19 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 7,
         "w": 6,
         "x": 12,
-        "y": 40
+        "y": 37
       },
+      "hiddenSeries": false,
       "id": 74,
       "legend": {
         "avg": false,
@@ -1114,7 +1302,11 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
+      "pluginVersion": "7.5.17",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1124,7 +1316,8 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "process_open_fds{app=\"istiod\"}",
+          "exemplar": true,
+          "expr": "process_open_fds{app=\"istiod\", verrazzano_cluster=~\"$vzcluster\"}",
           "format": "time_series",
           "hide": true,
           "instant": false,
@@ -1134,8 +1327,10 @@
           "refId": "A"
         },
         {
-          "expr": "container_fs_usage_bytes{ container=~\"discovery|istio-proxy\", pod=~\"istiod-.*\"}",
+          "exemplar": true,
+          "expr": "container_fs_usage_bytes{ container=~\"discovery|istio-proxy\", pod=~\"istiod-.*\", verrazzano_cluster=~\"$vzcluster\"}",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "{{ container }}",
           "refId": "B",
@@ -1162,6 +1357,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:9371",
           "format": "bytes",
           "label": "",
           "logBase": 1,
@@ -1170,6 +1366,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:9372",
           "decimals": null,
           "format": "none",
           "label": "",
@@ -1190,13 +1387,19 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 7,
         "w": 6,
         "x": 18,
-        "y": 40
+        "y": 37
       },
+      "hiddenSeries": false,
       "id": 402,
       "legend": {
         "avg": false,
@@ -1211,7 +1414,11 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
+      "pluginVersion": "7.5.17",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1221,8 +1428,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "go_goroutines{app=\"istiod\"}",
+          "exemplar": true,
+          "expr": "go_goroutines{app=\"istiod\", verrazzano_cluster=~\"$vzcluster\"}",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "Number of Goroutines",
           "refId": "A",
@@ -1249,6 +1458,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:9420",
           "format": "short",
           "label": "",
           "logBase": 1,
@@ -1257,6 +1467,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:9421",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -1272,11 +1483,47 @@
     }
   ],
   "refresh": "10s",
-  "schemaVersion": 18,
+  "schemaVersion": 27,
   "style": "dark",
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "allValue": null,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": null,
+        "definition": "label_values(verrazzano_cluster)",
+        "description": null,
+        "error": null,
+        "hide": 0,
+        "includeAll": true,
+        "label": "Verrazzano Cluster",
+        "multi": true,
+        "name": "vzcluster",
+        "options": [],
+        "query": {
+          "query": "label_values(verrazzano_cluster)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      }
+    ]
   },
   "time": {
     "from": "now-5m",
@@ -1310,5 +1557,5 @@
   "timezone": "",
   "title": "Istio Performance Dashboard",
   "uid": "vu8e0VWZk",
-  "version": 22
+  "version": 5
 }

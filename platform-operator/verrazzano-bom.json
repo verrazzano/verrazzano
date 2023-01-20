@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.8-20230113234833-d3322376b",
-              "dashboard": "v2.6.8-20230113233757-a8d21663",
+              "tag": "v2.6.8-20230118020002-d3322376b",
+              "dashboard": "v2.6.8-20230118014847-b34cbd87",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20230113234833-d3322376b"
+              "tag": "v2.6.8-20230118020002-d3322376b"
             }
           ]
         },
@@ -147,7 +147,7 @@
           "images": [
             {
               "image": "shell",
-              "tag": "v0.1.18-20221011201404-0c5784f"
+              "tag": "v0.1.18-20230118204621-374cc3f"
             },
             {
               "image": "rancher-webhook",
@@ -218,8 +218,8 @@
           "name": "verrazzano-monitoring-operator",
           "images": [
             {
-              "image": "verrazzano-monitoring-operator-jenkins",
-              "tag": "v1.5.0-20230118062206-9b7833c",
+              "image": "verrazzano-monitoring-operator",
+              "tag": "v1.5.0-20230120052516-3926482",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
