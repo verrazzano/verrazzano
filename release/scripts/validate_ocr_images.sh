@@ -14,8 +14,8 @@ crane auth login "$DOCKER_REPO" -u "$OCR_CREDS_USR" -p "$OCR_CREDS_PSW"
 while IFS= read -r line
 do  
     VZ_IMAGE_NAME=$(echo "$line")
-    INSPECT_EXIT_CODE=$(crane manifest "$DOCKER_REPO/$VZ_IMAGE_NAME")
-    if [[ "$INSPECT_EXIT_CODE" -eq 0 ]]; then
+    crane manifest "$DOCKER_REPO/$VZ_IMAGE_NAME"
+    if [[ $? -eq 0 ]]; then
         IMAGES_FOUND_IN_OCR+=("$VZ_IMAGE_NAME")
     else
         IMAGES_NOT_FOUND_IN_OCR+=("$VZ_IMAGE_NAME")
@@ -30,6 +30,7 @@ if [[ "$FAIL_NOT_IN_OCR" ]]; then
         echo $value
     done
     printf "Job Failed.\n A(n) image was not found in OCR."
+    exit 1
 fi
 
 printf "\n\nThe following Images were found in OCR ..."
@@ -37,6 +38,5 @@ for value in "${IMAGES_FOUND_IN_OCR[@]}"
 do
      echo $value
 done
-
 
 echo "Done."

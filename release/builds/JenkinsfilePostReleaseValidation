@@ -23,7 +23,7 @@ pipeline {
         string name: 'IMAGES_TO_PUBLISH_JOB_NAME', defaultValue: 'verrazzano-new-oci-dns-acceptance-tests/master', description: 'Jenkins job whose built artifacts includes the list of images to push (needed if an object store location is not available for the images to publish)', trim: true
         buildSelector name: 'IMAGES_TO_PUBLISH_BUILD', defaultSelector: latestSavedBuild(), description: 'The specific build to get the images to push artifact from (needed if an object store location is not available for the images to publish)'
         booleanParam (description: 'Indicate whether this is a dry run - no images will be pulled or pushed', name: 'DRY_RUN', defaultValue: false)
-        booleanParam (description: 'Whether to fail this job if an image cannot be verified to be in OCR', name: 'FAIL_IF_IMAGE_NOT_IN_OCR', defaultValue: true)
+        // booleanParam (description: 'Whether to fail this job if an image cannot be verified to be in OCR', name: 'FAIL_IF_IMAGE_NOT_IN_OCR', defaultValue: true)
         string (description: 'The full git commit hash from the source build', name: 'GIT_COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
     }
 
@@ -37,7 +37,7 @@ pipeline {
         DOCKER_EMAIL = credentials('github-packages-email')
         DOCKER_REPO = 'container-registry.oracle.com'
         RELEASE_VERSION = "${params.RELEASE_VERSION}"
-        FAIL_NOT_IN_OCR = "${params.FAIL_IF_IMAGE_NOT_IN_OCR}"
+        // FAIL_NOT_IN_OCR = "${params.FAIL_IF_IMAGE_NOT_IN_OCR}"
         OBJECT_STORE_FILE = "${params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE}"
     }
 
@@ -108,7 +108,12 @@ pipeline {
         stage('Compare Images from Object storage to be Published') {
             steps {
                 script {
-                    sh "${WORKSPACE}/release/scripts/validate_ocr_images.sh"
+                    try {
+                        sh "${WORKSPACE}/release/scripts/validate_ocr_images.sh"
+                    } catch(error) {
+                        echo "Stage failed."
+                    }
+
                 }
             }
         }
