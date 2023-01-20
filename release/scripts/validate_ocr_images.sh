@@ -23,6 +23,13 @@ do
     fi
 done < "$OBJ_STORAGE_VZ_IMAGE_TXT"
 
+
+printf "\n\nThe following Images were found in OCR ..."
+for value in "${IMAGES_FOUND_IN_OCR[@]}"
+do
+     echo $value
+done
+
 if [[ "$FAIL_NOT_IN_OCR" ]]; then
     printf "\n\nThe following Images were NOT found in OCR ..."
     for value in "${IMAGES_NOT_FOUND_IN_OCR[@]}"
@@ -32,11 +39,3 @@ if [[ "$FAIL_NOT_IN_OCR" ]]; then
     printf "Job Failed.\n A(n) image was not found in OCR."
     exit 1
 fi
-
-printf "\n\nThe following Images were found in OCR ..."
-for value in "${IMAGES_FOUND_IN_OCR[@]}"
-do
-     echo $value
-done
-
-echo "Done."
