@@ -102,7 +102,7 @@ pipeline {
                     sh "oci os object list --region us-phoenix-1 --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --all --stream-output --prefix release- > object_storage_images.json"
                 
                     println("Downloading image list from object storage")
-                    if ( ${params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE} == 'NONE' ) {
+                    if ( params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE == 'NONE' ) {
 
                         // This file permission change is here because before the script was returning and Permission denied error
                         // sh "chmod +x ${WORKSPACE}/release/scripts/get_images_to_publish_latest.sh"
