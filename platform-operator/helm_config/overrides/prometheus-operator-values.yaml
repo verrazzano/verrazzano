@@ -10,7 +10,7 @@ grafana:
       label: grafana_dashboard
       labelValue: "1"
       annotations:
-        k8s-sidecar-target-directory: "Prometheus Operator"
+        k8s-sidecar-target-directory: "Verrazzano Monitoring"
 nodeExporter:
   enabled: true
 kubeStateMetrics:
