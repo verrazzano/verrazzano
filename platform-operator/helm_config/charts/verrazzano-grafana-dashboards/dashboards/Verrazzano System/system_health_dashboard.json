@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1673975671442,
+  "iteration": 1674142396802,
   "links": [],
   "panels": [
     {
@@ -78,7 +78,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "vz_platform_operator_component_health_total{verrazzano_cluster=\"$cluster\"}",
+          "expr": "vz_platform_operator_component_health_total{verrazzano_cluster=\"$vzcluster\"}",
           "format": "time_series",
           "instant": true,
           "interval": "",
@@ -135,7 +135,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "vz_platform_operator_component_enabled_total{verrazzano_cluster=\"$cluster\"}",
+          "expr": "vz_platform_operator_component_enabled_total{verrazzano_cluster=\"$vzcluster\"}",
           "format": "time_series",
           "instant": true,
           "interval": "",
@@ -205,7 +205,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "vz_platform_operator_component_health_total{verrazzano_cluster=\"$cluster\"}/vz_platform_operator_component_enabled_total{verrazzano_cluster=\"$cluster\"}",
+          "expr": "vz_platform_operator_component_health_total{verrazzano_cluster=\"$vzcluster\"}/vz_platform_operator_component_enabled_total{verrazzano_cluster=\"$vzcluster\"}",
           "format": "time_series",
           "instant": true,
           "interval": "",
@@ -298,7 +298,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "vz_platform_operator_component_health{verrazzano_cluster=\"$cluster\"}",
+          "expr": "vz_platform_operator_component_health{verrazzano_cluster=\"$vzcluster\"}",
           "instant": true,
           "interval": "",
           "legendFormat": "{{component}}",
@@ -400,7 +400,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "kube_node_status_condition{condition=\"DiskPressure\", status=\"false\", verrazzano_cluster=\"$cluster\"}",
+          "expr": "kube_node_status_condition{condition=\"DiskPressure\", status=\"false\", verrazzano_cluster=\"$vzcluster\"}",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -409,7 +409,7 @@
         },
         {
           "exemplar": true,
-          "expr": "kube_node_status_condition{condition=\"MemoryPressure\", status=\"false\", verrazzano_cluster=\"$cluster\"}",
+          "expr": "kube_node_status_condition{condition=\"MemoryPressure\", status=\"false\", verrazzano_cluster=\"$vzcluster\"}",
           "format": "table",
           "hide": false,
           "instant": true,
@@ -419,7 +419,7 @@
         },
         {
           "exemplar": true,
-          "expr": "kube_node_status_condition{condition=\"PIDPressure\", status=\"false\", verrazzano_cluster=\"$cluster\"}",
+          "expr": "kube_node_status_condition{condition=\"PIDPressure\", status=\"false\", verrazzano_cluster=\"$vzcluster\"}",
           "format": "table",
           "hide": false,
           "instant": true,
@@ -429,7 +429,7 @@
         },
         {
           "exemplar": true,
-          "expr": "kube_node_status_condition{condition=\"Ready\", status=\"true\", verrazzano_cluster=\"$cluster\"}",
+          "expr": "kube_node_status_condition{condition=\"Ready\", status=\"true\", verrazzano_cluster=\"$vzcluster\"}",
           "format": "table",
           "hide": false,
           "instant": true,
@@ -500,9 +500,9 @@
         "error": null,
         "hide": 0,
         "includeAll": false,
-        "label": "cluster",
+        "label": "Verrazzano Cluster",
         "multi": false,
-        "name": "cluster",
+        "name": "vzcluster",
         "options": [],
         "query": {
           "query": "label_values(verrazzano_cluster)",
@@ -528,5 +528,5 @@
   "timezone": "",
   "title": "System Health",
   "uid": "Q4BkmcOVk",
-  "version": 1
+  "version": 2
 }

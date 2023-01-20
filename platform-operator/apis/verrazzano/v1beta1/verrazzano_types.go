@@ -117,7 +117,7 @@ type VolumeClaimSpecTemplate struct {
 
 // InstanceInfo details of the installed Verrazzano instance maintained in status field.
 type InstanceInfo struct {
-	// ArgoCDURL The Argo CD UI URL for this Verrazzano installation
+	// The Argo CD UI URL for this Verrazzano installation.
 	ArgoCDURL *string `json:"argoCdUrl,omitempty"`
 	// The Console URL for this Verrazzano installation.
 	ConsoleURL *string `json:"consoleUrl,omitempty"`
@@ -297,7 +297,7 @@ type ComponentSpec struct {
 	// +optional
 	ApplicationOperator *ApplicationOperatorComponent `json:"applicationOperator,omitempty"`
 
-	// Argo CD configuration
+	// The Argo CD component configuration.
 	// +optional
 	ArgoCD *ArgoCDComponent `json:"argoCd,omitempty"`
 
@@ -852,10 +852,17 @@ type RancherComponent struct {
 	KeycloakAuthEnabled *bool `json:"keycloakAuthEnabled,omitempty"`
 }
 
-// ArgoCDComponent specifies the Argo CD configuration
+// ArgoCDComponent specifies the Argo CD configuration.
 type ArgoCDComponent struct {
+	// If true, then Argo CD will be installed.
 	// +optional
-	Enabled          *bool `json:"enabled,omitempty"`
+	Enabled *bool `json:"enabled,omitempty"`
+	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/argo-cd/values.yaml %}} )
+	// and invalid values will be ignored.
+	// +optional
 	InstallOverrides `json:",inline"`
 }
 
@@ -924,7 +931,7 @@ type WebLogicOperatorComponent struct {
 	InstallOverrides `json:",inline"`
 }
 
-// VeleroComponent  specifies the Velero configuration.
+// VeleroComponent specifies the Velero configuration.
 type VeleroComponent struct {
 	// If true, then Velero will be installed.
 	// +optional

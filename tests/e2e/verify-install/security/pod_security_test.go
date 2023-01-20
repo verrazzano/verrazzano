@@ -44,14 +44,10 @@ var skipPods = map[string][]string{
 	},
 	"verrazzano-system": {
 		"^coherence-operator.*$",
-		"^vmi-system-grafana.*$",
 		"^weblogic-operator.*$",
 	},
 	"verrazzano-backup": {
 		"^restic.*$",
-	},
-	"cert-manager": {
-		"^external-dns.*$",
 	},
 }
 
@@ -150,6 +146,7 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 		Entry("Checking pod security in mysql-operator", "mysql-operator"),
 		Entry("Checking pod security in cert-manager", "cert-manager"),
 		Entry("Checking pod security in keycloak", "keycloak"),
+		Entry("Checking pod security in argocd", "argocd"),
 	)
 })
 
