@@ -42,7 +42,7 @@ VERSION_NUMBER_MINOR=$(echo "$VERSION" | tail -c4 | head -c1)
 
 # Gets the github page at latest to extract the latest release verision number
 wget -O latest "https://github.com/verrazzano/verrazzano/releases/latest"
-LATEST_RELEASE_VERSION=$(grep -i '<title>' latest | awk -F 'release ' '{print $2}' | head -c6 | tail -c5)
+export LATEST_RELEASE_VERSION=$(grep -i '<title>' latest | awk -F 'release ' '{print $2}' | head -c6 | tail -c5)
 
 function verify_released_artifacts() {
   local releaseVersionDir=${TMPDIR}/release
