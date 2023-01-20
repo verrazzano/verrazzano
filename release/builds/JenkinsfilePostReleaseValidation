@@ -17,13 +17,9 @@ pipeline {
         }
     }
     parameters {
-        string name: 'RELEASE_UTILS_BRANCH', defaultValue: 'master', description: 'Branch or tag or commit to checkout from the release utils repo', trim: true
         string (description: 'The release version (major.minor.patch format, e.g. 1.0.1)', name: 'RELEASE_VERSION', defaultValue: 'NONE', trim: true)
-        string name: 'IMAGES_TO_PUBLISH_OBJECT_STORE_FILE', description: 'The object store file from which to get the list of images to be published to OCR (if provided, IMAGES_TO_PUBLISH_JOB_NAME and IMAGES_TO_PUBLISH_BUILD are ignored)', defaultValue: 'NONE'
-        string name: 'IMAGES_TO_PUBLISH_JOB_NAME', defaultValue: 'verrazzano-new-oci-dns-acceptance-tests/master', description: 'Jenkins job whose built artifacts includes the list of images to push (needed if an object store location is not available for the images to publish)', trim: true
-        buildSelector name: 'IMAGES_TO_PUBLISH_BUILD', defaultSelector: latestSavedBuild(), description: 'The specific build to get the images to push artifact from (needed if an object store location is not available for the images to publish)'
+        string name: 'IMAGES_OBJECT_STORE_FILE', description: 'The object store file from which to get the list of images to be published to OCR (if provided, IMAGES_TO_PUBLISH_JOB_NAME and IMAGES_TO_PUBLISH_BUILD are ignored)', defaultValue: 'NONE'
         booleanParam (description: 'Indicate whether this is a dry run - no images will be pulled or pushed', name: 'DRY_RUN', defaultValue: false)
-        // booleanParam (description: 'Whether to fail this job if an image cannot be verified to be in OCR', name: 'FAIL_IF_IMAGE_NOT_IN_OCR', defaultValue: true)
         string (description: 'The full git commit hash from the source build', name: 'GIT_COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
     }
 
@@ -33,12 +29,8 @@ pipeline {
         GHCR_CREDS = credentials('github-packages-credentials-rw')
 
         NETRC_FILE = credentials('netrc')
-        DOCKER_CREDS = credentials('github-packages-credentials-rw')
-        DOCKER_EMAIL = credentials('github-packages-email')
         DOCKER_REPO = 'container-registry.oracle.com'
         RELEASE_VERSION = "${params.RELEASE_VERSION}"
-        // FAIL_NOT_IN_OCR = "${params.FAIL_IF_IMAGE_NOT_IN_OCR}"
-        OBJECT_STORE_FILE = "${params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE}"
     }
 
     stages {
@@ -101,7 +93,7 @@ pipeline {
             steps {
                  script {                
                     println("Downloading image list from object storage")
-                    sh "${WORKSPACE}/release/scripts/get_images_to_publish.sh"
+                    sh "oci --region ${OCI_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${IMAGES_OBJECT_STORE_FILE} --file verrazzano_images.txt"
                 }
               }
             }
