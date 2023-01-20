@@ -74,26 +74,25 @@ function verify_released_artifacts() {
       ${SHA_CMD} verrazzano-${RELEASE_VERSION}-darwin-arm64.tar.gz.sha256
       ${SHA_CMD} verrazzano-${RELEASE_VERSION}-linux-amd64.tar.gz.sha256
       ${SHA_CMD} verrazzano-${RELEASE_VERSION}-linux-arm64.tar.gz.sha256
-
-
-      # Latest tag is automatic, do we really need to check ? If required, better compare the files from the two directories
-      local latestVersionDir=${TMPDIR}}/latest
-      mkdir -p $latestVersionDir
-      cd $latestVersionDir
-
-      # Iterate the array containing the release artifacts and download all of them
-      echo "Downloading release artifacts for latest"
-      for i in "${releaseArtifactsLatest[@]}"
-      do
-        local url="https://github.com/verrazzano/verrazzano/releases/latest/download/v$LATEST_RELEASE_VERSION/$i"
-        curl -Ss -L --show-error --fail -o $i ${url} || { echo "Unable to download ${url}"; exit; }
-      done
-      ${SHA_CMD} verrazzano-platform-operator.yaml.sha256
-    ${SHA_CMD} verrazzano-${LATEST_RELEASE_VERSION}-darwin-amd64.tar.gz.sha256
-    ${SHA_CMD} verrazzano-${LATEST_RELEASE_VERSION}-darwin-arm64.tar.gz.sha256
-    ${SHA_CMD} verrazzano-${LATEST_RELEASE_VERSION}-linux-amd64.tar.gz.sha256
-    ${SHA_CMD} verrazzano-${LATEST_RELEASE_VERSION}-linux-arm64.tar.gz.sha256
   fi
+
+  # Latest tag is automatic, do we really need to check ? If required, better compare the files from the two directories
+  local latestVersionDir=${TMPDIR}}/latest
+  mkdir -p $latestVersionDir
+  cd $latestVersionDir
+
+  # Iterate the array containing the release artifacts and download all of them
+  echo "Downloading release artifacts for latest"
+  for i in "${releaseArtifactsLatest[@]}"
+  do
+  local url="https://github.com/verrazzano/verrazzano/releases/latest/download/v$LATEST_RELEASE_VERSION/$i"
+  curl -Ss -L --show-error --fail -o $i ${url} || { echo "Unable to download ${url}"; exit; }
+  done
+  ${SHA_CMD} verrazzano-platform-operator.yaml.sha256
+  ${SHA_CMD} verrazzano-${LATEST_RELEASE_VERSION}-darwin-amd64.tar.gz.sha256
+  ${SHA_CMD} verrazzano-${LATEST_RELEASE_VERSION}-darwin-arm64.tar.gz.sha256
+  ${SHA_CMD} verrazzano-${LATEST_RELEASE_VERSION}-linux-amd64.tar.gz.sha256
+  ${SHA_CMD} verrazzano-${LATEST_RELEASE_VERSION}-linux-arm64.tar.gz.sha256
 }
 
 verify_released_artifacts
