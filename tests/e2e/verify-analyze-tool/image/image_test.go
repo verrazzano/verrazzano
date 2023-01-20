@@ -108,7 +108,7 @@ func patchImage(deploymentName, namespace, issueType string) error {
 					return err
 				}
 				reportAnalysis[issueType] = action{out1, out2}
-				break
+
 			case ImagePullBackOff:
 
 				// PATCHING
@@ -139,7 +139,6 @@ func patchImage(deploymentName, namespace, issueType string) error {
 					return err
 				}
 				reportAnalysis[issueType] = action{out1, out2}
-				break
 			}
 		}
 	}
