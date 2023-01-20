@@ -110,7 +110,9 @@ pipeline {
                 script {
                     try {
                         sh "${WORKSPACE}/release/scripts/validate_ocr_images.sh"
-                    } catch(error) {}
+                    } catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                        sh "exit 1"
+                    }
                 }
             }
         }
