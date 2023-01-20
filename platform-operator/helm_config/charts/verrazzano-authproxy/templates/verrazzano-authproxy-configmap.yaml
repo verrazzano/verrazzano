@@ -166,7 +166,7 @@ data:
 
     local oidcRealm = "{{ .OidcRealm }}"
     local oidcClient = "{{ .OIDCClientID }}"
-    local masterOidcClient = "{{ .PKCEClientID }}"
+    local adminClusterOidcClient = "{{ .PKCEClientID }}"
     local oidcDirectAccessClient = "{{ .PGClientID }}"
     local requiredRole = "{{ .RequiredRealmRole }}"
 
@@ -763,8 +763,8 @@ data:
         -- test code sends ID tokens obtained from the PG client
         -- need to accept either type in Authorization header (for now)
         local clients = { oidcClient, oidcDirectAccessClient }
-        if oidcClient ~= masterOidcClient then
-            clients = { oidcClient, masterOidcClient, oidcDirectAccessClient }
+        if oidcClient ~= adminClusterOidcClient then
+            clients = { oidcClient, adminClusterOidcClient, oidcDirectAccessClient }
         end
         local claim_spec = {
             typ = validators.equals_any_of({ "Bearer", "ID" }),
