@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package promstack
@@ -61,17 +61,15 @@ var (
 		"--prometheus-default-base-image=" + imagePrefix + "/verrazzano/prometheus",
 		"--alertmanager-default-base-image=" + imagePrefix + "/verrazzano/alertmanager",
 	}
-	labelMatch      = map[string]string{overrideKey: overrideValue}
-	isMinVersion140 bool
+	labelMatch           = map[string]string{overrideKey: overrideValue}
+	isMinVersion140      bool
+	defaultScrapeTargets = []string{fmt.Sprintf("serviceMonitor/%s/%s", constants.VerrazzanoMonitoringNamespace, constants.ServiceMonitorNameKubelet)}
 )
 
 var t = framework.NewTestFramework("promstack")
 
 func listEnabledComponents() []string {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-	}
+	kubeconfigPath := getKubeConfigOrAbort()
 	var enabledPods []string
 	for _, component := range promStackEnabledComponents {
 		if component.enabledFunc(kubeconfigPath) {
@@ -82,20 +80,13 @@ func listEnabledComponents() []string {
 }
 
 func isPrometheusOperatorEnabled() bool {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-	}
-	return pkg.IsPrometheusOperatorEnabled(kubeconfigPath)
+	return pkg.IsPrometheusOperatorEnabled(getKubeConfigOrAbort())
 }
 
 // areOverridesEnabled - return true if the override value prometheusOperator.podAnnotations.override
 // is present and set to "true"
 func areOverridesEnabled() bool {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-	}
+	kubeconfigPath := getKubeConfigOrAbort()
 	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get vz resource in cluster: %s", err.Error()))
@@ -127,12 +118,7 @@ func areOverridesEnabled() bool {
 
 // 'It' Wrapper to only run spec if the Prometheus Stack is supported on the current Verrazzano version
 func WhenPromStackInstalledIt(description string, f func()) {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		t.It(description, func() {
-			Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-		})
-	}
+	kubeconfigPath := getKubeConfigOrAbort()
 	supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
 	if err != nil {
 		t.It(description, func() {
@@ -146,12 +132,21 @@ func WhenPromStackInstalledIt(description string, f func()) {
 	}
 }
 
-var beforeSuite = t.BeforeSuiteFunc(func() {
-	var err error
+func getKubeConfigOrAbort() string {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
+	return kubeconfigPath
+}
+
+func isKubeStateMetricsEnabled() bool {
+	return pkg.IsKubeStateMetricsEnabled(getKubeConfigOrAbort())
+}
+
+var beforeSuite = t.BeforeSuiteFunc(func() {
+	var err error
+	kubeconfigPath := getKubeConfigOrAbort()
 	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
@@ -281,6 +276,24 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 				}
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not v1.4.0")
+			}
+		})
+
+		WhenPromStackInstalledIt("should have default scrape targets healthy", func() {
+			if isMinVersion140 && !pkg.IsManagedClusterProfile() {
+				verifyScrapeTargets := func() (bool, error) {
+					if isKubeStateMetricsEnabled() {
+						defaultScrapeTargets = append(defaultScrapeTargets, fmt.Sprintf("serviceMonitor/%s/%s", constants.VerrazzanoMonitoringNamespace, constants.ServiceMonitorNameKubeStateMetrics))
+					}
+
+					if isPrometheusOperatorEnabled() {
+						return pkg.ScrapeTargetsHealthy(defaultScrapeTargets)
+					}
+					return true, nil
+				}
+				Eventually(verifyScrapeTargets, waitTimeout, pollingInterval).Should(BeTrue())
+			} else {
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not v1.4.0 or is managed cluster")
 			}
 		})
 	})
