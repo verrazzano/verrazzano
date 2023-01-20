@@ -34,7 +34,7 @@ const ComponentName = common.ArgoCDName
 const ComponentNamespace = constants.ArgoCDNamespace
 
 // ComponentJSONName is the json name of the verrazzano component in CRD
-const ComponentJSONName = "argoCd"
+const ComponentJSONName = common.ArgoCDCompName
 
 type argoCDComponent struct {
 	keycloak.ArgoClientSecretProvider
@@ -179,7 +179,7 @@ func ConfigureKeycloakOIDC(ctx spi.ComponentContext) error {
 
 	if vzcr.IsKeycloakEnabled(ctx.EffectiveCR()) && vzcr.IsArgoCDEnabled(ctx.EffectiveCR()) {
 
-		ctx.Log().Oncef("Configuring Keycloak as a ArgoCD authentication provider")
+		ctx.Log().Oncef("Configuring Keycloak as a argocd authentication provider")
 		component := NewComponent().(argoCDComponent)
 		if err := patchArgoCDSecret(component, ctx); err != nil {
 			return log.ErrorfThrottledNewErr("Failed patching ArgoCD secret: %s", err.Error())
