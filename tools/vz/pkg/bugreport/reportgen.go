@@ -75,22 +75,24 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	if err != nil && !meta.IsNoMatchError(err) {
 		return err
 	}
-
-	// Loop through the existing v1alpha1 Verrazzano and convert them to v1beta1
-	// Add them to the vz list so that the bug report is not skipped
-	vzA1 := v1alpha1.VerrazzanoList{}
-	err = client.List(context.TODO(), &vzA1)
-	if err != nil && !meta.IsNoMatchError(err) {
-		return err
-	}
-	if len(vzA1.Items) != 0 {
-		for _, vzA1Item := range vzA1.Items {
-			convertedVZ := v1beta1.Verrazzano{}
-			err = vzA1Item.ConvertTo(&convertedVZ)
-			if err != nil {
-				return err
+	// If v1beta1 does not exist on the cluster, it is using v1alpha1
+	if meta.IsNoMatchError(err) {
+		// Loop through the existing v1alpha1 Verrazzano and convert them to v1beta1
+		// Add them to the vz list so that the bug report is not skipped
+		vzA1 := v1alpha1.VerrazzanoList{}
+		err = client.List(context.TODO(), &vzA1)
+		if err != nil && !meta.IsNoMatchError(err) {
+			return err
+		}
+		if len(vzA1.Items) != 0 {
+			for _, vzA1Item := range vzA1.Items {
+				convertedVZ := v1beta1.Verrazzano{}
+				err = vzA1Item.ConvertTo(&convertedVZ)
+				if err != nil {
+					return err
+				}
+				vz.Items = append(vz.Items, convertedVZ)
 			}
-			vz.Items = append(vz.Items, convertedVZ)
 		}
 	}
 
