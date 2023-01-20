@@ -37,5 +37,5 @@ done
 if [[ "$FAIL_NOT_IN_OCR" = true ]]; then
       echo "Job Failed.\n A(n) image was not in OCR"
       exit 1
-    fi
+fi
 echo "Done."
