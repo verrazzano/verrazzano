@@ -147,6 +147,7 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 		Entry("Checking pod security in cert-manager", "cert-manager"),
 		Entry("Checking pod security in keycloak", "keycloak"),
 		Entry("Checking pod security in argocd", "argocd"),
+		Entry("Checking pod security in istio-system", "istio-system"),
 	)
 })
 

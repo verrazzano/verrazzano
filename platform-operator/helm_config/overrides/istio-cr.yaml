@@ -16,6 +16,20 @@ spec:
             runAsNonRoot: true
             seccompProfile:
               type: RuntimeDefault
+          overlays:
+            - kind: Deployment
+              name: istio-egressgateway
+              patches:
+                - path: spec.template.spec.containers.[name:istio-proxy].securityContext
+                  value: |
+                    runAsUser: 1337
+                    runAsGroup: 1337
+                    runAsNonRoot: true
+                    privileged: false
+                    allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
     ingressGateways:
       - name: istio-ingressgateway
         k8s:
@@ -25,6 +39,20 @@ spec:
             runAsNonRoot: true
             seccompProfile:
               type: RuntimeDefault
+          overlays:
+            - kind: Deployment
+              name: istio-ingressgateway
+              patches:
+                - path: spec.template.spec.containers.[name:istio-proxy].securityContext
+                  value: |
+                    runAsUser: 1337
+                    runAsGroup: 1337
+                    runAsNonRoot: true
+                    privileged: false
+                    allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
     pilot:
       k8s:
         securityContext:
@@ -33,6 +61,20 @@ spec:
           runAsNonRoot: true
           seccompProfile:
             type: RuntimeDefault
+        overlays:
+          - kind: Deployment
+            name: istiod
+            patches:
+              - path: spec.template.spec.containers.[name:discovery].securityContext
+                value: |
+                  runAsUser: 1337
+                  runAsGroup: 1337
+                  runAsNonRoot: true
+                  privileged: false
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                      - ALL
 
   # Global values passed through to helm global.yaml.
   # Please keep this in sync with manifests/charts/global.yaml
@@ -54,7 +96,6 @@ spec:
 
     pilot:
       autoscaleEnabled: false
-
     gateways:
       istio-egressgateway:
         env:
