@@ -7,16 +7,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
-	"strings"
-	"time"
-
 	certapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/gertd/go-pluralize"
 	ptypes "github.com/gogo/protobuf/types"
+	"github.com/golang/protobuf/ptypes/duration"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
@@ -43,6 +40,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -52,6 +50,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"strings"
+	"time"
 )
 
 const (
@@ -751,6 +751,7 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 	if ok && value == "enabled" {
 		mode = istionet.ClientTLSSettings_ISTIO_MUTUAL
 	}
+	durationstruct := ptypes.DurationProto(rule.Destination.HTTPCookie.TTL * time.Second)
 	destinationRule.Spec = istionet.DestinationRule{
 		Host: dest.Destination.Host,
 		TrafficPolicy: &istionet.TrafficPolicy{
@@ -764,7 +765,7 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 							HttpCookie: &istionet.LoadBalancerSettings_ConsistentHashLB_HTTPCookie{
 								Name: rule.Destination.HTTPCookie.Name,
 								Path: rule.Destination.HTTPCookie.Path,
-								Ttl:  ptypes.DurationProto(rule.Destination.HTTPCookie.TTL * time.Second)},
+								Ttl:  &duration.Duration{Seconds: durationstruct.Seconds, Nanos: durationstruct.Nanos}},
 						},
 					},
 				},
