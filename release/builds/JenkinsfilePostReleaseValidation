@@ -101,8 +101,6 @@ pipeline {
             steps {
                  script {                
                     println("Downloading image list from object storage")
-                    // This file permission change is here because the script kept returning: Permission denied error
-                    sh "chmod +x ${WORKSPACE}/release/scripts/get_images_to_publish.sh"
                     sh "${WORKSPACE}/release/scripts/get_images_to_publish.sh"
                 }
               }
