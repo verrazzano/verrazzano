@@ -94,6 +94,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 	if len(mgdClusterOidcClient) > 0 {
 		overrides.Proxy.OIDCClientID = mgdClusterOidcClient
+		overrides.ManagedClusterRegistered = true
 	} else {
 		overrides.Proxy.OIDCClientID = adminClusterOidcID
 	}
