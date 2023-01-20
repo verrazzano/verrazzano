@@ -26,10 +26,11 @@ var (
 )
 
 const (
-	ImagePullNotFound     string = "ImagePullNotFound"
-	ImagePullBackOff      string = "ImagePullBackOff"
-	NameSpace             string = "verrazzano-system"
-	DeploymentToBePatched string = "verrazzano-console"
+	ImagePullNotFound      string = "ImagePullNotFound"
+	ImagePullBackOff       string = "ImagePullBackOff"
+	PodProblemsNotReported string = "PodProblemsNotReported"
+	NameSpace              string = "verrazzano-system"
+	DeploymentToBePatched  string = "verrazzano-console"
 )
 
 type action struct {
@@ -39,7 +40,7 @@ type action struct {
 
 var err error
 var reportAnalysis = make(map[string]action)
-var issuesToBeDiagonosed = []string{ImagePullNotFound, ImagePullBackOff}
+var issuesToBeDiagnosed = []string{ImagePullNotFound, ImagePullBackOff, PodProblemsNotReported}
 var c = &kubernetes.Clientset{}
 var deploymentsClient kv1.DeploymentInterface
 
@@ -59,8 +60,8 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 // First Iteration patch a deployment's image and captures vz analyze report
 // Second Iteration undo the patch and captures vz analyze report
 func feedAnalysisReport() error {
-	for i := 0; i < len(issuesToBeDiagonosed); i++ {
-		switch issuesToBeDiagonosed[i] {
+	for i := 0; i < len(issuesToBeDiagnosed); i++ {
+		switch issuesToBeDiagnosed[i] {
 		case ImagePullNotFound:
 			patchErr := patchImage(DeploymentToBePatched, ImagePullNotFound, "X")
 			if patchErr != nil {
@@ -71,8 +72,13 @@ func feedAnalysisReport() error {
 			if patchErr != nil {
 				return patchErr
 			}
+		case PodProblemsNotReported:
+			patchErr := patchImage(DeploymentToBePatched, PodProblemsNotReported, "nginx")
+			if patchErr != nil {
+				return patchErr
+			}
 		}
-		if i < len(issuesToBeDiagonosed)-1 {
+		if i < len(issuesToBeDiagnosed)-1 {
 			time.Sleep(time.Second * 30)
 		}
 	}
@@ -129,7 +135,7 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 	t.Context("During Image Issue Analysis", func() {
 		t.It("First Inject/ Revert Issue and Feed Analysis Report", func() {
 			feedAnalysisReport()
-			Expect(len(reportAnalysis)).To(Equal(len(issuesToBeDiagonosed)))
+			Expect(len(reportAnalysis)).To(Equal(len(issuesToBeDiagnosed)))
 		})
 		t.It("Should Have ImagePullNotFound Issue Post Bad Image Injection", func() {
 			Eventually(func() bool {
@@ -152,6 +158,17 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 		t.It("Should Not Have ImagePullBackOff Issue Post Reviving Bad Image", func() {
 			Eventually(func() bool {
 				return verifyIssue(reportAnalysis[ImagePullBackOff].Revive, ImagePullBackOff)
+			}, waitTimeout, pollingInterval).Should(BeFalse())
+		})
+		t.It("Should Have PodProblemsNotReported Issue Post Bad Image Injection", func() {
+			Eventually(func() bool {
+				return verifyIssue(reportAnalysis[PodProblemsNotReported].Patch, PodProblemsNotReported)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+
+		t.It("Should Not Have PodProblemsNotReported Issue Post Reviving Bad Image", func() {
+			Eventually(func() bool {
+				return verifyIssue(reportAnalysis[PodProblemsNotReported].Revive, PodProblemsNotReported)
 			}, waitTimeout, pollingInterval).Should(BeFalse())
 		})
 	})
