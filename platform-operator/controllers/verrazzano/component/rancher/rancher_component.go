@@ -6,6 +6,10 @@ package rancher
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -17,9 +21,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
-	"path/filepath"
-	"strconv"
 )
 
 // ComponentName is the name of the component
@@ -179,6 +180,9 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 	if err := copyDefaultCACertificate(log, c, vz); err != nil {
+		return err
+	}
+	if err := removeBootstrapSecretIfExists(log, c); err != nil {
 		return err
 	}
 	return nil
