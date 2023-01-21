@@ -9,7 +9,7 @@ IMAGES_NOT_FOUND_IN_OCR=("")
 OBJ_STORAGE_VZ_IMAGE_TXT=verrazzano_images.txt
 
 printf "Logging into Crane ..."
-crane auth login "$DOCKER_REPO" -u "$OCR_CREDS_USR" -p "$OCR_CREDS_PSW"
+echo "$OCR_CREDS_PSW" | crane auth login "$DOCKER_REPO" -u "$OCR_CREDS_USR" --password-stdin
 
 while IFS= read -r line
 do  
