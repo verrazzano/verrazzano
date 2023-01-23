@@ -13,6 +13,10 @@ type VerrazzanoGenericWorkloadSpec VerrazzanoHelidonWorkloadSpec
 // VerrazzanoGenericWorkloadStatus defines the observed state of Verrazzano Helidon workload.
 type VerrazzanoGenericWorkloadStatus VerrazzanoHelidonWorkloadStatus
 
+// +genclient
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+
 // VerrazzanoGenericWorkload specifies the Verrazzano Helidon workload API.
 type VerrazzanoGenericWorkload struct {
 	metav1.TypeMeta   `json:",inline"`
