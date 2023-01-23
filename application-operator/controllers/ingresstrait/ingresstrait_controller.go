@@ -12,8 +12,6 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/gertd/go-pluralize"
-	ptypes "github.com/gogo/protobuf/types"
-	"github.com/golang/protobuf/ptypes/duration"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
@@ -27,6 +25,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/durationpb"
 	istionet "istio.io/api/networking/v1alpha3"
 	"istio.io/api/security/v1beta1"
 	v1beta12 "istio.io/api/type/v1beta1"
@@ -751,7 +750,6 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 	if ok && value == "enabled" {
 		mode = istionet.ClientTLSSettings_ISTIO_MUTUAL
 	}
-	durationstruct := ptypes.DurationProto(rule.Destination.HTTPCookie.TTL * time.Second)
 	destinationRule.Spec = istionet.DestinationRule{
 		Host: dest.Destination.Host,
 		TrafficPolicy: &istionet.TrafficPolicy{
@@ -765,7 +763,7 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 							HttpCookie: &istionet.LoadBalancerSettings_ConsistentHashLB_HTTPCookie{
 								Name: rule.Destination.HTTPCookie.Name,
 								Path: rule.Destination.HTTPCookie.Path,
-								Ttl:  &duration.Duration{Seconds: durationstruct.Seconds, Nanos: durationstruct.Nanos}},
+								Ttl:  durationpb.New(rule.Destination.HTTPCookie.TTL)},
 						},
 					},
 				},

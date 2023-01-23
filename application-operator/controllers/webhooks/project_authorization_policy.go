@@ -198,7 +198,7 @@ func (ap *AuthorizationPolicy) getAuthorizationPoliciesForProject(namespaceList 
 			// If the owner reference is an appconfig resource then
 			// we add the authorization policy to our list of authorization policies
 			if authzPolicy.OwnerReferences[0].Kind == "ApplicationConfiguration" {
-				authzPolicyList = append(authzPolicyList, authzPolicy)
+				authzPolicyList = append(authzPolicyList, *authzPolicy)
 			}
 		}
 	}
