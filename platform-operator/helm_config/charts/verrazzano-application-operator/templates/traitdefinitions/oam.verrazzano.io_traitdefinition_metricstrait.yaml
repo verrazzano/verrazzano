@@ -10,6 +10,7 @@ spec:
     - core.oam.dev/v1alpha2.ContainerizedWorkload
     - oam.verrazzano.io/v1alpha1.VerrazzanoCoherenceWorkload
     - oam.verrazzano.io/v1alpha1.VerrazzanoHelidonWorkload
+    - oam.verrazzano.io/v1alpha1.VerrazzanoGenericWorkload
     - oam.verrazzano.io/v1alpha1.VerrazzanoWebLogicWorkload
   definitionRef:
     name: metricstraits.oam.verrazzano.io

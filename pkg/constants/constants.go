@@ -31,6 +31,9 @@ const VerrazzanoCoherenceWorkloadKind = "VerrazzanoCoherenceWorkload"
 // VerrazzanoHelidonWorkloadKind - the VerrazzanoHelidonWorkload resource kind
 const VerrazzanoHelidonWorkloadKind = "VerrazzanoHelidonWorkload"
 
+// VerrazzanoGenericWorkload - the VerrazzanoGenericWorkload resource kind
+const VerrazzanoGenericWorkloadKind = "VerrazzanoGenericWorkload"
+
 // ContainerizedWorkloadKind - the ContainerizedWorkload resource kind
 const ContainerizedWorkloadKind = "ContainerizedWorkload"
 

@@ -11,6 +11,7 @@ spec:
     - oam.verrazzano.io/v1alpha1.VerrazzanoCoherenceWorkload
     - oam.verrazzano.io/v1alpha1.VerrazzanoWebLogicWorkload
     - oam.verrazzano.io/v1alpha1.VerrazzanoHelidonWorkload
+    - oam.verrazzano.io/v1alpha1.VerrazzanoGenericWorkload
     - apps/v1.Deployment
     - apps/v1.StatefulSet
     - apps/v1.DaemonSet

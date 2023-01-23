@@ -66,8 +66,9 @@ func IsWeblogicWorkloadKind(trait oam.Trait) bool {
 func FetchWorkloadResource(ctx context.Context, cli client.Reader, log vzlog.VerrazzanoLogger, workload *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	// Getting kind of helidon workload i.e. "VerrazzanoHelidonWorkload"
 	helidonWorkloadKind := reflect.TypeOf(vzapi.VerrazzanoHelidonWorkload{}).Name()
+	genericWorkloadKind := reflect.TypeOf(vzapi.VerrazzanoGenericWorkload{}).Name()
 	// If the workload does not wrap unstructured data
-	if !IsVerrazzanoWorkloadKind(workload) || (helidonWorkloadKind == workload.GetKind()) {
+	if !IsVerrazzanoWorkloadKind(workload) || (helidonWorkloadKind == workload.GetKind()) || (genericWorkloadKind == workload.GetKind()) {
 		return workload, nil
 	}
 

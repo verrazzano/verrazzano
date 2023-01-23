@@ -10,7 +10,7 @@ metadata:
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
-    kind: VerrazzanoHelidonWorkload
+    kind: VerrazzanoGenericWorkload
     metadata:
       name: springboot-generic-workload
       labels:
