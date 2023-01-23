@@ -113,6 +113,11 @@ func GetSupportedWorkloadType(apiVerKind string) string {
 		return constants.WorkloadTypeGeneric
 	}
 
+	// In the case of Generic, the workload isn't currently being unwrapped
+	if matched, _ := regexp.MatchString("^oam.verrazzano.io/.*\\.VerrazzanoGenericWorkload$", apiVerKind); matched {
+		return constants.WorkloadTypeGeneric
+	}
+
 	// Match any version of Group=core.oam.dev and Kind=ContainerizedWorkload
 	if matched, _ := regexp.MatchString("^core.oam.dev/.*\\.ContainerizedWorkload$", apiVerKind); matched {
 		return constants.WorkloadTypeGeneric
