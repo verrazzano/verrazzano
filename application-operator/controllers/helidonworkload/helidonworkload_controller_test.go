@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helidonworkload
@@ -419,11 +419,11 @@ func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, service *corev1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
 			assert.Equal(serviceAPIVersion, service.APIVersion)
 			assert.Equal(serviceKind, service.Kind)
-			assert.Equal(service.Spec.Ports[0].Name, "tcp-"+helidonTestContainer.Name+"-"+strconv.FormatInt(int64(helidonTestContainer.Ports[0].ContainerPort), 10))
+			assert.Equal(service.Spec.Ports[0].Name, helidonTestContainer.Name+"-"+strconv.FormatInt(int64(helidonTestContainer.Ports[0].ContainerPort), 10))
 			assert.Equal(service.Spec.Ports[0].Port, helidonTestContainer.Ports[0].ContainerPort)
 			assert.Equal(service.Spec.Ports[0].TargetPort, intstr.FromInt(int(helidonTestContainer.Ports[0].ContainerPort)))
 			assert.Equal(service.Spec.Ports[0].Protocol, corev1.ProtocolTCP)
-			assert.Equal(service.Spec.Ports[1].Name, "tcp-"+helidonTestContainer2.Name+"-"+strconv.FormatInt(int64(helidonTestContainer2.Ports[0].ContainerPort), 10))
+			assert.Equal(service.Spec.Ports[1].Name, helidonTestContainer2.Name+"-"+strconv.FormatInt(int64(helidonTestContainer2.Ports[0].ContainerPort), 10))
 			assert.Equal(service.Spec.Ports[1].Port, helidonTestContainer2.Ports[0].ContainerPort)
 			assert.Equal(service.Spec.Ports[1].TargetPort, intstr.FromInt(int(helidonTestContainer2.Ports[0].ContainerPort)))
 			assert.Equal(service.Spec.Ports[1].Protocol, helidonTestContainer2.Ports[0].Protocol)

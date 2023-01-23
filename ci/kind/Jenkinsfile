@@ -449,7 +449,7 @@ pipeline {
                                 runGinkgo('examples/helidon')
                             }
                         }
-                        stage('examples helidon') {
+                        stage('examples helidon service template') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-service-template"
                             }
