@@ -27,6 +27,7 @@ spec:
           - plugin2
       nodes:
         - name: es-master
+          javaOpts: "-Xmx6g -Xms6g"
           resources:
             requests:
               memory: 2Gi

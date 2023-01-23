@@ -20,6 +20,7 @@ spec:
           - plugin2
       nodes:
         - name: es-master
+          javaOpts: "-Xmx6g -Xms6g"
           replicas: 3
           resources:
             requests:

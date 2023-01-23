@@ -315,6 +315,7 @@ func convertOSNodesToV1Beta1(args []InstallArgs, nodes []OpenSearchNode) ([]v1be
 			Roles:     inNode.Roles,
 			Storage:   storage,
 			Resources: inNode.Resources,
+			JavaOpts:  inNode.JavaOpts,
 		}
 
 		// Merge any overlapping install arg nodes with user-supplied nodes

@@ -413,13 +413,16 @@ type ElasticsearchComponent struct {
 	Plugins vmov1.OpenSearchPlugins `json:"plugins,omitempty"`
 }
 
-//OpenSearchNode specifies a node group in the OpenSearch cluster
+// OpenSearchNode specifies a node group in the OpenSearch cluster
 type OpenSearchNode struct {
 	Name      string                       `json:"name,omitempty"`
 	Replicas  int32                        `json:"replicas,omitempty"`
 	Roles     []vmov1.NodeRole             `json:"roles,omitempty"`
 	Storage   *OpenSearchNodeStorage       `json:"storage,omitempty"`
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+	// JavaOpts settings for the OpenSearch JVM
+	// +optional
+	JavaOpts string `json:"javaOpts,omitempty"`
 }
 
 type OpenSearchNodeStorage struct {
