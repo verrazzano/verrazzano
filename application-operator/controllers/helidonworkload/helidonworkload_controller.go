@@ -303,7 +303,7 @@ func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelid
 					for _, port := range container.Ports {
 						// All ports within a ServiceSpec must have unique names.
 						// When considering the endpoints for a Service, this must match the 'name' field in the EndpointPort.
-						name := strings.ToLower(string(corev1.ProtocolTCP)) + "-" + container.Name + "-" + strconv.FormatInt(int64(port.ContainerPort), 10)
+						name := strings.ToLower(container.Name + "-" + strconv.FormatInt(int64(port.ContainerPort), 10))
 						protocol := corev1.ProtocolTCP
 						if len(port.Protocol) > 0 {
 							protocol = port.Protocol
