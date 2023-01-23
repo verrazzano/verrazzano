@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package operatorinit
@@ -15,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/verrazzanoproject"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/containerizedworkload"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/genericworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/helidonworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingtrait"
@@ -89,6 +90,15 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		return err
 	}
 	if err = (&helidonworkload.Reconciler{
+		Client:  mgr.GetClient(),
+		Log:     log,
+		Scheme:  mgr.GetScheme(),
+		Metrics: metricsReconciler,
+	}).SetupWithManager(mgr); err != nil {
+		log.Errorf("Failed to create VerrazzanoHelidonWorkload controller: %v", err)
+		return err
+	}
+	if err = (&genericworkload.Reconciler{
 		Client:  mgr.GetClient(),
 		Log:     log,
 		Scheme:  mgr.GetScheme(),
