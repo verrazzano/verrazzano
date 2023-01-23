@@ -554,11 +554,11 @@ func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
 		}
 		// Parse the authorization policy list for the Verrazzano Istio label and apply the service account to the first rule
 		for i := range authPolicyList.Items {
-			authPolicy := *authPolicyList.Items[i]
+			authPolicy := authPolicyList.Items[i]
 			if _, ok := authPolicy.Labels[constants.IstioAppLabel]; !ok {
 				continue
 			}
-			_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), &authPolicy, func() error {
+			_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), authPolicy, func() error {
 				rules := authPolicy.Spec.Rules
 				if len(rules) <= 0 || rules[0] == nil {
 					return nil
