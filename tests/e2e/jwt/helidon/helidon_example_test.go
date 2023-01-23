@@ -29,12 +29,6 @@ const (
 	imagePullPollingInterval = 30 * time.Second
 	skipVerifications        = "Skip Verifications"
 	helloHelidon             = "hello-helidon"
-	nodeExporterJobName      = "node-exporter"
-)
-
-const (
-	helidonComponentYaml = "../../../examples/hello-helidon/hello-helidon-comp.yaml"
-	helidonAppYaml       = "testdata/jwt/helidon/hello-helidon-app.yaml"
 )
 
 var (
