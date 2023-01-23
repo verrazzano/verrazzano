@@ -31,11 +31,13 @@ func DeployHelloHelidonApplication(namespace string, ociLogID string, istioInjec
 
 	// use custom Hello-Helidon Component if it is passed in
 	if customComponent != "" {
+		Log(Info, fmt.Sprintf("Deploying Hello Helidon with custom Component: %s", customComponent))
 		helidonComponentYaml = customComponent
 	}
 
 	// use custom Hello-Helidon Application Configuration if it is passed in
 	if customAppConfig != "" {
+		Log(Info, fmt.Sprintf("Deploying Hello Helidon with custom Application Configuration: %s", customAppConfig))
 		helidonAppYaml = customAppConfig
 	}
 	gomega.Eventually(func() (*v1.Namespace, error) {
