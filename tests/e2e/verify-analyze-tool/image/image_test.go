@@ -29,7 +29,7 @@ const (
 	ImagePullNotFound      string = "ImagePullNotFound"
 	ImagePullBackOff       string = "ImagePullBackOff"
 	PodProblemsNotReported string = "PodProblemsNotReported"
-	NameSpace              string = "verrazzano-system"
+	VzSystemNS             string = "verrazzano-system"
 	DeploymentToBePatched  string = "verrazzano-console"
 )
 
@@ -53,7 +53,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
-	deploymentsClient = c.AppsV1().Deployments(NameSpace)
+	deploymentsClient = c.AppsV1().Deployments(VzSystemNS)
 })
 
 // This method invoke patch method & feed vz analyze report to reportAnalysis
