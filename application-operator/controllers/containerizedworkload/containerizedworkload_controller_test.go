@@ -5,30 +5,30 @@ package containerizedworkload
 
 import (
 	"context"
-	commonv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
-	"github.com/crossplane/crossplane-runtime/pkg/meta"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
-	fakes "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"strings"
 	"testing"
 
+	commonv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	fakes "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
 )
 
@@ -175,8 +175,9 @@ func TestGetWorkloadService(t *testing.T) {
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-service",
-			UID:  "test-uid",
+			Name:   "test-service",
+			UID:    "test-uid",
+			Labels: map[string]string{},
 		},
 	}
 	statusWorkload := oamv1.ContainerizedWorkload{
@@ -200,6 +201,20 @@ func TestGetWorkloadService(t *testing.T) {
 	a.Equal(svc.UID, service.UID)
 	a.NoError(err)
 
+}
+
+// TestUpdateServiceLabels tests the update to the service in the containerized workload status
+func TestUpdateServiceLabels(t *testing.T) {
+	a := asserts.New(t)
+
+	// GIVEN a ContainerizedWorkload resource
+	// WHEN the status is empty
+	// THEN no error is returned
+	statusWorkload := oamv1.ContainerizedWorkload{}
+	cli := fakes.NewClientBuilder().Build()
+	reconciler := newReconciler(cli)
+	err := reconciler.updateServiceLabels(context.TODO(), statusWorkload, vzlog.DefaultLogger())
+	a.NoError(err)
 }
 
 // updateObjectFromYAMLTemplate updates an object from a populated YAML template file.

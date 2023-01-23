@@ -31,8 +31,10 @@ const (
 	capNetBindService = "NET_BIND_SERVICE"
 	capDacOverride    = "DAC_OVERRIDE"
 
-	// MySQL ignore pattern
+	// MySQL ignore pattern; skip mysql-# or mysql-xxxx-xxxx pod names, but not mysql-router-#
 	mysqlPattern = "^mysql-([\\d]+)$"
+	// MySQL ignore pattern for Grafana DB test case; installs a mysql instance in verrazzano-install namespace
+	grafanaMysqlPattern = "^mysql-.*$"
 )
 
 var skipPods = map[string][]string{
@@ -40,7 +42,7 @@ var skipPods = map[string][]string{
 		mysqlPattern,
 	},
 	"verrazzano-install": {
-		mysqlPattern,
+		grafanaMysqlPattern,
 	},
 	"verrazzano-system": {
 		"^coherence-operator.*$",
@@ -48,9 +50,6 @@ var skipPods = map[string][]string{
 	},
 	"verrazzano-backup": {
 		"^restic.*$",
-	},
-	"cert-manager": {
-		"^external-dns.*$",
 	},
 }
 
@@ -150,6 +149,7 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 		Entry("Checking pod security in cert-manager", "cert-manager"),
 		Entry("Checking pod security in keycloak", "keycloak"),
 		Entry("Checking pod security in argocd", "argocd"),
+		Entry("Checking pod security in istio-system", "istio-system"),
 	)
 })
 

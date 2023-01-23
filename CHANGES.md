@@ -5,11 +5,12 @@ Features:
 - Added component availability to Verrazzano custom resource, displayed in the resource's status printout.
 - Rancher clusters are automatically synchronized with VerrazzanoManagedCluster resources. Creating a cluster in Rancher results in a VMC creation and deleting a cluster in Rancher results in a VMC deletion.
 - Applying the Rancher cluster registration manifest to a managed cluster causes additional Verrazzano resources to automatically transfer to the managed cluster.
+- Grafana dashboards are now organized in folders. Added Grafana dashboards for Istio, JVM Micrometer, user applications, and Verrazzano system health.
 
 Component version updates:
 
 - Coherence Operator v3.2.9
-- MySQL Server 8.0.31
+- MySQL Server 8.0.32
 - oam-kubernetes-runtime 0.3.3
 - NGINX Ingress Controller v1.3.1
 - Prometheus v2.38.0
@@ -23,12 +24,13 @@ Component version updates:
 - WebLogic Monitoring Exporter v2.1.0
 - OpenSearch v2.3.0
 - OpenSearch Dashboards v2.3.0
-- Istio v1.15.1
+- Istio v1.15.3
 - Jaeger v1.37.0
 - Kiali v1.57.1
+- Keycloak v20.0.1
 
 Components added:
-- MySQL Operator 8.0.30-2.0.6
+- MySQL Operator 8.0.32-2.0.8
 
 Fixes:
 
