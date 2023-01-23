@@ -57,8 +57,8 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 })
 
 // This method invoke patch method & feed vz analyze report to reportAnalysis
-// First Iteration patch a deployment's image and captures vz analyze report
-// Second Iteration undo the patch and captures vz analyze report
+// Each Iteration patch a deployment's image, validates issue via vz analyze report
+// Also undo the patch and validates no issue via vz analyze report
 func feedAnalysisReport() error {
 	for i := 0; i < len(issuesToBeDiagnosed); i++ {
 		switch issuesToBeDiagnosed[i] {
@@ -85,7 +85,7 @@ func feedAnalysisReport() error {
 	return nil
 }
 
-// This Method implements the patch bad image & its revival
+// This Method implements the patching of bad image & its revival
 func patchImage(deploymentName, issueType, patchImage string) error {
 	result, getErr := deploymentsClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
 	if getErr != nil {
