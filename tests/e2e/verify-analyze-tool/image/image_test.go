@@ -29,6 +29,7 @@ const (
 	ImagePullNotFound      string = "ImagePullNotFound"
 	ImagePullBackOff       string = "ImagePullBackOff"
 	PodProblemsNotReported string = "PodProblemsNotReported"
+	PendingPods            string = "PendingPods"
 	VzSystemNS             string = "verrazzano-system"
 	DeploymentToBePatched  string = "verrazzano-console"
 )
@@ -40,7 +41,7 @@ type action struct {
 
 var err error
 var reportAnalysis = make(map[string]action)
-var issuesToBeDiagnosed = []string{ImagePullNotFound, ImagePullBackOff, PodProblemsNotReported}
+var issuesToBeDiagnosed = []string{ImagePullNotFound, ImagePullBackOff, PodProblemsNotReported, PendingPods}
 var c = &kubernetes.Clientset{}
 var deploymentsClient kv1.DeploymentInterface
 
@@ -74,6 +75,11 @@ func feedAnalysisReport() error {
 			}
 		case PodProblemsNotReported:
 			patchErr := patchImage(DeploymentToBePatched, PodProblemsNotReported, "nginx")
+			if patchErr != nil {
+				return patchErr
+			}
+		case PendingPods:
+			patchErr := patchPod()
 			if patchErr != nil {
 				return patchErr
 			}
@@ -131,6 +137,26 @@ func patchImage(deploymentName, issueType, patchImage string) error {
 	return nil
 }
 
+func patchPod() error {
+	out := []string{"cpu=3000m", "cpu=200m"}
+	for i:=0 ; i<len(out) ; i++ {
+		_, err = SetDepResources(DeploymentToBePatched, VzSystemNS, out[i])
+		if err != nil {
+			return err
+		}
+		time.Sleep(waitTimeout)
+		out[i], err = RunVzAnalyze()
+		if err != nil {
+			return err
+		}
+		if i == 0 {
+			time.Sleep(time.Second * 30)
+		}
+	}
+	reportAnalysis[PendingPods] = action{out[0], out[1]}
+	return nil
+}
+
 var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 	t.Context("During Image Issue Analysis", func() {
 		t.It("First Inject/ Revert Issue and Feed Analysis Report", func() {
@@ -171,6 +197,17 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 				return verifyIssue(reportAnalysis[PodProblemsNotReported].Revive, PodProblemsNotReported)
 			}, waitTimeout, pollingInterval).Should(BeFalse())
 		})
+		t.It("Should Have PendingPods Issue Post Bad Resource Request", func() {
+			Eventually(func() bool {
+				return verifyIssue(reportAnalysis[PendingPods].Patch, PendingPods)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+
+		t.It("Should Not Have PendingPods Issue Post Rectifying Resource Request", func() {
+			Eventually(func() bool {
+				return verifyIssue(reportAnalysis[PendingPods].Revive, PendingPods)
+			}, waitTimeout, pollingInterval).Should(BeFalse())
+		})
 	})
 })
 
@@ -180,6 +217,13 @@ func RunVzAnalyze() (string, error) {
 	if goRepoPath := os.Getenv("GO_REPO_PATH"); goRepoPath != "" {
 		cmd.Dir = goRepoPath
 	}
+	out, err := cmd.Output()
+	return string(out), err
+}
+
+// utility function to set deployment pod's resources
+func SetDepResources(dep, ns, req string) (string, error)  {
+	cmd := exec.Command("kubectl", "set", "resources", "deploy/"+dep, "--requests="+req, "-n", ns)
 	out, err := cmd.Output()
 	return string(out), err
 }
