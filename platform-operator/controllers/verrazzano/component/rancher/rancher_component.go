@@ -171,6 +171,7 @@ func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 - note: VZ-5241 the rancher-operator-namespace is no longer used in 2.6.3
 - Copy TLS certificates for Rancher if using the default Verrazzano CA
 - Create additional LetsEncrypt TLS certificates for Rancher if using LE
+- Delete the bootstrap-secret if it exists
 */
 func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	vz := ctx.EffectiveCR()

@@ -135,8 +135,9 @@ func TestIsEnabled(t *testing.T) {
 }
 
 func TestPreInstall(t *testing.T) {
+	bootstrapSecret := createBootstrapSecret()
 	caSecret := createCASecret()
-	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret).Build()
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &bootstrapSecret).Build()
 	ctx := spi.NewFakeContext(c, &vzDefaultCA, false)
 	assert.Nil(t, NewComponent().PreInstall(ctx))
 }

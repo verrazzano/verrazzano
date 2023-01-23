@@ -100,6 +100,18 @@ func createCASecret() v1.Secret {
 	}
 }
 
+func createBootstrapSecret() v1.Secret {
+	return v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: common.CattleSystem,
+			Name:      BootstrapSecret,
+		},
+		Data: map[string][]byte{
+			"bootstrapPassword": []byte("blahblah"),
+		},
+	}
+}
+
 func createRancherPodListWithAllRunning() v1.PodList {
 	return v1.PodList{
 		Items: []v1.Pod{
