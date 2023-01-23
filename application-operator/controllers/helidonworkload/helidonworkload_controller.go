@@ -280,12 +280,6 @@ func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelid
 			Spec: workload.Spec.ServiceTemplate.ServiceSpec,
 		}
 
-		if s.GetName() == "" {
-			s.Name = deploy.GetName()
-		}
-		if s.GetName() == "" {
-			s.Namespace = deploy.GetNamespace()
-		}
 		if s.Labels == nil {
 			s.Labels = map[string]string{}
 		}
