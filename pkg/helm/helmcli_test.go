@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helm
@@ -21,7 +21,7 @@ const missingRelease = "no_release"
 // retryRunner is used to test retrying a Helm upgrade after first attempts do not succeed
 type retryRunner struct {
 	attemptsBeforeSuccess int
-	retries int
+	retries               int
 }
 
 // upgradeRunner is used to test Helm upgrade without actually running an OS exec command
@@ -724,28 +724,28 @@ func Test_runHelm(t *testing.T) {
 	log := vzlog.DefaultLogger()
 
 	tests := []struct {
-		numFailures int
+		numFailures    int
 		expectedStdout []byte
 		expectedStderr []byte
-		expectedErr error
+		expectedErr    error
 	}{
 		{
-			numFailures: 0,
+			numFailures:    0,
 			expectedStdout: []byte("success"),
 			expectedStderr: []byte(""),
-			expectedErr: nil,
+			expectedErr:    nil,
 		},
 		{
-			numFailures: maxRetry - 1,
+			numFailures:    maxRetry - 1,
 			expectedStdout: []byte("success"),
 			expectedStderr: []byte(""),
-			expectedErr: nil,
+			expectedErr:    nil,
 		},
 		{
-			numFailures: maxRetry + 1,
+			numFailures:    maxRetry + 1,
 			expectedStdout: []byte(""),
 			expectedStderr: []byte("not enough retries"),
-			expectedErr: errors.New("not enough retries error"),
+			expectedErr:    errors.New("not enough retries error"),
 		},
 	}
 
