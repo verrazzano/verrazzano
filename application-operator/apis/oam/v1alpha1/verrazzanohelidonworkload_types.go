@@ -39,13 +39,14 @@ type DeploymentTemplate struct {
 
 // ServiceTemplate specifies the metadata and pod spec of a Helidon workload.
 type ServiceTemplate struct {
+	// Metadata about a Helidon application.
+	// +kubebuilder:validation:Optional
+	// +optional
+	Metadata metav1.ObjectMeta `json:"metadata,omitempty"`
 	// The service spec of a Helidon application.
 	// +kubebuilder:validation:Optional
 	// +optional
-	ServiceSpec v1.ServiceSpec `json:"serviceSpec"`
-	// Label selector of a Helidon application.
-	// +optional
-	Selector metav1.LabelSelector `json:"selector,omitempty" patchStrategy:"retainKeys"`
+	ServiceSpec v1.ServiceSpec `json:"serviceSpec,omitempty"`
 }
 
 // VerrazzanoHelidonWorkloadStatus defines the observed state of Verrazzano Helidon workload.

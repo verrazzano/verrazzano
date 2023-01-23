@@ -171,7 +171,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload vzapi.VerrazzanoH
 		return reconcile.Result{}, err
 	}
 	// set the controller reference so that we can watch this service and it will be deleted automatically
-	if err := ctrl.SetControllerReference(&workload, service, r.Scheme); err != nil {
+	if err = ctrl.SetControllerReference(&workload, service, r.Scheme); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -272,14 +272,16 @@ func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelid
 				Kind:       serviceKind,
 				APIVersion: serviceAPIVersion,
 			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: workload.Spec.DeploymentTemplate.Metadata.GetName(),
-				//make sure the namespace is set to the namespace of the component
-				Namespace: workload.GetNamespace(),
-			},
-			Spec: workload.Spec.ServiceTemplate.ServiceSpec,
+			ObjectMeta: workload.Spec.ServiceTemplate.Metadata,
+			Spec:       workload.Spec.ServiceTemplate.ServiceSpec,
 		}
+		if s.GetName() == "" {
+			s.SetName(deploy.GetName())
+		}
+		if s.GetNamespace() == "" {
+			s.SetNamespace(deploy.GetNamespace())
 
+		}
 		if s.Labels == nil {
 			s.Labels = map[string]string{}
 		}
