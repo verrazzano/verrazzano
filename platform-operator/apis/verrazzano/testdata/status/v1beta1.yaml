@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: install.verrazzano.io/v1beta1
 kind: Verrazzano
@@ -8,6 +8,23 @@ spec:
   profile: prod
 status:
   components:
+    argoCD:
+      conditions:
+        - lastTransitionTime: "2022-08-05T15:11:22Z"
+          message: PreInstall started
+          status: "True"
+          type: PreInstall
+        - lastTransitionTime: "2022-08-05T15:11:33Z"
+          message: Install started
+          status: "True"
+          type: InstallStarted
+        - lastTransitionTime: "2022-08-05T15:11:46Z"
+          message: Install complete
+          status: "True"
+          type: InstallComplete
+      lastReconciledGeneration: 2
+      name: argoCD
+      state: Ready
     cert-manager:
       conditions:
         - lastTransitionTime: "2022-08-05T15:11:22Z"
@@ -420,6 +437,7 @@ status:
       status: "True"
       type: InstallComplete
   instance:
+    argoCDUrl: https://argocd.default.172.18.0.231.nip.io
     consoleUrl: https://verrazzano.default.172.18.0.231.nip.io
     openSearchUrl: https://elasticsearch.vmi.system.default.172.18.0.231.nip.io
     grafanaUrl: https://grafana.vmi.system.default.172.18.0.231.nip.io
@@ -428,3 +446,4 @@ status:
     openSearchDashboardsUrl: https://kibana.vmi.system.default.172.18.0.231.nip.io
     prometheusUrl: https://prometheus.vmi.system.default.172.18.0.231.nip.io
     rancherUrl: https://rancher.default.172.18.0.231.nip.io
+

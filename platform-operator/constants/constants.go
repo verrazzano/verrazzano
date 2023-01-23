@@ -116,6 +116,12 @@ const KeycloakNamespace = "keycloak"
 // KeycloakIngress - the name of the ingress for Keycloak console and api
 const KeycloakIngress = "keycloak"
 
+// ArgoCDNamespace - the name of the Argo CD namespace
+const ArgoCDNamespace = "argocd"
+
+// ArgoCDIngress - the name of the ingress for Argo CD
+const ArgoCDIngress = "argocd-server"
+
 // VerrazzanoAuthProxyServiceName is the name of the Verrazzano auth proxy service
 const VerrazzanoAuthProxyServiceName = "verrazzano-authproxy"
 
@@ -238,3 +244,9 @@ const RancherBackupNamesSpace = "cattle-resources-system"
 const VerrazzanoManagedKey = "verrazzano.io/namespace"
 
 const ExternalDNSNamespace = "cert-manager"
+
+// ServiceMonitorNameKubelet indicates the name of serviceMonitor resource for kubelet monitoring
+const ServiceMonitorNameKubelet = "prometheus-operator-kube-p-kubelet"
+
+// ServiceMonitorNameKubeStateMetrics indicates the name of serviceMonitor resource for kube-state-metrics monitoring
+const ServiceMonitorNameKubeStateMetrics = "kube-state-metrics"

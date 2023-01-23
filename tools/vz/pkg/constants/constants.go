@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package constants
@@ -124,6 +124,7 @@ const (
 
 // Constants for bug report
 const (
+	BugReportLogFlagDefault   = false
 	BugReportFileFlagName     = "report-file"
 	BugReportFileFlagValue    = ""
 	BugReportFileFlagShort    = "r"
@@ -132,7 +133,7 @@ const (
 
 	BugReportIncludeNSFlagName  = "include-namespaces"
 	BugReportIncludeNSFlagShort = "i"
-	BugReportIncludeNSFlagUsage = "A comma-separated list of additional namespaces for collecting cluster information. This flag can be specified multiple times, such as --include-namespaces ns1 --include-namespaces ns..."
+	BugReportIncludeNSFlagUsage = "A comma-separated list of namespaces, in addition to the ones collected by default (system namespaces), for collecting cluster information. This flag can be specified multiple times, such as --include-namespaces ns1 --include-namespaces ns..."
 
 	BugReportDir = "bug-report"
 
@@ -175,12 +176,21 @@ const (
 	BugReportRoot = "cluster-snapshot"
 
 	// Label for application
-	AppLabel    = "app"
-	K8SAppLabel = "k8s-app"
-
+	AppLabel               = "app"
+	K8SAppLabel            = "k8s-app"
+	K8sAppLabelExternalDNS = "app.kubernetes.io/name"
 	// Message prefix for bug-report and live cluster analysis
 	BugReportMsgPrefix = "Capturing "
 	AnalysisMsgPrefix  = "Analyzing "
+
+	// Flag for capture pods logs( both additional and system namespaces)
+	BugReportLogFlagName         = "include-logs"
+	BugReportLogFlagNameShort    = "l"
+	BugReportLogFlagNameUsage    = "Include logs from the pods in one or more namespaces; this is specified along with the --include-namespaces flag."
+	BugReportTimeFlagName        = "duration"
+	BugReportTimeFlagNameShort   = "d"
+	BugReportTimeFlagDefaultTime = 0
+	BugReportTimeFlagNameUsage   = "The time period during which the logs are collected in seconds, minutes, and hours."
 )
 
 // Constants for cluster operations

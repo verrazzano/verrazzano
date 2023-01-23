@@ -1,7 +1,7 @@
 // Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-def agentLabel = env.JOB_NAME.contains('master') ? "1.5-small-phx" : "1.5-small"
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
 
 pipeline {
     options {
@@ -32,6 +32,9 @@ pipeline {
                         defaultValue: 'nip.io',
                         description: 'This is the wildcard DNS domain',
                         trim: true)
+        string (name: 'EXCLUDE_RELEASES',
+                defaultValue: "v1.0.0, v1.0.1, v1.0.2, v1.0.3, v1.0.4, v1.1.0, v1.1.1, v1.1.2",
+                description: 'This is to exclude the specified releases from upgrade tests.', trim: true)
         string (name: 'TAGGED_TESTS',
                 defaultValue: '',
                 description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
@@ -102,6 +105,10 @@ pipeline {
                     env.VERRAZZANO_DEV_VERSION = "${VERRAZZANO_DEV_VERSION}"
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+                    def excludeReleases = params.EXCLUDE_RELEASES
+                    def excludeReleasesList = excludeReleases.trim().split('\\s*,\\s*')
+                    VERSION_FOR_INSTALL = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} install-version ${excludeReleasesList}").trim()
+                    INTERIM_UPGRADE_VERSION = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} interim-version ${excludeReleasesList}").trim()
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
                     def currentCommitHash = env.GIT_COMMIT
@@ -126,6 +133,8 @@ pipeline {
                                 build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
+                                        string(name: 'VERSION_FOR_INSTALL', value: VERSION_FOR_INSTALL),
+                                        string(name: 'INTERIM_UPGRADE_VERSION', value: INTERIM_UPGRADE_VERSION),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -144,6 +153,8 @@ pipeline {
                                 build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                             string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
+                                            string(name: 'VERSION_FOR_INSTALL', value: VERSION_FOR_INSTALL),
+                                            string(name: 'INTERIM_UPGRADE_VERSION', value: INTERIM_UPGRADE_VERSION),
                                             string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                             string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                             string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -162,6 +173,8 @@ pipeline {
                                 build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
+                                        string(name: 'VERSION_FOR_INSTALL', value: VERSION_FOR_INSTALL),
+                                        string(name: 'INTERIM_UPGRADE_VERSION', value: INTERIM_UPGRADE_VERSION),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -180,6 +193,8 @@ pipeline {
                                 build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
+                                        string(name: 'VERSION_FOR_INSTALL', value: VERSION_FOR_INSTALL),
+                                        string(name: 'INTERIM_UPGRADE_VERSION', value: INTERIM_UPGRADE_VERSION),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -198,6 +213,8 @@ pipeline {
                                 build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
+                                        string(name: 'VERSION_FOR_INSTALL', value: VERSION_FOR_INSTALL),
+                                        string(name: 'INTERIM_UPGRADE_VERSION', value: INTERIM_UPGRADE_VERSION),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -216,6 +233,8 @@ pipeline {
                                 build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
+                                        string(name: 'VERSION_FOR_INSTALL', value: VERSION_FOR_INSTALL),
+                                        string(name: 'INTERIM_UPGRADE_VERSION', value: INTERIM_UPGRADE_VERSION),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -252,6 +271,7 @@ def isPagerDutyEnabled() {
     }
     return false
 }
+
 
 // Called in Stage Clean workspace and checkout steps
 @NonCPS
@@ -378,3 +398,4 @@ def getCronSchedule() {
     }
     return ""
 }
+

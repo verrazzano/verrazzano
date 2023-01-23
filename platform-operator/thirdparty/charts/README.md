@@ -52,16 +52,28 @@ helm repo update
 helm fetch rancher-stable/rancher --untar=true --version=${RANCHER_CHART_VERSION}
 ```
 
-## Mysql
+## MySQL
 
 The `mysql` folder was created by running the following commands:
 
 ```shell
-export MYSQL_CHART_VERSION=1.6.9
+export MYSQL_CHART_VERSION=2.0.8
 rm -rf mysql
-helm repo add stable https://charts.helm.sh/stable
+helm repo add mysql-operator https://mysql.github.io/mysql-operator/
 helm repo update
-helm fetch stable/mysql --untar=true --version=${MYSQL_CHART_VERSION}
+helm fetch mysql-operator/mysql-innodbcluster --untar=true --version=${MYSQL_CHART_VERSION}
+```
+
+## MySQL Operator
+
+The `mysql` folder was created by running the following commands:
+
+```shell
+export MYSQL_OPERATOR_CHART_VERSION=2.0.8
+rm -rf mysql-operator
+helm repo add mysql-operator https://mysql.github.io/mysql-operator/
+helm repo update
+helm fetch mysql-operator/mysql-operator --untar=true --version=${MYSQL_OPERATOR_CHART_VERSION}
 ```
 
 ## KeyCloak
@@ -183,3 +195,28 @@ helm repo update
 rm -rf kiali-server
 helm fetch kiali/kiali-server --untar=true --version=${KIALI_SERVER_CHART_VERSION}
 ```
+
+### Argo CD
+
+The `argo-cd` folder was created by running the followiong commands:
+
+```shell
+export ARGOCD_CHART_VERSION=5.16.1
+helm repo add argocd https://argoproj.github.io/argo-helm
+helm repo update
+rm -rf argo-cd
+helm fetch argocd/argo-cd --untar=true --version=${ARGOCD_CHART_VERSION}
+```
+
+### Prometheus Node Exporter
+
+The `prometheus-community/prometheus-node-exporter` folder was created by running the followiong commands:
+
+```shell
+export PROMETHEUS_NODE_EXPORTER_CHART_VERSION=3.1.0
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+rm -rf prometheus-community/prometheus-node-exporter 
+helm fetch prometheus-community/prometheus-node-exporter --untar=true --version=${PROMETHEUS_NODE_EXPORTER_CHART_VERSION}
+```
+

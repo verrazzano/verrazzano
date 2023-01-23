@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -93,6 +93,28 @@ type RancherRegistration struct {
 	Message string `json:"message,omitempty"`
 	// The status of the Rancher registration.
 	Status RancherRegistrationStatus `json:"status"`
+}
+
+// ArgoCDRegistrationStatus identifies the status of a argocd registration.
+type ArgoCDRegistrationStatus string
+
+const (
+	RegistrationPendingRancher              ArgoCDRegistrationStatus = "PendingRancherClusterRegistration"
+	RegistrationMCResourceCreationCompleted ArgoCDRegistrationStatus = "MCResourceCreationCompleted"
+	UnregistrationCompleted                 ArgoCDRegistrationStatus = "MCUnregistered"
+	MCRegistrationCompleted                 ArgoCDRegistrationStatus = "Completed"
+	MCRegistrationFailed                    ArgoCDRegistrationStatus = "Failed"
+)
+
+// ArgoCDRegistration defines the ArgoCD registration state for a managed cluster
+type ArgoCDRegistration struct {
+	// The status of the ArgoCD registration
+	Status ArgoCDRegistrationStatus `json:"status"`
+	// The timestamp of last status set
+	Timestamp string `json:"lastSetTimestamp"`
+	// Supporting message related to the Rancher registration status
+	// +optional
+	Message string `json:"message,omitempty"`
 }
 
 // VerrazzanoManagedClusterStatus defines the observed state of a Verrazzano Managed Cluster.

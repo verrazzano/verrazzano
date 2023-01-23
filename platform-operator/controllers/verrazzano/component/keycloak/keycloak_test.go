@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package keycloak
@@ -23,7 +23,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
@@ -114,6 +113,13 @@ func fakeConfigureRealmCommands(url *url.URL) (string, string, error) {
 
 		if strings.Contains(command, "get clients") {
 			return "[{\"id\" : \"quick-fox\",\"clientId\" : \"jump-window\"}]", "", nil
+		}
+
+		if strings.Contains(command, "get client-scopes") {
+			return "[{\"id\" : \"quick-fox\",\"name\" : \"blah\"}]", "", nil
+		}
+		if strings.Contains(command, "create -x client-scopes") {
+			return "Created client-scope 'blah'", "", nil
 		}
 
 		if strings.Contains(command, "create clients/") {
@@ -267,6 +273,104 @@ func fakeGetRancherClientSecretFromKeycloakClientSecretEmpty(url *url.URL) (stri
 	return "", "", nil
 }
 
+func fakeGetArgoCDClientSecretFromKeycloak(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "client-secret") {
+			return "{\"type\":\"secret\",\"value\":\"abcdef\"}", "", nil
+		}
+
+		if strings.Contains(commands[2], "get clients") {
+			return "[{\"id\" : \"quick-fox\",\"clientId\" : \"argocd\"}]", "", nil
+		}
+	}
+
+	return "", "", nil
+}
+
+func fakeGetArgoCDClientSecretFromKeycloakGetClientsFails(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "get clients") {
+			return "", "", fmt.Errorf("failed")
+		}
+
+	}
+
+	return "", "", nil
+}
+
+func fakeGetArgoCDClientSecretFromKeycloakNoArgoCDClient(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "get clients") {
+			return "[{\"id\" : \"quick-fox\",\"clientId\" : \"noargocd\"}]", "", nil
+		}
+	}
+
+	return "", "", nil
+}
+
+func fakeGetArgoCDClientSecretFromKeycloakClientSecretFailed(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "client-secret") {
+			return "", "", fmt.Errorf("failed")
+		}
+
+		if strings.Contains(commands[2], "get clients") {
+			return "[{\"id\" : \"quick-fox\",\"clientId\" : \"argocd\"}]", "", nil
+		}
+	}
+
+	return "", "", nil
+}
+
+func fakeGetArgoCDClientSecretFromKeycloakClientSecretResultEmpty(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "client-secret") {
+			return "", "", nil
+		}
+
+		if strings.Contains(commands[2], "get clients") {
+			return "[{\"id\" : \"quick-fox\",\"clientId\" : \"argocd\"}]", "", nil
+		}
+	}
+
+	return "", "", nil
+}
+
+func fakeGetArgoCDClientSecretFromKeycloakClientSecretResultInvalid(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "client-secret") {
+			return "invalid", "", nil
+		}
+
+		if strings.Contains(commands[2], "get clients") {
+			return "[{\"id\" : \"quick-fox\",\"clientId\" : \"argocd\"}]", "", nil
+		}
+	}
+
+	return "", "", nil
+}
+
+func fakeGetArgoCDClientSecretFromKeycloakClientSecretEmpty(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "client-secret") {
+			return "{\"type\":\"secret\",\"value\":\"\"}", "", nil
+		}
+
+		if strings.Contains(commands[2], "get clients") {
+			return "[{\"id\" : \"quick-fox\",\"clientId\" : \"argocd\"}]", "", nil
+		}
+	}
+
+	return "", "", nil
+}
+
 func fakeGetVerrazzanoUserFromKeycloak(url *url.URL) (string, string, error) {
 	var commands []string
 	if commands = url.Query()["command"]; len(commands) == 3 {
@@ -379,7 +483,7 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 				}
 			}
 			defer func() { k8sutilfake.PodExecResult = podExecResult }()
-			if err := updateKeycloakUris(tt.ctx, cfg, cli, keycloakPod(), tt.clientID, tt.uriTemplate); (err != nil) != tt.wantErr {
+			if err := updateKeycloakUris(tt.ctx, cfg, cli, keycloakPod(), tt.clientID, tt.uriTemplate, nil); (err != nil) != tt.wantErr {
 				t.Errorf("updateKeycloakUris() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -702,7 +806,7 @@ func TestGetEnvironmentName(t *testing.T) {
 
 // TestLoginKeycloak tests the login to keycloak interacts with k8s resources as expected
 // GIVEN a client
-// WHEN I call loginKeycloak
+// WHEN I call LoginKeycloak
 // THEN throw an error if the k8s environment is invalid (bad secret)
 func TestLoginKeycloak(t *testing.T) {
 	httpSecret := createTestLoginSecret()
@@ -735,7 +839,7 @@ func TestLoginKeycloak(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := loginKeycloak(spi.NewFakeContext(tt.c, testVZ, nil, false), cfg, restclient)
+			err := LoginKeycloak(spi.NewFakeContext(tt.c, testVZ, nil, false), cfg, restclient)
 			if tt.isErr {
 				assert.Error(t, err)
 			} else {
@@ -898,6 +1002,59 @@ func TestGetClientId(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.out, getClientID(tt.in, "someClient"))
+		})
+	}
+}
+
+// TestGetClientScopeName tests that the function returns the Name whether client-scope exists
+// GIVEN an array of keycloak Client-scopes
+// WHEN I call getClientScopeName
+// THEN return the Name of the client-scope if the client-scope exists in the array of clients
+func TestGetClientScopeName(t *testing.T) {
+	var tests = []struct {
+		name string
+		in   KeycloakClientScopes
+		out  string
+	}{
+		{"testEmptyClients",
+			KeycloakClientScopes{},
+			"",
+		},
+		{"testClientNotFound",
+			KeycloakClientScopes{
+				{
+					"973973",
+					"thisClient",
+				},
+				{
+					"973974",
+					"thatClient",
+				},
+			},
+			"",
+		},
+		{"testClientFound",
+			KeycloakClientScopes{
+				{
+					"973973",
+					"thisClient",
+				},
+				{
+					"973974",
+					"thatClient",
+				},
+				{
+					"973974",
+					"someClient",
+				},
+			},
+			"someClient",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.out, getClientScopeName(tt.in, "someClient"))
 		})
 	}
 }
@@ -1314,8 +1471,11 @@ func TestIsKeycloakReady(t *testing.T) {
 	}
 }
 
-func TestUpgradeStatefulSet(t *testing.T) {
-	replicaCount := int32(1)
+// TestDeleteStatefulSet tests deleting the Keycloak StatefulSet
+// GIVEN a client, and a k8s environment
+// WHEN I call deleteStatefulSet
+// THEN deletes the StatefulSet without an error
+func TestDeleteStatefulSet(t *testing.T) {
 	enabled := true
 
 	// Initial state of the Keycloak StatefulSet
@@ -1324,116 +1484,26 @@ func TestUpgradeStatefulSet(t *testing.T) {
 			Name:      ComponentName,
 			Namespace: ComponentNamespace,
 		},
-		Spec: appsv1.StatefulSetSpec{
-			Replicas: &replicaCount,
-			Template: v1.PodTemplateSpec{
-				Spec: v1.PodSpec{
-					Affinity: &v1.Affinity{
-						PodAntiAffinity: &v1.PodAntiAffinity{
-							PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
-								{
-									Weight: 100,
-									PodAffinityTerm: v1.PodAffinityTerm{
-										LabelSelector: &metav1.LabelSelector{
-											MatchLabels: map[string]string{"app.kubernetes.io/instance": "keycloak", "app.kubernetes.io/name": "keycloak"},
-										},
-										TopologyKey: "kubernetes.io/hostname",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
 	}
-
 	scheme := k8scheme.Scheme
-	_ = certmanager.AddToScheme(scheme)
-	var tests = []struct {
-		name                 string
-		c                    client.Client
-		vz                   *vzapi.Verrazzano
-		profilesDir          string
-		expectedReplicaCount int32
-	}{
-		{
-			"no change to StatefulSet when no affinity overrides",
-			fake.NewClientBuilder().WithScheme(scheme).WithObjects(statefulSet).Build(),
-			&vzapi.Verrazzano{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      ComponentName,
-					Namespace: ComponentNamespace,
-				},
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Keycloak: &vzapi.KeycloakComponent{
-							Enabled: &enabled,
-						},
-					},
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(scheme).WithObjects(statefulSet).Build(), &vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
+		},
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Keycloak: &vzapi.KeycloakComponent{
+					Enabled: &enabled,
 				},
 			},
-			"",
-			int32(1),
 		},
-		{
-			"no change to StatefulSet when affinity override same as existing definition",
-			fake.NewClientBuilder().WithScheme(scheme).WithObjects(statefulSet).Build(),
-			&vzapi.Verrazzano{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      ComponentName,
-					Namespace: ComponentNamespace,
-				},
-			},
-			profilesRelativePath,
-			int32(1),
-		},
-		{
-			"StatefulSet replica count scaled to 0 when ValueOverrides not same as StatefulSet",
-			fake.NewClientBuilder().WithScheme(scheme).WithObjects(statefulSet).Build(),
-			&vzapi.Verrazzano{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      ComponentName,
-					Namespace: ComponentNamespace,
-				},
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Keycloak: &vzapi.KeycloakComponent{
-							InstallOverrides: vzapi.InstallOverrides{
-								ValueOverrides: []vzapi.Overrides{
-									{
-										Values: &apiextensionsv1.JSON{
-											Raw: []byte("{\"affinity\": \"podAntiAffinity:\\n  preferredDuringSchedulingIgnoredDuringExecution:\\n    - weight: 100\\n\"}"),
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			"",
-			int32(0),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var ctx spi.ComponentContext
-			if len(tt.profilesDir) > 0 {
-				ctx = spi.NewFakeContext(tt.c, tt.vz, nil, false, tt.profilesDir)
-			} else {
-				ctx = spi.NewFakeContext(tt.c, tt.vz, nil, false)
-			}
-			err := upgradeStatefulSet(ctx)
-			assert.NoError(t, err)
-
-			stsUpdated := appsv1.StatefulSet{}
-			err = tt.c.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &stsUpdated)
-			assert.NoError(t, err)
-			assert.Equal(t, tt.expectedReplicaCount, *stsUpdated.Spec.Replicas)
-		})
-	}
+	}, nil, false)
+	err := deleteStatefulSet(ctx)
+	assert.NoError(t, err)
+	stsDeleted := appsv1.StatefulSet{}
+	err = fake.NewClientBuilder().WithScheme(scheme).Build().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &stsDeleted)
+	assert.Contains(t, err.Error(), fmt.Sprintf("statefulsets.apps \"%s\" not found", ComponentName))
 }
 
 // TestGetRancherClientSecretFromKeycloak tests getting rancher client secrets
@@ -1525,6 +1595,105 @@ func TestGetRancherClientSecretFromKeycloak(t *testing.T) {
 			k8sutilfake.PodExecResult = tt.execFunc
 			defer func() { k8sutilfake.PodExecResult = podExecFunc }()
 			_, err := GetRancherClientSecretFromKeycloak(ctx)
+			if tt.isErr {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestGetArgoCDClientSecretFromKeycloak tests getting Argo CD client secrets
+// GIVEN a client, and a k8s environment
+// WHEN I call TestGetArgoCDClientSecretFromKeycloak
+// THEN returns an Argo CD client secret, otherwise returning an error if the environment is invalid
+func TestGetArgoCDClientSecretFromKeycloak(t *testing.T) {
+	loginSecret := createTestLoginSecret()
+	k8sutil.ClientConfig = fakeRESTConfig
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	podExecFunc := k8sutilfake.PodExecResult
+
+	keycloakPod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      keycloakPodName,
+			Namespace: ComponentNamespace,
+		},
+		Status: v1.PodStatus{
+			Conditions: []v1.PodCondition{
+				{
+					Type:   v1.PodReady,
+					Status: v1.ConditionTrue,
+				},
+			},
+		},
+	}
+
+	var tests = []struct {
+		name        string
+		c           client.Client
+		isErr       bool
+		errContains string
+		execFunc    func(url *url.URL) (string, string, error)
+	}{
+		{
+			"should fail when login fails",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(keycloakPod).Build(),
+			true,
+			"secrets \"keycloak-http\" not found",
+			fakeGetArgoCDClientSecretFromKeycloak,
+		},
+		{
+			"should fail when fails to get clients",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
+			true,
+			"keycloak/keycloak-0: failed",
+			fakeGetArgoCDClientSecretFromKeycloakGetClientsFails,
+		},
+		{
+			"should  fail when Argo CD client id does not exist",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
+			true,
+			"",
+			fakeGetArgoCDClientSecretFromKeycloakNoArgoCDClient,
+		},
+		{
+			"should fail when fetching Argo CD client secret ",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
+			true,
+			"",
+			fakeGetArgoCDClientSecretFromKeycloakClientSecretFailed,
+		},
+		{
+			"should fail when client secret result is empty",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
+			true,
+			"",
+			fakeGetArgoCDClientSecretFromKeycloakClientSecretResultEmpty,
+		},
+		{
+			"should fail when client secret result is invalid",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
+			true,
+			"",
+			fakeGetArgoCDClientSecretFromKeycloakClientSecretResultInvalid,
+		},
+		{
+			"should fail when client secret is empty",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
+			true,
+			"client secret is empty",
+			fakeGetArgoCDClientSecretFromKeycloakClientSecretEmpty,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.c, testVZ, nil, false)
+			k8sutilfake.PodExecResult = tt.execFunc
+			defer func() { k8sutilfake.PodExecResult = podExecFunc }()
+			_, err := DefaultArgoClientSecretProvider{}.GetClientSecret(ctx)
 			if tt.isErr {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errContains)

@@ -1,10 +1,12 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package reconcile
 
 import (
 	"fmt"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
@@ -146,6 +148,9 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 		case vzStatePostInstall:
 			if !preUpgrade {
 				if err := rancher.ConfigureAuthProviders(spiCtx); err != nil {
+					return ctrl.Result{Requeue: true}, err
+				}
+				if err := argocd.ConfigureKeycloakOIDC(spiCtx); err != nil {
 					return ctrl.Result{Requeue: true}, err
 				}
 			}
