@@ -19,6 +19,7 @@ type OamV1alpha1Interface interface {
 	LoggingTraitsGetter
 	MetricsTraitsGetter
 	VerrazzanoCoherenceWorkloadsGetter
+	VerrazzanoGenericWorkloadsGetter
 	VerrazzanoHelidonWorkloadsGetter
 	VerrazzanoWebLogicWorkloadsGetter
 }
@@ -42,6 +43,10 @@ func (c *OamV1alpha1Client) MetricsTraits(namespace string) MetricsTraitInterfac
 
 func (c *OamV1alpha1Client) VerrazzanoCoherenceWorkloads(namespace string) VerrazzanoCoherenceWorkloadInterface {
 	return newVerrazzanoCoherenceWorkloads(c, namespace)
+}
+
+func (c *OamV1alpha1Client) VerrazzanoGenericWorkloads(namespace string) VerrazzanoGenericWorkloadInterface {
+	return newVerrazzanoGenericWorkloads(c, namespace)
 }
 
 func (c *OamV1alpha1Client) VerrazzanoHelidonWorkloads(namespace string) VerrazzanoHelidonWorkloadInterface {
