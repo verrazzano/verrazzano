@@ -707,7 +707,7 @@
             },
             {
               "image": "velero-plugin-for-aws",
-              "tag": "v1.5.0-20230123131914-test",
+              "tag": "v1.5.0-20230123221521-9b26984f",
               "helmFullImageKey": "initContainers[0].image"
             },
             {
