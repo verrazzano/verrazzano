@@ -40,6 +40,9 @@ const EnvVarKubeConfig = "KUBECONFIG"
 // EnvVarTestKubeConfig Name of Environment Variable for test KUBECONFIG
 const EnvVarTestKubeConfig = "TEST_KUBECONFIG"
 
+const APIServerBurst = 100
+const APIServerQPS = 100
+
 type ClientConfigFunc func() (*rest.Config, kubernetes.Interface, error)
 
 var ClientConfig ClientConfigFunc = func() (*rest.Config, kubernetes.Interface, error) {
@@ -47,6 +50,8 @@ var ClientConfig ClientConfigFunc = func() (*rest.Config, kubernetes.Interface, 
 	if err != nil {
 		return nil, nil, err
 	}
+	cfg.Burst = APIServerBurst
+	cfg.QPS = APIServerQPS
 	c, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
 		return nil, nil, err
@@ -91,7 +96,12 @@ func GetKubeConfigGivenPath(kubeconfigPath string) (*rest.Config, error) {
 }
 
 func BuildKubeConfig(kubeconfig string) (*rest.Config, error) {
-	return clientcmd.BuildConfigFromFlags("", kubeconfig)
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err == nil {
+		config.Burst = APIServerBurst
+		config.QPS = APIServerQPS
+	}
+	return config, err
 }
 
 // GetKubeConfig Returns kubeconfig from KUBECONFIG env var if set
@@ -103,6 +113,8 @@ func GetKubeConfig() (*rest.Config, error) {
 		return config, err
 	}
 	config, err = clientcmd.BuildConfigFromFlags("", kubeConfigLoc)
+	config.Burst = APIServerBurst
+	config.QPS = APIServerQPS
 	return config, err
 }
 
@@ -122,9 +134,14 @@ func GetKubeConfigGivenPathAndContext(kubeConfigPath string, kubeContext string)
 		}
 	}
 
-	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeConfigPath},
 		&clientcmd.ConfigOverrides{CurrentContext: kubeContext}).ClientConfig()
+	if err == nil {
+		config.Burst = APIServerBurst
+		config.QPS = APIServerQPS
+	}
+	return config, err
 }
 
 // GetKubernetesClientset returns the Kubernetes clientset for the cluster set in the environment
@@ -187,6 +204,8 @@ func GetDynamicClient() (dynamic.Interface, error) {
 	if err != nil {
 		return nil, err
 	}
+	config.Burst = APIServerBurst
+	config.QPS = APIServerQPS
 	dynClient, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return nil, err
@@ -379,6 +398,8 @@ func GetGoClient(log ...vzlog.VerrazzanoLogger) (kubernetes.Interface, error) {
 		}
 		return nil, err
 	}
+	config.Burst = APIServerBurst
+	config.QPS = APIServerQPS
 
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
