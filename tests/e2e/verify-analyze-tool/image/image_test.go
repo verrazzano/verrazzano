@@ -30,6 +30,7 @@ const (
 	ImagePullBackOff       string = "ImagePullBackOff"
 	PodProblemsNotReported string = "PodProblemsNotReported"
 	PendingPods            string = "PendingPods"
+	InsufficientMemory     string = "InsufficientMemory"
 	VzSystemNS             string = "verrazzano-system"
 	DeploymentToBePatched  string = "verrazzano-console"
 )
@@ -41,7 +42,7 @@ type action struct {
 
 var err error
 var reportAnalysis = make(map[string]action)
-var issuesToBeDiagnosed = []string{ImagePullNotFound, ImagePullBackOff, PodProblemsNotReported, PendingPods}
+var issuesToBeDiagnosed = []string{ImagePullNotFound, ImagePullBackOff, PodProblemsNotReported, PendingPods, InsufficientMemory}
 var c = &kubernetes.Clientset{}
 var deploymentsClient kv1.DeploymentInterface
 
@@ -79,13 +80,18 @@ func feedAnalysisReport() error {
 				return patchErr
 			}
 		case PendingPods:
-			patchErr := patchPod()
+			patchErr := patchPod(PendingPods, []string{"cpu=3000m", "cpu=128m"})
+			if patchErr != nil {
+				return patchErr
+			}
+		case InsufficientMemory:
+			patchErr := patchPod(InsufficientMemory, []string{"memory=1000Gi", "memory=100Mi"})
 			if patchErr != nil {
 				return patchErr
 			}
 		}
 		if i < len(issuesToBeDiagnosed)-1 {
-			time.Sleep(time.Second * 30)
+			time.Sleep(time.Second * 20)
 		}
 	}
 	return nil
@@ -114,7 +120,7 @@ func patchImage(deploymentName, issueType, patchImage string) error {
 			if err != nil {
 				return err
 			}
-			time.Sleep(time.Second * 30)
+			time.Sleep(time.Second * 20)
 			result, getErr = deploymentsClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
 			if getErr != nil {
 				return getErr
@@ -137,10 +143,10 @@ func patchImage(deploymentName, issueType, patchImage string) error {
 	return nil
 }
 
-func patchPod() error {
-	out := []string{"cpu=3000m", "cpu=200m"}
-	for i:=0 ; i<len(out) ; i++ {
-		_, err = SetDepResources(DeploymentToBePatched, VzSystemNS, out[i])
+func patchPod(issueType string, resourceReq []string) error {
+	out := make([]string, 2)
+	for i := 0; i < len(resourceReq); i++ {
+		_, err = SetDepResources(DeploymentToBePatched, VzSystemNS, resourceReq[i])
 		if err != nil {
 			return err
 		}
@@ -150,10 +156,10 @@ func patchPod() error {
 			return err
 		}
 		if i == 0 {
-			time.Sleep(time.Second * 30)
+			time.Sleep(time.Second * 20)
 		}
 	}
-	reportAnalysis[PendingPods] = action{out[0], out[1]}
+	reportAnalysis[issueType] = action{out[0], out[1]}
 	return nil
 }
 
@@ -202,10 +208,19 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 				return verifyIssue(reportAnalysis[PendingPods].Patch, PendingPods)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
-
 		t.It("Should Not Have PendingPods Issue Post Rectifying Resource Request", func() {
 			Eventually(func() bool {
 				return verifyIssue(reportAnalysis[PendingPods].Revive, PendingPods)
+			}, waitTimeout, pollingInterval).Should(BeFalse())
+		})
+		t.It("Should Have InsufficientMemory Issue Post Bad Resource Request", func() {
+			Eventually(func() bool {
+				return verifyIssue(reportAnalysis[InsufficientMemory].Patch, InsufficientMemory)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+		t.It("Should Not Have InsufficientMemory Issue Post Rectifying Resource Request", func() {
+			Eventually(func() bool {
+				return verifyIssue(reportAnalysis[InsufficientMemory].Revive, InsufficientMemory)
 			}, waitTimeout, pollingInterval).Should(BeFalse())
 		})
 	})
@@ -221,8 +236,8 @@ func RunVzAnalyze() (string, error) {
 	return string(out), err
 }
 
-// utility function to set deployment pod's resources
-func SetDepResources(dep, ns, req string) (string, error)  {
+// utility function to set deployment pod's resources (cpu/ memory)
+func SetDepResources(dep, ns, req string) (string, error) {
 	cmd := exec.Command("kubectl", "set", "resources", "deploy/"+dep, "--requests="+req, "-n", ns)
 	out, err := cmd.Output()
 	return string(out), err
