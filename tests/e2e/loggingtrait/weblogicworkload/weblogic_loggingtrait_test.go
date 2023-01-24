@@ -30,13 +30,13 @@ const (
 	applicationPath      = "testdata/loggingtrait/weblogicworkload/weblogic-logging-application.yaml"
 	applicationPodName   = "tododomain-adminserver"
 	configMapName        = "logging-stdout-todo-domain-domain"
+	namespace            = "weblogic-logging-trait"
 )
 
 var kubeConfig = os.Getenv("KUBECONFIG")
 
 var (
-	t                  = framework.NewTestFramework("weblogicworkload")
-	generatedNamespace = pkg.GenerateNamespace("weblogic-logging-trait")
+	t = framework.NewTestFramework("weblogicworkload")
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {

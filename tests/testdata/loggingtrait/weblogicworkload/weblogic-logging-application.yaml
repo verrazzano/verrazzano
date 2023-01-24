@@ -78,6 +78,27 @@ spec:
                   <match **>
                   @type stdout
                   </match>
+        - trait:
+              apiVersion: oam.verrazzano.io/v1alpha1
+              kind: IngressTrait
+              spec:
+                  rules:
+                      - paths:
+                            - path: "/todo"
+                              pathType: Prefix
+                        destination:
+                            host: cidomain-adminserver.console-ingress.svc.cluster.local
+                            port: 7001
+                      - paths:
+                            - path: "/console"
+                              pathType: Prefix
+                        destination:
+                            host: cidomain-adminserver.console-ingress.svc.cluster.local
+                            port: 7001
+                            httpCookie:
+                                name: cidomain
+                                path: "/console"
+                                ttl: 30
     - componentName: todo-jdbc-configmap
     - componentName: todo-mysql-configmap
     - componentName: todo-mysql-service
