@@ -5,6 +5,7 @@ package weblogicworkload
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"os"
 	"time"
@@ -39,7 +40,7 @@ var (
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
-	//deployWebLogicApplication()
+	deployWebLogicApplication()
 	beforeSuitePassed = true
 })
 
@@ -151,6 +152,44 @@ var _ = t.Describe("Test WebLogic loggingtrait application", Label("f:app-lcm.oa
 				configMap, err := pkg.GetConfigMap(configMapName, namespace)
 				return (configMap != nil) && (err == nil)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+		})
+	})
+
+	t.Context("Ingress.", Label("f:mesh.ingress",
+		"f:ui.console"), func() {
+		var host = ""
+		var err error
+		// Get the host from the Istio gateway resource.
+		// GIVEN the Istio gateway for the test namespace
+		// WHEN GetHostnameFromGateway is called
+		// THEN return the host name found in the gateway.
+		t.BeforeEach(func() {
+			Eventually(func() (string, error) {
+				host, err = k8sutil.GetHostnameFromGateway(namespace, "")
+				return host, err
+			}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
+		})
+
+		// Verify the console endpoint is working.
+		// GIVEN the app is deployed
+		// WHEN the console endpoint is accessed
+		// THEN the expected results should be returned
+		t.It("Verify '/console' endpoint is working.", func() {
+			Eventually(func() (*pkg.HTTPResponse, error) {
+				url := fmt.Sprintf("https://%s/console/login/LoginForm.jsp", host)
+				return pkg.GetWebPage(url, host)
+			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Oracle WebLogic Server Administration Console")))
+		})
+
+		// Verify the application REST endpoint is working.
+		// GIVEN the app is deployed
+		// WHEN the REST endpoint is accessed
+		// THEN the expected results should be returned
+		t.It("Verify '/todo/rest/items' REST endpoint is working.", func() {
+			Eventually(func() (*pkg.HTTPResponse, error) {
+				url := fmt.Sprintf("https://%s/todo/rest/items", host)
+				return pkg.GetWebPage(url, host)
+			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("["), pkg.BodyContains("]")))
 		})
 	})
 })
