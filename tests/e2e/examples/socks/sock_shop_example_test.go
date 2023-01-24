@@ -279,11 +279,11 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 		if err != nil {
 			Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 		}
+		var componentNames = []string{"carts", "catalog", "orders", "payment", "shipping", "users"}
 		if ok, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath); ok {
 			t.It("Verify all scrape targets are healthy for the application", func() {
 				Eventually(func() (bool, error) {
-					var componentNames = []string{"carts", "catalog", "orders", "payment", "shipping", "users"}
-					return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "sockshop-appconf", componentNames))
+					return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "sockshop-appconf", componentNames, true))
 				}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 			})
 		}

@@ -352,10 +352,16 @@ func GetServiceMonitor(namespace, name string) (*promoperapi.ServiceMonitor, err
 	return serviceMonitor, nil
 }
 
-func GetScrapePools(namespace, appName string, componentNames []string) []string {
+func GetScrapePools(namespace, appName string, componentNames []string, isMinVersion140 bool) []string {
 	var scrapePools []string
+	var scrapePool string
 	for _, comp := range componentNames {
-		scrapePool := "serviceMonitor/" + namespace + "/" + GetAppServiceMonitorName(namespace, appName, comp)
+		if isMinVersion140 {
+			scrapePool = "serviceMonitor/" + namespace + "/" + GetAppServiceMonitorName(namespace, appName, comp)
+		} else {
+			// For previous versions than 1.4x, scrapePool was named in different way
+			scrapePool = appName + "_default_" + namespace + "_" + comp
+		}
 		scrapePools = append(scrapePools, scrapePool)
 	}
 	return scrapePools
