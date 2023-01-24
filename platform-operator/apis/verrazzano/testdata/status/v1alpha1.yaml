@@ -8,7 +8,7 @@ spec:
   profile: prod
 status:
   components:
-    argoCd:
+    argoCD:
       conditions:
         - lastTransitionTime: "2022-08-05T15:11:22Z"
           message: PreInstall started
@@ -23,7 +23,7 @@ status:
           status: "True"
           type: InstallComplete
       lastReconciledGeneration: 2
-      name: argoCd
+      name: argoCD
       state: Ready
     cert-manager:
       conditions:
@@ -437,7 +437,7 @@ status:
       status: "True"
       type: InstallComplete
   instance:
-    argoCdUrl: https://argocd.default.172.18.0.231.nip.io
+    argoCDUrl: https://argocd.default.172.18.0.231.nip.io
     consoleUrl: https://verrazzano.default.172.18.0.231.nip.io
     elasticUrl: https://elasticsearch.vmi.system.default.172.18.0.231.nip.io
     grafanaUrl: https://grafana.vmi.system.default.172.18.0.231.nip.io
