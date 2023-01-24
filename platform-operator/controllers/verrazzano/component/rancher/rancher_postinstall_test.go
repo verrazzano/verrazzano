@@ -1,18 +1,22 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
 
 import (
+	"context"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	testclient "k8s.io/client-go/rest/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 var validStdOut = "W1122 18:11:20.905585\nNew password for default admin user (user-p958n):\npassword\n"
@@ -105,6 +109,52 @@ func TestCreateAdminSecretIfNotExists(t *testing.T) {
 			} else {
 				assert.Nil(t, err)
 			}
+		})
+	}
+}
+
+// TestRemoveBootstrapSecretIfExists verifies the removal of the bootstrap-secret Secret
+// GIVEN a cluster with Rancher running
+//  WHEN removeBootstrapSecretIfExists is called
+//  THEN removeBootstrapSecretIfExists should ensure the bootstrap-secret Secret is deleted if it is present
+func TestRemoveBootstrapSecretIfExists(t *testing.T) {
+	log := getTestLogger(t)
+	bootstrapSecret := createBootstrapSecret()
+	bootstrapNsName := types.NamespacedName{
+		Namespace: common.CattleSystem,
+		Name:      BootstrapSecret,
+	}
+
+	var tests = []struct {
+		testName string
+		c        client.Client
+		isErr    bool
+	}{
+		{
+			"should pass when deleting the bootstrap-secret",
+			fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&bootstrapSecret).Build(),
+			false,
+		},
+		{
+			"should skip deletion when the bootstrap-secret does not exist",
+			fake.NewClientBuilder().WithScheme(getScheme()).WithObjects().Build(),
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			err := removeBootstrapSecretIfExists(log, tt.c)
+			if tt.isErr {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+			}
+
+			// assert that the bootstrap-secret Secret does not exist
+			var secret client.Object
+			getSecretErr := tt.c.Get(context.TODO(), bootstrapNsName, secret)
+			assert.NotNil(t, getSecretErr)
 		})
 	}
 }

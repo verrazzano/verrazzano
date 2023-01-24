@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -6,6 +6,10 @@ package rancher
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -17,9 +21,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
-	"path/filepath"
-	"strconv"
 )
 
 // ComponentName is the name of the component
@@ -170,6 +171,7 @@ func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 - note: VZ-5241 the rancher-operator-namespace is no longer used in 2.6.3
 - Copy TLS certificates for Rancher if using the default Verrazzano CA
 - Create additional LetsEncrypt TLS certificates for Rancher if using LE
+- Delete the bootstrap-secret if it exists
 */
 func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	vz := ctx.EffectiveCR()
@@ -179,6 +181,9 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 	if err := copyDefaultCACertificate(log, c, vz); err != nil {
+		return err
+	}
+	if err := removeBootstrapSecretIfExists(log, c); err != nil {
 		return err
 	}
 	return nil

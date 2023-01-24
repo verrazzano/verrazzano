@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -135,8 +135,9 @@ func TestIsEnabled(t *testing.T) {
 }
 
 func TestPreInstall(t *testing.T) {
+	bootstrapSecret := createBootstrapSecret()
 	caSecret := createCASecret()
-	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret).Build()
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &bootstrapSecret).Build()
 	ctx := spi.NewFakeContext(c, &vzDefaultCA, false)
 	assert.Nil(t, NewComponent().PreInstall(ctx))
 }
