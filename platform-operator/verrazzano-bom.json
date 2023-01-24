@@ -760,7 +760,7 @@
           "images": [
             {
               "image": "argocd",
-              "tag": "v2.5.3-20221214191504-c922509d",
+              "tag": "v2.5.3-20230124173152-c922509d",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
