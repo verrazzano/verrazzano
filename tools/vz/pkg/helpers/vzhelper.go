@@ -116,7 +116,7 @@ func FindVerrazzanoResource(client client.Client) (*v1beta1.Verrazzano, error) {
 func GetVerrazzanoResource(client client.Client, namespacedName types.NamespacedName) (*v1beta1.Verrazzano, error) {
 	vz := &v1beta1.Verrazzano{}
 	if err := client.Get(context.TODO(), namespacedName, vz); err != nil {
-		if meta.IsNoMatchError(err) || apierrors.IsNotFound(err) {
+		if meta.IsNoMatchError(err) {
 			return getVerrazzanoResourceV1Alpha1(client, namespacedName)
 		}
 		return nil, failedToGetResourceError(err)
