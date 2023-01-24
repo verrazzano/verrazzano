@@ -15,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"os"
 	"time"
 )
 
@@ -32,7 +31,6 @@ const (
 var (
 	t                  = framework.NewTestFramework("helidonconfig")
 	generatedNamespace = pkg.GenerateNamespace("helidon-config")
-	kubeConfig         = os.Getenv("KUBECONFIG")
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {

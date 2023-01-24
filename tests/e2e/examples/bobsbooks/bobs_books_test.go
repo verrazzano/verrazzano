@@ -6,7 +6,6 @@ package bobsbooks
 import (
 	"fmt"
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
-	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -58,8 +57,7 @@ var (
 		"bobbys-helidon-stock-application",
 		"robert-helidon",
 		"mysql"}
-	appName    = "bobs-books"
-	kubeConfig = os.Getenv("KUBECONFIG")
+	appName = "bobs-books"
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {

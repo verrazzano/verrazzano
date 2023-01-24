@@ -33,7 +33,6 @@ const (
 	skipVerifications        = "Skip Verifications"
 	helloHelidon             = "hello-helidon"
 	nodeExporterJobName      = "node-exporter"
-	targetsVersion           = "1.4.0"
 )
 
 const (
