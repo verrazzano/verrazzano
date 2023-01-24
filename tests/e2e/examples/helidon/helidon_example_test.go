@@ -58,14 +58,11 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	}
 
-	// Verify hello-helidon-deployment pod is running
-	// GIVEN OAM hello-helidon app is deployed
-	// WHEN the component and appconfig are created
-	// THEN the expected pod must be running in the test namespace
 	if !skipVerify {
-		//t.Logs.Info("Helidon Example: check expected pods are running")
-		//Eventually(helloHelidonPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Helidon Example Failed to Deploy: Pods are not ready")
-
+		// Verify hello-helidon-deployment pod is running
+		// GIVEN OAM hello-helidon app is deployed
+		// WHEN the component and appconfig are created
+		// THEN the expected pod must be running in the test namespace
 		t.Logs.Info("Helidon Example: check expected pods are running")
 		Eventually(func() bool {
 			result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)

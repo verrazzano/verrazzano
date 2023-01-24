@@ -76,10 +76,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	// GIVEN OAM helidon-config app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-
-	//t.Logs.Info("Bobs Books Application: check expected pods are running")
-	//Eventually(helidonConfigPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy: Pods are not ready")
-
 	t.Logs.Info("Helidon Config: check expected pods are running")
 	Eventually(func() bool {
 		result, err := pkg.PodsRunning(namespace, expectedPodsHelidonConfig)
