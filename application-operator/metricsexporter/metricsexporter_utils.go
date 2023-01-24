@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package metricsexporter
@@ -131,6 +131,16 @@ func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 				Name: "vz_application_operator_helidonworkload_error_reconcile_total",
 				Help: "Tracks how many times the helidonworkload reconcile process has failed"}),
 		},
+		GenericReconcileCounter: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vz_application_operator_genericworkload_successful_reconcile_total",
+				Help: "Tracks how many times the genericworkload reconcile process has been successful"}),
+		},
+		GenericReconcileError: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vz_application_operator_genericworkload_error_reconcile_total",
+				Help: "Tracks how many times the genericworkload reconcile process has failed"}),
+		},
 		IngresstraitReconcileCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_ingresstrait_successful_reconcile_total",
@@ -253,6 +263,12 @@ func initDurationMetricMap() map[metricName]*DurationMetrics {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
 				Name: "vz_application_operator_helidon_reconcile_duration",
 				Help: "The duration in seconds of vao helidon reconcile process",
+			}),
+		},
+		GenericReconcileDuration: {
+			metric: prometheus.NewSummary(prometheus.SummaryOpts{
+				Name: "vz_application_operator_generic_reconcile_duration",
+				Help: "The duration in seconds of vao generic workload reconcile process",
 			}),
 		},
 		IngresstraitReconcileDuration: {
