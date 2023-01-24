@@ -63,7 +63,17 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
 	if !skipVerify {
-		Eventually(helloHelidonPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
+		//t.Logs.Info("Helidon Example: check expected pods are running")
+		//Eventually(helloHelidonPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Helidon Example Failed to Deploy: Pods are not ready")
+
+		t.Logs.Info("Helidon Example: check expected pods are running")
+		Eventually(func() bool {
+			result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
+			if err != nil {
+				AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+			}
+			return result
+		}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Helidon Example Failed to Deploy: Pods are not ready")
 
 		t.Logs.Info("Helidon Example: check expected Services are running")
 		Eventually(func() bool {
@@ -83,7 +93,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 			return result
 		}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Helidon Example Failed to Deploy: VirtualService is not ready")
 
-		t.Logs.Info("Helidon Example: check expected Secrets exist")
+		t.Logs.Info("Helidon Example: check expected Secret exists")
 		Eventually(func() bool {
 			result, err := pkg.DoesSecretExist(namespace, helidonToken)
 			if err != nil {
