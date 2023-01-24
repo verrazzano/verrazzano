@@ -70,7 +70,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return result
 	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy: Pods are not ready")
 
-	t.Logs.Info("Bobs Books Application: check expected services are running")
+	t.Logs.Info("Bobs Books Application: check expected Services are running")
 	Eventually(func() bool {
 		result, err := pkg.DoesServiceExist(namespace, helidonService)
 		if err != nil {
@@ -96,7 +96,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return result
 	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy: VirtualService is not ready")
 
-	t.Logs.Info("WebLogic Application: check expected Secrets exist")
+	t.Logs.Info("Bobs Books Application: check expected Secrets exist")
 	Eventually(func() bool {
 		result, err := pkg.DoesSecretExist(namespace, frontEndRepoCreds)
 		if err != nil {

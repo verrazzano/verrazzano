@@ -65,7 +65,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipVerify {
 		Eventually(helloHelidonPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
 
-		t.Logs.Info("Helidon Example: check expected services are running")
+		t.Logs.Info("Helidon Example: check expected Services are running")
 		Eventually(func() bool {
 			result, err := pkg.DoesServiceExist(namespace, helidonService)
 			if err != nil {

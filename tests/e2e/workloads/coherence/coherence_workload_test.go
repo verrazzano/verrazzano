@@ -5,7 +5,6 @@ package coherence
 
 import (
 	"fmt"
-	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"net/http"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
@@ -34,6 +34,10 @@ const (
 	appEndPoint       = "catalogue"
 	expectedResponse  = "A perfect example of a swivel chair trained calf"
 	skipVerifications = "Skip Verifications"
+
+	ingress          = "hello-ingress-rule"
+	coherenceService = "hello-coh-http"
+	helloCreds       = "hello-coh"
 )
 
 var (
@@ -55,22 +59,50 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	}
 	if !skipVerify {
-		t.Logs.Info("Coherence Application - check expected pod is running")
+		t.Logs.Info("Coherence Application: check expected pod is running")
 		Eventually(func() bool {
 			result, err := pkg.PodsRunning(namespace, expectedPods)
 			if err != nil {
 				AbortSuite(fmt.Sprintf("Coherence application pod is not running in the namespace: %v, error: %v", namespace, err))
 			}
 			return result
-		}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the Coherence Application")
+		}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Coherence Application Failed to Deploy: Pods are not ready\"")
+
+		t.Logs.Info("Coherence Application: check expected Services are running")
+		Eventually(func() bool {
+			result, err := pkg.DoesServiceExist(namespace, coherenceService)
+			if err != nil {
+				AbortSuite(fmt.Sprintf("App Service %s is not running in the namespace: %v, error: %v", coherenceService, namespace, err))
+			}
+			return result
+		}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Coherence Application Failed to Deploy: Services are not ready")
+
+		t.Logs.Info("Coherence Application: check expected VirtualService is ready")
+		Eventually(func() bool {
+			result, err := pkg.DoesVirtualServiceExist(namespace, ingress)
+			if err != nil {
+				AbortSuite(fmt.Sprintf("App VirtualService %s is not running in the namespace: %v, error: %v", ingress, namespace, err))
+			}
+			return result
+		}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Coherence Application Failed to Deploy: VirtualService is not ready")
+
+		t.Logs.Info("Coherence Application: check expected Secrets exist")
+		Eventually(func() bool {
+			result, err := pkg.DoesSecretExist(namespace, helloCreds)
+			if err != nil {
+				AbortSuite(fmt.Sprintf("App Secret %s does not exist in the namespace: %v, error: %v", helloCreds, namespace, err))
+			}
+			return result
+		}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Coherence Application Failed to Deploy: Secret does not exist")
 
 		var err error
 		// Get the host from the Istio gateway resource.
 		start := time.Now()
+		t.Logs.Info("Coherence Application: check expected Gateway is ready")
 		Eventually(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return host, err
-		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
+		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Coherence Application Failed to Deploy: Gateway is not ready")
 		metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 	}
 	beforeSuitePassed = true
