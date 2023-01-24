@@ -9,9 +9,9 @@ replicas: 1
 
 image:
   # The Keycloak image repository
-  repository: docker.io/jboss/keycloak
-  # Overrides the Keycloak image tag whose default is the chart version
-  tag: ""
+  repository: quay.io/keycloak/keycloak
+  # Overrides the Keycloak image tag whose default is the chart appVersion
+  tag: "20.0.1"
   # The Keycloak image pull policy
   pullPolicy: IfNotPresent
 
@@ -29,7 +29,10 @@ hostAliases: []
 enableServiceLinks: true
 
 # Pod management policy. One of `Parallel` or `OrderedReady`
-podManagementPolicy: Parallel
+podManagementPolicy: OrderedReady
+
+# StatefulSet's update strategy
+updateStrategy: RollingUpdate
 
 # Pod restart policy. One of `Always`, `OnFailure`, or `Never`
 restartPolicy: Always
@@ -37,6 +40,8 @@ restartPolicy: Always
 serviceAccount:
   # Specifies whether a ServiceAccount should be created
   create: true
+  # Specifies whether the ServiceAccount can get and list pods
+  allowReadPods: false
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
   name: ""
@@ -46,6 +51,8 @@ serviceAccount:
   labels: {}
   # Image pull secrets that are attached to the ServiceAccount
   imagePullSecrets: []
+  # Automount API credentials for the Service Account
+  automountServiceAccountToken: true
 
 rbac:
   create: false
@@ -70,6 +77,12 @@ securityContext:
 
 # Additional init containers, e. g. for providing custom themes
 extraInitContainers: ""
+
+# When using service meshes which rely on a sidecar, it may be necessary to skip init containers altogether,
+# since the sidecar doesn't start until the init containers are done, and the sidecar may be required
+# for network access.
+# For example, Istio in strict mTLS mode prevents the dbchecker init container from ever completing
+skipInitContainers: false
 
 # Additional sidecar containers, e. g. for a database proxy, such as Google's cloudsql-proxy
 extraContainers: ""
@@ -97,14 +110,8 @@ args: []
 
 # Additional environment variables for Keycloak
 extraEnv: ""
-  # - name: KEYCLOAK_LOGLEVEL
+  # - name: KC_LOG_LEVEL
   #   value: DEBUG
-  # - name: WILDFLY_LOGLEVEL
-  #   value: DEBUG
-  # - name: CACHE_OWNERS_COUNT
-  #   value: "2"
-  # - name: CACHE_OWNERS_AUTH_SESSIONS_COUNT
-  #   value: "2"
 
 # Additional environment variables for Keycloak mapped from Secret or ConfigMap
 extraEnvFrom: ""
@@ -136,7 +143,7 @@ affinity: |
                 operator: NotIn
                 values:
                   - test
-          topologyKey: failure-domain.beta.kubernetes.io/zone
+          topologyKey: topology.kubernetes.io/zone
 
 # Topology spread constraints template
 topologySpreadConstraints:
@@ -156,7 +163,7 @@ podAnnotations: {}
 # Liveness probe configuration
 livenessProbe: |
   httpGet:
-    path: /auth/
+    path: '{{ tpl .Values.http.relativePath $ | trimSuffix "/" }}/health/live'
     port: http
   initialDelaySeconds: 0
   timeoutSeconds: 5
@@ -164,17 +171,17 @@ livenessProbe: |
 # Readiness probe configuration
 readinessProbe: |
   httpGet:
-    path: /auth/realms/master
+    path: '{{ tpl .Values.http.relativePath $ | trimSuffix "/" }}/health/ready'
     port: http
-  initialDelaySeconds: 30
+  initialDelaySeconds: 10
   timeoutSeconds: 1
 
 # Startup probe configuration
 startupProbe: |
   httpGet:
-    path: /auth/
+    path: '{{ tpl .Values.http.relativePath $ | trimSuffix "/" }}/health'
     port: http
-  initialDelaySeconds: 30
+  initialDelaySeconds: 15
   timeoutSeconds: 1
   failureThreshold: 60
   periodSeconds: 5
@@ -187,16 +194,6 @@ resources: {}
   # limits:
   #   cpu: "500m"
   #   memory: "1024Mi"
-
-# Startup scripts to run before Keycloak starts up
-startupScripts:
-  # WildFly CLI script for configuring the node-identifier
-  keycloak.cli: |
-    {{- .Files.Get "scripts/keycloak.cli" }}
-  # mystartup.sh: |
-  #   #!/bin/sh
-  #
-  # echo 'Hello from my custom startup script!'
 
 # Add additional volumes, e. g. for custom themes
 extraVolumes: ""
@@ -228,7 +225,7 @@ secrets: {}
   #   data: {}
 
 service:
-  # Annotations for headless and HTTP Services
+  # Annotations for HTTP service
   annotations: {}
   # Additional labels for headless and HTTP Services
   labels: {}
@@ -245,10 +242,6 @@ service:
   httpsPort: 8443
   # The HTTPS Service node port if type is NodePort
   httpsNodePort: null
-  # The WildFly management Service port
-  httpManagementPort: 9990
-  # The WildFly management Service node port if type is NodePort
-  httpManagementNodePort: null
   # Additional Service ports, e. g. for custom admin console
   extraPorts: []
   # When using Service type LoadBalancer, you can restrict source ranges allowed
@@ -264,6 +257,10 @@ service:
   sessionAffinity: ""
   # Session affinity config
   sessionAffinityConfig: {}
+
+serviceHeadless:
+  # Annotations for headless service
+  annotations: {}
 
 ingress:
   # If `true`, an Ingress is created
@@ -287,7 +284,7 @@ ingress:
       host: '{{ .Release.Name }}.keycloak.example.com'
       # Paths for the host
       paths:
-        - path: /
+        - path: '{{ tpl .Values.http.relativePath $ | trimSuffix "/" }}/'
           pathType: Prefix
   # TLS configuration
   tls:
@@ -310,10 +307,17 @@ ingress:
         host: '{{ .Release.Name }}.keycloak.example.com'
         # Paths for the host
         paths:
-          - path: /auth/admin/
+          - path: '{{ tpl .Values.http.relativePath $ | trimSuffix "/" }}/admin'
             pathType: Prefix
 
+    # Console TLS configuration
+    tls: []
+#      - hosts:
+#          - console.keycloak.example.com
+#        secretName: ""
+
 ## Network policy configuration
+# https://kubernetes.io/docs/concepts/services-networking/network-policies/
 networkPolicy:
   # If true, the Network policies are deployed
   enabled: false
@@ -322,8 +326,19 @@ networkPolicy:
   labels: {}
 
   # Define all other external allowed source
-  # See https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#networkpolicypeer-v1-networking-k8s-io
+  # See https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#networkpolicypeer-v1-networking-k8s-io
   extraFrom: []
+
+  # Define egress networkpolicies for the Keycloak pods (external database for example)
+  # See https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#networkpolicyegressrule-v1-networking-k8s-io
+  # egress:
+  #   - to:
+  #       - ipBlock:
+  #           cidr: 192.168.1.30/32
+  #     ports:
+  #       - protocol: TCP
+  #         port: 3306
+  egress: []
 
 route:
   # If `true`, an OpenShift Route is created
@@ -345,21 +360,22 @@ route:
     # TLS termination of the route. Can be `edge`, `passthrough`, or `reencrypt`
     termination: edge
 
-pgchecker:
+dbchecker:
+  enabled: false
   image:
-    # Docker image used to check Postgresql readiness at startup
+    # Docker image used to check Database readiness at startup
     repository: docker.io/busybox
-    # Image tag for the pgchecker image
+    # Image tag for the dbchecker image
     tag: 1.32
-    # Image pull policy for the pgchecker image
+    # Image pull policy for the dbchecker image
     pullPolicy: IfNotPresent
-  # SecurityContext for the pgchecker container
+  # SecurityContext for the dbchecker container
   securityContext:
     allowPrivilegeEscalation: false
     runAsUser: 1000
     runAsGroup: 1000
     runAsNonRoot: true
-  # Resource requests and limits for the pgchecker container
+  # Resource requests and limits for the dbchecker container
   resources:
     requests:
       cpu: "20m"
@@ -368,22 +384,37 @@ pgchecker:
       cpu: "20m"
       memory: "32Mi"
 
-postgresql:
-  # If `true`, the Postgresql dependency is enabled
-  enabled: true
-  # PostgreSQL User to create
-  postgresqlUsername: keycloak
-  # PostgreSQL Password for the new user
-  postgresqlPassword: keycloak
-  # PostgreSQL Database to create
-  postgresqlDatabase: keycloak
-  # PostgreSQL network policy configuration
-  networkPolicy:
-    enabled: false
+database:
+  # don't create secret for db password. Instead use existing k8s secret
+  # existingSecret: "my-existent-dbpass-secret"
+  # existingSecretKey: "password"
+  existingSecret: ""
+  existingSecretKey: ""
+  # E.g. dev-file, dev-mem, mariadb, mssql, mysql, oracle or postgres
+  vendor:
+  hostname:
+  port:
+  database:
+  username:
+  password:
 
-mysql:
+cache:
+  # Use "custom" to disable automatic cache configuration
+  stack: default
+
+proxy:
   enabled: true
-  dbHost: "mysql"
+  mode: edge
+
+metrics:
+  enabled: true
+
+health:
+  enabled: true
+
+http:
+  # For backwards compatibility reasons we set this to the value used by previous Keycloak versions.
+  relativePath: "/auth"
 
 serviceMonitor:
   # If `true`, a ServiceMonitor resource for the prometheus-operator is created
@@ -401,9 +432,9 @@ serviceMonitor:
   # Timeout for scraping
   scrapeTimeout: 10s
   # The path at which metrics are served
-  path: /metrics
+  path: '{{ tpl .Values.http.relativePath $ | trimSuffix "/" }}/metrics'
   # The Service port at which metrics are served
-  port: http-management
+  port: http
 
 extraServiceMonitor:
   # If `true`, a ServiceMonitor resource for the prometheus-operator is created
@@ -421,13 +452,15 @@ extraServiceMonitor:
   # Timeout for scraping
   scrapeTimeout: 10s
   # The path at which metrics are served
-  path: /auth/realms/master/metrics
+  path: '{{ tpl .Values.http.relativePath $ | trimSuffix "/" }}/realms/master/metrics'
   # The Service port at which metrics are served
   port: http
 
 prometheusRule:
   # If `true`, a PrometheusRule resource for the prometheus-operator is created
   enabled: false
+  # Optionally sets a target namespace in which to deploy the ServiceMonitor resource
+  namespace: ""
   # Annotations for the PrometheusRule
   annotations: {}
   # Additional labels for the PrometheusRule
@@ -488,9 +521,9 @@ test:
   enabled: false
   image:
     # The image for the test Pod
-    repository: docker.io/unguiculus/docker-python3-phantomjs-selenium
+    repository: docker.io/joyzoursky/python-chromedriver
     # The tag for the test Pod image
-    tag: v1
+    tag: 3.9-selenium
     # The image pull policy for the test Pod image
     pullPolicy: IfNotPresent
   # SecurityContext for the entire test Pod
@@ -500,3 +533,5 @@ test:
   securityContext:
     runAsUser: 1000
     runAsNonRoot: true
+  # See https://helm.sh/docs/topics/charts_hooks/#hook-deletion-policies
+  deletionPolicy: before-hook-creation

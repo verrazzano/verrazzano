@@ -1,15 +1,16 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helidonworkload
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus/testutil"
@@ -282,7 +283,11 @@ func TestReconcileCreateHelidon(t *testing.T) {
 			assert.Equal(deploymentAPIVersion, deploy.APIVersion)
 			assert.Equal(deploymentKind, deploy.Kind)
 			// make sure the OAM component and app name labels were copied
-			assert.Equal(map[string]string{"app": "hello-helidon-deploy-new", "app.oam.dev/component": "unit-test-component", "app.oam.dev/name": "unit-test-app-config"}, deploy.GetLabels())
+			expectedLabels := map[string]string{
+				"app":                 "hello-helidon-deploy-new",
+				oam.LabelAppName:      "unit-test-app-config",
+				oam.LabelAppComponent: "unit-test-component"}
+			assert.Equal(expectedLabels, deploy.GetLabels())
 			assert.Equal([]corev1.Container{
 				helidonTestContainer,
 			}, deploy.Spec.Template.Spec.Containers)
@@ -292,6 +297,9 @@ func TestReconcileCreateHelidon(t *testing.T) {
 	cli.EXPECT().
 		Patch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, service *corev1.Service, patch client.Patch, applyOpts ...client.PatchOption) error {
+			// make sure the OAM component and app name labels were copied
+			assert.Equal("unit-test-app-config", service.Labels[oam.LabelAppName])
+			assert.Equal("unit-test-component", service.Labels[oam.LabelAppComponent])
 			assert.Equal(serviceAPIVersion, service.APIVersion)
 			assert.Equal(serviceKind, service.Kind)
 			return nil

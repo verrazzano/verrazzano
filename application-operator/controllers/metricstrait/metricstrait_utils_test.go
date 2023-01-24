@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package metricstrait
@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/Jeffail/gabs/v2"
+	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -266,8 +267,8 @@ func TestCreateServiceMonitorName(t *testing.T) {
 					Name:      "test-name",
 					Namespace: "test-namespace",
 					Labels: map[string]string{
-						appObjectMetaLabel:  "test-app",
-						compObjectMetaLabel: "test-comp",
+						oam.LabelAppName:      "test-app",
+						oam.LabelAppComponent: "test-comp",
 					},
 				},
 			},
@@ -283,8 +284,8 @@ func TestCreateServiceMonitorName(t *testing.T) {
 					Name:      "test-name",
 					Namespace: "test-namespace",
 					Labels: map[string]string{
-						appObjectMetaLabel:  "test-app-really-long-label",
-						compObjectMetaLabel: "test-comp-extra-long-label",
+						oam.LabelAppName:      "test-app-really-long-label",
+						oam.LabelAppComponent: "test-comp-extra-long-label",
 					},
 				},
 			},

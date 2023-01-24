@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vmc
@@ -7,6 +7,9 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -238,6 +241,13 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 			r.handleError(ctx, vmc, "Failed to setup the prometheus scraper for managed cluster", err, log)
 			return newRequeueWithDelay(), err
 		}
+	}
+
+	log.Debugf("Creating or updating keycloak client for %s", vmc.Name)
+	err = r.createManagedClusterKeycloakClient(vmc)
+	if err != nil {
+		r.handleError(ctx, vmc, "Failed to create or update Keycloak client for managed cluster", err, log)
+		return newRequeueWithDelay(), err
 	}
 
 	return ctrl.Result{Requeue: true, RequeueAfter: constants.ReconcileLoopRequeueInterval}, nil
@@ -499,6 +509,46 @@ func (r *VerrazzanoManagedClusterReconciler) getVerrazzanoResource() (*v1beta1.V
 		return nil, fmt.Errorf("Verrazzano must be installed: %v", err)
 	}
 	return &verrazzano.Items[0], nil
+}
+
+// leveraged to replace method (unit testing)
+var createClient = func(r *VerrazzanoManagedClusterReconciler, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	const prometheusHostPrefix = "prometheus.vmi.system"
+
+	// login to keycloak
+	cfg, cli, err := k8sutil.ClientConfig()
+	if err != nil {
+		return err
+	}
+
+	// create a context that can be leveraged by keycloak method
+	ctx, err := spi.NewMinimalContext(r.Client, r.log)
+	if err != nil {
+		return err
+	}
+
+	err = keycloak.LoginKeycloak(ctx, cfg, cli)
+	if err != nil {
+		return err
+	}
+
+	promHost := vmc.Status.PrometheusHost
+	if len(promHost) == 0 {
+		return fmt.Errorf("Prometheus host not yet available from VMC Status")
+	}
+	dnsSubdomain := promHost[len(prometheusHostPrefix)+1:]
+	clientID := fmt.Sprintf("verrazzano-%s", vmc.Name)
+	err = keycloak.CreateOrUpdateClient(ctx, cfg, cli, clientID, keycloak.ManagedClusterClientTmpl, keycloak.ManagedClusterClientUrisTemplate, false, &dnsSubdomain)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// createManagedClusterKeycloakClient creates a Keycloak client for the managed cluster
+func (r *VerrazzanoManagedClusterReconciler) createManagedClusterKeycloakClient(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	return createClient(r, vmc)
 }
 
 // Create a new Result that will cause a reconcile requeue after a short delay

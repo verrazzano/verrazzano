@@ -1,5 +1,5 @@
 
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 # NOTE: The image you're looking for isn't here. The external-dns image now comes from
@@ -15,3 +15,20 @@ sources:
   - ingress
   - istio-gateway
 triggerLoopOnEvent: true
+
+# Verrazzano container security standards
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  privileged: false
+
+# Verrazzano pod security standards
+podSecurityContext:
+  fsGroup: 99 # Run as user/group nobody
+  runAsGroup: 99
+  runAsUser: 99
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault

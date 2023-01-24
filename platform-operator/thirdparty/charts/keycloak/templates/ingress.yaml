@@ -1,9 +1,11 @@
 {{- $ingress := .Values.ingress -}}
 {{- if $ingress.enabled -}}
-apiVersion: {{ include "keycloak.ingressAPIVersion" . }}
+{{- $apiVersion := "networking.k8s.io/v1" -}}
+apiVersion: {{ $apiVersion }}
 kind: Ingress
 metadata:
   name: {{ include "keycloak.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   {{- with $ingress.annotations }}
   annotations:
     {{- range $key, $value := . }}
@@ -37,27 +39,22 @@ spec:
       http:
         paths:
           {{- range .paths }}
-          - path: {{ .path }}
-            {{- if $.Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+          - path: {{ tpl .path $ | quote }}
             pathType: {{ .pathType }}
             backend:
               service:
                 name: {{ include "keycloak.fullname" $ }}-http
                 port:
                   name: {{ $ingress.servicePort }}
-            {{- else }}
-            backend:
-              serviceName: {{ include "keycloak.fullname" $ }}-http
-              servicePort: {{ $ingress.servicePort }}
-            {{- end }}
           {{- end }}
     {{- end }}
 {{- if $ingress.console.enabled }}
 ---
-apiVersion: {{ include "keycloak.ingressAPIVersion" . }}
+apiVersion: {{ $apiVersion }}
 kind: Ingress
 metadata:
   name: {{ include "keycloak.fullname" . }}-console
+  namespace: {{ .Release.Namespace }}
   {{- with $ingress.console.annotations }}
   annotations:
     {{- range $key, $value := . }}
@@ -73,7 +70,18 @@ spec:
 {{- if $ingress.console.ingressClassName }}
   ingressClassName: {{ $ingress.console.ingressClassName }}
 {{- end }}
-{{- if $ingress.tls }}
+{{- if $ingress.console.tls }}
+  tls:
+    {{- range $ingress.console.tls }}
+    - hosts:
+      {{- range .hosts }}
+        - {{ tpl . $ | quote }}
+      {{- end }}
+      {{- with .secretName }}
+      secretName: {{ tpl . $ }}
+      {{- end }}
+    {{- end }}
+{{ else if $ingress.tls }}
   tls:
     {{- range $ingress.tls }}
     - hosts:
@@ -91,19 +99,13 @@ spec:
       http:
         paths:
           {{- range .paths }}
-          - path: {{ .path }}
-            {{- if $.Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+          - path: {{ tpl .path $ | quote }}
             pathType: {{ .pathType }}
             backend:
               service:
                 name: {{ include "keycloak.fullname" $ }}-http
                 port:
                   name: {{ $ingress.servicePort }}
-            {{- else }}
-            backend:
-              serviceName: {{ include "keycloak.fullname" $ }}-http
-              servicePort: {{ $ingress.servicePort }}
-            {{- end }}
           {{- end }}
     {{- end }}
 {{- end -}}
