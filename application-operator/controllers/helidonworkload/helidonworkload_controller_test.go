@@ -315,11 +315,11 @@ func TestReconcileCreateHelidon(t *testing.T) {
 	assert.Equal(false, result.Requeue)
 }
 
-// TestReconcileCreateHelidon tests the basic happy path of reconciling a VerrazzanoHelidonWorkload. We
-// expect to write out a Deployment and Service but we aren't adding logging or any other scopes or traits.
-// GIVEN a VerrazzanoHelidonWorkload resource is created
+// TestReconcileCreateHelidonWithServiceTemplate tests the basic happy path of reconciling a VerrazzanoHelidonWorkload. We
+// expect to write out a Deployment and Service from the but we aren't adding logging or any other scopes or traits.
+// GIVEN a VerrazzanoHelidonWorkload with a ServiceTemplate
 // WHEN the controller Reconcile function is called
-// THEN expect a Deployment and Service to be written
+// THEN expect a Deployment and Service to be written using the ServiceTemplate
 func TestReconcileCreateHelidonWithServiceTemplate(t *testing.T) {
 
 	assert := asserts.New(t)
