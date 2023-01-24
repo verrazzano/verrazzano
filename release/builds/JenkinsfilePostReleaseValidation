@@ -100,18 +100,14 @@ pipeline {
         stage('Compare Images from Object storage to be Published') {
             steps {
                 script {
-                    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE'){
-                        sh "${WORKSPACE}/release/scripts/validate_ocr_images.sh"
-                    }
+                    sh "${WORKSPACE}/release/scripts/validate_ocr_images.sh"
                 }
             }
         }
         stage('Verify Github artifacts') {
             steps {
                 script {
-                    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE'){
-                        sh "${WORKSPACE}/release/scripts/verify_github_release.sh ${RELEASE_VERSION}"
-                    }
+                    sh "${WORKSPACE}/release/scripts/verify_github_release.sh ${RELEASE_VERSION}"
                 }
             }
         }
