@@ -235,7 +235,7 @@
             },
             {
               "image": "k8s-sidecar",
-              "tag": "v1.15.0-20221214165047-8dce2733",
+              "tag": "v1.15.0-20230124154356-8dce2733",
               "helmFullImageKey": "monitoringOperator.k8sSidecarImage"
             },
             {
@@ -379,7 +379,7 @@
           "images": [
             {
               "image": "kiali",
-              "tag": "v1.57.1-20221203022924-f8743fd9",
+              "tag": "v1.57.1-20230124154914-f8743fd9",
               "helmFullImageKey": "deployment.image_name",
               "helmTagKey": "deployment.image_version"
             }
