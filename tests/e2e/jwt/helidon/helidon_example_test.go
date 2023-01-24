@@ -5,13 +5,13 @@ package helidon
 
 import (
 	"fmt"
+	"github.com/hashicorp/go-retryablehttp"
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -132,19 +132,32 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		})
 	})
 
-	// Verify Prometheus scraped targets
+	// Verify Prometheus scraped metrics
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig without metrics-trait(using default) are created
-	// THEN the application scrape targets must be healthy
+	// THEN the application metrics must be accessible
 	t.Describe("for Metrics.", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
-		t.It("Verify all scrape targets are healthy for the application", func() {
+		t.It("Retrieve Prometheus scraped metrics", func() {
 			if skipVerify {
 				Skip(skipVerifications)
 			}
-			Eventually(func() (bool, error) {
-				var componentNames = []string{"hello-helidon-component"}
-				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, helloHelidon, componentNames))
-			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+			pkg.Concurrently(
+				func() {
+					Eventually(appMetricsExists, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(appComponentMetricsExists, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(appConfigMetricsExists, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(nodeExporterProcsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(nodeExporterDiskIoNow, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+			)
 		})
 	})
 
@@ -259,4 +272,24 @@ func appEndpointAccess(url string, hostname string, token string, requestShouldS
 		}
 	}
 	return true
+}
+
+func appMetricsExists() bool {
+	return pkg.MetricsExist("base_jvm_uptime_seconds", "app", helloHelidon)
+}
+
+func appComponentMetricsExists() bool {
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", helloHelidon)
+}
+
+func appConfigMetricsExists() bool {
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "hello-helidon-component")
+}
+
+func nodeExporterProcsRunning() bool {
+	return pkg.MetricsExist("node_procs_running", "job", nodeExporterJobName)
+}
+
+func nodeExporterDiskIoNow() bool {
+	return pkg.MetricsExist("node_disk_io_now", "job", nodeExporterJobName)
 }

@@ -293,10 +293,11 @@ func convertOpenSearchToV1Beta1(src *ElasticsearchComponent) (*v1beta1.OpenSearc
 		return nil, err
 	}
 	return &v1beta1.OpenSearchComponent{
-		Enabled:  src.Enabled,
-		Policies: src.Policies,
-		Nodes:    nodes,
-		Plugins:  src.Plugins,
+		Enabled:              src.Enabled,
+		Policies:             src.Policies,
+		Nodes:                nodes,
+		Plugins:              src.Plugins,
+		DisableDefaultPolicy: src.DisableDefaultPolicy,
 	}, nil
 }
 
@@ -319,6 +320,7 @@ func convertOSNodesToV1Beta1(args []InstallArgs, nodes []OpenSearchNode) ([]v1be
 			Roles:     inNode.Roles,
 			Storage:   storage,
 			Resources: inNode.Resources,
+			JavaOpts:  inNode.JavaOpts,
 		}
 
 		// Merge any overlapping install arg nodes with user-supplied nodes

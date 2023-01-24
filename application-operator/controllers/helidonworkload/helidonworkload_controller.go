@@ -6,6 +6,10 @@ package helidonworkload
 import (
 	"context"
 	"errors"
+	"reflect"
+	"strconv"
+	"strings"
+
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
@@ -16,6 +20,7 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -26,15 +31,12 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/yaml"
-	"strconv"
-	"strings"
 )
 
 const (
@@ -223,11 +225,11 @@ func (r *Reconciler) convertWorkloadToDeployment(workload *vzapi.VerrazzanoHelid
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: workload.Spec.DeploymentTemplate.Metadata.GetName(),
-			//make sure the namespace is set to the namespace of the component
+			// make sure the namespace is set to the namespace of the component
 			Namespace: workload.GetNamespace(),
 		},
 		Spec: appsv1.DeploymentSpec{
-			//setting label selector for pod that this deployment will manage
+			// setting label selector for pod that this deployment will manage
 			Selector: &metav1.LabelSelector{
 				MatchLabels:      workload.Spec.DeploymentTemplate.Selector.MatchLabels,
 				MatchExpressions: workload.Spec.DeploymentTemplate.Selector.MatchExpressions,
@@ -286,6 +288,8 @@ func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelid
 			s.Labels = map[string]string{}
 		}
 		s.Labels[labelKey] = string(workload.GetUID())
+		s.Labels[oam.LabelAppName] = deploy.ObjectMeta.Labels[oam.LabelAppName]
+		s.Labels[oam.LabelAppComponent] = deploy.ObjectMeta.Labels[oam.LabelAppComponent]
 
 		if s.Spec.Selector == nil {
 			s.Spec.Selector = deploy.Spec.Selector.MatchLabels

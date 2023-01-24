@@ -1,4 +1,4 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 ---
@@ -165,7 +165,8 @@ data:
     local validators = require "resty.jwt-validators"
 
     local oidcRealm = "{{ .OidcRealm }}"
-    local oidcClient = "{{ .PKCEClientID }}"
+    local oidcClient = "{{ .OIDCClientID }}"
+    local adminClusterOidcClient = "{{ .PKCEClientID }}"
     local oidcDirectAccessClient = "{{ .PGClientID }}"
     local requiredRole = "{{ .RequiredRealmRole }}"
 
@@ -761,10 +762,14 @@ data:
         -- console sends access tokens obtained via PKCE client
         -- test code sends ID tokens obtained from the PG client
         -- need to accept either type in Authorization header (for now)
+        local clients = { oidcClient, oidcDirectAccessClient }
+        if oidcClient ~= adminClusterOidcClient then
+            clients = { oidcClient, adminClusterOidcClient, oidcDirectAccessClient }
+        end
         local claim_spec = {
             typ = validators.equals_any_of({ "Bearer", "ID" }),
             iss = validators.equals( oidcIssuerUri ),
-            azp = validators.equals_any_of({ oidcClient, oidcDirectAccessClient })
+            azp = validators.equals_any_of( clients )
         }
         me.oidcValidateTokenWithClaims(token, claim_spec)
     end

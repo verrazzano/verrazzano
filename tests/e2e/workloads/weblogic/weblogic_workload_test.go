@@ -5,7 +5,6 @@ package weblogic
 
 import (
 	"fmt"
-	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"net/http"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
@@ -36,6 +36,10 @@ const (
 	wlsUser        = "weblogic"
 	wlDomain       = "hellodomain"
 	wlsAdminServer = "hellodomain-adminserver"
+	trait          = "hello-domain-trait"
+
+	helloDomainRepoCreds     = "hellodomain-repo-credentials"
+	helloDomainWeblogicCreds = "hellodomain-weblogic-credentials"
 )
 
 var (
@@ -64,15 +68,42 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 			AbortSuite(fmt.Sprintf("WebLogic admin server pod is not running in the namespace: %v, error: %v", namespace, err))
 		}
 		return result
-	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application")
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: Admin server pod is not ready")
+
+	t.Logs.Info("WebLogic Application - check expected VirtualService is ready")
+	Eventually(func() bool {
+		result, err := pkg.DoesVirtualServiceExist(namespace, trait)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("WebLogic VirtualService %s is not running in the namespace: %v, error: %v", trait, namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: VirtualService is not ready")
+
+	t.Logs.Info("WebLogic Application - check expected Secrets exist")
+	Eventually(func() bool {
+		result, err := pkg.DoesSecretExist(namespace, helloDomainWeblogicCreds)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("WebLogic Secret %s does not exist in the namespace: %v, error: %v", helloDomainWeblogicCreds, namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: Secret does not exist")
+
+	Eventually(func() bool {
+		result, err := pkg.DoesSecretExist(namespace, helloDomainRepoCreds)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("WebLogic Secret %s does not exist in the namespace: %v, error: %v", helloDomainRepoCreds, namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: Secret does not exist")
 
 	var err error
 	// Get the host from the Istio gateway resource.
 	start := time.Now()
+	t.Logs.Info("WebLogic Application - check expected Gateway is ready")
 	Eventually(func() (string, error) {
 		host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 		return host, err
-	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
+	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Failed to deploy the WebLogic Application: Gateway is not ready")
 	metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 
 	beforeSuitePassed = true
@@ -115,12 +146,12 @@ func deployWebLogicApp(namespace string) {
 
 	t.Logs.Info("Create docker-registry secret to enable pulling image from the registry")
 	Eventually(func() (*v1.Secret, error) {
-		return pkg.CreateDockerSecret(namespace, "hellodomain-repo-credentials", regServ, regUser, regPass)
+		return pkg.CreateDockerSecret(namespace, helloDomainRepoCreds, regServ, regUser, regPass)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	t.Logs.Info("Create secret for the WebLogic domain")
 	Eventually(func() (*v1.Secret, error) {
-		return pkg.CreateCredentialsSecret(namespace, "hellodomain-weblogic-credentials", wlsUser, wlsPass, nil)
+		return pkg.CreateCredentialsSecret(namespace, helloDomainWeblogicCreds, wlsUser, wlsPass, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	// Note: creating the app config first to verify that default metrics traits are created properly if the app config exists before the components
@@ -205,15 +236,28 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 	})
 
 	t.Context("Metrics", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
-		// Verify application Prometheus scraped targets
+		// Verify application Prometheus scraped metrics
 		// GIVEN the sample WebLogic app is deployed
 		// WHEN the application configuration uses a default metrics trait
-		// THEN confirm that all the scrape targets are healthy
-		t.It("Verify all scrape targets are healthy for the application", func() {
-			Eventually(func() (bool, error) {
-				var componentNames = []string{"hello-domain"}
-				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "hello-appconf", componentNames))
-			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+		// THEN confirm that metrics are being collected
+		t.It("Retrieve application Prometheus scraped metrics", func() {
+			pkg.Concurrently(
+				func() {
+					Eventually(func() bool {
+						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", wlDomain)
+					}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(func() bool {
+						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", wlDomain)
+					}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(func() bool {
+						return pkg.MetricsExist("wls_server_state_val", "weblogic_domainName", wlDomain)
+					}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+			)
 		})
 
 		// Verify Istio Prometheus scraped metrics

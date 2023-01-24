@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 	"text/template"
 
@@ -35,7 +34,6 @@ import (
 	restclient "k8s.io/client-go/rest"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -58,7 +56,9 @@ const (
 	viewUsersRole           = "view-users"
 	noRouterAddr            = "mysql-instances"
 	routerAddr              = "mysql"
-	dbHostKey               = "mysql.dbHost"
+	dbHostKey               = "database.hostname"
+	headlessService         = "keycloak-headless"
+	kcAdminScript           = "/opt/keycloak/bin/kcadm.sh"
 )
 
 // Define the Keycloak Key:Value pair for init container.
@@ -100,6 +100,87 @@ const pkceTmpl = `
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       ` + pkceClientUrisTemplate + `,
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "saml.assertion.signature": "false",
+        "saml.multivalued.roles": "false",
+        "saml.force.post.binding": "false",
+        "saml.encrypt": "false",
+        "saml.server.signature": "false",
+        "saml.server.signature.keyinfo.ext": "false",
+        "exclude.session.state.from.auth.response": "false",
+        "saml_force_name_id_format": "false",
+        "saml.client.signature": "false",
+        "tls.client.certificate.bound.access.tokens": "false",
+        "saml.authnstatement": "false",
+        "display.on.consent.screen": "false",
+        "pkce.code.challenge.method": "S256",
+        "saml.onetimeuse.condition": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "protocolMappers": [
+          {
+            "name": "groupmember",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-group-membership-mapper",
+            "consentRequired": false,
+            "config": {
+              "full.path": "false",
+              "id.token.claim": "true",
+              "access.token.claim": "true",
+              "claim.name": "groups",
+              "userinfo.token.claim": "true"
+            }
+          },
+          {
+            "name": "realm roles",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-usermodel-realm-role-mapper",
+            "consentRequired": false,
+            "config": {
+              "multivalued": "true",
+              "user.attribute": "foo",
+              "id.token.claim": "true",
+              "access.token.claim": "true",
+              "claim.name": "realm_access.roles",
+              "jsonType.label": "String"
+            }
+          }
+        ],
+      "defaultClientScopes": [
+        "web-origins",
+        "role_list",
+        "roles",
+        "profile",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+}
+`
+const ManagedClusterClientTmpl = `
+{
+      "clientId" : "{{.ClientID}}",
+      "enabled": true,
+      "surrogateAuthRequired": false,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      ` + ManagedClusterClientUrisTemplate + `,
       "notBefore": 0,
       "bearerOnly": false,
       "consentRequired": false,
@@ -490,6 +571,15 @@ const pkceClientUrisTemplate = `
  {{end}} 
 	]
 `
+const ManagedClusterClientUrisTemplate = `
+	"redirectUris": [
+	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/*",
+	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/_authentication_callback"
+	],
+	"webOrigins": [
+	  "https://prometheus.vmi.system.{{.DNSSubDomain}}"
+	]
+`
 
 const rancherClientUrisTemplate = `
 	"redirectUris": [
@@ -579,6 +669,7 @@ type KeycloakClientSecret struct {
 type templateData struct {
 	DNSSubDomain string
 	OSHostExists bool
+	ClientID     string
 }
 
 // imageData needed for template rendering
@@ -717,14 +808,14 @@ func updateKeycloakIngress(ctx spi.ComponentContext) error {
 }
 
 // updateKeycloakUris invokes kcadm.sh in Keycloak pod to update the client with Keycloak rewrite and weborigin uris
-func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *corev1.Pod, clientID string, uriTemplate string) error {
-	data, err := populateSubdomainInTemplate(ctx, "{"+uriTemplate+"}")
+func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *corev1.Pod, clientID string, uriTemplate string, dnsSubdomain *string) error {
+	data, err := populateClientTemplate(ctx, "{"+uriTemplate+"}", "", dnsSubdomain)
 	if err != nil {
 		return err
 	}
 
 	// Update client
-	updateClientCmd := "/opt/jboss/keycloak/bin/kcadm.sh update clients/" + clientID + " -r " + vzSysRealm + " -b '" +
+	updateClientCmd := kcAdminScript + " update clients/" + clientID + " -r " + vzSysRealm + " -b '" +
 		strings.TrimSpace(data) +
 		"'"
 	ctx.Log().Debugf("updateKeycloakUris: Update client with Id = %s, Cmd = %s", clientID, updateClientCmd)
@@ -763,7 +854,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		// When the MySQL pod restarts and using ephemeral storage, the
 		// login to Keycloak will fail.  Need to recycle the Keycloak pod
 		// to resolve the condition.
-		err = loginKeycloak(ctx, cfg, cli)
+		err = LoginKeycloak(ctx, cfg, cli)
 		if err != nil {
 			err2 := ctx.Client().Delete(context.TODO(), pod)
 			if err2 != nil {
@@ -774,7 +865,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Login to Keycloak
-	err = loginKeycloak(ctx, cfg, cli)
+	err = LoginKeycloak(ctx, cfg, cli)
 	if err != nil {
 		return err
 	}
@@ -855,20 +946,20 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Create verrazzano-pkce client
-	err = createOrUpdateClient(ctx, cfg, cli, "verrazzano-pkce", pkceTmpl, pkceClientUrisTemplate, false)
+	err = CreateOrUpdateClient(ctx, cfg, cli, "verrazzano-pkce", pkceTmpl, pkceClientUrisTemplate, false, nil)
 	if err != nil {
 		return err
 	}
 
 	// Creating verrazzano-pg client
-	err = createOrUpdateClient(ctx, cfg, cli, "verrazzano-pg", pgClient, "", true)
+	err = CreateOrUpdateClient(ctx, cfg, cli, "verrazzano-pg", pgClient, "", true, nil)
 	if err != nil {
 		return err
 	}
 
 	if vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
 		// Creating rancher client
-		err = createOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true)
+		err = CreateOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true, nil)
 		if err != nil {
 			return err
 		}
@@ -894,7 +985,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		}
 
 		// Creating Argo CD client
-		err = createOrUpdateClient(ctx, cfg, cli, "argocd", argocdClientTmpl, argocdClientUrisTemplate, true)
+		err = CreateOrUpdateClient(ctx, cfg, cli, "argocd", argocdClientTmpl, argocdClientUrisTemplate, true, nil)
 		if err != nil {
 			return err
 		}
@@ -941,7 +1032,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 }
 
 // loginKeycloak logs into Keycloak so kcadm API calls can be made
-func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
+func LoginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
 	// Get the Keycloak admin password
 	secret := &corev1.Secret{}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
@@ -959,12 +1050,12 @@ func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kuberne
 		ctx.Log().Error(err)
 		return err
 	}
-	ctx.Log().Debug("loginKeycloak: Successfully retrieved Keycloak password")
+	ctx.Log().Debug("LoginKeycloak: Successfully retrieved Keycloak password")
 
 	// Login to Keycloak
 	kcPod := keycloakPod()
-	loginCmd := "/opt/jboss/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user keycloakadmin --password " + keycloakpw
-	ctx.Log().Debugf("loginKeycloak: Login Cmd = %s", maskPw(loginCmd))
+	loginCmd := kcAdminScript + " config credentials --server http://localhost:8080/auth --realm master --user keycloakadmin --password " + keycloakpw
+	ctx.Log().Debugf("LoginKeycloak: Login Cmd = %s", maskPw(loginCmd))
 	stdOut, stdErr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(loginCmd))
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed logging into Keycloak: stdout = %s: stderr = %s, err = %v", stdOut, stdErr, maskPw(err.Error()))
@@ -1049,23 +1140,28 @@ func getSecretPassword(ctx spi.ComponentContext, namespace string, secretname st
 
 // getDNSDomain returns the DNS Domain
 func getDNSDomain(c client.Client, vz *vzapi.Verrazzano) (string, error) {
+	var dnsDomain string
 	dnsSuffix, err := vzconfig.GetDNSSuffix(c, vz)
 	if err != nil {
 		return "", err
 	}
-	dnsDomain := fmt.Sprintf("%s.%s", vz.Spec.EnvironmentName, dnsSuffix)
+	if vz != nil {
+		dnsDomain = fmt.Sprintf("%s.%s", vz.Spec.EnvironmentName, dnsSuffix)
+	} else {
+		dnsDomain = dnsSuffix
+	}
 	return dnsDomain, nil
 }
 
 func createVerrazzanoSystemRealm(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
 	kcPod := keycloakPod()
 	realm := "realm=" + vzSysRealm
-	checkRealmExistsCmd := "/opt/jboss/keycloak/bin/kcadm.sh get realms/" + vzSysRealm
+	checkRealmExistsCmd := kcAdminScript + " get realms/" + vzSysRealm
 	ctx.Log().Debugf("createVerrazzanoSystemRealm: Check Verrazzano System Realm Exists Cmd = %s", checkRealmExistsCmd)
 	_, _, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(checkRealmExistsCmd))
 	if err != nil {
 		ctx.Log().Debug("createVerrazzanoSystemRealm: Verrazzano System Realm doesn't exist: Creating it")
-		createRealmCmd := "/opt/jboss/keycloak/bin/kcadm.sh create realms -s " + realm + " -s enabled=false"
+		createRealmCmd := kcAdminScript + " create realms -s " + realm + " -s enabled=false"
 		ctx.Log().Debugf("createVerrazzanoSystemRealm: Create Verrazzano System Realm Cmd = %s", createRealmCmd)
 		stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(createRealmCmd))
 		if err != nil {
@@ -1090,7 +1186,7 @@ func createVerrazzanoGroup(ctx spi.ComponentContext, cfg *restclient.Config, cli
 		groupsResource = fmt.Sprintf("groups/%s/children", parentID)
 	}
 
-	cmd := fmt.Sprintf("/opt/jboss/keycloak/bin/kcadm.sh create %s -r %s -s %s", groupsResource, vzSysRealm, groupName)
+	cmd := fmt.Sprintf("%s create %s -r %s -s %s", kcAdminScript, groupsResource, vzSysRealm, groupName)
 	ctx.Log().Debugf("createVerrazzanoGroup: Create Verrazzano %s Group Cmd = %s", group, cmd)
 	out, _, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(cmd))
 	if err != nil {
@@ -1119,7 +1215,7 @@ func createVerrazzanoRole(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 		return nil
 	}
 	role := "name=" + roleName
-	createRoleCmd := "/opt/jboss/keycloak/bin/kcadm.sh create roles -r " + vzSysRealm + " -s " + role
+	createRoleCmd := kcAdminScript + " create roles -r " + vzSysRealm + " -s " + role
 	ctx.Log().Debugf("createVerrazzanoRole: Create Verrazzano API Access Role Cmd = %s", createRoleCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(createRoleCmd))
 	if err != nil {
@@ -1134,7 +1230,7 @@ func grantRolesToGroups(ctx spi.ComponentContext, cfg *restclient.Config, cli ku
 	// Keycloak API does not fail if Role already exists as of 15.0.3
 	kcPod := keycloakPod()
 	// Granting vz_api_access role to verrazzano users group
-	grantAPIAccessToVzUserGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh add-roles -r " + vzSysRealm + " --gid " + userGroupID + " --rolename " + vzAPIAccessRole
+	grantAPIAccessToVzUserGroupCmd := kcAdminScript + " add-roles -r " + vzSysRealm + " --gid " + userGroupID + " --rolename " + vzAPIAccessRole
 	ctx.Log().Debugf("grantRolesToGroups: Grant API Access to VZ Users Cmd = %s", grantAPIAccessToVzUserGroupCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(grantAPIAccessToVzUserGroupCmd))
 	if err != nil {
@@ -1154,7 +1250,7 @@ func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes
 	}
 	vzUser := "username=" + userName
 	vzUserGroup := "groups[0]=/" + vzUsersGroup + "/" + groupName
-	createVzUserCmd := "/opt/jboss/keycloak/bin/kcadm.sh create users -r " + vzSysRealm + " -s " + vzUser + " -s " + vzUserGroup + " -s enabled=true"
+	createVzUserCmd := kcAdminScript + " create users -r " + vzSysRealm + " -s " + vzUser + " -s " + vzUserGroup + " -s enabled=true"
 	if firstName != "" {
 		createVzUserCmd = createVzUserCmd + " -s firstName=" + firstName
 	}
@@ -1175,7 +1271,7 @@ func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes
 	if err != nil {
 		return err
 	}
-	setVZUserPwCmd := "/opt/jboss/keycloak/bin/kcadm.sh set-password -r " + vzSysRealm + " --username " + userName + " --new-password " + vzpw
+	setVZUserPwCmd := kcAdminScript + " set-password -r " + vzSysRealm + " --username " + userName + " --new-password " + vzpw
 	ctx.Log().Debugf("createUser: Set Verrazzano User PW Cmd = %s", maskPw(setVZUserPwCmd))
 	stdout, stderr, err = k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(setVZUserPwCmd))
 	if err != nil {
@@ -1200,7 +1296,7 @@ func createOrUpdateClientScope(ctx spi.ComponentContext, cfg *restclient.Config,
 	}
 
 	// Create client scope
-	clientCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create -x client-scopes -r " + vzSysRealm + " -s name=groups -s protocol=openid-connect"
+	clientCreateCmd := kcAdminScript + " create -x client-scopes -r " + vzSysRealm + " -s name=groups -s protocol=openid-connect"
 	ctx.Log().Debugf("createOrUpdateClient: Create %s client Cmd = %s", groupname, clientCreateCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(clientCreateCmd))
 	if err != nil {
@@ -1210,10 +1306,9 @@ func createOrUpdateClientScope(ctx spi.ComponentContext, cfg *restclient.Config,
 	ctx.Log().Debugf("createOrUpdateClientScope: Created %s client-scope", groupname)
 	ctx.Log().Oncef("Component Keycloak successfully created client-scope %s", groupname)
 	return nil
-
 }
 
-func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, clientName string, clientTemplate string, uriTemplate string, generateSecret bool) error {
+func CreateOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, clientName string, clientTemplate string, uriTemplate string, generateSecret bool, dnsSubdomain *string) error {
 	keycloakClients, err := getKeycloakClients(ctx)
 	if err != nil {
 		return err
@@ -1222,7 +1317,7 @@ func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 	kcPod := keycloakPod()
 	if clientID := getClientID(keycloakClients, clientName); clientID != "" {
 		if uriTemplate != "" {
-			err := updateKeycloakUris(ctx, cfg, cli, kcPod, clientID, uriTemplate)
+			err := updateKeycloakUris(ctx, cfg, cli, kcPod, clientID, uriTemplate, dnsSubdomain)
 			if err != nil {
 				return err
 			}
@@ -1231,17 +1326,17 @@ func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 		return nil
 	}
 
-	data, err := populateSubdomainInTemplate(ctx, clientTemplate)
+	data, err := populateClientTemplate(ctx, clientTemplate, clientName, dnsSubdomain)
 	if err != nil {
 		return err
 	}
 
 	// Create client
-	clientCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients -r " + vzSysRealm + " -f - <<\\END" +
+	clientCreateCmd := kcAdminScript + " create clients -r " + vzSysRealm + " -f - <<\\END" +
 		data +
 		"END"
 
-	ctx.Log().Debugf("createOrUpdateClient: Create %s client Cmd = %s", clientName, clientCreateCmd)
+	ctx.Log().Debugf("CreateOrUpdateClient: Create %s client Cmd = %s", clientName, clientCreateCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(clientCreateCmd))
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed creating %s client: stdout = %s, stderr = %s", clientName, stdout, stderr)
@@ -1256,14 +1351,14 @@ func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 		}
 	}
 
-	ctx.Log().Debugf("createOrUpdateClient: Created %s client", clientName)
+	ctx.Log().Debugf("CreateOrUpdateClient: Created %s client", clientName)
 	ctx.Log().Oncef("Component Keycloak successfully created client %s", clientName)
 	return nil
 }
 
 func setPasswordPolicyForRealm(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, realmName string, policy string) error {
 	kcPod := keycloakPod()
-	setPolicyCmd := "/opt/jboss/keycloak/bin/kcadm.sh update realms/" + realmName + " -s \"" + policy + "\""
+	setPolicyCmd := kcAdminScript + " update realms/" + realmName + " -s \"" + policy + "\""
 	ctx.Log().Debugf("setPasswordPolicyForRealm: Setting password policy for realm %s Cmd = %s", realmName, setPolicyCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(setPolicyCmd))
 	if err != nil {
@@ -1277,7 +1372,7 @@ func setPasswordPolicyForRealm(ctx spi.ComponentContext, cfg *restclient.Config,
 
 func configureLoginThemeForRealm(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, realmName string, loginTheme string) error {
 	kcPod := keycloakPod()
-	setLoginThemeCmd := "/opt/jboss/keycloak/bin/kcadm.sh update realms/" + realmName + " -s loginTheme=" + loginTheme
+	setLoginThemeCmd := kcAdminScript + " update realms/" + realmName + " -s loginTheme=" + loginTheme
 	ctx.Log().Debugf("configureLoginThemeForRealm: Configuring login theme Cmd = %s", setLoginThemeCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(setLoginThemeCmd))
 	if err != nil {
@@ -1291,7 +1386,7 @@ func configureLoginThemeForRealm(ctx spi.ComponentContext, cfg *restclient.Confi
 
 func enableVerrazzanoSystemRealm(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
 	kcPod := keycloakPod()
-	setVzEnableRealmCmd := "/opt/jboss/keycloak/bin/kcadm.sh update realms/" + vzSysRealm + " -s enabled=true"
+	setVzEnableRealmCmd := kcAdminScript + " update realms/" + vzSysRealm + " -s enabled=true"
 	ctx.Log().Debugf("enableVerrazzanoSystemRealm: Enabling vzSysRealm realm Cmd = %s", setVzEnableRealmCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(setVzEnableRealmCmd))
 	if err != nil {
@@ -1321,7 +1416,7 @@ func removeLoginConfigFile(ctx spi.ComponentContext, cfg *restclient.Config, cli
 func getKeycloakGroups(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *corev1.Pod) (KeycloakGroups, error) {
 	var keycloakGroups KeycloakGroups
 	// Get the Client ID JSON array
-	cmd := fmt.Sprintf("/opt/jboss/keycloak/bin/kcadm.sh get groups -r %s", vzSysRealm)
+	cmd := fmt.Sprintf("%s get groups -r %s", kcAdminScript, vzSysRealm)
 	out, _, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(cmd))
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving Groups: %s", err)
@@ -1373,7 +1468,7 @@ func getGroupID(keycloakGroups KeycloakGroups, groupName string) string {
 func getKeycloakRoles(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *corev1.Pod) (KeycloakRoles, error) {
 	var keycloakRoles KeycloakRoles
 	// Get the Client ID JSON array
-	out, _, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get-roles -r "+vzSysRealm))
+	out, _, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(kcAdminScript+" get-roles -r "+vzSysRealm))
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving Roles: %s", err)
 		return nil, err
@@ -1405,7 +1500,7 @@ func roleExists(keycloakRoles KeycloakRoles, roleName string) bool {
 func getKeycloakUsers(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *corev1.Pod) ([]KeycloakUser, error) {
 	var keycloakUsers []KeycloakUser
 	// Get the Client ID JSON array
-	out, _, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get users -r "+vzSysRealm))
+	out, _, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(kcAdminScript+" get users -r "+vzSysRealm))
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving Users: %s", err)
 		return nil, err
@@ -1440,7 +1535,7 @@ func getKeycloakClients(ctx spi.ComponentContext) (KeycloakClients, error) {
 		return nil, err
 	}
 	// Get the Client ID JSON array
-	out, _, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get clients -r "+vzSysRealm+" --fields id,clientId"))
+	out, _, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD(kcAdminScript+" get clients -r "+vzSysRealm+" --fields id,clientId"))
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving clients: %s", err)
 		return nil, err
@@ -1466,7 +1561,7 @@ func getKeycloakClientScopes(ctx spi.ComponentContext) (KeycloakClientScopes, er
 		return nil, err
 	}
 	// Get the Client ID JSON array
-	out, _, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get client-scopes -r "+vzSysRealm+" --fields id,name"))
+	out, _, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD(kcAdminScript+" get client-scopes -r "+vzSysRealm+" --fields id,name"))
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving client-scopes: %s", err)
 		return nil, err
@@ -1535,71 +1630,56 @@ func GetOverrides(object runtime.Object) interface{} {
 	return []vzapi.Overrides{}
 }
 
-// upgradeStatefulSet - determine if the replica count for the StatefulSet needs
-// to be scaled down before the upgrade.  The affinity rules installed by default
-// prior to the 1.4 release conflict with the new affinity rules being overridden
-// by Verrazzano (the upgrade will never complete).  The work around is to scale
-// down the replica count prior to upgrade, which terminates the Keycloak pods, and
-// then do the upgrade.
-func upgradeStatefulSet(ctx spi.ComponentContext) error {
+// deleteStatefulSet deletes the Keycloak StatefulSet before upgrade
+// The StatefulSet defined by the helm chart for Keycloak 20.0.1 contains changes to fields other than
+// 'replicas', 'template', and 'updateStrategy'. The work around is to delete the StatefulSet prior upgrading to 1.5 or
+// later and then do the upgrade
+func deleteStatefulSet(ctx spi.ComponentContext) error {
 	keycloakComp := ctx.EffectiveCR().Spec.Components.Keycloak
 	if keycloakComp == nil {
 		return nil
 	}
 
-	// Get the combine set of value overrides into a single array of string
-	overrides, err := common.GetInstallOverridesYAML(ctx, keycloakComp.ValueOverrides)
-	if err != nil {
-		return err
-	}
-
-	// Is there an override for affinity?
-	found := false
-	affinityOverride := &corev1.Affinity{}
-	for _, overrideYaml := range overrides {
-		if strings.Contains(overrideYaml, "affinity: |") {
-			found = true
-
-			// Convert the affinity override from yaml to a struct
-			affinityField, err := common.ExtractValueFromOverrideString(overrideYaml, "affinity")
-			if err != nil {
-				return err
-			}
-			err = yaml.Unmarshal([]byte(fmt.Sprintf("%v", affinityField)), affinityOverride)
-			if err != nil {
-				return err
-			}
-			break
-		}
-	}
-	if !found {
-		return nil
-	}
-
 	// Get the StatefulSet for Keycloak
-	client := ctx.Client()
+	ctxClient := ctx.Client()
 	statefulSet := appv1.StatefulSet{}
-	err = client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &statefulSet)
-	if err != nil {
-		return err
-	}
 
-	// Nothing to do if the affinity definitions are the same
-	if reflect.DeepEqual(affinityOverride, statefulSet.Spec.Template.Spec.Affinity) {
+	ctx.Log().Infof("Delete StatefulSet %s/%s, if it exists", ComponentNamespace, ComponentName)
+	err := ctxClient.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &statefulSet)
+	if err != nil {
+		ctx.Log().Infof("StatefulSet %s/%s doesn't exist", ComponentNamespace, ComponentName)
 		return nil
 	}
 
-	// Scale replica count to 0 to cause all pods to terminate, upgrade will restore replica count
-	*statefulSet.Spec.Replicas = 0
-	err = client.Update(context.TODO(), &statefulSet)
-	if err != nil {
-		return err
+	// Delete the StatefulSet
+	deleteOpts := []client.DeleteOption{client.PropagationPolicy(metav1.DeletePropagationOrphan)}
+	if err := ctxClient.Delete(context.TODO(), &statefulSet, deleteOpts...); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to delete StatefulSet %s/%s: %v", ComponentNamespace, ComponentName, err)
 	}
-
 	return nil
 }
 
-func populateSubdomainInTemplate(ctx spi.ComponentContext, tmpl string) (string, error) {
+// deleteHeadlessService deletes the keycloak-headless service after deleting the StatefulSet, before the upgrade
+func deleteHeadlessService(ctx spi.ComponentContext) error {
+	keycloakComp := ctx.EffectiveCR().Spec.Components.Keycloak
+	if keycloakComp == nil {
+		return nil
+	}
+	// Get and delete the headless service associated with the StatefulSet
+	service := &corev1.Service{}
+	ctxClient := ctx.Client()
+	ctx.Log().Infof("Delete headless service %s/%s, if it exists", ComponentNamespace, headlessService)
+	if err := ctxClient.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: headlessService}, service); err != nil {
+		ctx.Log().Infof("Headless service %s/%s doesn't exist", ComponentNamespace, headlessService)
+		return nil
+	}
+	if err := ctxClient.Delete(context.TODO(), service); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to delete headless service %s/%s: %v", ComponentNamespace, headlessService, err)
+	}
+	return nil
+}
+
+func populateClientTemplate(ctx spi.ComponentContext, tmpl string, clientID string, subdomain *string) (string, error) {
 	data := templateData{}
 
 	// Update verrazzano-pkce client redirect and web origin uris if deprecated host exists in the ingress
@@ -1611,14 +1691,21 @@ func populateSubdomainInTemplate(ctx spi.ComponentContext, tmpl string) (string,
 	data.OSHostExists = osHostExists
 
 	// Get DNS Domain Configuration
-	dnsSubDomain, err := getDNSDomain(ctx.Client(), ctx.EffectiveCR())
-	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %v", err)
-		return "", err
+	var dnsSubDomain string
+	if subdomain == nil {
+		dnsSubDomain, err = getDNSDomain(ctx.Client(), ctx.EffectiveCR())
+		if err != nil {
+			ctx.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %v", err)
+			return "", err
+		}
+	} else {
+		dnsSubDomain = *subdomain
 	}
-	ctx.Log().Debugf("populateSubdomainInTemplate: DNSDomain returned %s", dnsSubDomain)
+	ctx.Log().Debugf("populateClientTemplate: DNSDomain = %s", dnsSubDomain)
 
 	data.DNSSubDomain = dnsSubDomain
+
+	data.ClientID = clientID
 
 	// use template to get populate template with data
 	var b bytes.Buffer
@@ -1643,7 +1730,7 @@ func GetRancherClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error
 	}
 
 	// Login to Keycloak
-	err = loginKeycloak(ctx, cfg, cli)
+	err = LoginKeycloak(ctx, cfg, cli)
 	if err != nil {
 		return "", err
 	}
@@ -1667,7 +1754,7 @@ func GetRancherClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error
 
 	var clientSecret KeycloakClientSecret
 	// Get the Client secret JSON array
-	out, _, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get clients/"+id+"/client-secret -r "+vzSysRealm))
+	out, _, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD(kcAdminScript+" get clients/"+id+"/client-secret -r "+vzSysRealm))
 	if err != nil {
 		ctx.Log().Errorf("failed retrieving rancher client secret from keycloak: %s", err)
 		return "", err
@@ -1708,7 +1795,7 @@ func (p DefaultArgoClientSecretProvider) GetClientSecret(ctx spi.ComponentContex
 	}
 
 	// Login to Keycloak
-	err = loginKeycloak(ctx, cfg, cli)
+	err = LoginKeycloak(ctx, cfg, cli)
 	if err != nil {
 		return "", err
 	}
@@ -1733,7 +1820,7 @@ func (p DefaultArgoClientSecretProvider) GetClientSecret(ctx spi.ComponentContex
 
 	var clientSecret KeycloakClientSecret
 	// Get the Client secret JSON array
-	out, _, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get clients/"+id+"/client-secret -r "+vzSysRealm))
+	out, _, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD(kcAdminScript+" get clients/"+id+"/client-secret -r "+vzSysRealm))
 	if err != nil {
 		ctx.Log().Errorf("failed retrieving argocd client secret from keycloak: %s", err)
 		return "", err
@@ -1773,7 +1860,7 @@ func generateClientSecret(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 	ctx.Log().Debugf("generateClientSecret: %s Client ID = %s", clientName, clientID)
 
 	// Create client secret
-	clientCreateSecretCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients/" + clientID + "/client-secret" + " -r " + vzSysRealm
+	clientCreateSecretCmd := kcAdminScript + " create clients/" + clientID + "/client-secret" + " -r " + vzSysRealm
 	ctx.Log().Debugf("generateClientSecret: Create %s client secret Cmd = %s", clientName, clientCreateSecretCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(clientCreateSecretCmd))
 	if err != nil {
@@ -1793,7 +1880,7 @@ func GetVerrazzanoUserFromKeycloak(ctx spi.ComponentContext) (*KeycloakUser, err
 	}
 
 	// Login to Keycloak
-	err = loginKeycloak(ctx, cfg, cli)
+	err = LoginKeycloak(ctx, cfg, cli)
 	if err != nil {
 		return nil, err
 	}
@@ -1835,7 +1922,7 @@ func updateRancherClientSecretForKeycloakAuthConfig(ctx spi.ComponentContext) er
 // addClientRoleToUser adds client role to the given user in the target realm
 func addClientRoleToUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, userName, clientID, targetRealm, roleName string) error {
 	kcPod := keycloakPod()
-	addRoleCmd := "/opt/jboss/keycloak/bin/kcadm.sh add-roles -r " + targetRealm + " --uusername " + userName + " --cclientid " + clientID + " --rolename " + roleName
+	addRoleCmd := kcAdminScript + " add-roles -r " + targetRealm + " --uusername " + userName + " --cclientid " + clientID + " --rolename " + roleName
 	ctx.Log().Debugf("Adding client role %s to the user %s, using command: %s", roleName, userName, addRoleCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(addRoleCmd))
 	if err != nil {
