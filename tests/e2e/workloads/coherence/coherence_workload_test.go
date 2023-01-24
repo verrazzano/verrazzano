@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package coherence
@@ -86,7 +86,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 			return result
 		}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Coherence Application Failed to Deploy: VirtualService is not ready")
 
-		t.Logs.Info("Coherence Application: check expected Secrets exist")
+		t.Logs.Info("Coherence Application: check expected Secret exists")
 		Eventually(func() bool {
 			result, err := pkg.DoesSecretExist(namespace, helloCreds)
 			if err != nil {
