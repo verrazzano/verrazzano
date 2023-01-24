@@ -19,7 +19,6 @@ pipeline {
     parameters {
         string (description: 'The release version (major.minor.patch format, e.g. 1.0.1)', name: 'RELEASE_VERSION', defaultValue: 'NONE', trim: true)
         string name: 'IMAGES_OBJECT_STORE_FILE', description: 'The object store file from which to get the list of images to be published to OCR, format e.g. release-1.4/verrazzano_1.4.2-images.txt', defaultValue: 'NONE'
-        booleanParam (description: 'Indicate whether this is a dry run - no images will be pulled or pushed', name: 'DRY_RUN', defaultValue: false)
         string (description: 'The full git commit hash from the source build', name: 'GIT_COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
     }
 
