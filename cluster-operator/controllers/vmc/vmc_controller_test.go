@@ -1533,7 +1533,7 @@ func TestUpateStatus(t *testing.T) {
 	reconciler := newVMCReconciler(mock)
 	reconciler.log = vzlog.DefaultLogger()
 
-	err := reconciler.updateStatus(context.TODO(), &vmc)
+	err := reconciler.updateStatus(context.TODO(), &vmc, func(vmc *v1alpha1.VerrazzanoManagedCluster) {})
 
 	// Validate the results
 	mocker.Finish()
@@ -1550,7 +1550,7 @@ func TestUpateStatus(t *testing.T) {
 			return nil
 		})
 
-	err = reconciler.updateStatus(context.TODO(), &vmc)
+	err = reconciler.updateStatus(context.TODO(), &vmc, func(vmc *v1alpha1.VerrazzanoManagedCluster) {})
 
 	// Validate the results
 	mocker.Finish()
@@ -1571,7 +1571,7 @@ func TestUpateStatus(t *testing.T) {
 			return nil
 		})
 
-	err = reconciler.updateStatus(context.TODO(), &vmc)
+	err = reconciler.updateStatus(context.TODO(), &vmc, func(vmc *v1alpha1.VerrazzanoManagedCluster) {})
 
 	// Validate the results
 	mocker.Finish()
@@ -1832,7 +1832,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			}
 			list.Items = append(list.Items, vz)
 			return nil
-		})
+		}).Times(2)
 
 	// Expect a call to get the tls ingress and return the ingress.
 	if !externalES {
@@ -2554,6 +2554,13 @@ func expectMockCallsForDelete(t *testing.T, mock *mocks.MockClient, namespace st
 			// validate that the cert for the cluster being deleted is no longer present
 			asserts.Len(secret.Data, 1, "Expected only one managed cluster cert")
 			asserts.Contains(secret.Data, "ca-test2", "Expected to find cert for managed cluster not being deleted")
+			return nil
+		})
+
+	// Expect a call to delete the argocd cluster secret
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
 			return nil
 		})
 

@@ -95,23 +95,21 @@ type RancherRegistration struct {
 	Status RancherRegistrationStatus `json:"status"`
 }
 
-// ArgoCDRegistrationStatus identifies the status of a argocd registration.
+// ArgoCDRegistrationStatus identifies the status of an Argo CD registration.
 type ArgoCDRegistrationStatus string
 
 const (
-	RegistrationPendingRancher              ArgoCDRegistrationStatus = "PendingRancherClusterRegistration"
-	RegistrationMCResourceCreationCompleted ArgoCDRegistrationStatus = "MCResourceCreationCompleted"
-	UnregistrationCompleted                 ArgoCDRegistrationStatus = "MCUnregistered"
-	MCRegistrationCompleted                 ArgoCDRegistrationStatus = "Completed"
-	MCRegistrationFailed                    ArgoCDRegistrationStatus = "Failed"
+	RegistrationPendingRancher ArgoCDRegistrationStatus = "PendingRancherClusterRegistration"
+	MCRegistrationCompleted    ArgoCDRegistrationStatus = "Completed"
+	MCRegistrationFailed       ArgoCDRegistrationStatus = "Failed"
 )
 
-// ArgoCDRegistration defines the ArgoCD registration state for a managed cluster
+// ArgoCDRegistration defines the Argo CD registration state for a managed cluster
 type ArgoCDRegistration struct {
 	// The status of the ArgoCD registration
 	Status ArgoCDRegistrationStatus `json:"status"`
 	// The timestamp of last status set
-	Timestamp string `json:"lastSetTimestamp"`
+	Timestamp *metav1.Time `json:"lastSetTimestamp"`
 	// Supporting message related to the Rancher registration status
 	// +optional
 	Message string `json:"message,omitempty"`
@@ -129,6 +127,8 @@ type VerrazzanoManagedClusterStatus struct {
 	PrometheusHost string `json:"prometheusHost,omitempty"`
 	// The state of Rancher registration for this managed cluster.
 	RancherRegistration RancherRegistration `json:"rancherRegistration,omitempty"`
+	// The state of ArgoCD registration for this managed cluster.
+	ArgoCDRegistration ArgoCDRegistration `json:"argocdRegistration,omitempty"`
 	// The state of this managed cluster.
 	State StateType `json:"state"`
 }
