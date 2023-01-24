@@ -43,7 +43,8 @@ type action struct {
 
 var err error
 var reportAnalysis = make(map[string]action)
-//var issuesToBeDiagnosed = []string{ImagePullNotFound, ImagePullBackOff, PodProblemsNotReported, PendingPods, InsufficientMemory}
+
+// var issuesToBeDiagnosed = []string{ImagePullNotFound, ImagePullBackOff, PodProblemsNotReported, PendingPods, InsufficientMemory}
 var issuesToBeDiagnosed = []string{PendingPods, InsufficientMemory}
 var c = &kubernetes.Clientset{}
 var deploymentsClient kv1.DeploymentInterface
@@ -178,41 +179,41 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 			Expect(len(reportAnalysis)).To(Equal(len(issuesToBeDiagnosed)))
 		})
 		/*
-		t.It("Should Have ImagePullNotFound Issue Post Bad Image Injection", func() {
-			Eventually(func() bool {
-				return verifyIssue(reportAnalysis[ImagePullNotFound].Patch, ImagePullNotFound)
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-		})
+			t.It("Should Have ImagePullNotFound Issue Post Bad Image Injection", func() {
+				Eventually(func() bool {
+					return verifyIssue(reportAnalysis[ImagePullNotFound].Patch, ImagePullNotFound)
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+			})
 
-		t.It("Should Not Have ImagePullNotFound Issue Post Reviving Bad Image", func() {
-			Eventually(func() bool {
-				return verifyIssue(reportAnalysis[ImagePullNotFound].Revive, ImagePullNotFound)
-			}, waitTimeout, pollingInterval).Should(BeFalse())
-		})
+			t.It("Should Not Have ImagePullNotFound Issue Post Reviving Bad Image", func() {
+				Eventually(func() bool {
+					return verifyIssue(reportAnalysis[ImagePullNotFound].Revive, ImagePullNotFound)
+				}, waitTimeout, pollingInterval).Should(BeFalse())
+			})
 
-		t.It("Should Have ImagePullBackOff Issue Post Bad Image Injection", func() {
-			Eventually(func() bool {
-				return verifyIssue(reportAnalysis[ImagePullBackOff].Patch, ImagePullBackOff)
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-		})
+			t.It("Should Have ImagePullBackOff Issue Post Bad Image Injection", func() {
+				Eventually(func() bool {
+					return verifyIssue(reportAnalysis[ImagePullBackOff].Patch, ImagePullBackOff)
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+			})
 
-		t.It("Should Not Have ImagePullBackOff Issue Post Reviving Bad Image", func() {
-			Eventually(func() bool {
-				return verifyIssue(reportAnalysis[ImagePullBackOff].Revive, ImagePullBackOff)
-			}, waitTimeout, pollingInterval).Should(BeFalse())
-		})
-		t.It("Should Have PodProblemsNotReported Issue Post Bad Image Injection", func() {
-			Eventually(func() bool {
-				return verifyIssue(reportAnalysis[PodProblemsNotReported].Patch, PodProblemsNotReported)
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-		})
+			t.It("Should Not Have ImagePullBackOff Issue Post Reviving Bad Image", func() {
+				Eventually(func() bool {
+					return verifyIssue(reportAnalysis[ImagePullBackOff].Revive, ImagePullBackOff)
+				}, waitTimeout, pollingInterval).Should(BeFalse())
+			})
+			t.It("Should Have PodProblemsNotReported Issue Post Bad Image Injection", func() {
+				Eventually(func() bool {
+					return verifyIssue(reportAnalysis[PodProblemsNotReported].Patch, PodProblemsNotReported)
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+			})
 
-		t.It("Should Not Have PodProblemsNotReported Issue Post Reviving Bad Image", func() {
-			Eventually(func() bool {
-				return verifyIssue(reportAnalysis[PodProblemsNotReported].Revive, PodProblemsNotReported)
-			}, waitTimeout, pollingInterval).Should(BeFalse())
-		})
-		 */
+			t.It("Should Not Have PodProblemsNotReported Issue Post Reviving Bad Image", func() {
+				Eventually(func() bool {
+					return verifyIssue(reportAnalysis[PodProblemsNotReported].Revive, PodProblemsNotReported)
+				}, waitTimeout, pollingInterval).Should(BeFalse())
+			})
+		*/
 		t.It("Should Have PendingPods Issue Post Bad Resource Request", func() {
 			Eventually(func() bool {
 				return verifyIssue(reportAnalysis[PendingPods].Patch, PendingPods)
