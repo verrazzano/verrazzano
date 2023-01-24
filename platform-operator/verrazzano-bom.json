@@ -736,13 +736,12 @@
           ]
         },
         {
-          "registry": "docker.io",
-          "repository": "rancher",
+          "repository": "verrazzano/rancher",
           "name": "rancher-backup-kubectl",
           "images": [
             {
               "image": "kubectl",
-              "tag": "v1.20.2",
+              "tag": "v1.20.2-20230124220617-b4579ed",
               "helmFullImageKey": "global.kubectl.repository",
               "helmTagKey": "global.kubectl.tag"
             }
