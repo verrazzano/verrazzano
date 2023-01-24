@@ -80,7 +80,7 @@ func feedAnalysisReport() error {
 				return patchErr
 			}
 		case PendingPods:
-			patchErr := patchPod(PendingPods, []string{"cpu=3000m", "cpu=128m"})
+			patchErr := patchPod(PendingPods, []string{"cpu=10000m", "cpu=128m"})
 			if patchErr != nil {
 				return patchErr
 			}
