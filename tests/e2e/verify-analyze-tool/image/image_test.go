@@ -238,8 +238,7 @@ func RunVzAnalyze() (string, error) {
 
 // utility function to set deployment pod's resources (cpu/ memory)
 func SetDepResources(dep, ns, req string) (string, error) {
-	cmd := exec.Command("kubectl", "set", "resources", "deploy/"+dep, "--requests="+req, "-n", ns)
-	out, err := cmd.Output()
+	out, err := exec.Command("kubectl", "set", "resources", "deploy/"+dep, "--requests="+req, "-n", ns).Output()
 	return string(out), err
 }
 
