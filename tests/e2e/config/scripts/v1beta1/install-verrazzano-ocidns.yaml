@@ -32,7 +32,7 @@ spec:
     clusterOperator:
       overrides:
         - values:
-            syncRancherClusters:
+            syncClusters:
               enabled: true
               clusterSelector:
                 matchExpressions:

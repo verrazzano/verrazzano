@@ -25,8 +25,8 @@ import (
 )
 
 const (
-	clusterSelectorFilePath = "/var/syncRancherClusters/selector.yaml"
-	syncClustersEnvVarName  = "RANCHER_CLUSTER_SYNC_ENABLED"
+	clusterSelectorFilePath = "/var/syncClusters/selector.yaml"
+	syncClustersEnvVarName  = "RANCHER_ARGOCD_CLUSTER_SYNC_ENABLED"
 	cattleClustersCRDName   = "clusters.management.cattle.io"
 )
 
@@ -56,7 +56,7 @@ func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAd
 
 	// only start the Rancher cluster sync controller if the cattle clusters CRD is installed
 	if crdInstalled {
-		syncEnabled, clusterSelector, err := shouldSyncRancherClusters(clusterSelectorFilePath)
+		syncEnabled, clusterSelector, err := shouldSyncClusters(clusterSelectorFilePath)
 		if err != nil {
 			log.Error(err, "error processing cluster sync config")
 			os.Exit(1)
@@ -107,10 +107,10 @@ func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAd
 	return nil
 }
 
-// shouldSyncRancherClusters returns true if Rancher cluster synchronization is enabled. An optional
+// shouldSyncClusters returns true if Rancher cluster synchronization is enabled. An optional
 // user-specified label selector can be used to filter the Rancher clusters. If sync is enabled and
 // the label selector is nil, we will sync all Rancher clusters.
-func shouldSyncRancherClusters(clusterSelectorFile string) (bool, *metav1.LabelSelector, error) {
+func shouldSyncClusters(clusterSelectorFile string) (bool, *metav1.LabelSelector, error) {
 	enabled := os.Getenv(syncClustersEnvVarName)
 	if enabled == "" || strings.ToLower(enabled) != "true" {
 		return false, nil, nil
