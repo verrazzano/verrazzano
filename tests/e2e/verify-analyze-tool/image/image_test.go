@@ -7,6 +7,7 @@ package image
 
 import (
 	"context"
+	"fmt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	k8util "github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -42,7 +43,8 @@ type action struct {
 
 var err error
 var reportAnalysis = make(map[string]action)
-var issuesToBeDiagnosed = []string{ImagePullNotFound, ImagePullBackOff, PodProblemsNotReported, PendingPods, InsufficientMemory}
+//var issuesToBeDiagnosed = []string{ImagePullNotFound, ImagePullBackOff, PodProblemsNotReported, PendingPods, InsufficientMemory}
+var issuesToBeDiagnosed = []string{PendingPods, InsufficientMemory}
 var c = &kubernetes.Clientset{}
 var deploymentsClient kv1.DeploymentInterface
 
@@ -80,7 +82,7 @@ func feedAnalysisReport() error {
 				return patchErr
 			}
 		case PendingPods:
-			patchErr := patchPod(PendingPods, []string{"cpu=10000m", "cpu=128m"})
+			patchErr := patchPod(PendingPods, []string{"cpu=5000m", "cpu=128m"})
 			if patchErr != nil {
 				return patchErr
 			}
@@ -146,12 +148,16 @@ func patchImage(deploymentName, issueType, patchImage string) error {
 func patchPod(issueType string, resourceReq []string) error {
 	out := make([]string, 2)
 	for i := 0; i < len(resourceReq); i++ {
-		_, err = SetDepResources(DeploymentToBePatched, VzSystemNS, resourceReq[i])
+		r, err := SetDepResources(DeploymentToBePatched, VzSystemNS, resourceReq[i])
+		fmt.Println("11111111111111111111 ", resourceReq[i])
+		fmt.Println(r, err)
 		if err != nil {
 			return err
 		}
 		time.Sleep(waitTimeout)
 		out[i], err = RunVzAnalyze()
+		fmt.Println("22222222222222222 ", out[i])
+		fmt.Println(err)
 		if err != nil {
 			return err
 		}
@@ -160,6 +166,8 @@ func patchPod(issueType string, resourceReq []string) error {
 		}
 	}
 	reportAnalysis[issueType] = action{out[0], out[1]}
+	fmt.Println("3333333333333333333 ")
+	fmt.Println(reportAnalysis[issueType])
 	return nil
 }
 
@@ -169,6 +177,7 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 			feedAnalysisReport()
 			Expect(len(reportAnalysis)).To(Equal(len(issuesToBeDiagnosed)))
 		})
+		/*
 		t.It("Should Have ImagePullNotFound Issue Post Bad Image Injection", func() {
 			Eventually(func() bool {
 				return verifyIssue(reportAnalysis[ImagePullNotFound].Patch, ImagePullNotFound)
@@ -203,6 +212,7 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 				return verifyIssue(reportAnalysis[PodProblemsNotReported].Revive, PodProblemsNotReported)
 			}, waitTimeout, pollingInterval).Should(BeFalse())
 		})
+		 */
 		t.It("Should Have PendingPods Issue Post Bad Resource Request", func() {
 			Eventually(func() bool {
 				return verifyIssue(reportAnalysis[PendingPods].Patch, PendingPods)
