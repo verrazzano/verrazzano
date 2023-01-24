@@ -179,10 +179,15 @@ var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 	// WHEN the component and appconfig without metrics-trait(using default) are created
 	// THEN the application scrape targets must be healthy
 	t.Describe("Metrics.", Label("f:observability.monitoring.prom"), func() {
-		t.ItMinimumVersion("Verify all scrape targets are healthy for the application", targetsVersion, kubeConfig, func() {
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		}
+		ok, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+		t.It("Verify all scrape targets are healthy for the application", func() {
 			Eventually(func() (bool, error) {
 				var componentNames = []string{"helidon-config-component"}
-				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "helidon-config-appconf", componentNames))
+				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "helidon-config-appconf", componentNames, ok))
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
 	})

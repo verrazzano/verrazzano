@@ -9,7 +9,6 @@ import (
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -33,7 +32,6 @@ const (
 	imagePullPollingInterval = 30 * time.Second
 	skipVerifications        = "Skip Verifications"
 	nodeExporterJobName      = "node-exporter"
-	targetsVersion           = "1.4.0"
 )
 
 const (
@@ -46,7 +44,6 @@ var (
 	generatedNamespace = pkg.GenerateNamespace("hello-helidon-svc")
 	//yamlApplier              = k8sutil.YAMLApplier{}
 	expectedPodsHelloHelidon = []string{"hello-helidon-svc-deployment"}
-	kubeConfig               = os.Getenv("KUBECONFIG")
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -148,13 +145,18 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// WHEN the component and appconfig without metrics-trait(using default) are created
 	// THEN the application scrape targets must be healthy
 	t.Describe("for Metrics.", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
-		t.ItMinimumVersion("Verify all scrape targets are healthy for the application", targetsVersion, kubeConfig, func() {
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		}
+		ok, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+		t.It("Verify all scrape targets are healthy for the application", func() {
 			if skipVerify {
 				Skip(skipVerifications)
 			}
 			Eventually(func() (bool, error) {
 				var componentNames = []string{"hello-helidon-component"}
-				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "hello-helidon", componentNames))
+				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "hello-helidon", componentNames, ok))
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
 	})

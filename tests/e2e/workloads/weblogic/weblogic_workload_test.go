@@ -236,6 +236,11 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 	})
 
 	t.Context("Metrics", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		}
+		ok, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
 		// Verify application Prometheus scraped targets
 		// GIVEN the sample WebLogic app is deployed
 		// WHEN the application configuration uses a default metrics trait
@@ -243,7 +248,7 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 		t.It("Verify all scrape targets are healthy for the application", func() {
 			Eventually(func() (bool, error) {
 				var componentNames = []string{"hello-domain"}
-				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "hello-appconf", componentNames))
+				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "hello-appconf", componentNames, ok))
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
 

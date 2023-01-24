@@ -6,7 +6,6 @@ package bobsbooks
 import (
 	"fmt"
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
-	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -27,8 +26,6 @@ const (
 	longPollingInterval      = 20 * time.Second
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
-
-	targetsVersion = "1.4.0"
 
 	// application specific constants
 	robertCoh            = "robert-coh"
@@ -58,8 +55,7 @@ var (
 		"bobbys-helidon-stock-application",
 		"robert-helidon",
 		"mysql"}
-	appName    = "bobs-books"
-	kubeConfig = os.Getenv("KUBECONFIG")
+	appName = "bobs-books"
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -281,14 +277,20 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		})
 	})
 	t.Context("Metrics.", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
+
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		}
+		ok, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
 		// Verify application Prometheus scraped targets
 		// GIVEN a deployed Bob's Books application
 		// WHEN the application configuration uses a default metrics trait
 		// THEN confirm that all the scrape targets are healthy
-		t.ItMinimumVersion("Verify all scrape targets are healthy for the application", targetsVersion, kubeConfig, func() {
+		t.It("Verify all scrape targets are healthy for the application", func() {
 			Eventually(func() (bool, error) {
 				var componentNames = []string{"bobby-coh", "bobby-helidon", "bobby-wls", "bobs-mysql-deployment", "bobs-mysql-service", "bobs-orders-wls", robertCoh, "robert-helidon"}
-				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "bob-books", componentNames))
+				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "bob-books", componentNames, ok))
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
 		// Verify Istio Prometheus scraped metrics

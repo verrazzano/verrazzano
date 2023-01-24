@@ -39,7 +39,6 @@ const (
 	sampleSpringMetric       = "http_server_requests_seconds_count"
 	sampleMicronautMetric    = "process_start_time_seconds"
 	oamComponent             = "app_oam_dev_component"
-	targetsVersion           = "1.4.0"
 )
 
 var sockShop SockShop
@@ -49,7 +48,6 @@ var (
 	t                  = framework.NewTestFramework("socks")
 	generatedNamespace = pkg.GenerateNamespace("sockshop")
 	clusterDump        = dump.NewClusterDumpWrapper(t, generatedNamespace)
-	kubeConfig         = os.Getenv("KUBECONFIG")
 )
 
 // creates the sockshop namespace and applies the components and application yaml
@@ -283,7 +281,7 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 			t.It("Verify all scrape targets are healthy for the application", func() {
 				Eventually(func() (bool, error) {
 					var componentNames = []string{"carts", "catalog", "orders", "payment", "shipping", "users"}
-					return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "sockshop-appconf", componentNames))
+					return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "sockshop-appconf", componentNames, true))
 				}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 			})
 		}
