@@ -29,6 +29,7 @@ const (
 	imagePullPollingInterval = 30 * time.Second
 	skipVerifications        = "Skip Verifications"
 	helloHelidon             = "hello-helidon"
+	nodeExporterJobName      = "node-exporter"
 )
 
 var (
