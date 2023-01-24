@@ -27,9 +27,9 @@ func preCheck(client clipkg.Client, profile ProfileType) []error {
 	if err != nil {
 		return []error{err}
 	}
-	if len(nodeList.Items) < vzReq.nodeCount {
-		errs = append(errs, fmt.Errorf(nodeCountReqMsg, vzReq.nodeCount, len(nodeList.Items)))
-	}
+	//if len(nodeList.Items) < vzReq.nodeCount {
+	//	errs = append(errs, fmt.Errorf(nodeCountReqMsg, vzReq.nodeCount, len(nodeList.Items)))
+	//}
 
 	for _, node := range nodeList.Items {
 		var cpuAllocatable = node.Status.Allocatable[k8score.ResourceCPU]
