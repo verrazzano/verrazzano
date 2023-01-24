@@ -9,7 +9,6 @@ import (
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -33,7 +32,6 @@ const (
 	imagePullPollingInterval = 30 * time.Second
 	skipVerifications        = "Skip Verifications"
 	nodeExporterJobName      = "node-exporter"
-	targetsVersion           = "1.4.0"
 )
 
 const (
@@ -46,7 +44,6 @@ var (
 	generatedNamespace = pkg.GenerateNamespace("hello-helidon-svc")
 	//yamlApplier              = k8sutil.YAMLApplier{}
 	expectedPodsHelloHelidon = []string{"hello-helidon-svc-deployment"}
-	kubeConfig               = os.Getenv("KUBECONFIG")
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {

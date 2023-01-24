@@ -38,6 +38,7 @@ var (
 	generatedNamespace = pkg.GenerateNamespace(helloHelidon)
 	// yamlApplier              = k8sutil.YAMLApplier{}
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
+	kubeConfig               = os.Getenv("KUBECONFIG")
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {

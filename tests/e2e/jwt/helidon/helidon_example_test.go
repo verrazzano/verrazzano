@@ -9,7 +9,6 @@ import (
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -45,7 +44,6 @@ var (
 	generatedNamespace = pkg.GenerateNamespace(helloHelidon)
 	//yamlApplier              = k8sutil.YAMLApplier{}
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
-	kubeConfig               = os.Getenv("KUBECONFIG")
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
