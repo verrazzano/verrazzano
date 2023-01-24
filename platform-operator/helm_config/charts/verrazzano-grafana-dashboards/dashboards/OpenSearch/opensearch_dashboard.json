@@ -299,9 +299,9 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "count(opensearch_index_replicas_number{verrazzano_cluster=\"local\"})",
+          "expr": "count(count by (index) (opensearch_index_replicas_number{verrazzano_cluster=\"local\"}))",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "index count",
           "refId": "A"
         }
       ],
@@ -439,7 +439,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_cluster_shards_number{cluster=\"system\", type=\"active\"})",
+          "expr": "max(opensearch_cluster_shards_number{cluster=\"system\", type=\"active\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -498,7 +498,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_cluster_shards_number{cluster=\"system\", type=\"active_primary\"})",
+          "expr": "max(opensearch_cluster_shards_number{cluster=\"system\", type=\"active_primary\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -561,7 +561,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_cluster_shards_number{cluster=\"system\", type=\"relocating\"})",
+          "expr": "max(opensearch_cluster_shards_number{cluster=\"system\", type=\"relocating\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -624,7 +624,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_cluster_shards_number{cluster=\"system\", type=\"initializing\"})",
+          "expr": "max(opensearch_cluster_shards_number{cluster=\"system\", type=\"initializing\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -687,7 +687,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_cluster_shards_number{cluster=\"system\", type=\"unassigned\"})",
+          "expr": "max(opensearch_cluster_shards_number{cluster=\"system\", type=\"unassigned\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -757,9 +757,9 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "count(opensearch_index_replicas_number{cluster=\"system\"})",
+          "expr": "count(count by (index) (opensearch_index_replicas_number{cluster=\"system\"}))",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "index count",
           "refId": "A"
         }
       ],
@@ -851,9 +851,9 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "opensearch_indices_store_size_bytes{cluster=\"system\"}",
+          "expr": "opensearch_indices_store_size_bytes{cluster=\"system\",job=\"vmi-system-es-data\"}",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{kubernetes_pod_name}}",
           "refId": "A"
         }
       ],
@@ -947,9 +947,9 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_indices_merges_total_docs_count{cluster=\"system\"})",
+          "expr": "sum(opensearch_indices_merges_total_docs_count{cluster=\"system\",job=\"vmi-system-es-data\"})",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "total documents count",
           "refId": "A"
         }
       ],
@@ -1041,9 +1041,9 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rate(opensearch_indices_indexing_index_count{cluster=\"system\"}[1h])",
+          "expr": "sum(rate(opensearch_index_doc_number{cluster=\"system\",job=\"vmi-system-es-data\",context=\"total\"}[1h])) by (pod)",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{pod}}",
           "refId": "A"
         }
       ],
