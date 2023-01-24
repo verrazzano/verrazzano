@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package opensearch
@@ -256,6 +256,7 @@ func TestHasDataNodeStorageOverride(t *testing.T) {
 }
 
 func TestNodeAdapter(t *testing.T) {
+	javaOpts := "-Xmx1g -Xms1g"
 	vmiStorage := test50Gi
 	vmi := &vmov1.VerrazzanoMonitoringInstance{
 		Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
@@ -274,6 +275,7 @@ func TestNodeAdapter(t *testing.T) {
 						Resources: vmov1.Resources{
 							RequestMemory: test48Mi,
 						},
+						JavaOpts: javaOpts,
 					},
 					{
 						Name:     "b",
@@ -324,6 +326,7 @@ func TestNodeAdapter(t *testing.T) {
 					corev1.ResourceMemory: resource.MustParse(test48Mi),
 				},
 			},
+			JavaOpts: javaOpts,
 		},
 		bNode,
 	}
@@ -338,6 +341,7 @@ func TestNodeAdapter(t *testing.T) {
 			assert.Equal(t, n1.Storage.Size, n2.Storage.Size)
 		}
 		assert.Equal(t, n1.Resources.RequestMemory, n2.Resources.RequestMemory)
+		assert.Equal(t, n1.JavaOpts, n2.JavaOpts)
 	}
 	compareNodes(&vmi.Spec.Elasticsearch.Nodes[0], &adaptedNodes[0])
 	compareNodes(&vmi.Spec.Elasticsearch.Nodes[1], &adaptedNodes[1])

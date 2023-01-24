@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1beta1
@@ -397,13 +397,16 @@ type OpenSearchComponent struct {
 	Plugins vmov1.OpenSearchPlugins `json:"plugins,omitempty"`
 }
 
-//OpenSearchNode specifies a node group in the OpenSearch cluster
+// OpenSearchNode specifies a node group in the OpenSearch cluster
 type OpenSearchNode struct {
 	Name      string                       `json:"name,omitempty"`
 	Replicas  int32                        `json:"replicas,omitempty"`
 	Roles     []vmov1.NodeRole             `json:"roles,omitempty"`
 	Storage   *OpenSearchNodeStorage       `json:"storage,omitempty"`
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+	// JavaOpts settings for the OpenSearch JVM
+	// +optional
+	JavaOpts string `json:"javaOpts,omitempty"`
 }
 
 type OpenSearchNodeStorage struct {

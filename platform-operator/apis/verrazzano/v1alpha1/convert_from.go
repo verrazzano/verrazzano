@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -9,7 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 )
 
-//ConvertFrom converts from v1beta1.Verrazzano to v1alpha1.Verrazzano
+// ConvertFrom converts from v1beta1.Verrazzano to v1alpha1.Verrazzano
 func (in *Verrazzano) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1beta1.Verrazzano)
 	if src == nil {
@@ -227,6 +227,7 @@ func convertOSNodesFromV1Beta1(in []v1beta1.OpenSearchNode) []OpenSearchNode {
 			Roles:     inNode.Roles,
 			Storage:   storage,
 			Resources: inNode.Resources,
+			JavaOpts:  inNode.JavaOpts,
 		})
 	}
 	return out

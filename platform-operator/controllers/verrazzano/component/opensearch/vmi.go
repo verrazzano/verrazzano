@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package opensearch
@@ -55,7 +55,7 @@ func actualCRNodes(cr *vzapi.Verrazzano) map[string]vzapi.OpenSearchNode {
 	return nodeMap
 }
 
-//newOpenSearch creates a new OpenSearch resource for the VMI
+// newOpenSearch creates a new OpenSearch resource for the VMI
 // The storage settings for OpenSearch nodes follow this order of precedence:
 // 1. ESInstallArgs values
 // 2. VolumeClaimTemplate overrides
@@ -137,7 +137,7 @@ func newOpenSearch(effectiveCR, actualCR *vzapi.Verrazzano, storage *common.Reso
 	return opensearch, nil
 }
 
-//populateOpenSearchFromInstallArgs loops through each of the install args and sets their value in the corresponding
+// populateOpenSearchFromInstallArgs loops through each of the install args and sets their value in the corresponding
 // OpenSearch object
 func populateOpenSearchFromInstallArgs(opensearch *vmov1.Elasticsearch, opensearchComponent *vzapi.ElasticsearchComponent) error {
 	intSetter := func(val *int32, arg vzapi.InstallArgs) error {
@@ -203,7 +203,7 @@ func nodeAdapter(effectiveCR *vzapi.Verrazzano, vmi *vmov1.VerrazzanoMonitoringI
 		}
 		vmoNode := vmov1.ElasticsearchNode{
 			Name:      node.Name,
-			JavaOpts:  "",
+			JavaOpts:  node.JavaOpts,
 			Replicas:  node.Replicas,
 			Roles:     node.Roles,
 			Resources: resources,
@@ -241,7 +241,7 @@ func findStorageForNode(effectiveCR *vzapi.Verrazzano, node vzapi.OpenSearchNode
 	return storageSize
 }
 
-//setPVCNames persists any PVC names from an existing VMI
+// setPVCNames persists any PVC names from an existing VMI
 func setPVCNames(vmi *vmov1.VerrazzanoMonitoringInstance, node *vmov1.ElasticsearchNode) {
 	if vmi != nil {
 		for _, nodeGroup := range vmi.Spec.Elasticsearch.Nodes {

@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: install.verrazzano.io/v1alpha1
 kind: Verrazzano
@@ -27,6 +27,7 @@ spec:
           - plugin2
       nodes:
         - name: es-master
+          javaOpts: "-Xmx6g -Xms6g"
           resources:
             requests:
               memory: 2Gi
