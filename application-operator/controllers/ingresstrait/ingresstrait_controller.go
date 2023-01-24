@@ -763,7 +763,7 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 							HttpCookie: &istionet.LoadBalancerSettings_ConsistentHashLB_HTTPCookie{
 								Name: rule.Destination.HTTPCookie.Name,
 								Path: rule.Destination.HTTPCookie.Path,
-								Ttl:  durationpb.New(rule.Destination.HTTPCookie.TTL)},
+								Ttl:  durationpb.New(rule.Destination.HTTPCookie.TTL * time.Second)},
 						},
 					},
 				},
