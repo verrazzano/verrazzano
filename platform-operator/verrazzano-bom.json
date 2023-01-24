@@ -52,24 +52,24 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "v1.9.1-20221212223015-8004fda7",
+              "tag": "v1.9.1-20230123161245-8004fda7",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "v1.9.1-20221212223015-8004fda7",
+              "tag": "v1.9.1-20230123161245-8004fda7",
               "helmFullImageKey": "extraArgs[0]"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "v1.9.1-20221212223015-8004fda7",
+              "tag": "v1.9.1-20230123161245-8004fda7",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "v1.9.1-20221212223015-8004fda7",
+              "tag": "v1.9.1-20230123161245-8004fda7",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.8-20230118020002-d3322376b",
+              "tag": "v2.6.8-20230123170854-d3322376b",
               "dashboard": "v2.6.8-20230118014847-b34cbd87",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20230118020002-d3322376b"
+              "tag": "v2.6.8-20230123170854-d3322376b"
             }
           ]
         },
@@ -189,7 +189,7 @@
             },
             {
               "image": "console",
-              "tag": "v1.5.0-20221118195745-5347193",
+              "tag": "v1.5.0-20230120214311-5347193",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -345,7 +345,7 @@
             },
             {
               "image": "weblogic-monitoring-exporter",
-              "tag": "2.1.0",
+              "tag": "2.1.1",
               "helmFullImageKey": "weblogicMonitoringExporterImage"
             }
           ]
@@ -508,7 +508,7 @@
           "images": [
             {
               "image": "alertmanager",
-              "tag": "v0.24.0-20221206192620-fb73d30f",
+              "tag": "v0.24.0-20230120223237-5c671265",
               "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
               "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
             }
@@ -537,7 +537,7 @@
           "images": [
             {
               "image": "prometheus-adapter",
-              "tag": "v0.10.0-20221205223815-9313ff7b",
+              "tag": "v0.10.0-20230120221056-9313ff7b",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -554,7 +554,7 @@
           "images": [
             {
               "image": "kube-state-metrics",
-              "tag": "v2.6.0-20221202183421-fda95595",
+              "tag": "v2.6.0-20230120172545-fda95595",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -571,7 +571,7 @@
           "images": [
             {
               "image": "prometheus-pushgateway",
-              "tag": "v1.4.2-20221130235227-3af6d83b",
+              "tag": "v1.4.2-20230120221916-3af6d83b",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -606,7 +606,7 @@
           "images": [
             {
               "image": "jaeger-operator",
-              "tag": "1.37.0-20221208173047-0760c0d3",
+              "tag": "1.37.0-20230123193526-0760c0d3",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -618,7 +618,7 @@
           "images": [
             {
               "image": "jaeger-agent",
-              "tag": "1.37.0-20221219184221-55f6b454",
+              "tag": "1.37.0-20230123194400-55f6b454",
               "helmFullImageKey": "jaegerAgentImage"
             }
           ]
@@ -629,7 +629,7 @@
           "images": [
             {
               "image": "jaeger-collector",
-              "tag": "1.37.0-20221219184221-55f6b454",
+              "tag": "1.37.0-20230123194400-55f6b454",
               "helmFullImageKey": "jaegerCollectorImage"
             }
           ]
@@ -640,7 +640,7 @@
           "images": [
             {
               "image": "jaeger-query",
-              "tag": "1.37.0-20221219184221-55f6b454",
+              "tag": "1.37.0-20230123194400-55f6b454",
               "helmFullImageKey": "jaegerQueryImage"
             }
           ]
@@ -651,7 +651,7 @@
           "images": [
             {
               "image": "jaeger-ingester",
-              "tag": "1.37.0-20221219184221-55f6b454",
+              "tag": "1.37.0-20230123194400-55f6b454",
               "helmFullImageKey": "jaegerIngesterImage"
             }
           ]
@@ -662,7 +662,7 @@
           "images": [
             {
               "image": "jaeger-es-index-cleaner",
-              "tag": "1.37.0-20221219184221-55f6b454",
+              "tag": "1.37.0-20230123194400-55f6b454",
               "helmFullImageKey": "jaegerESIndexCleanerImage"
             }
           ]
@@ -684,7 +684,7 @@
           "images": [
             {
               "image": "jaeger-all-in-one",
-              "tag": "1.37.0-20221219184221-55f6b454",
+              "tag": "1.37.0-20230123194400-55f6b454",
               "helmFullImageKey": "jaegerAllInOneImage"
             }
           ]

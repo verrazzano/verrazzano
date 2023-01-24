@@ -1,4 +1,4 @@
-# Copyright (C) 2022, Oracle and/or its affiliates.
+# Copyright (C) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -42,6 +42,8 @@ rules:
       - serviceaccounts
       - configmaps
       - secrets
+      - services
+      - pods/exec
     verbs:
       - create
       - get
@@ -53,6 +55,7 @@ rules:
     resources:
       - ingresses
     verbs:
+      - get
       - list
       - watch
   - apiGroups:
