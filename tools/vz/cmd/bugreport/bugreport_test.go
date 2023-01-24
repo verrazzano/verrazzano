@@ -12,7 +12,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelper "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -327,20 +326,6 @@ func getClientWithWatch() client.WithWatch {
 // getClientWithVZWatch returns a client containing all VPO objects and the Verrazzano CR
 func getClientWithVZWatch() client.WithWatch {
 	return fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(getVpoObjects()...).Build()
-}
-
-// getClientWithV1Alpha1VZWatch returns a client containing all VPO objects and the v1alpha1 Verrazzano CR
-func getClientWithV1Alpha1VZWatch() client.WithWatch {
-	return fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(getVpoObjects()[1:]...).
-		WithObjects(&v1alpha1.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "verrazzano",
-			},
-			Spec: v1alpha1.VerrazzanoSpec{
-				Profile: v1alpha1.Dev,
-			},
-		}).Build()
 }
 
 func getVpoObjects() []client.Object {

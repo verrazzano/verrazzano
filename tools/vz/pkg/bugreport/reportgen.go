@@ -106,7 +106,7 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bug
 	vmoPod, _ := pkghelpers.GetPodList(client, constants.K8SAppLabel, constants.VerrazzanoMonitoringOperator, vzconstants.VerrazzanoSystemNamespace)
 	externalDNSPod, _ := pkghelpers.GetPodList(client, constants.K8sAppLabelExternalDNS, vzconstants.ExternalDNS, vzconstants.CertManager)
 	wgCount := 3 + len(namespaces)
-	wgCount++
+	wgCount++ // increment for the verrrazzano resource
 	if len(externalDNSPod) > 0 {
 		wgCount++
 	}
