@@ -39,7 +39,7 @@ var (
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
-	deployWebLogicApplication()
+	//deployWebLogicApplication()
 	beforeSuitePassed = true
 })
 
