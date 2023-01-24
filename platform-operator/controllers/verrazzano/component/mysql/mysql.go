@@ -73,6 +73,7 @@ CREATE USER IF NOT EXISTS keycloak IDENTIFIED BY '%s';
 CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE ON keycloak.* TO '%s'@'%%';
 FLUSH PRIVILEGES;
+
 EOF
    if [[ $IsRestore == false ]]; then
       mysql -u root -p${rootPassword} << EOF
@@ -97,6 +98,11 @@ CREATE TABLE IF NOT EXISTS DATABASECHANGELOG (
 EOF
    fi
 fi
+mysql -u root -p${rootPassword} << EOF
+USE keycloak;
+GRANT XA_RECOVER_ADMIN ON *.* to 'keycloak'@'%';
+SHOW GRANTS FOR  'keycloak';
+EOF
 `
 	mySQLRootCommand = `/usr/bin/mysql -uroot -p%s <<EOF
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost'; flush privileges;
