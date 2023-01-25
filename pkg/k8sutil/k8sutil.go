@@ -46,12 +46,10 @@ const APIServerQPS = 100.0
 type ClientConfigFunc func() (*rest.Config, kubernetes.Interface, error)
 
 var ClientConfig ClientConfigFunc = func() (*rest.Config, kubernetes.Interface, error) {
-	cfg, err := controllerruntime.GetConfig()
+	cfg, err := GetConfigFromController()
 	if err != nil {
 		return nil, nil, err
 	}
-	cfg.Burst = APIServerBurst
-	cfg.QPS = APIServerQPS
 	c, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
 		return nil, nil, err
@@ -70,6 +68,25 @@ func SetFakeClient(client kubernetes.Interface) {
 // ClearFakeClient for unit tests
 func ClearFakeClient() {
 	fakeClient = nil
+}
+
+// GetConfigFromController get the config from the Controller Runtime and set the default QPS and burst.
+func GetConfigFromController() (*rest.Config, error) {
+	cfg, err := controllerruntime.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	cfg.Burst = APIServerBurst
+	cfg.QPS = APIServerQPS
+	return cfg, nil
+}
+
+// GetConfigOrDieFromController get the config from the Controller Runtime and set the default QPS and burst.
+func GetConfigOrDieFromController() *rest.Config {
+	cfg := controllerruntime.GetConfigOrDie()
+	cfg.Burst = APIServerBurst
+	cfg.QPS = APIServerQPS
+	return cfg
 }
 
 // GetKubeConfigLocation Helper function to obtain the default kubeConfig location
@@ -200,12 +217,10 @@ var GetDynamicClientFunc = GetDynamicClient
 
 // GetDynamicClient returns the Dynamic Interface
 func GetDynamicClient() (dynamic.Interface, error) {
-	config, err := controllerruntime.GetConfig()
+	config, err := GetConfigFromController()
 	if err != nil {
 		return nil, err
 	}
-	config.Burst = APIServerBurst
-	config.QPS = APIServerQPS
 	dynClient, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return nil, err
@@ -391,15 +406,13 @@ func GetGoClient(log ...vzlog.VerrazzanoLogger) (kubernetes.Interface, error) {
 	if fakeClient != nil {
 		return fakeClient, nil
 	}
-	config, err := controllerruntime.GetConfig()
+	config, err := GetConfigFromController()
 	if err != nil {
 		if logger != nil {
 			logger.Errorf("Failed to get kubeconfig: %v", err)
 		}
 		return nil, err
 	}
-	config.Burst = APIServerBurst
-	config.QPS = APIServerQPS
 
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
