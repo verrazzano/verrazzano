@@ -92,6 +92,13 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 
 		t.Logs.Info("Helidon Example: check expected Secret exists")
 		Eventually(func() bool {
+			secrets, err := pkg.ListSecrets(namespace) // TODO
+			if err != nil {
+				t.Logs.Info(fmt.Sprintf("Failed to list Secrets from namespace %s: %v", namespace, err))
+			}
+			for i := range secrets.Items {
+				t.Logs.Info(fmt.Sprintf("Secret found: %s", secrets.Items[i].Name))
+			} // TODO
 			result, err := pkg.DoesSecretExist(namespace, helidonToken)
 			if err != nil {
 				AbortSuite(fmt.Sprintf("Helidon Secret %s does not exist in the namespace: %v, error: %v", helidonToken, namespace, err))
