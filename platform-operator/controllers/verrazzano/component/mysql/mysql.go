@@ -671,6 +671,9 @@ func (c mysqlComponent) postUninstall(ctx spi.ComponentContext) error {
 
 // grantXARecoverAdmin grants XA_RECOVER_ADMIN to Keycloak user
 func grantXARecoverAdmin(ctx spi.ComponentContext) error {
+	if unitTesting {
+		return nil
+	}
 	ctx.Log().Info("Grant XA_RECOVER_ADMIN to Keycloak user")
 	// Get root password, required to connect to MySQL pod
 	secretName := types.NamespacedName{
