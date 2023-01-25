@@ -18,7 +18,7 @@ spec:
             app: robert-coh
             version: v1
           replicas: 2
-          image: container-registry.oracle.com/verrazzano/example-roberts-coherence:1.0.0-1-20210728181814-eb1e622
+          image: ghcr.io/verrazzano/example-roberts-coherence:20230125183827-5a28ad0
           imagePullPolicy: IfNotPresent
           imagePullSecrets:
             - name: bobs-books-repo-credentials
@@ -99,7 +99,7 @@ spec:
             app: bobbys-coh
             version: v1
           replicas: 1
-          image: container-registry.oracle.com/verrazzano/example-bobbys-coherence:1.0.0-1-20210728181814-eb1e622
+          image: ghcr.io/verrazzano/example-bobbys-coherence:20230125183827-5a28ad0
           imagePullPolicy: IfNotPresent
           imagePullSecrets:
             - name: bobs-books-repo-credentials
