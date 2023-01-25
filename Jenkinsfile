@@ -24,7 +24,7 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "internal"
+            label "${agentLabel}"
         }
     }
 
@@ -119,13 +119,6 @@ pipeline {
         // used to write to object storage, or fail build if UT coverage does not pass
         FAIL_BUILD_COVERAGE = "${params.FAIL_IF_COVERAGE_DECREASED}"
         UPLOAD_UT_COVERAGE = "${params.UPLOAD_UNIT_TEST_COVERAGE}"
-
-        HTTP_PROXY = "www-proxy-ash7.us.oracle.com:80"
-        http_proxy = "www-proxy-ash7.us.oracle.com:80"
-        HTTPS_PROXY = "www-proxy-ash7.us.oracle.com:80"
-        https_proxy = "www-proxy-ash7.us.oracle.com:80"
-        no_proxy = "localhost,127.0.0.1,*.us.oracle.com,*.oraclecorp.com,/var/run/docker.sock"
-        NO_PROXY = "localhost,127.0.0.1,*.us.oracle.com,*.oraclecorp.com,/var/run/docker.sock"
     }
 
     stages {
