@@ -87,16 +87,16 @@ spec:
                             - path: "/todo"
                               pathType: Prefix
                         destination:
-                            host: cidomain-adminserver.console-ingress.svc.cluster.local
+                            host: tododomain-adminserver.console-ingress.svc.cluster.local
                             port: 7001
                       - paths:
                             - path: "/console"
                               pathType: Prefix
                         destination:
-                            host: cidomain-adminserver.console-ingress.svc.cluster.local
+                            host: tododomain-adminserver.console-ingress.svc.cluster.local
                             port: 7001
                             httpCookie:
-                                name: cidomain
+                                name: tododomain
                                 path: "/console"
                                 ttl: 30
     - componentName: todo-jdbc-configmap
