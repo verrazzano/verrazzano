@@ -5,6 +5,8 @@ package helidonconfig
 
 import (
 	"fmt"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -15,7 +17,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"time"
 )
 
 const (
@@ -25,11 +26,16 @@ const (
 	shortWaitTimeout         = 5 * time.Minute
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
+
+	ingress        = "helidon-config-ingress-rule"
+	helidonService = "helidon-config-deployment"
+	helidonToken   = "helidon-config-appconf-token"
 )
 
 var (
 	t                  = framework.NewTestFramework("helidonconfig")
 	generatedNamespace = pkg.GenerateNamespace("helidon-config")
+	host               = ""
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -60,6 +66,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		beforeSuitePassed = true
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
+		t.Logs.Info("Container image pull check")
 		Eventually(func() bool {
 			return pkg.ContainerImagePullWait(namespace, expectedPodsHelidonConfig)
 		}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
@@ -69,7 +76,52 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	// GIVEN OAM helidon-config app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-	Eventually(helidonConfigPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
+	t.Logs.Info("Helidon Config: check expected pods are running")
+	Eventually(func() bool {
+		result, err := pkg.PodsRunning(namespace, expectedPodsHelidonConfig)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+		}
+		return result
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Helidon Config Failed to Deploy: Pods are not ready")
+
+	t.Logs.Info("Helidon Config: check expected Services are running")
+	Eventually(func() bool {
+		result, err := pkg.DoesServiceExist(namespace, helidonService)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Helidon Service %s is not running in the namespace: %v, error: %v", helidonService, namespace, err))
+		}
+		return result
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Helidon Config Failed to Deploy: Services are not ready")
+
+	t.Logs.Info("Helidon Config: check expected VirtualService is ready")
+	Eventually(func() bool {
+		result, err := pkg.DoesVirtualServiceExist(namespace, ingress)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Helidon VirtualService %s is not running in the namespace: %v, error: %v", ingress, namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Helidon Config Failed to Deploy: VirtualService is not ready")
+
+	t.Logs.Info("Helidon Config: check expected Secret exists")
+	Eventually(func() bool {
+		result, err := pkg.DoesSecretExist(namespace, helidonToken)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Helidon Secret %s does not exist in the namespace: %v, error: %v", helidonToken, namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Helidon Config Failed to Deploy: Secret does not exist")
+
+	var err error
+	// Get the host from the Istio gateway resource.
+	start := time.Now()
+	t.Logs.Info("Helidon Config: check expected Gateway is ready")
+	Eventually(func() (string, error) {
+		host, err = k8sutil.GetHostnameFromGateway(namespace, "")
+		return host, err
+	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Helidon Config: Gateway is not ready")
+	metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
+
 })
 
 var _ = BeforeSuite(beforeSuite)
