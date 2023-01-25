@@ -39,14 +39,14 @@ spec:
         image: {{ .Values.image }}
         imagePullPolicy: {{ .Values.imagePullPolicy }}
         env:
-        - name: RANCHER_CLUSTER_SYNC_ENABLED
+        - name: CLUSTER_SYNC_ENABLED
           valueFrom:
             configMapKeyRef:
               name: {{ .Values.name }}-selector
               key: enabled
         volumeMounts:
           - name: cluster-selector
-            mountPath: /var/syncRancherClusters
+            mountPath: /var/syncClusters
         ports:
           - containerPort: 9100
             name: http-metric

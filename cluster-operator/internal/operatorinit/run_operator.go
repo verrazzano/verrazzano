@@ -26,7 +26,7 @@ import (
 
 const (
 	clusterSelectorFilePath = "/var/syncClusters/selector.yaml"
-	syncClustersEnvVarName  = "RANCHER_ARGOCD_CLUSTER_SYNC_ENABLED"
+	syncClustersEnvVarName  = "CLUSTER_SYNC_ENABLED"
 	cattleClustersCRDName   = "clusters.management.cattle.io"
 )
 

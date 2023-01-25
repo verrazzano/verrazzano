@@ -6,7 +6,6 @@ package vzinstance
 import (
 	"context"
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
@@ -72,7 +71,6 @@ func getComponentIngressURL(ingresses []networkingv1.Ingress, compContext spi.Co
 	}
 	for _, compIngressName := range comp.GetIngressNames(compContext) {
 		if compIngressName.Name == ingressName {
-			zap.S().Infof("Ingressname %v", compIngressName.Name)
 			return getSystemIngressURL(ingresses, compContext, compIngressName.Namespace, compIngressName.Name)
 		}
 	}
@@ -82,7 +80,6 @@ func getComponentIngressURL(ingresses []networkingv1.Ingress, compContext spi.Co
 
 func getSystemIngressURL(ingresses []networkingv1.Ingress, compContext spi.ComponentContext, namespace string, name string) *string {
 	var ingress = findIngress(ingresses, namespace, name)
-	zap.S().Infof("Ingress found %v", ingress)
 	if ingress == nil {
 		zap.S().Debugf("No ingress found for %s/%s", namespace, name)
 		return nil
