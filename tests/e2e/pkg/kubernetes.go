@@ -275,6 +275,15 @@ func GetService(namespace string, serviceName string) (*corev1.Service, error) {
 	return svc, nil
 }
 
+// DoesServiceExist returns whether a Service with the given name and namespace exists for the cluster
+func DoesServiceExist(namespace string, name string) (bool, error) {
+	_, err := GetService(namespace, name)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // GetIngressList returns a list of ingresses in the given namespace
 func GetIngressList(namespace string) (*netv1.IngressList, error) {
 	// Get the Kubernetes clientset
