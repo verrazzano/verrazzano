@@ -87,7 +87,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.12.2-20221216074136-5eb1b215",
+              "tag": "v0.12.2-20230124195615-5eb1b215",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -106,12 +106,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.15.3-20221221225651-900a5c7b",
+              "tag": "1.15.3-20230124194836-900a5c7b",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.15.3-20221221225651-900a5c7b",
+              "tag": "1.15.3-20230124194836-900a5c7b",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -179,7 +179,7 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.15.3-20221221225651-900a5c7b",
+              "tag": "1.15.3-20230124194836-900a5c7b",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -225,12 +225,12 @@
             },
             {
               "image": "proxyv2",
-              "tag": "1.15.3-20221221225651-900a5c7b",
+              "tag": "1.15.3-20230124194836-900a5c7b",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
               "image": "grafana",
-              "tag": "v7.5.17-20221219045426-a0a26f9b",
+              "tag": "v7.5.17-20230124193319-a0a26f9b",
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
@@ -240,12 +240,12 @@
             },
             {
               "image": "opensearch",
-              "tag": "2.3.0-20221201055859-aa8cdda4ea0",
+              "tag": "2.3.0-20230123213036-bd387046f04",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "2.3.0-20221206112501-acc83ce515",
+              "tag": "2.3.0-20230124171546-f9e6353395",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
@@ -450,7 +450,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v20.0.1-20230113160117-d8eedd8cfb",
+              "tag": "v20.0.1-20230124194411-c79c07e094",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -462,7 +462,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "v1.4.0-20220803133014-7b829cf"
+              "tag": "v1.5.0-20230124195518-771913f"
             }
           ]
         }
@@ -729,7 +729,7 @@
           "images": [
             {
               "image": "backup-restore-operator",
-              "tag": "v2.1.3-20220827005326-bc2c3c4",
+              "tag": "v2.1.3-20230124185458-0977be7",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -760,7 +760,7 @@
           "images": [
             {
               "image": "argocd",
-              "tag": "v2.5.3-20221214191504-c922509d",
+              "tag": "v2.5.3-20230124173152-c922509d",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -772,7 +772,7 @@
           "images": [
             {
               "image": "redis",
-              "tag": "v6.2.7-20221220011601-26c8b963",
+              "tag": "v6.2.7-20230124164724-26c8b963",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

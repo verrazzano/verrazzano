@@ -49,7 +49,7 @@ var (
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
 		start := time.Now()
-		pkg.DeployHelloHelidonApplication(namespace, "", istioInjection, helloHelidonAppConfig)
+		pkg.DeployHelloHelidonApplication(namespace, "", istioInjection, helloHelidonComponent, helloHelidonAppConfig)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
 		t.Logs.Info("Container image pull check")
@@ -119,7 +119,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}
 	if !skipUndeploy {
 		start := time.Now()
-		pkg.UndeployHelloHelidonApplication(namespace, helloHelidonAppConfig)
+		pkg.UndeployHelloHelidonApplication(namespace, helloHelidonComponent, helloHelidonAppConfig)
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
