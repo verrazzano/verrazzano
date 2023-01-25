@@ -265,72 +265,71 @@ func (r *Reconciler) convertWorkloadToDeployment(workload *vzapi.VerrazzanoHelid
 
 // createServiceFromDeployment creates a service for the deployment
 func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelidonWorkload, deploy *appsv1.Deployment, log vzlog.VerrazzanoLogger) (*corev1.Service, error) {
-
 	// We don't add a Service if there are no containers for the Deployment.
 	// This should never happen in practice.
-	if len(deploy.Spec.Template.Spec.Containers) > 0 {
-		s := &corev1.Service{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       serviceKind,
-				APIVersion: serviceAPIVersion,
-			},
-			ObjectMeta: workload.Spec.ServiceTemplate.Metadata,
-			Spec:       workload.Spec.ServiceTemplate.ServiceSpec,
-		}
-		if s.GetName() == "" {
-			s.SetName(deploy.GetName())
-		}
-		if s.GetNamespace() == "" {
-			s.SetNamespace(deploy.GetNamespace())
+	if len(deploy.Spec.Template.Spec.Containers) == 0 {
+		return &corev1.Service{}, nil
+	}
+	s := &corev1.Service{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       serviceKind,
+			APIVersion: serviceAPIVersion,
+		},
+		ObjectMeta: workload.Spec.ServiceTemplate.Metadata,
+		Spec:       workload.Spec.ServiceTemplate.ServiceSpec,
+	}
+	if s.GetName() == "" {
+		s.SetName(deploy.GetName())
+	}
+	if s.GetNamespace() == "" {
+		s.SetNamespace(deploy.GetNamespace())
 
-		}
-		if s.Labels == nil {
-			s.Labels = map[string]string{}
-		}
-		s.Labels[labelKey] = string(workload.GetUID())
-		s.Labels[oam.LabelAppName] = deploy.ObjectMeta.Labels[oam.LabelAppName]
-		s.Labels[oam.LabelAppComponent] = deploy.ObjectMeta.Labels[oam.LabelAppComponent]
+	}
+	if s.Labels == nil {
+		s.Labels = map[string]string{}
+	}
+	s.Labels[labelKey] = string(workload.GetUID())
+	s.Labels[oam.LabelAppName] = deploy.ObjectMeta.Labels[oam.LabelAppName]
+	s.Labels[oam.LabelAppComponent] = deploy.ObjectMeta.Labels[oam.LabelAppComponent]
 
-		if s.Spec.Selector == nil {
-			s.Spec.Selector = deploy.Spec.Selector.MatchLabels
-		}
-		if s.Spec.Type == "" {
-			s.Spec.Type = corev1.ServiceTypeClusterIP
-		}
-		if s.Spec.Ports == nil {
-			for _, container := range deploy.Spec.Template.Spec.Containers {
-				if len(container.Ports) > 0 {
-					for _, port := range container.Ports {
-						// All ports within a ServiceSpec must have unique names.
-						// When considering the endpoints for a Service, this must match the 'name' field in the EndpointPort.
-						name := strings.ToLower(container.Name + "-" + strconv.FormatInt(int64(port.ContainerPort), 10))
-						protocol := corev1.ProtocolTCP
-						if len(port.Protocol) > 0 {
-							protocol = port.Protocol
-						}
-
-						servicePort := corev1.ServicePort{
-							Name:       name,
-							Port:       port.ContainerPort,
-							TargetPort: intstr.FromInt(int(port.ContainerPort)),
-							Protocol:   protocol,
-						}
-						log.Debugf("Appending port %s to service", servicePort)
-						s.Spec.Ports = append(s.Spec.Ports, servicePort)
+	if s.Spec.Selector == nil {
+		s.Spec.Selector = deploy.Spec.Selector.MatchLabels
+	}
+	if s.Spec.Type == "" {
+		s.Spec.Type = corev1.ServiceTypeClusterIP
+	}
+	if s.Spec.Ports == nil {
+		for _, container := range deploy.Spec.Template.Spec.Containers {
+			if len(container.Ports) > 0 {
+				for _, port := range container.Ports {
+					// All ports within a ServiceSpec must have unique names.
+					// When considering the endpoints for a Service, this must match the 'name' field in the EndpointPort.
+					name := strings.ToLower(container.Name + "-" + strconv.FormatInt(int64(port.ContainerPort), 10))
+					protocol := corev1.ProtocolTCP
+					if len(port.Protocol) > 0 {
+						protocol = port.Protocol
 					}
+
+					servicePort := corev1.ServicePort{
+						Name:       name,
+						Port:       port.ContainerPort,
+						TargetPort: intstr.FromInt(int(port.ContainerPort)),
+						Protocol:   protocol,
+					}
+					log.Debugf("Appending port %s to service", servicePort)
+					s.Spec.Ports = append(s.Spec.Ports, servicePort)
 				}
 			}
 		}
-
-		if y, err := yaml.Marshal(s); err != nil {
-			log.Errorf("Failed to convert service to yaml: %v", err)
-			log.Debugf("Service in json format: %s", s)
-		} else {
-			log.Debugf("Service in yaml format: %s", string(y))
-		}
-		return s, nil
 	}
-	return nil, nil
+
+	if y, err := yaml.Marshal(s); err != nil {
+		log.Errorf("Failed to convert service to yaml: %v", err)
+		log.Debugf("Service in json format: %s", s)
+	} else {
+		log.Debugf("Service in yaml format: %s", string(y))
+	}
+	return s, nil
 }
 
 // passLabelAndAnnotation passes through labels and annotation objectMeta from the workload to the deployment object
