@@ -574,15 +574,7 @@ pipeline {
                                 runGinkgoRandomize('opensearch/topology')
                             }
                         }
-                        stage('console ingress') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
-                            }
-                            steps {
-                                runGinkgo('ingress/console')
-                            }
-                        }
-                        stage('logging trait WebLogic workload') {
+                        stage('Ingress & logging trait WebLogic workload') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
                             }
