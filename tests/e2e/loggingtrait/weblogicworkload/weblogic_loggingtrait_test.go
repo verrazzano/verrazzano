@@ -6,6 +6,7 @@ package weblogicworkload
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/tests/e2e/loggingtrait"
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"os"
 	"time"
@@ -57,7 +58,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		dump.ExecuteBugReport(namespace)
 	}
-	//loggingtrait.UndeployApplication(namespace, componentsPath, applicationPath, configMapName, t)
+	loggingtrait.UndeployApplication(namespace, componentsPath, applicationPath, configMapName, t)
 })
 
 var _ = AfterSuite(afterSuite)
@@ -155,7 +156,7 @@ var _ = t.Describe("Test WebLogic loggingtrait application", Label("f:app-lcm.oa
 		})
 	})
 
-	t.Context("Ingress.", Label("f:mesh.ingress",
+	t.Context("for IngressTrait.", Label("f:mesh.ingress",
 		"f:ui.console"), func() {
 		var host = ""
 		var err error

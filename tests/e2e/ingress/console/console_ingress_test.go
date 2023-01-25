@@ -48,7 +48,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		dump.ExecuteBugReport(namespace)
 	}
-	//undeployApplication()
+	undeployApplication()
 })
 
 var _ = AfterSuite(afterSuite)
