@@ -609,9 +609,7 @@ pipeline {
                 }
                 success {
                     script {
-                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-snapshot")
-                        }
+                        dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-snapshot")
                     }
                 }
             }
