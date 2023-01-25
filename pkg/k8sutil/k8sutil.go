@@ -114,11 +114,12 @@ func GetKubeConfigGivenPath(kubeconfigPath string) (*rest.Config, error) {
 
 func BuildKubeConfig(kubeconfig string) (*rest.Config, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err == nil {
-		config.Burst = APIServerBurst
-		config.QPS = APIServerQPS
+	if err != nil {
+		return nil, err
 	}
-	return config, err
+	config.Burst = APIServerBurst
+	config.QPS = APIServerQPS
+	return config, nil
 }
 
 // GetKubeConfig Returns kubeconfig from KUBECONFIG env var if set
@@ -127,12 +128,15 @@ func GetKubeConfig() (*rest.Config, error) {
 	var config *rest.Config
 	kubeConfigLoc, err := GetKubeConfigLocation()
 	if err != nil {
-		return config, err
+		return nil, err
 	}
 	config, err = clientcmd.BuildConfigFromFlags("", kubeConfigLoc)
+	if err != nil {
+		return nil, err
+	}
 	config.Burst = APIServerBurst
 	config.QPS = APIServerQPS
-	return config, err
+	return config, nil
 }
 
 // GetKubeConfigGivenPathAndContext returns a rest.Config given a kubeConfig and kubeContext.
@@ -154,11 +158,12 @@ func GetKubeConfigGivenPathAndContext(kubeConfigPath string, kubeContext string)
 	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeConfigPath},
 		&clientcmd.ConfigOverrides{CurrentContext: kubeContext}).ClientConfig()
-	if err == nil {
-		config.Burst = APIServerBurst
-		config.QPS = APIServerQPS
+	if err != nil {
+		return nil, err
 	}
-	return config, err
+	config.Burst = APIServerBurst
+	config.QPS = APIServerQPS
+	return config, nil
 }
 
 // GetKubernetesClientset returns the Kubernetes clientset for the cluster set in the environment
