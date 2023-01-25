@@ -184,7 +184,7 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.14.5-20221208053759-f85741b",
+              "tag": "v1.14.5-20230124214321-f85741b",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
@@ -736,13 +736,12 @@
           ]
         },
         {
-          "registry": "docker.io",
-          "repository": "rancher",
+          "repository": "verrazzano/rancher",
           "name": "rancher-backup-kubectl",
           "images": [
             {
               "image": "kubectl",
-              "tag": "v1.20.2",
+              "tag": "v1.20.2-20230125170623-2f0ea54",
               "helmFullImageKey": "global.kubectl.repository",
               "helmTagKey": "global.kubectl.tag"
             }
