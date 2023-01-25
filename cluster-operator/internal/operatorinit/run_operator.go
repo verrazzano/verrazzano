@@ -1,27 +1,27 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package operatorinit
 
 import (
 	"context"
-	"net/http"
-	"os"
-	"strings"
-	"time"
-
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/rancher"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"go.uber.org/zap"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"net/http"
+	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/yaml"
+	"strings"
+	"time"
 )
 
 const (
@@ -41,7 +41,7 @@ func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAd
 		LeaderElectionID:       "42d5ea87.verrazzano.io",
 	}
 
-	ctrlConfig := ctrl.GetConfigOrDie()
+	ctrlConfig := k8sutil.GetConfigOrDieFromController()
 	mgr, err := ctrl.NewManager(ctrlConfig, options)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to setup controller manager")
