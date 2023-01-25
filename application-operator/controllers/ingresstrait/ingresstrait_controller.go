@@ -780,7 +780,10 @@ func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, ru
 	for _, path := range rule.Paths {
 		if path.Policy != nil {
 			pathSuffix := strings.Replace(path.Path, "/", "", -1)
-			policyName := fmt.Sprintf("%s-%s", namePrefix, pathSuffix)
+			policyName := namePrefix
+			if pathSuffix != "" {
+				policyName = fmt.Sprintf("%s-%s", policyName, pathSuffix)
+			}
 			authzPolicy := &clisecurity.AuthorizationPolicy{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       authzPolicyKind,
