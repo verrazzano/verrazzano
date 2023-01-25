@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package logging
@@ -83,7 +83,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 		},
 		func() {
 			start := time.Now()
-			pkg.UndeployHelloHelidonApplication(helidonNamespace, "")
+			pkg.UndeployHelloHelidonApplication(helidonNamespace, "", "")
 			metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 		},
 	)
@@ -197,7 +197,7 @@ var _ = t.Describe("OCI Logging", Label("f:oci-integration.logging"), func() {
 		t.It("the namespace-specific app log object has recent log records", func() {
 
 			start := time.Now()
-			pkg.DeployHelloHelidonApplication(helidonNamespace, nsLogID, istioInjection, "")
+			pkg.DeployHelloHelidonApplication(helidonNamespace, nsLogID, istioInjection, "", "")
 			metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
 			Eventually(func() (int, error) {
