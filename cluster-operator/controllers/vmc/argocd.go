@@ -381,7 +381,6 @@ func newArgoCDConfig(rdr client.Reader, log vzlog.VerrazzanoLogger) (*ArgoCDConf
 		return nil, err
 	}
 	ac.Host = hostname
-	//ac.BaseURL = "https://" + ac.Host
 
 	caCert, err := common.GetRootCA(rdr)
 	if err != nil {

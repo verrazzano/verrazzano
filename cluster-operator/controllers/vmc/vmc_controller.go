@@ -230,11 +230,6 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 	var argoCDRegistration *clustersv1alpha1.ArgoCDRegistration
 	if r.isArgoCDEnabled() {
 		if r.isRancherEnabled() {
-			err := r.updateArgoCDClusterRoleBindingTemplate(vmc)
-			if err != nil {
-				r.handleError(ctx, vmc, "Failed to update ArgoCD ClusterRoleBindingTemplate", err, log)
-				return newRequeueWithDelay(), err
-			}
 			argoCDRegistration, err = r.registerManagedClusterWithArgoCD(vmc)
 			if err != nil {
 				r.handleError(ctx, vmc, "Failed to register managed cluster with Argo CD", err, log)
