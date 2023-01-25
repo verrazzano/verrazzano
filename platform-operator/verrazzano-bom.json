@@ -87,7 +87,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.12.2-20221216074136-5eb1b215",
+              "tag": "v0.12.2-20230124195615-5eb1b215",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -230,7 +230,7 @@
             },
             {
               "image": "grafana",
-              "tag": "v7.5.17-20221219045426-a0a26f9b",
+              "tag": "v7.5.17-20230124193319-a0a26f9b",
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
@@ -240,12 +240,12 @@
             },
             {
               "image": "opensearch",
-              "tag": "2.3.0-20221201055859-aa8cdda4ea0",
+              "tag": "2.3.0-20230123213036-bd387046f04",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "2.3.0-20221206112501-acc83ce515",
+              "tag": "2.3.0-20230124171546-f9e6353395",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
