@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vzchecks
@@ -26,6 +26,9 @@ func preCheck(client clipkg.Client, profile ProfileType) []error {
 	nodeList, err := node.GetK8sNodeList(client)
 	if err != nil {
 		return []error{err}
+	}
+	if len(nodeList.Items) < vzReq.nodeCount {
+		errs = append(errs, fmt.Errorf(nodeCountReqMsg, vzReq.nodeCount, len(nodeList.Items)))
 	}
 
 	for _, node := range nodeList.Items {
