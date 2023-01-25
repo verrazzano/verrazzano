@@ -75,7 +75,6 @@ GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE ON 
 FLUSH PRIVILEGES;
 USE keycloak;
 GRANT XA_RECOVER_ADMIN ON *.* to 'keycloak'@'%%';
-SHOW GRANTS FOR  'keycloak';
 EOF
    if [[ $IsRestore == false ]]; then
       mysql -u root -p${rootPassword} << EOF

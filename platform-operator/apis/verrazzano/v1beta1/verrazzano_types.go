@@ -452,7 +452,7 @@ type OpenSearchNode struct {
 	// Storage settings for the node group.
 	// +optional
 	Storage *OpenSearchNodeStorage `json:"storage,omitempty"`
-	// JavaOpts settings for the OpenSearch JVM
+	// JavaOpts settings for the OpenSearch JVM.
 	// +optional
 	JavaOpts string `json:"javaOpts,omitempty"`
 }
