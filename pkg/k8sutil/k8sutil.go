@@ -40,8 +40,8 @@ const EnvVarKubeConfig = "KUBECONFIG"
 // EnvVarTestKubeConfig Name of Environment Variable for test KUBECONFIG
 const EnvVarTestKubeConfig = "TEST_KUBECONFIG"
 
-const APIServerBurst = 100
-const APIServerQPS = 100
+const APIServerBurst = 200.0
+const APIServerQPS = 100.0
 
 type ClientConfigFunc func() (*rest.Config, kubernetes.Interface, error)
 
