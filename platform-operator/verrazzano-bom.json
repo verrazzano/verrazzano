@@ -741,7 +741,7 @@
           "images": [
             {
               "image": "kubectl",
-              "tag": "v1.20.2-20230124220617-b4579ed",
+              "tag": "v1.20.2-20230125170623-2f0ea54",
               "helmFullImageKey": "global.kubectl.repository",
               "helmTagKey": "global.kubectl.tag"
             }
