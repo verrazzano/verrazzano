@@ -87,13 +87,13 @@ spec:
                             - path: "/todo"
                               pathType: Prefix
                         destination:
-                            host: tododomain-adminserver.console-ingress.svc.cluster.local
+                            host: tododomain-adminserver.weblogic-logging-trait.svc.cluster.local
                             port: 7001
                       - paths:
                             - path: "/console"
                               pathType: Prefix
                         destination:
-                            host: tododomain-adminserver.console-ingress.svc.cluster.local
+                            host: tododomain-adminserver.weblogic-logging-trait.svc.cluster.local
                             port: 7001
                             httpCookie:
                                 name: tododomain
