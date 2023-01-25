@@ -146,10 +146,10 @@ customLogos:
 
 # Rancher post-delete hook
 postDelete:
-  enabled: true
+  enabled: false
   image:
-    repository: %POST_DELETE_IMAGE_NAME%
-    tag: %POST_DELETE_IMAGE_TAG%
+    repository: rancher/shell
+    tag: v0.1.18
   namespaceList:
     - cattle-fleet-system
     - cattle-system
