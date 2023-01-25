@@ -121,10 +121,16 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 			msg := "No instance information found in Verrazzano resource status"
 			return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to find instance information in Verrazzano resource status")
 		}
+
+		err = r.updateArgoCDClusterRoleBindingTemplate(vmc)
+		if err != nil {
+			msg := "Failed to update Argo CD ClusterRoleBindingTemplate"
+			return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr(msg, err)
+		}
+
 		var rancherURL = *(vz.Status.VerrazzanoInstance.RancherURL) + k8sClustersPath + clusterID
 
 		//TODO: Currently use Rancher root CA secret in cattle-system namespace. argocd won't work if rancher is disabled.
-		//Use Verrazzano root ca so we support public CA?
 		caCert, err := common.GetRootCA(r.Client)
 		if err != nil {
 			msg := "Failed to get Argo CD TLS CA"
@@ -201,7 +207,6 @@ func (r *VerrazzanoManagedClusterReconciler) argocdClusterAdd(vmc *clusterapi.Ve
 		return nil
 	}
 	rc, err := rancherutil.NewRancherConfigForUser(r.Client, vzconst.ArgoCDClusterRancherUsername, secret, r.log)
-	//rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.log)
 	if err != nil {
 		return err
 	}
@@ -276,7 +281,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateClusterSecret(secret *corev1.
 }
 
 // updateRancherClusterRoleBindingTemplate creates a new ClusterRoleBindingTemplate for the given VMC
-// to grant the Verrazzano cluster user the correct permissions on the managed cluster
+// to grant the Verrazzano argocd cluster user correct permission on the managed cluster
 func (r *VerrazzanoManagedClusterReconciler) updateArgoCDClusterRoleBindingTemplate(vmc *clusterapi.VerrazzanoManagedCluster) error {
 	if vmc == nil {
 		r.log.Debugf("Empty VMC, no ClusterRoleBindingTemplate created")
@@ -284,10 +289,6 @@ func (r *VerrazzanoManagedClusterReconciler) updateArgoCDClusterRoleBindingTempl
 	}
 
 	clusterID := vmc.Status.RancherRegistration.ClusterID
-	if len(clusterID) == 0 {
-		r.log.Progressf("Waiting to create ClusterRoleBindingTemplate for cluster %s, Rancher ClusterID not found in the VMC status", vmc.GetName())
-		return nil
-	}
 
 	userID, err := r.getArgoCDClusterUserID()
 	if err != nil {
