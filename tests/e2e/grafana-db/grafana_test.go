@@ -112,36 +112,46 @@ var _ = t.Describe("Test Grafana Dashboard Persistence", Label("f:observability.
 	// WHEN the pod is deleted,
 	// THEN pod eventually comes back up.
 	It("Delete and wait for the pod to come back up", func() {
-		Eventually(func() bool {
+		// delete grafana pods
+		Eventually(func() error {
 			pods, err := clientset.CoreV1().Pods(constants.VerrazzanoSystemNamespace).List(context.TODO(), metav1.ListOptions{
 				LabelSelector: "app=system-grafana",
 			})
 			if err != nil {
 				pkg.Log(pkg.Error, "Failed to find grafana pod")
-				return false
+				return err
 			}
 
 			for i := range pods.Items {
 				pod := &pods.Items[i]
 				if err := clientset.CoreV1().Pods(pod.Namespace).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{}); err != nil {
 					pkg.Log(pkg.Error, "Failed to delete grafana pod")
-					return false
+					return err
 				}
 			}
 
-			pods, err = clientset.CoreV1().Pods(constants.VerrazzanoSystemNamespace).List(context.TODO(), metav1.ListOptions{})
+			return nil
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).ShouldNot(HaveOccurred())
+
+		// wait for pods to come back up
+		Eventually(func() (bool, error) {
+			pods, err := clientset.CoreV1().Pods(constants.VerrazzanoSystemNamespace).List(context.TODO(), metav1.ListOptions{})
 			if err != nil {
 				pkg.Log(pkg.Info, "Failed to get grafana pod")
-				return false
+				return false, err
 			}
 
+			if pods == nil || len(pods.Items) == 0 {
+				return false, nil
+			}
 			for _, pod := range pods.Items {
 				if !IsPodReadyOrCompleted(pod) {
-					return false
+					return false, nil
 				}
 			}
-			return true
-		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
+
+			return true, nil
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue(), "Expected Grafana pods to restart")
 	})
 
 	// GIVEN a running Grafana instance,

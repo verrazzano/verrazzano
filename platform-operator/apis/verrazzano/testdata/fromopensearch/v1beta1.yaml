@@ -21,6 +21,7 @@ spec:
       disableDefaultPolicy: true
       nodes:
         - name: es-master
+          javaOpts: "-Xmx6g -Xms6g"
           replicas: 3
           resources:
             requests:

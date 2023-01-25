@@ -1,5 +1,33 @@
+{{- $disable_lookups:= .Values.disableLookups }}
 {{- $cluster_name :=  default "mycluster" .Release.Name }}
 {{- $use_self_signed := default false ((.Values.tls).useSelfSigned) }}
+{{- $minimalVersion := "8.0.27" }}
+{{- $forbiddenVersions := list "8.0.29" }}
+{{- $imagePullPolicies := list "ifnotpresent" "always" "never" }}
+{{- $serverVersion := .Values.serverVersion | default .Chart.AppVersion }}
+{{- if and ((.Values).routerInstances) (((.Values).router).instances) }}
+  {{- if ne ((.Values).routerInstances) (((.Values).router).instances) }}
+    {{- $err := printf "routerInstances and router.instances both are specified and have different values %d and %d. Use only one" ((.Values).routerInstances) (((.Values).router).instances) }}
+    {{- fail $err }}
+  {{- end }}
+{{- end }}
+{{- $routerInstances := coalesce ((.Values).routerInstances) (((.Values).router).instances) }}
+{{- if lt $serverVersion $minimalVersion }}
+  {{- $err := printf "It is not possible to use MySQL version %s . Please, use %s or above" $serverVersion $minimalVersion }}
+  {{- fail $err }}
+{{- end }}
+{{- if has $serverVersion $forbiddenVersions }}
+  {{- $err := printf "It is not possible to use MySQL version %s . Please, use %s or above except %v" $serverVersion $minimalVersion $forbiddenVersions }}
+  {{- fail $err }}
+{{- end }}
+{{- if (((.Values).image).pullPolicy) }}
+  {{- if not (has (lower (((.Values).image).pullPolicy)) ($imagePullPolicies)) }}
+    {{- $err := printf "Unknown image pull policy %s. Must be one of %v" (((.Values).image).pullPolicy) $imagePullPolicies }}
+    {{- fail $err }}
+  {{- end }}
+{{- else }}
+  {{ fail "image.pullPolicy is required" }}
+{{- end }}
 apiVersion: mysql.oracle.com/v2
 kind: InnoDBCluster
 metadata:
@@ -9,7 +37,7 @@ spec:
   instances: {{ required "serverInstances is required" .Values.serverInstances }}
   tlsUseSelfSigned: {{ $use_self_signed }}
   router:
-    instances: {{ required "routerInstances is required" .Values.routerInstances }}
+    instances: {{ required "router.instances is required" $routerInstances }}
     podSpec:
       securityContext:
         seccompProfile:
@@ -24,16 +52,31 @@ spec:
               drop:
                 - ALL
   {{- if not $use_self_signed }}
+  {{- if and (((.Values).tls).routerCertAndPKsecretName) (((.Values).router).certAndPKsecretName) }}
+    {{- if ne (((.Values).tls).routerCertAndPKsecretName) (((.Values).router).certAndPKsecretName) }}
+      {{- $err := printf "tls.routerCertAndPKsecretName and router.certAndPKsecretName are both specified and have different values %s and %s. Use only one" (((.Values).tls).routerCertAndPKsecretName) (((.Values).router).certAndPKsecretName) }}
+      {{- fail $err }}
+    {{- end }}
+  {{- end }}
   {{- $default_secret_name := printf "%s-router-tls" $cluster_name }}
-  {{- $secret_name := default $default_secret_name ((.Values.tls).routerCertAndPKsecretName) }}
+  {{- $secret_name := coalesce ((.Values.tls).routerCertAndPKsecretName) ((.Values.router).certAndPKsecretName) $default_secret_name}}
   {{- if not (lookup "v1" "Secret" .Release.Namespace $secret_name) }}
     {{- $err := printf "tls.routerCertAndPKsecretName: secret '%s' not found in namespace '%s'" $secret_name .Release.Namespace }}
     {{- fail $err }}
   {{- end }}
     tlsSecretName: {{ $secret_name }}
+  {{- if (((.Values).router).podSpec) }}
+    podSpec:  {{ toYaml (((.Values).router).podSpec) | nindent 6 }}
+  {{- end }}
+  {{ if (((.Values).router).podLabels) }}
+    podLabels: {{ toYaml (((.Values).router).podLabels) | nindent 6 }}
+  {{ end }}
+  {{ if (((.Values).router).podAnnotations) }}
+    podAnnotations: {{ toYaml (((.Values).router).podAnnotations) | nindent 6 }}
+  {{ end }}
 {{- end }}
   secretName: {{ .Release.Name }}-cluster-secret
-  imagePullPolicy : {{ required "image.pullPolicy is required" .Values.image.pullPolicy }}
+  imagePullPolicy : {{ .Values.image.pullPolicy }}
 {{- $repositoryPath := .Values.image.repository }}
 {{- if $repositoryPath }}
   imageRepository: {{ $repositoryPath }}
@@ -57,6 +100,12 @@ spec:
     {{- fail $err }}
   {{- end }}
   tlsSecretName: {{ $secret_name }}
+{{- end }}
+{{- if ((.Values).podLabels) }}
+  podLabels: {{ toYaml ((.Values).podLabels) | nindent 4 }}
+{{- end }}
+{{- if ((.Values).podAnnotations) }}
+  podAnnotations: {{ toYaml ((.Values).podAnnotations) | nindent 4 }}
 {{- end }}
 {{ if ((.Values).podSpec) }}
   podSpec:
@@ -170,6 +219,7 @@ spec:
 {{ (((.Values).serverConfig).mycnf) | indent 4 }}
   {{- end }}
 {{- end }}
+
 {{- if .Values.datadirVolumeClaimTemplate }}
   {{- with .Values.datadirVolumeClaimTemplate }}
   datadirVolumeClaimTemplate:
@@ -186,6 +236,86 @@ spec:
     {{- end }}
   {{- end }}
 {{- end }}
+
+{{- if (or (((.Values).keyring).file) (((.Values).keyring).encryptedFile) (((.Values).keyring).oci) ) }}
+  keyring:
+{{- $keyringAlreadySpecified := "" }}
+  {{- if (((.Values).keyring).file) }}
+    {{- if $keyringAlreadySpecified }}
+      {{- $err := printf "Keyring '%s' already specified" $keyringAlreadySpecified }}
+      {{- fail $err }}
+    {{- end }}
+    {{- $keyringAlreadySpecified = "file" }}
+    {{- with .Values.keyring.file }}
+    file:
+      fileName: {{ required "keyring.file.fileName is required" .fileName | quote }}
+      {{- if .readOnly }}
+      readOnly: {{ .readOnly }}
+      {{- end }}
+      storage: {{ toYaml .storage | nindent 8 }}
+    {{- end }}
+  {{- end }}
+
+  {{- if (((.Values).keyring).encryptedFile) }}
+    {{- if $keyringAlreadySpecified }}
+      {{- $err := printf "Keyring '%s' already specified" $keyringAlreadySpecified | quote }}
+      {{- fail $err }}
+    {{- end }}
+    {{- $keyringAlreadySpecified = "encryptedFile" }}
+    {{- with .Values.keyring.encryptedFile }}
+    encryptedFile:
+      fileName: {{ required "keyring.encryptedFile.fileName is required" .fileName | quote }}
+      {{- if .readOnly }}
+      readOnly: {{ .readOnly }}
+      {{- end }}
+      password: {{ required "keyring.encryptedFile.password is required" .password | quote }}
+      storage: {{ toYaml .storage | nindent 8 }}
+    {{- end }}
+  {{- end }}
+
+  {{- if (((.Values).keyring).oci) }}
+    {{- if $keyringAlreadySpecified }}
+      {{- $err := printf "Keyring '%s' already specified" $keyringAlreadySpecified }}
+      {{- fail $err }}
+    {{- end }}
+    {{- $keyringAlreadySpecified = "oci" }}
+    {{- with .Values.keyring.oci }}
+    oci:
+      user: {{ required "keyring.oci.user is required" .user | quote}}
+      keySecret: {{ required "keyring.oci.keySecret is required" .keySecret | quote}}
+      keyFingerprint: {{ required "keyring.oci.keyFingerprint is required" .keyFingerprint | quote }}
+      tenancy: {{ required "keyring.oci.tenancy is required" .tenancy | quote}}
+      {{- if .compartment}}
+      compartment: {{ .compartment | quote }}
+      {{- end }}
+      {{- if .virtualVault}}
+      virtualVault: {{ .virtualVault | quote}}
+      {{- end }}
+      {{- if .masterKey}}
+      masterKey: {{ .masterKey | quote}}
+      {{- end }}
+      {{- if .caCertificate}}
+      caCertificate: {{ .caCertificate | quote}}
+      {{- end }}
+      {{- if .endpoints}}
+      endpoints:
+        {{- if ((.endpoints).encryption) }}
+        encryption: {{ ((.endpoints).encryption) | quote}}
+        {{- end }}
+        {{- if ((.endpoints).management) }}
+        management: {{ ((.endpoints).management) | quote}}
+        {{- end }}
+        {{- if ((.endpoints).vaults) }}
+        vaults: {{ ((.endpoints).vaults) | quote}}
+        {{- end }}
+        {{- if ((.endpoints).secrets) }}
+        secrets: {{ ((.endpoints).secrets) | quote}}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
 {{- if .Values.initDB }}
   {{- if and (and .Values.initDB.dump .Values.initDB.dump.name) (and .Values.initDB.clone .Values.initDB.donorUrl) }}
     {{- fail "Dump and Clone are mutually exclusive" }}
@@ -252,6 +382,12 @@ spec:
   {{- range $_, $profile := .Values.backupProfiles }}
     {{- if $profile.name }}
   - name: {{ $profile.name -}}
+      {{- if hasKey $profile "podAnnotations" }}
+    podAnnotations: {{ toYaml $profile.podAnnotations | nindent 6 }}
+      {{- end }}
+      {{- if hasKey $profile "podLabels" }}
+    podLabels: {{ toYaml $profile.podLabels | nindent 6 }}
+      {{- end }}
       {{- $isDumpInstance = hasKey $profile "dumpInstance" }}
       {{- $isSnapshot = hasKey $profile "snapshot" }}
       {{- if or $isDumpInstance $isSnapshot }}
@@ -317,6 +453,12 @@ spec:
       {{- if or $isDumpInstance $isSnapshot }}
         {{- $backupProfile := ternary $schedule.backupProfile.dumpInstance $schedule.backupProfile.snapshot $isDumpInstance }}
     backupProfile:
+        {{- if hasKey $schedule.backupProfile "podAnnotations" }}
+      podAnnotations: {{ toYaml $schedule.backupProfile.podAnnotations | nindent 8 }}
+        {{- end }}
+        {{- if hasKey $schedule.backupProfile "podLabels" }}
+      podLabels: {{ toYaml $schedule.backupProfile.podLabels | nindent 8 }}
+        {{- end }}
         {{- if $isDumpInstance }}
       dumpInstance:
         {{- else if $isSnapshot }}

@@ -128,7 +128,7 @@ type VolumeClaimSpecTemplate struct {
 // InstanceInfo details of installed Verrazzano instance maintained in status field.
 type InstanceInfo struct {
 	// The Argo CD UI URL for this Verrazzano installation.
-	ArgoCDURL *string `json:"argoCdUrl,omitempty"`
+	ArgoCDURL *string `json:"argoCDUrl,omitempty"`
 	// The Console URL for this Verrazzano installation.
 	ConsoleURL *string `json:"consoleUrl,omitempty"`
 	// The OpenSearch URL for this Verrazzano installation.
@@ -309,7 +309,7 @@ type ComponentSpec struct {
 
 	// The Argo CD component configuration.
 	// +optional
-	ArgoCD *ArgoCDComponent `json:"argoCd,omitempty"`
+	ArgoCD *ArgoCDComponent `json:"argoCD,omitempty"`
 
 	// The AuthProxy component configuration.
 	// +optional
@@ -467,6 +467,9 @@ type OpenSearchNode struct {
 	// Storage settings for the node group.
 	// +optional
 	Storage *OpenSearchNodeStorage `json:"storage,omitempty"`
+	// JavaOpts settings for the OpenSearch JVM.
+	// +optional
+	JavaOpts string `json:"javaOpts,omitempty"`
 }
 
 type OpenSearchNodeStorage struct {

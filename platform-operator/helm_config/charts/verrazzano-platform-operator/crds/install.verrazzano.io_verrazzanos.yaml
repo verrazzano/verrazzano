@@ -88,7 +88,7 @@ spec:
                           type: object
                         type: array
                     type: object
-                  argoCd:
+                  argoCD:
                     properties:
                       enabled:
                         type: boolean
@@ -805,6 +805,8 @@ spec:
                       nodes:
                         items:
                           properties:
+                            javaOpts:
+                              type: string
                             name:
                               type: string
                             replicas:
@@ -4137,7 +4139,7 @@ spec:
                 type: array
               instance:
                 properties:
-                  argoCdUrl:
+                  argoCDUrl:
                     type: string
                   consoleUrl:
                     type: string
@@ -4233,7 +4235,7 @@ spec:
                           type: object
                         type: array
                     type: object
-                  argoCd:
+                  argoCD:
                     properties:
                       enabled:
                         type: boolean
@@ -5707,6 +5709,8 @@ spec:
                       nodes:
                         items:
                           properties:
+                            javaOpts:
+                              type: string
                             name:
                               type: string
                             replicas:
@@ -7034,7 +7038,7 @@ spec:
                 type: array
               instance:
                 properties:
-                  argoCdUrl:
+                  argoCDUrl:
                     type: string
                   consoleUrl:
                     type: string
