@@ -28,9 +28,11 @@ spec:
                 - name: SERVER_PORT
                   value: "8081"
       serviceTemplate:
+        metadata:
+          name: hello-helidon-custom-service
         serviceSpec:
           ports:
             - name: http-hello-helidon
               protocol: TCP
-              port: 8080
+              port: 8082
               targetPort: 8081
