@@ -355,6 +355,7 @@ func DoesSecretExist(namespace string, name string) (bool, error) {
 		return false, err
 	}
 	for i := range secrets.Items {
+		Log(Info, fmt.Sprintf("Secret found: %s", secrets.Items[i].Name)) // TODO
 		if strings.HasPrefix(secrets.Items[i].Name, name) {
 			return true, nil
 		}
