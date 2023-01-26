@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package k8sclient
@@ -25,7 +25,7 @@ type PsrClient struct {
 // Try several times to get the client.  This fixes timing issue
 // where connections fails if Istio sidecar not ready
 func NewPsrClient() (PsrClient, error) {
-	const max = 10
+	const max = 15
 	var retErr error
 	for i := 1; i <= max; i++ {
 		c, err := tryNewPsrClient()
@@ -33,7 +33,7 @@ func NewPsrClient() (PsrClient, error) {
 			return c, nil
 		}
 		retErr = err
-		time.Sleep(1)
+		time.Sleep(1 * time.Second)
 	}
 	return PsrClient{}, retErr
 }
