@@ -4,10 +4,8 @@
 package operatorinit
 
 import (
-	"sync"
-	"time"
-
 	"github.com/pkg/errors"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
@@ -18,11 +16,13 @@ import (
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sync"
+	"time"
 )
 
 // StartPlatformOperator Platform operator execution entry point
 func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
-	mgr, err := controllerruntime.NewManager(controllerruntime.GetConfigOrDie(), controllerruntime.Options{
+	mgr, err := controllerruntime.NewManager(k8sutil.GetConfigOrDieFromController(), controllerruntime.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: config.MetricsAddr,
 		Port:               8080,
