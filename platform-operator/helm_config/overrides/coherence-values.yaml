@@ -6,3 +6,15 @@
 defaultCoherenceImage: ghcr.io/oracle/coherence-ce:22.06.1
 
 replicas: 1
+
+securityContext:
+  seccompProfile:
+    type: RuntimeDefault
+  allowPrivilegeEscalation: false
+  privileged: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
