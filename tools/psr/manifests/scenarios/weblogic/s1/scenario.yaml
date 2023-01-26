@@ -1,0 +1,8 @@
+name: weblogic-s1 
+ID: wls-s1
+description: |
+  This is a scenario that scales the WebLogic domain continously.
+usecases:
+  - usecasePath: weblogic/scale.yaml
+    overrideFile: scale.yaml
+    description: scales WebLogic domain
