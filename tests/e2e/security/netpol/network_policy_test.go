@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package netpol
@@ -90,7 +90,7 @@ var _ = clusterDump.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
 	start = time.Now()
-	pkg.DeployHelloHelidonApplication(namespace, "", istioInjection, "")
+	pkg.DeployHelloHelidonApplication(namespace, "", istioInjection, "", "")
 
 	t.Logs.Info("Verify test pod is running")
 	Eventually(func() bool {
@@ -125,7 +125,7 @@ var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 
 	start = time.Now()
-	pkg.UndeployHelloHelidonApplication(namespace, "")
+	pkg.UndeployHelloHelidonApplication(namespace, "", "")
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
