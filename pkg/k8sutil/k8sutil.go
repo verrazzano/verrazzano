@@ -223,7 +223,7 @@ func GetCertManagerClienset() (*certmanagerv1.CertmanagerV1Client, error) {
 	return GetCertManagerClientsetInCluster(kubeConfigLoc)
 }
 
-// GetCertManagerClienset returns the clientset object for CertManager
+// GetCertManagerClientsetInCluster returns the clientset object for CertManager
 func GetCertManagerClientsetInCluster(kubeconfigPath string) (*certmanagerv1.CertmanagerV1Client, error) {
 	var cs *certmanagerv1.CertmanagerV1Client
 	kubeConfig, err := GetKubeConfigGivenPath(kubeconfigPath)
@@ -400,7 +400,7 @@ func GetDynamicClientInCluster(kubeconfigPath string) (dynamic.Interface, error)
 	return dynamic.NewForConfig(config)
 }
 
-// GetHostFromIngress returns the url for an Ingress
+// GetURLForIngress returns the url for an Ingress
 func GetURLForIngress(client client.Client, name string, namespace string, scheme string) (string, error) {
 	var ingress = &networkingv1.Ingress{}
 	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, ingress)

@@ -5,6 +5,9 @@ package weblogic
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -15,8 +18,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"net/http"
-	"time"
 )
 
 const (
@@ -35,6 +36,10 @@ const (
 	wlsUser        = "weblogic"
 	wlDomain       = "hellodomain"
 	wlsAdminServer = "hellodomain-adminserver"
+	trait          = "hello-domain-trait"
+
+	helloDomainRepoCreds     = "hellodomain-repo-credentials"
+	helloDomainWeblogicCreds = "hellodomain-weblogic-credentials"
 )
 
 var (
@@ -56,22 +61,49 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	}
 
-	t.Logs.Info("WebLogic Application - check expected admin server pod is running")
+	t.Logs.Info("WebLogic Application: check expected admin server pod is running")
 	Eventually(func() bool {
 		result, err := pkg.PodsRunning(namespace, expectedPods)
 		if err != nil {
 			AbortSuite(fmt.Sprintf("WebLogic admin server pod is not running in the namespace: %v, error: %v", namespace, err))
 		}
 		return result
-	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application")
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: Admin server pod is not ready")
+
+	t.Logs.Info("WebLogic Application: check expected VirtualService is ready")
+	Eventually(func() bool {
+		result, err := pkg.DoesVirtualServiceExist(namespace, trait)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("WebLogic VirtualService %s is not running in the namespace: %v, error: %v", trait, namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: VirtualService is not ready")
+
+	t.Logs.Info("WebLogic Application: check expected Secrets exist")
+	Eventually(func() bool {
+		result, err := pkg.DoesSecretExist(namespace, helloDomainWeblogicCreds)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("WebLogic Secret %s does not exist in the namespace: %v, error: %v", helloDomainWeblogicCreds, namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: Secret does not exist")
+
+	Eventually(func() bool {
+		result, err := pkg.DoesSecretExist(namespace, helloDomainRepoCreds)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("WebLogic Secret %s does not exist in the namespace: %v, error: %v", helloDomainRepoCreds, namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: Secret does not exist")
 
 	var err error
 	// Get the host from the Istio gateway resource.
 	start := time.Now()
+	t.Logs.Info("WebLogic Application: check expected Gateway is ready")
 	Eventually(func() (string, error) {
 		host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 		return host, err
-	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
+	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Failed to deploy the WebLogic Application: Gateway is not ready")
 	metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 
 	beforeSuitePassed = true
@@ -114,12 +146,12 @@ func deployWebLogicApp(namespace string) {
 
 	t.Logs.Info("Create docker-registry secret to enable pulling image from the registry")
 	Eventually(func() (*v1.Secret, error) {
-		return pkg.CreateDockerSecret(namespace, "hellodomain-repo-credentials", regServ, regUser, regPass)
+		return pkg.CreateDockerSecret(namespace, helloDomainRepoCreds, regServ, regUser, regPass)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	t.Logs.Info("Create secret for the WebLogic domain")
 	Eventually(func() (*v1.Secret, error) {
-		return pkg.CreateCredentialsSecret(namespace, "hellodomain-weblogic-credentials", wlsUser, wlsPass, nil)
+		return pkg.CreateCredentialsSecret(namespace, helloDomainWeblogicCreds, wlsUser, wlsPass, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	// Note: creating the app config first to verify that default metrics traits are created properly if the app config exists before the components

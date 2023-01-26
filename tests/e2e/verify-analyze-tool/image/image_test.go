@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	kv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	"os"
 	"os/exec"
 	"strings"
@@ -25,14 +26,24 @@ var (
 )
 
 const (
-	ImagePullNotFound     string = "ImagePullNotFound"
-	NameSpace             string = "verrazzano-system"
-	DeploymentToBePatched string = "verrazzano-console"
+	ImagePullNotFound      string = "ImagePullNotFound"
+	ImagePullBackOff       string = "ImagePullBackOff"
+	PodProblemsNotReported string = "PodProblemsNotReported"
+	VzSystemNS             string = "verrazzano-system"
+	DeploymentToBePatched  string = "verrazzano-console"
 )
 
+type action struct {
+	Patch  string
+	Revive string
+}
+
 var err error
-var reportAnalysis []string
+var reportAnalysis = make(map[string]action)
+var issuesToBeDiagnosed = []string{ImagePullNotFound, ImagePullBackOff, PodProblemsNotReported}
 var c = &kubernetes.Clientset{}
+var deploymentsClient kv1.DeploymentInterface
+
 var t = framework.NewTestFramework("Vz Analysis Tool Image Issues")
 
 // Get the K8s Client to fetch deployment info
@@ -42,34 +53,40 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
+	deploymentsClient = c.AppsV1().Deployments(VzSystemNS)
 })
 
 // This method invoke patch method & feed vz analyze report to reportAnalysis
-// First Iteration patch a deployment's image and captures vz analyze report
-// Second Iteration undo the patch and captures vz analyze report
-func feedAnalysisReport() []string {
-	out := make([]string, 2)
-	for i := 0; i < len(out); i++ {
-		patchErr := patchImage(DeploymentToBePatched, NameSpace, i == 0)
-		if patchErr != nil {
-			Fail(patchErr.Error())
+// Each Iteration patch a deployment's image, validates issue via vz analyze report
+// Also undo the patch and validates no issue via vz analyze report
+func feedAnalysisReport() error {
+	for i := 0; i < len(issuesToBeDiagnosed); i++ {
+		switch issuesToBeDiagnosed[i] {
+		case ImagePullNotFound:
+			patchErr := patchImage(DeploymentToBePatched, ImagePullNotFound, "X")
+			if patchErr != nil {
+				return patchErr
+			}
+		case ImagePullBackOff:
+			patchErr := patchImage(DeploymentToBePatched, ImagePullBackOff, "nginxx/nginx:1.14.0")
+			if patchErr != nil {
+				return patchErr
+			}
+		case PodProblemsNotReported:
+			patchErr := patchImage(DeploymentToBePatched, PodProblemsNotReported, "nginx")
+			if patchErr != nil {
+				return patchErr
+			}
 		}
-		time.Sleep(waitTimeout)
-		out[i], err = RunVzAnalyze()
-		if err != nil {
-			Fail(err.Error())
-		}
-		if i == 0 {
+		if i < len(issuesToBeDiagnosed)-1 {
 			time.Sleep(time.Second * 30)
 		}
 	}
-	reportAnalysis = append(reportAnalysis, out[0], out[1])
-	return reportAnalysis
+	return nil
 }
 
-// This Method implements the patch image execution on the basis of patch flag
-func patchImage(deploymentName, namespace string, patch bool) error {
-	deploymentsClient := c.AppsV1().Deployments(namespace)
+// This Method implements the patching of bad image & its revival
+func patchImage(deploymentName, issueType, patchImage string) error {
 	result, getErr := deploymentsClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
 	if getErr != nil {
 		return getErr
@@ -77,17 +94,39 @@ func patchImage(deploymentName, namespace string, patch bool) error {
 	for i, container := range result.Spec.Template.Spec.Containers {
 		if container.Name == deploymentName {
 			image := result.Spec.Template.Spec.Containers[i].Image
-			if patch {
-				result.Spec.Template.Spec.Containers[i].Image = image + "X"
-				break
+			// PATCHING
+			if issueType == ImagePullNotFound {
+				patchImage = image + patchImage
 			}
-			result.Spec.Template.Spec.Containers[i].Image = image[:len(image)-1]
+			result.Spec.Template.Spec.Containers[i].Image = patchImage
+			_, updateErr := deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
+			if updateErr != nil {
+				return updateErr
+			}
+			time.Sleep(waitTimeout)
+			out1, err := RunVzAnalyze()
+			if err != nil {
+				return err
+			}
+			time.Sleep(time.Second * 30)
+			result, getErr = deploymentsClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
+			if getErr != nil {
+				return getErr
+			}
+			// REVIVING
+			result.Spec.Template.Spec.Containers[i].Image = image
+			_, updateErr = deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
+			if updateErr != nil {
+				return updateErr
+			}
+			time.Sleep(waitTimeout)
+			out2, err := RunVzAnalyze()
+			if err != nil {
+				return err
+			}
+			reportAnalysis[issueType] = action{out1, out2}
 			break
 		}
-	}
-	_, updateErr := deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
-	if updateErr != nil {
-		return updateErr
 	}
 	return nil
 }
@@ -96,17 +135,40 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 	t.Context("During Image Issue Analysis", func() {
 		t.It("First Inject/ Revert Issue and Feed Analysis Report", func() {
 			feedAnalysisReport()
-			Expect(len(reportAnalysis)).To(Equal(2))
+			Expect(len(reportAnalysis)).To(Equal(len(issuesToBeDiagnosed)))
 		})
-		t.It("Should Have ImagePullNotFound Issue Post Bad Image Inject", func() {
+		t.It("Should Have ImagePullNotFound Issue Post Bad Image Injection", func() {
 			Eventually(func() bool {
-				return verifyIssue(reportAnalysis[0], ImagePullNotFound)
+				return verifyIssue(reportAnalysis[ImagePullNotFound].Patch, ImagePullNotFound)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		t.It("Should Not Have ImagePullNotFound Issue Post Correct Image Inject", func() {
+		t.It("Should Not Have ImagePullNotFound Issue Post Reviving Bad Image", func() {
 			Eventually(func() bool {
-				return verifyIssue(reportAnalysis[1], ImagePullNotFound)
+				return verifyIssue(reportAnalysis[ImagePullNotFound].Revive, ImagePullNotFound)
+			}, waitTimeout, pollingInterval).Should(BeFalse())
+		})
+
+		t.It("Should Have ImagePullBackOff Issue Post Bad Image Injection", func() {
+			Eventually(func() bool {
+				return verifyIssue(reportAnalysis[ImagePullBackOff].Patch, ImagePullBackOff)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+
+		t.It("Should Not Have ImagePullBackOff Issue Post Reviving Bad Image", func() {
+			Eventually(func() bool {
+				return verifyIssue(reportAnalysis[ImagePullBackOff].Revive, ImagePullBackOff)
+			}, waitTimeout, pollingInterval).Should(BeFalse())
+		})
+		t.It("Should Have PodProblemsNotReported Issue Post Bad Image Injection", func() {
+			Eventually(func() bool {
+				return verifyIssue(reportAnalysis[PodProblemsNotReported].Patch, PodProblemsNotReported)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+
+		t.It("Should Not Have PodProblemsNotReported Issue Post Reviving Bad Image", func() {
+			Eventually(func() bool {
+				return verifyIssue(reportAnalysis[PodProblemsNotReported].Revive, PodProblemsNotReported)
 			}, waitTimeout, pollingInterval).Should(BeFalse())
 		})
 	})

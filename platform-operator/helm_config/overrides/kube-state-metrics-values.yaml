@@ -8,6 +8,292 @@ customLabels:
 prometheus:
   monitor:
     honorLabels: true
+    metricRelabelings:
+      # Add verrazzano_component label
+      - action: replace
+        regex: (verrazzano-monitoring);(alertManager);(alertmanager-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;alertManager;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-system);(applicationOperator);(verrazzano-application-operator-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;applicationOperator;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (argocd);(argoCd);(argocd-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;argoCd;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-system);(authProxy);(verrazzano-authproxy-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;authProxy;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (cert-manager);(certManager);(cert-manager-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;certManager;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-system);(clusterOperator);(verrazzano-cluster-operator-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;clusterOperator;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-system);(coherenceOperator);(coherence-operator-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;coherenceOperator;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-system);(console);(verrazzano-console-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;console;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (cert-manager);(dns);(external-dns-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;dns;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-system);(fluentd);(fluentd-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;fluentd;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-system);(grafana);(vmi-system-grafana-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;grafana;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-system);(grafana);(vmi-system-grafana-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;grafana;
+        sourceLabels:
+        - namespace
+        - persistentvolumeclaim
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (ingress-nginx);(ingressNGINX);(ingress-controller-ingress-nginx-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;ingressNGINX;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (istio-system);(istio);(istio[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;istio;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-monitoring);(jaegerOperator);(jaeger-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;jaegerOperator;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (keycloak);(keycloak);(keycloak-[a-z0-9-]+|mysql-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;keycloak;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (keycloak);(keycloak);(datadir-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;keycloak;
+        sourceLabels:
+        - namespace
+        - persistentvolumeclaim
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-system);(kiali);(vmi-system-kiali-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;kiali;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-monitoring);(kubeStateMetrics);(kube-state-metrics-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;kubeStateMetrics;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-system);(monitoringOperator);(verrazzano-monitoring-operator-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;monitoringOperator;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (mysql-operator);(mySQLOperator);(mysql-operator-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;mySQLOperator;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-system);(oam);(oam-kubernetes-runtime-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;oam;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-system);(opensearch);(vmi-system-es-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;opensearch;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-system);(opensearch);(vmi-system-es-[a-z0-9-]+|elasticsearch-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;opensearch;
+        sourceLabels:
+        - namespace
+        - persistentvolumeclaim
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-system);(opensearchDashboards);(vmi-system-osd-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;opensearchDashboards;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-install);(platformOperator);(verrazzano-platform-operator-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;platformOperator;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-monitoring);(prometheus);(prometheus-prometheus-operator-kube-p-prometheus-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;prometheus;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-monitoring);(prometheus);(prometheus-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;prometheus;
+        sourceLabels:
+        - namespace
+        - persistentvolumeclaim
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-monitoring);(prometheusAdapter);(prometheus-adapter-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;prometheusAdapter;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-monitoring);(prometheusNodeExporter);(prometheus-node-exporter-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;prometheusNodeExporter;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-monitoring);(prometheusOperator);(prometheus-operator-kube-p-operator-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;prometheusOperator;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (cattle-fleet-system|cattle-fleet-local-system|cattle-system);(rancher);(rancher-[a-z0-9-]+|fleet-[a-z0-9-]+|gitjob-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;rancher;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (cattle-resources-system);(rancherBackup);(rancher-backup-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;rancherBackup;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-backup);(velero);(restic-[a-z0-9-]+|velero-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;velero;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-system);(weblogicOperator);(weblogic-operator-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;weblogicOperator;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+    relabelings:
+      - action: replace
+        replacement: local
+        targetLabel: verrazzano_cluster
 metricLabelsAllowlist:
   - deployments=[app.oam.dev/name,app.oam.dev/component]
   - pods=[app.oam.dev/name,app.oam.dev/component]
