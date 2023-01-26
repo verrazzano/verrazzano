@@ -40,8 +40,8 @@ const EnvVarKubeConfig = "KUBECONFIG"
 // EnvVarTestKubeConfig Name of Environment Variable for test KUBECONFIG
 const EnvVarTestKubeConfig = "TEST_KUBECONFIG"
 
-const APIServerBurst = 200.0
-const APIServerQPS = 100.0
+const APIServerBurst = 150
+const APIServerQPS = 100
 
 type ClientConfigFunc func() (*rest.Config, kubernetes.Interface, error)
 
@@ -76,16 +76,14 @@ func GetConfigFromController() (*rest.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfg.Burst = APIServerBurst
-	cfg.QPS = APIServerQPS
+	setConfigQpsBurst(cfg)
 	return cfg, nil
 }
 
 // GetConfigOrDieFromController get the config from the Controller Runtime and set the default QPS and burst.
 func GetConfigOrDieFromController() *rest.Config {
 	cfg := controllerruntime.GetConfigOrDie()
-	cfg.Burst = APIServerBurst
-	cfg.QPS = APIServerQPS
+	setConfigQpsBurst(cfg)
 	return cfg
 }
 
@@ -117,8 +115,7 @@ func BuildKubeConfig(kubeconfig string) (*rest.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	config.Burst = APIServerBurst
-	config.QPS = APIServerQPS
+	setConfigQpsBurst(config)
 	return config, nil
 }
 
@@ -134,8 +131,7 @@ func GetKubeConfig() (*rest.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	config.Burst = APIServerBurst
-	config.QPS = APIServerQPS
+	setConfigQpsBurst(config)
 	return config, nil
 }
 
@@ -161,8 +157,7 @@ func GetKubeConfigGivenPathAndContext(kubeConfigPath string, kubeContext string)
 	if err != nil {
 		return nil, err
 	}
-	config.Burst = APIServerBurst
-	config.QPS = APIServerQPS
+	setConfigQpsBurst(config)
 	return config, nil
 }
 
@@ -519,4 +514,9 @@ func ErrorIfServiceExists(namespace string, names ...string) error {
 		}
 	}
 	return nil
+}
+
+func setConfigQpsBurst(config *rest.Config) {
+	config.Burst = APIServerBurst
+	config.QPS = APIServerQPS
 }
