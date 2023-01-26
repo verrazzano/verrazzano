@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package ingresstrait
@@ -780,7 +780,10 @@ func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, ru
 	for _, path := range rule.Paths {
 		if path.Policy != nil {
 			pathSuffix := strings.Replace(path.Path, "/", "", -1)
-			policyName := fmt.Sprintf("%s-%s", namePrefix, pathSuffix)
+			policyName := namePrefix
+			if pathSuffix != "" {
+				policyName = fmt.Sprintf("%s-%s", policyName, pathSuffix)
+			}
 			authzPolicy := &clisecurity.AuthorizationPolicy{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       authzPolicyKind,
