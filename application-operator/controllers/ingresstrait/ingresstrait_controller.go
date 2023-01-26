@@ -12,6 +12,7 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/gertd/go-pluralize"
+	"github.com/google/go-cmp/cmp"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
@@ -25,6 +26,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/durationpb"
 	istionet "istio.io/api/networking/v1alpha3"
 	"istio.io/api/security/v1beta1"
@@ -34,6 +36,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8net "k8s.io/api/networking/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -484,7 +487,7 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 			Name:      certName,
 		}}
 
-	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, certificate, func() error {
+	res, err := createOrUpdate(ctx, r.Client, certificate, func() error {
 		certificate.Spec = certapiv1.CertificateSpec{
 			DNSNames:   hostsForTrait,
 			SecretName: secretName,
@@ -543,7 +546,7 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 			Namespace: trait.Namespace,
 			Name:      gwName}}
 
-	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, gateway, func() error {
+	res, err := createOrUpdate(ctx, r.Client, gateway, func() error {
 		return r.mutateGateway(gateway, trait, hostsForTrait, secretName)
 	})
 
@@ -562,6 +565,46 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 	}
 
 	return gateway
+}
+
+func createOrUpdate(ctx context.Context, c client.Client, obj client.Object, f controllerutil.MutateFn) (controllerutil.OperationResult, error) {
+	key := client.ObjectKeyFromObject(obj)
+	if err := c.Get(ctx, key, obj); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return controllerutil.OperationResultNone, err
+		}
+		if err := mutate(f, key, obj); err != nil {
+			return controllerutil.OperationResultNone, err
+		}
+		if err := c.Create(ctx, obj); err != nil {
+			return controllerutil.OperationResultNone, err
+		}
+		return controllerutil.OperationResultCreated, nil
+	}
+
+	existing := obj.DeepCopyObject() //nolint
+	if err := mutate(f, key, obj); err != nil {
+		return controllerutil.OperationResultNone, err
+	}
+	if cmp.Diff(existing, obj, protocmp.Transform()) == "" {
+		return controllerutil.OperationResultNone, nil
+	}
+
+	if err := c.Update(ctx, obj); err != nil {
+		return controllerutil.OperationResultNone, err
+	}
+	return controllerutil.OperationResultUpdated, nil
+}
+
+// mutate wraps a MutateFn and applies validation to its result.
+func mutate(f controllerutil.MutateFn, key client.ObjectKey, obj client.Object) error {
+	if err := f(); err != nil {
+		return err
+	}
+	if newKey := client.ObjectKeyFromObject(obj); key != newKey {
+		return fmt.Errorf("MutateFn cannot mutate object name and/or object namespace")
+	}
+	return nil
 }
 
 // mutateGateway mutates the output Gateway child resource.
@@ -657,7 +700,7 @@ func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vz
 			Namespace: trait.Namespace,
 			Name:      name}}
 
-	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, virtualService, func() error {
+	res, err := createOrUpdate(ctx, r.Client, virtualService, func() error {
 		return r.mutateVirtualService(virtualService, trait, rule, allHostsForTrait, services, gateway)
 	})
 
@@ -723,7 +766,7 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *v
 			log.Errorf("Failed to retrieve namespace resource: %v", namespaceErr)
 		}
 
-		res, err := controllerutil.CreateOrUpdate(ctx, r.Client, destinationRule, func() error {
+		res, err := createOrUpdate(ctx, r.Client, destinationRule, func() error {
 			return r.mutateDestinationRule(destinationRule, trait, rule, services, namespace)
 		})
 
@@ -763,7 +806,7 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 							HttpCookie: &istionet.LoadBalancerSettings_ConsistentHashLB_HTTPCookie{
 								Name: rule.Destination.HTTPCookie.Name,
 								Path: rule.Destination.HTTPCookie.Path,
-								Ttl:  durationpb.New(rule.Destination.HTTPCookie.TTL)},
+								Ttl:  durationpb.New(rule.Destination.HTTPCookie.TTL * time.Second)},
 						},
 					},
 				},
@@ -790,7 +833,7 @@ func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, ru
 					Namespace: constants.IstioSystemNamespace,
 				},
 			}
-			res, err := controllerutil.CreateOrUpdate(ctx, r.Client, authzPolicy, func() error {
+			res, err := createOrUpdate(ctx, r.Client, authzPolicy, func() error {
 				return r.mutateAuthorizationPolicy(authzPolicy, path.Policy, path.Path, hosts)
 			})
 

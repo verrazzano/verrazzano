@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/testing/protocmp"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"path"
 	"strconv"
@@ -606,8 +607,7 @@ func createOrUpdate(ctx context.Context, c client.Client, obj client.Object, f c
 	if err := mutate(f, key, obj); err != nil {
 		return controllerutil.OperationResultNone, err
 	}
-
-	if cmp.Equal(existing, obj) {
+	if cmp.Diff(existing, obj, protocmp.Transform()) == "" {
 		return controllerutil.OperationResultNone, nil
 	}
 

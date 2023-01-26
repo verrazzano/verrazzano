@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package ingresstrait
@@ -8,12 +8,10 @@ import (
 	"fmt"
 	"strings"
 
+	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 
 	certapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -150,7 +148,7 @@ func cleanupGateway(trait *vzapi.IngressTrait, c client.Client, log vzlog.Verraz
 		}
 		newServer = append(newServer, server)
 	}
-	_, err = controllerutil.CreateOrUpdate(context.TODO(), c, gateway, func() error {
+	_, err = createOrUpdate(context.TODO(), c, gateway, func() error {
 		gateway.Spec.Servers = newServer
 		return nil
 	})
