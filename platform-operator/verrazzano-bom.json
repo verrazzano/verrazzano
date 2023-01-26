@@ -271,7 +271,7 @@
             },
             {
               "image": "oraclelinux",
-              "tag": "8-slim",
+              "tag": "8",
               "helmFullImageKey": "monitoringOperator.esInitImage"
             }
           ]
