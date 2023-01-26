@@ -59,9 +59,9 @@ ingress:
   enabled: true
   includeDefaultExtraAnnotations: true
   extraAnnotations: {}
-  ingressClassName: ""
+  ingressClassName: "nginx"
   # backend port number
-  servicePort: 80
+  servicePort: 443
 
   # configurationSnippet - Add additional Nginx configuration. This example statically sets a header on the ingress.
   # configurationSnippet: |
