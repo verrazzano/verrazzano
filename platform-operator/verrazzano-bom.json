@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.8-20230123170854-d3322376b",
-              "dashboard": "v2.6.8-20230118014847-b34cbd87",
+              "tag": "v2.6.8-20230125224945-d3322376b",
+              "dashboard": "v2.6.8-20230125223507-a8c99d79",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20230123170854-d3322376b"
+              "tag": "v2.6.8-20230125224945-d3322376b"
             }
           ]
         },
@@ -184,7 +184,7 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.14.5-20221208053759-f85741b",
+              "tag": "v1.14.5-20230124214321-f85741b",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
@@ -736,13 +736,12 @@
           ]
         },
         {
-          "registry": "docker.io",
-          "repository": "rancher",
+          "repository": "verrazzano/rancher",
           "name": "rancher-backup-kubectl",
           "images": [
             {
               "image": "kubectl",
-              "tag": "v1.20.2",
+              "tag": "v1.20.2-20230125170623-2f0ea54",
               "helmFullImageKey": "global.kubectl.repository",
               "helmTagKey": "global.kubectl.tag"
             }
