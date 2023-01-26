@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package validators
@@ -15,6 +15,7 @@ import (
 	"github.com/onsi/gomega/gstruct/errors"
 	"github.com/oracle/oci-go-sdk/v53/common"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -25,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
@@ -349,7 +349,7 @@ func ValidateVersionHigherOrEqual(currentVersion string, requestedVersion string
 // getClient returns a controller runtime client for the Verrazzano resource
 func GetClient(scheme *runtime.Scheme) (client.Client, error) {
 
-	config, err := ctrl.GetConfig()
+	config, err := k8sutil.GetConfigFromController()
 	if err != nil {
 		return nil, err
 	}
@@ -401,7 +401,7 @@ func IsKubernetesVersionSupported() bool {
 
 // getKubernetesVersion returns the version of Kubernetes cluster in which operator is deployed
 func getKubernetesVersion() (string, error) {
-	config, err := ctrl.GetConfig()
+	config, err := k8sutil.GetConfigFromController()
 	if err != nil {
 		return "", fmt.Errorf("error while getting kubernetes client config %v", err.Error())
 	}

@@ -560,6 +560,7 @@ def checkRepoClean() {
         echo 'Check for forgotten manifest/generate actions...'
         (cd platform-operator; make check-repo-clean)
         (cd application-operator; make check-repo-clean)
+        (cd cluster-operator; make check-repo-clean)
     """
 }
 

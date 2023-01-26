@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package todo
@@ -28,12 +28,19 @@ const (
 	longPollingInterval      = 20 * time.Second
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
+
+	mysqlService = "mysql"
+	ingress      = "todo-domain-ingress"
+	repoCreds    = "tododomain-repo-credentials"
 )
 
 var (
 	t                  = framework.NewTestFramework("todo")
 	generatedNamespace = pkg.GenerateNamespace("todo-list")
 	clusterDump        = dump.NewClusterDumpWrapper(t, generatedNamespace)
+	expectedPods       = []string{"mysql",
+		"tododomain-adminserver"}
+	host = ""
 )
 
 var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
@@ -42,20 +49,61 @@ var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
 		deployToDoListExample(namespace)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
+
 	t.Logs.Info("Container image pull check")
 	Eventually(func() bool {
-		return pkg.ContainerImagePullWait(namespace, []string{"mysql", "tododomain-adminserver"})
+		return pkg.ContainerImagePullWait(namespace, expectedPods)
 	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
+
 	// GIVEN the ToDoList app is deployed
 	// WHEN the running pods are checked
 	// THEN the tododomain-adminserver and mysql pods should be found running
+	t.Logs.Info("Todo List Application: check expected pods are running")
 	Eventually(func() bool {
-		result, err := pkg.PodsRunning(namespace, []string{"mysql", "tododomain-adminserver"})
+		result, err := pkg.PodsRunning(namespace, expectedPods)
 		if err != nil {
 			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 		}
 		return result
-	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Todo List Application Failed to Deploy: Pods are not ready")
+
+	t.Logs.Info("Todo List Application: check expected Service is running")
+	Eventually(func() bool {
+		result, err := pkg.DoesServiceExist(namespace, mysqlService)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("App Service %s is not running in the namespace: %v, error: %v", mysqlService, namespace, err))
+		}
+		return result
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Todo List Application Failed to Deploy: Service is not ready")
+
+	t.Logs.Info("Todo List Application: check expected VirtualService is ready")
+	Eventually(func() bool {
+		result, err := pkg.DoesVirtualServiceExist(namespace, ingress)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("App VirtualService %s is not running in the namespace: %v, error: %v", ingress, namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Todo List Application Failed to Deploy: VirtualService is not ready")
+
+	t.Logs.Info("Todo List Application: check expected Secret exists")
+	Eventually(func() bool {
+		result, err := pkg.DoesSecretExist(namespace, repoCreds)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("App Secret %s does not exist in the namespace: %v, error: %v", repoCreds, namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Todo List Application Failed to Deploy: Secret does not exist")
+
+	var err error
+	// Get the host from the Istio gateway resource.
+	start := time.Now()
+	t.Logs.Info("Todo List Application: check expected Gateway is ready")
+	Eventually(func() (string, error) {
+		host, err = k8sutil.GetHostnameFromGateway(namespace, "")
+		return host, err
+	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Todo List Application Failed to Deploy: Gateway is not ready")
+	metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
+
 })
 
 var _ = clusterDump.AfterEach(func() {})             // Dump cluster if spec fails

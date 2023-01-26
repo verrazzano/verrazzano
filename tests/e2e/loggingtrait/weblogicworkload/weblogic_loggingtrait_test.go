@@ -1,10 +1,12 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package weblogicworkload
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/tests/e2e/loggingtrait"
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"os"
 	"time"
@@ -13,7 +15,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/tests/e2e/loggingtrait"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
@@ -30,13 +31,13 @@ const (
 	applicationPath      = "testdata/loggingtrait/weblogicworkload/weblogic-logging-application.yaml"
 	applicationPodName   = "tododomain-adminserver"
 	configMapName        = "logging-stdout-todo-domain-domain"
+	namespace            = "weblogic-logging-trait"
 )
 
 var kubeConfig = os.Getenv("KUBECONFIG")
 
 var (
-	t                  = framework.NewTestFramework("weblogicworkload")
-	generatedNamespace = pkg.GenerateNamespace("weblogic-logging-trait")
+	t = framework.NewTestFramework("weblogicworkload")
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -152,6 +153,44 @@ var _ = t.Describe("Test WebLogic loggingtrait application", Label("f:app-lcm.oa
 				configMap, err := pkg.GetConfigMap(configMapName, namespace)
 				return (configMap != nil) && (err == nil)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+		})
+	})
+
+	t.Context("for IngressTrait.", Label("f:mesh.ingress",
+		"f:ui.console"), func() {
+		var host = ""
+		var err error
+		// Get the host from the Istio gateway resource.
+		// GIVEN the Istio gateway for the test namespace
+		// WHEN GetHostnameFromGateway is called
+		// THEN return the host name found in the gateway.
+		t.BeforeEach(func() {
+			Eventually(func() (string, error) {
+				host, err = k8sutil.GetHostnameFromGateway(namespace, "")
+				return host, err
+			}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
+		})
+
+		// Verify the console endpoint is working.
+		// GIVEN the app is deployed
+		// WHEN the console endpoint is accessed
+		// THEN the expected results should be returned
+		t.It("Verify '/console' endpoint is working.", func() {
+			Eventually(func() (*pkg.HTTPResponse, error) {
+				url := fmt.Sprintf("https://%s/console/login/LoginForm.jsp", host)
+				return pkg.GetWebPage(url, host)
+			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Oracle WebLogic Server Administration Console")))
+		})
+
+		// Verify the application REST endpoint is working.
+		// GIVEN the app is deployed
+		// WHEN the REST endpoint is accessed
+		// THEN the expected results should be returned
+		t.It("Verify '/todo/rest/items' REST endpoint is working.", func() {
+			Eventually(func() (*pkg.HTTPResponse, error) {
+				url := fmt.Sprintf("https://%s/todo/rest/items", host)
+				return pkg.GetWebPage(url, host)
+			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("["), pkg.BodyContains("]")))
 		})
 	})
 })
