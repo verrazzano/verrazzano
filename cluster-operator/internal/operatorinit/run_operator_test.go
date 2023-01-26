@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package operatorinit
@@ -16,8 +16,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// TestShouldSyncRancherClusters tests the shouldSyncRancherClusters function
-func TestShouldSyncRancherClusters(t *testing.T) {
+// TestShouldSyncClusters tests the shouldSyncClusters function
+func TestShouldSyncClusters(t *testing.T) {
 	asserts := assert.New(t)
 
 	// when this test is done, reset the cluster sync env var
@@ -38,7 +38,7 @@ func TestShouldSyncRancherClusters(t *testing.T) {
 		expectedError         bool
 	}{
 		// GIVEN cluster sync is disabled
-		// WHEN  shouldSyncRancherClusters is called
+		// WHEN  shouldSyncClusters is called
 		// THEN  the call returns that cluster sync is disabled, a nil label selector, and no error
 		{
 			"Sync Rancher clusters is disabled",
@@ -48,7 +48,7 @@ func TestShouldSyncRancherClusters(t *testing.T) {
 			false,
 		},
 		// GIVEN cluster sync is enabled and no label selector yaml is provided
-		// WHEN  shouldSyncRancherClusters is called
+		// WHEN  shouldSyncClusters is called
 		// THEN  the call returns that cluster sync is enabled, a nil label selector, and no error
 		{
 			"Sync Rancher clusters is enabled, no label selector specified",
@@ -58,7 +58,7 @@ func TestShouldSyncRancherClusters(t *testing.T) {
 			false,
 		},
 		// GIVEN cluster sync is enabled and a label selector yaml is provided
-		// WHEN  shouldSyncRancherClusters is called
+		// WHEN  shouldSyncClusters is called
 		// THEN  the call returns that cluster sync is enabled, a populated label selector, and no error
 		{
 			"Sync Rancher clusters is enabled, simple label selector specified",
@@ -70,7 +70,7 @@ func TestShouldSyncRancherClusters(t *testing.T) {
 			false,
 		},
 		// GIVEN cluster sync is enabled and a more complex label selector yaml is provided
-		// WHEN  shouldSyncRancherClusters is called
+		// WHEN  shouldSyncClusters is called
 		// THEN  the call returns that cluster sync is enabled, a populated label selector, and no error
 		{
 			"Sync Rancher clusters is enabled, complex label selector specified",
@@ -89,7 +89,7 @@ func TestShouldSyncRancherClusters(t *testing.T) {
 			false,
 		},
 		// GIVEN cluster sync is enabled and malformed label selector yaml is provided
-		// WHEN  shouldSyncRancherClusters is called
+		// WHEN  shouldSyncClusters is called
 		// THEN  the call returns that cluster sync is enabled, a nil label selector, and an error
 		{
 			"Sync Rancher clusters is enabled, invalid label selector",
@@ -112,7 +112,7 @@ func TestShouldSyncRancherClusters(t *testing.T) {
 			}
 			os.Setenv(syncClustersEnvVarName, strconv.FormatBool(tt.enabled))
 
-			enabled, labelSelector, err := shouldSyncRancherClusters(filename)
+			enabled, labelSelector, err := shouldSyncClusters(filename)
 
 			if tt.expectedError {
 				asserts.Error(err, tt.testName)
