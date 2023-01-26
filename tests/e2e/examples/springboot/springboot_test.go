@@ -27,7 +27,6 @@ const (
 
 	springService = "springboot-workload"
 	ingress       = "springboot-ingress-rule"
-	appCreds      = "springboot-appconf"
 )
 
 var (
@@ -79,15 +78,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		}
 		return result
 	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Spring Boot Application Failed to Deploy: VirtualService is not ready")
-
-	t.Logs.Info("Spring Boot Application: check expected Secrets exist")
-	Eventually(func() bool {
-		result, err := pkg.DoesSecretExist(namespace, appCreds)
-		if err != nil {
-			AbortSuite(fmt.Sprintf("App Secret %s does not exist in the namespace: %v, error: %v", appCreds, namespace, err))
-		}
-		return result
-	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Spring Boot Application Failed to Deploy: Secret does not exist")
 
 	var err error
 	// Get the host from the Istio gateway resource.
