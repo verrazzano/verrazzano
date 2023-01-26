@@ -147,7 +147,7 @@
           "images": [
             {
               "image": "shell",
-              "tag": "v0.1.18-20230120184751-374cc3f"
+              "tag": "v0.1.18-20230126141436-128380a"
             },
             {
               "image": "rancher-webhook",
@@ -673,7 +673,7 @@
           "images": [
             {
               "image": "jaeger-es-rollover",
-              "tag": "1.37.0-20221219184221-55f6b454",
+              "tag": "1.37.0-20230123194400-55f6b454",
               "helmFullImageKey": "jaegerESRolloverImage"
             }
           ]

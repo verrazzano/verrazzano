@@ -35,7 +35,6 @@ const (
 
 	ingress        = "hello-helidon-ingress-rule"
 	helidonService = "hello-helidon-deployment"
-	helidonToken   = "hello-helidon"
 )
 
 var (
