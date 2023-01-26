@@ -12,7 +12,10 @@ import (
 
 func main() {
 	vzlog2.InitLogs(kzap.Options{})
-	log := vzlog.DefaultLogger()
+	log, _ := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
+		Name: "psr",
+		ID:   "1",
+	})
 	log.Info("Starting PSR backend")
 
 	// Run the worker forever or until it quits

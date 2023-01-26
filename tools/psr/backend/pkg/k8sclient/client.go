@@ -9,7 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/client-go/dynamic"
-
+        "time"
 	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -22,8 +22,24 @@ type PsrClient struct {
 	DynClient   dynamic.Interface
 }
 
-// NewPsrClient returns the set of clients used by PSR
+// Try several times to get the client.  This fixes timing issue
+// where connections fails if Istio sidecar not ready
 func NewPsrClient() (PsrClient, error) {
+	const max = 10
+	var retErr error
+	for i := 1; i <= max; i++ {
+		c, err := tryNewPsrClient()
+		if err == nil {
+			return c, nil
+		}
+		retErr = err
+		time.Sleep(1)
+	}
+	return PsrClient{}, retErr
+}
+
+// tryNewPsrClient returns the set of clients used by PSR
+func tryNewPsrClient() (PsrClient, error) {
 	p := PsrClient{}
 
 	// Create the controller runtime client and add core resources to the scheme
