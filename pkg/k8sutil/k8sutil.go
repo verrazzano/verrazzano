@@ -76,14 +76,14 @@ func GetConfigFromController() (*rest.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	setConfigQpsBurst(cfg)
+	setConfigQPSBurst(cfg)
 	return cfg, nil
 }
 
 // GetConfigOrDieFromController get the config from the Controller Runtime and set the default QPS and burst.
 func GetConfigOrDieFromController() *rest.Config {
 	cfg := controllerruntime.GetConfigOrDie()
-	setConfigQpsBurst(cfg)
+	setConfigQPSBurst(cfg)
 	return cfg
 }
 
@@ -115,7 +115,7 @@ func BuildKubeConfig(kubeconfig string) (*rest.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	setConfigQpsBurst(config)
+	setConfigQPSBurst(config)
 	return config, nil
 }
 
@@ -131,7 +131,7 @@ func GetKubeConfig() (*rest.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	setConfigQpsBurst(config)
+	setConfigQPSBurst(config)
 	return config, nil
 }
 
@@ -157,7 +157,7 @@ func GetKubeConfigGivenPathAndContext(kubeConfigPath string, kubeContext string)
 	if err != nil {
 		return nil, err
 	}
-	setConfigQpsBurst(config)
+	setConfigQPSBurst(config)
 	return config, nil
 }
 
@@ -319,7 +319,7 @@ func GetHostnameFromGatewayInCluster(namespace string, appConfigName string, kub
 	}
 
 	// this can happen if the app gateway has not been created yet, the caller should
-	// keep retrying and eventually we should get a gateway with a host
+	// keep retrying, and eventually we should get a gateway with a host
 	fmt.Printf("Could not find host in application ingress gateways in namespace: %s\n", namespace)
 	return "", nil
 }
@@ -497,11 +497,11 @@ func ErrorIfDeploymentExists(namespace string, names ...string) error {
 
 // ErrorIfServiceExists reports error if any of the Services exists
 func ErrorIfServiceExists(namespace string, names ...string) error {
-	client, err := GetCoreV1Func()
+	cli, err := GetCoreV1Func()
 	if err != nil {
 		return err
 	}
-	serviceList, err := client.Services(namespace).List(context.TODO(), metav1.ListOptions{})
+	serviceList, err := cli.Services(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && !kerrs.IsNotFound(err) {
 		return err
 
@@ -516,7 +516,7 @@ func ErrorIfServiceExists(namespace string, names ...string) error {
 	return nil
 }
 
-func setConfigQpsBurst(config *rest.Config) {
+func setConfigQPSBurst(config *rest.Config) {
 	config.Burst = APIServerBurst
 	config.QPS = APIServerQPS
 }
