@@ -29,7 +29,6 @@ const (
 
 	ingress        = "helidon-config-ingress-rule"
 	helidonService = "helidon-config-deployment"
-	helidonToken   = "helidon-config-appconf-token"
 )
 
 var (
