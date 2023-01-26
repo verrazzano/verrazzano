@@ -266,12 +266,12 @@
           "images": [
             {
               "image": "oraclelinux",
-              "tag": "7-slim",
+              "tag": "8-slim",
               "helmFullImageKey": "monitoringOperator.prometheusInitImage"
             },
             {
               "image": "oraclelinux",
-              "tag": "7.9",
+              "tag": "8-slim",
               "helmFullImageKey": "monitoringOperator.esInitImage"
             }
           ]
@@ -403,7 +403,7 @@
             {
               "repository": "oracle",
               "image": "oraclelinux",
-              "tag": "7-slim",
+              "tag": "8-slim",
               "helmFullImageKey": "legacyUpgrade.initContainer.image"
             }
           ]
