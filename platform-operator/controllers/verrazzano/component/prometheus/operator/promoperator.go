@@ -6,6 +6,8 @@ package operator
 import (
 	"context"
 	"fmt"
+	"github.com/google/go-cmp/cmp"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"path"
 	"strconv"
 
@@ -558,7 +560,7 @@ func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
 			if _, ok := authPolicy.Labels[constants.IstioAppLabel]; !ok {
 				continue
 			}
-			_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), authPolicy, func() error {
+			_, err = createOrUpdate(context.TODO(), ctx.Client(), authPolicy, func() error {
 				rules := authPolicy.Spec.Rules
 				if len(rules) <= 0 || rules[0] == nil {
 					return nil
@@ -581,6 +583,47 @@ func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
 				return ctx.Log().ErrorfNewErr("Failed to update the Authorization Policy %s in namespace %s: %v", authPolicy.Name, ns.Name, err)
 			}
 		}
+	}
+	return nil
+}
+
+func createOrUpdate(ctx context.Context, c client.Client, obj client.Object, f controllerutil.MutateFn) (controllerutil.OperationResult, error) {
+	key := client.ObjectKeyFromObject(obj)
+	if err := c.Get(ctx, key, obj); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return controllerutil.OperationResultNone, err
+		}
+		if err := mutate(f, key, obj); err != nil {
+			return controllerutil.OperationResultNone, err
+		}
+		if err := c.Create(ctx, obj); err != nil {
+			return controllerutil.OperationResultNone, err
+		}
+		return controllerutil.OperationResultCreated, nil
+	}
+
+	existing := obj.DeepCopyObject() //nolint
+	if err := mutate(f, key, obj); err != nil {
+		return controllerutil.OperationResultNone, err
+	}
+
+	if cmp.Equal(existing, obj) {
+		return controllerutil.OperationResultNone, nil
+	}
+
+	if err := c.Update(ctx, obj); err != nil {
+		return controllerutil.OperationResultNone, err
+	}
+	return controllerutil.OperationResultUpdated, nil
+}
+
+// mutate wraps a MutateFn and applies validation to its result.
+func mutate(f controllerutil.MutateFn, key client.ObjectKey, obj client.Object) error {
+	if err := f(); err != nil {
+		return err
+	}
+	if newKey := client.ObjectKeyFromObject(obj); key != newKey {
+		return fmt.Errorf("MutateFn cannot mutate object name and/or object namespace")
 	}
 	return nil
 }
