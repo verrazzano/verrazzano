@@ -131,7 +131,7 @@
             {
               "image": "rancher",
               "tag": "20230125234345-98b3141a8",
-              "dashboard": "v2.6.8-20230118014847-b34cbd87",
+              "dashboard": "v2.6.8-20230125223507-a8c99d79",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
