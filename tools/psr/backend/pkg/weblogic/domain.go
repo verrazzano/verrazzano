@@ -43,8 +43,11 @@ func GetReadyReplicas(client dynamic.Interface, namespace string, name string) (
 	if !found {
 		return 0, fmt.Errorf("Failed to get clusters %v", err)
 	}
-	return clusters[0].(map[string]interface{})["readyReplicas"].(int64), nil
-
+        readyReplicas := clusters[0].(map[string]interface{})["readyReplicas"]
+        if readyReplicas != nil {
+            return readyReplicas.(int64), nil
+        }
+        return 0, nil
 }
 
 // GetCurrentReplicas returns the replicas value from /spec/replicas
