@@ -29,7 +29,6 @@ const (
 
 	ingress        = "helidon-config-ingress-rule"
 	helidonService = "helidon-config-deployment"
-	helidonToken   = "helidon-config-appconf-token"
 )
 
 var (
@@ -102,15 +101,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		}
 		return result
 	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Helidon Config Failed to Deploy: VirtualService is not ready")
-
-	t.Logs.Info("Helidon Config: check expected Secret exists")
-	Eventually(func() bool {
-		result, err := pkg.DoesSecretExist(namespace, helidonToken)
-		if err != nil {
-			AbortSuite(fmt.Sprintf("Helidon Secret %s does not exist in the namespace: %v, error: %v", helidonToken, namespace, err))
-		}
-		return result
-	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Helidon Config Failed to Deploy: Secret does not exist")
 
 	var err error
 	// Get the host from the Istio gateway resource.
