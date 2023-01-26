@@ -59,7 +59,7 @@ ingress:
   enabled: true
   includeDefaultExtraAnnotations: true
   extraAnnotations: {}
-  ingressClassName: "nginx"
+  ingressClassName: nginx
   # backend port number
   servicePort: 443
 
