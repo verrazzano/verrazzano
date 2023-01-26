@@ -13,7 +13,7 @@ import (
 func main() {
 	vzlog2.InitLogs(kzap.Options{})
 	log, _ := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
-		Name: "psr",
+		Name: "PSR",
 		ID:   "1",
 	})
 	log.Info("Starting PSR backend")
