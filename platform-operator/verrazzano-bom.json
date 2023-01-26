@@ -673,7 +673,7 @@
           "images": [
             {
               "image": "jaeger-es-rollover",
-              "tag": "1.37.0-20221219184221-55f6b454",
+              "tag": "1.37.0-20230123194400-55f6b454",
               "helmFullImageKey": "jaegerESRolloverImage"
             }
           ]
