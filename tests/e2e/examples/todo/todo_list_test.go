@@ -58,50 +58,50 @@ var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
 	// GIVEN the ToDoList app is deployed
 	// WHEN the running pods are checked
 	// THEN the tododomain-adminserver and mysql pods should be found running
-	t.Logs.Info("Bobs Books Application: check expected pods are running")
+	t.Logs.Info("Todo List Application: check expected pods are running")
 	Eventually(func() bool {
 		result, err := pkg.PodsRunning(namespace, expectedPods)
 		if err != nil {
 			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 		}
 		return result
-	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy: Pods are not ready")
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Todo List Application Failed to Deploy: Pods are not ready")
 
-	t.Logs.Info("Bobs Books Application: check expected Service is running")
+	t.Logs.Info("Todo List Application: check expected Service is running")
 	Eventually(func() bool {
 		result, err := pkg.DoesServiceExist(namespace, mysqlService)
 		if err != nil {
 			AbortSuite(fmt.Sprintf("App Service %s is not running in the namespace: %v, error: %v", mysqlService, namespace, err))
 		}
 		return result
-	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy: Service is not ready")
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Todo List Application Failed to Deploy: Service is not ready")
 
-	t.Logs.Info("Bobs Books Application: check expected VirtualService is ready")
+	t.Logs.Info("Todo List Application: check expected VirtualService is ready")
 	Eventually(func() bool {
 		result, err := pkg.DoesVirtualServiceExist(namespace, ingress)
 		if err != nil {
 			AbortSuite(fmt.Sprintf("App VirtualService %s is not running in the namespace: %v, error: %v", ingress, namespace, err))
 		}
 		return result
-	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy: VirtualService is not ready")
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Todo List Application Failed to Deploy: VirtualService is not ready")
 
-	t.Logs.Info("Bobs Books Application: check expected Secret exists")
+	t.Logs.Info("Todo List Application: check expected Secret exists")
 	Eventually(func() bool {
 		result, err := pkg.DoesSecretExist(namespace, repoCreds)
 		if err != nil {
 			AbortSuite(fmt.Sprintf("App Secret %s does not exist in the namespace: %v, error: %v", repoCreds, namespace, err))
 		}
 		return result
-	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy: Secret does not exist")
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Todo List Application Failed to Deploy: Secret does not exist")
 
 	var err error
 	// Get the host from the Istio gateway resource.
 	start := time.Now()
-	t.Logs.Info("Bobs Books Application: check expected Gateway is ready")
+	t.Logs.Info("Todo List Application: check expected Gateway is ready")
 	Eventually(func() (string, error) {
 		host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 		return host, err
-	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Bobs Books Application Failed to Deploy: Gateway is not ready")
+	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Todo List Application Failed to Deploy: Gateway is not ready")
 	metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 
 })
