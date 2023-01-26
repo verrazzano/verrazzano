@@ -102,14 +102,14 @@ var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
 		return result
 	}, longWaitTimeout, pollingInterval).Should(BeTrue(), "Sock Shop Application Failed to Deploy: Pods are not ready")
 
-	t.Logs.Info("Sock Shop Application: check expected Services are running")
+	t.Logs.Info("Sock Shop Application: check expected Service is running")
 	Eventually(func() bool {
 		result, err := pkg.DoesServiceExist(namespace, cartsService)
 		if err != nil {
 			AbortSuite(fmt.Sprintf("App Service %s is not running in the namespace: %v, error: %v", cartsService, namespace, err))
 		}
 		return result
-	}, longWaitTimeout, pollingInterval).Should(BeTrue(), "Sock Shop Application Failed to Deploy: Services are not ready")
+	}, longWaitTimeout, pollingInterval).Should(BeTrue(), "Sock Shop Application Failed to Deploy: Service is not ready")
 
 	t.Logs.Info("Sock Shop Application: check expected VirtualService is ready")
 	Eventually(func() bool {
