@@ -20,6 +20,7 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -172,7 +173,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload vzapi.VerrazzanoH
 		return reconcile.Result{}, err
 	}
 	// set the controller reference so that we can watch this service and it will be deleted automatically
-	if err := ctrl.SetControllerReference(&workload, service, r.Scheme); err != nil {
+	if err = ctrl.SetControllerReference(&workload, service, r.Scheme); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -264,37 +265,46 @@ func (r *Reconciler) convertWorkloadToDeployment(workload *vzapi.VerrazzanoHelid
 
 // createServiceFromDeployment creates a service for the deployment
 func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelidonWorkload, deploy *appsv1.Deployment, log vzlog.VerrazzanoLogger) (*corev1.Service, error) {
-
 	// We don't add a Service if there are no containers for the Deployment.
 	// This should never happen in practice.
-	if len(deploy.Spec.Template.Spec.Containers) > 0 {
-		s := &corev1.Service{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       serviceKind,
-				APIVersion: serviceAPIVersion,
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      deploy.GetName(),
-				Namespace: deploy.GetNamespace(),
-				Labels: map[string]string{
-					labelKey:              string(workload.GetUID()),
-					oam.LabelAppName:      deploy.ObjectMeta.Labels[oam.LabelAppName],
-					oam.LabelAppComponent: deploy.ObjectMeta.Labels[oam.LabelAppComponent],
-				},
-			},
-			Spec: corev1.ServiceSpec{
-				Selector: deploy.Spec.Selector.MatchLabels,
-				Ports:    []corev1.ServicePort{},
-				Type:     corev1.ServiceTypeClusterIP,
-			},
-		}
+	if len(deploy.Spec.Template.Spec.Containers) == 0 {
+		return &corev1.Service{}, nil
+	}
+	s := &corev1.Service{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       serviceKind,
+			APIVersion: serviceAPIVersion,
+		},
+		ObjectMeta: workload.Spec.ServiceTemplate.Metadata,
+		Spec:       workload.Spec.ServiceTemplate.ServiceSpec,
+	}
+	if s.GetName() == "" {
+		s.SetName(deploy.GetName())
+	}
+	if s.GetNamespace() == "" {
+		s.SetNamespace(deploy.GetNamespace())
 
+	}
+	if s.Labels == nil {
+		s.Labels = map[string]string{}
+	}
+	s.Labels[labelKey] = string(workload.GetUID())
+	s.Labels[oam.LabelAppName] = deploy.ObjectMeta.Labels[oam.LabelAppName]
+	s.Labels[oam.LabelAppComponent] = deploy.ObjectMeta.Labels[oam.LabelAppComponent]
+
+	if s.Spec.Selector == nil {
+		s.Spec.Selector = deploy.Spec.Selector.MatchLabels
+	}
+	if s.Spec.Type == "" {
+		s.Spec.Type = corev1.ServiceTypeClusterIP
+	}
+	if s.Spec.Ports == nil {
 		for _, container := range deploy.Spec.Template.Spec.Containers {
 			if len(container.Ports) > 0 {
 				for _, port := range container.Ports {
 					// All ports within a ServiceSpec must have unique names.
 					// When considering the endpoints for a Service, this must match the 'name' field in the EndpointPort.
-					name := strings.ToLower(string(corev1.ProtocolTCP)) + "-" + container.Name + "-" + strconv.FormatInt(int64(port.ContainerPort), 10)
+					name := strings.ToLower(container.Name + "-" + strconv.FormatInt(int64(port.ContainerPort), 10))
 					protocol := corev1.ProtocolTCP
 					if len(port.Protocol) > 0 {
 						protocol = port.Protocol
@@ -311,15 +321,15 @@ func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelid
 				}
 			}
 		}
-		if y, err := yaml.Marshal(s); err != nil {
-			log.Errorf("Failed to convert service to yaml: %v", err)
-			log.Debugf("Service in json format: %s", s)
-		} else {
-			log.Debugf("Service in yaml format: %s", string(y))
-		}
-		return s, nil
 	}
-	return nil, nil
+
+	if y, err := yaml.Marshal(s); err != nil {
+		log.Errorf("Failed to convert service to yaml: %v", err)
+		log.Debugf("Service in json format: %s", s)
+	} else {
+		log.Debugf("Service in yaml format: %s", string(y))
+	}
+	return s, nil
 }
 
 // passLabelAndAnnotation passes through labels and annotation objectMeta from the workload to the deployment object

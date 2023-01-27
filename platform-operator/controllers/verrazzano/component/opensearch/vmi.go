@@ -205,7 +205,7 @@ func nodeAdapter(effectiveCR *vzapi.Verrazzano, vmi *vmov1.VerrazzanoMonitoringI
 		}
 		vmoNode := vmov1.ElasticsearchNode{
 			Name:      node.Name,
-			JavaOpts:  "",
+			JavaOpts:  node.JavaOpts,
 			Replicas:  node.Replicas,
 			Roles:     node.Roles,
 			Resources: resources,
