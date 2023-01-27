@@ -55,15 +55,13 @@ spec:
               value: {{ .Values.monitoringOperator.prometheusInitImage }}
             - name: ALERT_MANAGER_IMAGE
               value: {{ .Values.monitoringOperator.alertManagerImage }}
-            - name: ELASTICSEARCH_WAIT_IMAGE
-              value: {{ .Values.monitoringOperator.esWaitImage }}
-            - name: ELASTICSEARCH_IMAGE
+            - name: OPENSEARCH_IMAGE
               value: {{ .Values.monitoringOperator.esImage }}
-            - name: ELASTICSEARCH_INIT_IMAGE
+            - name: OPENSEARCH_INIT_IMAGE
               value: {{ .Values.monitoringOperator.esInitImage }}
             - name: KIBANA_IMAGE
               value: {{ .Values.monitoringOperator.kibanaImage }}
-            - name: ELASTICSEARCH_WAIT_TARGET_VERSION
+            - name: OPENSEARCH_WAIT_TARGET_VERSION
               value: {{ .Values.monitoringOperator.esWaitTargetVersion }}
             - name: OIDC_PROXY_IMAGE
               value: {{ .Values.monitoringOperator.oidcProxyImage }}
