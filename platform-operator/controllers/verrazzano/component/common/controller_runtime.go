@@ -28,10 +28,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// CreateOrUpdateProtobuf is a duplicate method of CreateOrUpdate, copied from
+// CreateOrUpdateProtobuf is a derivative of the function CreateOrUpdate, copied from
 // https://github.com/kubernetes-sigs/controller-runtime/blob/master/pkg/controller/controllerutil/controllerutil.go
 // CreateOrUpdateProtobuf is called on types that use protobuf, such as Istio types,
-// for which reflect.DeepEqual is invalid.
+// for which equality.Semantic.DeepEqual is invalid.
 func CreateOrUpdateProtobuf(ctx context.Context, c client.Client, obj client.Object, f controllerutil.MutateFn) (controllerutil.OperationResult, error) {
 	key := client.ObjectKeyFromObject(obj)
 	if err := c.Get(ctx, key, obj); err != nil {
@@ -51,6 +51,7 @@ func CreateOrUpdateProtobuf(ctx context.Context, c client.Client, obj client.Obj
 	if err := mutate(f, key, obj); err != nil {
 		return controllerutil.OperationResultNone, err
 	}
+	// This is the line that is changed from the original function so that it can handle comparing protobuf types without panicking.
 	if cmp.Diff(existing, obj, protocmp.Transform()) == "" {
 		return controllerutil.OperationResultNone, nil
 	}
