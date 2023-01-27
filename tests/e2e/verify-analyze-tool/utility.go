@@ -1,4 +1,4 @@
-package verify_analyze_tool
+package utility
 
 import (
 	"context"
