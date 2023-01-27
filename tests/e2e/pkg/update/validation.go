@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package update
@@ -11,6 +11,11 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
+)
+
+const (
+	longWaitTimeout     = 10 * time.Minute
+	longPollingInterval = 30 * time.Second
 )
 
 func ValidatePods(deployName string, labelName string, nameSpace string, expectedPodsRunning uint32, hasPending bool) {
@@ -38,7 +43,7 @@ func ValidatePods(deployName string, labelName string, nameSpace string, expecte
 			return fmt.Errorf("Deployment name %s: expect pending pods %t, but got %t", deployName, hasPending, pendingPods)
 		}
 		return nil
-	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get correct number of running and pending pods")
+	}, longWaitTimeout, longPollingInterval).Should(gomega.BeNil(), "expect to get correct number of running and pending pods")
 }
 
 func ValidatePodMemoryRequest(labels map[string]string, nameSpace, containerPrefix string, expectedMemory string) {
