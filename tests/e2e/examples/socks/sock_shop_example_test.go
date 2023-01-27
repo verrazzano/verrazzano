@@ -43,6 +43,7 @@ const (
 
 var sockShop SockShop
 var username, password string
+var isMinVersion140 bool
 
 var (
 	t                  = framework.NewTestFramework("socks")
@@ -89,6 +90,15 @@ var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
 	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	// checks that all pods are up and running
 	Eventually(sockshopPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
+
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+	if err != nil {
+		Fail(err.Error())
+	}
 })
 
 var _ = BeforeSuite(beforeSuite)

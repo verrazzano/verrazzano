@@ -57,7 +57,7 @@ var (
 		"mysql"}
 	appName = "bobs-books"
 )
-
+var isMinVersion140 bool
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
 		start := time.Now()
@@ -77,6 +77,14 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return result
 	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy")
 	beforeSuitePassed = true
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+	if err != nil {
+		Fail(err.Error())
+	}
 })
 
 var failed = false
@@ -278,11 +286,6 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 	})
 	t.Context("Metrics.", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
 
-		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-		if err != nil {
-			Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-		}
-		ok, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
 		// Verify application Prometheus scraped targets
 		// GIVEN a deployed Bob's Books application
 		// WHEN the application configuration uses a default metrics trait
@@ -290,7 +293,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		t.It("Verify all scrape targets are healthy for the application", func() {
 			Eventually(func() (bool, error) {
 				var componentNames = []string{"bobby-coh", "bobby-helidon", "bobby-wls", "bobs-mysql-deployment", "bobs-mysql-service", "bobs-orders-wls", robertCoh, "robert-helidon"}
-				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "bob-books", componentNames, ok))
+				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "bob-books", componentNames, isMinVersion140))
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
 		// Verify Istio Prometheus scraped metrics

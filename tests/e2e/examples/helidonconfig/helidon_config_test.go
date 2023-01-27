@@ -34,6 +34,7 @@ var (
 	generatedNamespace = pkg.GenerateNamespace("helidon-config")
 	kubeConfig         = os.Getenv("KUBECONFIG")
 )
+var isMinVersion140 bool
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
@@ -66,6 +67,14 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		Eventually(func() bool {
 			return pkg.ContainerImagePullWait(namespace, expectedPodsHelidonConfig)
 		}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
+	}
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+	if err != nil {
+		Fail(err.Error())
 	}
 
 	// Verify helidon-config-deployment pod is running
@@ -179,15 +188,10 @@ var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 	// WHEN the component and appconfig without metrics-trait(using default) are created
 	// THEN the application scrape targets must be healthy
 	t.Describe("Metrics.", Label("f:observability.monitoring.prom"), func() {
-		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-		if err != nil {
-			Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-		}
-		ok, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
 		t.It("Verify all scrape targets are healthy for the application", func() {
 			Eventually(func() (bool, error) {
 				var componentNames = []string{"helidon-config-component"}
-				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "helidon-config-appconf", componentNames, ok))
+				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "helidon-config-appconf", componentNames, isMinVersion140))
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
 	})
