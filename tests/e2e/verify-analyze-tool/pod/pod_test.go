@@ -2,8 +2,8 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // This is an e2e test to plant, validate and revert issues
-// Here we are dealing with image related issues
-package image
+// Here we are dealing with pod related issues
+package pod
 
 import (
 	. "github.com/onsi/ginkgo/v2"
@@ -21,10 +21,10 @@ var (
 	pollingInterval = 10 * time.Second
 )
 
-var t = framework.NewTestFramework("Vz Analysis Tool Image Issues")
+var t = framework.NewTestFramework("Vz Analysis Tool Pod Issues")
 
 var err error
-var issuesToBeDiagnosed = []string{utility.ImagePullBackOff, utility.ImagePullNotFound}
+var issuesToBeDiagnosed = []string{utility.PodProblemsNotReported, utility.PendingPods}
 var client = &kubernetes.Clientset{}
 var deploymentsClient kv1.DeploymentInterface
 
@@ -44,13 +44,13 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 func feedAnalysisReport() error {
 	for i := 0; i < len(issuesToBeDiagnosed); i++ {
 		switch issuesToBeDiagnosed[i] {
-		case utility.ImagePullNotFound:
-			patchErr := utility.PatchImage(deploymentsClient, utility.DeploymentToBePatched, utility.ImagePullNotFound, "X")
+		case utility.PodProblemsNotReported:
+			patchErr := utility.PatchImage(deploymentsClient, utility.DeploymentToBePatched, utility.PodProblemsNotReported, "nginx")
 			if patchErr != nil {
 				return patchErr
 			}
-		case utility.ImagePullBackOff:
-			patchErr := utility.PatchImage(deploymentsClient, utility.DeploymentToBePatched, utility.ImagePullBackOff, "nginxx/nginx:1.14.0")
+		case utility.PendingPods:
+			patchErr := utility.PatchPod(utility.PendingPods, []string{"cpu=50000m", "cpu=128m"})
 			if patchErr != nil {
 				return patchErr
 			}
@@ -62,33 +62,33 @@ func feedAnalysisReport() error {
 	return nil
 }
 
-var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
-	t.Context("During Image Issue Analysis", func() {
+var _ = t.Describe("VZ Tools", Label("f:vz-tools-pod-issues"), func() {
+	t.Context("During Pod Issue Analysis", func() {
 		t.It("First Inject/ Revert Issue and Feed Analysis Report", func() {
 			feedAnalysisReport()
-			Expect(utility.ReportAnalysis[utility.ImagePullBackOff]).To(Not(nil))
-			Expect(utility.ReportAnalysis[utility.ImagePullNotFound]).To(Not(nil))
+			Expect(utility.ReportAnalysis[utility.PodProblemsNotReported]).To(Not(nil))
+			Expect(utility.ReportAnalysis[utility.PendingPods]).To(Not(nil))
 		})
 
-		t.It("Should Have ImagePullNotFound Issue Post Bad Image Injection", func() {
+		t.It("Should Have PodProblemsNotReported Issue Post Bad Image Injection", func() {
 			Eventually(func() bool {
-				return utility.VerifyIssue(utility.ReportAnalysis[utility.ImagePullNotFound].Patch, utility.ImagePullNotFound)
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.PodProblemsNotReported].Patch, utility.PodProblemsNotReported)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
-		t.It("Should Not Have ImagePullNotFound Issue Post Reviving Bad Image", func() {
+		t.It("Should Not Have PodProblemsNotReported Issue Post Reviving Bad Image", func() {
 			Eventually(func() bool {
-				return utility.VerifyIssue(utility.ReportAnalysis[utility.ImagePullNotFound].Revive, utility.ImagePullNotFound)
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.PodProblemsNotReported].Revive, utility.PodProblemsNotReported)
 			}, waitTimeout, pollingInterval).Should(BeFalse())
 		})
 
-		t.It("Should Have ImagePullBackOff Issue Post Bad Image Injection", func() {
+		t.It("Should Have PendingPods Issue Post Bad Resource Request", func() {
 			Eventually(func() bool {
-				return utility.VerifyIssue(utility.ReportAnalysis[utility.ImagePullBackOff].Patch, utility.ImagePullBackOff)
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.PendingPods].Patch, utility.PendingPods)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
-		t.It("Should Not Have ImagePullBackOff Issue Post Reviving Bad Image", func() {
+		t.It("Should Not Have PendingPods Issue Post Rectifying Resource Request", func() {
 			Eventually(func() bool {
-				return utility.VerifyIssue(utility.ReportAnalysis[utility.ImagePullBackOff].Revive, utility.ImagePullBackOff)
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.PendingPods].Revive, utility.PendingPods)
 			}, waitTimeout, pollingInterval).Should(BeFalse())
 		})
 	})
