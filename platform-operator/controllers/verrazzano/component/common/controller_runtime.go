@@ -1,5 +1,20 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+/*
+Copyright 2018 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package common
 
@@ -13,8 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// CreateOrUpdateProtobuf is a duplicate method of CreateOrUpdate, located in
-// sigs.k8s.io/controller-runtime/pkg/controller/controllerutil/controllerutil.go.
+// CreateOrUpdateProtobuf is a duplicate method of CreateOrUpdate, copied from
+// https://github.com/kubernetes-sigs/controller-runtime/blob/master/pkg/controller/controllerutil/controllerutil.go
 // CreateOrUpdateProtobuf is called on types that use protobuf, such as Istio types,
 // for which reflect.DeepEqual is invalid.
 func CreateOrUpdateProtobuf(ctx context.Context, c client.Client, obj client.Object, f controllerutil.MutateFn) (controllerutil.OperationResult, error) {
@@ -46,7 +61,8 @@ func CreateOrUpdateProtobuf(ctx context.Context, c client.Client, obj client.Obj
 	return controllerutil.OperationResultUpdated, nil
 }
 
-// mutate wraps a MutateFn and applies validation to its result.
+// mutate is a copied function from https://github.com/kubernetes-sigs/controller-runtime/blob/master/pkg/controller/controllerutil/controllerutil.go
+// It wraps a MutateFn and applies validation to its result.
 func mutate(f controllerutil.MutateFn, key client.ObjectKey, obj client.Object) error {
 	if err := f(); err != nil {
 		return err
