@@ -673,7 +673,6 @@ func grantXARecoverAdmin(ctx spi.ComponentContext) error {
 	if unitTesting {
 		return nil
 	}
-	ctx.Log().Info("Grant XA_RECOVER_ADMIN to Keycloak user")
 	// Get root password, required to connect to MySQL pod
 	secretName := types.NamespacedName{
 		Namespace: ComponentNamespace,
@@ -701,7 +700,7 @@ func grantXARecoverAdmin(ctx spi.ComponentContext) error {
 		ctx.Log().Error(errorMsg)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
-	ctx.Log().Info("Granted XA_RECOVER_ADMIN to Keycloak user successfully")
+	ctx.Log().Debug("Granted XA_RECOVER_ADMIN to Keycloak user successfully")
 	return nil
 }
 
