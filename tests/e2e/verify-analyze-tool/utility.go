@@ -3,7 +3,7 @@ package verify_analyze_tool
 import (
 	"context"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
+	"k8s.io/client-go/kubernetes"
 	"os"
 	"os/exec"
 	"strings"
@@ -31,7 +31,8 @@ type Action struct {
 
 var ReportAnalysis = make(map[string]Action)
 
-func PatchImage(deploymentClient kv1.DeploymentInterface, deploymentName, issueType, patchImage string) error {
+func PatchImage(client *kubernetes.Clientset, deploymentName, issueType, patchImage string) error {
+	deploymentClient := client.AppsV1().Deployments(VzSystemNS)
 	result, getErr := deploymentClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
 	if getErr != nil {
 		return getErr

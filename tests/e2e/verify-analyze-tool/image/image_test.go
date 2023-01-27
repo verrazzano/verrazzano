@@ -12,7 +12,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	utility "github.com/verrazzano/verrazzano/tests/e2e/verify-analyze-tool"
 	"k8s.io/client-go/kubernetes"
-	kv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	"time"
 )
 
@@ -26,7 +25,6 @@ var t = framework.NewTestFramework("Vz Analysis Tool Image Issues")
 var err error
 var issuesToBeDiagnosed = []string{utility.ImagePullBackOff, utility.ImagePullNotFound}
 var client = &kubernetes.Clientset{}
-var deploymentsClient kv1.DeploymentInterface
 
 // Get the K8s Client to fetch deployment info
 var _ = BeforeSuite(beforeSuite)
@@ -35,7 +33,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
-	deploymentsClient = client.AppsV1().Deployments(utility.VzSystemNS)
 })
 
 // This method invoke patch method & feed vz analyze report to ReportAnalysis
@@ -45,12 +42,12 @@ func feedAnalysisReport() error {
 	for i := 0; i < len(issuesToBeDiagnosed); i++ {
 		switch issuesToBeDiagnosed[i] {
 		case utility.ImagePullNotFound:
-			patchErr := utility.PatchImage(deploymentsClient, utility.DeploymentToBePatched, utility.ImagePullNotFound, "X")
+			patchErr := utility.PatchImage(client, utility.DeploymentToBePatched, utility.ImagePullNotFound, "X")
 			if patchErr != nil {
 				return patchErr
 			}
 		case utility.ImagePullBackOff:
-			patchErr := utility.PatchImage(deploymentsClient, utility.DeploymentToBePatched, utility.ImagePullBackOff, "nginxx/nginx:1.14.0")
+			patchErr := utility.PatchImage(client, utility.DeploymentToBePatched, utility.ImagePullBackOff, "nginxx/nginx:1.14.0")
 			if patchErr != nil {
 				return patchErr
 			}

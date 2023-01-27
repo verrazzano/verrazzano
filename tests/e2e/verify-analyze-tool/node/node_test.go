@@ -8,11 +8,8 @@ package node
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	k8util "github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	utility "github.com/verrazzano/verrazzano/tests/e2e/verify-analyze-tool"
-	"k8s.io/client-go/kubernetes"
-	kv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	"time"
 )
 
@@ -23,19 +20,10 @@ var (
 
 var t = framework.NewTestFramework("Vz Analysis Tool Node Issues")
 
-var err error
 var issuesToBeDiagnosed = []string{utility.InsufficientMemory}
-var client = &kubernetes.Clientset{}
-var deploymentsClient kv1.DeploymentInterface
 
-// Get the K8s Client to fetch deployment info
 var _ = BeforeSuite(beforeSuite)
 var beforeSuite = t.BeforeSuiteFunc(func() {
-	client, err = k8util.GetKubernetesClientset()
-	if err != nil {
-		Fail(err.Error())
-	}
-	deploymentsClient = client.AppsV1().Deployments(utility.VzSystemNS)
 })
 
 // This method invoke patch method & feed vz analyze report to ReportAnalysis

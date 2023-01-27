@@ -35,7 +35,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
-	deploymentsClient = client.AppsV1().Deployments(utility.VzSystemNS)
 })
 
 // This method invoke patch method & feed vz analyze report to ReportAnalysis
@@ -45,7 +44,7 @@ func feedAnalysisReport() error {
 	for i := 0; i < len(issuesToBeDiagnosed); i++ {
 		switch issuesToBeDiagnosed[i] {
 		case utility.PodProblemsNotReported:
-			patchErr := utility.PatchImage(deploymentsClient, utility.DeploymentToBePatched, utility.PodProblemsNotReported, "nginx")
+			patchErr := utility.PatchImage(client, utility.DeploymentToBePatched, utility.PodProblemsNotReported, "nginx")
 			if patchErr != nil {
 				return patchErr
 			}
