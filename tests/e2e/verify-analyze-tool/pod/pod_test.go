@@ -12,7 +12,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	utility "github.com/verrazzano/verrazzano/tests/e2e/verify-analyze-tool"
 	"k8s.io/client-go/kubernetes"
-	kv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	"time"
 )
 
@@ -26,7 +25,6 @@ var t = framework.NewTestFramework("Vz Analysis Tool Pod Issues")
 var err error
 var issuesToBeDiagnosed = []string{utility.PodProblemsNotReported, utility.PendingPods}
 var client = &kubernetes.Clientset{}
-var deploymentsClient kv1.DeploymentInterface
 
 // Get the K8s Client to fetch deployment info
 var _ = BeforeSuite(beforeSuite)
