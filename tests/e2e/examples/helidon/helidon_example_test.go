@@ -6,6 +6,7 @@ package helidon
 import (
 	"fmt"
 	"io"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 	"os"
 	"strings"
@@ -70,6 +71,12 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 			}
 			return result
 		}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Helidon Example Failed to Deploy: Pods are not ready")
+
+		t.Logs.Info("Helidon Example: check expected pods count are running")
+
+		Eventually(func() bool {
+			return isDeploymentSetUpdated()
+		}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 
 		t.Logs.Info("Helidon Example: check expected Services are running")
 		Eventually(func() bool {
@@ -354,4 +361,21 @@ func nodeExporterProcsRunning() bool {
 
 func nodeExporterDiskIoNow() bool {
 	return pkg.MetricsExist("node_disk_io_now", "job", nodeExporterJobName)
+}
+
+// isDeploymentSetUpdated returns
+// replicas from examples/hello-helidon/hello-helidon-app-scaler-trait.yaml
+// currently configured 2
+func isDeploymentSetUpdated() bool {
+	pods, err := pkg.ListPods(namespace, metav1.ListOptions{})
+	if err != nil {
+		t.Logs.Errorf("Unexpected error while listing the deployments error response=%v", err)
+		return false
+	}
+	t.Logs.Info("current pod count...", len(pods.Items))
+	if len(pods.Items) < 2 {
+		return false
+	} else {
+		return true
+	}
 }
