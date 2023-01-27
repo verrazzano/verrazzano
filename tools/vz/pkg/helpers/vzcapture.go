@@ -154,7 +154,7 @@ func GetPodListAll(client clipkg.Client, namespace string) ([]corev1.Pod, error)
 }
 
 // CaptureVZResource captures Verrazzano resources as a JSON file
-func CaptureVZResource(captureDir string, vz v1beta1.VerrazzanoList, vzHelper VZHelper) error {
+func CaptureVZResource(captureDir string, vz *v1beta1.Verrazzano, vzHelper VZHelper) error {
 	var vzRes = filepath.Join(captureDir, constants.VzResource)
 	f, err := os.OpenFile(vzRes, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {

@@ -1,4 +1,4 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: core.oam.dev/v1alpha2
@@ -18,7 +18,7 @@ spec:
         spec:
           domainUID: cidomain
           domainHome: /u01/domains/tododomain
-          image: container-registry.oracle.com/verrazzano/example-todo:0.1.12-1-20210624160519-017d358
+          image: container-registry.oracle.com/verrazzano/example-todo:1.0.0-1-20210728181814-eb1e622
           imagePullSecrets:
             - name: tododomain-repo-credentials
           domainHomeSourceType: "FromModel"

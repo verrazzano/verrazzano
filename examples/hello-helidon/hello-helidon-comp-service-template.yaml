@@ -1,0 +1,38 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: hello-helidon-component
+spec:
+  workload:
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoHelidonWorkload
+    metadata:
+      name: hello-helidon-workload
+      labels:
+        app: hello-helidon
+        version: v1
+    spec:
+      deploymentTemplate:
+        metadata:
+          name: hello-helidon-deployment
+        podSpec:
+          containers:
+            - name: hello-helidon-container
+              image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:1.0.0-1-20220513221156-7da0d32"
+              ports:
+                - containerPort: 8081
+                  name: http
+              env:
+                - name: SERVER_PORT
+                  value: "8081"
+      serviceTemplate:
+        metadata:
+          name: hello-helidon-custom-service
+        serviceSpec:
+          ports:
+            - name: http-hello-helidon
+              protocol: TCP
+              port: 8082
+              targetPort: 8081

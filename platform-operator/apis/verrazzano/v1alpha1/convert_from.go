@@ -242,6 +242,7 @@ func convertOSNodesFromV1Beta1(in []v1beta1.OpenSearchNode) []OpenSearchNode {
 			Roles:     inNode.Roles,
 			Storage:   storage,
 			Resources: inNode.Resources,
+			JavaOpts:  inNode.JavaOpts,
 		})
 	}
 	return out
