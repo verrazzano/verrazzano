@@ -1135,9 +1135,9 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "opensearch_process_file_descriptors_max_number{cluster=\"system\"}",
+          "expr": "group by (node)(opensearch_process_file_descriptors_max_number{cluster=\"system\"})",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{node}}",
           "refId": "A"
         }
       ],
@@ -1233,7 +1233,7 @@
           "exemplar": true,
           "expr": "sum(opensearch_index_shards_number{cluster=\"system\",type=\"active\"}) by (index)",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{index}}",
           "refId": "A"
         }
       ],
@@ -1449,7 +1449,7 @@
           "exemplar": true,
           "expr": "rate(opensearch_indices_search_fetch_count{cluster=\"system\"}[1h])",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{kubernetes_pod_name}}",
           "refId": "A"
         }
       ],
@@ -1557,7 +1557,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(node_memory_MemTotal_bytes{instance=~\".*:9100\", verrazzano_cluster=\"local\"})",
+          "expr": "sum(opensearch_fs_total_total_bytes{verrazzano_cluster=\"local\", job=\"vmi-system-es-data\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -1615,7 +1615,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(node_memory_MemFree_bytes{instance=~\".*:9100\", verrazzano_cluster=\"local\"})",
+          "expr": "sum(opensearch_fs_total_free_bytes{ job=\"vmi-system-es-data\", verrazzano_cluster=\"local\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -1673,7 +1673,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(node_memory_MemAvailable_bytes{instance=~\".*:9100\", verrazzano_cluster=\"local\"})",
+          "expr": "sum(opensearch_fs_total_available_bytes{job=\"vmi-system-es-data\", verrazzano_cluster=\"local\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -1731,7 +1731,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(node_filesystem_free_bytes{instance=~\".*:9100\", verrazzano_cluster=\"local\", mountpoint=\"/var\"})",
+          "expr": "sum(node_filesystem_free_bytes{verrazzano_cluster=\"local\",instance=~\".*:9100\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
