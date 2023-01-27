@@ -6,6 +6,7 @@ package ingresstrait
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"strings"
 
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -148,7 +149,7 @@ func cleanupGateway(trait *vzapi.IngressTrait, c client.Client, log vzlog.Verraz
 		}
 		newServer = append(newServer, server)
 	}
-	_, err = createOrUpdate(context.TODO(), c, gateway, func() error {
+	_, err = common.CreateOrUpdateProtobuf(context.TODO(), c, gateway, func() error {
 		gateway.Spec.Servers = newServer
 		return nil
 	})
