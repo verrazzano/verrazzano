@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package pkg
@@ -15,20 +15,27 @@ import (
 const (
 	helidonPollingInterval = 10 * time.Second
 	helidonWaitTimeout     = 5 * time.Minute
-	helidonComponentYaml   = "examples/hello-helidon/hello-helidon-comp.yaml"
 )
 
 var expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 var helidonAppYaml = "examples/hello-helidon/hello-helidon-app.yaml"
+var helidonComponentYaml = "examples/hello-helidon/hello-helidon-comp.yaml"
 
 // DeployHelloHelidonApplication deploys the Hello Helidon example application. It accepts an optional
 // OCI Log ID that is added as an annotation on the namespace to test the OCI Logging service integration.
-func DeployHelloHelidonApplication(namespace string, ociLogID string, istioInjection string, customAppConfig string) {
+func DeployHelloHelidonApplication(namespace string, ociLogID string, istioInjection string, customComponent string, customAppConfig string) {
 	Log(Info, "Deploy Hello Helidon Application")
 	Log(Info, fmt.Sprintf("Create namespace %s", namespace))
 
 	// use custom Hello-Helidon Component if it is passed in
+	if customComponent != "" {
+		Log(Info, fmt.Sprintf("Deploying Hello Helidon with custom Component: %s", customComponent))
+		helidonComponentYaml = customComponent
+	}
+
+	// use custom Hello-Helidon Application Configuration if it is passed in
 	if customAppConfig != "" {
+		Log(Info, fmt.Sprintf("Deploying Hello Helidon with custom Application Configuration: %s", customAppConfig))
 		helidonAppYaml = customAppConfig
 	}
 	gomega.Eventually(func() (*v1.Namespace, error) {
@@ -57,12 +64,19 @@ func DeployHelloHelidonApplication(namespace string, ociLogID string, istioInjec
 }
 
 // UndeployHelloHelidonApplication undeploys the Hello Helidon example application.
-func UndeployHelloHelidonApplication(namespace string, customAppConfig string) {
+func UndeployHelloHelidonApplication(namespace string, customComponent string, customAppConfig string) {
 	Log(Info, "Undeploy Hello Helidon Application")
+
+	// use custom Hello-Helidon Component if it is passed in
+	if customComponent != "" {
+		helidonComponentYaml = customComponent
+	}
+
 	// use custom Hello-Helidon Component if it is passed in
 	if customAppConfig != "" {
 		helidonAppYaml = customAppConfig
 	}
+
 	if exists, _ := DoesNamespaceExist(namespace); exists {
 		Log(Info, "Delete Hello Helidon application")
 		gomega.Eventually(func() error {

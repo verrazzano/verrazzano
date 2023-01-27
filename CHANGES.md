@@ -5,6 +5,8 @@ Fixes:
 - Fixed Fluentd configuration to prevent duplication of logs in OpenSearch on Fluentd restarts or upgrade.
 - Fixed WebLogic Grafana dashboards to get the service label value correctly and display data properly.
 - Fixed i/o timeout errors installing Verrazzano on a RKE2 cluster.
+- Added ServiceTemplate to VerrazzanoHelidonWorkload to support users customizing the Helidon workload service
+- Fixed default Helidon workload service so that the service ports don't automatically get named with the prefix "tcp-"
 
 Component version updates:
 

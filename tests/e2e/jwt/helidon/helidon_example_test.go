@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helidon
@@ -10,14 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-retryablehttp"
-	v1 "k8s.io/api/core/v1"
-
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 
+	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -34,11 +32,6 @@ const (
 	nodeExporterJobName      = "node-exporter"
 )
 
-const (
-	helidonComponentYaml = "../../../examples/hello-helidon/hello-helidon-comp.yaml"
-	helidonAppYaml       = "testdata/jwt/helidon/hello-helidon-app.yaml"
-)
-
 var (
 	t                  = framework.NewTestFramework("helidon")
 	generatedNamespace = pkg.GenerateNamespace(helloHelidon)
@@ -49,7 +42,7 @@ var (
 var _ = t.BeforeSuite(func() {
 	if !skipDeploy {
 		start := time.Now()
-		deployHelloHelidonApplication(namespace, "", istioInjection)
+		pkg.DeployHelloHelidonApplication(namespace, "", istioInjection, "", "")
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 
@@ -79,7 +72,7 @@ var _ = t.AfterSuite(func() {
 	}
 	if !skipUndeploy {
 		start := time.Now()
-		pkg.UndeployHelloHelidonApplication(namespace, "")
+		pkg.UndeployHelloHelidonApplication(namespace, "", "")
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
@@ -205,36 +198,6 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	})
 
 })
-
-// DeployHelloHelidonApplication deploys the Hello Helidon example application. It accepts an optional
-// OCI Log ID that is added as an annotation on the namespace to test the OCI Logging service integration.
-func deployHelloHelidonApplication(namespace string, ociLogID string, istioInjection string) {
-	pkg.Log(pkg.Info, "Deploy Hello Helidon Application")
-	pkg.Log(pkg.Info, fmt.Sprintf("Create namespace %s", namespace))
-	Eventually(func() (*v1.Namespace, error) {
-		nsLabels := map[string]string{
-			"verrazzano-managed": "true",
-			"istio-injection":    istioInjection}
-
-		var annotations map[string]string
-		if len(ociLogID) > 0 {
-			annotations = make(map[string]string)
-			annotations["verrazzano.io/oci-log-id"] = ociLogID
-		}
-
-		return pkg.CreateNamespaceWithAnnotations(namespace, nsLabels, annotations)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil(), fmt.Sprintf("Failed to create namespace %s", namespace))
-
-	pkg.Log(pkg.Info, "Create Hello Helidon component resource")
-	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonComponentYaml, namespace)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon component resource")
-
-	pkg.Log(pkg.Info, "Create Hello Helidon application resource")
-	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
-}
 
 func helloHelidonPodsRunning() bool {
 	result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
