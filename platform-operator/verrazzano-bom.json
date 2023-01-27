@@ -106,12 +106,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.15.3-20221221225651-900a5c7b",
+              "tag": "1.15.3-20230124194836-900a5c7b",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.15.3-20221221225651-900a5c7b",
+              "tag": "1.15.3-20230124194836-900a5c7b",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.8-20230123170854-d3322376b",
-              "dashboard": "v2.6.8-20230118014847-b34cbd87",
+              "tag": "v2.6.8-20230125224945-d3322376b",
+              "dashboard": "v2.6.8-20230125223507-a8c99d79",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20230123170854-d3322376b"
+              "tag": "v2.6.8-20230125224945-d3322376b"
             }
           ]
         },
@@ -147,7 +147,7 @@
           "images": [
             {
               "image": "shell",
-              "tag": "v0.1.18-20230120184751-374cc3f"
+              "tag": "v0.1.18-20230126141436-128380a"
             },
             {
               "image": "rancher-webhook",
@@ -179,12 +179,12 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.15.3-20221221225651-900a5c7b",
+              "tag": "1.15.3-20230124194836-900a5c7b",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.14.5-20221208053759-f85741b",
+              "tag": "v1.14.5-20230124214321-f85741b",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
@@ -225,12 +225,12 @@
             },
             {
               "image": "proxyv2",
-              "tag": "1.15.3-20221221225651-900a5c7b",
+              "tag": "1.15.3-20230124194836-900a5c7b",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
               "image": "grafana",
-              "tag": "v7.5.17-20221219045426-a0a26f9b",
+              "tag": "v7.5.17-20230124193319-a0a26f9b",
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
@@ -240,12 +240,12 @@
             },
             {
               "image": "opensearch",
-              "tag": "2.3.0-20221201055859-aa8cdda4ea0",
+              "tag": "2.3.0-20230123213036-bd387046f04",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "2.3.0-20221206112501-acc83ce515",
+              "tag": "2.3.0-20230124171546-f9e6353395",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
@@ -673,7 +673,7 @@
           "images": [
             {
               "image": "jaeger-es-rollover",
-              "tag": "1.37.0-20221219184221-55f6b454",
+              "tag": "1.37.0-20230123194400-55f6b454",
               "helmFullImageKey": "jaegerESRolloverImage"
             }
           ]
@@ -736,13 +736,12 @@
           ]
         },
         {
-          "registry": "docker.io",
-          "repository": "rancher",
+          "repository": "verrazzano/rancher",
           "name": "rancher-backup-kubectl",
           "images": [
             {
               "image": "kubectl",
-              "tag": "v1.20.2",
+              "tag": "v1.20.2-20230125170623-2f0ea54",
               "helmFullImageKey": "global.kubectl.repository",
               "helmTagKey": "global.kubectl.tag"
             }

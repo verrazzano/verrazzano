@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 MAKEFILE_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
@@ -57,4 +57,4 @@ cli: ## build the CLI
 
 .PHONY: unit-test
 unit-test: cli
-	$(GO) test -v  ./cmd/...
+	$(GO) test -v  ./...
