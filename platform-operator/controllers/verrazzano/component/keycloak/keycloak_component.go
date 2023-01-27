@@ -89,11 +89,13 @@ func NewComponent() spi.Component {
 	}
 }
 
-// Reconcile - the only condition currently being handled by this function is to restore
-// the Keycloak configuration when the MySQL pod gets restarted and ephemeral storage is being used.
+// Reconcile - first checks whether Keycloak is installed yet, then
+// handles the condition to restore the Keycloak configuration when the MySQL pod gets restarted
+// and ephemeral storage is being used.
 func (c KeycloakComponent) Reconcile(ctx spi.ComponentContext) error {
+	// First decide to continue with installation based on whether Keycloak is installed already
 	installed, err := c.IsInstalled(ctx)
-	if err != nil || !installed {
+	if !installed {
 		return err
 	}
 
