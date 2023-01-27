@@ -7,24 +7,21 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
-	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
-
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
-	"k8s.io/apimachinery/pkg/api/errors"
-
 	"net/http"
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
@@ -35,10 +32,16 @@ const (
 	pollingInterval          = 30 * time.Second
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
-	sockshopAppName          = "sockshop-appconf"
-	sampleSpringMetric       = "http_server_requests_seconds_count"
-	sampleMicronautMetric    = "process_start_time_seconds"
-	oamComponent             = "app_oam_dev_component"
+
+	sockshopAppName = "sockshop-appconf"
+	ingress         = "orders-ingress-rule"
+	cartsService    = "carts"
+	cartsCreds      = "carts-coh"
+	operatorCreds   = "coherence-operator-config"
+
+	sampleSpringMetric    = "http_server_requests_seconds_count"
+	sampleMicronautMetric = "process_start_time_seconds"
+	oamComponent          = "app_oam_dev_component"
 )
 
 var sockShop SockShop
@@ -48,6 +51,7 @@ var (
 	t                  = framework.NewTestFramework("socks")
 	generatedNamespace = pkg.GenerateNamespace("sockshop")
 	clusterDump        = dump.NewClusterDumpWrapper(t, generatedNamespace)
+	host               = ""
 )
 
 // creates the sockshop namespace and applies the components and application yaml
@@ -84,11 +88,65 @@ var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 
+	t.Logs.Info("Container image pull check")
 	Eventually(func() bool {
 		return pkg.ContainerImagePullWait(namespace, expectedPods)
 	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
-	// checks that all pods are up and running
-	Eventually(sockshopPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
+
+	t.Logs.Info("Sock Shop Application: check expected pods are running")
+	Eventually(func() bool {
+		result, err := pkg.PodsRunning(namespace, expectedPods)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+		}
+		return result
+	}, longWaitTimeout, pollingInterval).Should(BeTrue(), "Sock Shop Application Failed to Deploy: Pods are not ready")
+
+	t.Logs.Info("Sock Shop Application: check expected Service is running")
+	Eventually(func() bool {
+		result, err := pkg.DoesServiceExist(namespace, cartsService)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("App Service %s is not running in the namespace: %v, error: %v", cartsService, namespace, err))
+		}
+		return result
+	}, longWaitTimeout, pollingInterval).Should(BeTrue(), "Sock Shop Application Failed to Deploy: Service is not ready")
+
+	t.Logs.Info("Sock Shop Application: check expected VirtualService is ready")
+	Eventually(func() bool {
+		result, err := pkg.DoesVirtualServiceExist(namespace, ingress)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("App VirtualService %s is not running in the namespace: %v, error: %v", ingress, namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, pollingInterval).Should(BeTrue(), "Sock Shop Application Failed to Deploy: VirtualService is not ready")
+
+	t.Logs.Info("Sock Shop Application: check expected Secrets exist")
+	Eventually(func() bool {
+		result, err := pkg.DoesSecretExist(namespace, cartsCreds)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("App Secret %s does not exist in the namespace: %v, error: %v", cartsCreds, namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, pollingInterval).Should(BeTrue(), "Sock Shop Application Failed to Deploy: Secret does not exist")
+
+	Eventually(func() bool {
+		result, err := pkg.DoesSecretExist(namespace, operatorCreds)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("App Secret %s does not exist in the namespace: %v, error: %v", operatorCreds, namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, pollingInterval).Should(BeTrue(), "Sock Shop Application Failed to Deploy: Secret does not exist")
+
+	var err error
+	// Get the host from the Istio gateway resource.
+	start := time.Now()
+	t.Logs.Info("Sock Shop Application: check expected Gateway is ready")
+	Eventually(func() (string, error) {
+		host, err = k8sutil.GetHostnameFromGateway(namespace, "")
+		return host, err
+	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Sock Shop Application Failed to Deploy: Gateway is not ready")
+	metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
+
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -440,15 +498,6 @@ var afterSuite = clusterDump.AfterSuiteFunc(func() {
 })
 
 var _ = AfterSuite(afterSuite)
-
-// sockshopPodsRunning checks whether the application pods are ready
-func sockshopPodsRunning() bool {
-	result, err := pkg.PodsRunning(namespace, expectedPods)
-	if err != nil {
-		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
-	}
-	return result
-}
 
 // appMetricExists checks whether app related metrics are available
 func appMetricExists() bool {

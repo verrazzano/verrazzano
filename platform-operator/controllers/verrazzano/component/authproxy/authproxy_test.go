@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package authproxy
@@ -283,6 +283,50 @@ func TestRemoveResourcePolicyAnnotation(t *testing.T) {
 	assert.Equal(t, globalconst.VerrazzanoSystemNamespace, res.GetAnnotations()["meta.helm.sh/release-namespace"])
 	_, ok := res.GetAnnotations()["helm.sh/resource-policy"]
 	assert.False(t, ok)
+}
+
+// TestAppendOverridesIfManagedCluster tests the AppendOverrides function when executed in a registered managed cluster
+// GIVEN a call to AppendOverrides
+//
+//	WHEN I call the method when a registration secret is present
+//	THEN the proxy override for client ID is set
+func TestAppendOverridesIfManagedCluster(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      vpoconst.MCRegistrationSecret,
+				Namespace: vpoconst.VerrazzanoSystemNamespace,
+			},
+			Data: map[string][]byte{vpoconst.ClusterNameData: []byte("managed1")},
+		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: vpoconst.NGINXControllerServiceName, Namespace: globalconst.IngressNamespace},
+			Spec: corev1.ServiceSpec{
+				Type: corev1.ServiceTypeLoadBalancer,
+			},
+			Status: corev1.ServiceStatus{
+				LoadBalancer: corev1.LoadBalancerStatus{
+					Ingress: []corev1.LoadBalancerIngress{
+						{IP: "11.22.33.44"},
+					},
+				},
+			},
+		},
+	).Build()
+	fakeContext := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false, profileDir)
+
+	var kvs []bom.KeyValue
+	kvs, err := AppendOverrides(fakeContext, "", "", "", kvs)
+	assert.NoError(t, err)
+
+	data, err := os.ReadFile(kvs[0].Value)
+	assert.NoError(t, err)
+	overrides := &authProxyValues{}
+	err = yaml.Unmarshal(data, overrides)
+	assert.NoError(t, err)
+	assert.Equal(t, "verrazzano-managed1", overrides.Proxy.OIDCClientID, "wrong client ID")
+	assert.Equal(t, "verrazzano-pkce", overrides.Proxy.PKCEClientID, "wrong client ID")
 }
 
 // TestUninstallResources tests the Fluentd Uninstall call
