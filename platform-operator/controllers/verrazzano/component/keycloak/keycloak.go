@@ -990,8 +990,8 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 			return err
 		}
 
-		//Setting the Access Token Lifespan value to .
-		//Required to ensure Argo CD UI does not logout the user until the Access Token lifespan expires
+		//Setting the Access Token Lifespan value to 20mins.
+		//Required to ensure Argo CD UI does not log out the user until the Access Token lifespan expires
 		// Setting password policy for Verrazzano realm
 		err = setAccessTokenLifespanForRealm(ctx, cfg, cli, "verrazzano-system")
 		if err != nil {
