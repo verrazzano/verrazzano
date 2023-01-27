@@ -219,7 +219,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.5.0-20230120052516-3926482",
+              "tag": "v1.5.0-20230125102506-eaf372d",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -266,12 +266,12 @@
           "images": [
             {
               "image": "oraclelinux",
-              "tag": "7-slim",
+              "tag": "8-slim",
               "helmFullImageKey": "monitoringOperator.prometheusInitImage"
             },
             {
               "image": "oraclelinux",
-              "tag": "7.9",
+              "tag": "8",
               "helmFullImageKey": "monitoringOperator.esInitImage"
             }
           ]
@@ -403,7 +403,7 @@
             {
               "repository": "oracle",
               "image": "oraclelinux",
-              "tag": "7-slim",
+              "tag": "8-slim",
               "helmFullImageKey": "legacyUpgrade.initContainer.image"
             }
           ]
