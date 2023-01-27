@@ -65,8 +65,6 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-pod-issues"), func() {
 	t.Context("During Pod Issue Analysis", func() {
 		t.It("First Inject/ Revert Issue and Feed Analysis Report", func() {
 			feedAnalysisReport()
-			Expect(utility.ReportAnalysis[utility.PodProblemsNotReported]).To(Not(nil))
-			Expect(utility.ReportAnalysis[utility.PendingPods]).To(Not(nil))
 		})
 
 		t.It("Should Have PodProblemsNotReported Issue Post Bad Image Injection", func() {

@@ -49,7 +49,6 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-node-issues"), func() {
 	t.Context("During Node Issue Analysis", func() {
 		t.It("First Inject/ Revert Issue and Feed Analysis Report", func() {
 			feedAnalysisReport()
-			Expect(utility.ReportAnalysis[utility.InsufficientMemory]).To(Not(nil))
 		})
 		t.It("Should Have InsufficientMemory Issue Post Bad Resource Request", func() {
 			Eventually(func() bool {

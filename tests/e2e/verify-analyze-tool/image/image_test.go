@@ -63,8 +63,6 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 	t.Context("During Image Issue Analysis", func() {
 		t.It("First Inject/ Revert Issue and Feed Analysis Report", func() {
 			feedAnalysisReport()
-			Expect(utility.ReportAnalysis[utility.ImagePullBackOff]).To(Not(nil))
-			Expect(utility.ReportAnalysis[utility.ImagePullNotFound]).To(Not(nil))
 		})
 
 		t.It("Should Have ImagePullNotFound Issue Post Bad Image Injection", func() {
