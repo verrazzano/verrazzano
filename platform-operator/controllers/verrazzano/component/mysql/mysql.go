@@ -387,6 +387,7 @@ func postInstall(ctx spi.ComponentContext) error {
 		ctx.Log().Debug("MySQL PostInstall dry run")
 		return nil
 	}
+	// Delete create-mysql-db.sql after install
 	return nil
 }
 
@@ -571,8 +572,6 @@ func postUpgrade(ctx spi.ComponentContext) error {
 	if err := grantXARecoverAdmin(ctx); err != nil {
 		return err
 	}
-
-	// Delete create-mysql-db.sql after install
 
 	return common.ResetVolumeReclaimPolicy(ctx, ComponentName)
 }
