@@ -7,9 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"text/template"
-	"time"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -28,6 +25,8 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
+	"text/template"
+	"time"
 )
 
 // legacyDbLoadJob is the template for the db load job
@@ -57,9 +56,6 @@ spec:
             runAsUser: 0
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
-          volumeMounts:
-            - mountPath: /var/lib/dump
-              name: keycloak-dump
       volumes:
         - name: keycloak-dump
           persistentVolumeClaim:
@@ -79,10 +75,7 @@ spec:
           name: mysqlsh-load-dump
           resources: {}
           securityContext:
-            runAsNonRoot: true
-          volumeMounts:
-            - mountPath: /var/lib/dump
-              name: keycloak-dump
+            runAsUser: 0
       restartPolicy: OnFailure
 `
 
