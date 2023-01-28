@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancherutil
@@ -38,7 +38,7 @@ const (
 	rancherAdminUsername = "admin"
 
 	loginPath  = "/v3-public/localProviders/local?action=login"
-	tokensPath = "/v3-public/localProviders/tokens"
+	tokensPath = "/v3-public/localProviders/tokens" //nolint:gosec
 
 	// this host resolves to the cluster IP
 	nginxIngressHostName = "ingress-controller-ingress-nginx-controller.ingress-nginx"
@@ -195,10 +195,10 @@ type TokenAttrs struct {
 }
 
 // SetTokenTTL updates a user token with ttl
-func SetTokenTTL(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clusterId string) (string, error) {
+func SetTokenTTL(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clusterID string) (string, error) {
 	i, _ := strconv.Atoi(ttl)
 	action := http.MethodPost
-	payload := `{"ClusterId": "` + clusterId + `", "Ttl": "` + strconv.Itoa(i*6000) + `", "Type": "token"}`
+	payload := `{"ClusterId": "` + clusterID + `", "Ttl": "` + strconv.Itoa(i*6000) + `", "Type": "token"}`
 	reqURL := rc.BaseURL + tokensPath
 	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken, "Content-Type": "application/json"}
 
@@ -216,10 +216,10 @@ func SetTokenTTL(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clusterId s
 }
 
 // GetToken updates a user token with ttl
-func GetToken(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clusterId string) (*TokenAttrs, error) {
+func GetToken(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clusterID string) (*TokenAttrs, error) {
 	i, _ := strconv.Atoi(ttl)
 	action := http.MethodGet
-	payload := `{"ClusterId": "` + clusterId + `", "Ttl": "` + strconv.Itoa(i*6000) + `", "Type": "token"}`
+	payload := `{"ClusterId": "` + clusterID + `", "Ttl": "` + strconv.Itoa(i*6000) + `", "Type": "token"}`
 	reqURL := rc.BaseURL + tokensPath + rc.APIAccessToken
 	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken, "Content-Type": "application/json"}
 

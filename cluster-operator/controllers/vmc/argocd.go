@@ -31,7 +31,7 @@ import (
 
 const (
 	clusterSecretName               = "cluster-secret"
-	argocdClusterTokenTTLEnvVarName = "ARGOCD_CLUSTER_TOKEN_TTL"
+	argocdClusterTokenTTLEnvVarName = "ARGOCD_CLUSTER_TOKEN_TTL" //nolint:gosec
 )
 
 func (r *VerrazzanoManagedClusterReconciler) isArgoCDEnabled() bool {
@@ -88,12 +88,9 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 	if err != nil {
 		msg := "Failed to create Argo CD cluster secret"
 		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to call Argo CD clusters POST API on admin cluster: %v", err)
-	} else {
-		msg := "Successfully registered managed cluster in ArgoCD"
-		return newArgoCDRegistration(clusterapi.MCRegistrationCompleted, msg), nil
 	}
-
-	return nil, nil
+	msg := "Successfully registered managed cluster in ArgoCD"
+	return newArgoCDRegistration(clusterapi.MCRegistrationCompleted, msg), nil
 }
 
 // argocdClusterAdd registers cluster using the Rancher Proxy by creating a user in rancher, with api token and cluster roles set, and a secret containing Rancher proxy for the cluster
