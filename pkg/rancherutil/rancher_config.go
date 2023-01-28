@@ -240,7 +240,7 @@ func GetToken(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clusterID stri
 
 	attrs := &TokenAttrs{
 		Created:   jsonString.Path("created").Data().(string),
-		ExpiredAt: jsonString.Path("created").Data().(string),
+		ExpiredAt: jsonString.Path("expiresAt").Data().(string),
 	}
 	return attrs, nil
 }
