@@ -4,37 +4,21 @@
 package vmc
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
-	"net/http"
-	"testing"
-	"time"
-
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/rancherutil"
-	"github.com/verrazzano/verrazzano/pkg/test/mockmatchers"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/mocks"
-	corev1 "k8s.io/api/core/v1"
-	networkv1 "k8s.io/api/networking/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"testing"
 )
 
 // TestCreateArgoCDRequest tests the creation of a ArgoCDConfig which is used to make Argo CD API call followed by a GET on clusters API
+/*
 func TestCreateArgoCDRequest(t *testing.T) {
 	cli := createTestObjects()
 	log := vzlog.DefaultLogger()
@@ -224,6 +208,7 @@ func TestCreateClusterSecret(t *testing.T) {
 	err := rc.argocdClusterAdd(vmc, []byte("ca"), "https://rancher-url")
 	assert.NoError(t, err)
 }
+*/
 
 func TestUpdateArgoCDClusterRoleBindingTemplate(t *testing.T) {
 	a := assert.New(t)

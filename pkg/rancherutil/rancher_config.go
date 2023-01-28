@@ -8,11 +8,13 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/Jeffail/gabs/v2"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -35,7 +37,8 @@ const (
 	rancherAdminSecret   = "rancher-admin-secret" //nolint:gosec //#gosec G101
 	rancherAdminUsername = "admin"
 
-	loginPath = "/v3-public/localProviders/local?action=login"
+	loginPath  = "/v3-public/localProviders/local?action=login"
+	tokensPath = "/v3-public/localProviders/tokens"
 
 	// this host resolves to the cluster IP
 	nginxIngressHostName = "ingress-controller-ingress-nginx-controller.ingress-nginx"
@@ -183,6 +186,63 @@ func getUserToken(rc *RancherConfig, log vzlog.VerrazzanoLogger, secret, usernam
 	}
 
 	return httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "token", "unable to find token in Rancher response")
+}
+
+type TokenAttrs struct {
+	Created   string `json:"created"`
+	ExpiredAt string `json:"expired"`
+	Token     string `json:"token"`
+}
+
+// SetTokenTTL updates a user token with ttl
+func SetTokenTTL(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clusterId string) (string, error) {
+	i, _ := strconv.Atoi(ttl)
+	action := http.MethodPost
+	payload := `{"ClusterId": "` + clusterId + `", "Ttl": "` + strconv.Itoa(i*6000) + `", "Type": "token"}`
+	reqURL := rc.BaseURL + tokensPath
+	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken, "Content-Type": "application/json"}
+
+	response, responseBody, err := SendRequest(action, reqURL, headers, payload, rc, log)
+	if err != nil {
+		return "", err
+	}
+
+	err = httputil.ValidateResponseCode(response, http.StatusCreated)
+	if err != nil {
+		return "", err
+	}
+
+	return httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "token", "unable to find token in Rancher response")
+}
+
+// GetToken updates a user token with ttl
+func GetToken(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clusterId string) (*TokenAttrs, error) {
+	i, _ := strconv.Atoi(ttl)
+	action := http.MethodGet
+	payload := `{"ClusterId": "` + clusterId + `", "Ttl": "` + strconv.Itoa(i*6000) + `", "Type": "token"}`
+	reqURL := rc.BaseURL + tokensPath + rc.APIAccessToken
+	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken, "Content-Type": "application/json"}
+
+	response, responseBody, err := SendRequest(action, reqURL, headers, payload, rc, log)
+	if err != nil {
+		return nil, err
+	}
+
+	err = httputil.ValidateResponseCode(response, http.StatusCreated)
+	if err != nil {
+		return nil, err
+	}
+
+	jsonString, err := gabs.ParseJSON([]byte(responseBody))
+	if err != nil {
+		return nil, err
+	}
+
+	attrs := &TokenAttrs{
+		Created:   jsonString.Path("created").Data().(string),
+		ExpiredAt: jsonString.Path("created").Data().(string),
+	}
+	return attrs, nil
 }
 
 // getProxyURL returns an HTTP proxy from the environment if one is set, otherwise an empty string
