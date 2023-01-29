@@ -9,5 +9,5 @@ imagePullPolicy: IfNotPresent
 global:
   imagePullSecrets: []
 
-syncRancherClusters:
+syncClusters:
   enabled: false
