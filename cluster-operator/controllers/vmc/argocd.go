@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -30,8 +29,8 @@ import (
 )
 
 const (
-	clusterSecretName               = "cluster-secret"
-	argocdClusterTokenTTLEnvVarName = "ARGOCD_CLUSTER_TOKEN_TTL" //nolint:gosec
+	clusterSecretName = "cluster-secret"
+	//argocdClusterTokenTTLEnvVarName = "ARGOCD_CLUSTER_TOKEN_TTL" //nolint:gosec
 )
 
 func (r *VerrazzanoManagedClusterReconciler) isArgoCDEnabled() bool {
@@ -182,12 +181,12 @@ func (r *VerrazzanoManagedClusterReconciler) mutateClusterSecret(secret *corev1.
 	}
 	if createNewToken {
 		// Update the current token ttl using bearer token obtained
-		ttl := os.Getenv(argocdClusterTokenTTLEnvVarName)
-		newToken, err := rancherutil.SetTokenTTL(rc, r.log, ttl, clusterID)
+		//ttl := os.Getenv(argocdClusterTokenTTLEnvVarName)
+		newToken, err := rancherutil.SetTokenTTL(rc, r.log, "30", clusterID)
 		if err != nil {
 			return err
 		}
-		attrs, err := rancherutil.GetToken(rc, r.log, ttl, clusterID)
+		attrs, err := rancherutil.GetToken(rc, r.log, "30", clusterID)
 		if err != nil {
 			return err
 		}

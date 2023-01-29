@@ -11,6 +11,3 @@ global:
 
 syncClusters:
   enabled: false
-
-# TTL in minutes
-argocdClusterTokenTTL: 30
