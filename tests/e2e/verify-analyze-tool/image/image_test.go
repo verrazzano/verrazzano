@@ -65,23 +65,23 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 
 		t.It("Should Have ImagePullNotFound Issue Post Bad Image Injection", func() {
 			Eventually(func() bool {
-				return utility.VerifyIssue(utility.ReportAnalysis[utility.ImagePullNotFound].Patch, utility.ImagePullNotFound)
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.ImagePullNotFound][0], utility.ImagePullNotFound)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 		t.It("Should Not Have ImagePullNotFound Issue Post Reviving Bad Image", func() {
 			Eventually(func() bool {
-				return utility.VerifyIssue(utility.ReportAnalysis[utility.ImagePullNotFound].Revive, utility.ImagePullNotFound)
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.ImagePullNotFound][1], utility.ImagePullNotFound)
 			}, waitTimeout, pollingInterval).Should(BeFalse())
 		})
 
 		t.It("Should Have ImagePullBackOff Issue Post Bad Image Injection", func() {
 			Eventually(func() bool {
-				return utility.VerifyIssue(utility.ReportAnalysis[utility.ImagePullBackOff].Patch, utility.ImagePullBackOff)
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.ImagePullBackOff][0], utility.ImagePullBackOff)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 		t.It("Should Not Have ImagePullBackOff Issue Post Reviving Bad Image", func() {
 			Eventually(func() bool {
-				return utility.VerifyIssue(utility.ReportAnalysis[utility.ImagePullBackOff].Revive, utility.ImagePullBackOff)
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.ImagePullBackOff][1], utility.ImagePullBackOff)
 			}, waitTimeout, pollingInterval).Should(BeFalse())
 		})
 	})

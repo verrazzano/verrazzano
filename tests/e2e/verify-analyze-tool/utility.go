@@ -7,6 +7,7 @@ import (
 	"context"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	kv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	"os"
 	"os/exec"
 	"strings"
@@ -27,80 +28,67 @@ const (
 	DeploymentToBePatched  string = "verrazzano-console"
 )
 
-type Action struct {
-	Patch  string
-	Revive string
-}
-
-var ReportAnalysis = make(map[string]Action)
+var ReportAnalysis = make(map[string][]string)
 
 // PatchImage patches a deployment's image and feeds cluster analysis report
 // patching includes both injection of an issue and its revival
 func PatchImage(client *kubernetes.Clientset, deploymentName, issueType, patchImage string) error {
 	deploymentClient := client.AppsV1().Deployments(VzSystemNS)
-	result, getErr := deploymentClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
-	if getErr != nil {
-		return getErr
+	for i := 0; i < 2; i++ {
+		if err := update(deploymentClient, deploymentName, issueType, patchImage); err != nil {
+			return err
+		}
+		r, err := RunVzAnalyze()
+		if err != nil {
+			return err
+		}
+		ReportAnalysis[issueType] = append(ReportAnalysis[issueType], r)
+		patchImage = ""
+		time.Sleep(waitTimeout)
+	}
+	return nil
+}
+
+func update(deploymentClient kv1.DeploymentInterface, deploymentName, issueType, patchImage string) error {
+	result, err := deploymentClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
+	if err != nil {
+		return err
 	}
 	for i, container := range result.Spec.Template.Spec.Containers {
 		if container.Name == deploymentName {
 			image := result.Spec.Template.Spec.Containers[i].Image
-			// PATCHING
-			if issueType == ImagePullNotFound {
+			if patchImage == "" {
+				patchImage = image
+			} else if issueType == ImagePullNotFound {
 				patchImage = image + patchImage
 			}
 			result.Spec.Template.Spec.Containers[i].Image = patchImage
-			_, updateErr := deploymentClient.Update(context.TODO(), result, v1.UpdateOptions{})
-			if updateErr != nil {
-				return updateErr
-			}
-			time.Sleep(waitTimeout)
-			out1, err := RunVzAnalyze()
-			if err != nil {
-				return err
-			}
+			_, err = deploymentClient.Update(context.TODO(), result, v1.UpdateOptions{})
 			time.Sleep(time.Second * 20)
-			result, getErr = deploymentClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
-			if getErr != nil {
-				return getErr
-			}
-			// REVIVING
-			result.Spec.Template.Spec.Containers[i].Image = image
-			_, updateErr = deploymentClient.Update(context.TODO(), result, v1.UpdateOptions{})
-			if updateErr != nil {
-				return updateErr
-			}
-			time.Sleep(waitTimeout)
-			out2, err := RunVzAnalyze()
-			if err != nil {
-				return err
-			}
-			ReportAnalysis[issueType] = Action{out1, out2}
 			break
 		}
 	}
-	return nil
+	return err
 }
 
 // PatchPod patches a deployment's pod and feeds cluster analysis report
 // patching includes both injection of an issue and its revival
 func PatchPod(issueType string, resourceReq []string) error {
-	out := make([]string, 2)
 	for i := 0; i < len(resourceReq); i++ {
 		_, err := SetDepResources(DeploymentToBePatched, VzSystemNS, resourceReq[i])
 		if err != nil {
 			return err
 		}
 		time.Sleep(waitTimeout)
-		out[i], err = RunVzAnalyze()
+		out, err := RunVzAnalyze()
 		if err != nil {
 			return err
 		}
+		ReportAnalysis[issueType] = append(ReportAnalysis[issueType], out)
 		if i == 0 {
 			time.Sleep(time.Second * 20)
 		}
 	}
-	ReportAnalysis[issueType] = Action{out[0], out[1]}
 	return nil
 }
 

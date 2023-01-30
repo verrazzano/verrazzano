@@ -23,8 +23,7 @@ var t = framework.NewTestFramework("Vz Analysis Tool Node Issues")
 var issuesToBeDiagnosed = []string{utility.InsufficientMemory}
 
 var _ = BeforeSuite(beforeSuite)
-var beforeSuite = t.BeforeSuiteFunc(func() {
-})
+var beforeSuite = t.BeforeSuiteFunc(func() {})
 
 // patches node for all the issues listed into 'issuesToBeDiagnosed'
 func patch() error {
@@ -50,12 +49,12 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-node-issues"), func() {
 		})
 		t.It("Should Have InsufficientMemory Issue Post Bad Resource Request", func() {
 			Eventually(func() bool {
-				return utility.VerifyIssue(utility.ReportAnalysis[utility.InsufficientMemory].Patch, utility.InsufficientMemory)
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.InsufficientMemory][0], utility.InsufficientMemory)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 		t.It("Should Not Have InsufficientMemory Issue Post Rectifying Resource Request", func() {
 			Eventually(func() bool {
-				return utility.VerifyIssue(utility.ReportAnalysis[utility.InsufficientMemory].Revive, utility.InsufficientMemory)
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.InsufficientMemory][1], utility.InsufficientMemory)
 			}, waitTimeout, pollingInterval).Should(BeFalse())
 		})
 	})

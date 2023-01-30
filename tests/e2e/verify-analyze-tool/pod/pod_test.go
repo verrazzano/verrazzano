@@ -65,23 +65,23 @@ var _ = t.Describe("VZ Tools", Label("f:vz-tools-pod-issues"), func() {
 
 		t.It("Should Have PodProblemsNotReported Issue Post Bad Image Injection", func() {
 			Eventually(func() bool {
-				return utility.VerifyIssue(utility.ReportAnalysis[utility.PodProblemsNotReported].Patch, utility.PodProblemsNotReported)
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.PodProblemsNotReported][0], utility.PodProblemsNotReported)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 		t.It("Should Not Have PodProblemsNotReported Issue Post Reviving Bad Image", func() {
 			Eventually(func() bool {
-				return utility.VerifyIssue(utility.ReportAnalysis[utility.PodProblemsNotReported].Revive, utility.PodProblemsNotReported)
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.PodProblemsNotReported][1], utility.PodProblemsNotReported)
 			}, waitTimeout, pollingInterval).Should(BeFalse())
 		})
 
 		t.It("Should Have PendingPods Issue Post Bad Resource Request", func() {
 			Eventually(func() bool {
-				return utility.VerifyIssue(utility.ReportAnalysis[utility.PendingPods].Patch, utility.PendingPods)
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.PendingPods][0], utility.PendingPods)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 		t.It("Should Not Have PendingPods Issue Post Rectifying Resource Request", func() {
 			Eventually(func() bool {
-				return utility.VerifyIssue(utility.ReportAnalysis[utility.PendingPods].Revive, utility.PendingPods)
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.PendingPods][1], utility.PendingPods)
 			}, waitTimeout, pollingInterval).Should(BeFalse())
 		})
 	})
