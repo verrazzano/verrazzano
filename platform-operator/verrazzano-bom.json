@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.8-20230125224945-d3322376b",
+              "tag": "v2.6.8-20230126202904-674211347",
               "dashboard": "v2.6.8-20230125223507-a8c99d79",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20230125224945-d3322376b"
+              "tag": "v2.6.8-20230126202904-674211347"
             }
           ]
         },
@@ -219,7 +219,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.5.0-20230125102506-eaf372d",
+              "tag": "v1.5.0-20230127142611-6b9b389",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -266,12 +266,12 @@
           "images": [
             {
               "image": "oraclelinux",
-              "tag": "7-slim",
+              "tag": "8-slim",
               "helmFullImageKey": "monitoringOperator.prometheusInitImage"
             },
             {
               "image": "oraclelinux",
-              "tag": "7.9",
+              "tag": "8",
               "helmFullImageKey": "monitoringOperator.esInitImage"
             }
           ]
@@ -403,7 +403,7 @@
             {
               "repository": "oracle",
               "image": "oraclelinux",
-              "tag": "7-slim",
+              "tag": "8-slim",
               "helmFullImageKey": "legacyUpgrade.initContainer.image"
             }
           ]
@@ -450,7 +450,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v20.0.1-20230124194411-c79c07e094",
+              "tag": "v20.0.1-20230125030008-7d38fe3025",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
