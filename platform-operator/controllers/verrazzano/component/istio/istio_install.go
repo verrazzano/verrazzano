@@ -32,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -310,7 +309,7 @@ func createPeerAuthentication(compContext spi.ComponentContext) error {
 			Namespace: IstioNamespace,
 		},
 	}
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &peer, func() error {
+	_, err := common.CreateOrUpdateProtobuf(context.TODO(), compContext.Client(), &peer, func() error {
 		if peer.Spec.Mtls == nil {
 			peer.Spec.Mtls = &istiosec.PeerAuthentication_MutualTLS{}
 		}
