@@ -14,7 +14,7 @@ type ProfileType string
 type ResourceType string
 
 type VZRequirement struct {
-	nodeCount        int
+	//nodeCount        int
 	cpu              *resourceInfo
 	memory           *resourceInfo
 	ephemeralStorage *resourceInfo
@@ -49,19 +49,19 @@ const (
 
 var (
 	DevReq = VZRequirement{
-		nodeCount:        1,
+		//nodeCount:        1,
 		cpu:              &resourceInfo{resourceType: CPU, allocatable: resource.MustParse("2")},
 		memory:           &resourceInfo{resourceType: Memory, allocatable: resource.MustParse("16G")},
 		ephemeralStorage: &resourceInfo{resourceType: EphemeralStorage, allocatable: resource.MustParse("100G")},
 	}
 	ProdReq = VZRequirement{
-		nodeCount:        3,
+		//nodeCount:        3,
 		cpu:              &resourceInfo{resourceType: CPU, allocatable: resource.MustParse("4")},
 		memory:           &resourceInfo{resourceType: Memory, allocatable: resource.MustParse("32G")},
 		ephemeralStorage: &resourceInfo{resourceType: EphemeralStorage, allocatable: resource.MustParse("100G")},
 	}
 	ManagedReq = VZRequirement{
-		nodeCount:        1,
+		//nodeCount:        1,
 		cpu:              &resourceInfo{resourceType: CPU, allocatable: resource.MustParse("4")},
 		memory:           &resourceInfo{resourceType: Memory, allocatable: resource.MustParse("32G")},
 		ephemeralStorage: &resourceInfo{resourceType: EphemeralStorage, allocatable: resource.MustParse("100G")},
