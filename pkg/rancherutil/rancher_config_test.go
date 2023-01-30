@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancherutil
@@ -79,10 +79,10 @@ func TestCreateRancherRequest(t *testing.T) {
 	assert.Equal(t, testBody, body)
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 
-	response, body, err = SendRequest(http.MethodPost, tokensPath, map[string]string{}, "", rc, log)
+	response, _, err = SendRequest(http.MethodPost, tokensPath, map[string]string{}, "", rc, log)
 	assert.NoError(t, err)
 
-	response, body, err = SendRequest(http.MethodGet, tokensPath+testToken, map[string]string{}, "", rc, log)
+	response, _, err = SendRequest(http.MethodGet, tokensPath+testToken, map[string]string{}, "", rc, log)
 	assert.NoError(t, err)
 }
 

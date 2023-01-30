@@ -33,7 +33,6 @@ import (
 
 var (
 	tokensPath = "/v3/tokens"
-	testToken  = "testToken"
 )
 
 // TestMutateSecret tests the creation of a cluster secret required for cluster registration in Argo CD
