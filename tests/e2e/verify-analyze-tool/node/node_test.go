@@ -22,9 +22,6 @@ var t = framework.NewTestFramework("Vz Analysis Tool Node Issues")
 
 var issuesToBeDiagnosed = []string{utility.InsufficientMemory}
 
-var _ = BeforeSuite(beforeSuite)
-var beforeSuite = t.BeforeSuiteFunc(func() {})
-
 // patches node for all the issues listed into 'issuesToBeDiagnosed'
 func patch() error {
 	for i := 0; i < len(issuesToBeDiagnosed); i++ {
