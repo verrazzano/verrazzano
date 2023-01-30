@@ -5,6 +5,7 @@ package utility
 
 import (
 	"context"
+	"errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	kv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
@@ -34,13 +35,15 @@ var ReportAnalysis = make(map[string][]string)
 // patching includes both injection of an issue and its revival
 func PatchImage(client *kubernetes.Clientset, deploymentName, issueType, patchImage string) error {
 	deploymentClient := client.AppsV1().Deployments(VzSystemNS)
+	origImg := ""
+	var err error
 	for i := 0; i < 2; i++ {
-		if err := update(deploymentClient, deploymentName, issueType, patchImage); err != nil {
+		if origImg, err = update(deploymentClient, deploymentName, issueType, patchImage, origImg); err != nil {
 			return err
 		}
-		r, err := RunVzAnalyze()
-		if err != nil {
-			return err
+		r, e := RunVzAnalyze()
+		if e != nil {
+			return e
 		}
 		ReportAnalysis[issueType] = append(ReportAnalysis[issueType], r)
 		patchImage = ""
@@ -49,34 +52,33 @@ func PatchImage(client *kubernetes.Clientset, deploymentName, issueType, patchIm
 	return nil
 }
 
-func update(deploymentClient kv1.DeploymentInterface, deploymentName, issueType, patchImage string) error {
+func update(deploymentClient kv1.DeploymentInterface, deploymentName, issueType, patchImage, origImg string) (string, error) {
 	result, err := deploymentClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
 	if err != nil {
-		return err
+		return "", err
 	}
 	for i, container := range result.Spec.Template.Spec.Containers {
 		if container.Name == deploymentName {
 			image := result.Spec.Template.Spec.Containers[i].Image
 			if patchImage == "" {
-				patchImage = image
+				patchImage = origImg
 			} else if issueType == ImagePullNotFound {
 				patchImage = image + patchImage
 			}
 			result.Spec.Template.Spec.Containers[i].Image = patchImage
 			_, err = deploymentClient.Update(context.TODO(), result, v1.UpdateOptions{})
 			time.Sleep(time.Second * 20)
-			break
+			return image, err
 		}
 	}
-	return err
+	return "", errors.New("container not found")
 }
 
 // PatchPod patches a deployment's pod and feeds cluster analysis report
 // patching includes both injection of an issue and its revival
 func PatchPod(issueType string, resourceReq []string) error {
 	for i := 0; i < len(resourceReq); i++ {
-		_, err := SetDepResources(DeploymentToBePatched, VzSystemNS, resourceReq[i])
-		if err != nil {
+		if err := SetDepResources(DeploymentToBePatched, VzSystemNS, resourceReq[i]); err != nil {
 			return err
 		}
 		time.Sleep(waitTimeout)
@@ -103,10 +105,9 @@ func RunVzAnalyze() (string, error) {
 }
 
 // SetDepResources sets pod's resources i.e (cpu/ memory)
-func SetDepResources(dep, ns, req string) (string, error) {
+func SetDepResources(dep, ns, req string) error {
 	args := []string{"set", "resources", "deploy/" + dep, "--requests=" + req, "-n", ns}
-	out, err := exec.Command("kubectl", args...).Output()
-	return string(out), err
+	return exec.Command("kubectl", args...).Run()
 }
 
 // VerifyIssue verifies issue against cluster analysis report
