@@ -378,7 +378,9 @@ func createLegacyUpgradeJob(ctx spi.ComponentContext) error {
 	} else {
 		// Job already exists, check its status
 		// If it has failed, clean up the old job so a new one can be queued in the next try
-		if job.Status.Failed == 1 {
+		if job.Status.Failed == 1 ||
+			(len(job.Status.Conditions) > 0 &&
+				job.Status.Conditions[0].Type == batchv1.JobFailed && job.Status.Conditions[0].Status == v1.ConditionTrue) {
 			// delete the job
 			if err := cleanupDbMigrationJob(ctx); err != nil {
 				return err
