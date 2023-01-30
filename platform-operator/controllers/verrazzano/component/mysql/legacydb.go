@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mysql
@@ -7,6 +7,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"text/template"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -25,8 +28,6 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
-	"text/template"
-	"time"
 )
 
 // legacyDbLoadJob is the template for the db load job
@@ -373,6 +374,17 @@ func createLegacyUpgradeJob(ctx spi.ComponentContext) error {
 			}
 		} else {
 			return err
+		}
+	} else {
+		// Job already exists, check its status
+		// If it has failed, clean up the old job so a new one can be queued in the next try
+		if job.Status.Failed == 1 {
+			// delete the job
+			if err := cleanupDbMigrationJob(ctx); err != nil {
+				return err
+			}
+			// return an error so that waitForJobPodRunning will not be executed
+			return fmt.Errorf("DB load job has failed and will be retried")
 		}
 	}
 	return nil
