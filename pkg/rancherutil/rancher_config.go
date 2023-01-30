@@ -196,16 +196,16 @@ type TokenAttrs struct {
 }
 
 type Payload struct {
-	ClusterId string `json:"clusterId"`
-	Ttl       int    `json:"ttl"`
+	ClusterID string `json:"clusterID"`
+	TTL       int    `json:"ttl"`
 }
 
 // SetTokenTTL creates a user token with ttl
 func SetTokenTTL(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clusterID string) (string, string, error) {
 	val, _ := strconv.Atoi(ttl)
 	payload := &Payload{
-		ClusterId: clusterID,
-		Ttl:       val * 60000,
+		ClusterID: clusterID,
+		TTL:       val * 60000,
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {
@@ -228,16 +228,7 @@ func SetTokenTTL(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clusterID s
 		return "", "", err
 	}
 
-	token, _ := jsonString.Path("token").Data().(string)
-	if err != nil {
-		return "", "", err
-	}
-	tokenName, _ := jsonString.Path("name").Data().(string)
-	if err != nil {
-		return "", "", err
-	}
-
-	return token, tokenName, nil
+	return jsonString.Path("token").Data().(string), jsonString.Path("name").Data().(string), nil
 }
 
 // GetTokenByName get created & expiresAt attribute of a user token
