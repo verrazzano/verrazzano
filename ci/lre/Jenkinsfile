@@ -51,7 +51,6 @@ pipeline {
         DEV_LRE_COMPARTMENT_ID = credentials('dev-lre-compartment-id')
         DEV_LRE_CLUSTER_ID = credentials('dev-lre-cluster-id')
         DEV_LRE_CLUSTER_IP = credentials('dev-lre-cluster-ip')
-        DEV_LRE_SUSPECT_LIST = credentials('dev_lre_suspect_list')
 
         ssh_public_key_path = "${WORKSPACE}/.ssh/id_rsa.pub"
         ssh_private_key_path = "${WORKSPACE}/.ssh/id_rsa"
