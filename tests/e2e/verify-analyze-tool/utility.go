@@ -34,6 +34,8 @@ type Action struct {
 
 var ReportAnalysis = make(map[string]Action)
 
+// PatchImage patches a deployment's image and feeds cluster analysis report
+// patching includes both injection of an issue and its revival
 func PatchImage(client *kubernetes.Clientset, deploymentName, issueType, patchImage string) error {
 	deploymentClient := client.AppsV1().Deployments(VzSystemNS)
 	result, getErr := deploymentClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
@@ -80,7 +82,8 @@ func PatchImage(client *kubernetes.Clientset, deploymentName, issueType, patchIm
 	return nil
 }
 
-// PatchPod This Method implements the patching of bad image & its revival
+// PatchPod patches a deployment's pod and feeds cluster analysis report
+// patching includes both injection of an issue and its revival
 func PatchPod(issueType string, resourceReq []string) error {
 	out := make([]string, 2)
 	for i := 0; i < len(resourceReq); i++ {
@@ -101,7 +104,7 @@ func PatchPod(issueType string, resourceReq []string) error {
 	return nil
 }
 
-// RunVzAnalyze utility method to run vz analyze and deliver its report
+// RunVzAnalyze runs and deliver cluster analysis report
 func RunVzAnalyze() (string, error) {
 	cmd := exec.Command("./vz", "analyze")
 	if goRepoPath := os.Getenv("GO_REPO_PATH"); goRepoPath != "" {
@@ -111,14 +114,14 @@ func RunVzAnalyze() (string, error) {
 	return string(out), err
 }
 
-// SetDepResources utility function to set deployment pod's resources (cpu/ memory)
+// SetDepResources sets pod's resources i.e (cpu/ memory)
 func SetDepResources(dep, ns, req string) (string, error) {
 	args := []string{"set", "resources", "deploy/" + dep, "--requests=" + req, "-n", ns}
 	out, err := exec.Command("kubectl", args...).Output()
 	return string(out), err
 }
 
-// VerifyIssue utility method to verify issue into vz analyze report
+// VerifyIssue verifies issue against cluster analysis report
 func VerifyIssue(out, issueType string) bool {
 	return strings.Contains(out, issueType)
 }

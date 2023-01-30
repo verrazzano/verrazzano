@@ -1,8 +1,8 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-// This is an e2e test to plant, validate and revert issues
-// Here we are dealing with node related issues
+// This is an e2e test to plant node related issues and validates it
+// Followed by reverting the issues to normal state and validates it
 package node
 
 import (
@@ -26,10 +26,8 @@ var _ = BeforeSuite(beforeSuite)
 var beforeSuite = t.BeforeSuiteFunc(func() {
 })
 
-// This method invoke patch method & feed vz analyze report to ReportAnalysis
-// Each Iteration patch a deployment's image, validates issue via vz analyze report
-// Also undo the patch and validates no issue via vz analyze report
-func feedAnalysisReport() error {
+// patches node for all the issues listed into 'issuesToBeDiagnosed'
+func patch() error {
 	for i := 0; i < len(issuesToBeDiagnosed); i++ {
 		switch issuesToBeDiagnosed[i] {
 		case utility.InsufficientMemory:
@@ -48,7 +46,7 @@ func feedAnalysisReport() error {
 var _ = t.Describe("VZ Tools", Label("f:vz-tools-node-issues"), func() {
 	t.Context("During Node Issue Analysis", func() {
 		t.It("First Inject/ Revert Issue and Feed Analysis Report", func() {
-			feedAnalysisReport()
+			patch()
 		})
 		t.It("Should Have InsufficientMemory Issue Post Bad Resource Request", func() {
 			Eventually(func() bool {
