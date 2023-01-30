@@ -415,7 +415,7 @@
       },
       "gridPos": {
         "h": 5,
-        "w": 5,
+        "w": 6,
         "x": 0,
         "y": 6
       },
@@ -474,8 +474,8 @@
       },
       "gridPos": {
         "h": 5,
-        "w": 5,
-        "x": 5,
+        "w": 6,
+        "x": 6,
         "y": 6
       },
       "id": 16,
@@ -524,11 +524,11 @@
               },
               {
                 "color": "#EAB839",
-                "value": 3
+                "value": 1
               },
               {
                 "color": "red",
-                "value": 10
+                "value": 5
               }
             ]
           }
@@ -537,11 +537,11 @@
       },
       "gridPos": {
         "h": 5,
-        "w": 5,
-        "x": 10,
+        "w": 6,
+        "x": 12,
         "y": 6
       },
-      "id": 18,
+      "id": 20,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -561,13 +561,13 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(opensearch_cluster_shards_number{cluster=\"system\", type=\"relocating\"})",
+          "expr": "max(opensearch_cluster_shards_number{cluster=\"system\", type=\"unassigned\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
         }
       ],
-      "title": "Relocating Shards",
+      "title": "Unassigned Shards",
       "type": "stat"
     },
     {
@@ -600,8 +600,8 @@
       },
       "gridPos": {
         "h": 5,
-        "w": 5,
-        "x": 15,
+        "w": 6,
+        "x": 18,
         "y": 6
       },
       "id": 19,
@@ -650,11 +650,11 @@
               },
               {
                 "color": "#EAB839",
-                "value": 1
+                "value": 3
               },
               {
                 "color": "red",
-                "value": 5
+                "value": 10
               }
             ]
           }
@@ -663,11 +663,11 @@
       },
       "gridPos": {
         "h": 5,
-        "w": 4,
-        "x": 20,
-        "y": 6
+        "w": 6,
+        "x": 0,
+        "y": 11
       },
-      "id": 20,
+      "id": 18,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -687,14 +687,110 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(opensearch_cluster_shards_number{cluster=\"system\", type=\"unassigned\"})",
+          "expr": "max(opensearch_cluster_shards_number{cluster=\"system\", type=\"relocating\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
         }
       ],
-      "title": "Unassigned Shards",
+      "title": "Relocating Shards",
       "type": "stat"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 6,
+        "y": 11
+      },
+      "hiddenSeries": false,
+      "id": 27,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.5.11",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(opensearch_index_shards_number{cluster=\"system\",type=\"active\"}) by (index)",
+          "interval": "",
+          "legendFormat": "{{index}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Shards Per Index",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:383",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:384",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     },
     {
       "collapsed": false,
@@ -703,11 +799,11 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 11
+        "y": 16
       },
       "id": 14,
       "panels": [],
-      "title": "Documents",
+      "title": "Index Details",
       "type": "row"
     },
     {
@@ -726,7 +822,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 12
+        "y": 17
       },
       "hiddenSeries": false,
       "id": 25,
@@ -820,7 +916,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 12
+        "y": 17
       },
       "hiddenSeries": false,
       "id": 26,
@@ -905,39 +1001,50 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": "Prometheus",
+      "editable": true,
+      "error": false,
       "fieldConfig": {
         "defaults": {},
         "overrides": []
       },
-      "fill": 1,
+      "fill": 0,
       "fillGradient": 0,
+      "grid": {},
       "gridPos": {
-        "h": 8,
+        "h": 6,
         "w": 12,
         "x": 0,
-        "y": 20
+        "y": 25
       },
+      "height": "200",
       "hiddenSeries": false,
-      "id": 22,
+      "id": 46,
       "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "hideEmpty": false,
+        "hideZero": false,
+        "max": true,
+        "min": true,
+        "rightSide": false,
         "show": true,
+        "sort": "current",
+        "sortDesc": true,
         "total": false,
-        "values": false
+        "values": true
       },
       "lines": true,
       "linewidth": 1,
+      "links": [],
       "nullPointMode": "null",
       "options": {
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.5.11",
-      "pointradius": 2,
+      "pluginVersion": "7.5.17",
+      "pointradius": 5,
       "points": false,
       "renderer": "flot",
       "seriesOverrides": [],
@@ -947,9 +1054,11 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_indices_merges_total_docs_count{cluster=\"system\",job=\"vmi-system-es-data\"})",
+          "expr": "rate(opensearch_indices_indexing_index_count{job=\"vmi-system-es-data\", verrazzano_cluster=\"local\"}[5m])",
+          "format": "time_series",
           "interval": "",
-          "legendFormat": "total documents count",
+          "intervalFactor": 2,
+          "legendFormat": "{{node}}",
           "refId": "A"
         }
       ],
@@ -957,10 +1066,11 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Documents",
+      "title": "Indexing Rate",
       "tooltip": {
+        "msResolution": false,
         "shared": true,
-        "sort": 0,
+        "sort": 2,
         "value_type": "individual"
       },
       "type": "graph",
@@ -974,10 +1084,10 @@
       "yaxes": [
         {
           "format": "short",
-          "label": null,
+          "label": "",
           "logBase": 1,
           "max": null,
-          "min": null,
+          "min": "0",
           "show": true
         },
         {
@@ -986,13 +1096,137 @@
           "logBase": 1,
           "max": null,
           "min": null,
-          "show": true
+          "show": false
         }
       ],
       "yaxis": {
         "align": false,
         "alignLevel": null
       }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "fill": 0,
+      "fillGradient": 0,
+      "grid": {},
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 25
+      },
+      "height": "200",
+      "hiddenSeries": false,
+      "id": 47,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "hideEmpty": false,
+        "hideZero": false,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "sort": "avg",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.5.17",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "rate(opensearch_indices_indexing_index_time_seconds{job=\"vmi-system-es-data\", verrazzano_cluster=\"local\"}[5m])/rate(opensearch_indices_indexing_index_count{job=\"vmi-system-es-data\", verrazzano_cluster=\"local\"}[5m])",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "{{node}}",
+          "metric": "",
+          "refId": "A",
+          "step": 60
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Indexing Latency",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 2,
+        "value_type": "cumulative"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "s",
+          "label": "",
+          "logBase": 1,
+          "max": null,
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 31
+      },
+      "id": 49,
+      "panels": [],
+      "title": "Document Details",
+      "type": "row"
     },
     {
       "aliasColors": {},
@@ -1009,8 +1243,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 20
+        "x": 0,
+        "y": 32
       },
       "hiddenSeries": false,
       "id": 24,
@@ -1103,11 +1337,11 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
-        "y": 28
+        "x": 12,
+        "y": 32
       },
       "hiddenSeries": false,
-      "id": 23,
+      "id": 22,
       "legend": {
         "avg": false,
         "current": false,
@@ -1135,22 +1369,123 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "group by (node)(opensearch_process_file_descriptors_max_number{cluster=\"system\"})",
+          "expr": "sum(opensearch_indices_merges_total_docs_count{cluster=\"system\",job=\"vmi-system-es-data\"})",
+          "interval": "",
+          "legendFormat": "total documents",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Documents",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "id": 31,
+      "panels": [],
+      "title": "Disk And JVM Details",
+      "type": "row"
+    },
+    {
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "decbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 41
+      },
+      "id": 33,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.5.11",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "opensearch_fs_total_total_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
         }
       ],
-      "thresholds": [],
       "timeFrom": null,
-      "timeRegions": [],
       "timeShift": null,
-      "title": "File Descriptors",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
+      "title": "Total Disk",
       "type": "graph",
       "xaxis": {
         "buckets": null,
@@ -1161,8 +1496,7 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:383",
-          "format": "short",
+          "format": "decbytes",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -1170,7 +1504,6 @@
           "show": true
         },
         {
-          "$$hashKey": "object:384",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -1197,106 +1530,10 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 28
-      },
-      "hiddenSeries": false,
-      "id": 27,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "7.5.11",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "sum(opensearch_index_shards_number{cluster=\"system\",type=\"active\"}) by (index)",
-          "interval": "",
-          "legendFormat": "{{index}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Shards Per Index",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:383",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "$$hashKey": "object:384",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": null,
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 36
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 41
       },
       "hiddenSeries": false,
       "id": 28,
@@ -1401,25 +1638,114 @@
       }
     },
     {
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "decbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 41
+      },
+      "id": 35,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.5.11",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "opensearch_jvm_mem_heap_max_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}",
+          "interval": "",
+          "legendFormat": "{{node}}",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Max Heap Memory",
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "decbytes",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
       "dashes": false,
       "datasource": null,
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "unit": "decbytes"
+        },
         "overrides": []
       },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 36
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 41
       },
       "hiddenSeries": false,
-      "id": 29,
+      "id": 39,
       "legend": {
         "avg": false,
         "current": false,
@@ -1447,9 +1773,9 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rate(opensearch_indices_search_fetch_count{cluster=\"system\"}[1h])",
+          "expr": "avg_over_time(opensearch_jvm_mem_heap_used_bytes{instance=~\".*:9200\", verrazzano_cluster=\"local\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}[15m])",
           "interval": "",
-          "legendFormat": "{{kubernetes_pod_name}}",
+          "legendFormat": "{{node}}",
           "refId": "A"
         }
       ],
@@ -1457,7 +1783,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Query Rate",
+      "title": "Avg Heap Usage",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1473,8 +1799,8 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:383",
-          "format": "reqps",
+          "$$hashKey": "object:259",
+          "format": "decbytes",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -1482,7 +1808,7 @@
           "show": true
         },
         {
-          "$$hashKey": "object:384",
+          "$$hashKey": "object:260",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -1497,20 +1823,6 @@
       }
     },
     {
-      "collapsed": false,
-      "datasource": null,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 44
-      },
-      "id": 31,
-      "panels": [],
-      "title": "System",
-      "type": "row"
-    },
-    {
       "datasource": null,
       "fieldConfig": {
         "defaults": {
@@ -1527,73 +1839,15 @@
               }
             ]
           },
-          "unit": "decbytes"
+          "unit": "percent"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 6,
+        "h": 6,
+        "w": 12,
         "x": 0,
-        "y": 45
-      },
-      "id": 33,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "text": {},
-        "textMode": "auto"
-      },
-      "pluginVersion": "7.5.11",
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "sum(opensearch_fs_total_total_bytes{verrazzano_cluster=\"local\", job=\"vmi-system-es-data\"})",
-          "interval": "",
-          "legendFormat": "",
-          "refId": "A"
-        }
-      ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "Total Memory",
-      "type": "stat"
-    },
-    {
-      "datasource": null,
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "decbytes"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 45
+        "y": 46
       },
       "id": 34,
       "options": {
@@ -1615,74 +1869,47 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_fs_total_free_bytes{ job=\"vmi-system-es-data\", verrazzano_cluster=\"local\"})",
+          "expr": "(1-(opensearch_fs_total_available_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}/opensearch_fs_total_total_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}))*100",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{node}}",
           "refId": "A"
         }
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Total Memory Free",
-      "type": "stat"
-    },
-    {
-      "datasource": null,
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "decbytes"
-        },
-        "overrides": []
+      "title": "Disk Usage %",
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
       },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 12,
-        "y": 45
-      },
-      "id": 35,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "text": {},
-        "textMode": "auto"
-      },
-      "pluginVersion": "7.5.11",
-      "targets": [
+      "yaxes": [
         {
-          "exemplar": true,
-          "expr": "sum(opensearch_fs_total_available_bytes{job=\"vmi-system-es-data\", verrazzano_cluster=\"local\"})",
-          "interval": "",
-          "legendFormat": "",
-          "refId": "A"
+          "$$hashKey": "object:103",
+          "format": "percent",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:104",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
         }
       ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "Total Memory Available",
-      "type": "stat"
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     },
     {
       "datasource": null,
@@ -1701,15 +1928,15 @@
               }
             ]
           },
-          "unit": "decbytes"
+          "unit": "percent"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 45
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 46
       },
       "id": 36,
       "options": {
@@ -1731,16 +1958,59 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(node_filesystem_free_bytes{verrazzano_cluster=\"local\",instance=~\".*:9100\"})",
+          "expr": "(opensearch_jvm_mem_heap_used_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}/opensearch_jvm_mem_heap_max_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"})*100",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{node}}",
           "refId": "A"
         }
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Total Disk Available",
-      "type": "stat"
+      "title": "Heap Memory %",
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "percent",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 52
+      },
+      "id": 51,
+      "panels": [],
+      "title": "System",
+      "type": "row"
     },
     {
       "aliasColors": {},
@@ -1758,7 +2028,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 49
+        "y": 53
       },
       "hiddenSeries": false,
       "id": 38,
@@ -1791,7 +2061,7 @@
           "exemplar": true,
           "expr": "avg(irate(node_cpu_seconds_total{instance=~\".*:9100\", verrazzano_cluster=\"local\"}[5m])) by(mode) * 100",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{mode}}",
           "refId": "A"
         }
       ],
@@ -1843,9 +2113,7 @@
       "dashes": false,
       "datasource": null,
       "fieldConfig": {
-        "defaults": {
-          "unit": "decbytes"
-        },
+        "defaults": {},
         "overrides": []
       },
       "fill": 1,
@@ -1854,10 +2122,10 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 49
+        "y": 53
       },
       "hiddenSeries": false,
-      "id": 39,
+      "id": 29,
       "legend": {
         "avg": false,
         "current": false,
@@ -1885,9 +2153,9 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "avg_over_time(opensearch_jvm_mem_heap_used_bytes{instance=~\".*:9200\", verrazzano_cluster=\"local\"}[15m])",
+          "expr": "rate(opensearch_indices_search_fetch_count{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-os-ingest|vmi-system-es-master\"}[1h])",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{kubernetes_pod_name}}",
           "refId": "A"
         }
       ],
@@ -1895,7 +2163,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Avg Heap Usage",
+      "title": "Query Rate",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1911,8 +2179,8 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:259",
-          "format": "decbytes",
+          "$$hashKey": "object:383",
+          "format": "reqps",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -1920,7 +2188,7 @@
           "show": true
         },
         {
-          "$$hashKey": "object:260",
+          "$$hashKey": "object:384",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -1949,10 +2217,10 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 8,
-        "w": 12,
+        "h": 6,
+        "w": 8,
         "x": 0,
-        "y": 57
+        "y": 61
       },
       "hiddenSeries": false,
       "id": 41,
@@ -1985,7 +2253,7 @@
           "exemplar": true,
           "expr": "sum(opensearch_threadpool_threads_number{verrazzano_cluster=\"local\", name!=\"management\", type=\"active\"}) by (name)",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{name}}",
           "refId": "A"
         }
       ],
@@ -2039,6 +2307,102 @@
       "dashes": false,
       "datasource": null,
       "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 61
+      },
+      "hiddenSeries": false,
+      "id": 23,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.5.11",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "group by (node)(opensearch_process_file_descriptors_max_number{cluster=\"system\"})",
+          "interval": "",
+          "legendFormat": "{{node}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "File Descriptors",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:383",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:384",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "fieldConfig": {
         "defaults": {
           "unit": "short"
         },
@@ -2047,10 +2411,10 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 57
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 61
       },
       "hiddenSeries": false,
       "id": 40,
@@ -2081,9 +2445,9 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "irate(opensearch_jvm_gc_collection_time_seconds{verrazzano_cluster=\"local\"}[5m])",
+          "expr": "irate(opensearch_jvm_gc_collection_time_seconds{verrazzano_cluster=\"local\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}[5m])",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{node}}:{{gc}}",
           "refId": "A"
         }
       ],
@@ -2137,11 +2501,11 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 65
+        "y": 67
       },
       "id": 43,
       "panels": [],
-      "title": "Search Rate, Search Latency, Indexing Rate and Indexing Latency",
+      "title": "Search Rate And Search Latency",
       "type": "row"
     },
     {
@@ -2160,10 +2524,10 @@
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
-        "h": 5,
-        "w": 6,
+        "h": 6,
+        "w": 11,
         "x": 0,
-        "y": 66
+        "y": 67
       },
       "height": "200",
       "hiddenSeries": false,
@@ -2204,7 +2568,7 @@
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
-          "legendFormat": "{{name}}",
+          "legendFormat": "{{node}}",
           "metric": "",
           "refId": "A",
           "step": 60
@@ -2269,10 +2633,10 @@
       "fillGradient": 0,
       "grid": {},
       "gridPos": {
-        "h": 5,
-        "w": 6,
-        "x": 6,
-        "y": 66
+        "h": 6,
+        "w": 13,
+        "x": 11,
+        "y": 67
       },
       "height": "200",
       "hiddenSeries": false,
@@ -2313,7 +2677,7 @@
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
-          "legendFormat": "{{name}}",
+          "legendFormat": "{{node}}",
           "metric": "",
           "refId": "A",
           "step": 60
@@ -2341,224 +2705,6 @@
       "yaxes": [
         {
           "decimals": null,
-          "format": "s",
-          "label": "",
-          "logBase": 1,
-          "max": null,
-          "min": "0",
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": false
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "Prometheus",
-      "editable": true,
-      "error": false,
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "fill": 0,
-      "fillGradient": 0,
-      "grid": {},
-      "gridPos": {
-        "h": 5,
-        "w": 6,
-        "x": 12,
-        "y": 66
-      },
-      "height": "200",
-      "hiddenSeries": false,
-      "id": 46,
-      "legend": {
-        "alignAsTable": true,
-        "avg": true,
-        "current": true,
-        "hideEmpty": false,
-        "hideZero": false,
-        "max": true,
-        "min": true,
-        "rightSide": false,
-        "show": true,
-        "sort": "current",
-        "sortDesc": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 1,
-      "links": [],
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "7.5.17",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "rate(opensearch_indices_indexing_index_count{job=\"vmi-system-es-data\", verrazzano_cluster=\"local\"}[5m])",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 2,
-          "legendFormat": "{{name}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Indexing Rate",
-      "tooltip": {
-        "msResolution": false,
-        "shared": true,
-        "sort": 2,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": "",
-          "logBase": 1,
-          "max": null,
-          "min": "0",
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": false
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "Prometheus",
-      "editable": true,
-      "error": false,
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "fill": 0,
-      "fillGradient": 0,
-      "grid": {},
-      "gridPos": {
-        "h": 5,
-        "w": 6,
-        "x": 18,
-        "y": 66
-      },
-      "height": "200",
-      "hiddenSeries": false,
-      "id": 47,
-      "legend": {
-        "alignAsTable": true,
-        "avg": true,
-        "current": true,
-        "hideEmpty": false,
-        "hideZero": false,
-        "max": true,
-        "min": true,
-        "rightSide": false,
-        "show": true,
-        "sort": "avg",
-        "sortDesc": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 1,
-      "links": [],
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "7.5.17",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "rate(opensearch_indices_indexing_index_time_seconds{job=\"vmi-system-es-data\", verrazzano_cluster=\"local\"}[5m])/rate(opensearch_indices_indexing_index_count{job=\"vmi-system-es-data\", verrazzano_cluster=\"local\"}[5m])",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 2,
-          "legendFormat": "{{name}}",
-          "metric": "",
-          "refId": "A",
-          "step": 60
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Indexing Latency",
-      "tooltip": {
-        "msResolution": false,
-        "shared": true,
-        "sort": 2,
-        "value_type": "cumulative"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
           "format": "s",
           "label": "",
           "logBase": 1,
