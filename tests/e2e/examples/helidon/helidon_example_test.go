@@ -72,7 +72,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 			return result
 		}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Helidon Example Failed to Deploy: Pods are not ready")
 
-		t.Logs.Info("Helidon Example: check expected pods count are running")
+		t.Logs.Info("Helidon Example: check expected pods are running")
 
 		Eventually(func() bool {
 			return isDeploymentSetUpdated()
