@@ -26,8 +26,23 @@ Copyright (c) 2022, Oracle and/or its affiliates.
 Copyright (c) 2022, Oracle and/or its affiliates. -->
 Copyright (c) 2023, Oracle and/or its affiliates.
 Copyright (c) {{if ne $createdYear $updatedYear }}{{printf "%s" $createdYear}}, {{end}}{{printf "%s" $updatedYear}}, Oracle and/or its affiliates.
+Copyright 2018 The Kubernetes Authors.
+Copyright 2018 The Kubernetes Authors. All Rights Reserved.
 Copyright 2020, Oracle Corporation and/or its affiliates.
 Copyright 2023, Oracle Corporation and/or its affiliates.
+
+----------------------------------- Notices ------------------------------------
+# Copyright (c) 2023, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+The Initial Developer of verrazzano/platform-operator/controllers/verrazzano/component/common/controller_runtime.go,
+is Kubernetes (https://kubernetes.io/).
+Copyright 2018 The Kubernetes Authors. All Rights Reserved.
+
+The initial developer of several functions in verrazzano/platform-operator/controllers/verrazzano/component/common/controller_runtime.go is the
+Kubernetes controller-runtime project authors (https://github.com/kubernetes-sigs/controller-runtime).
+Copyright 2018 The Kubernetes Authors. All Rights Reserved.
+
 
 -------------------------- Fourth Party Dependencies ---------------------------
 
@@ -2231,16 +2246,7 @@ github.com/spf13/cobra
 SPDX:Apache-2.0
 
 == Copyright
-Copyright (C) 1989, 1991 Free Software Foundation, Inc.,
-Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
-Copyright (C) <year>  <name of author>
-Copyright (C) year name of author
-Copyright 2015 Red Hat Inc. All rights reserved.
-Copyright 2016 French Ben. All rights reserved.
-Copyright © " + year + " " + author
-Copyright © 2013 Steve Francia <spf@spf13.com>.
-Copyright © 2015 Steve Francia <spf@spf13.com>.
-Copyright © 2020 Steve Francia <spf@spf13.com>
+Copyright 2013-2022 The Cobra Authors
 
 --------------------------------- (separator) ----------------------------------
 
@@ -2340,9 +2346,11 @@ SPDX:UPL-1.0
 == Copyright
 Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 Copyright (C) 2020, 2022, Oracle and/or its affiliates.
+Copyright (C) 2020, 2023, Oracle and/or its affiliates.
 Copyright (C) 2020, Oracle and/or its affiliates.
 Copyright (C) 2021, 2022, Oracle and/or its affiliates.
 Copyright (C) 2021, Oracle and/or its affiliates.
+Copyright (C) 2022, 2023, Oracle and/or its affiliates.
 Copyright (C) 2022, Oracle and/or its affiliates.
 Copyright (c) 2020 Oracle America, Inc. and its affiliates.
 Copyright (c) 2020, 2021, Oracle and/or its affiliates.
@@ -3680,6 +3688,7 @@ Copyright 2018 The Kubernetes Authors.
 Copyright 2019 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -4388,4 +4397,4 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 === ATTRIBUTION-HELPER-GENERATED:
 === Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-102-gd9a1a0a1 GitCommit:d9a1a0a141aea4c18363434b6aef258211712951 GitTreeState:clean BuildDate:2023-01-13T16:34:12Z GoVersion:go1.19.4 Compiler:gc Platform:linux/amd64}
-=== License file based on go.mod with md5 sum:  7f7f720d7ff8bca87456b45c82145d07
+=== License file based on go.mod with md5 sum:  02ebb11dd78de23536dd8a4f4bd54205
