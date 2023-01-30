@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"github.com/Jeffail/gabs/v2"
 	"io"
@@ -38,7 +39,7 @@ const (
 	rancherAdminUsername = "admin"
 
 	loginPath  = "/v3-public/localProviders/local?action=login"
-	tokensPath = "/v3-public/localProviders/tokens" //nolint:gosec
+	tokensPath = "/v3/tokens" //nolint:gosec
 
 	// this host resolves to the cluster IP
 	nginxIngressHostName = "ingress-controller-ingress-nginx-controller.ingress-nginx"
@@ -190,45 +191,67 @@ func getUserToken(rc *RancherConfig, log vzlog.VerrazzanoLogger, secret, usernam
 
 type TokenAttrs struct {
 	Created   string `json:"created"`
-	ExpiredAt string `json:"expired"`
+	ExpiresAt string `json:"expiresAt"`
 	Token     string `json:"token"`
 }
 
-// SetTokenTTL updates a user token with ttl
-func SetTokenTTL(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clusterID string) (string, error) {
-	i, _ := strconv.Atoi(ttl)
+type Payload struct {
+	ClusterId string `json:"clusterId"`
+	Ttl       int    `json:"ttl"`
+}
+
+// SetTokenTTL creates a user token with ttl
+func SetTokenTTL(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clusterID string) (string, string, error) {
+	val, _ := strconv.Atoi(ttl)
+	payload := &Payload{
+		ClusterId: clusterID,
+		Ttl:       val * 60000,
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return "", "", err
+	}
 	action := http.MethodPost
-	payload := `{"ClusterId": "` + clusterID + `", "Ttl": "` + strconv.Itoa(i*6000) + `", "Type": "token"}`
 	reqURL := rc.BaseURL + tokensPath
 	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken, "Content-Type": "application/json"}
 
-	response, responseBody, err := SendRequest(action, reqURL, headers, payload, rc, log)
+	response, responseBody, err := SendRequest(action, reqURL, headers, string(data), rc, log)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-
 	err = httputil.ValidateResponseCode(response, http.StatusCreated)
 	if err != nil {
-		return "", err
+		return "", "", err
+	}
+	jsonString, err := gabs.ParseJSON([]byte(responseBody))
+	if err != nil {
+		return "", "", err
 	}
 
-	return httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "token", "unable to find token in Rancher response")
+	token, _ := jsonString.Path("token").Data().(string)
+	if err != nil {
+		return "", "", err
+	}
+	tokenName, _ := jsonString.Path("name").Data().(string)
+	if err != nil {
+		return "", "", err
+	}
+
+	return token, tokenName, nil
 }
 
-// GetToken updates a user token with ttl
-func GetToken(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clusterID string) (*TokenAttrs, error) {
-	i, _ := strconv.Atoi(ttl)
+// GetTokenByName get created & expiresAt attribute of a user token
+func GetTokenByName(rc *RancherConfig, log vzlog.VerrazzanoLogger, tokenName string) (*TokenAttrs, error) {
 	action := http.MethodGet
-	payload := `{"ClusterId": "` + clusterID + `", "Ttl": "` + strconv.Itoa(i*6000) + `", "Type": "token"}`
-	reqURL := rc.BaseURL + tokensPath + rc.APIAccessToken
+	reqURL := rc.BaseURL + tokensPath + "/" + tokenName
 	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken, "Content-Type": "application/json"}
 
-	response, responseBody, err := SendRequest(action, reqURL, headers, payload, rc, log)
+	response, responseBody, err := SendRequest(action, reqURL, headers, "", rc, log)
 	if err != nil {
 		return nil, err
 	}
 
-	err = httputil.ValidateResponseCode(response, http.StatusCreated)
+	err = httputil.ValidateResponseCode(response, http.StatusOK)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +263,7 @@ func GetToken(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clusterID stri
 
 	attrs := &TokenAttrs{
 		Created:   jsonString.Path("created").Data().(string),
-		ExpiredAt: jsonString.Path("expiresAt").Data().(string),
+		ExpiresAt: jsonString.Path("expiresAt").Data().(string),
 	}
 	return attrs, nil
 }

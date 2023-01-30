@@ -4,168 +4,65 @@
 package vmc
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"net/http"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"testing"
+	"time"
+
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/rancherutil"
+	"github.com/verrazzano/verrazzano/pkg/test/mockmatchers"
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
+	corev1 "k8s.io/api/core/v1"
+	networkv1 "k8s.io/api/networking/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
-// TestCreateArgoCDRequest tests the creation of a ArgoCDConfig which is used to make Argo CD API call followed by a GET on clusters API
-/*
-func TestCreateArgoCDRequest(t *testing.T) {
-	cli := createTestObjects()
+var (
+	tokensPath = "/v3/tokens"
+	testToken  = "testToken"
+)
+
+// TestMutateSecret tests the creation of a cluster secret required for cluster registration in Argo CD
+// GIVEN a call to mutate secret
+//
+//	WHEN the secret does not contain created/expiresAt labels
+//	THEN we get a new token followed by created/expiresAt labels are set in the secret
+func TestCreateClusterSecret(t *testing.T) {
+	cli := generateClientObject()
 	log := vzlog.DefaultLogger()
 
-	testPath := "/api/v1/clusters"
-	testBody := "test-body"
+	getBody := "{\"created\":\"xxx\", \"expiresAt\": \"yyy\"}"
+	postBody := "{\"token\":\"xxx\", \"name\": \"testToken\"}"
 
-	savedRancherHTTPClient := ArgoCDHTTPClient
+	savedRancherHTTPClient := rancherutil.RancherHTTPClient
 	defer func() {
-		ArgoCDHTTPClient = savedRancherHTTPClient
+		rancherutil.RancherHTTPClient = savedRancherHTTPClient
 	}()
 
-	savedRetry := DefaultRetry
+	savedRetry := rancherutil.DefaultRetry
 	defer func() {
-		DefaultRetry = savedRetry
+		rancherutil.DefaultRetry = savedRetry
 	}()
-	DefaultRetry = wait.Backoff{
+	rancherutil.DefaultRetry = wait.Backoff{
 		Steps:    1,
 		Duration: 1 * time.Millisecond,
 		Factor:   1.0,
 		Jitter:   0.1,
 	}
-
-	mocker := gomock.NewController(t)
-	httpMock := mocks.NewMockRequestSender(mocker)
-	httpMock = expectHTTPRequests(httpMock, testPath, testBody)
-	ArgoCDHTTPClient = httpMock
-
-	//Test with the default argocd admin user
-	ac, err := newArgoCDConfig(cli, log)
-	assert.NoError(t, err)
-	response, body, err := sendHTTPRequest(http.MethodGet, testPath, map[string]string{}, "", ac, log)
-	assert.NoError(t, err)
-	assert.NotNil(t, body)
-	assert.Equal(t, http.StatusOK, response.StatusCode)
-}
-
-func createTestObjects() client.WithWatch {
-	return fake.NewClientBuilder().WithRuntimeObjects(
-		&networkv1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: vpoconstants.ArgoCDNamespace,
-				Name:      vpoconstants.ArgoCDIngress,
-			},
-			Spec: networkv1.IngressSpec{
-				Rules: []networkv1.IngressRule{
-					{
-						Host: "test-argo.com",
-					},
-				},
-			},
-		},
-		&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: vpoconstants.ArgoCDNamespace,
-				Name:      "argocd-initial-admin-secret",
-			},
-			Data: map[string][]byte{
-				"password": []byte("foo"),
-			},
-		},
-		&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: constants.RancherSystemNamespace,
-				Name:      "rancher-admin-secret",
-			},
-			Data: map[string][]byte{
-				"password": []byte("bar"),
-			},
-		}).Build()
-}
-
-func expectHTTPRequests(httpMock *mocks.MockRequestSender, testPath, testBody string) *mocks.MockRequestSender {
-	httpMock = addSessionTokenMock(httpMock)
-	httpMock.EXPECT().
-		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(testPath)).
-		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			var resp *http.Response
-			r := io.NopCloser(bytes.NewReader([]byte(testBody)))
-			resp = &http.Response{
-				StatusCode: http.StatusOK,
-				Body:       r,
-			}
-			return resp, nil
-		})
-	return httpMock
-}
-
-func addSessionTokenMock(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender {
-	httpMock.EXPECT().
-		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(sessionPath)).
-		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
-			resp := &http.Response{
-				StatusCode: http.StatusOK,
-				Body:       r,
-				Request:    &http.Request{Method: http.MethodPost},
-			}
-			return resp, nil
-		})
-	return httpMock
-}
-
-// TestCreateClusterSecret tests the creation of a cluster secret required for cluster registration in Argo CD
-func TestCreateClusterSecret(t *testing.T) {
-	scheme := runtime.NewScheme()
-	_ = corev1.AddToScheme(scheme)
-	_ = vzapi.AddToScheme(scheme)
-	_ = v1alpha1.AddToScheme(scheme)
-	_ = networkv1.AddToScheme(scheme)
-
-	var vz = &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				ArgoCD: &vzapi.ArgoCDComponent{
-					Enabled: &trueValue,
-				},
-				Rancher: &vzapi.RancherComponent{
-					Enabled: &trueValue,
-				},
-			},
-		},
-	}
-	var argoClusterUserSecret = &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.ArgoCDClusterRancherName,
-			Namespace: constants.VerrazzanoMultiClusterNamespace,
-		},
-		Data: map[string][]byte{
-			"password": []byte("foobar"),
-		},
-	}
-	var rancherIngress = &networkv1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: rancherNamespace,
-			Name:      rancherIngressName,
-		},
-		Spec: networkv1.IngressSpec{
-			Rules: []networkv1.IngressRule{
-				{
-					Host: "test-rancher.com",
-				},
-			},
-		},
-	}
-
-	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vz, argoClusterUserSecret, rancherIngress).Build()
 
 	vmc := &v1alpha1.VerrazzanoManagedCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -178,24 +75,65 @@ func TestCreateClusterSecret(t *testing.T) {
 			},
 		},
 	}
-	rc := &VerrazzanoManagedClusterReconciler{
-		Client: fakeClient,
+	r := &VerrazzanoManagedClusterReconciler{
+		Client: cli,
 		log:    vzlog.DefaultLogger(),
 	}
 
-	mocker := gomock.NewController(t)
-	mockRequestSender := mocks.NewMockRequestSender(mocker)
-	savedRancherHTTPClient := rancherutil.RancherHTTPClient
-	defer func() {
-		rancherutil.RancherHTTPClient = savedRancherHTTPClient
-	}()
-	rancherutil.RancherHTTPClient = mockRequestSender
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "demo" + "-" + clusterSecretName,
+			Namespace:   constants.ArgoCDNamespace,
+			Annotations: map[string]string{"created": "xxx", "expiresAt": "yyy"},
+		},
+		Data: map[string][]byte{
+			"password": []byte("foobar"),
+		},
+	}
+	clusterID := "foo"
+	rancherURL := "https://rancher-url"
+	caData := []byte("bar")
 
-	mockRequestSender.EXPECT().
+	mocker := gomock.NewController(t)
+	httpMock := mocks.NewMockRequestSender(mocker)
+	httpMock = expectHTTPRequests(httpMock, getBody, postBody)
+	rancherutil.RancherHTTPClient = httpMock
+
+	rc, err := rancherutil.NewAdminRancherConfig(cli, log)
+	assert.NoError(t, err)
+
+	err = r.mutateClusterSecret(secret, rc, vmc.Name, clusterID, rancherURL, caData)
+	assert.NoError(t, err)
+	assert.NotNil(t, secret.Annotations["verrazzano.io/createTimestamp"])
+	assert.NotNil(t, secret.Annotations["verrazzano.io/expiresAtTimestamp"])
+}
+
+func expectHTTPRequests(httpMock *mocks.MockRequestSender, getBody, postBody string) *mocks.MockRequestSender {
+	httpMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath+"/testToken")).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			var resp *http.Response
+			r := io.NopCloser(bytes.NewReader([]byte(getBody)))
+			resp = &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       r,
+			}
+			return resp, nil
+		}).Times(1)
+	httpMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			var resp *http.Response
+			r := io.NopCloser(bytes.NewReader([]byte(postBody)))
+			resp = &http.Response{
+				StatusCode: http.StatusCreated,
+				Body:       r,
+			}
+			return resp, nil
+		}).Times(1)
+	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(loginURIPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			assert.Equal(t, loginQueryString, req.URL.RawQuery)
-
 			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
 			resp := &http.Response{
 				StatusCode: http.StatusCreated,
@@ -203,13 +141,50 @@ func TestCreateClusterSecret(t *testing.T) {
 				Request:    &http.Request{Method: http.MethodPost},
 			}
 			return resp, nil
-		})
-
-	err := rc.argocdClusterAdd(vmc, []byte("ca"), "https://rancher-url")
-	assert.NoError(t, err)
+		}).Times(1)
+	return httpMock
 }
-*/
 
+func generateClientObject() client.WithWatch {
+	return fake.NewClientBuilder().WithRuntimeObjects(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "demo" + "-" + clusterSecretName,
+				Namespace: constants.ArgoCDNamespace,
+			},
+			Data: map[string][]byte{
+				"password": []byte("foobar"),
+			},
+		},
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "rancher-admin-secret",
+				Namespace: constants.RancherSystemNamespace,
+			},
+			Data: map[string][]byte{
+				"password": []byte("foobar"),
+			},
+		},
+		&networkv1.Ingress{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: rancherNamespace,
+				Name:      rancherIngressName,
+			},
+			Spec: networkv1.IngressSpec{
+				Rules: []networkv1.IngressRule{
+					{
+						Host: "test-rancher.com",
+					},
+				},
+			},
+		},
+	).Build()
+}
+
+// TestUpdateArgoCDClusterRoleBindingTemplate tests the update of cluster role for 'vz-argocd-reg' user
+// GIVEN a call to update argocd cluster role binding
+//
+//	THEN the template binding are updated accordingly with cluster-owner, cluserID, and userID
 func TestUpdateArgoCDClusterRoleBindingTemplate(t *testing.T) {
 	a := assert.New(t)
 

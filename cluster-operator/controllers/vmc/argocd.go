@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -29,8 +30,8 @@ import (
 )
 
 const (
-	clusterSecretName = "cluster-secret"
-	//argocdClusterTokenTTLEnvVarName = "ARGOCD_CLUSTER_TOKEN_TTL" //nolint:gosec
+	clusterSecretName               = "cluster-secret"
+	argocdClusterTokenTTLEnvVarName = "ARGOCD_CLUSTER_TOKEN_TTL" //nolint:gosec
 )
 
 func (r *VerrazzanoManagedClusterReconciler) isArgoCDEnabled() bool {
@@ -95,10 +96,6 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 // argocdClusterAdd registers cluster using the Rancher Proxy by creating a user in rancher, with api token and cluster roles set, and a secret containing Rancher proxy for the cluster
 func (r *VerrazzanoManagedClusterReconciler) createClusterSecret(vmc *clusterapi.VerrazzanoManagedCluster, clusterID, rancherURL string) error {
 	r.log.Debugf("Configuring Rancher user for cluster registration in ArgoCD")
-
-	if vmc.Status.ArgoCDRegistration.Status == clusterapi.RegistrationPendingRancher || vmc.Status.ArgoCDRegistration.Status == clusterapi.MCRegistrationFailed {
-		return nil
-	}
 
 	caCert, err := common.GetRootCA(r.Client)
 	if err != nil {
@@ -181,17 +178,17 @@ func (r *VerrazzanoManagedClusterReconciler) mutateClusterSecret(secret *corev1.
 	}
 	if createNewToken {
 		// Update the current token ttl using bearer token obtained
-		//ttl := os.Getenv(argocdClusterTokenTTLEnvVarName)
-		newToken, err := rancherutil.SetTokenTTL(rc, r.log, "30", clusterID)
+		ttl := os.Getenv(argocdClusterTokenTTLEnvVarName)
+		newToken, tokenName, err := rancherutil.SetTokenTTL(rc, r.log, ttl, clusterID)
 		if err != nil {
 			return err
 		}
-		attrs, err := rancherutil.GetToken(rc, r.log, "30", clusterID)
+		attrs, err := rancherutil.GetTokenByName(rc, r.log, tokenName)
 		if err != nil {
 			return err
 		}
 		secret.Annotations["verrazzano.io/createTimestamp"] = attrs.Created
-		secret.Annotations["verrazzano.io/expiresAtTimestamp"] = attrs.ExpiredAt
+		secret.Annotations["verrazzano.io/expiresAtTimestamp"] = attrs.ExpiresAt
 		token = newToken
 	}
 
