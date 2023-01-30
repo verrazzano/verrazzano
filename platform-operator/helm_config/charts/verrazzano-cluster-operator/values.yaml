@@ -13,4 +13,4 @@ syncClusters:
   enabled: false
 
 # TTL in minutes
-argocdClusterTokenTTL: 30
+argocdClusterTokenTTL: "30"
