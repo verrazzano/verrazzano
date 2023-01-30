@@ -57,6 +57,9 @@ spec:
             runAsUser: 0
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /var/lib/dump
+              name: keycloak-dump
       volumes:
         - name: keycloak-dump
           persistentVolumeClaim:
@@ -77,6 +80,9 @@ spec:
           resources: {}
           securityContext:
             runAsUser: 0
+          volumeMounts:
+            - mountPath: /var/lib/dump
+              name: keycloak-dump
       restartPolicy: OnFailure
 `
 
