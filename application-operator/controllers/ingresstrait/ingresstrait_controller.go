@@ -485,7 +485,7 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 			Name:      certName,
 		}}
 
-	res, err := common.CreateOrUpdateProtobuf(ctx, r.Client, certificate, func() error {
+	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, certificate, func() error {
 		certificate.Spec = certapiv1.CertificateSpec{
 			DNSNames:   hostsForTrait,
 			SecretName: secretName,
