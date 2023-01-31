@@ -72,15 +72,17 @@ func DeployHelloHelidonApplication(namespace string, ociLogID string, istioInjec
 		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create hello-helidon application resource")
 
-	Log(Info, "Create Hello Helidon manualscalertrait resource")
-	gomega.Eventually(func() error {
-		file, err := FindTestDataFile(helidonScalerYaml)
-		if err != nil {
-			return err
-		}
-		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
-	}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create hello-helidon manualscalertrait resource")
-
+	if customComponent == "" {
+		time.Sleep(30 * time.Second)
+		Log(Info, "Create Hello Helidon manualscalertrait resource")
+		gomega.Eventually(func() error {
+			file, err := FindTestDataFile(helidonScalerYaml)
+			if err != nil {
+				return err
+			}
+			return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
+		}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create hello-helidon manualscalertrait resource")
+	}
 }
 
 // UndeployHelloHelidonApplication undeploys the Hello Helidon example application.
