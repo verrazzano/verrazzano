@@ -141,7 +141,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncCACertSecret(vmc *clusterapi.Ve
 		return false, err
 	}
 	if !isActive {
-		r.log.Infof("Waiting for managed cluster with id %s to become active before fetching CA cert", clusterID)
+		r.log.Progressf("Waiting for managed cluster with id %s to become active before fetching CA cert", clusterID)
 		return false, nil
 	}
 
