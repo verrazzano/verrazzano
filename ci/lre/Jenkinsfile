@@ -151,7 +151,12 @@ pipeline {
             }
         }
 
-       stage('Upgrade to stable commit') {
+        stage('Upgrade to stable commit') {
+            when {
+                expression {
+                    return params.UPGRADE_VZ
+                }
+            }
             steps {
                 script {
                     // Get the last stable commit ID that passed the triggered tests
