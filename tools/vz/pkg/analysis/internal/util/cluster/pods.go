@@ -220,10 +220,14 @@ func podStatusConditionIssues(log *zap.SugaredLogger, clusterRoot string, podFil
 	log.Debugf("MemoryIssues called for %s", clusterRoot)
 
 	if len(pod.Status.Conditions) > 0 {
-		messages := make([]string, 0)
+		messages := make(map[string][]string)
 		for _, condition := range pod.Status.Conditions {
 			if strings.Contains(condition.Message, "Insufficient memory") {
-				messages = append(messages, fmt.Sprintf("Namespace %s, Pod %s, Status %s, Reason %s, Message %s",
+				messages[report.InsufficientMemory] = append(messages[report.InsufficientMemory], fmt.Sprintf("Namespace %s, Pod %s, Status %s, Reason %s, Message %s",
+					pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, condition.Status, condition.Reason, condition.Message))
+			}
+			if strings.Contains(condition.Message, "Insufficient cpu") {
+				messages[report.InsufficientCpu] = append(messages[report.InsufficientCpu], fmt.Sprintf("Namespace %s, Pod %s, Status %s, Reason %s, Message %s",
 					pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, condition.Status, condition.Reason, condition.Message))
 			}
 		}
@@ -234,7 +238,12 @@ func podStatusConditionIssues(log *zap.SugaredLogger, clusterRoot string, podFil
 			} else {
 				files = []string{podFile}
 			}
-			issueReporter.AddKnownIssueMessagesFiles(report.InsufficientMemory, clusterRoot, messages, files)
+			if len(messages[report.InsufficientMemory]) > 0 {
+				issueReporter.AddKnownIssueMessagesFiles(report.InsufficientMemory, clusterRoot, messages[report.InsufficientMemory], files)
+			}
+			if len(messages[report.InsufficientCpu]) > 0 {
+				issueReporter.AddKnownIssueMessagesFiles(report.InsufficientCpu, clusterRoot, messages[report.InsufficientCpu], files)
+			}
 		}
 	}
 	return nil
