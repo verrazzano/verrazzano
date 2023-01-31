@@ -266,7 +266,7 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 				authzPolicyName := fmt.Sprintf("%s-rule-%d-authz", trait.Name, index)
 				r.createOrUpdateVirtualService(ctx, trait, rule, allHostsForTrait, vsName, services, gateway, &status, log)
 				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log, services)
-				r.createOrUpdateAuthorizationPolicies(ctx, rule, authzPolicyName, allHostsForTrait, &status, log)
+				r.createOrUpdateAuthorizationPolicies(ctx, trait, rule, authzPolicyName, allHostsForTrait, &status, log)
 			}
 		}
 	}
@@ -776,7 +776,7 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 }
 
 // createOrUpdateAuthorizationPolicies creates or updates the authorization policies associated with the paths defined in the ingress rule.
-func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, rule vzapi.IngressRule, namePrefix string, hosts []string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
+func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, namePrefix string, hosts []string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
 	for _, path := range rule.Paths {
 		if path.Policy != nil {
 			pathSuffix := strings.Replace(path.Path, "/", "", -1)
@@ -791,11 +791,11 @@ func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, ru
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      policyName,
-					Namespace: constants.IstioSystemNamespace,
+					Namespace: trait.Namespace,
 				},
 			}
 			res, err := controllerutil.CreateOrUpdate(ctx, r.Client, authzPolicy, func() error {
-				return r.mutateAuthorizationPolicy(authzPolicy, path.Policy, path.Path, hosts)
+				return r.mutateAuthorizationPolicy(authzPolicy, path.Policy, trait, path.Path, hosts)
 			})
 
 			ref := vzapi.QualifiedResourceRelation{APIVersion: authzPolicyAPIVersion, Kind: authzPolicyKind, Name: namePrefix, Role: "authorizationpolicy"}
@@ -811,7 +811,7 @@ func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, ru
 }
 
 // mutateDestinationRule changes the destination rule based upon a traits configuration
-func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzPolicy *vzapi.AuthorizationPolicy, path string, hosts []string) error {
+func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzPolicy *vzapi.AuthorizationPolicy, trait *vzapi.IngressTrait, path string, hosts []string) error {
 	policyRules := make([]*v1beta1.Rule, len(vzPolicy.Rules))
 	var err error
 	for i, authzRule := range vzPolicy.Rules {
@@ -820,9 +820,15 @@ func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.Authoriz
 			return err
 		}
 	}
+
+	componentName, ok := trait.Labels[oam.LabelAppComponent]
+	if !ok {
+		return fmt.Errorf("OAM app.oam.dev/component label missing from IngressTrait %s metadata", trait.Name)
+	}
+
 	authzPolicy.Spec = v1beta1.AuthorizationPolicy{
 		Selector: &v1beta12.WorkloadSelector{
-			MatchLabels: map[string]string{"istio": "ingressgateway"},
+			MatchLabels: map[string]string{oam.LabelAppComponent: componentName},
 		},
 		Rules: policyRules,
 	}
@@ -835,25 +841,24 @@ func createAuthorizationPolicyRule(rule *vzapi.AuthorizationRule, path string, h
 	if rule.From == nil {
 		return nil, fmt.Errorf("Authorization Policy requires 'From' clause")
 	}
-	source := &v1beta1.Source{
-		RequestPrincipals: rule.From.RequestPrincipals,
-	}
-	paths := &v1beta1.Operation{
-		Paths: []string{path},
-		Hosts: hosts,
-	}
 	authzRule := v1beta1.Rule{
 		From: []*v1beta1.Rule_From{
 			{
-				Source: source,
-			},
-		},
-		To: []*v1beta1.Rule_To{
-			{
-				Operation: paths,
+				Source: &v1beta1.Source{
+					RequestPrincipals: rule.From.RequestPrincipals,
+				},
 			},
 		},
 	}
+	if len(path) > 0 {
+		authzRule.To = []*v1beta1.Rule_To{{
+			Operation: &v1beta1.Operation{
+				Hosts: hosts,
+				Paths: []string{path},
+			},
+		}}
+	}
+
 	if rule.When != nil {
 		conditions := []*v1beta1.Condition{}
 		for _, vzCondition := range rule.When {
