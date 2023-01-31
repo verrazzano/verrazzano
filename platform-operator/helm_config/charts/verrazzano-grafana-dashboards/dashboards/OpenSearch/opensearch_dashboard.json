@@ -717,13 +717,14 @@
       "hiddenSeries": false,
       "id": 27,
       "legend": {
+        "alignAsTable": true,
         "avg": false,
-        "current": false,
+        "current": true,
         "max": false,
         "min": false,
         "show": true,
         "total": false,
-        "values": false
+        "values": true
       },
       "lines": true,
       "linewidth": 1,
@@ -827,13 +828,14 @@
       "hiddenSeries": false,
       "id": 25,
       "legend": {
+        "alignAsTable": true,
         "avg": false,
-        "current": false,
+        "current": true,
         "max": false,
         "min": false,
         "show": true,
         "total": false,
-        "values": false
+        "values": true
       },
       "lines": true,
       "linewidth": 1,
@@ -921,13 +923,14 @@
       "hiddenSeries": false,
       "id": 26,
       "legend": {
-        "avg": false,
-        "current": false,
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
         "max": false,
         "min": false,
         "show": true,
         "total": false,
-        "values": false
+        "values": true
       },
       "lines": true,
       "linewidth": 1,
@@ -1026,8 +1029,8 @@
         "current": true,
         "hideEmpty": false,
         "hideZero": false,
-        "max": true,
-        "min": true,
+        "max": false,
+        "min": false,
         "rightSide": false,
         "show": true,
         "sort": "current",
@@ -1134,8 +1137,8 @@
         "current": true,
         "hideEmpty": false,
         "hideZero": false,
-        "max": true,
-        "min": true,
+        "max": false,
+        "min": false,
         "rightSide": false,
         "show": true,
         "sort": "avg",
@@ -1249,13 +1252,14 @@
       "hiddenSeries": false,
       "id": 24,
       "legend": {
-        "avg": false,
-        "current": false,
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
         "max": false,
         "min": false,
         "show": true,
         "total": false,
-        "values": false
+        "values": true
       },
       "lines": true,
       "linewidth": 1,
@@ -1343,13 +1347,14 @@
       "hiddenSeries": false,
       "id": 22,
       "legend": {
+        "alignAsTable": true,
         "avg": false,
-        "current": false,
+        "current": true,
         "max": false,
         "min": false,
         "show": true,
         "total": false,
-        "values": false
+        "values": true
       },
       "lines": true,
       "linewidth": 1,
@@ -1457,6 +1462,16 @@
         "x": 0,
         "y": 41
       },
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
       "id": 33,
       "options": {
         "colorMode": "value",
@@ -1477,7 +1492,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(opensearch_fs_total_total_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}) by (node)",
+          "expr": "max(opensearch_fs_total_total_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master\"}-opensearch_fs_total_free_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master\"}) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -1485,7 +1500,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Total Disk",
+      "title": "Disk Usage",
       "type": "graph",
       "xaxis": {
         "buckets": null,
@@ -1538,13 +1553,14 @@
       "hiddenSeries": false,
       "id": 28,
       "legend": {
+        "alignAsTable": true,
         "avg": false,
-        "current": false,
+        "current": true,
         "max": false,
         "min": false,
         "show": true,
         "total": false,
-        "values": false
+        "values": true
       },
       "lines": true,
       "linewidth": 1,
@@ -1658,6 +1674,16 @@
         },
         "overrides": []
       },
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
       "gridPos": {
         "h": 5,
         "w": 6,
@@ -1747,13 +1773,14 @@
       "hiddenSeries": false,
       "id": 39,
       "legend": {
+        "alignAsTable": true,
         "avg": false,
-        "current": false,
+        "current": true,
         "max": false,
         "min": false,
         "show": true,
         "total": false,
-        "values": false
+        "values": true
       },
       "lines": true,
       "linewidth": 1,
@@ -1843,6 +1870,16 @@
         },
         "overrides": []
       },
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
       "gridPos": {
         "h": 6,
         "w": 12,
@@ -1869,7 +1906,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max((1-(opensearch_fs_total_available_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}/opensearch_fs_total_total_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}))*100) by (node)",
+          "expr": "max((1-(opensearch_fs_total_available_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master\"}/opensearch_fs_total_total_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master\"}))*100) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -1931,6 +1968,16 @@
           "unit": "percent"
         },
         "overrides": []
+      },
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": true
       },
       "gridPos": {
         "h": 6,
@@ -2033,13 +2080,14 @@
       "hiddenSeries": false,
       "id": 38,
       "legend": {
+        "alignAsTable": true,
         "avg": false,
-        "current": false,
+        "current": true,
         "max": false,
         "min": false,
         "show": true,
         "total": false,
-        "values": false
+        "values": true
       },
       "lines": true,
       "linewidth": 1,
@@ -2127,13 +2175,14 @@
       "hiddenSeries": false,
       "id": 29,
       "legend": {
-        "avg": false,
-        "current": false,
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
         "max": false,
         "min": false,
         "show": true,
         "total": false,
-        "values": false
+        "values": true
       },
       "lines": true,
       "linewidth": 1,
@@ -2153,9 +2202,9 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(rate(opensearch_indices_search_fetch_count{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-os-ingest|vmi-system-es-master\"}[1h])) by (rate)",
+          "expr": "max(rate(opensearch_indices_search_fetch_count{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-os-ingest|vmi-system-es-master\"}[1h])) by (pod)",
           "interval": "",
-          "legendFormat": "{{kubernetes_pod_name}}",
+          "legendFormat": "{{pod}}",
           "refId": "A"
         }
       ],
@@ -2225,13 +2274,14 @@
       "hiddenSeries": false,
       "id": 41,
       "legend": {
+        "alignAsTable": true,
         "avg": false,
-        "current": false,
+        "current": true,
         "max": false,
         "min": false,
         "show": true,
         "total": false,
-        "values": false
+        "values": true
       },
       "lines": true,
       "linewidth": 1,
@@ -2321,13 +2371,14 @@
       "hiddenSeries": false,
       "id": 23,
       "legend": {
+        "alignAsTable": true,
         "avg": false,
-        "current": false,
+        "current": true,
         "max": false,
         "min": false,
         "show": true,
         "total": false,
-        "values": false
+        "values": true
       },
       "lines": true,
       "linewidth": 1,
@@ -2419,13 +2470,14 @@
       "hiddenSeries": false,
       "id": 40,
       "legend": {
-        "avg": false,
-        "current": false,
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
         "max": false,
         "min": false,
         "show": true,
         "total": false,
-        "values": false
+        "values": true
       },
       "lines": true,
       "linewidth": 1,
@@ -2538,8 +2590,8 @@
         "current": true,
         "hideEmpty": false,
         "hideZero": false,
-        "max": true,
-        "min": true,
+        "max": false,
+        "min": false,
         "rightSide": false,
         "show": true,
         "total": false,
@@ -2647,8 +2699,8 @@
         "current": true,
         "hideEmpty": false,
         "hideZero": false,
-        "max": true,
-        "min": true,
+        "max": false,
+        "min": false,
         "rightSide": false,
         "show": true,
         "total": false,
