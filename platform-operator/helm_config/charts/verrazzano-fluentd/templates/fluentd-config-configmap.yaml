@@ -883,6 +883,7 @@ data:
       data_stream_name verrazzano-system
       data_stream_template_name verrazzano-data-stream
       template_file /fluentd/etc/opensearch-template-verrazzano.json
+      template_overwrite true 
 
       time_precision 9
 
@@ -924,6 +925,7 @@ data:
       data_stream_name verrazzano-application-${$.kubernetes.namespace_name}
       data_stream_template_name verrazzano-data-stream
       template_file /fluentd/etc/opensearch-template-verrazzano.json
+      template_overwrite true
 
       time_precision 9
       # Prevent reloading connections to Elasticsearch
