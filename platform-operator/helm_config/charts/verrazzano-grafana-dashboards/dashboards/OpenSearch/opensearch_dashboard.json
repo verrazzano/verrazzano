@@ -743,7 +743,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_index_shards_number{cluster=\"system\",type=\"active\"}) by (index)",
+          "expr": "max(opensearch_index_shards_number{cluster=\"system\",type=\"active\"}) by (index)",
           "interval": "",
           "legendFormat": "{{index}}",
           "refId": "A"
@@ -1477,7 +1477,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "opensearch_fs_total_total_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}",
+          "expr": "max(opensearch_fs_total_total_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -1684,7 +1684,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "opensearch_jvm_mem_heap_max_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}",
+          "expr": "max(opensearch_jvm_mem_heap_max_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -1773,7 +1773,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "avg_over_time(opensearch_jvm_mem_heap_used_bytes{instance=~\".*:9200\", verrazzano_cluster=\"local\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}[15m])",
+          "expr": "max(avg_over_time(opensearch_jvm_mem_heap_used_bytes{instance=~\".*:9200\", verrazzano_cluster=\"local\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}[15m])) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -1869,7 +1869,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "(1-(opensearch_fs_total_available_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}/opensearch_fs_total_total_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}))*100",
+          "expr": "max((1-(opensearch_fs_total_available_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}/opensearch_fs_total_total_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}))*100) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -1958,7 +1958,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "(opensearch_jvm_mem_heap_used_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}/opensearch_jvm_mem_heap_max_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"})*100",
+          "expr": "max((opensearch_jvm_mem_heap_used_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}/opensearch_jvm_mem_heap_max_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"})*100) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -2153,7 +2153,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rate(opensearch_indices_search_fetch_count{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-os-ingest|vmi-system-es-master\"}[1h])",
+          "expr": "max(rate(opensearch_indices_search_fetch_count{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-os-ingest|vmi-system-es-master\"}[1h])) by (rate)",
           "interval": "",
           "legendFormat": "{{kubernetes_pod_name}}",
           "refId": "A"
@@ -2445,7 +2445,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "irate(opensearch_jvm_gc_collection_time_seconds{verrazzano_cluster=\"local\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}[5m])",
+          "expr": "max(irate(opensearch_jvm_gc_collection_time_seconds{verrazzano_cluster=\"local\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}[5m])) by (node,gc)",
           "interval": "",
           "legendFormat": "{{node}}:{{gc}}",
           "refId": "A"
