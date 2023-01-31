@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helm
@@ -17,6 +17,12 @@ const ns = "my_namespace"
 const chartdir = "my_charts"
 const release = "my_release"
 const missingRelease = "no_release"
+
+// retryRunner is used to test retrying a Helm upgrade after first attempts do not succeed
+type retryRunner struct {
+	attemptsBeforeSuccess int
+	retries               int
+}
 
 // upgradeRunner is used to test Helm upgrade without actually running an OS exec command
 type upgradeRunner struct {
@@ -709,6 +715,58 @@ func Test_maskSensitiveData(t *testing.T) {
 		defaultBackend.image.repository=ghcr.io/verrazzano/nginx-ingress-default-backend,controller.service.type=LoadBalancer`
 	maskedStr = maskSensitiveData(str)
 	assert.Equal(t, str, maskedStr)
+}
+
+// Test_runHelm tests the runHelm function
+func Test_runHelm(t *testing.T) {
+	defer SetDefaultRunner()
+	operation := "operation"
+	log := vzlog.DefaultLogger()
+
+	tests := []struct {
+		numFailures    int
+		expectedStdout []byte
+		expectedStderr []byte
+		expectedErr    error
+	}{
+		{
+			numFailures:    0,
+			expectedStdout: []byte("success"),
+			expectedStderr: []byte(""),
+			expectedErr:    nil,
+		},
+		{
+			numFailures:    maxRetry - 1,
+			expectedStdout: []byte("success"),
+			expectedStderr: []byte(""),
+			expectedErr:    nil,
+		},
+		{
+			numFailures:    maxRetry + 1,
+			expectedStdout: []byte(""),
+			expectedStderr: []byte("not enough retries"),
+			expectedErr:    errors.New("not enough retries error"),
+		},
+	}
+
+	for _, tt := range tests {
+		SetCmdRunner(&retryRunner{
+			attemptsBeforeSuccess: tt.numFailures,
+		})
+		stdout, stderr, err := runHelm(log, release, ns, chartdir, operation, false, []string{}, false)
+		assert.Equal(t, stdout, tt.expectedStdout)
+		assert.Equal(t, stderr, tt.expectedStderr)
+		assert.Equal(t, err, tt.expectedErr)
+	}
+}
+
+// Run should return a success or error depending on how many times Run has been called previously
+func (r *retryRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+	if r.retries < r.attemptsBeforeSuccess {
+		r.retries++
+		return []byte(""), []byte("not enough retries"), errors.New("not enough retries error")
+	}
+	return []byte("success"), []byte(""), nil
 }
 
 // Run should assert the command parameters are correct then return a success with stdout contents

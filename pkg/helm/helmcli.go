@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helm
@@ -21,6 +21,9 @@ var Debug bool
 
 // cmdRunner needed for unit tests
 var runner vzos.CmdRunner = vzos.DefaultRunner{}
+
+// number of times runHelm will retry running its Helm command
+const maxRetry = 5
 
 // Helm chart status values: unknown, deployed, uninstalled, superseded, failed, uninstalling, pending-install, pending-upgrade or pending-rollback
 const ChartNotFound = "NotFound"
@@ -215,7 +218,6 @@ func runHelm(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 
 	// Try to upgrade several times.  Sometimes upgrade fails with "already exists" or "no deployed release".
 	// We have seen from tests that doing a retry will eventually succeed if these 2 errors occur.
-	const maxRetry = 5
 	for i := 1; i <= maxRetry; i++ {
 		cmd := exec.Command("helm", cmdArgs...)
 
@@ -232,12 +234,12 @@ func runHelm(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 			log.Debugf("Successfully ran Helm command for operation %s and release %s", operation, releaseName)
 			break
 		}
-		if i == 1 || i == maxRetry {
+		if i == maxRetry {
 			log.Errorf("Failed running Helm command for release %s: stderr %s",
 				releaseName, string(stderr))
 			return stdout, stderr, err
 		}
-		log.Infof("Failed running Helm command for operation %s and release %s. Retrying %s of %s", operation, releaseName, i+1, maxRetry)
+		log.Infof("Failed running Helm command for operation %s and release %s. Retrying %d of %d", operation, releaseName, i+1, maxRetry)
 	}
 
 	return stdout, stderr, nil
