@@ -32,11 +32,6 @@ const (
 	nodeExporterJobName      = "node-exporter"
 )
 
-const (
-	helidonComponentYaml = "../../../examples/hello-helidon/hello-helidon-comp.yaml"
-	helidonAppYaml       = "testdata/jwt/helidon/hello-helidon-app.yaml"
-)
-
 var isMinVersion140 bool
 var (
 	t                  = framework.NewTestFramework("helidon")
