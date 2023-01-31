@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
@@ -401,8 +401,8 @@ func vpoIsReady(client clipkg.Client) (bool, error) {
 	return true, nil
 }
 
-// deleteLeftoverPlatformOperator deletes leftover verrazzano-operator deployment after an abort.
-// This allows for the verrazzano-operator validatingWebhookConfiguration to be updated with an updated caBundle.
+// deleteLeftoverPlatformOperator deletes leftover verrazzano-platform-operator deployments after an abort.
+// This allows for the verrazzano-platform-operator validatingWebhookConfiguration to be updated with an updated caBundle.
 func deleteLeftoverPlatformOperator(client clipkg.Client) error {
 	vpoDeployment := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -412,8 +412,20 @@ func deleteLeftoverPlatformOperator(client clipkg.Client) error {
 	}
 	if err := client.Delete(context.TODO(), &vpoDeployment); err != nil {
 		if !errors.IsNotFound(err) {
-			return fmt.Errorf("Failed to delete leftover verrazzano-operator deployement: %s", err.Error())
+			return fmt.Errorf("Failed to delete leftover %s deployment: %s", constants.VerrazzanoPlatformOperator, err.Error())
 		}
 	}
+	vpoWebHookDeployment := appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperatorWebhook,
+		},
+	}
+	if err := client.Delete(context.TODO(), &vpoWebHookDeployment); err != nil {
+		if !errors.IsNotFound(err) {
+			return fmt.Errorf("Failed to delete leftover %s deployment: %s", constants.VerrazzanoPlatformOperatorWebhook, err.Error())
+		}
+	}
+
 	return nil
 }
