@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.8-20230126202904-674211347",
+              "tag": "v2.6.8-20230130154033-e07716258",
               "dashboard": "v2.6.8-20230125223507-a8c99d79",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20230126202904-674211347"
+              "tag": "v2.6.8-20230130154033-e07716258"
             }
           ]
         },
@@ -759,7 +759,7 @@
           "images": [
             {
               "image": "argocd",
-              "tag": "v2.5.3-20230124173152-c922509d",
+              "tag": "v2.5.3-20230130225915-436ed2a9",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

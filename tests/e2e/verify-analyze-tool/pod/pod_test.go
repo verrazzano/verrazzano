@@ -1,9 +1,9 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-// This is an e2e test to plant image related issues and validates it
+// This is an e2e test to plant pod related issues and validates it
 // Followed by reverting the issues to normal state and validates it
-package image
+package pod
 
 import (
 	. "github.com/onsi/ginkgo/v2"
@@ -20,10 +20,10 @@ var (
 	pollingInterval = 10 * time.Second
 )
 
-var t = framework.NewTestFramework("Vz Analysis Tool Image Issues")
+var t = framework.NewTestFramework("Vz Analysis Tool Pod Issues")
 
 var err error
-var issuesToBeDiagnosed = []string{utility.ImagePullBackOff, utility.ImagePullNotFound}
+var issuesToBeDiagnosed = []string{utility.PodProblemsNotReported, utility.PendingPods}
 var client = &kubernetes.Clientset{}
 
 // Get the K8s Client to fetch deployment info
@@ -35,17 +35,17 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	}
 })
 
-// patches an image for all the issues listed into 'issuesToBeDiagnosed'
+// patches pod for all the issues listed into 'issuesToBeDiagnosed'
 func patch() error {
 	for i := 0; i < len(issuesToBeDiagnosed); i++ {
 		switch issuesToBeDiagnosed[i] {
-		case utility.ImagePullNotFound:
-			patchErr := utility.PatchImage(client, utility.DeploymentToBePatched, utility.ImagePullNotFound, "X")
+		case utility.PodProblemsNotReported:
+			patchErr := utility.PatchImage(client, utility.DeploymentToBePatched, utility.PodProblemsNotReported, "nginx")
 			if patchErr != nil {
 				return patchErr
 			}
-		case utility.ImagePullBackOff:
-			patchErr := utility.PatchImage(client, utility.DeploymentToBePatched, utility.ImagePullBackOff, "nginxx/nginx:1.14.0")
+		case utility.PendingPods:
+			patchErr := utility.PatchPod(utility.PendingPods, []string{"cpu=50000m", "cpu=128m"})
 			if patchErr != nil {
 				return patchErr
 			}
@@ -57,31 +57,31 @@ func patch() error {
 	return nil
 }
 
-var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
-	t.Context("During Image Issue Analysis", func() {
+var _ = t.Describe("VZ Tools", Label("f:vz-tools-pod-issues"), func() {
+	t.Context("During Pod Issue Analysis", func() {
 		t.It("First Inject/ Revert Issue and Feed Analysis Report", func() {
 			patch()
 		})
 
-		t.It("Should Have ImagePullNotFound Issue Post Bad Image Injection", func() {
+		t.It("Should Have PodProblemsNotReported Issue Post Bad Image Injection", func() {
 			Eventually(func() bool {
-				return utility.VerifyIssue(utility.ReportAnalysis[utility.ImagePullNotFound][0], utility.ImagePullNotFound)
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.PodProblemsNotReported][0], utility.PodProblemsNotReported)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
-		t.It("Should Not Have ImagePullNotFound Issue Post Reviving Bad Image", func() {
+		t.It("Should Not Have PodProblemsNotReported Issue Post Reviving Bad Image", func() {
 			Eventually(func() bool {
-				return utility.VerifyIssue(utility.ReportAnalysis[utility.ImagePullNotFound][1], utility.ImagePullNotFound)
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.PodProblemsNotReported][1], utility.PodProblemsNotReported)
 			}, waitTimeout, pollingInterval).Should(BeFalse())
 		})
 
-		t.It("Should Have ImagePullBackOff Issue Post Bad Image Injection", func() {
+		t.It("Should Have PendingPods Issue Post Bad Resource Request", func() {
 			Eventually(func() bool {
-				return utility.VerifyIssue(utility.ReportAnalysis[utility.ImagePullBackOff][0], utility.ImagePullBackOff)
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.PendingPods][0], utility.PendingPods)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
-		t.It("Should Not Have ImagePullBackOff Issue Post Reviving Bad Image", func() {
+		t.It("Should Not Have PendingPods Issue Post Rectifying Resource Request", func() {
 			Eventually(func() bool {
-				return utility.VerifyIssue(utility.ReportAnalysis[utility.ImagePullBackOff][1], utility.ImagePullBackOff)
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.PendingPods][1], utility.PendingPods)
 			}, waitTimeout, pollingInterval).Should(BeFalse())
 		})
 	})
