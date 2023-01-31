@@ -131,6 +131,11 @@ pipeline {
         }
 
         stage("Create OCI config file") {
+            when {
+                expression {
+                    return params.UPGRADE_VZ
+                }
+            }
             steps {
                 script{
                     sh """
