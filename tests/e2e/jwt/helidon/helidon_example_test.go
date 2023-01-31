@@ -14,12 +14,10 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
-	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -50,7 +48,7 @@ var (
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
 		start := time.Now()
-		deployHelloHelidonApplication(namespace, "", istioInjection)
+		pkg.DeployHelloHelidonApplication(namespace, "", istioInjection, "", "")
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 
@@ -90,7 +88,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}
 	if !skipUndeploy {
 		start := time.Now()
-		pkg.UndeployHelloHelidonApplication(namespace, "")
+		pkg.UndeployHelloHelidonApplication(namespace, "", "")
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
@@ -208,44 +206,6 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	})
 
 })
-
-// DeployHelloHelidonApplication deploys the Hello Helidon example application. It accepts an optional
-// OCI Log ID that is added as an annotation on the namespace to test the OCI Logging service integration.
-func deployHelloHelidonApplication(namespace string, ociLogID string, istioInjection string) {
-	pkg.Log(pkg.Info, "Deploy Hello Helidon Application")
-	pkg.Log(pkg.Info, fmt.Sprintf("Create namespace %s", namespace))
-	Eventually(func() (*v1.Namespace, error) {
-		nsLabels := map[string]string{
-			"verrazzano-managed": "true",
-			"istio-injection":    istioInjection}
-
-		var annotations map[string]string
-		if len(ociLogID) > 0 {
-			annotations = make(map[string]string)
-			annotations["verrazzano.io/oci-log-id"] = ociLogID
-		}
-
-		return pkg.CreateNamespaceWithAnnotations(namespace, nsLabels, annotations)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil(), fmt.Sprintf("Failed to create namespace %s", namespace))
-
-	pkg.Log(pkg.Info, "Create Hello Helidon component resource")
-	Eventually(func() error {
-		file, err := pkg.FindTestDataFile(helidonComponentYaml)
-		if err != nil {
-			return err
-		}
-		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon component resource")
-
-	pkg.Log(pkg.Info, "Create Hello Helidon application resource")
-	Eventually(func() error {
-		file, err := pkg.FindTestDataFile(helidonAppYaml)
-		if err != nil {
-			return err
-		}
-		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
-}
 
 func helloHelidonPodsRunning() bool {
 	result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)

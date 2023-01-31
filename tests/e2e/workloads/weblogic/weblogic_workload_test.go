@@ -61,7 +61,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	}
 
-	t.Logs.Info("WebLogic Application - check expected admin server pod is running")
+	t.Logs.Info("WebLogic Application: check expected admin server pod is running")
 	Eventually(func() bool {
 		result, err := pkg.PodsRunning(namespace, expectedPods)
 		if err != nil {
@@ -70,7 +70,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return result
 	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: Admin server pod is not ready")
 
-	t.Logs.Info("WebLogic Application - check expected VirtualService is ready")
+	t.Logs.Info("WebLogic Application: check expected VirtualService is ready")
 	Eventually(func() bool {
 		result, err := pkg.DoesVirtualServiceExist(namespace, trait)
 		if err != nil {
@@ -79,7 +79,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return result
 	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: VirtualService is not ready")
 
-	t.Logs.Info("WebLogic Application - check expected Secrets exist")
+	t.Logs.Info("WebLogic Application: check expected Secrets exist")
 	Eventually(func() bool {
 		result, err := pkg.DoesSecretExist(namespace, helloDomainWeblogicCreds)
 		if err != nil {
@@ -99,7 +99,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	// Get the host from the Istio gateway resource.
 	start := time.Now()
-	t.Logs.Info("WebLogic Application - check expected Gateway is ready")
+	t.Logs.Info("WebLogic Application: check expected Gateway is ready")
 	Eventually(func() (string, error) {
 		host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 		return host, err

@@ -5,7 +5,6 @@ package bobsbooks
 
 import (
 	"fmt"
-	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -13,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
@@ -26,6 +26,12 @@ const (
 	longPollingInterval      = 20 * time.Second
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
+
+	trait                  = "robert-helidon-trait"
+	helidonService         = "robert-helidon"
+	bobsService            = "bobbys-helidon-stock-application"
+	frontEndRepoCreds      = "bobbys-front-end-weblogic-credentials"
+	bookstoreWeblogicCreds = "bobs-bookstore-weblogic-credentials"
 
 	// application specific constants
 	robertCoh            = "robert-coh"
@@ -55,6 +61,7 @@ var (
 		"bobbys-helidon-stock-application",
 		"robert-helidon",
 		"mysql"}
+	host = ""
 	appName = "bobs-books"
 )
 var isMinVersion140 bool
@@ -64,18 +71,74 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		deployBobsBooksExample(namespace)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
+
 	t.Logs.Info("Container image pull check")
 	Eventually(func() bool {
 		return pkg.ContainerImagePullWait(namespace, expectedPods)
 	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
-	t.Logs.Info("Bobs Books Application expected pods running check.")
+
+	t.Logs.Info("Bobs Books Application: check expected pods are running")
 	Eventually(func() bool {
 		result, err := pkg.PodsRunning(namespace, expectedPods)
 		if err != nil {
 			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 		}
 		return result
-	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy")
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy: Pods are not ready")
+
+	t.Logs.Info("Bobs Books Application: check expected Services are running")
+	Eventually(func() bool {
+		result, err := pkg.DoesServiceExist(namespace, helidonService)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("App Service %s is not running in the namespace: %v, error: %v", helidonService, namespace, err))
+		}
+		return result
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy: Services are not ready")
+
+	Eventually(func() bool {
+		result, err := pkg.DoesServiceExist(namespace, bobsService)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("App Service %s is not running in the namespace: %v, error: %v", bobsService, namespace, err))
+		}
+		return result
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy: Services are not ready")
+
+	t.Logs.Info("Bobs Books Application: check expected VirtualService is ready")
+	Eventually(func() bool {
+		result, err := pkg.DoesVirtualServiceExist(namespace, trait)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("App VirtualService %s is not running in the namespace: %v, error: %v", trait, namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy: VirtualService is not ready")
+
+	t.Logs.Info("Bobs Books Application: check expected Secrets exist")
+	Eventually(func() bool {
+		result, err := pkg.DoesSecretExist(namespace, frontEndRepoCreds)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("App Secret %s does not exist in the namespace: %v, error: %v", frontEndRepoCreds, namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy: Secret does not exist")
+
+	Eventually(func() bool {
+		result, err := pkg.DoesSecretExist(namespace, bookstoreWeblogicCreds)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("App Secret %s does not exist in the namespace: %v, error: %v", bookstoreWeblogicCreds, namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy: Secret does not exist")
+
+	var err error
+	// Get the host from the Istio gateway resource.
+	start := time.Now()
+	t.Logs.Info("Bobs Books Application: check expected Gateway is ready")
+	Eventually(func() (string, error) {
+		host, err = k8sutil.GetHostnameFromGateway(namespace, "")
+		return host, err
+	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Bobs Books Application Failed to Deploy: Gateway is not ready")
+	metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
+
 	beforeSuitePassed = true
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
