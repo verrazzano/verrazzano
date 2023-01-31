@@ -1,34 +1,4 @@
 {
-  "__inputs": [
-    {
-      "name": "DS_PROMETHEUS",
-      "label": "Prometheus",
-      "description": "",
-      "type": "datasource",
-      "pluginId": "prometheus",
-      "pluginName": "Prometheus"
-    }
-  ],
-  "__requires": [
-    {
-      "type": "grafana",
-      "id": "grafana",
-      "name": "Grafana",
-      "version": "7.5.17"
-    },
-    {
-      "type": "panel",
-      "id": "graph",
-      "name": "Graph",
-      "version": ""
-    },
-    {
-      "type": "datasource",
-      "id": "prometheus",
-      "name": "Prometheus",
-      "version": "1.0.0"
-    }
-  ],
   "annotations": {
     "list": [
       {
@@ -53,9 +23,7 @@
       "icon": "external link",
       "includeVars": true,
       "keepTime": true,
-      "tags": [
-        "vz_resource_usage_detailed"
-      ],
+      "tags": ["vz_resource_usage_detailed"],
       "targetBlank": true,
       "title": "Resource Usage Detailed",
       "tooltip": "",
@@ -538,15 +506,13 @@
   "refresh": "5s",
   "schemaVersion": 27,
   "style": "dark",
-  "tags": [
-    "vz_resource_usage_summary"
-  ],
+  "tags": ["vz_resource_usage_summary"],
   "templating": {
     "list": [
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_PROMETHEUS}",
+        "datasource": null,
         "definition": "label_values(container_cpu_usage_seconds_total, verrazzano_cluster)",
         "description": null,
         "error": null,
@@ -573,7 +539,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_PROMETHEUS}",
+        "datasource": null,
         "definition": "label_values(container_cpu_usage_seconds_total{verrazzano_cluster=\"$cluster\"},verrazzano_component)",
         "description": null,
         "error": null,
@@ -600,7 +566,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_PROMETHEUS}",
+        "datasource": null,
         "definition": "query_result(round(sum(irate(container_cpu_usage_seconds_total{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\"}[5m])),0.01))",
         "description": null,
         "error": null,
@@ -627,7 +593,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_PROMETHEUS}",
+        "datasource": null,
         "definition": "query_result(round(sum(container_memory_working_set_bytes{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\"})/1024/1024/1024,0.01))",
         "description": null,
         "error": null,
@@ -654,7 +620,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_PROMETHEUS}",
+        "datasource": null,
         "definition": "query_result(round(sum(container_fs_usage_bytes{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\"})/1024/1024/1024,0.01))",
         "description": null,
         "error": null,
@@ -681,7 +647,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_PROMETHEUS}",
+        "datasource": null,
         "definition": "query_result(round(sum(kube_pod_spec_volumes_persistentvolumeclaims_info{verrazzano_component=~\"$component\"} * on(persistentvolumeclaim, namespace) group_right(verrazzano_component) kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$cluster\"})/1024/1024/1024,0.01))",
         "description": null,
         "error": null,
@@ -708,7 +674,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_PROMETHEUS}",
+        "datasource": null,
         "definition": "query_result(round(sum(kube_pod_spec_volumes_persistentvolumeclaims_info{verrazzano_component=~\"$component\"} * on(persistentvolumeclaim, namespace) group_right(verrazzano_component) kubelet_volume_stats_available_bytes{verrazzano_cluster=\"$cluster\"})/1024/1024/1024,0.01))",
         "description": null,
         "error": null,
@@ -735,7 +701,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_PROMETHEUS}",
+        "datasource": null,
         "definition": "query_result(round(sum (count without (cpu, mode) (node_cpu_seconds_total{job=\"node-exporter\",mode=\"idle\",verrazzano_cluster=\"$cluster\"}) - ((1 - avg without (cpu) (sum without (mode) (rate(node_cpu_seconds_total{job=\"node-exporter\",mode=~\"idle|iowait|steal\",verrazzano_cluster=\"$cluster\"}[5m])))) * count without (cpu, mode) (node_cpu_seconds_total{job=\"node-exporter\",mode=\"idle\",verrazzano_cluster=\"$cluster\"}))),0.01))",
         "description": null,
         "error": null,
@@ -762,7 +728,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_PROMETHEUS}",
+        "datasource": null,
         "definition": "query_result(round(sum(node_memory_MemAvailable_bytes{job=\"node-exporter\",verrazzano_cluster=\"$cluster\"} or (node_memory_Buffers_bytes{job=\"node-exporter\",verrazzano_cluster=\"$cluster\"} + node_memory_Cached_bytes{job=\"node-exporter\",verrazzano_cluster=\"$cluster\"} + node_memory_MemFree_bytes{job=\"node-exporter\",verrazzano_cluster=\"$cluster\"} + node_memory_Slab_bytes{job=\"node-exporter\",verrazzano_cluster=\"$cluster\"}))/1024/1024/1024,0.01))",
         "description": null,
         "error": null,
@@ -789,7 +755,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_PROMETHEUS}",
+        "datasource": null,
         "definition": "query_result(round(sum(node_filesystem_avail_bytes{mountpoint=\"/\", verrazzano_cluster=\"$cluster\"})/1024/1024/1024,0.01))",
         "description": null,
         "error": null,
