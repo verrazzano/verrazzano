@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package install
@@ -172,8 +172,8 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			return err
 		}
 
-		// Delete leftover verrazzano-operator deployment after an abort.
-		// This allows for the verrazzano-operator validatingWebhookConfiguration to be updated with the correct caBundle.
+		// Delete leftover verrazzano-platform-operator deployments after an abort.
+		// This allows for the verrazzano-platform-operator validatingWebhookConfiguration to be updated with the correct caBundle.
 		err = cmdhelpers.DeleteFunc(client)
 		if err != nil {
 			return err
