@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 FROM ghcr.io/oracle/oraclelinux:7-slim AS build_base
@@ -28,7 +28,7 @@ RUN yum update -y \
     && yum install -y kubectl-1.23.11-1.el7 \
     && yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/olcne/x86_64 \
     && yum install -y helm-3.9.2-1.el7 \
-    && yum install -y istio-istioctl-1.15.1-2.el7 \
+    && yum install -y istio-istioctl-1.15.3-1.el7 \
     && yum clean all \
     && rm -rf /var/cache/yum
 

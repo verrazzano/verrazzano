@@ -1,4 +1,4 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: install.istio.io/v1alpha1
@@ -9,13 +9,70 @@ spec:
     egressGateways:
       - name: istio-egressgateway
         enabled: true
+        k8s:
+          securityContext:
+            runAsUser: 1337
+            runAsGroup: 1337
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          overlays:
+            - kind: Deployment
+              name: istio-egressgateway
+              patches:
+                - path: spec.template.spec.containers.[name:istio-proxy].securityContext
+                  value: |
+                    privileged: false
+                    allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
+    ingressGateways:
+      - name: istio-ingressgateway
+        k8s:
+          securityContext:
+            runAsUser: 1337
+            runAsGroup: 1337
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          overlays:
+            - kind: Deployment
+              name: istio-ingressgateway
+              patches:
+                - path: spec.template.spec.containers.[name:istio-proxy].securityContext
+                  value: |
+                    privileged: false
+                    allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
+    pilot:
+      k8s:
+        securityContext:
+          runAsUser: 1337
+          runAsGroup: 1337
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        overlays:
+          - kind: Deployment
+            name: istiod
+            patches:
+              - path: spec.template.spec.containers.[name:discovery].securityContext
+                value: |
+                  privileged: false
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                      - ALL
 
   # Global values passed through to helm global.yaml.
   # Please keep this in sync with manifests/charts/global.yaml
   values:
     global:
       hub: ghcr.io/verrazzano
-      tag: 1.15.1
+      tag: 1.15.3
       multiCluster:
         enabled: false
       istioNamespace: istio-system
@@ -30,7 +87,6 @@ spec:
 
     pilot:
       autoscaleEnabled: false
-
     gateways:
       istio-egressgateway:
         env:

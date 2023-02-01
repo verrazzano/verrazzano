@@ -1,21 +1,17 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-// This is an e2e test to plant, validate and revert issues
-// Here we are dealing with image related issues
+// This is an e2e test to plant image related issues and validates it
+// Followed by reverting the issues to normal state and validates it
 package image
 
 import (
-	"context"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	k8util "github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utility "github.com/verrazzano/verrazzano/tests/e2e/verify-analyze-tool"
 	"k8s.io/client-go/kubernetes"
-	"os"
-	"os/exec"
-	"strings"
 	"time"
 )
 
@@ -24,70 +20,39 @@ var (
 	pollingInterval = 10 * time.Second
 )
 
-const (
-	ImagePullNotFound     string = "ImagePullNotFound"
-	NameSpace             string = "verrazzano-system"
-	DeploymentToBePatched string = "verrazzano-console"
-)
+var t = framework.NewTestFramework("Vz Analysis Tool Image Issues")
 
 var err error
-var reportAnalysis []string
-var c = &kubernetes.Clientset{}
-var t = framework.NewTestFramework("Vz Analysis Tool Image Issues")
+var issuesToBeDiagnosed = []string{utility.ImagePullBackOff, utility.ImagePullNotFound}
+var client = &kubernetes.Clientset{}
 
 // Get the K8s Client to fetch deployment info
 var _ = BeforeSuite(beforeSuite)
 var beforeSuite = t.BeforeSuiteFunc(func() {
-	c, err = k8util.GetKubernetesClientset()
+	client, err = k8util.GetKubernetesClientset()
 	if err != nil {
 		Fail(err.Error())
 	}
 })
 
-// This method invoke patch method & feed vz analyze report to reportAnalysis
-// First Iteration patch a deployment's image and captures vz analyze report
-// Second Iteration undo the patch and captures vz analyze report
-func feedAnalysisReport() []string {
-	out := make([]string, 2)
-	for i := 0; i < len(out); i++ {
-		patchErr := patchImage(DeploymentToBePatched, NameSpace, i == 0)
-		if patchErr != nil {
-			Fail(patchErr.Error())
-		}
-		time.Sleep(waitTimeout)
-		out[i], err = RunVzAnalyze()
-		if err != nil {
-			Fail(err.Error())
-		}
-		if i == 0 {
-			time.Sleep(time.Second * 30)
-		}
-	}
-	reportAnalysis = append(reportAnalysis, out[0], out[1])
-	return reportAnalysis
-}
-
-// This Method implements the patch image execution on the basis of patch flag
-func patchImage(deploymentName, namespace string, patch bool) error {
-	deploymentsClient := c.AppsV1().Deployments(namespace)
-	result, getErr := deploymentsClient.Get(context.TODO(), deploymentName, v1.GetOptions{})
-	if getErr != nil {
-		return getErr
-	}
-	for i, container := range result.Spec.Template.Spec.Containers {
-		if container.Name == deploymentName {
-			image := result.Spec.Template.Spec.Containers[i].Image
-			if patch {
-				result.Spec.Template.Spec.Containers[i].Image = image + "X"
-				break
+// patches an image for all the issues listed into 'issuesToBeDiagnosed'
+func patch() error {
+	for i := 0; i < len(issuesToBeDiagnosed); i++ {
+		switch issuesToBeDiagnosed[i] {
+		case utility.ImagePullNotFound:
+			patchErr := utility.PatchImage(client, utility.DeploymentToBePatched, utility.ImagePullNotFound, "X")
+			if patchErr != nil {
+				return patchErr
 			}
-			result.Spec.Template.Spec.Containers[i].Image = image[:len(image)-1]
-			break
+		case utility.ImagePullBackOff:
+			patchErr := utility.PatchImage(client, utility.DeploymentToBePatched, utility.ImagePullBackOff, "nginxx/nginx:1.14.0")
+			if patchErr != nil {
+				return patchErr
+			}
 		}
-	}
-	_, updateErr := deploymentsClient.Update(context.TODO(), result, v1.UpdateOptions{})
-	if updateErr != nil {
-		return updateErr
+		if i < len(issuesToBeDiagnosed)-1 {
+			time.Sleep(time.Second * 20)
+		}
 	}
 	return nil
 }
@@ -95,34 +60,29 @@ func patchImage(deploymentName, namespace string, patch bool) error {
 var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 	t.Context("During Image Issue Analysis", func() {
 		t.It("First Inject/ Revert Issue and Feed Analysis Report", func() {
-			feedAnalysisReport()
-			Expect(len(reportAnalysis)).To(Equal(2))
-		})
-		t.It("Should Have ImagePullNotFound Issue Post Bad Image Inject", func() {
-			Eventually(func() bool {
-				return verifyIssue(reportAnalysis[0], ImagePullNotFound)
-			}, waitTimeout, pollingInterval).Should(BeTrue())
+			patch()
 		})
 
-		t.It("Should Not Have ImagePullNotFound Issue Post Correct Image Inject", func() {
+		t.It("Should Have ImagePullNotFound Issue Post Bad Image Injection", func() {
 			Eventually(func() bool {
-				return verifyIssue(reportAnalysis[1], ImagePullNotFound)
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.ImagePullNotFound][0], utility.ImagePullNotFound)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+		t.It("Should Not Have ImagePullNotFound Issue Post Reviving Bad Image", func() {
+			Eventually(func() bool {
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.ImagePullNotFound][1], utility.ImagePullNotFound)
+			}, waitTimeout, pollingInterval).Should(BeFalse())
+		})
+
+		t.It("Should Have ImagePullBackOff Issue Post Bad Image Injection", func() {
+			Eventually(func() bool {
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.ImagePullBackOff][0], utility.ImagePullBackOff)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+		t.It("Should Not Have ImagePullBackOff Issue Post Reviving Bad Image", func() {
+			Eventually(func() bool {
+				return utility.VerifyIssue(utility.ReportAnalysis[utility.ImagePullBackOff][1], utility.ImagePullBackOff)
 			}, waitTimeout, pollingInterval).Should(BeFalse())
 		})
 	})
 })
-
-// utility method to run vz analyze and deliver its report
-func RunVzAnalyze() (string, error) {
-	cmd := exec.Command("./vz", "analyze")
-	if goRepoPath := os.Getenv("GO_REPO_PATH"); goRepoPath != "" {
-		cmd.Dir = goRepoPath
-	}
-	out, err := cmd.Output()
-	return string(out), err
-}
-
-// utility method to verify issue into vz analyze report
-func verifyIssue(out, issueType string) bool {
-	return strings.Contains(out, issueType)
-}

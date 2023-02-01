@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vmc
@@ -154,6 +154,11 @@ func doTestCreateVMC(t *testing.T, rancherEnabled bool) {
 
 	// expect status updated with condition Ready=true
 	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "", false)
+
+	// stub out keycloak client creation for these tests
+	createClient = func(r *VerrazzanoManagedClusterReconciler, vmc *v1alpha1.VerrazzanoManagedCluster) error {
+		return nil
+	}
 
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)

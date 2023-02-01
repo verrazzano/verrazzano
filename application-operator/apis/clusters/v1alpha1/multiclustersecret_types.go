@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -41,6 +41,7 @@ type SecretTemplate struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=mcsecret;mcsecrets
 // +kubebuilder:subresource:status
+// +kubebuilder:deprecatedversion:warning="clusters.verrazzano.io/v1alpha1 MultiClusterSecret is deprecated and will be removed in v2.0.0. See https://verrazzano.io/v1.5/docs/reference/migration/#multicluster."
 
 // MultiClusterSecret specifies the MultiCluster Secret API.
 type MultiClusterSecret struct {

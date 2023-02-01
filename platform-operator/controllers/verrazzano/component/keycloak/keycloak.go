@@ -173,6 +173,87 @@ const pkceTmpl = `
       ]
 }
 `
+const ManagedClusterClientTmpl = `
+{
+      "clientId" : "{{.ClientID}}",
+      "enabled": true,
+      "surrogateAuthRequired": false,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      ` + ManagedClusterClientUrisTemplate + `,
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "saml.assertion.signature": "false",
+        "saml.multivalued.roles": "false",
+        "saml.force.post.binding": "false",
+        "saml.encrypt": "false",
+        "saml.server.signature": "false",
+        "saml.server.signature.keyinfo.ext": "false",
+        "exclude.session.state.from.auth.response": "false",
+        "saml_force_name_id_format": "false",
+        "saml.client.signature": "false",
+        "tls.client.certificate.bound.access.tokens": "false",
+        "saml.authnstatement": "false",
+        "display.on.consent.screen": "false",
+        "pkce.code.challenge.method": "S256",
+        "saml.onetimeuse.condition": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "protocolMappers": [
+          {
+            "name": "groupmember",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-group-membership-mapper",
+            "consentRequired": false,
+            "config": {
+              "full.path": "false",
+              "id.token.claim": "true",
+              "access.token.claim": "true",
+              "claim.name": "groups",
+              "userinfo.token.claim": "true"
+            }
+          },
+          {
+            "name": "realm roles",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-usermodel-realm-role-mapper",
+            "consentRequired": false,
+            "config": {
+              "multivalued": "true",
+              "user.attribute": "foo",
+              "id.token.claim": "true",
+              "access.token.claim": "true",
+              "claim.name": "realm_access.roles",
+              "jsonType.label": "String"
+            }
+          }
+        ],
+      "defaultClientScopes": [
+        "web-origins",
+        "role_list",
+        "roles",
+        "profile",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+}
+`
 
 const pgClient = `
 {
@@ -490,6 +571,15 @@ const pkceClientUrisTemplate = `
  {{end}} 
 	]
 `
+const ManagedClusterClientUrisTemplate = `
+	"redirectUris": [
+	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/*",
+	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/_authentication_callback"
+	],
+	"webOrigins": [
+	  "https://prometheus.vmi.system.{{.DNSSubDomain}}"
+	]
+`
 
 const rancherClientUrisTemplate = `
 	"redirectUris": [
@@ -579,6 +669,7 @@ type KeycloakClientSecret struct {
 type templateData struct {
 	DNSSubDomain string
 	OSHostExists bool
+	ClientID     string
 }
 
 // imageData needed for template rendering
@@ -717,8 +808,8 @@ func updateKeycloakIngress(ctx spi.ComponentContext) error {
 }
 
 // updateKeycloakUris invokes kcadm.sh in Keycloak pod to update the client with Keycloak rewrite and weborigin uris
-func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *corev1.Pod, clientID string, uriTemplate string) error {
-	data, err := populateSubdomainInTemplate(ctx, "{"+uriTemplate+"}")
+func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *corev1.Pod, clientID string, uriTemplate string, dnsSubdomain *string) error {
+	data, err := populateClientTemplate(ctx, "{"+uriTemplate+"}", "", dnsSubdomain)
 	if err != nil {
 		return err
 	}
@@ -763,7 +854,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		// When the MySQL pod restarts and using ephemeral storage, the
 		// login to Keycloak will fail.  Need to recycle the Keycloak pod
 		// to resolve the condition.
-		err = loginKeycloak(ctx, cfg, cli)
+		err = LoginKeycloak(ctx, cfg, cli)
 		if err != nil {
 			err2 := ctx.Client().Delete(context.TODO(), pod)
 			if err2 != nil {
@@ -774,7 +865,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Login to Keycloak
-	err = loginKeycloak(ctx, cfg, cli)
+	err = LoginKeycloak(ctx, cfg, cli)
 	if err != nil {
 		return err
 	}
@@ -855,20 +946,20 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Create verrazzano-pkce client
-	err = createOrUpdateClient(ctx, cfg, cli, "verrazzano-pkce", pkceTmpl, pkceClientUrisTemplate, false)
+	err = CreateOrUpdateClient(ctx, cfg, cli, "verrazzano-pkce", pkceTmpl, pkceClientUrisTemplate, false, nil)
 	if err != nil {
 		return err
 	}
 
 	// Creating verrazzano-pg client
-	err = createOrUpdateClient(ctx, cfg, cli, "verrazzano-pg", pgClient, "", true)
+	err = CreateOrUpdateClient(ctx, cfg, cli, "verrazzano-pg", pgClient, "", true, nil)
 	if err != nil {
 		return err
 	}
 
 	if vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
 		// Creating rancher client
-		err = createOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true)
+		err = CreateOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true, nil)
 		if err != nil {
 			return err
 		}
@@ -894,7 +985,15 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		}
 
 		// Creating Argo CD client
-		err = createOrUpdateClient(ctx, cfg, cli, "argocd", argocdClientTmpl, argocdClientUrisTemplate, true)
+		err = CreateOrUpdateClient(ctx, cfg, cli, "argocd", argocdClientTmpl, argocdClientUrisTemplate, true, nil)
+		if err != nil {
+			return err
+		}
+
+		//Setting the Access Token Lifespan value to 20mins.
+		//Required to ensure Argo CD UI does not log out the user until the Access Token lifespan expires
+		// Setting password policy for Verrazzano realm
+		err = setAccessTokenLifespanForRealm(ctx, cfg, cli, "verrazzano-system")
 		if err != nil {
 			return err
 		}
@@ -941,7 +1040,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 }
 
 // loginKeycloak logs into Keycloak so kcadm API calls can be made
-func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
+func LoginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
 	// Get the Keycloak admin password
 	secret := &corev1.Secret{}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
@@ -959,12 +1058,12 @@ func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kuberne
 		ctx.Log().Error(err)
 		return err
 	}
-	ctx.Log().Debug("loginKeycloak: Successfully retrieved Keycloak password")
+	ctx.Log().Debug("LoginKeycloak: Successfully retrieved Keycloak password")
 
 	// Login to Keycloak
 	kcPod := keycloakPod()
 	loginCmd := kcAdminScript + " config credentials --server http://localhost:8080/auth --realm master --user keycloakadmin --password " + keycloakpw
-	ctx.Log().Debugf("loginKeycloak: Login Cmd = %s", maskPw(loginCmd))
+	ctx.Log().Debugf("LoginKeycloak: Login Cmd = %s", maskPw(loginCmd))
 	stdOut, stdErr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(loginCmd))
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed logging into Keycloak: stdout = %s: stderr = %s, err = %v", stdOut, stdErr, maskPw(err.Error()))
@@ -1049,11 +1148,16 @@ func getSecretPassword(ctx spi.ComponentContext, namespace string, secretname st
 
 // getDNSDomain returns the DNS Domain
 func getDNSDomain(c client.Client, vz *vzapi.Verrazzano) (string, error) {
+	var dnsDomain string
 	dnsSuffix, err := vzconfig.GetDNSSuffix(c, vz)
 	if err != nil {
 		return "", err
 	}
-	dnsDomain := fmt.Sprintf("%s.%s", vz.Spec.EnvironmentName, dnsSuffix)
+	if vz != nil {
+		dnsDomain = fmt.Sprintf("%s.%s", vz.Spec.EnvironmentName, dnsSuffix)
+	} else {
+		dnsDomain = dnsSuffix
+	}
 	return dnsDomain, nil
 }
 
@@ -1210,10 +1314,9 @@ func createOrUpdateClientScope(ctx spi.ComponentContext, cfg *restclient.Config,
 	ctx.Log().Debugf("createOrUpdateClientScope: Created %s client-scope", groupname)
 	ctx.Log().Oncef("Component Keycloak successfully created client-scope %s", groupname)
 	return nil
-
 }
 
-func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, clientName string, clientTemplate string, uriTemplate string, generateSecret bool) error {
+func CreateOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, clientName string, clientTemplate string, uriTemplate string, generateSecret bool, dnsSubdomain *string) error {
 	keycloakClients, err := getKeycloakClients(ctx)
 	if err != nil {
 		return err
@@ -1222,7 +1325,7 @@ func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 	kcPod := keycloakPod()
 	if clientID := getClientID(keycloakClients, clientName); clientID != "" {
 		if uriTemplate != "" {
-			err := updateKeycloakUris(ctx, cfg, cli, kcPod, clientID, uriTemplate)
+			err := updateKeycloakUris(ctx, cfg, cli, kcPod, clientID, uriTemplate, dnsSubdomain)
 			if err != nil {
 				return err
 			}
@@ -1231,7 +1334,7 @@ func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 		return nil
 	}
 
-	data, err := populateSubdomainInTemplate(ctx, clientTemplate)
+	data, err := populateClientTemplate(ctx, clientTemplate, clientName, dnsSubdomain)
 	if err != nil {
 		return err
 	}
@@ -1241,7 +1344,7 @@ func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 		data +
 		"END"
 
-	ctx.Log().Debugf("createOrUpdateClient: Create %s client Cmd = %s", clientName, clientCreateCmd)
+	ctx.Log().Debugf("CreateOrUpdateClient: Create %s client Cmd = %s", clientName, clientCreateCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(clientCreateCmd))
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed creating %s client: stdout = %s, stderr = %s", clientName, stdout, stderr)
@@ -1256,8 +1359,22 @@ func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 		}
 	}
 
-	ctx.Log().Debugf("createOrUpdateClient: Created %s client", clientName)
+	ctx.Log().Debugf("CreateOrUpdateClient: Created %s client", clientName)
 	ctx.Log().Oncef("Component Keycloak successfully created client %s", clientName)
+	return nil
+}
+
+func setAccessTokenLifespanForRealm(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, realmName string) error {
+	kcPod := keycloakPod()
+	setTokenCmd := kcAdminScript + " update realms/" + realmName + " -s accessTokenLifespan=1200"
+	ctx.Log().Debugf("setAccessTokenLifespanForRealm: Setting Access Token Lifespan for realm %s Cmd = %s", realmName, setTokenCmd)
+	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(setTokenCmd))
+	if err != nil {
+		ctx.Log().Errorf("Component Keycloak failed setting access token lifespan for verrazzano-system: stdout = %s, stderr = %s", stdout, stderr)
+		return err
+	}
+	ctx.Log().Debugf("setAccessTokenLifespanForRealm: Set Access Token Lifespan for realm %s", realmName)
+	ctx.Log().Oncef("Component Keycloak successfully set the Access Token Lifespan for realm %s", realmName)
 	return nil
 }
 
@@ -1584,7 +1701,7 @@ func deleteHeadlessService(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func populateSubdomainInTemplate(ctx spi.ComponentContext, tmpl string) (string, error) {
+func populateClientTemplate(ctx spi.ComponentContext, tmpl string, clientID string, subdomain *string) (string, error) {
 	data := templateData{}
 
 	// Update verrazzano-pkce client redirect and web origin uris if deprecated host exists in the ingress
@@ -1596,14 +1713,21 @@ func populateSubdomainInTemplate(ctx spi.ComponentContext, tmpl string) (string,
 	data.OSHostExists = osHostExists
 
 	// Get DNS Domain Configuration
-	dnsSubDomain, err := getDNSDomain(ctx.Client(), ctx.EffectiveCR())
-	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %v", err)
-		return "", err
+	var dnsSubDomain string
+	if subdomain == nil {
+		dnsSubDomain, err = getDNSDomain(ctx.Client(), ctx.EffectiveCR())
+		if err != nil {
+			ctx.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %v", err)
+			return "", err
+		}
+	} else {
+		dnsSubDomain = *subdomain
 	}
-	ctx.Log().Debugf("populateSubdomainInTemplate: DNSDomain returned %s", dnsSubDomain)
+	ctx.Log().Debugf("populateClientTemplate: DNSDomain = %s", dnsSubDomain)
 
 	data.DNSSubDomain = dnsSubDomain
+
+	data.ClientID = clientID
 
 	// use template to get populate template with data
 	var b bytes.Buffer
@@ -1628,7 +1752,7 @@ func GetRancherClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error
 	}
 
 	// Login to Keycloak
-	err = loginKeycloak(ctx, cfg, cli)
+	err = LoginKeycloak(ctx, cfg, cli)
 	if err != nil {
 		return "", err
 	}
@@ -1693,7 +1817,7 @@ func (p DefaultArgoClientSecretProvider) GetClientSecret(ctx spi.ComponentContex
 	}
 
 	// Login to Keycloak
-	err = loginKeycloak(ctx, cfg, cli)
+	err = LoginKeycloak(ctx, cfg, cli)
 	if err != nil {
 		return "", err
 	}
@@ -1778,7 +1902,7 @@ func GetVerrazzanoUserFromKeycloak(ctx spi.ComponentContext) (*KeycloakUser, err
 	}
 
 	// Login to Keycloak
-	err = loginKeycloak(ctx, cfg, cli)
+	err = LoginKeycloak(ctx, cfg, cli)
 	if err != nil {
 		return nil, err
 	}

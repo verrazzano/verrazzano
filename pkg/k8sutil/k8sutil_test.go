@@ -585,3 +585,47 @@ func TestGetCertManagerClientset(t *testing.T) {
 	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
 	asserts.NoError(err)
 }
+
+// TestGetConfigFromController tests get a valid rest.Config object
+//
+//	WHEN GetConfigFromController is called
+//	THEN GetConfigFromController returns a rest.Config object with QPS and burst set as expected
+func TestGetConfigFromController(t *testing.T) {
+	asserts := assert.New(t)
+	// Preserve previous env var value
+	prevEnvVarKubeConfig := os.Getenv(k8sutil.EnvVarKubeConfig)
+	// Unset KUBECONFIG environment variable
+	wd, err := os.Getwd()
+	asserts.NoError(err)
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, fmt.Sprintf("%s/%s", wd, dummyKubeConfig))
+	asserts.NoError(err)
+	config, err := k8sutil.GetConfigFromController()
+	asserts.NoError(err)
+	asserts.Equal(k8sutil.APIServerBurst, config.Burst)
+	asserts.Equal(float32(k8sutil.APIServerQPS), config.QPS)
+	// Reset env variable
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
+	asserts.NoError(err)
+}
+
+// TestGetConfigOrDieFromController tests get a valid rest.Config object
+//
+//	WHEN GetConfigOrDieFromController is called
+//	THEN GetConfigOrDieFromController returns a rest.Config object with QPS and burst set as expected
+func TestGetConfigOrDieFromController(t *testing.T) {
+	asserts := assert.New(t)
+	// Preserve previous env var value
+	prevEnvVarKubeConfig := os.Getenv(k8sutil.EnvVarKubeConfig)
+	// Unset KUBECONFIG environment variable
+	wd, err := os.Getwd()
+	asserts.NoError(err)
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, fmt.Sprintf("%s/%s", wd, dummyKubeConfig))
+	asserts.NoError(err)
+	config := k8sutil.GetConfigOrDieFromController()
+	asserts.NoError(err)
+	asserts.Equal(k8sutil.APIServerBurst, config.Burst)
+	asserts.Equal(float32(k8sutil.APIServerQPS), config.QPS)
+	// Reset env variable
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
+	asserts.NoError(err)
+}

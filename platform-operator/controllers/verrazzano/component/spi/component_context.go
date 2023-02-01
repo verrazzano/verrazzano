@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package spi
@@ -18,7 +18,7 @@ var _ ComponentContext = componentContext{}
 
 // NewContext creates a ComponentContext from a raw CR
 func NewContext(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *v1alpha1.Verrazzano, actualV1beta1CR *v1beta1.Verrazzano, dryRun bool) (ComponentContext, error) {
-	// Generate the effective CR based ond the declared profile and any overrides in the user-supplied one
+	// Generate the effective CR based on the declared profile and any overrides in the user-supplied one
 	effectiveCR, err := transform.GetEffectiveCR(actualCR)
 	if err != nil {
 		return nil, err
@@ -35,6 +35,15 @@ func NewContext(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *v1alpha1.
 		effectiveCR:        effectiveCR,
 		crv1beta1:          actualV1beta1CR,
 		effectiveCRv1beta1: effectiveV1beta1CR,
+	}, nil
+}
+
+// NewMinimalContext creates a ComponentContext limited to kubernetes client interactions and logging
+func NewMinimalContext(c clipkg.Client, log vzlog.VerrazzanoLogger) (ComponentContext, error) {
+	// Generate the effective CR based ond the declared profile and any overrides in the user-supplied one
+	return componentContext{
+		log:    log,
+		client: c,
 	}, nil
 }
 
