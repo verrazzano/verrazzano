@@ -87,7 +87,7 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 	err = r.createClusterSecret(vmc, clusterID, rancherURL)
 	if err != nil {
 		msg := "Failed to create Argo CD cluster secret"
-		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to call Argo CD clusters POST API on admin cluster: %v", err)
+		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to create cluster secret on admin cluster: %v", err)
 	}
 	msg := "Successfully registered managed cluster in ArgoCD"
 	return newArgoCDRegistration(clusterapi.MCRegistrationCompleted, msg), nil
@@ -120,7 +120,7 @@ func (r *VerrazzanoManagedClusterReconciler) createClusterSecret(vmc *clusterapi
 	return nil
 }
 
-// GetArgoCDClusterUserSecret fetches the Rancher Verrazzano user secret
+// GetArgoCDClusterUserSecret fetches the Argo CD Verrazzano user secret
 func GetArgoCDClusterUserSecret(rdr client.Reader) (string, error) {
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
@@ -150,7 +150,10 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateSecret(rc *rancheruti
 
 	// Create or update on the local cluster
 	return controllerruntime.CreateOrUpdate(context.TODO(), r.Client, &secret, func() error {
-		r.mutateClusterSecret(&secret, rc, vmc.Name, clusterID, rancherURL, caData)
+		err := r.mutateClusterSecret(&secret, rc, vmc.Name, clusterID, rancherURL, caData)
+		if err != nil {
+			return err
+		}
 		return nil
 	})
 }
