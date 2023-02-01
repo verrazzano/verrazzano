@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package restapi_test
@@ -137,14 +137,15 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 							return false, err
 						}
 						for _, userData := range userList.Items {
-							userPrincipals, ok := userData.UnstructuredContent()[rancher.UserAttributePrincipalIDs].([]interface{})
-							if ok {
+							userPrincipals, userPrincipalsOK := userData.UnstructuredContent()[rancher.UserAttributePrincipalIDs].([]interface{})
+							username, usernameOK := userData.UnstructuredContent()[rancher.UserAttributeUserName].(string)
+							if userPrincipalsOK && usernameOK {
 								switch reflect.TypeOf(userPrincipals).Kind() {
 								case reflect.Slice:
 									listOfPrincipleIDs := reflect.ValueOf(userPrincipals)
 									for i := 0; i < listOfPrincipleIDs.Len(); i++ {
 										principleID := listOfPrincipleIDs.Index(i).Interface().(string)
-										if strings.Contains(principleID, rancher.UserPrincipalKeycloakPrefix) {
+										if strings.Contains(principleID, rancher.UserPrincipalKeycloakPrefix) && username == rancher.UsernameVerrazzano {
 											rancherUsername = userData.GetName()
 											return true, nil
 										}
