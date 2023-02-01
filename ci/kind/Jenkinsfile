@@ -457,6 +457,15 @@ pipeline {
                                 runGinkgoAppTest('examples/helidon', 'hello-helidon-service-template', "${DUMP_DIRECTORY}", 'false', 'false', 'examples/hello-helidon/hello-helidon-comp-service-template.yaml', 'examples/hello-helidon/hello-helidon-app-custom-port.yaml')
                             }
                         }
+                        stage('examples helidon manualscalertait') {
+                                                    environment {
+                                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-manualscalertait"
+                                                    }
+                                                    steps {
+                                                        runGinkgoAppTest('examples/helidon', 'examples-helidon-manualscalertait', "${DUMP_DIRECTORY}", 'false', 'false','', 'examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
+                                                    }
+                                                }
+
                         stage('jaeger helidon') {
                             environment {
                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-helidon"

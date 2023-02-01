@@ -21,7 +21,6 @@ const (
 var expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 var helidonAppYaml = "examples/hello-helidon/hello-helidon-app.yaml"
 var helidonComponentYaml = "examples/hello-helidon/hello-helidon-comp.yaml"
-var helidonScalerYaml = "examples/hello-helidon/hello-helidon-app-scaler-trait.yaml"
 
 // DeployHelloHelidonApplication deploys the Hello Helidon example application. It accepts an optional
 // OCI Log ID that is added as an annotation on the namespace to test the OCI Logging service integration.
@@ -71,19 +70,6 @@ func DeployHelloHelidonApplication(namespace string, ociLogID string, istioInjec
 		}
 		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create hello-helidon application resource")
-
-	// wait to avoid resource version conflict
-	// please apply your changes to the latest version and try again
-	time.Sleep(30 * time.Second)
-	Log(Info, "Create Hello Helidon manualscalertrait resource")
-	gomega.Eventually(func() error {
-		file, err := FindTestDataFile(helidonScalerYaml)
-		if err != nil {
-			return err
-		}
-		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
-	}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create hello-helidon manualscalertrait resource")
-
 }
 
 // UndeployHelloHelidonApplication undeploys the Hello Helidon example application.

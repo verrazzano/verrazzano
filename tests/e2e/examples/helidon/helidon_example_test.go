@@ -47,6 +47,7 @@ var (
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
+
 	if !skipDeploy {
 		start := time.Now()
 		pkg.DeployHelloHelidonApplication(namespace, "", istioInjection, helloHelidonComponent, helloHelidonAppConfig)
@@ -71,12 +72,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 			}
 			return result
 		}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Helidon Example Failed to Deploy: Pods are not ready")
-
-		t.Logs.Info("Helidon Example: check expected pods are running")
-
-		Eventually(func() bool {
-			return isDeploymentSetUpdated()
-		}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 
 		t.Logs.Info("Helidon Example: check expected Services are running")
 		Eventually(func() bool {
@@ -106,6 +101,15 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Helidon Example: Gateway is not ready")
 		metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 
+		// validate if manualscalertrait applied, then pod count should be 2
+		// examples/hello-helidon/hello-helidon-app-scaler-trait.yaml
+		if strings.Contains(helloHelidonAppConfig, "hello-helidon-app-scaler-trait.yaml") {
+			t.Logs.Info("Helidon Example: check expected pods are running")
+
+			Eventually(func() bool {
+				return isDeploymentSetUpdated()
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+		}
 	}
 	beforeSuitePassed = true
 })
