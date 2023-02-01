@@ -12,8 +12,6 @@ spec:
     apiVersion: core.oam.dev/v1alpha2
     kind: ContainerizedWorkload
     metadata:
-      annotations:
-        traffic.sidecar.istio.io/excludeOutboundPorts: "443"
       name: {{ template "worker.fullName" .}}
       namespace: {{ .Release.Namespace }}
       labels:

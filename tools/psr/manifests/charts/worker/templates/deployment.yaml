@@ -14,8 +14,6 @@ spec:
   replicas: {{ .Values.replicas }}
   template:
     metadata:
-      annotations:
-        traffic.sidecar.istio.io/excludeOutboundPorts: "443"
       labels:
         psr.verrazzano.io/worker: {{ template "worker.fullName" .}}
         app: psr-worker
