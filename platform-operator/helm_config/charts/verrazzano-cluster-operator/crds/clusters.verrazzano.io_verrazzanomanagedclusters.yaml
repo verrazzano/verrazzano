@@ -83,7 +83,6 @@ spec:
                     description: The status of the ArgoCD registration
                     type: string
                 required:
-                - lastSetTimestamp
                 - status
                 type: object
               conditions:
