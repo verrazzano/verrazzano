@@ -32,7 +32,7 @@ import (
 // <a href="https://github.com/kubernetes-sigs/controller-runtime/blob/master/pkg/controller/controllerutil/controllerutil.go">Kubernetes-sigs</a> resource.
 // CreateOrUpdateProtobuf is called on types that use protobuf, such as Istio types,
 // for which equality.Semantic.DeepEqual is invalid, which was confirmed by this
-// <a href="https://oracle.github.io/coherence-operator/docs/latest/#/docs/about/04_coherence_spec">Istio</a> issue.
+// <a href="https://github.com/istio/istio/issues/43001">Istio</a> issue.
 func CreateOrUpdateProtobuf(ctx context.Context, c client.Client, obj client.Object, f controllerutil.MutateFn) (controllerutil.OperationResult, error) {
 	key := client.ObjectKeyFromObject(obj)
 	if err := c.Get(ctx, key, obj); err != nil {
