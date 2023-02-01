@@ -137,15 +137,18 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 							return false, err
 						}
 						for _, userData := range userList.Items {
-							userPrincipals, userPrincipalsOK := userData.UnstructuredContent()[rancher.UserAttributePrincipalIDs].([]interface{})
-							username, usernameOK := userData.UnstructuredContent()[rancher.UserAttributeUserName].(string)
-							if userPrincipalsOK && usernameOK {
+							username, ok := userData.UnstructuredContent()[rancher.UserAttributeUserName].(string)
+							if !ok || username != rancher.UsernameVerrazzano {
+								continue
+							}
+							userPrincipals, ok := userData.UnstructuredContent()[rancher.UserAttributePrincipalIDs].([]interface{})
+							if ok {
 								switch reflect.TypeOf(userPrincipals).Kind() {
 								case reflect.Slice:
 									listOfPrincipleIDs := reflect.ValueOf(userPrincipals)
 									for i := 0; i < listOfPrincipleIDs.Len(); i++ {
 										principleID := listOfPrincipleIDs.Index(i).Interface().(string)
-										if strings.Contains(principleID, rancher.UserPrincipalKeycloakPrefix) && username == rancher.UsernameVerrazzano {
+										if strings.Contains(principleID, rancher.UserPrincipalKeycloakPrefix) {
 											rancherUsername = userData.GetName()
 											return true, nil
 										}
