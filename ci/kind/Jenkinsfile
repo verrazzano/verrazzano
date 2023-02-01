@@ -462,7 +462,7 @@ pipeline {
                                                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-manualscalertait"
                                                     }
                                                     steps {
-                                                        runGinkgoAppTest('examples/helidon', 'examples-helidon-manualscalertait', "${DUMP_DIRECTORY}", 'false', 'false','examples/hello-helidon/hello-helidon-app.yaml', 'examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
+                                                        runGinkgoAppTest('examples/helidon', 'examples-helidon-manualscalertait', "${DUMP_DIRECTORY}", 'false', 'false','examples/hello-helidon/hello-helidon-comp.yaml', 'examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
                                                     }
                                                 }
 
