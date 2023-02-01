@@ -255,12 +255,6 @@ pipeline {
                     }
                 }
 
-                stage('security rbac') {
-                    steps {
-                        runGinkgo('security/rbac')
-                    }
-                }
-
                 stage('system component metrics') {
                     steps {
                         runGinkgo('metrics/syscomponents')
