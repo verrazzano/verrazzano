@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package kubernetes_test
@@ -134,16 +134,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("includes ssoproxycontroller", "ssoproxycontroller", false),
 		)
 
-		if isManagedClusterProfile {
-			t.DescribeTable("rancher components are not deployed,",
-				func(name string, expected bool) {
-					Eventually(func() (bool, error) {
-						return vzComponentPresent(name, "cattle-system")
-					}, waitTimeout, pollingInterval).Should(Equal(expected))
-				},
-				t.Entry("includes rancher", "rancher", false),
-			)
-		} else {
+		if !isManagedClusterProfile {
 			t.DescribeTable("rancher components are deployed,",
 				func(name string, expected bool) {
 					Eventually(func() (bool, error) {
