@@ -52,24 +52,24 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "v1.9.1-20230123161245-8004fda7",
+              "tag": "v1.9.1-20230201200709-54d32c21",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "v1.9.1-20230123161245-8004fda7",
+              "tag": "v1.9.1-20230201200709-54d32c21",
               "helmFullImageKey": "extraArgs[0]"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "v1.9.1-20230123161245-8004fda7",
+              "tag": "v1.9.1-20230201200709-54d32c21",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "v1.9.1-20230123161245-8004fda7",
+              "tag": "v1.9.1-20230201200709-54d32c21",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
@@ -184,7 +184,7 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.14.5-20230124214321-f85741b",
+              "tag": "v1.14.5-20230131231729-f85741b",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
@@ -219,7 +219,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.5.0-20230127142611-6b9b389",
+              "tag": "v1.5.0-20230201203210-ac5ebe8",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -230,7 +230,7 @@
             },
             {
               "image": "grafana",
-              "tag": "v7.5.17-20230124193319-a0a26f9b",
+              "tag": "v7.5.17-20230127201512-328e2599",
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
