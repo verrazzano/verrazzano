@@ -226,7 +226,7 @@ func registerIssues(messages map[string][]string, files []string, clusterRoot st
 }
 
 func podStatusConditionIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
-	log.Debugf("Memory or Cpu Issues called for %s", clusterRoot)
+	log.Debugf("Memory or CPU Issues called for %s", clusterRoot)
 
 	if len(pod.Status.Conditions) > 0 {
 		messages := make(map[string][]string)
