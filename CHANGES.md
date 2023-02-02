@@ -6,6 +6,7 @@ Features:
 - Rancher clusters are automatically synchronized with VerrazzanoManagedCluster resources. Creating a cluster in Rancher results in a VMC creation and deleting a cluster in Rancher results in a VMC deletion.
 - Applying the Rancher cluster registration manifest to a managed cluster causes additional Verrazzano resources to automatically transfer to the managed cluster.
 - Grafana dashboards are now organized in folders. Added Grafana dashboards for Istio, JVM Micrometer, user applications, and Verrazzano system health.
+- Added Argo CD which can be used as a declarative, GitOps continuous delivery tool for deploying the applications.
 
 Component version updates:
 
@@ -30,6 +31,7 @@ Component version updates:
 - Keycloak v20.0.1
 
 Components added:
+- Argo CD v2.5.3
 - MySQL Operator 8.0.32-2.0.8
 
 Fixes:
