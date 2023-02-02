@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package keycloak
@@ -13,13 +13,17 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-var kcComponent = NewComponent()
+var (
+	kcComponent = NewComponent()
+	testScheme  = runtime.NewScheme()
+)
 
 // TestIsEnabled tests the Keycloak IsEnabled call
 // GIVEN a Keycloak component
@@ -72,6 +76,18 @@ func TestIsEnabled(t *testing.T) {
 			assert.Equal(t, tt.isEnabled, kcComponent.IsEnabled(ctx.EffectiveCR()))
 		})
 	}
+}
+
+// TestReconcile tests the Keycloak Reconcile call
+// GIVEN a Keycloak component
+//
+// WHEN I call Reconcile with defaults, before Keycloak is actually installed
+// THEN a nil error is returned
+func TestReconcile(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
+	err := NewComponent().Reconcile(ctx)
+	assert.NoError(t, err)
 }
 
 // TestPreinstall tests the Keycloak PreInstall call

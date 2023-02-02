@@ -7316,7 +7316,7 @@ spec:
                 - podSpec
                 type: object
               serviceTemplate:
-                description: An embedded Helidon application service
+                description: An embedded Helidon application service.
                 properties:
                   metadata:
                     description: Metadata about a Helidon application.
