@@ -802,16 +802,22 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 //	      paths:
 //	      - /greet
 func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, rule vzapi.IngressRule, namePrefix string, hosts []string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
-	// First determine if any path uses an AuthorizationPolicy.
-	authPolicyNeeded := false
+	// If any path needs an AuthorizationPolicy then add one for every path
+	var addAuthPolicy bool
 	for _, path := range rule.Paths {
 		if path.Policy != nil {
-			authPolicyNeeded = true
+			addAuthPolicy = true
 		}
 	}
-
 	for _, path := range rule.Paths {
-		if authPolicyNeeded {
+		if addAuthPolicy {
+			// Add a policy rule if one is missing
+			if path.Policy == nil {
+				path.Policy = &vzapi.AuthorizationPolicy{
+					Rules: []*vzapi.AuthorizationRule{{}},
+				}
+			}
+
 			pathSuffix := strings.Replace(path.Path, "/", "", -1)
 			policyName := namePrefix
 			if pathSuffix != "" {
@@ -866,18 +872,16 @@ func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.Authoriz
 
 // createAuthorizationPolicyRule uses the provided information to create an istio authorization policy rule
 func createAuthorizationPolicyRule(rule *vzapi.AuthorizationRule, path string, hosts []string) (*v1beta1.Rule, error) {
-	if rule.From == nil {
-		return nil, fmt.Errorf("Authorization Policy requires 'From' clause")
-	}
-	authzRule := v1beta1.Rule{
-		From: []*v1beta1.Rule_From{
-			{
-				Source: &v1beta1.Source{
-					RequestPrincipals: rule.From.RequestPrincipals,
-				},
+	authzRule := v1beta1.Rule{}
+
+	if rule.From != nil {
+		authzRule.From = []*v1beta1.Rule_From{
+			{Source: &v1beta1.Source{
+				RequestPrincipals: rule.From.RequestPrincipals},
 			},
-		},
+		}
 	}
+
 	if len(path) > 0 {
 		authzRule.To = []*v1beta1.Rule_To{{
 			Operation: &v1beta1.Operation{
