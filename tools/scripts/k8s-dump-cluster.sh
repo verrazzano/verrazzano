@@ -234,6 +234,8 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify get MetricsTrait -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/metrics-traits.json || true
         kubectl --insecure-skip-tls-verify get servicemonitor -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/service-monitors.json || true
         kubectl --insecure-skip-tls-verify get podmonitor -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/pod-monitors.json || true
+        kubectl --insecure-skip-tls-verify get endpoint -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/endpoints.json || true
+        kubectl --insecure-skip-tls-verify get configmap -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/configmaps.json || true
       fi
     fi
   done <$CAPTURE_DIR/cluster-snapshot/namespace_list.out
