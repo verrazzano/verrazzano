@@ -220,8 +220,8 @@ func registerIssues(messages map[string][]string, files []string, clusterRoot st
 	if len(messages[report.InsufficientMemory]) > 0 {
 		issueReporter.AddKnownIssueMessagesFiles(report.InsufficientMemory, clusterRoot, messages[report.InsufficientMemory], files)
 	}
-	if len(messages[report.InsufficientCpu]) > 0 {
-		issueReporter.AddKnownIssueMessagesFiles(report.InsufficientCpu, clusterRoot, messages[report.InsufficientCpu], files)
+	if len(messages[report.InsufficientCPU]) > 0 {
+		issueReporter.AddKnownIssueMessagesFiles(report.InsufficientCPU, clusterRoot, messages[report.InsufficientCPU], files)
 	}
 }
 
@@ -236,7 +236,7 @@ func podStatusConditionIssues(log *zap.SugaredLogger, clusterRoot string, podFil
 					pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, condition.Status, condition.Reason, condition.Message))
 			}
 			if strings.Contains(condition.Message, "Insufficient cpu") {
-				messages[report.InsufficientCpu] = append(messages[report.InsufficientCpu], fmt.Sprintf("Namespace %s, Pod %s, Status %s, Reason %s, Message %s",
+				messages[report.InsufficientCPU] = append(messages[report.InsufficientCPU], fmt.Sprintf("Namespace %s, Pod %s, Status %s, Reason %s, Message %s",
 					pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, condition.Status, condition.Reason, condition.Message))
 			}
 		}
