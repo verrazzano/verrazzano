@@ -216,8 +216,17 @@ func handleImagePullBackOff(log *zap.SugaredLogger, clusterRoot string, podFile 
 	}
 }
 
+func registerIssues(messages map[string][]string, files []string, clusterRoot string, issueReporter *report.IssueReporter)  {
+	if len(messages[report.InsufficientMemory]) > 0 {
+		issueReporter.AddKnownIssueMessagesFiles(report.InsufficientMemory, clusterRoot, messages[report.InsufficientMemory], files)
+	}
+	if len(messages[report.InsufficientCpu]) > 0 {
+		issueReporter.AddKnownIssueMessagesFiles(report.InsufficientCpu, clusterRoot, messages[report.InsufficientCpu], files)
+	}
+}
+
 func podStatusConditionIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
-	log.Debugf("MemoryIssues called for %s", clusterRoot)
+	log.Debugf("Memory or Cpu Issues called for %s", clusterRoot)
 
 	if len(pod.Status.Conditions) > 0 {
 		messages := make(map[string][]string)
@@ -232,18 +241,11 @@ func podStatusConditionIssues(log *zap.SugaredLogger, clusterRoot string, podFil
 			}
 		}
 		if len(messages) > 0 {
-			var files []string
+			files := []string{podFile}
 			if helpers.GetIsLiveCluster() {
 				files = []string{report.GetRelatedPodMessage(pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)}
-			} else {
-				files = []string{podFile}
 			}
-			if len(messages[report.InsufficientMemory]) > 0 {
-				issueReporter.AddKnownIssueMessagesFiles(report.InsufficientMemory, clusterRoot, messages[report.InsufficientMemory], files)
-			}
-			if len(messages[report.InsufficientCpu]) > 0 {
-				issueReporter.AddKnownIssueMessagesFiles(report.InsufficientCpu, clusterRoot, messages[report.InsufficientCpu], files)
-			}
+			registerIssues(messages, files, clusterRoot, issueReporter)
 		}
 	}
 	return nil
