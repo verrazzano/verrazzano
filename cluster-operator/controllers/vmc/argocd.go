@@ -64,24 +64,22 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 
 	var rancherURL = *(vz.Status.VerrazzanoInstance.RancherURL) + k8sClustersPath + clusterID
 
-	if vmc.Status.ArgoCDRegistration.Status == clusterapi.RegistrationPendingRancher || vmc.Status.ArgoCDRegistration.Status == clusterapi.MCRegistrationFailed {
-		// If the managed cluster is not active, we should not attempt to register in Argo CD
-		rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.log)
-		if err != nil || rc == nil {
-			msg := "Could not create rancher config that authenticates with the admin user"
-			return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr(msg, err)
-		}
-		isActive, err := isManagedClusterActiveInRancher(rc, clusterID, r.log)
-		if err != nil || !isActive {
-			msg := fmt.Sprintf("Waiting for managed cluster with id %s to become active before registering in Argo CD", clusterID)
-			return newArgoCDRegistration(clusterapi.RegistrationPendingRancher, msg), nil
-		}
+	// If the managed cluster is not active, we should not attempt to register in Argo CD
+	rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.log)
+	if err != nil || rc == nil {
+		msg := "Could not create rancher config that authenticates with the admin user"
+		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr(msg, err)
+	}
+	isActive, err := isManagedClusterActiveInRancher(rc, clusterID, r.log)
+	if err != nil || !isActive {
+		msg := fmt.Sprintf("Waiting for managed cluster with id %s to become active before registering in Argo CD", clusterID)
+		return newArgoCDRegistration(clusterapi.RegistrationPendingRancher, msg), nil
+	}
 
-		err = r.updateArgoCDClusterRoleBindingTemplate(vmc)
-		if err != nil {
-			msg := "Failed to update Argo CD ClusterRoleBindingTemplate"
-			return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr(msg, err)
-		}
+	err = r.updateArgoCDClusterRoleBindingTemplate(vmc)
+	if err != nil {
+		msg := "Failed to update Argo CD ClusterRoleBindingTemplate"
+		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr(msg, err)
 	}
 
 	err = r.createClusterSecret(vmc, clusterID, rancherURL)
