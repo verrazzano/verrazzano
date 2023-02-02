@@ -4,26 +4,25 @@
 package keycloak
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-var (
-	kcComponent = NewComponent()
-	testScheme  = runtime.NewScheme()
-)
+var kcComponent = NewComponent()
 
 // TestIsEnabled tests the Keycloak IsEnabled call
 // GIVEN a Keycloak component
@@ -78,14 +77,22 @@ func TestIsEnabled(t *testing.T) {
 	}
 }
 
-// TestReconcile tests the Keycloak Reconcile call
+// TestReconcileBeforeInstall tests the Keycloak Reconcile call
 // GIVEN a Keycloak component
 //
 // WHEN I call Reconcile with defaults, before Keycloak is actually installed
 // THEN a nil error is returned
-func TestReconcile(t *testing.T) {
-	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
+func TestReconcileBeforeInstall(t *testing.T) {
+	// simulate the case that Keycloak is not installed
+	defer helm.SetDefaultRunner()
+	helm.SetCmdRunner(os.GenericTestRunner{
+		StdOut: []byte(""),
+		StdErr: []byte{},
+		Err:    fmt.Errorf("not found"),
+	})
+
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	ctx := spi.NewFakeContext(c, &crEnabled, nil, false)
 	err := NewComponent().Reconcile(ctx)
 	assert.NoError(t, err)
 }
