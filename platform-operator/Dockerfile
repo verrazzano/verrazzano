@@ -16,14 +16,14 @@ RUN chmod 500 /usr/local/bin/verrazzano-platform-operator \
     && chmod +x scripts/*.sh
 
 # Create the verrazzano-platform-operator image
-FROM ghcr.io/oracle/oraclelinux:7-slim
+FROM ghcr.io/oracle/oraclelinux:7-slim AS final
 
 ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 
 # Use olcne15, which is required for kubectl
 # Use developer/olcne, which is required for stioctl/helm
 RUN yum update -y \
-    && yum install -y openssl jq patch wget \
+    && yum install -y openssl wget \
     && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne15/x86_64/ \
     && yum install -y kubectl-1.23.11-1.el7 \
     && yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/olcne/x86_64 \
