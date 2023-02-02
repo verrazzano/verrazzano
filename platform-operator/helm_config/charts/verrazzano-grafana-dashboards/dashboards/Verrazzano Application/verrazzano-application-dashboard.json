@@ -15,8 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 70,
-  "iteration": 1674069174741,
+  "iteration": 1675287875757,
   "links": [],
   "panels": [
     {
@@ -743,7 +742,7 @@
       {
         "allValue": null,
         "current": {
-          "selected": true,
+          "selected": false,
           "text": "local",
           "value": "local"
         },
@@ -756,23 +755,12 @@
         "label": "Verrazzano Cluster",
         "multi": false,
         "name": "vzcluster",
-        "options": [
-          {
-            "selected": true,
-            "text": "local",
-            "value": "local"
-          },
-          {
-            "selected": false,
-            "text": "managed1",
-            "value": "managed1"
-          }
-        ],
+        "options": [],
         "query": {
           "query": "label_values(verrazzano_cluster)",
           "refId": "StandardVariableQuery"
         },
-        "refresh": 0,
+        "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
         "sort": 0,
@@ -785,9 +773,10 @@
       {
         "allValue": null,
         "current": {
+          "isNone": true,
           "selected": false,
-          "text": "sockshop-appconf",
-          "value": "sockshop-appconf"
+          "text": "None",
+          "value": ""
         },
         "datasource": null,
         "definition": "label_values(up{verrazzano_cluster=~\"$vzcluster\"}, app_oam_dev_name)",
@@ -854,5 +843,5 @@
   "timezone": "",
   "title": "Application Status",
   "uid": "gwdOx4h4z4345er",
-  "version": 1
+  "version": 2
 }
