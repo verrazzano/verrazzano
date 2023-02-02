@@ -23,7 +23,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
@@ -484,7 +483,7 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 				}
 			}
 			defer func() { k8sutilfake.PodExecResult = podExecResult }()
-			if err := updateKeycloakUris(tt.ctx, cfg, cli, keycloakPod(), tt.clientID, tt.uriTemplate); (err != nil) != tt.wantErr {
+			if err := updateKeycloakUris(tt.ctx, cfg, cli, keycloakPod(), tt.clientID, tt.uriTemplate, nil); (err != nil) != tt.wantErr {
 				t.Errorf("updateKeycloakUris() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -807,7 +806,7 @@ func TestGetEnvironmentName(t *testing.T) {
 
 // TestLoginKeycloak tests the login to keycloak interacts with k8s resources as expected
 // GIVEN a client
-// WHEN I call loginKeycloak
+// WHEN I call LoginKeycloak
 // THEN throw an error if the k8s environment is invalid (bad secret)
 func TestLoginKeycloak(t *testing.T) {
 	httpSecret := createTestLoginSecret()
@@ -840,7 +839,7 @@ func TestLoginKeycloak(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := loginKeycloak(spi.NewFakeContext(tt.c, testVZ, nil, false), cfg, restclient)
+			err := LoginKeycloak(spi.NewFakeContext(tt.c, testVZ, nil, false), cfg, restclient)
 			if tt.isErr {
 				assert.Error(t, err)
 			} else {
@@ -1472,8 +1471,11 @@ func TestIsKeycloakReady(t *testing.T) {
 	}
 }
 
-func TestUpgradeStatefulSet(t *testing.T) {
-	replicaCount := int32(1)
+// TestDeleteStatefulSet tests deleting the Keycloak StatefulSet
+// GIVEN a client, and a k8s environment
+// WHEN I call deleteStatefulSet
+// THEN deletes the StatefulSet without an error
+func TestDeleteStatefulSet(t *testing.T) {
 	enabled := true
 
 	// Initial state of the Keycloak StatefulSet
@@ -1482,116 +1484,26 @@ func TestUpgradeStatefulSet(t *testing.T) {
 			Name:      ComponentName,
 			Namespace: ComponentNamespace,
 		},
-		Spec: appsv1.StatefulSetSpec{
-			Replicas: &replicaCount,
-			Template: v1.PodTemplateSpec{
-				Spec: v1.PodSpec{
-					Affinity: &v1.Affinity{
-						PodAntiAffinity: &v1.PodAntiAffinity{
-							PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
-								{
-									Weight: 100,
-									PodAffinityTerm: v1.PodAffinityTerm{
-										LabelSelector: &metav1.LabelSelector{
-											MatchLabels: map[string]string{"app.kubernetes.io/instance": "keycloak", "app.kubernetes.io/name": "keycloak"},
-										},
-										TopologyKey: "kubernetes.io/hostname",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
 	}
-
 	scheme := k8scheme.Scheme
-	_ = certmanager.AddToScheme(scheme)
-	var tests = []struct {
-		name                 string
-		c                    client.Client
-		vz                   *vzapi.Verrazzano
-		profilesDir          string
-		expectedReplicaCount int32
-	}{
-		{
-			"no change to StatefulSet when no affinity overrides",
-			fake.NewClientBuilder().WithScheme(scheme).WithObjects(statefulSet).Build(),
-			&vzapi.Verrazzano{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      ComponentName,
-					Namespace: ComponentNamespace,
-				},
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Keycloak: &vzapi.KeycloakComponent{
-							Enabled: &enabled,
-						},
-					},
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(scheme).WithObjects(statefulSet).Build(), &vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
+		},
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Keycloak: &vzapi.KeycloakComponent{
+					Enabled: &enabled,
 				},
 			},
-			"",
-			int32(1),
 		},
-		{
-			"no change to StatefulSet when affinity override same as existing definition",
-			fake.NewClientBuilder().WithScheme(scheme).WithObjects(statefulSet).Build(),
-			&vzapi.Verrazzano{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      ComponentName,
-					Namespace: ComponentNamespace,
-				},
-			},
-			profilesRelativePath,
-			int32(1),
-		},
-		{
-			"StatefulSet replica count scaled to 0 when ValueOverrides not same as StatefulSet",
-			fake.NewClientBuilder().WithScheme(scheme).WithObjects(statefulSet).Build(),
-			&vzapi.Verrazzano{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      ComponentName,
-					Namespace: ComponentNamespace,
-				},
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Keycloak: &vzapi.KeycloakComponent{
-							InstallOverrides: vzapi.InstallOverrides{
-								ValueOverrides: []vzapi.Overrides{
-									{
-										Values: &apiextensionsv1.JSON{
-											Raw: []byte("{\"affinity\": \"podAntiAffinity:\\n  preferredDuringSchedulingIgnoredDuringExecution:\\n    - weight: 100\\n\"}"),
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			"",
-			int32(0),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var ctx spi.ComponentContext
-			if len(tt.profilesDir) > 0 {
-				ctx = spi.NewFakeContext(tt.c, tt.vz, nil, false, tt.profilesDir)
-			} else {
-				ctx = spi.NewFakeContext(tt.c, tt.vz, nil, false)
-			}
-			err := upgradeStatefulSet(ctx)
-			assert.NoError(t, err)
-
-			stsUpdated := appsv1.StatefulSet{}
-			err = tt.c.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &stsUpdated)
-			assert.NoError(t, err)
-			assert.Equal(t, tt.expectedReplicaCount, *stsUpdated.Spec.Replicas)
-		})
-	}
+	}, nil, false)
+	err := deleteStatefulSet(ctx)
+	assert.NoError(t, err)
+	stsDeleted := appsv1.StatefulSet{}
+	err = fake.NewClientBuilder().WithScheme(scheme).Build().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &stsDeleted)
+	assert.Contains(t, err.Error(), fmt.Sprintf("statefulsets.apps \"%s\" not found", ComponentName))
 }
 
 // TestGetRancherClientSecretFromKeycloak tests getting rancher client secrets

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -10,10 +10,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// VerrazzanoHelidonWorkloadSpec wraps a Helidon application deployment.
+// VerrazzanoHelidonWorkloadSpec wraps a Helidon application deployment and service.
 type VerrazzanoHelidonWorkloadSpec struct {
 	// An embedded Helidon application deployment.
 	DeploymentTemplate DeploymentTemplate `json:"deploymentTemplate"`
+	// An embedded Helidon application service.
+	ServiceTemplate ServiceTemplate `json:"serviceTemplate,omitempty"`
 }
 
 // DeploymentTemplate specifies the metadata and pod spec of a Helidon workload.
@@ -33,6 +35,18 @@ type DeploymentTemplate struct {
 	// +patchStrategy=retainKeys
 	// +optional
 	Strategy appsv1.DeploymentStrategy `json:"strategy,omitempty" patchStrategy:"retainKeys"  protobuf:"bytes,4,opt,name=strategy"`
+}
+
+// ServiceTemplate specifies the metadata and pod spec of a Helidon workload.
+type ServiceTemplate struct {
+	// Metadata about a Helidon application.
+	// +kubebuilder:validation:Optional
+	// +optional
+	Metadata metav1.ObjectMeta `json:"metadata,omitempty"`
+	// The service spec of a Helidon application.
+	// +kubebuilder:validation:Optional
+	// +optional
+	ServiceSpec v1.ServiceSpec `json:"serviceSpec,omitempty"`
 }
 
 // VerrazzanoHelidonWorkloadStatus defines the observed state of Verrazzano Helidon workload.

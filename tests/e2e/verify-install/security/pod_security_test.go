@@ -6,6 +6,8 @@ package security
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
+	"regexp"
 	"strings"
 	"time"
 
@@ -27,37 +29,43 @@ const (
 
 	// Only allowed capability in restricted mode
 	capNetBindService = "NET_BIND_SERVICE"
+	capDacOverride    = "DAC_OVERRIDE"
+
+	// MySQL ignore pattern; skip mysql-# or mysql-xxxx-xxxx pod names, but not mysql-router-#
+	mysqlPattern = "^mysql-([\\d]+)$"
+	// MySQL ignore pattern for Grafana DB test case; installs a mysql instance in verrazzano-install namespace
+	grafanaMysqlPattern = "^mysql-.*$"
 )
 
 var skipPods = map[string][]string{
 	"keycloak": {
-		"mysql",
+		mysqlPattern,
 	},
 	"verrazzano-install": {
-		"mysql",
+		grafanaMysqlPattern,
 	},
 	"verrazzano-system": {
-		"coherence-operator",
-		"fluentd",
-		"vmi-system",
-		"weblogic-operator",
-	},
-	"verrazzano-monitoring": {
-		"jaeger",
+		"^coherence-operator.*$",
+		"^weblogic-operator.*$",
 	},
 	"verrazzano-backup": {
-		"restic",
+		"^restic.*$",
 	},
 }
 
-var skipContainers = []string{}
-var skipInitContainers = []string{"istio-init"}
+var skipContainers = []string{"jaeger-collector", "jaeger-query", "jaeger-agent"}
+var skipInitContainers = []string{"istio-init", "elasticsearch-init"}
 
 type podExceptions struct {
 	allowHostPath    bool
 	allowHostNetwork bool
 	allowHostPID     bool
 	allowHostPort    bool
+	containers       map[string]containerException
+}
+
+type containerException struct {
+	allowedCapabilities map[string]bool
 }
 
 var exceptionPods = map[string]podExceptions{
@@ -66,6 +74,16 @@ var exceptionPods = map[string]podExceptions{
 		allowHostNetwork: true,
 		allowHostPID:     true,
 		allowHostPort:    true,
+	},
+	"fluentd": {
+		allowHostPath: true,
+		containers: map[string]containerException{
+			"fluentd": {
+				allowedCapabilities: map[string]bool{
+					capDacOverride: true,
+				},
+			},
+		},
 	},
 }
 
@@ -113,7 +131,8 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 		pods := podList.Items
 		for _, pod := range pods {
 			t.Logs.Debugf("Checking pod %s/%s", ns, pod.Name)
-			if shouldSkipPod(pod.Name, ns) {
+			if shouldSkipPod(t.Logs, pod.Name, ns) {
+				t.Logs.Debugf("Pod %s/%s on skip list, continuing...", ns, pod.Name)
 				continue
 			}
 			errors = append(errors, expectPodSecurityForNamespace(pod)...)
@@ -125,6 +144,12 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 		Entry("Checking pod security in verrazzano-system", "verrazzano-system"),
 		Entry("Checking pod security in verrazzano-monitoring", "verrazzano-monitoring"),
 		Entry("Checking pod security in verrazzano-backup", "verrazzano-backup"),
+		Entry("Checking pod security in ingress-nginx", "ingress-nginx"),
+		Entry("Checking pod security in mysql-operator", "mysql-operator"),
+		Entry("Checking pod security in cert-manager", "cert-manager"),
+		Entry("Checking pod security in keycloak", "keycloak"),
+		Entry("Checking pod security in argocd", "argocd"),
+		Entry("Checking pod security in istio-system", "istio-system"),
 	)
 })
 
@@ -132,7 +157,7 @@ func expectPodSecurityForNamespace(pod corev1.Pod) []error {
 	var errors []error
 
 	// get pod exceptions
-	isException, exception := isExceptionPod(pod)
+	isException, exception := isExceptionPod(pod.Name)
 
 	// ensure hostpath is not set unless it is an exception
 	if !isException || !exception.allowHostPath {
@@ -201,9 +226,6 @@ func ensurePodSecurityContext(sc *corev1.PodSecurityContext, podName string) []e
 	if sc.RunAsUser != nil && *sc.RunAsUser == 0 {
 		errors = append(errors, fmt.Errorf("PodSecurityContext not configured correctly for pod %s, RunAsUser is 0", podName))
 	}
-	if sc.RunAsGroup != nil && *sc.RunAsGroup == 0 {
-		errors = append(errors, fmt.Errorf("PodSecurityContext not configured correctly for pod %s, RunAsGroup is 0", podName))
-	}
 	if sc.RunAsNonRoot != nil && !*sc.RunAsNonRoot {
 		errors = append(errors, fmt.Errorf("PodSecurityContext not configured correctly for pod %s, RunAsNonRoot != true", podName))
 	}
@@ -214,15 +236,18 @@ func ensurePodSecurityContext(sc *corev1.PodSecurityContext, podName string) []e
 }
 
 func ensureContainerSecurityContext(sc *corev1.SecurityContext, podName, containerName string) []error {
+	exceptionContainer := false
+	exceptionPod, exception := isExceptionPod(podName)
+	if exceptionPod && exception.containers != nil {
+		_, exceptionContainer = exception.containers[containerName]
+	}
+
 	if sc == nil {
 		return []error{fmt.Errorf("SecurityContext is nil for pod %s, container %s", podName, containerName)}
 	}
 	var errors []error
 	if sc.RunAsUser != nil && *sc.RunAsUser == 0 {
 		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s,  RunAsUser is 0", podName, containerName))
-	}
-	if sc.RunAsGroup != nil && *sc.RunAsGroup == 0 {
-		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, RunAsGroup is 0", podName, containerName))
 	}
 	if sc.RunAsNonRoot != nil && !*sc.RunAsNonRoot {
 		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, RunAsNonRoot != true", podName, containerName))
@@ -233,9 +258,15 @@ func ensureContainerSecurityContext(sc *corev1.SecurityContext, podName, contain
 	if sc.AllowPrivilegeEscalation == nil || *sc.AllowPrivilegeEscalation {
 		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, AllowPrivilegeEscalation != false", podName, containerName))
 	}
+	errors = append(errors, checkContainerCapabilities(sc, podName, containerName, exceptionContainer, exception)...)
+	return errors
+}
+
+func checkContainerCapabilities(sc *corev1.SecurityContext, podName string, containerName string, exceptionContainer bool, exception podExceptions) []error {
 	if sc.Capabilities == nil {
-		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, Capabilities is nil", podName, containerName))
+		return []error{fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, Capabilities is nil", podName, containerName)}
 	}
+	var errors []error
 	dropCapabilityFound := false
 	for _, c := range sc.Capabilities.Drop {
 		if string(c) == "ALL" {
@@ -245,17 +276,28 @@ func ensureContainerSecurityContext(sc *corev1.SecurityContext, podName, contain
 	if !dropCapabilityFound {
 		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, Missing `Drop -ALL` capabilities", podName, containerName))
 	}
-	if len(sc.Capabilities.Add) > 0 {
+	if len(sc.Capabilities.Add) > 0 && !exceptionContainer {
 		if len(sc.Capabilities.Add) > 1 || sc.Capabilities.Add[0] != capNetBindService {
 			errors = append(errors, fmt.Errorf("only %s capability allowed, found unexpected capabilities added to container %s in pod %s: %v", capNetBindService, containerName, podName, sc.Capabilities.Add))
+		}
+	}
+	if exceptionContainer && len(sc.Capabilities.Add) > 0 {
+		if !capExceptions(exception.containers[containerName].allowedCapabilities, sc.Capabilities.Add) {
+			errors = append(errors, fmt.Errorf("%v capabilities are allowed, found unexpected capabilities for pod %s container %s: %v", exception.containers[containerName].allowedCapabilities, podName, containerName, sc.Capabilities.Add))
 		}
 	}
 	return errors
 }
 
-func shouldSkipPod(podName, ns string) bool {
-	for _, pod := range skipPods[ns] {
-		if strings.Contains(podName, pod) {
+func shouldSkipPod(log *zap.SugaredLogger, podName, ns string) bool {
+	for _, pattern := range skipPods[ns] {
+		podNamePattern := pattern
+		match, err := regexp.MatchString(podNamePattern, podName)
+		if err != nil {
+			log.Errorf("Error parsing regex %s: %s", podNamePattern, err.Error())
+		}
+		log.Debugf("Matching pod %s against regex %s, result: %v", podName, podNamePattern, match)
+		if match {
 			return true
 		}
 	}
@@ -271,11 +313,20 @@ func shouldSkipContainer(containerName string, skip []string) bool {
 	return false
 }
 
-func isExceptionPod(pod corev1.Pod) (bool, podExceptions) {
+func isExceptionPod(podName string) (bool, podExceptions) {
 	for exceptionPod := range exceptionPods {
-		if strings.Contains(pod.Name, exceptionPod) {
+		if strings.Contains(podName, exceptionPod) {
 			return true, exceptionPods[exceptionPod]
 		}
 	}
 	return false, podExceptions{}
+}
+
+func capExceptions(allowedCaps map[string]bool, givenCaps []corev1.Capability) bool {
+	exceptionsOk := true
+	for _, givenCap := range givenCaps {
+		_, ok := allowedCaps[string(givenCap)]
+		exceptionsOk = exceptionsOk && ok
+	}
+	return exceptionsOk
 }

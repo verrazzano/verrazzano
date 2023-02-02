@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: core.oam.dev/v1alpha2
@@ -78,6 +78,27 @@ spec:
                   <match **>
                   @type stdout
                   </match>
+        - trait:
+              apiVersion: oam.verrazzano.io/v1alpha1
+              kind: IngressTrait
+              spec:
+                  rules:
+                      - paths:
+                            - path: "/todo"
+                              pathType: Prefix
+                        destination:
+                            host: tododomain-adminserver.weblogic-logging-trait.svc.cluster.local
+                            port: 7001
+                      - paths:
+                            - path: "/console"
+                              pathType: Prefix
+                        destination:
+                            host: tododomain-adminserver.weblogic-logging-trait.svc.cluster.local
+                            port: 7001
+                            httpCookie:
+                                name: tododomain
+                                path: "/console"
+                                ttl: 30
     - componentName: todo-jdbc-configmap
     - componentName: todo-mysql-configmap
     - componentName: todo-mysql-service

@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: {{ include "keycloak.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   {{- with .Values.statefulsetAnnotations }}
   annotations:
     {{- range $key, $value := . }}
@@ -23,7 +24,7 @@ spec:
   serviceName: {{ include "keycloak.fullname" . }}-headless
   podManagementPolicy: {{ .Values.podManagementPolicy }}
   updateStrategy:
-    type: RollingUpdate
+    type: {{ .Values.updateStrategy }}
   template:
     metadata:
       annotations:
@@ -34,74 +35,104 @@ spec:
         {{- end }}
       labels:
         {{- include "keycloak.selectorLabels" . | nindent 8 }}
-        {{- if and .Values.postgresql.enabled (and .Values.postgresql.networkPolicy .Values.postgresql.networkPolicy.enabled) }}
-        {{ include "keycloak.postgresql.fullname" . }}-client: "true"
-        {{- end }}
         {{- range $key, $value := .Values.podLabels }}
         {{- printf "%s: %s" $key (tpl $value $ | quote) | nindent 8 }}
         {{- end }}
     spec:
-      {{- if or .Values.postgresql.enabled .Values.extraInitContainers }}
+    {{- if not .Values.skipInitContainers }}
+      {{- if or .Values.dbchecker.enabled .Values.extraInitContainers }}
       initContainers:
-        {{- if .Values.postgresql.enabled }}
-        - name: pgchecker
-          image: "{{ .Values.pgchecker.image.repository }}:{{ .Values.pgchecker.image.tag }}"
-          imagePullPolicy: {{ .Values.pgchecker.image.pullPolicy }}
+        {{- if and .Values.dbchecker.enabled }}
+        - name: dbchecker
+          image: "{{ .Values.dbchecker.image.repository }}:{{ .Values.dbchecker.image.tag }}"
+          imagePullPolicy: {{ .Values.dbchecker.image.pullPolicy }}
           securityContext:
-            {{- toYaml .Values.pgchecker.securityContext | nindent 12 }}
+            {{- toYaml .Values.dbchecker.securityContext | nindent 12 }}
           command:
             - sh
             - -c
             - |
-              echo 'Waiting for PostgreSQL to become ready...'
+              echo 'Waiting for Database to become ready...'
 
-              until printf "." && nc -z -w 2 {{ include "keycloak.postgresql.fullname" . }} {{ .Values.postgresql.service.port }}; do
+              until printf "." && nc -z -w 2 {{ required ".Values.database.hostname is required if dbchecker is enabled!" .Values.database.hostname }} {{ required ".Values.database.port is required if dbchecker is enabled!" .Values.database.port }}; do
                   sleep 2;
               done;
 
-              echo 'PostgreSQL OK ✓'
+              echo 'Database OK ✓'
           resources:
-            {{- toYaml .Values.pgchecker.resources | nindent 12 }}
+            {{- toYaml .Values.dbchecker.resources | nindent 12 }}
         {{- end }}
         {{- with .Values.extraInitContainers }}
         {{- tpl . $ | nindent 8 }}
         {{- end }}
       {{- end }}
+    {{- end }}
       containers:
         - name: keycloak
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.command }}
           command:
             {{- toYaml .Values.command | nindent 12 }}
+          {{- end }}
+          {{- if .Values.args }}
           args:
             {{- toYaml .Values.args | nindent 12 }}
+          {{- end }}
           {{- with .Values.lifecycleHooks }}
           lifecycle:
           {{- tpl . $ | nindent 12 }}
           {{- end }}
           env:
-            {{- if .Values.postgresql.enabled }}
-            - name: DB_VENDOR
-              value: postgres
-            - name: DB_ADDR
-              value: {{ include "keycloak.postgresql.fullname" . }}
-            - name: DB_PORT
-              value: {{ .Values.postgresql.service.port | quote }}
-            - name: DB_DATABASE
-              value: {{ .Values.postgresql.postgresqlDatabase | quote }}
-            - name: DB_USER
-              value: {{ .Values.postgresql.postgresqlUsername | quote }}
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "keycloak.postgresql.fullname" . }}
-                  key: postgresql-password
+            {{- if and (.Values.http.relativePath) (eq .Values.http.relativePath "/")  }}
+            - name: KC_HTTP_RELATIVE_PATH
+              value: {{ tpl .Values.http.relativePath $ }}
+            {{ else }}
+            - name: KC_HTTP_RELATIVE_PATH
+              value: {{ tpl .Values.http.relativePath $ | trimSuffix "/" }}
             {{- end }}
-            {{- if .Values.mysql.enabled }}
-            - name: DB_ADDR
-              value: {{ .Values.mysql.dbHost }}
+            {{- if eq .Values.cache.stack "default" }}
+            - name: KC_CACHE
+              value: "ispn"
+            - name: KC_CACHE_STACK
+              value: "kubernetes"
+            {{- end }}
+            {{- if .Values.proxy.enabled }}
+            - name: KC_PROXY
+              value: {{ .Values.proxy.mode }}
+            {{- end }}
+            {{- if .Values.database.vendor }}
+            - name: KC_DB
+              value: {{ .Values.database.vendor }}
+            {{- end }}
+            {{- if .Values.database.hostname }}
+            - name: KC_DB_URL_HOST
+              value: {{ .Values.database.hostname }}
+            {{- end }}
+            {{- if .Values.database.port }}
+            - name: KC_DB_URL_PORT
+              value: {{ .Values.database.port | quote }}
+            {{- end }}
+            {{- if .Values.database.database }}
+            - name: KC_DB_URL_DATABASE
+              value: {{ .Values.database.database }}
+            {{- end }}
+            {{- if .Values.database.username }}
+            - name: KC_DB_USERNAME
+              value: {{ .Values.database.username }}
+            {{- end }}
+            {{- if or .Values.database.password .Values.database.existingSecret -}}
+            {{- include "keycloak.databasePasswordEnv" . | nindent 12 }}
+            {{- end }}
+            {{- if .Values.metrics.enabled }}
+            - name: KC_METRICS_ENABLED
+              value: "true"
+            {{- end }}
+            {{- if .Values.health.enabled }}
+            - name: KC_HEALTH_ENABLED
+              value: "true"
             {{- end }}
             {{- with .Values.extraEnv }}
             {{- tpl . $ | nindent 12 }}
@@ -114,36 +145,33 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
+            {{- if .Values.service.httpsPort }}
             - name: https
               containerPort: 8443
               protocol: TCP
-            - name: http-management
-              containerPort: 9990
-              protocol: TCP
+            {{- end }}
             {{- with .Values.extraPorts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
+          {{- if .Values.health.enabled }}
           {{- with .Values.livenessProbe }}
           livenessProbe:
             {{- tpl . $ | nindent 12 }}
           {{- end }}
+          {{- if .Values.metrics.enabled }}
           {{- with .Values.readinessProbe }}
           readinessProbe:
             {{- tpl . $ | nindent 12 }}
           {{- end }}
+          {{- end}}
           {{- with .Values.startupProbe }}
           startupProbe:
             {{- tpl . $ | nindent 12 }}
           {{- end }}
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
-            {{- range $key, $value := .Values.startupScripts }}
-            - name: startup
-              mountPath: "/opt/jboss/startup-scripts/{{ $key }}"
-              subPath: "{{ $key }}"
-              readOnly: true
-            {{- end }}
             {{- with .Values.extraVolumeMounts }}
             {{- tpl . $ | nindent 12 }}
             {{- end }}

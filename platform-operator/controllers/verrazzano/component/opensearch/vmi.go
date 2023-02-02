@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package opensearch
@@ -26,7 +26,7 @@ func updateFunc(ctx spi.ComponentContext, storage *common.ResourceRequestValues,
 	if err != nil {
 		return err
 	}
-	vmi.Spec.Elasticsearch = *opensearch
+	vmi.Spec.Opensearch = *opensearch
 	return nil
 }
 
@@ -60,12 +60,12 @@ func actualCRNodes(cr *vzapi.Verrazzano) map[string]vzapi.OpenSearchNode {
 // 2. VolumeClaimTemplate overrides
 // 3. Profile values (which show as ESInstallArgs in the ActualCR)
 // The data node storage may be changed on update. The master node storage may NOT.
-func newOpenSearch(effectiveCR, actualCR *vzapi.Verrazzano, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, hasDataOverride, hasMasterOverride bool) (*vmov1.Elasticsearch, error) {
+func newOpenSearch(effectiveCR, actualCR *vzapi.Verrazzano, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, hasDataOverride, hasMasterOverride bool) (*vmov1.Opensearch, error) {
 	if effectiveCR.Spec.Components.Elasticsearch == nil {
-		return &vmov1.Elasticsearch{}, nil
+		return &vmov1.Opensearch{}, nil
 	}
 	opensearchComponent := effectiveCR.Spec.Components.Elasticsearch
-	opensearch := &vmov1.Elasticsearch{
+	opensearch := &vmov1.Opensearch{
 		Enabled: opensearchComponent.Enabled != nil && *opensearchComponent.Enabled,
 		Storage: vmov1.Storage{},
 		MasterNode: vmov1.ElasticsearchNode{
@@ -93,6 +93,9 @@ func newOpenSearch(effectiveCR, actualCR *vzapi.Verrazzano, storage *common.Reso
 	// Set the OpenSearch Plugins to the VMI
 	opensearch.Plugins = opensearchComponent.Plugins
 
+	// Set the DisableDefaultPolicy flag to VMI
+	opensearch.DisableDefaultPolicy = opensearchComponent.DisableDefaultPolicy
+
 	// Set the values in the OpenSearch object from the Verrazzano component InstallArgs
 	if err := populateOpenSearchFromInstallArgs(opensearch, opensearchComponent); err != nil {
 		return nil, err
@@ -111,25 +114,25 @@ func newOpenSearch(effectiveCR, actualCR *vzapi.Verrazzano, storage *common.Reso
 	opensearch.DataNode.Storage = setVolumeClaimOverride(opensearch.DataNode.Storage, hasDataOverride)
 
 	if vmi != nil {
-		if vmi.Spec.Elasticsearch.MasterNode.Replicas > 0 {
+		if vmi.Spec.Opensearch.MasterNode.Replicas > 0 {
 			// set to old storage if present
 			opensearch.MasterNode.Storage = &vmov1.Storage{
-				Size: vmi.Spec.Elasticsearch.Storage.Size,
+				Size: vmi.Spec.Opensearch.Storage.Size,
 			}
 			// otherwise use node storage
-			if vmi.Spec.Elasticsearch.MasterNode.Storage != nil {
-				opensearch.MasterNode.Storage.Size = vmi.Spec.Elasticsearch.MasterNode.Storage.Size
+			if vmi.Spec.Opensearch.MasterNode.Storage != nil {
+				opensearch.MasterNode.Storage.Size = vmi.Spec.Opensearch.MasterNode.Storage.Size
 			}
 		}
 
 		// PVC Names should be preserved
 		if opensearch.DataNode.Storage == nil {
 			opensearch.DataNode.Storage = &vmov1.Storage{
-				Size: vmi.Spec.Elasticsearch.Storage.Size,
+				Size: vmi.Spec.Opensearch.Storage.Size,
 			}
 		}
-		if vmi.Spec.Elasticsearch.Storage.PvcNames != nil {
-			opensearch.DataNode.Storage.PvcNames = vmi.Spec.Elasticsearch.Storage.PvcNames
+		if vmi.Spec.Opensearch.Storage.PvcNames != nil {
+			opensearch.DataNode.Storage.PvcNames = vmi.Spec.Opensearch.Storage.PvcNames
 		}
 	}
 
@@ -138,7 +141,7 @@ func newOpenSearch(effectiveCR, actualCR *vzapi.Verrazzano, storage *common.Reso
 
 // populateOpenSearchFromInstallArgs loops through each of the install args and sets their value in the corresponding
 // OpenSearch object
-func populateOpenSearchFromInstallArgs(opensearch *vmov1.Elasticsearch, opensearchComponent *vzapi.ElasticsearchComponent) error {
+func populateOpenSearchFromInstallArgs(opensearch *vmov1.Opensearch, opensearchComponent *vzapi.ElasticsearchComponent) error {
 	intSetter := func(val *int32, arg vzapi.InstallArgs) error {
 		var intVal int32
 		_, err := fmt.Sscan(arg.Value, &intVal)
@@ -202,7 +205,7 @@ func nodeAdapter(effectiveCR *vzapi.Verrazzano, vmi *vmov1.VerrazzanoMonitoringI
 		}
 		vmoNode := vmov1.ElasticsearchNode{
 			Name:      node.Name,
-			JavaOpts:  "",
+			JavaOpts:  node.JavaOpts,
 			Replicas:  node.Replicas,
 			Roles:     node.Roles,
 			Resources: resources,
@@ -243,7 +246,7 @@ func findStorageForNode(effectiveCR *vzapi.Verrazzano, node vzapi.OpenSearchNode
 // setPVCNames persists any PVC names from an existing VMI
 func setPVCNames(vmi *vmov1.VerrazzanoMonitoringInstance, node *vmov1.ElasticsearchNode) {
 	if vmi != nil {
-		for _, nodeGroup := range vmi.Spec.Elasticsearch.Nodes {
+		for _, nodeGroup := range vmi.Spec.Opensearch.Nodes {
 			if nodeGroup.Name == node.Name {
 				if nodeGroup.Storage != nil {
 					node.Storage.PvcNames = nodeGroup.Storage.PvcNames

@@ -1,4 +1,4 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 # NOTE: The image you're looking for isn't here. The mysql and linux images now come from
@@ -18,6 +18,22 @@ deployment:
     enabled: false
   instance_name: vmi-system-kiali
   view_only_mode: true
+  pod_security_context:
+    runAsGroup: 1000  # kiali group
+    runAsNonRoot: true
+    runAsUser: 1000  # kiali user
+    seccompProfile:
+      type: RuntimeDefault
+  security_context:
+    runAsUser: 1000  # kiali user
+    runAsGroup: 1000  # kiali group
+    runAsNonRoot: true
+    privileged: false
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
 
 kubernetes_config:
 # The default was to exclude Jobs also which caused repetitive error logging from Kiali
@@ -25,6 +41,14 @@ kubernetes_config:
   - "CronJob"
   - "DeploymentConfig"
   - "ReplicationController"
+
+external_services:
+  prometheus:
+    url: http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local:9090
+  grafana:
+    enabled: false
+  tracing:
+    enabled: false
 
 server:
   web_root: ""

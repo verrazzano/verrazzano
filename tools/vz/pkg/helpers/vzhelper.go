@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
@@ -55,8 +55,8 @@ const v1beta1MinVersion = "1.4.0"
 
 func NewVerrazzanoForVZVersion(version string) (schema.GroupVersion, client.Object, error) {
 	if version == "" {
-		// default to a v1alpha1 compatible version if not specified
-		version = "1.3.0"
+		// default to a v1beta1 compatible version if not specified
+		version = "1.4.0"
 	}
 	actualVersion, err := semver.NewSemVersion(version)
 	if err != nil {
@@ -116,7 +116,7 @@ func FindVerrazzanoResource(client client.Client) (*v1beta1.Verrazzano, error) {
 func GetVerrazzanoResource(client client.Client, namespacedName types.NamespacedName) (*v1beta1.Verrazzano, error) {
 	vz := &v1beta1.Verrazzano{}
 	if err := client.Get(context.TODO(), namespacedName, vz); err != nil {
-		if meta.IsNoMatchError(err) || apierrors.IsNotFound(err) {
+		if meta.IsNoMatchError(err) {
 			return getVerrazzanoResourceV1Alpha1(client, namespacedName)
 		}
 		return nil, failedToGetResourceError(err)
@@ -185,7 +185,7 @@ func NewScheme() *runtime.Scheme {
 }
 
 // GetNamespacesForAllComponents returns the list of unique namespaces of all the components included in the Verrazzano resource
-func GetNamespacesForAllComponents(vz v1beta1.Verrazzano) []string {
+func GetNamespacesForAllComponents(vz *v1beta1.Verrazzano) []string {
 	allComponents := getAllComponents(vz)
 	var nsList []string
 	for _, eachComp := range allComponents {
@@ -201,7 +201,7 @@ func GetNamespacesForAllComponents(vz v1beta1.Verrazzano) []string {
 }
 
 // getAllComponents returns the list of components from the Verrazzano resource
-func getAllComponents(vzRes v1beta1.Verrazzano) []string {
+func getAllComponents(vzRes *v1beta1.Verrazzano) []string {
 	var compSlice = make([]string, 0)
 
 	for _, compStatusDetail := range vzRes.Status.Components {

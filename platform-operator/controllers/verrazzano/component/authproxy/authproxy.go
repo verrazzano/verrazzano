@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package authproxy
@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"io/fs"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,6 +38,7 @@ const (
 	tmpSuffix            = "yaml"
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
 	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
+	adminClusterOidcID   = "verrazzano-pkce"
 )
 
 var (
@@ -74,9 +76,27 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 	overrides.Config.DNSSuffix = dnsSuffix
 
+	registrationSecret, err := common.GetManagedClusterRegistrationSecret(ctx.Client())
+	if err != nil {
+		return nil, err
+	}
+	mgdClusterOidcClient := ""
+	if registrationSecret != nil {
+		// specify the cluster associated keycloak/OIDC client
+		clusterName := string(registrationSecret.Data[constants.ClusterNameData])
+		mgdClusterOidcClient = fmt.Sprintf("verrazzano-%s", clusterName)
+	}
+
 	overrides.Proxy = &proxyValues{
 		OidcProviderHost:          fmt.Sprintf("keycloak.%s.%s", overrides.Config.EnvName, dnsSuffix),
 		OidcProviderHostInCluster: keycloakInClusterURL,
+		PKCEClientID:              adminClusterOidcID,
+	}
+	if len(mgdClusterOidcClient) > 0 {
+		overrides.Proxy.OIDCClientID = mgdClusterOidcClient
+		overrides.ManagedClusterRegistered = true
+	} else {
+		overrides.Proxy.OIDCClientID = adminClusterOidcID
 	}
 
 	// Image name and version

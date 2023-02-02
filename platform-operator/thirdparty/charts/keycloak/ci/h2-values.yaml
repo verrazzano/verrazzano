@@ -1,17 +1,30 @@
+command:
+  - "/opt/keycloak/bin/kc.sh"
+  - "--verbose"
+  - "start"
+  - --hostname-strict=false
+  - --hostname-strict-https=false
+
 extraEnv: |
-  - name: DB_VENDOR
-    value: h2
-  - name: KEYCLOAK_USER_FILE
-    value: /secrets/admin-creds/user
-  - name: KEYCLOAK_PASSWORD_FILE
-    value: /secrets/admin-creds/password
-  - name: JAVA_OPTS
+  - name: KEYCLOAK_ADMIN
+    valueFrom:
+      secretKeyRef:
+        name: {{ include "keycloak.fullname" . }}-admin-creds
+        key: user
+  - name: KEYCLOAK_ADMIN_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: {{ include "keycloak.fullname" . }}-admin-creds
+        key: password
+  - name: JAVA_OPTS_APPEND
     value: >-
       -XX:+UseContainerSupport
       -XX:MaxRAMPercentage=50.0
-      -Djava.net.preferIPv4Stack=true
-      -Djboss.modules.system.pkgs=$JBOSS_MODULES_SYSTEM_PKGS
       -Djava.awt.headless=true
+      -Djgroups.dns.query={{ include "keycloak.fullname" . }}-headless
+
+database:
+  vendor: dev-file
 
 secrets:
   admin-creds:
@@ -20,19 +33,6 @@ secrets:
     stringData:
       user: admin
       password: secret
-
-extraVolumeMounts: |
-  - name: admin-creds
-    mountPath: /secrets/admin-creds
-    readOnly: true
-
-extraVolumes: |
-  - name: admin-creds
-    secret:
-      secretName: '{{ include "keycloak.fullname" . }}-admin-creds'
-
-postgresql:
-  enabled: false
 
 test:
   enabled: true

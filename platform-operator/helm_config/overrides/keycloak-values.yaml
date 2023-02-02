@@ -1,44 +1,42 @@
 # Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-# NOTE: The extraInitContainers value is now set in the installation script (4-install-keycloak.sh) so that we can specify the
-# image using data from the bill of materials file (verrazzano-bom.json).
-
 # NOTE: The keycloak image now comes from the bill of materials file (verrazzano-bom.json).
 
-postgresql:
-  enabled: false
-mysql:
-  enabled: true
+command:
+  - "/opt/keycloak/bin/kc.sh"
+  - "start"
+  - "--http-enabled=true"
+  - "--hostname-strict=false"
+  - "--hostname-strict-https=false"
+  - "--spi-login-protocol-openid-connect-legacy-logout-redirect-uri=true"
+  - "--spi-login-protocol-openid-connect-suppress-logout-confirmation-screen=true"
+
+fullnameOverride: "keycloak"
+nameOverride: "keycloak"
+
 extraEnv: |
-  - name: CACHE_OWNERS
-    value: "2"
-  - name: CACHE_OWNERS_AUTH_SESSIONS_COUNT
-    value: "2"
-  - name: JGROUPS_DISCOVERY_PROTOCOL
-    value: JDBC_PING
-  - name: DB_VENDOR
-    value: mysql
-  - name: DB_PORT
-    value: "3306"
-  - name: DB_DATABASE
-    value: keycloak
-  - name: DB_USER
-    value: "keycloak"
-  - name: DB_PASSWORD
-    valueFrom:
-      secretKeyRef:
-        name: mysql-cluster-secret
-        key: userPassword
-  - name: PROXY_ADDRESS_FORWARDING
-    value: "true"
-  - name: KEYCLOAK_USER
+  - name: KEYCLOAK_ADMIN
     value: "keycloakadmin"
-  - name: KEYCLOAK_PASSWORD
+  - name: KEYCLOAK_ADMIN_PASSWORD
     valueFrom:
       secretKeyRef:
         name: keycloak-http
         key: password
+  - name: JAVA_OPTS_APPEND
+    value: >-
+      -Djgroups.dns.query={{ include "keycloak.fullname" . }}-headless
+
+proxy:
+  mode: edge
+
+database:
+  vendor: mysql
+  port: 3306
+  username: keycloak
+  existingSecret: mysql-cluster-secret
+  existingSecretKey: userPassword
+  database: keycloak
 
 extraVolumes: |
   - name: theme
@@ -51,34 +49,36 @@ extraVolumes: |
 
 extraVolumeMounts: |
   - name: theme
-    mountPath: /opt/jboss/keycloak/themes/oracle
+    mountPath: /opt/keycloak/themes/oracle
   - name: keycloak-http
     mountPath: /etc/keycloak-http
 
 extraPorts:
   - name: jgroups
-    containerPort: 7600
+    containerPort: 7800
     protocol: TCP
 
 service:
   port: 8083
   extraPorts:
     - name: jgroups
-      port: 7600
+      port: 7800
       targetPort: jgroups
 
 podAnnotations:
-  traffic.sidecar.istio.io/excludeInboundPorts: "7600"
-  traffic.sidecar.istio.io/excludeOutboundPorts: "7600"
+  traffic.sidecar.istio.io/excludeInboundPorts: "7800"
+  traffic.sidecar.istio.io/excludeOutboundPorts: "7800"
 
 ingress:
   enabled: true
   annotations:
     kubernetes.io/tls-acme: "true"
     external-dns.alpha.kubernetes.io/ttl: "60"
+    nginx.ingress.kubernetes.io/app-root: /auth
     nginx.ingress.kubernetes.io/service-upstream: "true"
     nginx.ingress.kubernetes.io/upstream-vhost: "keycloak-http.${namespace}.svc.cluster.local"
     nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "256k"
     nginx.ingress.kubernetes.io/session-cookie-conditional-samesite-none: "true"
     nginx.ingress.kubernetes.io/session-cookie-expires: "86400"
     nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
