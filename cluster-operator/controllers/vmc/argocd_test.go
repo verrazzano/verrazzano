@@ -8,9 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"net/http"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 	"time"
 
@@ -28,24 +26,26 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-var (
+const (
 	tokensPath = "/v3/tokens"
+	clusterID  = "cluster-id"
+	rancherURL = "https://rancher-url"
 )
 
-// TestMutateSecret tests the creation of a cluster secret required for cluster registration in Argo CD
-// GIVEN a call to mutate secret
+// TestMutateClusterSecretWithoutRefresh tests no POST call to obtain new token when we are within 3/4 lifespan of the token
+// GIVEN a call to mutateClusterSecret
 //
-//	WHEN the secret does not contain created/expiresAt labels
-//	THEN we get a new token followed by created/expiresAt labels are set in the secret
-func TestCreateClusterSecret(t *testing.T) {
+//	WHEN the secret annotation createTimestamp/expiresAtTimestamp is x(s) and x+4(s) respectively
+//	and mutateClusterSecret is called immediately
+//	THEN we skip obtaining new token
+func TestMutateClusterSecretWithoutRefresh(t *testing.T) {
 	cli := generateClientObject()
 	log := vzlog.DefaultLogger()
-
-	getBody := "{\"created\":\"xxx\", \"expiresAt\": \"yyy\"}"
-	postBody := "{\"token\":\"xxx\", \"name\": \"testToken\"}"
 
 	savedRancherHTTPClient := rancherutil.RancherHTTPClient
 	defer func() {
@@ -65,12 +65,89 @@ func TestCreateClusterSecret(t *testing.T) {
 
 	vmc := &v1alpha1.VerrazzanoManagedCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: rancherNamespace,
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
 			Name:      "cluster",
 		},
 		Status: v1alpha1.VerrazzanoManagedClusterStatus{
 			RancherRegistration: v1alpha1.RancherRegistration{
-				ClusterID: "cluster-id",
+				ClusterID: clusterID,
+			},
+		},
+	}
+	r := &VerrazzanoManagedClusterReconciler{
+		Client: cli,
+		log:    vzlog.DefaultLogger(),
+	}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "demo" + "-" + clusterSecretName,
+			Namespace:   constants.ArgoCDNamespace,
+			Annotations: map[string]string{"verrazzano.io/createTimestamp": time.Now().Format(time.RFC3339), "verrazzano.io/expiresAtTimestamp": time.Now().Add(4 * time.Second).Format(time.RFC3339)},
+		},
+		Data: map[string][]byte{
+			"password": []byte("foobar"),
+		},
+	}
+
+	mocker := gomock.NewController(t)
+	httpMock := mocks.NewMockRequestSender(mocker)
+	// Expect an HTTP request to fetch the token from Rancher only
+	httpMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(loginURIPath)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
+			resp := &http.Response{
+				StatusCode: http.StatusCreated,
+				Body:       r,
+				Request:    &http.Request{Method: http.MethodPost},
+			}
+			return resp, nil
+		})
+	rancherutil.RancherHTTPClient = httpMock
+
+	caData := []byte("ca")
+
+	rc, err := rancherutil.NewRancherConfigForUser(cli, constants.ArgoCDClusterRancherUsername, "foobar", log)
+	assert.NoError(t, err)
+
+	err = r.mutateClusterSecret(secret, rc, vmc.Name, clusterID, rancherURL, caData)
+	assert.NoError(t, err)
+}
+
+// TestMutateClusterSecretWithRefresh tests POST/GET calls to obtain new token and attrs when we breach 3/4 lifespan of the token
+// GIVEN a call to mutateClusterSecret
+//
+//	WHEN the secret annotation createTimestamp/expiresAtTimestamp is x(s) and x+4(s) respectively
+//	and we sleep for 4(s)
+//	THEN we obtain new token and the annotation createTimestamp/expiresAtTimestamp are updated accordingly
+func TestMutateClusterSecretWithRefresh(t *testing.T) {
+	cli := generateClientObject()
+	log := vzlog.DefaultLogger()
+
+	savedRancherHTTPClient := rancherutil.RancherHTTPClient
+	defer func() {
+		rancherutil.RancherHTTPClient = savedRancherHTTPClient
+	}()
+
+	savedRetry := rancherutil.DefaultRetry
+	defer func() {
+		rancherutil.DefaultRetry = savedRetry
+	}()
+	rancherutil.DefaultRetry = wait.Backoff{
+		Steps:    1,
+		Duration: 1 * time.Millisecond,
+		Factor:   1.0,
+		Jitter:   0.1,
+	}
+
+	vmc := &v1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+			Name:      "cluster",
+		},
+		Status: v1alpha1.VerrazzanoManagedClusterStatus{
+			RancherRegistration: v1alpha1.RancherRegistration{
+				ClusterID: clusterID,
 			},
 		},
 	}
@@ -83,53 +160,59 @@ func TestCreateClusterSecret(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "demo" + "-" + clusterSecretName,
 			Namespace:   constants.ArgoCDNamespace,
-			Annotations: map[string]string{"created": "xxx", "expiresAt": "yyy"},
+			Annotations: map[string]string{"verrazzano.io/createTimestamp": time.Now().Format(time.RFC3339), "verrazzano.io/expiresAtTimestamp": time.Now().Add(4 * time.Second).Format(time.RFC3339)},
 		},
 		Data: map[string][]byte{
 			"password": []byte("foobar"),
 		},
 	}
-	clusterID := "foo"
-	rancherURL := "https://rancher-url"
-	caData := []byte("bar")
 
 	mocker := gomock.NewController(t)
 	httpMock := mocks.NewMockRequestSender(mocker)
-	httpMock = expectHTTPRequests(httpMock, getBody, postBody)
+	httpMock = expectHTTPRequests(httpMock)
 	rancherutil.RancherHTTPClient = httpMock
 
-	rc, err := rancherutil.NewAdminRancherConfig(cli, log)
+	caData := []byte("ca")
+
+	rc, err := rancherutil.NewRancherConfigForUser(cli, constants.ArgoCDClusterRancherUsername, "foobar", log)
 	assert.NoError(t, err)
 
+	time.Sleep(4 * time.Second)
 	err = r.mutateClusterSecret(secret, rc, vmc.Name, clusterID, rancherURL, caData)
 	assert.NoError(t, err)
-	assert.NotNil(t, secret.Annotations["verrazzano.io/createTimestamp"])
-	assert.NotNil(t, secret.Annotations["verrazzano.io/expiresAtTimestamp"])
+	assert.Equal(t, secret.Annotations["verrazzano.io/createTimestamp"], "yyy")
+	assert.Equal(t, secret.Annotations["verrazzano.io/expiresAtTimestamp"], "zzz")
 }
 
-func expectHTTPRequests(httpMock *mocks.MockRequestSender, getBody, postBody string) *mocks.MockRequestSender {
+func expectHTTPRequests(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender {
+	// Expect an HTTP request to get created & expiresAt attributes of the token
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath+"/testToken")).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			var resp *http.Response
-			r := io.NopCloser(bytes.NewReader([]byte(getBody)))
+			r := io.NopCloser(bytes.NewReader([]byte("{\"created\":\"yyy\", \"expiresAt\": \"zzz\"}")))
 			resp = &http.Response{
 				StatusCode: http.StatusOK,
 				Body:       r,
 			}
 			return resp, nil
-		}).Times(1)
+		})
+
+	// Expect an HTTP request to obtain a new token
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			var resp *http.Response
-			r := io.NopCloser(bytes.NewReader([]byte(postBody)))
+			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"xxx", "name": "testToken"}`)))
 			resp = &http.Response{
 				StatusCode: http.StatusCreated,
 				Body:       r,
+				Request:    &http.Request{Method: http.MethodPost},
 			}
 			return resp, nil
-		}).Times(1)
+		})
+
+	// Expect an HTTP request to fetch the token from Rancher
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(loginURIPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
@@ -140,7 +223,7 @@ func expectHTTPRequests(httpMock *mocks.MockRequestSender, getBody, postBody str
 				Request:    &http.Request{Method: http.MethodPost},
 			}
 			return resp, nil
-		}).Times(1)
+		})
 	return httpMock
 }
 
@@ -148,17 +231,8 @@ func generateClientObject() client.WithWatch {
 	return fake.NewClientBuilder().WithRuntimeObjects(
 		&corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "demo" + "-" + clusterSecretName,
-				Namespace: constants.ArgoCDNamespace,
-			},
-			Data: map[string][]byte{
-				"password": []byte("foobar"),
-			},
-		},
-		&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "rancher-admin-secret",
-				Namespace: constants.RancherSystemNamespace,
+				Name:      constants.ArgoCDClusterRancherName,
+				Namespace: constants.VerrazzanoMultiClusterNamespace,
 			},
 			Data: map[string][]byte{
 				"password": []byte("foobar"),
@@ -189,7 +263,6 @@ func TestUpdateArgoCDClusterRoleBindingTemplate(t *testing.T) {
 
 	vmcNoID := &v1alpha1.VerrazzanoManagedCluster{}
 
-	clusterID := "testID"
 	vmcID := vmcNoID.DeepCopy()
 	vmcID.Status.RancherRegistration.ClusterID = clusterID
 
