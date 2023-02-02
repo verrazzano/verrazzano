@@ -266,7 +266,7 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 				authzPolicyName := fmt.Sprintf("%s-rule-%d-authz", trait.Name, index)
 				r.createOrUpdateVirtualService(ctx, trait, rule, allHostsForTrait, vsName, services, gateway, &status, log)
 				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log, services)
-				r.createOrUpdateAuthorizationPolicies(ctx, rule, authzPolicyName, allHostsForTrait, &status, log)
+				r.createOrUpdateAuthorizationPolicies(ctx, trait, rule, authzPolicyName, allHostsForTrait, &status, log)
 			}
 		}
 	}
@@ -801,7 +801,7 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 //	      - hello-helidon.hello-helidon.1.2.3.4.nip.io
 //	      paths:
 //	      - /greet
-func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, rule vzapi.IngressRule, namePrefix string, hosts []string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
+func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, namePrefix string, hosts []string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
 	// If any path needs an AuthorizationPolicy then add one for every path
 	var addAuthPolicy bool
 	for _, path := range rule.Paths {
@@ -835,6 +835,7 @@ func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, ru
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      policyName,
 					Namespace: constants.IstioSystemNamespace,
+					Labels:    map[string]string{constants.LabelIngressTraitNsn: GetIngressTraitNsn(trait)},
 				},
 			}
 			res, err := controllerutil.CreateOrUpdate(ctx, r.Client, authzPolicy, func() error {
@@ -1412,4 +1413,8 @@ func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, su
 	}
 	domain := IP + "." + suffix
 	return domain, nil
+}
+
+func GetIngressTraitNsn(trait *vzapi.IngressTrait) string {
+	return fmt.Sprintf("%s-%s", trait.Namespace, trait.Name)
 }

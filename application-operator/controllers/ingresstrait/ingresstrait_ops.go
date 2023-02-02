@@ -6,11 +6,11 @@ package ingresstrait
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -48,34 +48,26 @@ func cleanup(trait *vzapi.IngressTrait, client client.Client, log vzlog.Verrazza
 }
 
 func cleanupPolicies(trait *vzapi.IngressTrait, c client.Client, log vzlog.VerrazzanoLogger) error {
-	rules := trait.Spec.Rules
-	for index, rule := range rules {
-		namePrefix := fmt.Sprintf("%s-rule-%d-authz", trait.Name, index)
-		for _, path := range rule.Paths {
-			if path.Policy != nil {
-				pathSuffix := strings.Replace(path.Path, "/", "", -1)
-				policyName := fmt.Sprintf("%s-%s", namePrefix, pathSuffix)
-				authzPolicy := &clisecurity.AuthorizationPolicy{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      policyName,
-						Namespace: constants.IstioSystemNamespace,
-					},
-				}
-				// Delete the authz policy, ignore not found
-				log.Debugf("Deleting authorization policy: %s", authzPolicy.Name)
-				err := c.Delete(context.TODO(), authzPolicy, &client.DeleteOptions{})
-				if err != nil {
-					if k8serrors.IsNotFound(err) || meta.IsNoMatchError(err) {
-						log.Debugf("NotFound deleting authorization policy %s", authzPolicy.Name)
-						return nil
-					}
-					log.Errorf("Failed deleting the authorization policy %s", authzPolicy.Name)
-				}
-				log.Debugf("Ingress rule path authorization policy %s deleted", authzPolicy.Name)
-			}
-		}
+	// Find all AuthorizationPolicies created for this IngressTrait
+	traitNameReq, _ := labels.NewRequirement(constants.LabelIngressTraitNsn, selection.Equals, []string{GetIngressTraitNsn(trait)})
+	selector := labels.NewSelector().Add(*traitNameReq)
+	authPolicyList := clisecurity.AuthorizationPolicyList{}
+	err := c.List(context.TODO(), &authPolicyList, &client.ListOptions{Namespace: "", LabelSelector: selector})
+	if err != nil {
+		log.Errorf("Failed listing the authorization policies %s")
 	}
-
+	for _, authPolicy := range authPolicyList.Items {
+		// Delete the policy, ignore not found
+		log.Debugf("Deleting authorization policy: %s", authPolicy.Name)
+		err := c.Delete(context.TODO(), &authPolicy, &client.DeleteOptions{})
+		if err != nil {
+			if k8serrors.IsNotFound(err) || meta.IsNoMatchError(err) {
+				log.Oncef("NotFound deleting authorization policy %s", authPolicy.Name)
+			}
+			return log.ErrorfNewErr("Failed deleting the authorization policy %s", authPolicy.Name)
+		}
+		log.Oncef("Ingress rule path authorization policy %s deleted", authPolicy.Name)
+	}
 	return nil
 }
 
