@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package ingresstrait
@@ -2429,7 +2429,7 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 	// Create application component
 	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/wls_component.yaml", params))
 	// Create WebLogic workload definition
-	assert.NoError(createResourceFromTemplate(cli, "deploy/workloaddefinition_wls.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/workloaddefinition_wls.yaml", params))
 	// Create trait
 	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/ingress_trait_instance.yaml", params))
 	// Create workload
@@ -2530,7 +2530,7 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 	// Create application component
 	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/wls_component.yaml", params))
 	// Create WebLogic workload definition
-	assert.NoError(createResourceFromTemplate(cli, "deploy/workloaddefinition_wls.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/workloaddefinition_wls.yaml", params))
 	// Create trait
 	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/ingress_trait_instance_with_dest.yaml", params))
 	// Create workload
@@ -2632,7 +2632,7 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 	// Create application component
 	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/wls_component.yaml", params))
 	// Create WebLogic workload definition
-	assert.NoError(createResourceFromTemplate(cli, "deploy/workloaddefinition_wls.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/workloaddefinition_wls.yaml", params))
 	// Create trait. This trait has no destination.
 	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/ingress_trait_instance.yaml", params))
 	// Create workload
@@ -2744,7 +2744,7 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 	// Create application component
 	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/helidon_component.yaml", params))
 	// Create WebLogic workload definition
-	assert.NoError(createResourceFromTemplate(cli, "deploy/workloaddefinition_vzhelidon.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/workloaddefinition_vzhelidon.yaml", params))
 	// Create workload
 	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/helidon_workload_instance.yaml", params))
 	// Create trait. This trait has no destination.
@@ -2870,7 +2870,7 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 	// Create application component
 	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/wls_component.yaml", params))
 	// Create WebLogic workload definition
-	assert.NoError(createResourceFromTemplate(cli, "deploy/workloaddefinition_wls.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/workloaddefinition_wls.yaml", params))
 	// Create trait
 	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/ingress_trait_instance.yaml", params))
 	// Create workload

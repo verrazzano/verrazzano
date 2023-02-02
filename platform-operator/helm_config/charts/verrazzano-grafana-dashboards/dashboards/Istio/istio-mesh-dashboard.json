@@ -15,7 +15,7 @@
   "editable": false,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": null,
+  "iteration": 1675288308220,
   "links": [],
   "panels": [
     {
@@ -1891,7 +1891,6 @@
         "allValue": null,
         "current": {
           "selected": true,
-          "tags": [],
           "text": [
             "All"
           ],
@@ -1908,23 +1907,7 @@
         "label": "Verrazzano Cluster",
         "multi": true,
         "name": "vzcluster",
-        "options": [
-          {
-            "selected": true,
-            "text": "All",
-            "value": "$__all"
-          },
-          {
-            "selected": false,
-            "text": "local",
-            "value": "local"
-          },
-          {
-            "selected": false,
-            "text": "managed1",
-            "value": "managed1"
-          }
-        ],
+        "options": [],
         "query": {
           "query": "label_values(verrazzano_cluster)",
           "refId": "StandardVariableQuery"
@@ -1973,5 +1956,5 @@
   "timezone": "browser",
   "title": "Istio Mesh Dashboard",
   "uid": "G8wLrJIZk",
-  "version": 6
+  "version": 7
 }
