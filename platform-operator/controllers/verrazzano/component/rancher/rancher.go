@@ -100,6 +100,7 @@ const (
 	ClusterKind                       = "Cluster"
 	ProviderCattleIoLabel             = "provider.cattle.io"
 	UserVerrazzano                    = "u-verrazzano"
+	UsernameVerrazzano                = "verrazzano"
 	UserVerrazzanoDescription         = "Verrazzano Admin"
 	GlobalRoleBindingVerrazzanoPrefix = "grb-"
 	SettingUIPL                       = "ui-pl"
