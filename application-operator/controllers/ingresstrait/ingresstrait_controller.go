@@ -811,11 +811,15 @@ func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, ru
 	}
 	for _, path := range rule.Paths {
 		if addAuthPolicy {
+			requireFrom := true
+
 			// Add a policy rule if one is missing
 			if path.Policy == nil {
 				path.Policy = &vzapi.AuthorizationPolicy{
 					Rules: []*vzapi.AuthorizationRule{{}},
 				}
+				// No from field required, this is just a path being added
+				requireFrom = false
 			}
 
 			pathSuffix := strings.Replace(path.Path, "/", "", -1)
@@ -834,7 +838,7 @@ func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, ru
 				},
 			}
 			res, err := controllerutil.CreateOrUpdate(ctx, r.Client, authzPolicy, func() error {
-				return r.mutateAuthorizationPolicy(authzPolicy, path.Policy, path.Path, hosts)
+				return r.mutateAuthorizationPolicy(authzPolicy, path.Policy, path.Path, hosts, requireFrom)
 			})
 
 			ref := vzapi.QualifiedResourceRelation{APIVersion: authzPolicyAPIVersion, Kind: authzPolicyKind, Name: namePrefix, Role: "authorizationpolicy"}
@@ -850,11 +854,11 @@ func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, ru
 }
 
 // mutateAuthorizationPolicy changes the destination rule based upon a traits configuration
-func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzPolicy *vzapi.AuthorizationPolicy, path string, hosts []string) error {
+func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzPolicy *vzapi.AuthorizationPolicy, path string, hosts []string, requireFrom bool) error {
 	policyRules := make([]*v1beta1.Rule, len(vzPolicy.Rules))
 	var err error
 	for i, authzRule := range vzPolicy.Rules {
-		policyRules[i], err = createAuthorizationPolicyRule(authzRule, path, hosts)
+		policyRules[i], err = createAuthorizationPolicyRule(authzRule, path, hosts, requireFrom)
 		if err != nil {
 			return err
 		}
@@ -871,9 +875,12 @@ func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.Authoriz
 }
 
 // createAuthorizationPolicyRule uses the provided information to create an istio authorization policy rule
-func createAuthorizationPolicyRule(rule *vzapi.AuthorizationRule, path string, hosts []string) (*v1beta1.Rule, error) {
+func createAuthorizationPolicyRule(rule *vzapi.AuthorizationRule, path string, hosts []string, requireFrom bool) (*v1beta1.Rule, error) {
 	authzRule := v1beta1.Rule{}
 
+	if requireFrom && rule.From == nil {
+		return nil, fmt.Errorf("Authorization Policy requires 'From' clause")
+	}
 	if rule.From != nil {
 		authzRule.From = []*v1beta1.Rule_From{
 			{Source: &v1beta1.Source{
