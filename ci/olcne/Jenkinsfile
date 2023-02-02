@@ -68,7 +68,7 @@ pipeline {
             trim: true)
         string (
             name: "WORKER_NODE_COUNT",
-            defaultValue: '4',
+            defaultValue: '5',
             description: 'Number of OCNE worker nodes',
             trim: true)
         choice (
