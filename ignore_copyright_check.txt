@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 platform-operator/scripts/install/config/images
 platform-operator/scripts/install/config/cert-manager.crds.patch
@@ -19,7 +19,6 @@ LICENSES-OLCNE.pdf
 coverage.xml
 # The charts and manifests directories contains external (3rd party) Helm charts and manifests
 platform-operator/thirdparty
-application-operator/deploy/application-operator.txt
 tests/e2e/config/scripts/terraform/cluster/required-env-vars
 tests/e2e/config/scripts/looping-test/types.txt
 tests/testdata/test-applications/weblogic/hello-weblogic/setup/exporter-config.yaml
