@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package weblogic
@@ -43,11 +43,8 @@ func GetReadyReplicas(client dynamic.Interface, namespace string, name string) (
 	if !found {
 		return 0, fmt.Errorf("Failed to get clusters %v", err)
 	}
-        readyReplicas := clusters[0].(map[string]interface{})["readyReplicas"]
-        if readyReplicas != nil {
-            return readyReplicas.(int64), nil
-        }
-        return 0, nil
+	return clusters[0].(map[string]interface{})["readyReplicas"].(int64), nil
+
 }
 
 // GetCurrentReplicas returns the replicas value from /spec/replicas
