@@ -849,7 +849,7 @@ func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, ru
 	}
 }
 
-// mutateDestinationRule changes the destination rule based upon a traits configuration
+// mutateAuthorizationPolicy changes the destination rule based upon a traits configuration
 func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzPolicy *vzapi.AuthorizationPolicy, path string, hosts []string) error {
 	policyRules := make([]*v1beta1.Rule, len(vzPolicy.Rules))
 	var err error
