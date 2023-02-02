@@ -16,6 +16,7 @@ rules:
       - fluentbit.fluent.io
     resources:
       - fluentbits
+      - collectors
     verbs:
       - '*'
   - apiGroups:
