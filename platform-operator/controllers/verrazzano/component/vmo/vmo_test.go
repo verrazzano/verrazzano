@@ -122,13 +122,9 @@ func TestAppendVMOOverrides(t *testing.T) {
 	kvs, err := appendVMOOverrides(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false), "", "", "", []bom.KeyValue{})
 
 	a.NoError(err)
-	a.Len(kvs, 4)
+	a.Len(kvs, 3)
 	a.Contains(kvs, bom.KeyValue{
-		Key:   "monitoringOperator.prometheusInitImage",
-		Value: "ghcr.io/oracle/oraclelinux:7-slim",
-	})
-	a.Contains(kvs, bom.KeyValue{
-		Key:   "monitoringOperator.esInitImage",
+		Key:   "monitoringOperator.osInitImage",
 		Value: "ghcr.io/oracle/oraclelinux:7.8",
 	})
 	a.Contains(kvs, bom.KeyValue{
@@ -167,13 +163,9 @@ func TestAppendVmoOverridesNoNGINX(t *testing.T) {
 	}, nil, false), "", "", "", []bom.KeyValue{})
 
 	a.NoError(err)
-	a.Len(kvs, 2)
+	a.Len(kvs, 1)
 	a.Contains(kvs, bom.KeyValue{
-		Key:   "monitoringOperator.prometheusInitImage",
-		Value: "ghcr.io/oracle/oraclelinux:7-slim",
-	})
-	a.Contains(kvs, bom.KeyValue{
-		Key:   "monitoringOperator.esInitImage",
+		Key:   "monitoringOperator.osInitImage",
 		Value: "ghcr.io/oracle/oraclelinux:7.8",
 	})
 }
