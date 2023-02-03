@@ -12,12 +12,21 @@ do
     sleep 30s
 done
 
+# wait for mysql statefuleset to be created
+while ! kubectl get statefulset mysql -n keycloak
+do
+    echo "Waiting for keycloak/mysql statefuleset to be created..."
+    sleep 15s
+done
+
 # wait a specified amount of time. FIXME: Maybe make this an argument to this script
-wait_min=2
-echo "Waiting for ${wait_min} minutes..."
+#wait_min=2
+#echo "Waiting for ${wait_min} minutes..."
 
 # TODO: change the Wildcard DNS domain. Maybe make this flexible depending on script arguments? FIXME: use variable for nip.io
+kubectl get vz my-verrazzano -o yaml | grep "domain" // FIXME: remove
 kubectl patch vz my-verrazzano -p '{"spec":{"components":{"dns":{"wildcard":{"domain":"nip.io"}}}}}' --type=merge
+kubectl get vz my-verrazzano -o yaml | grep "domain" // FIXME: remove
 
 # TODO: maybe exit with error depnding on conditions?
 exit 0
