@@ -120,7 +120,7 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 			if err = k8sutil.NewYAMLApplier(ctx.Client(), "").ApplyF(rancherCleanupJobYaml); err != nil {
 				return ctx.Log().ErrorfNewErr("Failed applying Yaml to create job %s/%s for component %s: %v", rancherCleanupJobNamespace, rancherCleanupJobName, ComponentName, err)
 			}
-			return ctx.Log().ErrorNewErr("Component %s waiting for job %s/%s to start", ComponentName, rancherCleanupJobNamespace, rancherCleanupJobName)
+			return ctx.Log().ErrorfNewErr("Component %s waiting for job %s/%s to start", ComponentName, rancherCleanupJobNamespace, rancherCleanupJobName)
 		} else {
 			return err
 		}
@@ -129,9 +129,10 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	// Re-queue if the job has not completed
 	for _, condition := range job.Status.Conditions {
 		if condition.Type != batchv1.JobComplete {
-			return ctx.Log().ErrorNewErr("Component %s waiting for job %s/%s to complete", ComponentName, job.Namespace, job.Name)
+			return ctx.Log().ErrorfNewErr("Component %s waiting for job %s/%s to complete", ComponentName, job.Namespace, job.Name)
 		}
 	}
+	ctx.Log().Progress("MGIANATA The rancher-cleanup job has completed")
 
 	// Remove the Rancher webhooks
 	err = deleteWebhooks(ctx)
@@ -175,6 +176,7 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	// Remove any Rancher CRD finalizers that may be causing CRD deletion to hang
 	removeCRDFinalizers(ctx, crds)
 
+	ctx.Log().Progress("MGIANATA The monitor log is existing successfully")
 	return nil
 }
 
