@@ -58,13 +58,7 @@ func cleanupPolicies(trait *vzapi.IngressTrait, c client.Client, log vzlog.Verra
 	for i, authPolicy := range authPolicyList.Items {
 		// Delete the policy, ignore not found
 		log.Debugf("Deleting authorization policy: %s", authPolicy.Name)
-		authzPolicy := &clisecurity.AuthorizationPolicy{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      authPolicy.Name,
-				Namespace: authPolicy.Namespace,
-			},
-		}
-		err := c.Delete(context.TODO(), &authzPolicy], &client.DeleteOptions{})
+		err := c.Delete(context.TODO(), authPolicyList.Items[i], &client.DeleteOptions{})
 		if err != nil {
 			if k8serrors.IsNotFound(err) || meta.IsNoMatchError(err) {
 				log.Oncef("NotFound deleting authorization policy %s", authPolicy.Name)
