@@ -9,11 +9,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
@@ -33,7 +32,7 @@ const (
 	controllerCMName           = "cattle-controllers"
 	lockCMName                 = "rancher-controller-lock"
 	rancherSysNS               = "management.cattle.io/system-namespace"
-	rancherCleanupJobYaml      = "/verrazzano/platform-operator/manifests/rancher-cleanup/rancher-cleanup.yaml"
+	rancherCleanupJobYaml      = "/verrazzano/platform-operator/thirdparty/manifests/rancher-cleanup/rancher-cleanup.yaml"
 	rancherCleanupJobName      = "cleanup-job"
 	rancherCleanupJobNamespace = "kube-system"
 )
