@@ -241,12 +241,12 @@
             {
               "image": "opensearch",
               "tag": "2.3.0-20230123213036-bd387046f04",
-              "helmFullImageKey": "monitoringOperator.esImage"
+              "helmFullImageKey": "monitoringOperator.osImage"
             },
             {
               "image": "opensearch-dashboards",
               "tag": "2.3.0-20230124171546-f9e6353395",
-              "helmFullImageKey": "monitoringOperator.kibanaImage"
+              "helmFullImageKey": "monitoringOperator.osdImage"
             },
             {
               "image": "nginx-ingress-controller",
@@ -266,13 +266,8 @@
           "images": [
             {
               "image": "oraclelinux",
-              "tag": "8-slim",
-              "helmFullImageKey": "monitoringOperator.prometheusInitImage"
-            },
-            {
-              "image": "oraclelinux",
               "tag": "8",
-              "helmFullImageKey": "monitoringOperator.esInitImage"
+              "helmFullImageKey": "monitoringOperator.osInitImage"
             }
           ]
         }
