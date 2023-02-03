@@ -973,7 +973,6 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog
 		log.Errorf("Failed to set Pod watch for Verrazzano CR %s: %v", vz.Name, err)
 		return newRequeueWithDelay(), err
 	}
-
 	// Update the map indicating the resource is being watched
 	initializedSet[vz.Name] = true
 	return ctrl.Result{Requeue: true}, nil
