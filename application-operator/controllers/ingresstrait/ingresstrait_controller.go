@@ -7,16 +7,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
-	"strings"
-	"time"
-
 	certapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/gertd/go-pluralize"
-	ptypes "github.com/gogo/protobuf/types"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
@@ -29,7 +24,9 @@ import (
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/durationpb"
 	istionet "istio.io/api/networking/v1alpha3"
 	"istio.io/api/security/v1beta1"
 	v1beta12 "istio.io/api/type/v1beta1"
@@ -43,6 +40,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -52,6 +50,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"strings"
+	"time"
 )
 
 const (
@@ -266,7 +266,7 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 				authzPolicyName := fmt.Sprintf("%s-rule-%d-authz", trait.Name, index)
 				r.createOrUpdateVirtualService(ctx, trait, rule, allHostsForTrait, vsName, services, gateway, &status, log)
 				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log, services)
-				r.createOrUpdateAuthorizationPolicies(ctx, trait, rule, authzPolicyName, allHostsForTrait, &status, log)
+				r.createOrUpdateAuthorizationPolicies(ctx, rule, authzPolicyName, allHostsForTrait, &status, log)
 			}
 		}
 	}
@@ -544,7 +544,7 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 			Namespace: trait.Namespace,
 			Name:      gwName}}
 
-	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, gateway, func() error {
+	res, err := common.CreateOrUpdateProtobuf(ctx, r.Client, gateway, func() error {
 		return r.mutateGateway(gateway, trait, hostsForTrait, secretName)
 	})
 
@@ -658,7 +658,7 @@ func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vz
 			Namespace: trait.Namespace,
 			Name:      name}}
 
-	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, virtualService, func() error {
+	res, err := common.CreateOrUpdateProtobuf(ctx, r.Client, virtualService, func() error {
 		return r.mutateVirtualService(virtualService, trait, rule, allHostsForTrait, services, gateway)
 	})
 
@@ -724,7 +724,7 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *v
 			log.Errorf("Failed to retrieve namespace resource: %v", namespaceErr)
 		}
 
-		res, err := controllerutil.CreateOrUpdate(ctx, r.Client, destinationRule, func() error {
+		res, err := common.CreateOrUpdateProtobuf(ctx, r.Client, destinationRule, func() error {
 			return r.mutateDestinationRule(destinationRule, trait, rule, services, namespace)
 		})
 
@@ -764,7 +764,7 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 							HttpCookie: &istionet.LoadBalancerSettings_ConsistentHashLB_HTTPCookie{
 								Name: rule.Destination.HTTPCookie.Name,
 								Path: rule.Destination.HTTPCookie.Path,
-								Ttl:  ptypes.DurationProto(rule.Destination.HTTPCookie.TTL * time.Second)},
+								Ttl:  durationpb.New(rule.Destination.HTTPCookie.TTL * time.Second)},
 						},
 					},
 				},
@@ -775,64 +775,15 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 	return controllerutil.SetControllerReference(trait, destinationRule, r.Scheme)
 }
 
-// createOrUpdateAuthorizationPolicies creates or updates the AuthorizationPolicy associated with the
-// paths defined in the ingress rule.
-//
-// Ingress AuthorizationPolicies are used in conjunction with RequestPolicies (created by the user) to handle
-// requests with JWT headers. If any path uses an AuthorizationPolicy, we need to add a rule in that AuthorizationPolicy
-// for every path. This is needed otherwise a request to a path without an AuthorizationPolicy will get
-// rejected.  For example, if the /greet endpoint has an AuthorizationPolicy, the / endpoint will get rejected unless
-// we have a rule for path / as shown in the following example (the first rule):
-//
-//	 rules:
-//	- to:
-//	  - operation:
-//	      hosts:
-//	      - hello-helidon.hello-helidon.1.2.3.4.nip.io
-//	      paths:
-//	      - /
-//	- from:
-//	  - source:
-//	      requestPrincipals:     ====>  This is the indicator that an AuthorizationPolicy is needed
-//	      - '*'
-//	  to:
-//	  - operation:
-//	      hosts:
-//	      - hello-helidon.hello-helidon.1.2.3.4.nip.io
-//	      paths:
-//	      - /greet
-func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, namePrefix string, hosts []string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
-	// If any path needs an AuthorizationPolicy then add one for every path
-	var addAuthPolicy bool
+// createOrUpdateAuthorizationPolicies creates or updates the authorization policies associated with the paths defined in the ingress rule.
+func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, rule vzapi.IngressRule, namePrefix string, hosts []string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
 	for _, path := range rule.Paths {
 		if path.Policy != nil {
-			addAuthPolicy = true
-		}
-	}
-	for _, path := range rule.Paths {
-		if addAuthPolicy {
-			requireFrom := true
-
-			// Add a policy rule if one is missing
-			if path.Policy == nil {
-				path.Policy = &vzapi.AuthorizationPolicy{
-					Rules: []*vzapi.AuthorizationRule{{}},
-				}
-				// No from field required, this is just a path being added
-				requireFrom = false
-			}
-
 			pathSuffix := strings.Replace(path.Path, "/", "", -1)
 			policyName := namePrefix
 			if pathSuffix != "" {
 				policyName = fmt.Sprintf("%s-%s", policyName, pathSuffix)
 			}
-			// Create the AuthorizationPolicy resource.
-			// Note that this is created in istio-system. If we create this in the application namespace,
-			// which is also a valid option, requests to the protected endpoint without a JWT token bypass
-			// the JWT check because the default AuthorizationPolicy (e.g. hello-helidon) allows access from the
-			// Istio IngressGateway to the application.  This problem is solved by putting the AuthorizationPolicy
-			// in the istio-system namespace.
 			authzPolicy := &clisecurity.AuthorizationPolicy{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       authzPolicyKind,
@@ -841,11 +792,10 @@ func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, tr
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      policyName,
 					Namespace: constants.IstioSystemNamespace,
-					Labels:    map[string]string{constants.LabelIngressTraitNsn: getIngressTraitNsn(trait.Namespace, trait.Name)},
 				},
 			}
-			res, err := controllerutil.CreateOrUpdate(ctx, r.Client, authzPolicy, func() error {
-				return r.mutateAuthorizationPolicy(authzPolicy, path.Policy, path.Path, hosts, requireFrom)
+			res, err := common.CreateOrUpdateProtobuf(ctx, r.Client, authzPolicy, func() error {
+				return r.mutateAuthorizationPolicy(authzPolicy, path.Policy, path.Path, hosts)
 			})
 
 			ref := vzapi.QualifiedResourceRelation{APIVersion: authzPolicyAPIVersion, Kind: authzPolicyKind, Name: namePrefix, Role: "authorizationpolicy"}
@@ -860,17 +810,16 @@ func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, tr
 	}
 }
 
-// mutateAuthorizationPolicy changes the destination rule based upon a trait's configuration
-func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzPolicy *vzapi.AuthorizationPolicy, path string, hosts []string, requireFrom bool) error {
+// mutateDestinationRule changes the destination rule based upon a traits configuration
+func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzPolicy *vzapi.AuthorizationPolicy, path string, hosts []string) error {
 	policyRules := make([]*v1beta1.Rule, len(vzPolicy.Rules))
 	var err error
 	for i, authzRule := range vzPolicy.Rules {
-		policyRules[i], err = createAuthorizationPolicyRule(authzRule, path, hosts, requireFrom)
+		policyRules[i], err = createAuthorizationPolicyRule(authzRule, path, hosts)
 		if err != nil {
 			return err
 		}
 	}
-
 	authzPolicy.Spec = v1beta1.AuthorizationPolicy{
 		Selector: &v1beta12.WorkloadSelector{
 			MatchLabels: map[string]string{"istio": "ingressgateway"},
@@ -882,29 +831,29 @@ func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.Authoriz
 }
 
 // createAuthorizationPolicyRule uses the provided information to create an istio authorization policy rule
-func createAuthorizationPolicyRule(rule *vzapi.AuthorizationRule, path string, hosts []string, requireFrom bool) (*v1beta1.Rule, error) {
-	authzRule := v1beta1.Rule{}
-
-	if requireFrom && rule.From == nil {
+func createAuthorizationPolicyRule(rule *vzapi.AuthorizationRule, path string, hosts []string) (*v1beta1.Rule, error) {
+	if rule.From == nil {
 		return nil, fmt.Errorf("Authorization Policy requires 'From' clause")
 	}
-	if rule.From != nil {
-		authzRule.From = []*v1beta1.Rule_From{
-			{Source: &v1beta1.Source{
-				RequestPrincipals: rule.From.RequestPrincipals},
-			},
-		}
+	source := &v1beta1.Source{
+		RequestPrincipals: rule.From.RequestPrincipals,
 	}
-
-	if len(path) > 0 {
-		authzRule.To = []*v1beta1.Rule_To{{
-			Operation: &v1beta1.Operation{
-				Hosts: hosts,
-				Paths: []string{path},
-			},
-		}}
+	paths := &v1beta1.Operation{
+		Paths: []string{path},
+		Hosts: hosts,
 	}
-
+	authzRule := v1beta1.Rule{
+		From: []*v1beta1.Rule_From{
+			{
+				Source: source,
+			},
+		},
+		To: []*v1beta1.Rule_To{
+			{
+				Operation: paths,
+			},
+		},
+	}
 	if rule.When != nil {
 		conditions := []*v1beta1.Condition{}
 		for _, vzCondition := range rule.When {
@@ -1419,8 +1368,4 @@ func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, su
 	}
 	domain := IP + "." + suffix
 	return domain, nil
-}
-
-func getIngressTraitNsn(namespace string, name string) string {
-	return fmt.Sprintf("%s-%s", namespace, name)
 }

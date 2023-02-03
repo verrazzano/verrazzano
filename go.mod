@@ -12,9 +12,8 @@ require (
 	github.com/crossplane/oam-kubernetes-runtime v0.3.3
 	github.com/gertd/go-pluralize v0.2.0
 	github.com/go-logr/logr v1.2.3
-	github.com/gogo/protobuf v1.3.2
 	github.com/golang/mock v1.6.0
-	github.com/google/go-cmp v0.5.8
+	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
 	github.com/gordonklaus/ineffassign v0.0.0-20210104184537-8eed68eb605f
 	github.com/hashicorp/go-retryablehttp v0.6.8
@@ -28,15 +27,16 @@ require (
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.0
-	github.com/verrazzano/verrazzano-monitoring-operator v0.0.31-0.20230113011423-4f6341896f77
+	github.com/verrazzano/verrazzano-monitoring-operator v0.0.31-0.20230201202534-ac5ebe880e95
 	go.uber.org/zap v1.21.0
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
 	golang.org/x/text v0.3.7
 	golang.org/x/tools v0.1.12
-	gopkg.in/yaml.v3 v3.0.1
+	google.golang.org/protobuf v1.28.1
+	gopkg.in/yaml.v2 v2.4.0
 	helm.sh/helm/v3 v3.10.3
-	istio.io/api v0.0.0-20200911191701-0dc35ad5c478
-	istio.io/client-go v0.0.0-20200807182027-d287a5abb594
+	istio.io/api v0.0.0-20221208152505-d807bc07da6a
+	istio.io/client-go v1.15.4
 	k8s.io/api v0.25.2
 	k8s.io/apiextensions-apiserver v0.25.2
 	k8s.io/apimachinery v0.25.2
@@ -79,6 +79,7 @@ require (
 	github.com/go-openapi/jsonreference v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.14 // indirect
 	github.com/gobuffalo/flect v0.2.5 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/btree v1.0.1 // indirect
@@ -139,13 +140,10 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20220926220553-6981cbe3cfce // indirect
-	google.golang.org/grpc v1.49.0 // indirect
-	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.66.4 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
-	istio.io/gogo-genproto v0.0.0-20190930162913-45029607206a // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiserver v0.25.2 // indirect
 	k8s.io/cluster-bootstrap v0.24.0 // indirect
 	k8s.io/component-base v0.25.2 // indirect
