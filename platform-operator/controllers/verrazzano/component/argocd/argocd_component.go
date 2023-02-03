@@ -23,6 +23,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -135,38 +136,28 @@ func (c argoCDComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
-//Install
-/* Installs the Helm chart, and patches the resulting objects
-- ensure Helm chart is installed
-- Patch ArgoCD ingress with NGINX/TLS annotations
-*/
-func (c argoCDComponent) Install(ctx spi.ComponentContext) error {
-	log := ctx.Log()
-	if err := c.HelmComponent.Install(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("Failed retrieving ArgoCD install component: %s", err.Error())
-	}
-	// Annotate ArgoCD ingress for NGINX/TLS
+// PostInstall runs the ArgoCD PostInstall function
+// Patch argocd-rbac-cm by providing role admin to verrazzano-admins group
+// Patch argocd-cm with tls-argocd-ingress secret root ca
+// Patch argocd-secret with the keycloak client secret
+// Patch argocd ingress with correct destination
+func (c argoCDComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := patchArgoCDIngress(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("Failed patching ArgoCD ingress: %s", err.Error())
+		return err
 	}
-	log.Debugf("Patched ArgoCD ingress")
-
-	return nil
+	return c.HelmComponent.PostInstall(ctx)
 }
 
-// PostInstall
-/* Additional setup for ArgoCD after the component is installed
-- Patch argocd-rbac-cm by providing role admin to verrazzano-admins group
-- Patch argocd-cm with tls-argocd-ingress secret root ca
-- Patch argocd-secret with the keycloak client secret
-*/
-func (c argoCDComponent) PostInstall(ctx spi.ComponentContext) error {
-	log := ctx.Log()
-	if err := c.HelmComponent.PostInstall(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("Failed retrieving ArgoCD post install component: %s", err.Error())
+// PostUpgrade runs the ArgoCD PostUpgrade function
+// Patch argocd-rbac-cm by providing role admin to verrazzano-admins group
+// Patch argocd-cm with tls-argocd-ingress secret root ca
+// Patch argocd-secret with the keycloak client secret
+// Patch argocd ingress with correct destination
+func (c argoCDComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	if err := patchArgoCDIngress(ctx); err != nil {
+		return err
 	}
-
-	return nil
+	return c.HelmComponent.PostUpgrade(ctx)
 }
 
 // ConfigureKeycloakOIDC
