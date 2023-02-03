@@ -271,7 +271,7 @@ func GetCertManagerClientsetInCluster(kubeconfigPath string) (*certmanagerv1.Cer
 // GetHostnameFromGateway returns the host name from the application gateway that was
 // created for the ApplicationConfiguration with name appConfigName from list of input gateways. If
 // the input list of gateways is not provided, it is fetched from the kubernetes cluster
-func GetHostnameFromGateway(namespace string, appConfigName string, gateways ...istiov1alpha3.Gateway) (string, error) {
+func GetHostnameFromGateway(namespace string, appConfigName string, gateways ...*istiov1alpha3.Gateway) (string, error) {
 	var config string
 	kubeConfigLoc, err := GetKubeConfigLocation()
 	if err != nil {
@@ -283,7 +283,7 @@ func GetHostnameFromGateway(namespace string, appConfigName string, gateways ...
 // GetHostnameFromGatewayInCluster returns the host name from the application gateway that was
 // created for the ApplicationConfiguration with name appConfigName from list of input gateways. If
 // the input list of gateways is not provided, it is fetched from the kubernetes cluster
-func GetHostnameFromGatewayInCluster(namespace string, appConfigName string, kubeconfigPath string, gateways ...istiov1alpha3.Gateway) (string, error) {
+func GetHostnameFromGatewayInCluster(namespace string, appConfigName string, kubeconfigPath string, gateways ...*istiov1alpha3.Gateway) (string, error) {
 	if len(gateways) == 0 {
 		cs, err := GetIstioClientsetInCluster(kubeconfigPath)
 		if err != nil {
