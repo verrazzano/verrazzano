@@ -211,7 +211,7 @@ pipeline {
             }
         }
 
-        stage('Kickoff Parallel VZ Install and VZ CR update') {
+        stage('Kickoff Parallel VZ Install and VZ CR update during Keycloak Install') {
             parallel {
                 stage('Install Verrazzano with Wildcard DNS Typo') {
                     environment {
@@ -221,6 +221,7 @@ pipeline {
                     steps {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
+                            yq -i eval '.spec.components.keycloak.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} "typodomain.io"
                         """
                     }
@@ -260,12 +261,49 @@ pipeline {
                     }
                 }
 
-                stage('Change the VZ CR during Installation') {
+                stage('Change the VZ CR during Keycloak Component Installation') {
                     steps {
                         sh """
-                            cd ${GO_REPO_PATH}/verrazzano
-                            ci/scripts/change_vz_cr_during_install.sh
+                            while ! kubectl get statefulset mysql -n keycloak
+                            do
+                                echo "Waiting for keycloak/mysql statefuleset to be created..."
+                                sleep 15s
+                            done
+
+                            # change the Wildcard DNS domain
+                            kubectl patch vz my-verrazzano -p '{"spec":{"components":{"dns":{"wildcard":{"domain":"${params.WILDCARD_DNS_DOMAIN}"}}}}}' --type=merge
                         """
+                    }
+                }
+            }
+
+            stage('Uninstall Verrazzano') {
+                steps {
+                    sh """
+                        ${GO_REPO_PATH}/vz uninstall --timeout 30m
+                    """
+                }
+                post {
+                    always {
+                        sh """
+                            ## dump out uninstall logs
+                            mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
+                            echo "Listing all pods in all namespaces after uninstall"
+                            kubectl get pods --all-namespaces
+                            echo "-----------------------------------------------------"
+                        """
+                        listNamepacesAndPods('after Verrazzano uninstall')
+                        listHelmReleases('after Verrazzano uninstall')
+                    }
+                    success {
+                        script {
+                            if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                                dumpK8sCluster('verrazzano-uninstall-cluster-snapshot')
+                            }
+                        }
+                    }
+                    failure {
+                        dumpK8sCluster('verrazzano-uninstall-failure-cluster-snapshot')
                     }
                 }
             }
@@ -287,6 +325,122 @@ pipeline {
                 }
             }
         }
+
+        stage('Kickoff Parallel VZ Install and VZ CR update during Rancher Install') {
+            parallel {
+                stage('Install Verrazzano with Wildcard DNS Typo') {
+                    environment {
+                        KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
+                        OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                    }
+                    steps {
+                        sh """
+                            cd ${GO_REPO_PATH}/verrazzano
+                            yq -i eval '.spec.components.rancher.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} "typodomain.io"
+                        """
+                    }
+                    post {
+                        success {
+                            script {
+                                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                                    dumpK8sCluster('dynamic-update-post-install-cluster-snapshot')
+                                }
+                            }
+                        }
+                        failure {
+                            archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                        }
+                        always {
+                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
+                            // enable debug logging of Verrazzano api istio proxy
+                            script {
+                                if (params.ENABLE_API_ENVOY_LOGGING) {
+                                    sh '''
+                                        vz_api_pod=\$(kubectl get pod -n verrazzano-system -l app=verrazzano-api --no-headers -o custom-columns=\":metadata.name\")
+                                        if [ -z "\$vz_api_pod" ]; then
+                                            echo "Could not find verrazzano-api pod, not enabling debug logging"
+                                        else
+                                            kubectl exec \$vz_api_pod -c istio-proxy -n verrazzano-system -- curl -X POST http://localhost:15000/logging?level=debug
+                                        fi
+                                        nginx_ing_pod=\$(kubectl get pod -n ingress-nginx -l app.kubernetes.io/component=controller --no-headers -o custom-columns=\":metadata.name\")
+                                        if [ -z "\$nginx_ing_pod" ]; then
+                                            echo "Could not find nginx ingress controller pod, not enabling debug logging"
+                                        else
+                                            kubectl exec \$nginx_ing_pod -c istio-proxy -n ingress-nginx -- curl -X POST http://localhost:15000/logging?level=debug
+                                        fi
+                                    '''
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('Change the VZ CR during Rancher Component Installation') {
+                    steps {
+                        sh """
+                            while ! kubectl get secret bootstrap-secret --namespace cattle-system
+                            do
+                                echo "Waiting for bootstrap-secret Secret to be created..."
+                                sleep 1m
+                            done
+
+                            # change the Wildcard DNS domain
+                            kubectl patch vz my-verrazzano -p '{"spec":{"components":{"dns":{"wildcard":{"domain":"${params.WILDCARD_DNS_DOMAIN}"}}}}}' --type=merge
+                        """
+                    }
+                }
+            }
+
+            stage('Uninstall Verrazzano') {
+                steps {
+                    sh """
+                        ${GO_REPO_PATH}/vz uninstall --timeout 30m
+                    """
+                }
+                post {
+                    always {
+                        sh """
+                            ## dump out uninstall logs
+                            mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
+                            echo "Listing all pods in all namespaces after uninstall"
+                            kubectl get pods --all-namespaces
+                            echo "-----------------------------------------------------"
+                        """
+                        listNamepacesAndPods('after Verrazzano uninstall')
+                        listHelmReleases('after Verrazzano uninstall')
+                    }
+                    success {
+                        script {
+                            if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                                dumpK8sCluster('verrazzano-uninstall-cluster-snapshot')
+                            }
+                        }
+                    }
+                    failure {
+                        dumpK8sCluster('verrazzano-uninstall-failure-cluster-snapshot')
+                    }
+                }
+            }
+
+            post {
+                failure {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('dynamic-update-failed-cluster-snapshot')
+                        }
+                    }
+                }
+                success {
+                    script {
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('dynamic-update-success-cluster-snapshot')
+                        }
+                    }
+                }
+            }
+        }
+
     }
 
     post {
