@@ -63,17 +63,6 @@ pipeline {
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
-        booleanParam (description: 'Whether to Post-Update1 Verify, Infra, and Acceptance Tests', name: 'RUN_POST_UPDATE1', defaultValue: false)
-        booleanParam (description: 'Whether to Post-Update2 Verify, Infra, and Acceptance Tests', name: 'RUN_POST_UPDATE2', defaultValue: false)
-        booleanParam (description: 'Whether to run Availability Status Updates', name: 'RUN_AVAILABILITY_STATUS', defaultValue: false)
-        booleanParam (description: 'Whether to run API Conversion Update Tests', name: 'RUN_API_CONVERSION', defaultValue: false)
-        booleanParam (description: 'Whether to run AuthProxy Update Tests', name: 'RUN_AUTHPROXY', defaultValue: false)
-        booleanParam (description: 'Whether to run EnvironmentName/DNS/CertManager Update Tests', name: 'RUN_CERT_MANAGER', defaultValue: false)
-        booleanParam (description: 'Whether to run Nginx/Istio Update Tests', name: 'RUN_NGINX_ISTIO', defaultValue: false)
-        booleanParam (description: 'Whether to run Fluentd Update Tests', name: 'RUN_FLUENTD', defaultValue: false)
-        booleanParam (description: 'Whether to run Opensearch Update Tests', name: 'RUN_OPENSEARCH', defaultValue: false)
-        booleanParam (description: 'Whether to run Jaeger Update Tests', name: 'RUN_JAEGER', defaultValue: false)
-        booleanParam (description: 'Whether to run Post-install overrides Tests', name: 'RUN_POST_INSTALL_OVERRIDES', defaultValue: false)
     }
 
     environment {
