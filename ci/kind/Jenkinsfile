@@ -451,7 +451,7 @@ pipeline {
                             post {
                                 failure {
                                     sh """
-                                        kubectl exec -it $(kubectl get pod -l component=speaker -n metallb-system -o jsonpath="{.items[0].metadata.name}") -n metallb-system -- ip addr show
+                                        kubectl exec -it \$(kubectl get pod -l component=speaker -n metallb-system -o jsonpath="{.items[0].metadata.name}") -n metallb-system -- ip addr show
                                     """
                                 }
                             }
