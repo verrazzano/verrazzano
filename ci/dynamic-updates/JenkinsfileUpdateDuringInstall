@@ -222,19 +222,17 @@ pipeline {
             }
         }
 
-        stage('Acceptance Tests') {
-
-            stages {
-                stage('Change typo with Wildcard DNS domain') {
+        stage('Kickoff Parallel VZ Install and VZ CR update') {
+            parallel {
+                stage('Install Verrazzano with Wildcard DNS Typo') {
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                         OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                     }
                     steps {
-                        // TODO: call prepare_jenkins_at_environment.sh in parallel with change_vz_cr_during_install.sh
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
-                            ci/scripts/prepare_jenkins_at_environment.sh
+                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} "typodomain.io"
                         """
                     }
                     post {
@@ -256,20 +254,29 @@ pipeline {
                                     sh '''
                                         vz_api_pod=\$(kubectl get pod -n verrazzano-system -l app=verrazzano-api --no-headers -o custom-columns=\":metadata.name\")
                                         if [ -z "\$vz_api_pod" ]; then
-                                          echo "Could not find verrazzano-api pod, not enabling debug logging"
+                                            echo "Could not find verrazzano-api pod, not enabling debug logging"
                                         else
-                                          kubectl exec \$vz_api_pod -c istio-proxy -n verrazzano-system -- curl -X POST http://localhost:15000/logging?level=debug
+                                            kubectl exec \$vz_api_pod -c istio-proxy -n verrazzano-system -- curl -X POST http://localhost:15000/logging?level=debug
                                         fi
                                         nginx_ing_pod=\$(kubectl get pod -n ingress-nginx -l app.kubernetes.io/component=controller --no-headers -o custom-columns=\":metadata.name\")
                                         if [ -z "\$nginx_ing_pod" ]; then
-                                          echo "Could not find nginx ingress controller pod, not enabling debug logging"
+                                            echo "Could not find nginx ingress controller pod, not enabling debug logging"
                                         else
-                                          kubectl exec \$nginx_ing_pod -c istio-proxy -n ingress-nginx -- curl -X POST http://localhost:15000/logging?level=debug
+                                            kubectl exec \$nginx_ing_pod -c istio-proxy -n ingress-nginx -- curl -X POST http://localhost:15000/logging?level=debug
                                         fi
                                     '''
                                 }
                             }
                         }
+                    }
+                }
+
+                stage('Change the VZ CR during Installation') {
+                    steps {
+                        sh """
+                            cd ${GO_REPO_PATH}/verrazzano
+                            ci/scripts/change_vz_cr_during_install.sh
+                        """
                     }
                 }
             }
