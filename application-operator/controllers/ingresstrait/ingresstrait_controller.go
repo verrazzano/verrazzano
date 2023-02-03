@@ -266,7 +266,7 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 				authzPolicyName := fmt.Sprintf("%s-rule-%d-authz", trait.Name, index)
 				r.createOrUpdateVirtualService(ctx, trait, rule, allHostsForTrait, vsName, services, gateway, &status, log)
 				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log, services)
-				r.createOrUpdateAuthorizationPolicies(ctx, rule, authzPolicyName, allHostsForTrait, &status, log)
+				r.createOrUpdateAuthorizationPolicies(ctx, trait, rule, authzPolicyName, allHostsForTrait, &status, log)
 			}
 		}
 	}
@@ -775,15 +775,64 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 	return controllerutil.SetControllerReference(trait, destinationRule, r.Scheme)
 }
 
-// createOrUpdateAuthorizationPolicies creates or updates the authorization policies associated with the paths defined in the ingress rule.
-func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, rule vzapi.IngressRule, namePrefix string, hosts []string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
+// createOrUpdateAuthorizationPolicies creates or updates the AuthorizationPolicy associated with the
+// paths defined in the ingress rule.
+//
+// Ingress AuthorizationPolicies are used in conjunction with RequestPolicies (created by the user) to handle
+// requests with JWT headers. If any path uses an AuthorizationPolicy, we need to add a rule in that AuthorizationPolicy
+// for every path. This is needed otherwise a request to a path without an AuthorizationPolicy will get
+// rejected.  For example, if the /greet endpoint has an AuthorizationPolicy, the / endpoint will get rejected unless
+// we have a rule for path / as shown in the following example (the first rule):
+//
+//	 rules:
+//	- to:
+//	  - operation:
+//	      hosts:
+//	      - hello-helidon.hello-helidon.1.2.3.4.nip.io
+//	      paths:
+//	      - /
+//	- from:
+//	  - source:
+//	      requestPrincipals:     ====>  This is the indicator that an AuthorizationPolicy is needed
+//	      - '*'
+//	  to:
+//	  - operation:
+//	      hosts:
+//	      - hello-helidon.hello-helidon.1.2.3.4.nip.io
+//	      paths:
+//	      - /greet
+func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, namePrefix string, hosts []string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
+	// If any path needs an AuthorizationPolicy then add one for every path
+	var addAuthPolicy bool
 	for _, path := range rule.Paths {
 		if path.Policy != nil {
+			addAuthPolicy = true
+		}
+	}
+	for _, path := range rule.Paths {
+		if addAuthPolicy {
+			requireFrom := true
+
+			// Add a policy rule if one is missing
+			if path.Policy == nil {
+				path.Policy = &vzapi.AuthorizationPolicy{
+					Rules: []*vzapi.AuthorizationRule{{}},
+				}
+				// No from field required, this is just a path being added
+				requireFrom = false
+			}
+
 			pathSuffix := strings.Replace(path.Path, "/", "", -1)
 			policyName := namePrefix
 			if pathSuffix != "" {
 				policyName = fmt.Sprintf("%s-%s", policyName, pathSuffix)
 			}
+			// Create the AuthorizationPolicy resource.
+			// Note that this is created in istio-system. If we create this in the application namespace,
+			// which is also a valid option, requests to the protected endpoint without a JWT token bypass
+			// the JWT check because the default AuthorizationPolicy (e.g. hello-helidon) allows access from the
+			// Istio IngressGateway to the application.  This problem is solved by putting the AuthorizationPolicy
+			// in the istio-system namespace.
 			authzPolicy := &clisecurity.AuthorizationPolicy{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       authzPolicyKind,
@@ -792,10 +841,11 @@ func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, ru
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      policyName,
 					Namespace: constants.IstioSystemNamespace,
+					Labels:    map[string]string{constants.LabelIngressTraitNsn: getIngressTraitNsn(trait.Namespace, trait.Name)},
 				},
 			}
 			res, err := common.CreateOrUpdateProtobuf(ctx, r.Client, authzPolicy, func() error {
-				return r.mutateAuthorizationPolicy(authzPolicy, path.Policy, path.Path, hosts)
+				return r.mutateAuthorizationPolicy(authzPolicy, path.Policy, path.Path, hosts, requireFrom)
 			})
 
 			ref := vzapi.QualifiedResourceRelation{APIVersion: authzPolicyAPIVersion, Kind: authzPolicyKind, Name: namePrefix, Role: "authorizationpolicy"}
@@ -810,16 +860,17 @@ func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, ru
 	}
 }
 
-// mutateDestinationRule changes the destination rule based upon a traits configuration
-func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzPolicy *vzapi.AuthorizationPolicy, path string, hosts []string) error {
+// mutateAuthorizationPolicy changes the destination rule based upon a trait's configuration
+func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzPolicy *vzapi.AuthorizationPolicy, path string, hosts []string, requireFrom bool) error {
 	policyRules := make([]*v1beta1.Rule, len(vzPolicy.Rules))
 	var err error
 	for i, authzRule := range vzPolicy.Rules {
-		policyRules[i], err = createAuthorizationPolicyRule(authzRule, path, hosts)
+		policyRules[i], err = createAuthorizationPolicyRule(authzRule, path, hosts, requireFrom)
 		if err != nil {
 			return err
 		}
 	}
+
 	authzPolicy.Spec = v1beta1.AuthorizationPolicy{
 		Selector: &v1beta12.WorkloadSelector{
 			MatchLabels: map[string]string{"istio": "ingressgateway"},
@@ -831,29 +882,29 @@ func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.Authoriz
 }
 
 // createAuthorizationPolicyRule uses the provided information to create an istio authorization policy rule
-func createAuthorizationPolicyRule(rule *vzapi.AuthorizationRule, path string, hosts []string) (*v1beta1.Rule, error) {
-	if rule.From == nil {
+func createAuthorizationPolicyRule(rule *vzapi.AuthorizationRule, path string, hosts []string, requireFrom bool) (*v1beta1.Rule, error) {
+	authzRule := v1beta1.Rule{}
+
+	if requireFrom && rule.From == nil {
 		return nil, fmt.Errorf("Authorization Policy requires 'From' clause")
 	}
-	source := &v1beta1.Source{
-		RequestPrincipals: rule.From.RequestPrincipals,
-	}
-	paths := &v1beta1.Operation{
-		Paths: []string{path},
-		Hosts: hosts,
-	}
-	authzRule := v1beta1.Rule{
-		From: []*v1beta1.Rule_From{
-			{
-				Source: source,
+	if rule.From != nil {
+		authzRule.From = []*v1beta1.Rule_From{
+			{Source: &v1beta1.Source{
+				RequestPrincipals: rule.From.RequestPrincipals},
 			},
-		},
-		To: []*v1beta1.Rule_To{
-			{
-				Operation: paths,
-			},
-		},
+		}
 	}
+
+	if len(path) > 0 {
+		authzRule.To = []*v1beta1.Rule_To{{
+			Operation: &v1beta1.Operation{
+				Hosts: hosts,
+				Paths: []string{path},
+			},
+		}}
+	}
+
 	if rule.When != nil {
 		conditions := []*v1beta1.Condition{}
 		for _, vzCondition := range rule.When {
@@ -1368,4 +1419,8 @@ func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, su
 	}
 	domain := IP + "." + suffix
 	return domain, nil
+}
+
+func getIngressTraitNsn(namespace string, name string) string {
+	return fmt.Sprintf("%s-%s", namespace, name)
 }
