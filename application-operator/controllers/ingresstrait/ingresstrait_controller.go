@@ -827,6 +827,12 @@ func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, tr
 			if pathSuffix != "" {
 				policyName = fmt.Sprintf("%s-%s", policyName, pathSuffix)
 			}
+			// Create the AuthorizationPolicy resource.
+			// Note that this is created in istio-system. If we create this in the application namespace,
+			// which is also a valid option, requests to the protected endpoint without a JWT token bypass
+			// the JWT check because the default AuthorizationPolicy (e.g. hello-helidon) allows access from the
+			// Istio IngressGateway to the application.  This problem is solved by putting the AuthorizationPolicy
+			// in the istio-system namespace.
 			authzPolicy := &clisecurity.AuthorizationPolicy{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       authzPolicyKind,
