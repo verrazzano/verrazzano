@@ -244,19 +244,14 @@
               "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
-              "image": "elasticsearch",
-              "tag": "7.6.1-20201130145440-5c76ab1",
-              "helmFullImageKey": "monitoringOperator.esImage"
+              "image": "opensearch",
+              "tag": "2.3.0-20230123213036-bd387046f04",
+              "helmFullImageKey": "monitoringOperator.osImage"
             },
             {
-              "image": "verrazzano-monitoring-instance-eswait",
-              "tag": "1.1.0-20210816150650-1ff4223",
-              "helmFullImageKey": "monitoringOperator.esWaitImage"
-            },
-            {
-              "image": "kibana",
-              "tag": "7.6.1-20201130145840-7717e73",
-              "helmFullImageKey": "monitoringOperator.kibanaImage"
+              "image": "opensearch-dashboards",
+              "tag": "2.3.0-20230124171546-f9e6353395",
+              "helmFullImageKey": "monitoringOperator.osdImage"
             },
             {
               "image": "nginx-ingress-controller",
@@ -293,13 +288,8 @@
           "images": [
             {
               "image": "oraclelinux",
-              "tag": "7-slim",
-              "helmFullImageKey": "monitoringOperator.prometheusInitImage"
-            },
-            {
-              "image": "oraclelinux",
               "tag": "7.8",
-              "helmFullImageKey": "monitoringOperator.esInitImage"
+              "helmFullImageKey": "monitoringOperator.osInitImage"
             }
           ]
         }
