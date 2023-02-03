@@ -780,7 +780,7 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 //
 // Ingress AuthorizationPolicies are used in conjunction with RequestPolicies (created by the user) to handle
 // requests with JWT headers. If any path uses an AuthorizationPolicy, we need to add a rule in that AuthorizationPolicy
-// for every path. This is needed otherwise a request ta path without an AuthorizationPolicy will get
+// for every path. This is needed otherwise a request to a path without an AuthorizationPolicy will get
 // rejected.  For example, if the /greet endpoint has an AuthorizationPolicy, the / endpoint will get rejected unless
 // we have a rule for path / as shown in the following example (the first rule):
 //
@@ -841,7 +841,7 @@ func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, tr
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      policyName,
 					Namespace: constants.IstioSystemNamespace,
-					Labels:    map[string]string{constants.LabelIngressTraitNsn: GetIngressTraitNsn(trait)},
+					Labels:    map[string]string{constants.LabelIngressTraitNsn: getIngressTraitNsn(trait.Namespace, trait.Name)},
 				},
 			}
 			res, err := controllerutil.CreateOrUpdate(ctx, r.Client, authzPolicy, func() error {
@@ -860,7 +860,7 @@ func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, tr
 	}
 }
 
-// mutateAuthorizationPolicy changes the destination rule based upon a traits configuration
+// mutateAuthorizationPolicy changes the destination rule based upon a trait's configuration
 func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzPolicy *vzapi.AuthorizationPolicy, path string, hosts []string, requireFrom bool) error {
 	policyRules := make([]*v1beta1.Rule, len(vzPolicy.Rules))
 	var err error
@@ -1421,6 +1421,6 @@ func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, su
 	return domain, nil
 }
 
-func GetIngressTraitNsn(trait *vzapi.IngressTrait) string {
-	return fmt.Sprintf("%s-%s", trait.Namespace, trait.Name)
+func getIngressTraitNsn(namespace string, name string) string {
+	return fmt.Sprintf("%s-%s", namespace, name)
 }

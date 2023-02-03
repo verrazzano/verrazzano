@@ -49,7 +49,7 @@ func cleanup(trait *vzapi.IngressTrait, client client.Client, log vzlog.Verrazza
 
 func cleanupPolicies(trait *vzapi.IngressTrait, c client.Client, log vzlog.VerrazzanoLogger) error {
 	// Find all AuthorizationPolicies created for this IngressTrait
-	traitNameReq, _ := labels.NewRequirement(constants.LabelIngressTraitNsn, selection.Equals, []string{GetIngressTraitNsn(trait)})
+	traitNameReq, _ := labels.NewRequirement(constants.LabelIngressTraitNsn, selection.Equals, []string{getIngressTraitNsn(trait.Namespace, trait.Name)})
 	selector := labels.NewSelector().Add(*traitNameReq)
 	authPolicyList := clisecurity.AuthorizationPolicyList{}
 	err := c.List(context.TODO(), &authPolicyList, &client.ListOptions{Namespace: "", LabelSelector: selector})
