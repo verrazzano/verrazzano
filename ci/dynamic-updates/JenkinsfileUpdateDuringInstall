@@ -277,37 +277,6 @@ pipeline {
                 }
             }
 
-            stage('Uninstall Verrazzano') {
-                steps {
-                    sh """
-                        ${GO_REPO_PATH}/vz uninstall --timeout 30m
-                    """
-                }
-                post {
-                    always {
-                        sh """
-                            ## dump out uninstall logs
-                            mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
-                            echo "Listing all pods in all namespaces after uninstall"
-                            kubectl get pods --all-namespaces
-                            echo "-----------------------------------------------------"
-                        """
-                        listNamepacesAndPods('after Verrazzano uninstall')
-                        listHelmReleases('after Verrazzano uninstall')
-                    }
-                    success {
-                        script {
-                            if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                                dumpK8sCluster('verrazzano-uninstall-cluster-snapshot')
-                            }
-                        }
-                    }
-                    failure {
-                        dumpK8sCluster('verrazzano-uninstall-failure-cluster-snapshot')
-                    }
-                }
-            }
-
             post {
                 failure {
                     script {
@@ -322,6 +291,37 @@ pipeline {
                             dumpK8sCluster('dynamic-update-success-cluster-snapshot')
                         }
                     }
+                }
+            }
+        }
+
+        stage('Uninstall Verrazzano') {
+            steps {
+                sh """
+                    ${GO_REPO_PATH}/vz uninstall --timeout 30m
+                """
+            }
+            post {
+                always {
+                    sh """
+                        ## dump out uninstall logs
+                        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
+                        echo "Listing all pods in all namespaces after uninstall"
+                        kubectl get pods --all-namespaces
+                        echo "-----------------------------------------------------"
+                    """
+                    listNamepacesAndPods('after Verrazzano uninstall')
+                    listHelmReleases('after Verrazzano uninstall')
+                }
+                success {
+                    script {
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                            dumpK8sCluster('verrazzano-uninstall-cluster-snapshot')
+                        }
+                    }
+                }
+                failure {
+                    dumpK8sCluster('verrazzano-uninstall-failure-cluster-snapshot')
                 }
             }
         }
@@ -392,37 +392,6 @@ pipeline {
                 }
             }
 
-            stage('Uninstall Verrazzano') {
-                steps {
-                    sh """
-                        ${GO_REPO_PATH}/vz uninstall --timeout 30m
-                    """
-                }
-                post {
-                    always {
-                        sh """
-                            ## dump out uninstall logs
-                            mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
-                            echo "Listing all pods in all namespaces after uninstall"
-                            kubectl get pods --all-namespaces
-                            echo "-----------------------------------------------------"
-                        """
-                        listNamepacesAndPods('after Verrazzano uninstall')
-                        listHelmReleases('after Verrazzano uninstall')
-                    }
-                    success {
-                        script {
-                            if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                                dumpK8sCluster('verrazzano-uninstall-cluster-snapshot')
-                            }
-                        }
-                    }
-                    failure {
-                        dumpK8sCluster('verrazzano-uninstall-failure-cluster-snapshot')
-                    }
-                }
-            }
-
             post {
                 failure {
                     script {
@@ -440,7 +409,6 @@ pipeline {
                 }
             }
         }
-
     }
 
     post {
