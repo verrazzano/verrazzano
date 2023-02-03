@@ -68,7 +68,7 @@ spec:
               apiUrl:
                 description: The Verrazzano API server URL for this managed cluster.
                 type: string
-              argocdRegistration:
+              argoCDRegistration:
                 description: The state of ArgoCD registration for this managed cluster.
                 properties:
                   lastSetTimestamp:
