@@ -30,7 +30,7 @@ spec:
     spec:
       containers:
         - name: cleanup
-          image: ghcr.io/verrazzano/rancher-cleanup:v1.0.0
+          image: {{.RANCHER_CLEANUP_IMAGE}}
           args: [ "force" ]
           imagePullPolicy: IfNotPresent
       serviceAccountName: cleanup-service-account

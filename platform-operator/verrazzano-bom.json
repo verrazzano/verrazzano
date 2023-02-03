@@ -164,6 +164,10 @@
             {
               "image": "gitjob",
               "tag": "v0.1.30-20230120135703-8e24107"
+            },
+            {
+              "image": "rancher-cleanup",
+              "tag": "v1.0.0"
             }
           ]
         }

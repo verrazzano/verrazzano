@@ -4,17 +4,22 @@
 package rancher
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"regexp"
 	"strings"
+	"text/template"
 
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/os"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	admv1 "k8s.io/api/admissionregistration/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -32,6 +37,7 @@ const (
 	controllerCMName           = "cattle-controllers"
 	lockCMName                 = "rancher-controller-lock"
 	rancherSysNS               = "management.cattle.io/system-namespace"
+	rancherCleanupImage        = "rancher-cleanup"
 	rancherCleanupJobYaml      = "/verrazzano/platform-operator/thirdparty/manifests/rancher-cleanup/rancher-cleanup.yaml"
 	rancherCleanupJobName      = "cleanup-job"
 	rancherCleanupJobNamespace = "kube-system"
@@ -116,8 +122,21 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: rancherCleanupJobNamespace, Name: rancherCleanupJobName}, job)
 	if err != nil {
 		if errors.IsNotFound(err) {
+			// Prepare the Yaml to create the rancher-cleanup job
+			jobYaml, err := parseCleanupJobTemplate()
+			if err != nil {
+				return err
+			}
+
+			// Write to a temporary file
+			file, err := os.CreateTempFile("vz", jobYaml)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+
 			// Create the rancher-cleanup job
-			if err = k8sutil.NewYAMLApplier(ctx.Client(), "").ApplyF(rancherCleanupJobYaml); err != nil {
+			if err = k8sutil.NewYAMLApplier(ctx.Client(), "").ApplyF(file.Name()); err != nil {
 				return ctx.Log().ErrorfNewErr("Failed applying Yaml to create job %s/%s for component %s: %v", rancherCleanupJobNamespace, rancherCleanupJobName, ComponentName, err)
 			}
 			return ctx.Log().ErrorfNewErr("Component %s waiting for job %s/%s to start", ComponentName, rancherCleanupJobNamespace, rancherCleanupJobName)
@@ -135,9 +154,9 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 		}
 	}
 	if !jobComplete {
-		return ctx.Log().ErrorfNewErr("Component %s waiting for job %s/%s to complete", ComponentName, job.Namespace, job.Name)
+		return fmt.Errorf("Component %s waiting for job to complete: %s/%s", ComponentName, job.Namespace, job.Name)
 	}
-	ctx.Log().Progress("MGIANATA The rancher-cleanup job has completed")
+	ctx.Log().Progressf("Component %s job successfully completed: %s/%s", ComponentName, job.Namespace, job.Name)
 
 	// Remove the Rancher webhooks
 	err = deleteWebhooks(ctx)
@@ -181,8 +200,48 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	// Remove any Rancher CRD finalizers that may be causing CRD deletion to hang
 	removeCRDFinalizers(ctx, crds)
 
-	ctx.Log().Progress("MGIANATA The monitor log is existing successfully")
 	return nil
+}
+
+// parseCleanupJobTemplate - parse the rancher-cleanup yaml file using
+// information from the Verrazzano BOM
+func parseCleanupJobTemplate() ([]byte, error) {
+	// Obtain the fully built image strings
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return []byte{}, err
+	}
+	imageNames, err := bomFile.GetImageNameList(rancherImageSubcomponent)
+	if err != nil {
+		return []byte{}, err
+	}
+	cleanupImage := ""
+	for _, name := range imageNames {
+		if strings.Contains(name, rancherCleanupImage) {
+			cleanupImage = name
+		}
+	}
+	if len(cleanupImage) == 0 {
+		return []byte{}, fmt.Errorf("Failed to find the %s image in the BOM", rancherCleanupImage)
+	}
+
+	// Parse the template file
+	var jobTemplate *template.Template
+	if jobTemplate, err = template.New("cleanup-job").ParseFiles(rancherCleanupJobYaml); err != nil {
+		return []byte{}, err
+	}
+
+	// Apply the replacement parameters to the template
+	params := map[string]string{
+		"RANCHER_CLEANUP_IMAGE": cleanupImage,
+	}
+	var buf bytes.Buffer
+	err = jobTemplate.Execute(&buf, params)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return buf.Bytes(), nil
 }
 
 // deleteWebhooks takes care of deleting the Webhook resources from Rancher
