@@ -216,7 +216,7 @@ func handleImagePullBackOff(log *zap.SugaredLogger, clusterRoot string, podFile 
 	}
 }
 
-func registerIssues(messages map[string][]string, files []string, clusterRoot string, issueReporter *report.IssueReporter)  {
+func registerIssues(messages map[string][]string, files []string, clusterRoot string, issueReporter *report.IssueReporter) {
 	if len(messages[report.InsufficientMemory]) > 0 {
 		issueReporter.AddKnownIssueMessagesFiles(report.InsufficientMemory, clusterRoot, messages[report.InsufficientMemory], files)
 	}
