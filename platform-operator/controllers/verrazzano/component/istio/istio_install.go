@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package istio
@@ -32,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -310,7 +309,7 @@ func createPeerAuthentication(compContext spi.ComponentContext) error {
 			Namespace: IstioNamespace,
 		},
 	}
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &peer, func() error {
+	_, err := common.CreateOrUpdateProtobuf(context.TODO(), compContext.Client(), &peer, func() error {
 		if peer.Spec.Mtls == nil {
 			peer.Spec.Mtls = &istiosec.PeerAuthentication_MutualTLS{}
 		}
