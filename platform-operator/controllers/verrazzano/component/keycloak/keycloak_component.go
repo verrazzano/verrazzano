@@ -47,6 +47,12 @@ type KeycloakComponent struct {
 	helm.HelmComponent
 }
 
+func (c KeycloakComponent) ReconcileModule(ctx spi.ComponentContext) error {
+	return nil
+}
+
+func (c KeycloakComponent) SetStatusWriter(statusWriter client.StatusWriter) {}
+
 // Verify that KeycloakComponent implements Component
 var _ spi.Component = KeycloakComponent{}
 
@@ -71,7 +77,7 @@ func NewComponent(module *modulesv1alpha1.Module) modules.DelegateReconciler {
 
 	helm.SetForModule(&h, module)
 	return &reconciler.Reconciler{
-		ModuleComponent: KeycloakComponent{
+		Component: KeycloakComponent{
 			HelmComponent: h,
 		},
 	}

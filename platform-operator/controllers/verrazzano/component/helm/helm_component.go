@@ -170,7 +170,7 @@ func (h HelmComponent) ShouldInstallBeforeUpgrade() bool {
 	return h.InstallBeforeUpgrade
 }
 
-// GetJsonName returns the josn name of the verrazzano component in CRD
+// GetJSONName returns the josn name of the verrazzano component in CRD
 func (h HelmComponent) GetJSONName() string {
 	return h.JSONName
 }
@@ -291,12 +291,12 @@ func (h HelmComponent) v1beta1Validate(vz *v1beta1.Verrazzano) error {
 	return nil
 }
 
-// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+// ValidateInstallV1Beta1 checks if the specified Verrazzano CR is valid for this component to be installed
 func (h HelmComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
 	return h.v1beta1Validate(vz)
 }
 
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+// ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
 func (h HelmComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
 	return h.v1beta1Validate(new)
 }

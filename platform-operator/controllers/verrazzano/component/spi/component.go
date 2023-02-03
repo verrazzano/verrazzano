@@ -136,8 +136,3 @@ type Component interface {
 
 	Reconcile(ctx ComponentContext) error
 }
-
-type ModuleComponent interface {
-	Component
-	Uninstall(ctx ComponentContext) error
-}
