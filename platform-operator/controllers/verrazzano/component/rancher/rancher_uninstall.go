@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -6,33 +6,36 @@ package rancher
 import (
 	"context"
 	"fmt"
-	osexec "os/exec"
 	"regexp"
 	"strings"
 
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/pkg/os"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	admv1 "k8s.io/api/admissionregistration/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var rancherSystemTool = "/usr/local/bin/system-tools"
-
 const (
-	webhookName      = "rancher.cattle.io"
-	controllerCMName = "cattle-controllers"
-	lockCMName       = "rancher-controller-lock"
-	rancherSysNS     = "management.cattle.io/system-namespace"
+	webhookName                = "rancher.cattle.io"
+	controllerCMName           = "cattle-controllers"
+	lockCMName                 = "rancher-controller-lock"
+	rancherSysNS               = "management.cattle.io/system-namespace"
+	rancherCleanupJobYaml      = "/verrazzano/platform-operator/manifests/rancher-cleanup/rancher-cleanup.yaml"
+	rancherCleanupJobName      = "cleanup-job"
+	rancherCleanupJobNamespace = "kube-system"
 )
 
 var rancherSystemNS = []string{
@@ -68,8 +71,7 @@ var postUninstallFunc postUninstallFuncSig = invokeRancherSystemToolAndCleanup
 
 // postUninstall - Rancher component post-uninstall
 //
-// This uses the Rancher system tool for uninstall, which blocks the uninstallation process. So, we launch the
-// uninstall operation in a goroutine and requeue to check back later.
+// This uses the rancher-cleanup tool for uninstall. Launch the uninstall operation in a goroutine and requeue to check back later.
 // On subsequent callbacks, we check the status of the goroutine with the 'monitor' object, and postUninstall
 // returns or requeues accordingly.
 func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
@@ -94,7 +96,7 @@ func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 	return forkPostUninstallFunc(ctx, monitor)
 }
 
-// forkPostUninstall - the Rancher uninstall system tool blocks, so fork it to the background
+// forkPostUninstall - fork uninstall install of Rancher
 func forkPostUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
 	ctx.Log().Debugf("Creating background post-uninstall goroutine for Rancher")
 
@@ -108,25 +110,27 @@ func forkPostUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProce
 }
 
 // invokeRancherSystemToolAndCleanup - responsible for the actual deletion of resources
-// This calls the Rancher uninstall tool, which blocks.
+// This calls the rancher-cleanup tool.
 func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
-	// List all the namespaces that need to be cleaned from Rancher components
-	nsList := corev1.NamespaceList{}
-	err := ctx.Client().List(context.TODO(), &nsList)
+	// Create the rancher-cleanup job if it does not already exist
+	job := &batchv1.Job{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: rancherCleanupJobNamespace, Name: rancherCleanupJobName}, job)
 	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to list the Rancher namespaces: %v", err)
+		if errors.IsNotFound(err) {
+			// Create the rancher-cleanup job
+			if err = k8sutil.NewYAMLApplier(ctx.Client(), "").ApplyF(rancherCleanupJobYaml); err != nil {
+				return ctx.Log().ErrorfNewErr("Failed applying Yaml to create job %s/%s for component %s: %v", rancherCleanupJobNamespace, rancherCleanupJobName, ComponentName, err)
+			}
+			return ctx.Log().ErrorNewErr("Component %s waiting for job %s/%s to start", ComponentName, rancherCleanupJobNamespace, rancherCleanupJobName)
+		} else {
+			return err
+		}
 	}
 
-	// For Rancher namespaces, run the system tools uninstaller
-	for i, ns := range nsList.Items {
-		if isRancherNamespace(&nsList.Items[i]) {
-			ctx.Log().Infof("Running the Rancher uninstall system tool for namespace %s", ns.Name)
-			args := []string{"remove", "-c", "/home/verrazzano/kubeconfig", "--namespace", ns.Name, "--force"}
-			cmd := osexec.Command(rancherSystemTool, args...) //nolint:gosec //#nosec G204
-			_, stdErr, err := os.DefaultRunner{}.Run(cmd)
-			if err != nil {
-				return ctx.Log().ErrorNewErr("Failed to run system tools for Rancher deletion: %s: %v", stdErr, err)
-			}
+	// Re-queue if the job has not completed
+	for _, condition := range job.Status.Conditions {
+		if condition.Type != batchv1.JobComplete {
+			return ctx.Log().ErrorNewErr("Component %s waiting for job %s/%s to complete", ComponentName, job.Namespace, job.Name)
 		}
 	}
 
@@ -375,9 +379,4 @@ func isRancherNamespace(ns *corev1.Namespace) bool {
 		return true
 	}
 	return false
-}
-
-// setRancherSystemTool sets the Rancher system tool to an arbitrary command
-func setRancherSystemTool(cmd string) {
-	rancherSystemTool = cmd
 }
