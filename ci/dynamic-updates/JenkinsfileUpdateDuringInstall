@@ -264,6 +264,12 @@ pipeline {
                 stage('Change the VZ CR during Keycloak Component Installation') {
                     steps {
                         sh """
+                            while ! kubectl get vz
+                            do
+                                echo "Waiting for verrazzano resource to be created..."
+                                sleep 30s
+                            done
+
                             while ! kubectl get statefulset mysql -n keycloak
                             do
                                 echo "Waiting for keycloak/mysql statefuleset to be created..."
@@ -379,6 +385,12 @@ pipeline {
                 stage('Change the VZ CR during Rancher Component Installation') {
                     steps {
                         sh """
+                            while ! kubectl get vz
+                            do
+                                echo "Waiting for verrazzano resource to be created..."
+                                sleep 30s
+                            done
+
                             while ! kubectl get secret bootstrap-secret --namespace cattle-system
                             do
                                 echo "Waiting for bootstrap-secret Secret to be created..."
