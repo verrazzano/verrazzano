@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -61,7 +61,7 @@ func (ap *AuthorizationPolicy) cleanupAuthorizationPoliciesForProjects(namespace
 
 			// Filter the authorization policies we retrieved.  Do not include authorization policies for the
 			// appconfig being deleted.
-			authzPolicyList := []v1beta1.AuthorizationPolicy{}
+			authzPolicyList := []*v1beta1.AuthorizationPolicy{}
 			for _, policy := range tempAuthzPolicyList {
 				if value, ok := policy.Spec.Selector.MatchLabels[verrazzanoIstioLabel]; ok {
 					if value != appConfigName {
@@ -157,7 +157,7 @@ func (ap *AuthorizationPolicy) fixupAuthorizationPoliciesForProjects(namespace s
 			}
 
 			// Filter the authorization policies we retrieved
-			authzPolicyList := []v1beta1.AuthorizationPolicy{}
+			authzPolicyList := []*v1beta1.AuthorizationPolicy{}
 			for _, policy := range tempAuthzPolicyList {
 				if _, ok := policy.Spec.Selector.MatchLabels[verrazzanoIstioLabel]; ok {
 					authzPolicyList = append(authzPolicyList, policy)
@@ -186,8 +186,8 @@ func (ap *AuthorizationPolicy) fixupAuthorizationPoliciesForProjects(namespace s
 
 // getAuthorizationPoliciesForProject returns a list of Istio authorization policies for a given list of namespaces.
 // The returned authorization policies must a have an owner reference to an applicationConfiguration resource.
-func (ap *AuthorizationPolicy) getAuthorizationPoliciesForProject(namespaceList []cluv1alpha1.NamespaceTemplate) ([]v1beta1.AuthorizationPolicy, error) {
-	var authzPolicyList = []v1beta1.AuthorizationPolicy{}
+func (ap *AuthorizationPolicy) getAuthorizationPoliciesForProject(namespaceList []cluv1alpha1.NamespaceTemplate) ([]*v1beta1.AuthorizationPolicy, error) {
+	var authzPolicyList = []*v1beta1.AuthorizationPolicy{}
 	for _, namespace := range namespaceList {
 		// Get the list of authorization policy resources in the namespace
 		list, err := ap.IstioClient.SecurityV1beta1().AuthorizationPolicies(namespace.Metadata.Name).List(context.TODO(), metav1.ListOptions{})
@@ -207,7 +207,7 @@ func (ap *AuthorizationPolicy) getAuthorizationPoliciesForProject(namespaceList 
 }
 
 // updateAuthorizationPoliciesForProject updates Istio authorization policies for a project, if needed.
-func (ap *AuthorizationPolicy) updateAuthorizationPoliciesForProject(authzPolicyList []v1beta1.AuthorizationPolicy, uniquePrincipals map[string]bool, log *zap.SugaredLogger) error {
+func (ap *AuthorizationPolicy) updateAuthorizationPoliciesForProject(authzPolicyList []*v1beta1.AuthorizationPolicy, uniquePrincipals map[string]bool, log *zap.SugaredLogger) error {
 	for i, authzPolicy := range authzPolicyList {
 		// If the principals specified for the authorization policy do not have the expected principals then
 		// we need to update them.
@@ -218,7 +218,7 @@ func (ap *AuthorizationPolicy) updateAuthorizationPoliciesForProject(authzPolicy
 			}
 			authzPolicy.Spec.Rules[0].From[0].Source.Principals = principals
 			log.Debugf("Updating project Istio authorization policy: %s:%s", authzPolicy.Namespace, authzPolicy.Name)
-			_, err := ap.IstioClient.SecurityV1beta1().AuthorizationPolicies(authzPolicy.Namespace).Update(context.TODO(), &authzPolicyList[i], metav1.UpdateOptions{})
+			_, err := ap.IstioClient.SecurityV1beta1().AuthorizationPolicies(authzPolicy.Namespace).Update(context.TODO(), authzPolicyList[i], metav1.UpdateOptions{})
 			if err != nil {
 				return err
 			}
