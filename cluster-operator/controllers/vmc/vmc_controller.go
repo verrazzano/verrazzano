@@ -228,33 +228,32 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 
 	log.Debugf("Registering ArgoCD for VMC %s", vmc.Name)
 	var argoCDRegistration *clustersv1alpha1.ArgoCDRegistration
-	if r.isArgoCDEnabled() {
-		if r.isRancherEnabled() {
-			argoCDRegistration, err = r.registerManagedClusterWithArgoCD(vmc)
-			if err != nil {
-				r.handleError(ctx, vmc, "Failed to register managed cluster with Argo CD", err, log)
-				_ = r.updateStatus(ctx, vmc, func(vmc *clustersv1alpha1.VerrazzanoManagedCluster) {
-					if argoCDRegistration != nil {
-						vmc.Status.ArgoCDRegistration = *argoCDRegistration
-					}
-				})
-				return newRequeueWithDelay(), err
-			}
-		} else {
-			now := metav1.Now()
-			vmc.Status.ArgoCDRegistration = clustersv1alpha1.ArgoCDRegistration{
-				Status:    clustersv1alpha1.RegistrationPendingRancher,
-				Timestamp: &now,
-				Message:   "Waiting for Rancher managed cluster to become active"}
+	argoCDEnabled, err := r.isArgoCDEnabled()
+	if err != nil {
+		return newRequeueWithDelay(), err
+	}
+	rancherEnabled, err := r.isRancherEnabled()
+	if err != nil {
+		return newRequeueWithDelay(), err
+	}
+	if argoCDEnabled && rancherEnabled {
+		argoCDRegistration, err = r.registerManagedClusterWithArgoCD(vmc)
+		if err != nil {
+			r.handleError(ctx, vmc, "Failed to register managed cluster with Argo CD", err, log)
+			vmc.Status.ArgoCDRegistration = *argoCDRegistration
+			return newRequeueWithDelay(), err
 		}
+	}
+	if !rancherEnabled && argoCDEnabled {
+		now := metav1.Now()
+		vmc.Status.ArgoCDRegistration = clustersv1alpha1.ArgoCDRegistration{
+			Status:    clustersv1alpha1.RegistrationPendingRancher,
+			Timestamp: &now,
+			Message:   "Waiting for Rancher managed cluster to become active"}
 	}
 
 	r.setStatusConditionReady(vmc, "Ready")
-	statusErr := r.updateStatus(ctx, vmc, func(vmc *clustersv1alpha1.VerrazzanoManagedCluster) {
-		if argoCDRegistration != nil {
-			vmc.Status.ArgoCDRegistration = *argoCDRegistration
-		}
-	})
+	statusErr := r.updateStatus(ctx, vmc)
 
 	if statusErr != nil {
 		log.Errorf("Failed to update status to ready for VMC %s: %v", vmc.Name, err)
@@ -457,7 +456,7 @@ func (r *VerrazzanoManagedClusterReconciler) handleError(ctx context.Context, vm
 	fullMsg := fmt.Sprintf("%s: %v", msg, err)
 	log.ErrorfThrottled(fullMsg)
 	r.setStatusConditionNotReady(ctx, vmc, fullMsg)
-	statusErr := r.updateStatus(ctx, vmc, func(vmc *clustersv1alpha1.VerrazzanoManagedCluster) {})
+	statusErr := r.updateStatus(ctx, vmc)
 	if statusErr != nil {
 		log.ErrorfThrottled("Failed to update status for VMC %s: %v", vmc.Name, statusErr)
 	}
@@ -498,7 +497,7 @@ func (r *VerrazzanoManagedClusterReconciler) setStatusCondition(vmc *clustersv1a
 }
 
 // updateStatus updates the status of the VMC in the cluster, with all provided conditions, after setting the vmc.Status.State field for the cluster
-func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, vmcMutateFunc func(vmc *clustersv1alpha1.VerrazzanoManagedCluster)) error {
+func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
 	if vmc.Status.LastAgentConnectTime != nil {
 		currentTime := metav1.Now()
 		// Using the current plus added time to find the difference with lastAgentConnectTime to validate
@@ -526,8 +525,7 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 		r.setStatusCondition(existingVMC, genCondition, genCondition.Type == clustersv1alpha1.ConditionManifestPushed)
 	}
 	existingVMC.Status.State = vmc.Status.State
-
-	vmcMutateFunc(existingVMC)
+	existingVMC.Status.ArgoCDRegistration = vmc.Status.ArgoCDRegistration
 
 	r.log.Debugf("Updating Status of VMC %s: %v", vmc.Name, vmc.Status.Conditions)
 	return r.Status().Update(ctx, existingVMC)
@@ -539,7 +537,8 @@ func (r *VerrazzanoManagedClusterReconciler) getVerrazzanoResource() (*v1beta1.V
 	verrazzano := v1beta1.VerrazzanoList{}
 	err := r.Client.List(context.TODO(), &verrazzano, &client.ListOptions{})
 	if err != nil || len(verrazzano.Items) == 0 {
-		return nil, fmt.Errorf("Verrazzano must be installed: %v", err)
+		return nil, r.log.ErrorfNewErr("Verrazzano must be installed: %v", err)
+
 	}
 	return &verrazzano.Items[0], nil
 }

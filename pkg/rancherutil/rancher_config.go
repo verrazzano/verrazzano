@@ -9,7 +9,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/Jeffail/gabs/v2"
 	"io"
 	"net"
 	"net/http"
@@ -192,7 +191,6 @@ func getUserToken(rc *RancherConfig, log vzlog.VerrazzanoLogger, secret, usernam
 type TokenAttrs struct {
 	Created   string `json:"created"`
 	ExpiresAt string `json:"expiresAt"`
-	Token     string `json:"token"`
 }
 
 type Payload struct {
@@ -200,7 +198,12 @@ type Payload struct {
 	TTL       int    `json:"ttl"`
 }
 
-// SetTokenTTL creates a user token with ttl
+type TokenResponse struct {
+	Token string `json:"token"`
+	Name  string `json:"name"`
+}
+
+// SetTokenTTL creates a user token with ttl (in minutes)
 func SetTokenTTL(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clusterID string) (string, string, error) {
 	val, _ := strconv.Atoi(ttl)
 	payload := &Payload{
@@ -221,14 +224,16 @@ func SetTokenTTL(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clusterID s
 	}
 	err = httputil.ValidateResponseCode(response, http.StatusCreated)
 	if err != nil {
-		return "", "", err
-	}
-	jsonString, err := gabs.ParseJSON([]byte(responseBody))
-	if err != nil {
-		return "", "", err
+		return "", "", log.ErrorfNewErr("Failed to validate response: %v", err)
 	}
 
-	return jsonString.Path("token").Data().(string), jsonString.Path("name").Data().(string), nil
+	var tokenResponse TokenResponse
+	err = json.Unmarshal([]byte(responseBody), &tokenResponse)
+	if err != nil {
+		return "", "", log.ErrorfNewErr("Failed to parse response: %v", err)
+	}
+
+	return tokenResponse.Token, tokenResponse.Name, nil
 }
 
 // GetTokenByName get created & expiresAt attribute of a user token
@@ -244,19 +249,16 @@ func GetTokenByName(rc *RancherConfig, log vzlog.VerrazzanoLogger, tokenName str
 
 	err = httputil.ValidateResponseCode(response, http.StatusOK)
 	if err != nil {
-		return nil, err
+		return nil, log.ErrorfNewErr("Failed to validate response: %v", err)
 	}
 
-	jsonString, err := gabs.ParseJSON([]byte(responseBody))
+	var attrs TokenAttrs
+	err = json.Unmarshal([]byte(responseBody), &attrs)
 	if err != nil {
 		return nil, err
 	}
 
-	attrs := &TokenAttrs{
-		Created:   jsonString.Path("created").Data().(string),
-		ExpiresAt: jsonString.Path("expiresAt").Data().(string),
-	}
-	return attrs, nil
+	return &attrs, nil
 }
 
 // getProxyURL returns an HTTP proxy from the environment if one is set, otherwise an empty string

@@ -11,37 +11,44 @@ import (
 	"os"
 	"time"
 
+	clusterapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/rancherutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	controllerruntime "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	clusterapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"k8s.io/apimachinery/pkg/types"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
 	clusterSecretName               = "cluster-secret"
 	argocdClusterTokenTTLEnvVarName = "ARGOCD_CLUSTER_TOKEN_TTL" //nolint:gosec
+	createTimestamp                 = "verrazzano.io/createTimestamp"
+	expiresAtTimestamp              = "verrazzano.io/expiresAtTimestamp"
 )
 
-func (r *VerrazzanoManagedClusterReconciler) isArgoCDEnabled() bool {
-	vz, _ := r.getVerrazzanoResource()
-	return vzcr.IsArgoCDEnabled(vz)
+func (r *VerrazzanoManagedClusterReconciler) isArgoCDEnabled() (bool, error) {
+	vz, err := r.getVerrazzanoResource()
+	if err != nil {
+		return false, err
+	}
+	return vzcr.IsArgoCDEnabled(vz), nil
 }
 
-func (r *VerrazzanoManagedClusterReconciler) isRancherEnabled() bool {
-	vz, _ := r.getVerrazzanoResource()
-	return vzcr.IsRancherEnabled(vz)
+func (r *VerrazzanoManagedClusterReconciler) isRancherEnabled() (bool, error) {
+	vz, err := r.getVerrazzanoResource()
+	if err != nil {
+		return false, err
+	}
+	return vzcr.IsRancherEnabled(vz), nil
 }
 
 // registerManagedClusterWithArgoCD creates an argocd cluster secret to register a managed cluster in Argo CD
@@ -54,8 +61,8 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 
 	vz, err := r.getVerrazzanoResource()
 	if err != nil {
-		msg := "Could not find Verrazzano resource"
-		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to find Verrazzano resource on admin cluster: %v", err)
+		msg := "Failed to find instance information in Verrazzano resource status"
+		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), err
 	}
 	if vz.Status.VerrazzanoInstance == nil {
 		msg := "No instance information found in Verrazzano resource status"
@@ -68,7 +75,7 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 	rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.log)
 	if err != nil || rc == nil {
 		msg := "Could not create rancher config that authenticates with the admin user"
-		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr(msg, err)
+		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr(msg+": %v", err)
 	}
 	isActive, err := isManagedClusterActiveInRancher(rc, clusterID, r.log)
 	if err != nil || !isActive {
@@ -79,7 +86,7 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 	err = r.updateArgoCDClusterRoleBindingTemplate(vmc)
 	if err != nil {
 		msg := "Failed to update Argo CD ClusterRoleBindingTemplate"
-		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr(msg, err)
+		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr(msg+": %v", err)
 	}
 
 	err = r.createClusterSecret(vmc, clusterID, rancherURL)
@@ -99,9 +106,9 @@ func (r *VerrazzanoManagedClusterReconciler) createClusterSecret(vmc *clusterapi
 	if err != nil {
 		return err
 	}
-	secret, err := GetArgoCDClusterUserSecret(r.Client)
+	secret, err := r.GetArgoCDClusterUserSecret()
 	if err != nil {
-		return nil
+		return err
 	}
 	rc, err := rancherutil.NewRancherConfigForUser(r.Client, vzconst.ArgoCDClusterRancherUsername, secret, r.log)
 	if err != nil {
@@ -109,7 +116,7 @@ func (r *VerrazzanoManagedClusterReconciler) createClusterSecret(vmc *clusterapi
 	}
 
 	// create/update the cluster secret with the rancher config
-	_, err = r.createOrUpdateSecret(rc, vmc, rancherURL, clusterID, caCert)
+	err = r.createOrUpdateSecret(rc, vmc, rancherURL, clusterID, caCert)
 	if err != nil {
 		return err
 	}
@@ -119,16 +126,19 @@ func (r *VerrazzanoManagedClusterReconciler) createClusterSecret(vmc *clusterapi
 }
 
 // GetArgoCDClusterUserSecret fetches the Argo CD Verrazzano user secret
-func GetArgoCDClusterUserSecret(rdr client.Reader) (string, error) {
+func (r *VerrazzanoManagedClusterReconciler) GetArgoCDClusterUserSecret() (string, error) {
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
 		Namespace: constants.VerrazzanoMultiClusterNamespace,
-		Name:      vzconst.ArgoCDClusterRancherName}
-
-	if err := rdr.Get(context.TODO(), nsName, secret); err != nil {
+		Name:      vzconst.ArgoCDClusterRancherName,
+	}
+	if err := r.Get(context.TODO(), nsName, secret); err != nil {
 		return "", err
 	}
-	return string(secret.Data["password"]), nil
+	if pw, ok := secret.Data["password"]; ok {
+		return string(pw), nil
+	}
+	return "", nil
 }
 
 type TLSClientConfig struct {
@@ -136,24 +146,21 @@ type TLSClientConfig struct {
 	Insecure bool   `json:"insecure"`
 }
 
-type RancherConfig struct {
+type ArgoCDRancherConfig struct {
 	BearerToken     string `json:"bearerToken"`
 	TLSClientConfig `json:"tlsClientConfig"`
 }
 
-func (r *VerrazzanoManagedClusterReconciler) createOrUpdateSecret(rc *rancherutil.RancherConfig, vmc *clusterapi.VerrazzanoManagedCluster, rancherURL, clusterID string, caData []byte) (controllerutil.OperationResult, error) {
+func (r *VerrazzanoManagedClusterReconciler) createOrUpdateSecret(rc *rancherutil.RancherConfig, vmc *clusterapi.VerrazzanoManagedCluster, rancherURL, clusterID string, caData []byte) error {
 	var secret corev1.Secret
 	secret.Name = vmc.Name + "-" + clusterSecretName
 	secret.Namespace = constants.ArgoCDNamespace
 
 	// Create or update on the local cluster
-	return controllerruntime.CreateOrUpdate(context.TODO(), r.Client, &secret, func() error {
-		err := r.mutateClusterSecret(&secret, rc, vmc.Name, clusterID, rancherURL, caData)
-		if err != nil {
-			return err
-		}
-		return nil
+	_, err := controllerruntime.CreateOrUpdate(context.TODO(), r.Client, &secret, func() error {
+		return r.mutateClusterSecret(&secret, rc, vmc.Name, clusterID, rancherURL, caData)
 	})
+	return err
 }
 
 func (r *VerrazzanoManagedClusterReconciler) mutateClusterSecret(secret *corev1.Secret, rc *rancherutil.RancherConfig, clusterID, cluserName string, rancherURL string, caData []byte) error {
@@ -161,24 +168,25 @@ func (r *VerrazzanoManagedClusterReconciler) mutateClusterSecret(secret *corev1.
 	if secret.Annotations == nil {
 		secret.Annotations = map[string]string{}
 	}
-	tokenCreated, okCreated := secret.Annotations["verrazzano.io/createTimestamp"]
-	tokenExpiresAt, okExpires := secret.Annotations["verrazzano.io/expiresAtTimestamp"]
+	tokenCreated, okCreated := secret.Annotations[createTimestamp]
+	tokenExpiresAt, okExpires := secret.Annotations[expiresAtTimestamp]
 	createNewToken := true
 
 	if okCreated && okExpires {
 		timeToCheck := time.Now()
 		timeCreated, err := time.Parse(time.RFC3339, tokenCreated)
 		if err != nil {
-			return err
+			return r.log.ErrorfNewErr("Failed to parse created timestamp: %v", err)
 		}
 		timeExpired, err := time.Parse(time.RFC3339, tokenExpiresAt)
 		if err != nil {
-			return err
+			return r.log.ErrorfNewErr("Failed to parse expired timestamp: %v", err)
 		}
+		// Obtain new token if the time elapsed between time created and expired is greater than 3/4 of the lifespan of the token
 		createNewToken = (timeToCheck.Unix()-timeCreated.Unix())/(timeExpired.Unix()-timeCreated.Unix())*100 > 75
 	}
 	if createNewToken {
-		// Update the current token ttl using bearer token obtained
+		// Obtain a new token with ttl set using bearer token obtained
 		ttl := os.Getenv(argocdClusterTokenTTLEnvVarName)
 		newToken, tokenName, err := rancherutil.SetTokenTTL(rc, r.log, ttl, clusterID)
 		if err != nil {
@@ -188,8 +196,8 @@ func (r *VerrazzanoManagedClusterReconciler) mutateClusterSecret(secret *corev1.
 		if err != nil {
 			return err
 		}
-		secret.Annotations["verrazzano.io/createTimestamp"] = attrs.Created
-		secret.Annotations["verrazzano.io/expiresAtTimestamp"] = attrs.ExpiresAt
+		secret.Annotations[createTimestamp] = attrs.Created
+		secret.Annotations[expiresAtTimestamp] = attrs.ExpiresAt
 		token = newToken
 	}
 
@@ -202,11 +210,12 @@ func (r *VerrazzanoManagedClusterReconciler) mutateClusterSecret(secret *corev1.
 	secret.StringData["name"] = cluserName
 	secret.StringData["server"] = rancherURL
 
-	rancherConfig := &RancherConfig{
+	rancherConfig := &ArgoCDRancherConfig{
 		BearerToken: token,
 		TLSClientConfig: TLSClientConfig{
 			CaData:   base64.StdEncoding.EncodeToString(caData),
-			Insecure: false},
+			Insecure: false,
+		},
 	}
 	data, err := json.Marshal(rancherConfig)
 	if err != nil {
@@ -249,7 +258,7 @@ func (r *VerrazzanoManagedClusterReconciler) updateArgoCDClusterRoleBindingTempl
 		return nil
 	})
 	if err != nil {
-		return r.log.ErrorfThrottledNewErr("Failed configuring %s %s: %s", ClusterRoleTemplateBindingKind, nsn.Name, err.Error())
+		return r.log.ErrorfThrottledNewErr("Failed configuring %s %s: %v", ClusterRoleTemplateBindingKind, nsn.Name, err)
 	}
 	return nil
 }
@@ -283,10 +292,7 @@ func (r *VerrazzanoManagedClusterReconciler) unregisterClusterFromArgoCD(ctx con
 			Namespace: constants.ArgoCDNamespace,
 		},
 	}
-	if err := r.Delete(context.TODO(), &clusterSec); err != nil {
-		if errors.IsNotFound(err) {
-			return nil
-		}
+	if err := r.Delete(context.TODO(), &clusterSec); client.IgnoreNotFound(err) != nil {
 		return r.log.ErrorfNewErr("Failed to delete Argo CD cluster secret", err)
 	}
 

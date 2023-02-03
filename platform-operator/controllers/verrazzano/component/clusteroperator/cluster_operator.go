@@ -87,11 +87,10 @@ func (c clusterOperatorComponent) postInstallUpgrade(ctx spi.ComponentContext) e
 		if err := rancher.CreateOrUpdateRoleTemplate(ctx, vzconst.VerrazzanoClusterRancherName); err != nil {
 			return err
 		}
-		if vzcr.IsArgoCDEnabled(ctx.EffectiveCR()) {
-			if err := createVZArgoCDUser(ctx); err != nil {
-				return err
-			}
+		if !vzcr.IsArgoCDEnabled(ctx.EffectiveCR()) {
+			return nil
 		}
+		return createVZArgoCDUser(ctx)
 	}
 	return nil
 }
@@ -214,7 +213,7 @@ func createVZArgoCDUser(ctx spi.ComponentContext) error {
 	// If the user has not been located in the response, or the status was not found, generate the user with a new password
 	pass, err := vzpassword.GeneratePassword(15)
 	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to generate a password for the Verrazzano cluster user: %v", err)
+		return ctx.Log().ErrorfNewErr("Failed to generate a password for the Verrazzano Argo CD cluster user: %v", err)
 	}
 	reqURL = rc.BaseURL + usersPath
 	payload, err := constructVZArgoUserJSON(pass)
@@ -231,7 +230,7 @@ func createVZArgoCDUser(ctx spi.ComponentContext) error {
 
 	response, _, err = rancherutil.SendRequest(http.MethodPost, reqURL, headers, string(payload), rc, ctx.Log())
 	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to create the Verrazzano cluster user in Rancher: %v", err)
+		return ctx.Log().ErrorfNewErr("Failed to create the Verrazzano Argo CD cluster user in Rancher: %v", err)
 	}
 	if response.StatusCode != http.StatusCreated {
 		return ctx.Log().ErrorfNewErr("Failed creating user %s in Rancher, got status code: %d",
@@ -250,7 +249,7 @@ func createVZArgoCDUser(ctx spi.ComponentContext) error {
 		return nil
 	})
 	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed create or update the Secret for the Verrazzano Cluster User: %v", err)
+		return ctx.Log().ErrorfNewErr("Failed create or update the Secret for the Verrazzano Argo CD cluster User: %v", err)
 	}
 	return nil
 }

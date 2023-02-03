@@ -129,7 +129,7 @@ type VerrazzanoManagedClusterStatus struct {
 	// The state of Rancher registration for this managed cluster.
 	RancherRegistration RancherRegistration `json:"rancherRegistration,omitempty"`
 	// The state of ArgoCD registration for this managed cluster.
-	ArgoCDRegistration ArgoCDRegistration `json:"argocdRegistration,omitempty"`
+	ArgoCDRegistration ArgoCDRegistration `json:"argoCDRegistration,omitempty"`
 	// The state of this managed cluster.
 	State StateType `json:"state"`
 }

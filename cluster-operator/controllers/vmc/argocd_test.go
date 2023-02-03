@@ -180,8 +180,8 @@ func TestMutateClusterSecretWithRefresh(t *testing.T) {
 	time.Sleep(4 * time.Second)
 	err = r.mutateClusterSecret(secret, rc, vmc.Name, clusterID, rancherURL, caData)
 	assert.NoError(t, err)
-	assert.Equal(t, secret.Annotations["verrazzano.io/createTimestamp"], "yyy")
-	assert.Equal(t, secret.Annotations["verrazzano.io/expiresAtTimestamp"], "zzz")
+	assert.Equal(t, secret.Annotations[createTimestamp], "yyy")
+	assert.Equal(t, secret.Annotations[expiresAtTimestamp], "zzz")
 }
 
 func expectHTTPRequests(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender {

@@ -174,11 +174,11 @@ const VerrazzanoClusterRancherName = "verrazzano-cluster-registrar"
 // VerrazzanoClusterRancherUsername is the username in Rancher used to identify the Verrazzano cluster user
 const VerrazzanoClusterRancherUsername = "vz-cluster-reg"
 
-// ArgoCDClusterRancherUsername is the name of secret used to grant permissions to the Verrazzano argocd user
-const ArgoCDClusterRancherName = "verrazzano-argocd-registrar"
+// ArgoCDClusterRancherName is the name of secret for the Verrazzano Argo CD cluster user
+const ArgoCDClusterRancherName = "verrazzano-argoCD-registrar"
 
-// ArgoCDClusterRancherName is the username in Rancher used to identify the Verrazzano argocd user for cluster registration
-const ArgoCDClusterRancherUsername = "vz-argocd-reg"
+// ArgoCDClusterRancherUsername is the username in Rancher used to identify the Verrazzano Argo CD cluster user
+const ArgoCDClusterRancherUsername = "vz-argoCD-reg"
 
 // Components Names
 const (
