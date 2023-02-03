@@ -134,7 +134,16 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("includes ssoproxycontroller", "ssoproxycontroller", false),
 		)
 
-		if !isManagedClusterProfile {
+		if isManagedClusterProfile {
+			t.DescribeTable("rancher components are not deployed,",
+				func(name string, expected bool) {
+					Eventually(func() (bool, error) {
+						return vzComponentPresent(name, "cattle-system")
+					}, waitTimeout, pollingInterval).Should(Equal(expected))
+				},
+				t.Entry("includes rancher", "rancher", false),
+			)
+		} else {
 			t.DescribeTable("rancher components are deployed,",
 				func(name string, expected bool) {
 					Eventually(func() (bool, error) {
