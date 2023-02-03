@@ -7,16 +7,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
-	"strings"
-	"time"
-
 	certapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/gertd/go-pluralize"
-	ptypes "github.com/gogo/protobuf/types"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
@@ -29,7 +24,9 @@ import (
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/durationpb"
 	istionet "istio.io/api/networking/v1alpha3"
 	"istio.io/api/security/v1beta1"
 	v1beta12 "istio.io/api/type/v1beta1"
@@ -43,6 +40,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -52,6 +50,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"strings"
+	"time"
 )
 
 const (
@@ -544,7 +544,7 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 			Namespace: trait.Namespace,
 			Name:      gwName}}
 
-	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, gateway, func() error {
+	res, err := common.CreateOrUpdateProtobuf(ctx, r.Client, gateway, func() error {
 		return r.mutateGateway(gateway, trait, hostsForTrait, secretName)
 	})
 
@@ -658,7 +658,7 @@ func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vz
 			Namespace: trait.Namespace,
 			Name:      name}}
 
-	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, virtualService, func() error {
+	res, err := common.CreateOrUpdateProtobuf(ctx, r.Client, virtualService, func() error {
 		return r.mutateVirtualService(virtualService, trait, rule, allHostsForTrait, services, gateway)
 	})
 
@@ -724,7 +724,7 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *v
 			log.Errorf("Failed to retrieve namespace resource: %v", namespaceErr)
 		}
 
-		res, err := controllerutil.CreateOrUpdate(ctx, r.Client, destinationRule, func() error {
+		res, err := common.CreateOrUpdateProtobuf(ctx, r.Client, destinationRule, func() error {
 			return r.mutateDestinationRule(destinationRule, trait, rule, services, namespace)
 		})
 
@@ -764,7 +764,7 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 							HttpCookie: &istionet.LoadBalancerSettings_ConsistentHashLB_HTTPCookie{
 								Name: rule.Destination.HTTPCookie.Name,
 								Path: rule.Destination.HTTPCookie.Path,
-								Ttl:  ptypes.DurationProto(rule.Destination.HTTPCookie.TTL * time.Second)},
+								Ttl:  durationpb.New(rule.Destination.HTTPCookie.TTL * time.Second)},
 						},
 					},
 				},
@@ -794,7 +794,7 @@ func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, ru
 					Namespace: constants.IstioSystemNamespace,
 				},
 			}
-			res, err := controllerutil.CreateOrUpdate(ctx, r.Client, authzPolicy, func() error {
+			res, err := common.CreateOrUpdateProtobuf(ctx, r.Client, authzPolicy, func() error {
 				return r.mutateAuthorizationPolicy(authzPolicy, path.Policy, path.Path, hosts)
 			})
 
