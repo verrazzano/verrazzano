@@ -127,10 +127,15 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	}
 
 	// Re-queue if the job has not completed
+	var jobComplete = false
 	for _, condition := range job.Status.Conditions {
-		if condition.Type != batchv1.JobComplete {
-			return ctx.Log().ErrorfNewErr("Component %s waiting for job %s/%s to complete", ComponentName, job.Namespace, job.Name)
+		if condition.Type == batchv1.JobComplete {
+			jobComplete = true
+			break
 		}
+	}
+	if !jobComplete {
+		return ctx.Log().ErrorfNewErr("Component %s waiting for job %s/%s to complete", ComponentName, job.Namespace, job.Name)
 	}
 	ctx.Log().Progress("MGIANATA The rancher-cleanup job has completed")
 
