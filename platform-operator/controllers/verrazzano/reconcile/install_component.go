@@ -15,44 +15,44 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-// componentInstallState identifies the state of a component during install
-type componentInstallState string
+// componentState represents the state of a component
+type componentState string
 
 const (
 	// compStateInstallInitDetermineComponentState is the state when a component is initialized
-	compStateInstallInitDetermineComponentState componentInstallState = "componentStateInit"
+	compStateInstallInitDetermineComponentState componentState = "componentStateInit"
 
 	// compStateInstallInitReady is the state when a component is ready
-	compStateInstallInitReady componentInstallState = "componentStateReady"
+	compStateInstallInitReady componentState = "componentStateReady"
 
 	// compStateInstallInitDisabled is the state when a component is disabled
-	compStateInstallInitDisabled componentInstallState = "componentStateDisabled"
+	compStateInstallInitDisabled componentState = "componentStateDisabled"
 
 	// compStateWriteInstallStartedStatus is the state when a component writes the Install Started status condition
-	compStateWriteInstallStartedStatus componentInstallState = "componentStateInstallStarted"
+	compStateWriteInstallStartedStatus componentState = "componentStateInstallStarted"
 
 	// compStatePreInstall is the state when a component does a pre-install
-	compStatePreInstall componentInstallState = "compStatePreInstall"
+	compStatePreInstall componentState = "compStatePreInstall"
 
 	// compStateInstall is the state where a component does an install
-	compStateInstall componentInstallState = "compStateInstall"
+	compStateInstall componentState = "compStateInstall"
 
 	// compStateInstallWaitReady is the state when a component is waiting for install to be ready
-	compStateInstallWaitReady componentInstallState = "compStateInstallWaitReady"
+	compStateInstallWaitReady componentState = "compStateInstallWaitReady"
 
 	// compStatePostInstall is the state when a component is doing a post-install
-	compStatePostInstall componentInstallState = "compStatePostInstall"
+	compStatePostInstall componentState = "compStatePostInstall"
 
 	// compStateInstallComplete is the state when component writes the Install Complete status
-	compStateInstallComplete componentInstallState = "compStateInstallComplete"
+	compStateInstallComplete componentState = "compStateInstallComplete"
 
 	// compStateInstallEnd is the terminal state
-	compStateInstallEnd componentInstallState = "compStateInstallEnd"
+	compStateInstallEnd componentState = "compStateInstallEnd"
 )
 
 // componentInstallContext has the install context for a Verrazzano component install
 type componentInstallContext struct {
-	state componentInstallState
+	state componentState
 }
 
 // installComponents will install the components as required
@@ -89,7 +89,7 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 		installContext.state = compStateInstallEnd
 	}
 
-	for installContext.state != compStateInstallEnd {
+	for installContext.state != compStateInstallEnd && installContext.state != componentState(compStateUninstallEnd) {
 		switch installContext.state {
 		case compStateInstallInitDetermineComponentState:
 			compLog.Debugf("Component %s is being reconciled", compName)
@@ -112,6 +112,16 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 		case compStateInstallInitReady:
 			if skipComponentFromReadyState(compContext, comp, componentStatus) {
 				installContext.state = compStateInstallEnd
+				continue
+			}
+			isInstalled, err := comp.IsInstalled(compContext)
+			if err != nil {
+				compLog.ErrorfThrottled("Error checking component installed state: %v", err)
+				return ctrl.Result{Requeue: true}
+			}
+			if isInstalled && !comp.IsEnabled(compContext.EffectiveCR()) {
+				// start uninstall of a single component
+				installContext.state = componentState(compStateUninstallStart)
 				continue
 			}
 			installContext.state = compStateWriteInstallStartedStatus
@@ -186,6 +196,22 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 			}
 
 			installContext.state = compStateInstallEnd
+
+		case compStateUninstallStart:
+		case compStatePreUninstall:
+		case compStateUninstall:
+		case compStateWaitUninstalled:
+		case compStateUninstalleDone:
+			// Delegates the uninstall work to
+			nextUninstallState, err := r.executeComponentUninstallState(compContext, comp, installContext.state)
+			if err != nil {
+				if !ctrlerrors.IsRetryableError(err) {
+					compLog.ErrorfThrottled("Error running PreInstall for component %s: %v", compName, err)
+				}
+				return ctrl.Result{Requeue: true}
+			}
+			installContext.state = componentState(nextUninstallState)
+
 		}
 
 	}
@@ -241,7 +267,7 @@ func (vuc *installTracker) getComponentInstallContext(compName string) *componen
 }
 
 // chooseCompState choose the next componentInstallStatus based on the component status state
-func chooseCompState(componentStatus *vzapi.ComponentStatusDetails) componentInstallState {
+func chooseCompState(componentStatus *vzapi.ComponentStatusDetails) componentState {
 	switch componentStatus.State {
 	case vzapi.CompStateDisabled:
 		return compStateInstallInitDisabled

@@ -26,7 +26,7 @@ func TestChooseCompState(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want componentInstallState
+		want componentState
 	}{
 		{
 			"TestChooseCompState when state is CompStateDisabled",

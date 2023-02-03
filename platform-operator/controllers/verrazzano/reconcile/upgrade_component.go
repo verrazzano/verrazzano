@@ -16,35 +16,32 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-// componentUpgradeState identifies the state of a component during upgrade
-type componentUpgradeState string
-
 const (
 	// compStateUpgradeInit is the state when a component is starting the upgrade flow
-	compStateUpgradeInit componentUpgradeState = "componentStateUpgradeInit"
+	compStateUpgradeInit componentState = "componentStateUpgradeInit"
 
 	// compStatePreUpgrade is the state when a component does a pre-upgrade
-	compStatePreUpgrade componentUpgradeState = "compStatePreUpgrade"
+	compStatePreUpgrade componentState = "compStatePreUpgrade"
 
 	// compStateUpgrade is the state where a component does an upgrade
-	compStateUpgrade componentUpgradeState = "compStateUpgrade"
+	compStateUpgrade componentState = "compStateUpgrade"
 
 	// compStateUpgradeWaitReady is the state when a component is waiting for upgrade ready
-	compStateUpgradeWaitReady componentUpgradeState = "compStateUpgradeWaitReady"
+	compStateUpgradeWaitReady componentState = "compStateUpgradeWaitReady"
 
 	// compStatePostUpgrade is the state when a component is doing a post-upgrade
-	compStatePostUpgrade componentUpgradeState = "compStatePostUpgrade"
+	compStatePostUpgrade componentState = "compStatePostUpgrade"
 
 	// compStateUpgradeDone is the state when component upgrade is done
-	compStateUpgradeDone componentUpgradeState = "compStateUpgradeDone"
+	compStateUpgradeDone componentState = "compStateUpgradeDone"
 
 	// compStateUpgradeEnd is the terminal state
-	compStateUpgradeEnd componentUpgradeState = "compStateEnd"
+	compStateUpgradeEnd componentState = "compStateEnd"
 )
 
 // componentUpgradeContext has the upgrade context for a Verrazzano component upgrade
 type componentUpgradeContext struct {
-	state componentUpgradeState
+	state componentState
 }
 
 // upgradeComponents will upgrade the components as required

@@ -1898,7 +1898,7 @@ func initStartingStates(cr *vzapi.Verrazzano, compName string) {
 }
 
 // initStates inits the specified state for verrazzano and component upgrade
-func initStates(cr *vzapi.Verrazzano, vzState VerrazzanoUpgradeState, compName string, compState componentUpgradeState) {
+func initStates(cr *vzapi.Verrazzano, vzState VerrazzanoUpgradeState, compName string, compState componentState) {
 	tracker := getUpgradeTracker(cr)
 	tracker.vzState = vzState
 	upgradeContext := tracker.getComponentUpgradeContext(compName)
