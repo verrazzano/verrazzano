@@ -5,6 +5,7 @@ package weblogic
 
 import (
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 
@@ -44,6 +45,14 @@ type weblogicComponent struct {
 	helm.HelmComponent
 }
 
+func (c weblogicComponent) ReconcileModule(ctx spi.ComponentContext) error {
+	return nil
+}
+
+func (c weblogicComponent) SetStatusWriter(statusWriter client.StatusWriter) {}
+
+var _ modules.DelegateReconciler = &weblogicComponent{}
+
 func NewComponent(module *modulesv1alpha1.Module) modules.DelegateReconciler {
 	h := helm.HelmComponent{
 		ChartDir:               config.GetThirdPartyDir(),
@@ -79,7 +88,7 @@ func NewComponent(module *modulesv1alpha1.Module) modules.DelegateReconciler {
 	helm.SetForModule(&h, module)
 
 	return &reconciler.Reconciler{
-		ModuleComponent: weblogicComponent{
+		Component: weblogicComponent{
 			h,
 		},
 	}

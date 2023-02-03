@@ -19,8 +19,7 @@ const FinalizerName = "modules.finalizer.verrazzano.io"
 
 type Reconciler struct {
 	client.StatusWriter
-	ChartDir string
-	spi.ModuleComponent
+	spi.Component
 }
 
 func (r *Reconciler) SetStatusWriter(writer client.StatusWriter) {
@@ -102,7 +101,13 @@ func (r *Reconciler) ReadyState(ctx spi.ComponentContext) error {
 
 // Uninstall cleans up the Helm Chart and removes the Module finalizer so Kubernetes can clean the resource
 func (r *Reconciler) Uninstall(ctx spi.ComponentContext) error {
-	if err := r.ModuleComponent.Uninstall(ctx); err != nil {
+	if err := r.Component.PreUninstall(ctx); err != nil {
+		return err
+	}
+	if err := r.Component.Uninstall(ctx); err != nil {
+		return err
+	}
+	if err := r.Component.PostUninstall(ctx); err != nil {
 		return err
 	}
 	if err := removeFinalizer(ctx); err != nil {

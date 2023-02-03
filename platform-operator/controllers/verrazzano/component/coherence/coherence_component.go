@@ -5,6 +5,9 @@ package coherence
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 
@@ -36,14 +39,28 @@ type coherenceComponent struct {
 	helm.HelmComponent
 }
 
+func (c coherenceComponent) ReconcileModule(ctx spi.ComponentContext) error {
+	return nil
+}
+
+func (c coherenceComponent) SetStatusWriter(statusWriter client.StatusWriter) {}
+
 func NewComponent(module *modulesv1alpha1.Module) modules.DelegateReconciler {
 	h := helm.HelmComponent{
 		ChartDir:               config.GetThirdPartyDir(),
 		ImagePullSecretKeyname: secret.DefaultImagePullSecretKeyName,
+		AvailabilityObjects: &ready.AvailabilityObjects{
+			DeploymentNames: []types.NamespacedName{
+				{
+					Name:      ComponentName,
+					Namespace: ComponentNamespace,
+				},
+			},
+		},
 	}
 	helm.SetForModule(&h, module)
 	return &reconciler.Reconciler{
-		ModuleComponent: coherenceComponent{
+		Component: coherenceComponent{
 			HelmComponent: h,
 		},
 	}
@@ -122,4 +139,11 @@ func (c coherenceComponent) PostUninstall(context spi.ComponentContext) error {
 		return err
 	}
 	return nil
+}
+
+func (c coherenceComponent) Name() string {
+	if c.HelmComponent.ReleaseName == "" {
+		return ComponentName
+	}
+	return c.HelmComponent.ReleaseName
 }
