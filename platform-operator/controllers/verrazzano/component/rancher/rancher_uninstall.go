@@ -125,6 +125,7 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 			// Prepare the Yaml to create the rancher-cleanup job
 			jobYaml, err := parseCleanupJobTemplate()
 			if err != nil {
+				ctx.Log().Progressf("Failed to create yaml for %s job: %v", rancherCleanupJobName, err)
 				return err
 			}
 
