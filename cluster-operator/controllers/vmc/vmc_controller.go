@@ -238,9 +238,9 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 	}
 	if argoCDEnabled && rancherEnabled {
 		argoCDRegistration, err = r.registerManagedClusterWithArgoCD(vmc)
+		vmc.Status.ArgoCDRegistration = *argoCDRegistration
 		if err != nil {
 			r.handleError(ctx, vmc, "Failed to register managed cluster with Argo CD", err, log)
-			vmc.Status.ArgoCDRegistration = *argoCDRegistration
 			return newRequeueWithDelay(), err
 		}
 	}

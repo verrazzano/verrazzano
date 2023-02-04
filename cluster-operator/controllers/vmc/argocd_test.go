@@ -6,6 +6,7 @@ package vmc
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -82,7 +83,7 @@ func TestMutateClusterSecretWithoutRefresh(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "demo" + "-" + clusterSecretName,
 			Namespace:   constants.ArgoCDNamespace,
-			Annotations: map[string]string{"verrazzano.io/createTimestamp": time.Now().Format(time.RFC3339), "verrazzano.io/expiresAtTimestamp": time.Now().Add(4 * time.Second).Format(time.RFC3339)},
+			Annotations: map[string]string{createTimestamp: time.Now().Format(time.RFC3339), expiresAtTimestamp: time.Now().Add(10 * time.Hour).Format(time.RFC3339)},
 		},
 		Data: map[string][]byte{
 			"password": []byte("foobar"),
@@ -112,6 +113,12 @@ func TestMutateClusterSecretWithoutRefresh(t *testing.T) {
 
 	err = r.mutateClusterSecret(secret, rc, vmc.Name, clusterID, rancherURL, caData)
 	assert.NoError(t, err)
+
+	var rancherConfig ArgoCDRancherConfig
+	err = json.Unmarshal([]byte(secret.StringData["config"]), &rancherConfig)
+	if err != nil {
+		assert.Equal(t, &rancherConfig.BearerToken, "unit-test-token")
+	}
 }
 
 // TestMutateClusterSecretWithRefresh tests POST/GET calls to obtain new token and attrs when we breach 3/4 lifespan of the token
@@ -160,7 +167,7 @@ func TestMutateClusterSecretWithRefresh(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "demo" + "-" + clusterSecretName,
 			Namespace:   constants.ArgoCDNamespace,
-			Annotations: map[string]string{"verrazzano.io/createTimestamp": time.Now().Format(time.RFC3339), "verrazzano.io/expiresAtTimestamp": time.Now().Add(4 * time.Second).Format(time.RFC3339)},
+			Annotations: map[string]string{createTimestamp: time.Now().Add(-10 * time.Hour).Format(time.RFC3339), expiresAtTimestamp: time.Now().Format(time.RFC3339)},
 		},
 		Data: map[string][]byte{
 			"password": []byte("foobar"),
@@ -177,7 +184,6 @@ func TestMutateClusterSecretWithRefresh(t *testing.T) {
 	rc, err := rancherutil.NewRancherConfigForUser(cli, constants.ArgoCDClusterRancherUsername, "foobar", log)
 	assert.NoError(t, err)
 
-	time.Sleep(4 * time.Second)
 	err = r.mutateClusterSecret(secret, rc, vmc.Name, clusterID, rancherURL, caData)
 	assert.NoError(t, err)
 	assert.Equal(t, secret.Annotations[createTimestamp], "yyy")
@@ -231,7 +237,7 @@ func generateClientObject() client.WithWatch {
 	return fake.NewClientBuilder().WithRuntimeObjects(
 		&corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      constants.ArgoCDClusterRancherName,
+				Name:      constants.ArgoCDClusterRancherSecretName,
 				Namespace: constants.VerrazzanoMultiClusterNamespace,
 			},
 			Data: map[string][]byte{

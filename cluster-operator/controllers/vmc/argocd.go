@@ -31,8 +31,8 @@ import (
 const (
 	clusterSecretName               = "cluster-secret"
 	argocdClusterTokenTTLEnvVarName = "ARGOCD_CLUSTER_TOKEN_TTL" //nolint:gosec
-	createTimestamp                 = "verrazzano.io/createTimestamp"
-	expiresAtTimestamp              = "verrazzano.io/expiresAtTimestamp"
+	createTimestamp                 = "verrazzano.io/create-timestamp"
+	expiresAtTimestamp              = "verrazzano.io/expires-at-timestamp"
 )
 
 func (r *VerrazzanoManagedClusterReconciler) isArgoCDEnabled() (bool, error) {
@@ -70,6 +70,10 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 	}
 
 	var rancherURL = *(vz.Status.VerrazzanoInstance.RancherURL) + k8sClustersPath + clusterID
+	if rancherURL == "" || rancherURL == "null" {
+		msg := "No Rancher URL found in Verrazzano resource status"
+		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to find Rancher URL in Verrazzano resource status")
+	}
 
 	// If the managed cluster is not active, we should not attempt to register in Argo CD
 	rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.log)
@@ -98,7 +102,7 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 	return newArgoCDRegistration(clusterapi.MCRegistrationCompleted, msg), nil
 }
 
-// argocdClusterAdd registers cluster using the Rancher Proxy by creating a user in rancher, with api token and cluster roles set, and a secret containing Rancher proxy for the cluster
+// createClusterSecret registers cluster using the Rancher Proxy by creating a user in rancher, with api token and cluster roles set, and a secret containing Rancher proxy for the cluster
 func (r *VerrazzanoManagedClusterReconciler) createClusterSecret(vmc *clusterapi.VerrazzanoManagedCluster, clusterID, rancherURL string) error {
 	r.log.Debugf("Configuring Rancher user for cluster registration in ArgoCD")
 
@@ -106,7 +110,7 @@ func (r *VerrazzanoManagedClusterReconciler) createClusterSecret(vmc *clusterapi
 	if err != nil {
 		return err
 	}
-	secret, err := r.GetArgoCDClusterUserSecret()
+	secret, err := r.getArgoCDClusterUserSecret()
 	if err != nil {
 		return err
 	}
@@ -126,19 +130,20 @@ func (r *VerrazzanoManagedClusterReconciler) createClusterSecret(vmc *clusterapi
 }
 
 // GetArgoCDClusterUserSecret fetches the Argo CD Verrazzano user secret
-func (r *VerrazzanoManagedClusterReconciler) GetArgoCDClusterUserSecret() (string, error) {
+func (r *VerrazzanoManagedClusterReconciler) getArgoCDClusterUserSecret() (string, error) {
+	var err error
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
 		Namespace: constants.VerrazzanoMultiClusterNamespace,
-		Name:      vzconst.ArgoCDClusterRancherName,
+		Name:      vzconst.ArgoCDClusterRancherSecretName,
 	}
-	if err := r.Get(context.TODO(), nsName, secret); err != nil {
+	if err = r.Get(context.TODO(), nsName, secret); err != nil {
 		return "", err
 	}
 	if pw, ok := secret.Data["password"]; ok {
 		return string(pw), nil
 	}
-	return "", nil
+	return "", err
 }
 
 type TLSClientConfig struct {
@@ -173,17 +178,18 @@ func (r *VerrazzanoManagedClusterReconciler) mutateClusterSecret(secret *corev1.
 	createNewToken := true
 
 	if okCreated && okExpires {
-		timeToCheck := time.Now()
+		now := time.Now()
 		timeCreated, err := time.Parse(time.RFC3339, tokenCreated)
 		if err != nil {
 			return r.log.ErrorfNewErr("Failed to parse created timestamp: %v", err)
 		}
-		timeExpired, err := time.Parse(time.RFC3339, tokenExpiresAt)
+		timeExpires, err := time.Parse(time.RFC3339, tokenExpiresAt)
 		if err != nil {
 			return r.log.ErrorfNewErr("Failed to parse expired timestamp: %v", err)
 		}
 		// Obtain new token if the time elapsed between time created and expired is greater than 3/4 of the lifespan of the token
-		createNewToken = (timeToCheck.Unix()-timeCreated.Unix())/(timeExpired.Unix()-timeCreated.Unix())*100 > 75
+		lifespan := timeExpires.Sub(timeCreated)
+		createNewToken = now.After(timeCreated.Add(lifespan * 3 / 4))
 	}
 	if createNewToken {
 		// Obtain a new token with ttl set using bearer token obtained

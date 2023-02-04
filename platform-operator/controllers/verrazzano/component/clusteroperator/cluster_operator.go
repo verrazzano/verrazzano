@@ -241,7 +241,7 @@ func createVZArgoCDUser(ctx spi.ComponentContext) error {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
-			Name:      vzconst.ArgoCDClusterRancherName,
+			Name:      vzconst.ArgoCDClusterRancherSecretName,
 		},
 	}
 	_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), secret, func() error {
