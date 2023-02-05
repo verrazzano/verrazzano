@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"path"
 	"regexp"
 	"strings"
 	"text/template"
@@ -232,12 +233,18 @@ func parseCleanupJobTemplate() ([]byte, error) {
 		return []byte{}, err
 	}
 
+	// Parse the filename from the path string, it will become the name of the parsed template
+	_, file := path.Split(rancherCleanupJobYaml)
+	if len(file) == 0 {
+		return []byte{}, fmt.Errorf("Failed to parse filename from path %s", rancherCleanupJobYaml)
+	}
+
 	// Apply the replacement parameters to the template
 	params := map[string]string{
 		"RANCHER_CLEANUP_IMAGE": cleanupImage,
 	}
 	var buf bytes.Buffer
-	err = jobTemplate.Execute(&buf, params)
+	err = jobTemplate.ExecuteTemplate(&buf, file, params)
 	if err != nil {
 		return []byte{}, err
 	}
