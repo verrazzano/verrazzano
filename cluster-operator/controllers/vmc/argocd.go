@@ -68,12 +68,11 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 		msg := "No instance information found in Verrazzano resource status"
 		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to find instance information in Verrazzano resource status")
 	}
-
-	var rancherURL = *(vz.Status.VerrazzanoInstance.RancherURL) + k8sClustersPath + clusterID
-	if rancherURL == "" || rancherURL == "null" {
+	if vz.Status.VerrazzanoInstance.RancherURL == nil {
 		msg := "No Rancher URL found in Verrazzano resource status"
 		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to find Rancher URL in Verrazzano resource status")
 	}
+	var rancherURL = *(vz.Status.VerrazzanoInstance.RancherURL) + k8sClustersPath + clusterID
 
 	// If the managed cluster is not active, we should not attempt to register in Argo CD
 	rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.log)
