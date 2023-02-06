@@ -88,7 +88,7 @@ const (
 type RancherRegistration struct {
 	// The Rancher cluster ID for this cluster.
 	ClusterID string `json:"clusterID,omitempty"`
-	// A supporting message related to the Argo CD registration status.
+	// A supporting message related to the Rancher registration status.
 	// +optional
 	Message string `json:"message,omitempty"`
 	// The status of the Rancher registration.
@@ -111,7 +111,7 @@ type ArgoCDRegistration struct {
 	// The timestamp of last status set
 	// +optional
 	Timestamp *metav1.Time `json:"lastSetTimestamp,omitempty"`
-	// Supporting message related to the Rancher registration status
+	// Supporting message related to the Argo CD registration status
 	// +optional
 	Message string `json:"message,omitempty"`
 }
