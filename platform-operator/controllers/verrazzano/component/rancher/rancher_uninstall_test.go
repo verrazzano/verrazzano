@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -9,20 +9,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
-	fakemonitor "github.com/verrazzano/verrazzano/platform-operator/internal/monitor/fake"
-
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
+	fakemonitor "github.com/verrazzano/verrazzano/platform-operator/internal/monitor/fake"
 	admv1 "k8s.io/api/admissionregistration/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	v12 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
@@ -386,6 +385,19 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 			},
 		},
 	}
+	rancherCleanupJob := batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: rancherCleanupJobNamespace,
+			Name:      rancherCleanupJobName,
+		},
+		Status: batchv1.JobStatus{
+			Conditions: []batchv1.JobCondition{
+				{
+					Type: batchv1.JobComplete,
+				},
+			},
+		},
+	}
 	tests := []struct {
 		name           string
 		objects        []clipkg.Object
@@ -393,16 +405,21 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 	}{
 		{
 			name: "test empty cluster",
+			objects: []clipkg.Object{
+				&rancherCleanupJob,
+			},
 		},
 		{
 			name: "test non Rancher ns",
 			objects: []clipkg.Object{
+				&rancherCleanupJob,
 				&nonRancherNs,
 			},
 		},
 		{
 			name: "test Rancher ns",
 			objects: []clipkg.Object{
+				&rancherCleanupJob,
 				&nonRancherNs,
 				&rancherNs,
 			},
@@ -410,6 +427,7 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 		{
 			name: "test multiple Rancher ns",
 			objects: []clipkg.Object{
+				&rancherCleanupJob,
 				&nonRancherNs,
 				&rancherNs,
 				&rancherNs2,
@@ -418,6 +436,7 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 		{
 			name: "test mutating webhook",
 			objects: []clipkg.Object{
+				&rancherCleanupJob,
 				&nonRancherNs,
 				&rancherNs,
 				&rancherNs2,
@@ -428,6 +447,7 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 		{
 			name: "test validating webhook",
 			objects: []clipkg.Object{
+				&rancherCleanupJob,
 				&nonRancherNs,
 				&rancherNs,
 				&rancherNs2,
@@ -439,6 +459,7 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 		{
 			name: "test CR and CRB",
 			objects: []clipkg.Object{
+				&rancherCleanupJob,
 				&nonRancherNs,
 				&rancherNs,
 				&rancherNs2,
@@ -451,6 +472,7 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 		{
 			name: "test non Rancher components",
 			objects: []clipkg.Object{
+				&rancherCleanupJob,
 				&nonRancherNs,
 				&crNotRancher,
 				&crbNotRancher,
@@ -463,6 +485,7 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 		{
 			name: "test config maps",
 			objects: []clipkg.Object{
+				&rancherCleanupJob,
 				&nonRancherNs,
 				&rancherNs,
 				&rancherNs2,
@@ -479,6 +502,7 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 		{
 			name: "test persistent volume",
 			objects: []clipkg.Object{
+				&rancherCleanupJob,
 				&nonRancherNs,
 				&rancherNs,
 				&rancherNs2,
@@ -497,6 +521,7 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 		{
 			name: "test clusterRole binding",
 			objects: []clipkg.Object{
+				&rancherCleanupJob,
 				&nonRancherNs,
 				&rancherNs,
 				&rancherNs2,
@@ -516,12 +541,14 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 		{
 			name: "test CRD finalizer cleanup",
 			objects: []clipkg.Object{
+				&rancherCleanupJob,
 				&rancherClusterCRD,
 			},
 		},
 		{
 			name: "test Rancher CR cleanup",
 			objects: []clipkg.Object{
+				&rancherCleanupJob,
 				&rancherClusterCRD,
 				&settingCR,
 				&rancherNamespacedCRD,
@@ -530,7 +557,6 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 		},
 	}
 
-	setRancherSystemTool("echo")
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(tt.objects...).Build()
