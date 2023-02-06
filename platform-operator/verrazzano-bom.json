@@ -52,24 +52,24 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "v1.9.1-20230201200709-54d32c21",
+              "tag": "v1.9.1-20230206164429-e673ebef",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "v1.9.1-20230201200709-54d32c21",
+              "tag": "v1.9.1-20230206164429-e673ebef",
               "helmFullImageKey": "extraArgs[0]"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "v1.9.1-20230201200709-54d32c21",
+              "tag": "v1.9.1-20230206164429-e673ebef",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "v1.9.1-20230201200709-54d32c21",
+              "tag": "v1.9.1-20230206164429-e673ebef",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
