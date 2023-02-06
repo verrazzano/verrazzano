@@ -123,7 +123,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 				continue
 			}
 			// if the VZ state is not Ready, it must be Reconciling or Upgrading
-			// in either case, go right to installComponents
+			// in either case, go right to reconcileAllComponents
 			tracker.vzState = vzStateInstallComponents
 			r.beforeInstallComponents(spiCtx)
 
@@ -139,7 +139,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			return ctrl.Result{Requeue: true}, nil
 
 		case vzStateInstallComponents:
-			res, err := r.installComponents(spiCtx, tracker, preUpgrade)
+			res, err := r.reconcileAllComponents(spiCtx, tracker, preUpgrade)
 			if err != nil || res.Requeue {
 				return res, err
 			}

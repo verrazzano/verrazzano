@@ -74,11 +74,11 @@ func TestChooseCompState(t *testing.T) {
 	}
 }
 
-// TestReconcilerInstallSingleComponent tests installSingleComponent
+// TestReconcilerInstallSingleComponent tests reconcileSingleComponent
 //
 // GIVEN reconciler object
-// WHEN installSingleComponent is called
-// THEN corresponding action is take based on installSingleComponent state
+// WHEN reconcileSingleComponent is called
+// THEN corresponding action is take based on reconcileSingleComponent state
 //
 //	and Result of a Reconciler invocation is returned
 func TestReconcilerInstallSingleComponent(t *testing.T) {
@@ -189,8 +189,8 @@ func TestReconcilerInstallSingleComponent(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := newVerrazzanoReconciler(tt.k8sClient)
-			if got := r.installSingleComponent(tt.args.spiCtx, tt.args.installContext, tt.args.comp, tt.args.preUpgrade); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("installSingleComponent() = %v, want %v", got, tt.want)
+			if got := r.reconcileSingleComponent(tt.args.spiCtx, tt.args.installContext, tt.args.comp, tt.args.preUpgrade); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("reconcileSingleComponent() = %v, want %v", got, tt.want)
 			}
 		})
 	}

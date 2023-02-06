@@ -55,8 +55,8 @@ const (
 	compStateInstallEnd componentState = "compStateInstallEnd"
 )
 
-// installComponents will install the components as required
-func (r *Reconciler) installComponents(spiCtx spi.ComponentContext, tracker *installTracker, preUpgrade bool) (ctrl.Result, error) {
+// reconcileAllComponents will reconcile all the components as required
+func (r *Reconciler) reconcileAllComponents(spiCtx spi.ComponentContext, tracker *installTracker, preUpgrade bool) (ctrl.Result, error) {
 	spiCtx.Log().Progress("Installing components")
 
 	var requeue bool
@@ -64,7 +64,7 @@ func (r *Reconciler) installComponents(spiCtx spi.ComponentContext, tracker *ins
 	// Loop through all of the Verrazzano components and install each one
 	for _, comp := range registry.GetComponents() {
 		installContext := tracker.getComponentInstallContext(comp.Name())
-		if result := r.installSingleComponent(spiCtx, installContext, comp, preUpgrade); result.Requeue {
+		if result := r.reconcileSingleComponent(spiCtx, installContext, comp, preUpgrade); result.Requeue {
 			requeue = true
 		}
 
@@ -77,8 +77,8 @@ func (r *Reconciler) installComponents(spiCtx spi.ComponentContext, tracker *ins
 	return ctrl.Result{}, nil
 }
 
-// installSingleComponent installs a single component
-func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compStateContext *componentTrackerContext, comp spi.Component, preUpgrade bool) ctrl.Result {
+// reconcileSingleComponent reconciles a single component
+func (r *Reconciler) reconcileSingleComponent(spiCtx spi.ComponentContext, compStateContext *componentTrackerContext, comp spi.Component, preUpgrade bool) ctrl.Result {
 	compName := comp.Name()
 	compContext := spiCtx.Init(compName).Operation(vzconst.InstallOperation)
 	compLog := compContext.Log()
