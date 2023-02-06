@@ -147,7 +147,7 @@ STATES=()
 NOT_STATES=()
 MESSAGE=""
 COMMAND="describe"
-while getopts o:n:r:s:S:m:l:pc:h flag
+while getopts o:n:r:s:S:m:lpc:h flag
 do
     case "${flag}" in
         o) OBJECT_TYPE=${OPTARG};;
