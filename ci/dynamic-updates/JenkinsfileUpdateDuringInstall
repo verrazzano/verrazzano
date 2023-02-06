@@ -325,7 +325,7 @@ pipeline {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
                             yq -i eval '.spec.components.rancher.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-                            yq -i eval '.spec.components.dns.wildcard.domain = typodomain.io' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.dns.wildcard.domain = "typodomain.io"' ${INSTALL_CONFIG_FILE_KIND}
                             ${GO_REPO_PATH}/vz install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT}
                         """
                     }
@@ -738,11 +738,13 @@ def vzUpdateComponentsV1beta1(){
 
 def patchWildcardDNSDomain() {
     sh """
+        echo "WildcardDNS Configuration before patching:"
         kubectl get vz my-verrazzano -o yaml | grep 'domain'
 
         # change the Wildcard DNS domain
         kubectl patch vz my-verrazzano -p '{"spec":{"components":{"dns":{"wildcard":{"domain":"${params.WILDCARD_DNS_DOMAIN}"}}}}}' --type=merge
 
+        echo "WildcardDNSConfiguration after patching:"
         kubectl get vz my-verrazzano -o yaml | grep 'domain'
     """
 }
