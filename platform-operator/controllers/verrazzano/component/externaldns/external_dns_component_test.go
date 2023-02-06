@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package externaldns
@@ -92,7 +92,7 @@ func TestValidateUpdate(t *testing.T) {
 				},
 			},
 			new:     &vzapi.Verrazzano{},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name:    "no change",
@@ -112,7 +112,7 @@ func TestValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false, // For now, any changes to the DNS component are rejected
+			wantErr: false,
 		},
 		{
 			name: "oci-to-external",
@@ -136,7 +136,7 @@ func TestValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true, // For now, any changes to the DNS component are rejected
+			wantErr: false,
 		},
 		{
 			name: "oci-to-wildcard",
@@ -160,7 +160,7 @@ func TestValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true, // For now, any changes to the DNS component are rejected
+			wantErr: false,
 		},
 		{
 			name: "default-to-wildcard",
@@ -174,7 +174,7 @@ func TestValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false, // For now, any changes to the DNS component are rejected
+			wantErr: false,
 		},
 		{
 			name: "wildcard-to-wildcard",
@@ -196,7 +196,7 @@ func TestValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false, // For now, any changes to the DNS component are rejected
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -246,7 +246,7 @@ func TestValidateUpdateV1beta1(t *testing.T) {
 				},
 			},
 			new:     &v1beta1.Verrazzano{},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name:    "no change",
@@ -290,7 +290,7 @@ func TestValidateUpdateV1beta1(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true, // For now, any changes to the DNS component are rejected
+			wantErr: false,
 		},
 		{
 			name: "oci-to-wildcard",
@@ -314,7 +314,7 @@ func TestValidateUpdateV1beta1(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true, // For now, any changes to the DNS component are rejected
+			wantErr: false,
 		},
 		{
 			name: "default-to-wildcard",

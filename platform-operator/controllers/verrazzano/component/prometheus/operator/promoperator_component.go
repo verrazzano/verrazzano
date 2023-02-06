@@ -155,10 +155,12 @@ func (c prometheusComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	return c.validatePrometheusOperator(&convertedVZ)
 }
 
-// ValidateUpgrade verifies the upgrade of the Verrazzano object
+// ValidateUpdate verifies the upgrade of the Verrazzano object
 func (c prometheusComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+		if vzcr.IsPrometheusEnabled(new) {
+			return fmt.Errorf("disabling component %s is not allowed while %s is enabled", ComponentJSONName, prometheusName)
+		}
 	}
 	convertedVZ := installv1beta1.Verrazzano{}
 	if err := common.ConvertVerrazzanoCR(new, &convertedVZ); err != nil {
@@ -167,7 +169,7 @@ func (c prometheusComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 	return c.validatePrometheusOperator(&convertedVZ)
 }
 
-// ValidateInstall verifies the installation of the Verrazzano object
+// ValidateInstallV1Beta1 verifies the installation of the Verrazzano object
 func (c prometheusComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
 	if err := checkExistingCNEPrometheus(vz); err != nil {
 		return err
@@ -175,15 +177,17 @@ func (c prometheusComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzan
 	return c.validatePrometheusOperator(vz)
 }
 
-// ValidateUpgrade verifies the upgrade of the Verrazzano object
+// ValidateUpdateV1Beta1 verifies the upgrade of the Verrazzano object
 func (c prometheusComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+		if vzcr.IsPrometheusEnabled(new) {
+			return fmt.Errorf("disabling component %s is not allowed while %s is enabled", ComponentJSONName, prometheusName)
+		}
 	}
 	return c.validatePrometheusOperator(new)
 }
 
-// getIngressNames - gets the names of the ingresses associated with this component
+// GetIngressNames - gets the names of the ingresses associated with this component
 func (c prometheusComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var ingressNames []types.NamespacedName
 

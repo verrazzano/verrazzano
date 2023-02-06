@@ -180,7 +180,7 @@ func TestComponentValidatorImpl_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			numberOfErrors: 1,
+			numberOfErrors: 0,
 		},
 		{
 			name: disabledCertAndIngress,
@@ -197,7 +197,7 @@ func TestComponentValidatorImpl_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			numberOfErrors: 2,
+			numberOfErrors: 1,
 		},
 	}
 	config.TestProfilesDir = testProfilesDirectory
@@ -256,7 +256,7 @@ func TestComponentValidatorImpl_ValidateUpdateV1Beta1(t *testing.T) {
 					},
 				},
 			},
-			numberOfErrors: 1,
+			numberOfErrors: 0,
 		},
 		{
 
@@ -274,7 +274,7 @@ func TestComponentValidatorImpl_ValidateUpdateV1Beta1(t *testing.T) {
 					},
 				},
 			},
-			numberOfErrors: 2,
+			numberOfErrors: 1,
 		},
 	}
 
