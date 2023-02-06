@@ -142,9 +142,8 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 				return ctx.Log().ErrorfNewErr("Failed applying Yaml to create job %s/%s for component %s: %v", rancherCleanupJobNamespace, rancherCleanupJobName, ComponentName, err)
 			}
 			return ctx.Log().ErrorfNewErr("Component %s waiting for job %s/%s to start", ComponentName, rancherCleanupJobNamespace, rancherCleanupJobName)
-		} else {
-			return err
 		}
+		return err
 	}
 
 	// Re-queue if the job has not completed
