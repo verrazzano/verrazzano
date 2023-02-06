@@ -267,6 +267,9 @@ pipeline {
                 }
 
                 stage('Change the VZ CR during Keycloak Component Installation') {
+                    options {
+                        timeout(time: 30, unit: "MINUTES")
+                    }
                     steps {
                         sh """
                             while ! kubectl get vz
@@ -366,6 +369,9 @@ pipeline {
                 }
 
                 stage('Change the VZ CR during Rancher Component Installation') {
+                    options {
+                        timeout(time: 30, unit: "MINUTES")
+                    }
                     steps {
                         sh """
                             while ! kubectl get vz
@@ -739,12 +745,12 @@ def vzUpdateComponentsV1beta1(){
 def patchWildcardDNSDomain() {
     sh """
         echo "WildcardDNS Configuration before patching:"
-        kubectl get vz my-verrazzano -o yaml | grep 'domain'
+        kubectl get vz my-verrazzano -o yaml | grep 'domain:'
 
         # change the Wildcard DNS domain
         kubectl patch vz my-verrazzano -p '{"spec":{"components":{"dns":{"wildcard":{"domain":"${params.WILDCARD_DNS_DOMAIN}"}}}}}' --type=merge
 
         echo "WildcardDNSConfiguration after patching:"
-        kubectl get vz my-verrazzano -o yaml | grep 'domain'
+        kubectl get vz my-verrazzano -o yaml | grep 'domain:'
     """
 }
