@@ -68,7 +68,7 @@ pipeline {
             trim: true)
         string (
             name: "WORKER_NODE_COUNT",
-            defaultValue: '3',
+            defaultValue: '5',
             description: 'Number of OCNE worker nodes',
             trim: true)
         choice (
@@ -171,6 +171,7 @@ pipeline {
         TF_VAR_olcne_version="${params.OCNE_VERSION}"
         TF_VAR_s3_bucket_access_key=credentials('oci-s3-bucket-access-key')
         TF_VAR_s3_bucket_secret_key=credentials('oci-s3-bucket-secret-key')
+        TF_VAR_instance_shape="VM.Standard2.4"
 
         // OCI variables
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING='True'
