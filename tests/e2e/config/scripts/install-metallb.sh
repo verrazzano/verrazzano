@@ -16,11 +16,11 @@ kubectl apply -f metallb-native.yaml --wait=true
 kubectl wait --namespace metallb-system \
                 --for=condition=ready pod \
                 --selector=component=controller \
-                --timeout=600s
+                --timeout=1200s
 kubectl wait --namespace metallb-system \
                 --for=condition=ready pod \
                 --selector=component=speaker \
-                --timeout=600s
+                --timeout=1200s
 
 # Create the IPAddressPool for the cluster
 kubectl apply -f - <<-EOF
