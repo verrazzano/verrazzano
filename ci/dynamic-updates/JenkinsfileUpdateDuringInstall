@@ -128,6 +128,11 @@ pipeline {
 
         // how many nodes in the KIND cluster
         KIND_NODE_COUNT = 3
+
+        // MARCO: Environment variables I add
+        INSTALL_TIMEOUT = "30m"
+        VZ_INSTALL_FILE="${WORKSPACE}/acceptance-test-config.yaml"
+        TARGET_OPERATOR_FILE="${WORKSPACE}/acceptance-test-operator.yaml"
     }
 
     stages {
@@ -275,10 +280,10 @@ pipeline {
                                 echo "Waiting for keycloak/mysql statefuleset to be created..."
                                 sleep 15s
                             done
-
-                            # change the Wildcard DNS domain
-                            kubectl patch vz my-verrazzano -p '{"spec":{"components":{"dns":{"wildcard":{"domain":"${params.WILDCARD_DNS_DOMAIN}"}}}}}' --type=merge
                         """
+                        script {
+                            patchWildcardDNSDomain()
+                        }
                     }
                 }
             }
@@ -301,11 +306,10 @@ pipeline {
             }
         }
 
-        stage('Remove VZ Installation') {
+        stage('Uninstall Verrazzano') {
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano
-                    ci/scripts/cleanup_kind_clusters.sh ${CLUSTER_NAME} ${KUBECONFIG}
+                    ${GO_REPO_PATH}/vz uninstall --timeout 30m
                 """
             }
         }
@@ -321,7 +325,8 @@ pipeline {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
                             yq -i eval '.spec.components.rancher.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} "typodomain.io"
+                            yq -i eval '.spec.components.dns.wildcard.domain = typodomain.io' ${INSTALL_CONFIG_FILE_KIND}
+                            ${GO_REPO_PATH}/vz install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT}
                         """
                     }
                     post {
@@ -374,10 +379,10 @@ pipeline {
                                 echo "Waiting for bootstrap-secret Secret to be created..."
                                 sleep 1m
                             done
-
-                            # change the Wildcard DNS domain
-                            kubectl patch vz my-verrazzano -p '{"spec":{"components":{"dns":{"wildcard":{"domain":"${params.WILDCARD_DNS_DOMAIN}"}}}}}' --type=merge
                         """
+                        script {
+                            patchWildcardDNSDomain()
+                        }
                     }
                 }
             }
@@ -731,24 +736,13 @@ def vzUpdateComponentsV1beta1(){
     """
 }
 
-def scriptForPrepareATEnvironmentV1beta1(){
-
+def patchWildcardDNSDomain() {
     sh """
-        cd ${GO_REPO_PATH}/verrazzano
-        yq -i eval '.spec.components.ingressNGINX.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-        yq -i eval '.spec.components.opensearch.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-        yq -i eval '.spec.components.opensearchDashboards.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-        ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
-    """
-}
+        kubectl get vz my-verrazzano -o yaml | grep 'domain'
 
-def scriptForPrepareATEnvironmentV1alpha1(){
+        # change the Wildcard DNS domain
+        kubectl patch vz my-verrazzano -p '{"spec":{"components":{"dns":{"wildcard":{"domain":"${params.WILDCARD_DNS_DOMAIN}"}}}}}' --type=merge
 
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano
-        yq -i eval '.spec.components.ingress.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-        yq -i eval '.spec.components.elasticsearch.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-        yq -i eval '.spec.components.kibana.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-        ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+        kubectl get vz my-verrazzano -o yaml | grep 'domain'
     """
 }
