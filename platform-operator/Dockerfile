@@ -22,8 +22,7 @@ ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 
 # Use olcne15, which is required for kubectl
 # Use developer/olcne, which is required for stioctl/helm
-RUN yum update -y \
-    && yum install -y openssl wget \
+RUN yum install -y openssl wget \
     && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne15/x86_64/ \
     && yum install -y kubectl-1.23.11-1.el7 \
     && yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/olcne/x86_64 \

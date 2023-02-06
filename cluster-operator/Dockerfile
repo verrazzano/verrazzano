@@ -15,9 +15,9 @@ RUN chmod 500 /root/go/src/github.com/verrazzano/cluster-operator/scripts/wait4w
 # Create the verrazzano-cluster-operator image
 FROM ghcr.io/oracle/oraclelinux:7-slim
 
-RUN yum update -y \
-    && yum clean all \
-    && rm -rf /var/cache/yum
+#RUN yum update -y \
+#    && yum clean all \
+#    && rm -rf /var/cache/yum
 
 # Copy the operator binary
 WORKDIR /
