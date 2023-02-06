@@ -114,14 +114,13 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compSta
 				compStateContext.state = compStateInstallEnd
 				continue
 			}
-			isInstalled, err := comp.IsInstalled(compContext)
-			if err != nil {
-				compLog.ErrorfThrottled("Error checking component installed state: %v", err)
-				return ctrl.Result{Requeue: true}
-			}
-			if isInstalled && !comp.IsEnabled(compContext.EffectiveCR()) {
-				// start uninstall of a single component
-				compStateContext.state = compStateUninstallStart
+			if !comp.IsEnabled(compContext.EffectiveCR()) {
+				if isCurrentlyInstalled(compContext, comp) {
+					// Component is disabled from a Ready state, start uninstall of that single component
+					compStateContext.state = compStateUninstallStart
+					continue
+				}
+				compStateContext.state = compStateInstallEnd
 				continue
 			}
 			compStateContext.state = compStateWriteInstallStartedStatus
@@ -274,11 +273,8 @@ func chooseCompState(componentStatus *vzapi.ComponentStatusDetails) componentSta
 // skipComponentFromDetermineComponentState contains the logic about whether to go straight to the component terminal state from compStateInstallInitDetermineComponentState
 func skipComponentFromDetermineComponentState(compContext spi.ComponentContext, comp spi.Component, preUpgrade bool) bool {
 	if !comp.IsEnabled(compContext.EffectiveCR()) {
-		currentlyInstalled, err := comp.IsInstalled(compContext)
-		if err != nil {
-			return false
-		}
-		if currentlyInstalled {
+		if isCurrentlyInstalled(compContext, comp) {
+			compContext.Log().Oncef("Installed component %s has been disabled, uninstalling", comp.Name())
 			return false
 		}
 		compContext.Log().Oncef("Component %s is disabled, skipping install", comp.Name())
@@ -291,6 +287,15 @@ func skipComponentFromDetermineComponentState(compContext spi.ComponentContext, 
 	}
 
 	return false
+}
+
+func isCurrentlyInstalled(compContext spi.ComponentContext, comp spi.Component) bool {
+	currentlyInstalled, err := comp.IsInstalled(compContext)
+	if err != nil {
+		compContext.Log().ErrorfThrottled("Error checking installed state for component %s: %v", comp.Name(), err)
+		return false
+	}
+	return currentlyInstalled
 }
 
 // skipComponentFromDisabledState contains the logic about whether to go straight to the component terminal state from compStateInstallInitDisabled
