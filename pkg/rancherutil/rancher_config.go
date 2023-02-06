@@ -203,8 +203,8 @@ type TokenResponse struct {
 	Name  string `json:"name"`
 }
 
-// SetTokenTTL creates a user token with ttl (in minutes)
-func SetTokenTTL(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clusterID string) (string, string, error) {
+// CreateTokenWithTTL creates a user token with ttl (in minutes)
+func CreateTokenWithTTL(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clusterID string) (string, string, error) {
 	val, _ := strconv.Atoi(ttl)
 	payload := &Payload{
 		ClusterID: clusterID,
@@ -240,7 +240,7 @@ func SetTokenTTL(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clusterID s
 func GetTokenByName(rc *RancherConfig, log vzlog.VerrazzanoLogger, tokenName string) (*TokenAttrs, error) {
 	action := http.MethodGet
 	reqURL := rc.BaseURL + tokensPath + "/" + tokenName
-	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken, "Content-Type": "application/json"}
+	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
 
 	response, responseBody, err := SendRequest(action, reqURL, headers, "", rc, log)
 	if err != nil {

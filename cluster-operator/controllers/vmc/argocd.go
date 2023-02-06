@@ -8,11 +8,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
 	clusterapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/rancherutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -25,14 +27,14 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
-	clusterSecretName               = "cluster-secret"
+	clusterSecretName               = "argoCD-cluster-secret"
 	argocdClusterTokenTTLEnvVarName = "ARGOCD_CLUSTER_TOKEN_TTL" //nolint:gosec
 	createTimestamp                 = "verrazzano.io/create-timestamp"
 	expiresAtTimestamp              = "verrazzano.io/expires-at-timestamp"
+	clusterroletemplatebindingsPath = "/v3/clusterroletemplatebindings"
 )
 
 func (r *VerrazzanoManagedClusterReconciler) isArgoCDEnabled() (bool, error) {
@@ -76,38 +78,38 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 
 	// If the managed cluster is not active, we should not attempt to register in Argo CD
 	rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.log)
-	if err != nil || rc == nil {
+	if err != nil {
 		msg := "Could not create rancher config that authenticates with the admin user"
-		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr(msg+": %v", err)
+		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), err
 	}
 	isActive, err := isManagedClusterActiveInRancher(rc, clusterID, r.log)
 	if err != nil || !isActive {
 		msg := fmt.Sprintf("Waiting for managed cluster with id %s to become active before registering in Argo CD", clusterID)
-		return newArgoCDRegistration(clusterapi.RegistrationPendingRancher, msg), nil
+		return newArgoCDRegistration(clusterapi.RegistrationPendingRancher, msg), err
 	}
 
-	err = r.updateArgoCDClusterRoleBindingTemplate(vmc)
+	err = r.updateArgoCDClusterRoleBindingTemplate(rc, vmc)
 	if err != nil {
 		msg := "Failed to update Argo CD ClusterRoleBindingTemplate"
-		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr(msg+": %v", err)
+		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), err
 	}
 
-	err = r.createClusterSecret(vmc, clusterID, rancherURL)
+	err = r.createArgoCDClusterSecret(vmc, clusterID, rancherURL)
 	if err != nil {
 		msg := "Failed to create Argo CD cluster secret"
-		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to create cluster secret on admin cluster: %v", err)
+		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), err
 	}
 	msg := "Successfully registered managed cluster in ArgoCD"
 	return newArgoCDRegistration(clusterapi.MCRegistrationCompleted, msg), nil
 }
 
-// createClusterSecret registers cluster using the Rancher Proxy by creating a user in rancher, with api token and cluster roles set, and a secret containing Rancher proxy for the cluster
-func (r *VerrazzanoManagedClusterReconciler) createClusterSecret(vmc *clusterapi.VerrazzanoManagedCluster, clusterID, rancherURL string) error {
+// createArgoCDClusterSecret registers cluster with ArgoCD using the "vz-argoCD-reg" user and the Rancher proxy URL for the cluster
+func (r *VerrazzanoManagedClusterReconciler) createArgoCDClusterSecret(vmc *clusterapi.VerrazzanoManagedCluster, clusterID, rancherURL string) error {
 	r.log.Debugf("Configuring Rancher user for cluster registration in ArgoCD")
 
 	caCert, err := common.GetRootCA(r.Client)
 	if err != nil {
-		return err
+		return r.log.ErrorfNewErr("Fail to get the root CA certificate from the Rancher TLS secret: %v", err)
 	}
 	secret, err := r.getArgoCDClusterUserSecret()
 	if err != nil {
@@ -119,7 +121,7 @@ func (r *VerrazzanoManagedClusterReconciler) createClusterSecret(vmc *clusterapi
 	}
 
 	// create/update the cluster secret with the rancher config
-	err = r.createOrUpdateSecret(rc, vmc, rancherURL, clusterID, caCert)
+	err = r.createOrUpdateArgoCDSecret(rc, vmc, rancherURL, clusterID, caCert)
 	if err != nil {
 		return err
 	}
@@ -137,12 +139,12 @@ func (r *VerrazzanoManagedClusterReconciler) getArgoCDClusterUserSecret() (strin
 		Name:      vzconst.ArgoCDClusterRancherSecretName,
 	}
 	if err = r.Get(context.TODO(), nsName, secret); err != nil {
-		return "", err
+		return "", r.log.ErrorfNewErr("Failed to get the Argo CD secret: %v", err)
 	}
 	if pw, ok := secret.Data["password"]; ok {
 		return string(pw), nil
 	}
-	return "", err
+	return "", r.log.ErrorfNewErr("Failed to get password from Argo CD secret")
 }
 
 type TLSClientConfig struct {
@@ -155,19 +157,20 @@ type ArgoCDRancherConfig struct {
 	TLSClientConfig `json:"tlsClientConfig"`
 }
 
-func (r *VerrazzanoManagedClusterReconciler) createOrUpdateSecret(rc *rancherutil.RancherConfig, vmc *clusterapi.VerrazzanoManagedCluster, rancherURL, clusterID string, caData []byte) error {
+// createOrUpdateArgoCDSecret create or update the Argo CD cluster secret
+func (r *VerrazzanoManagedClusterReconciler) createOrUpdateArgoCDSecret(rc *rancherutil.RancherConfig, vmc *clusterapi.VerrazzanoManagedCluster, rancherURL, clusterID string, caData []byte) error {
 	var secret corev1.Secret
 	secret.Name = vmc.Name + "-" + clusterSecretName
 	secret.Namespace = constants.ArgoCDNamespace
 
 	// Create or update on the local cluster
 	_, err := controllerruntime.CreateOrUpdate(context.TODO(), r.Client, &secret, func() error {
-		return r.mutateClusterSecret(&secret, rc, vmc.Name, clusterID, rancherURL, caData)
+		return r.mutateArgoCDClusterSecret(&secret, rc, vmc.Name, clusterID, rancherURL, caData)
 	})
 	return err
 }
 
-func (r *VerrazzanoManagedClusterReconciler) mutateClusterSecret(secret *corev1.Secret, rc *rancherutil.RancherConfig, clusterID, cluserName string, rancherURL string, caData []byte) error {
+func (r *VerrazzanoManagedClusterReconciler) mutateArgoCDClusterSecret(secret *corev1.Secret, rc *rancherutil.RancherConfig, clusterID, cluserName string, rancherURL string, caData []byte) error {
 	token := rc.APIAccessToken
 	if secret.Annotations == nil {
 		secret.Annotations = map[string]string{}
@@ -193,7 +196,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateClusterSecret(secret *corev1.
 	if createNewToken {
 		// Obtain a new token with ttl set using bearer token obtained
 		ttl := os.Getenv(argocdClusterTokenTTLEnvVarName)
-		newToken, tokenName, err := rancherutil.SetTokenTTL(rc, r.log, ttl, clusterID)
+		newToken, tokenName, err := rancherutil.CreateTokenWithTTL(rc, r.log, ttl, clusterID)
 		if err != nil {
 			return err
 		}
@@ -224,6 +227,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateClusterSecret(secret *corev1.
 	}
 	data, err := json.Marshal(rancherConfig)
 	if err != nil {
+		r.log.ErrorfNewErr("Failed to encode Argo CD rancher config object: %v", err)
 		return err
 	}
 	secret.StringData["config"] = string(data)
@@ -231,9 +235,9 @@ func (r *VerrazzanoManagedClusterReconciler) mutateClusterSecret(secret *corev1.
 	return nil
 }
 
-// updateRancherClusterRoleBindingTemplate creates a new ClusterRoleBindingTemplate for the given VMC
+// updateArgoCDClusterRoleBindingTemplate invokes Rancher API creates a new ClusterRoleBindingTemplate for the given VMC
 // to grant the Verrazzano argocd cluster user correct permission on the managed cluster
-func (r *VerrazzanoManagedClusterReconciler) updateArgoCDClusterRoleBindingTemplate(vmc *clusterapi.VerrazzanoManagedCluster) error {
+func (r *VerrazzanoManagedClusterReconciler) updateArgoCDClusterRoleBindingTemplate(rc *rancherutil.RancherConfig, vmc *clusterapi.VerrazzanoManagedCluster) error {
 	if vmc == nil {
 		r.log.Debugf("Empty VMC, no ClusterRoleBindingTemplate created")
 		return nil
@@ -245,25 +249,23 @@ func (r *VerrazzanoManagedClusterReconciler) updateArgoCDClusterRoleBindingTempl
 		return err
 	}
 
-	name := fmt.Sprintf("crtb-argocd-%s", clusterID)
-	nsn := types.NamespacedName{Name: name, Namespace: clusterID}
-	resource := unstructured.Unstructured{}
-	resource.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   APIGroupRancherManagement,
-		Version: APIGroupVersionRancherManagement,
-		Kind:    ClusterRoleTemplateBindingKind,
-	})
-	resource.SetName(nsn.Name)
-	resource.SetNamespace(nsn.Namespace)
-	_, err = controllerutil.CreateOrUpdate(context.TODO(), r.Client, &resource, func() error {
-		data := resource.UnstructuredContent()
-		data[ClusterRoleTemplateBindingAttributeClusterName] = clusterID
-		data[ClusterRoleTemplateBindingAttributeUserName] = userID
-		data[ClusterRoleTemplateBindingAttributeRoleTemplateName] = "cluster-owner"
-		return nil
-	})
+	action := http.MethodPost
+	payloadData := map[string]string{
+		"userId":         userID,
+		"roleTemplateId": "cluster-owner",
+		"clusterId":      clusterID,
+	}
+	payload, err := json.Marshal(payloadData)
+	reqURL := rc.BaseURL + clusterroletemplatebindingsPath
+	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken, "Content-Type": "application/json"}
+
+	response, _, err := rancherutil.SendRequest(action, reqURL, headers, string(payload), rc, r.log)
 	if err != nil {
-		return r.log.ErrorfThrottledNewErr("Failed configuring %s %s: %v", ClusterRoleTemplateBindingKind, nsn.Name, err)
+		return err
+	}
+	err = httputil.ValidateResponseCode(response, http.StatusCreated)
+	if err != nil {
+		return r.log.ErrorfThrottledNewErr("Failed configuring Argo CD user cluster role template bindings: %v", err)
 	}
 	return nil
 }
@@ -276,7 +278,7 @@ func (r *VerrazzanoManagedClusterReconciler) getArgoCDClusterUserID() (string, e
 		Version: APIGroupVersionRancherManagement,
 		Kind:    UserListKind,
 	})
-	err := r.Client.List(context.TODO(), &usersList, &client.ListOptions{})
+	err := r.List(context.TODO(), &usersList, &client.ListOptions{})
 	if err != nil {
 		return "", r.log.ErrorfNewErr("Failed to list Rancher Users: %v", err)
 	}
@@ -298,7 +300,7 @@ func (r *VerrazzanoManagedClusterReconciler) unregisterClusterFromArgoCD(ctx con
 		},
 	}
 	if err := r.Delete(context.TODO(), &clusterSec); client.IgnoreNotFound(err) != nil {
-		return r.log.ErrorfNewErr("Failed to delete Argo CD cluster secret", err)
+		return r.log.ErrorfNewErr("Failed to delete Argo CD cluster secret: %v", err)
 	}
 
 	return nil

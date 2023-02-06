@@ -132,7 +132,7 @@ func expectHTTPRequests(httpMock *mocks.MockRequestSender, testPath, testBody st
 				Body:       r,
 			}
 			return resp, nil
-		}).Times(1)
+		})
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {

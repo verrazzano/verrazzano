@@ -238,18 +238,18 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 	}
 	if argoCDEnabled && rancherEnabled {
 		argoCDRegistration, err = r.registerManagedClusterWithArgoCD(vmc)
-		vmc.Status.ArgoCDRegistration = *argoCDRegistration
 		if err != nil {
 			r.handleError(ctx, vmc, "Failed to register managed cluster with Argo CD", err, log)
 			return newRequeueWithDelay(), err
 		}
+		vmc.Status.ArgoCDRegistration = *argoCDRegistration
 	}
 	if !rancherEnabled && argoCDEnabled {
 		now := metav1.Now()
 		vmc.Status.ArgoCDRegistration = clustersv1alpha1.ArgoCDRegistration{
 			Status:    clustersv1alpha1.RegistrationPendingRancher,
 			Timestamp: &now,
-			Message:   "Waiting for Rancher managed cluster to become active"}
+			Message:   "Skipping Argo CD cluster registration due to Rancher not installed"}
 	}
 
 	r.setStatusConditionReady(vmc, "Ready")
