@@ -74,7 +74,7 @@ function dump_objects() {
     log "========================================================"
     if [ "$command" == "describe" ] ; then
       kubectl "${command}" "${type}" "${object}" -n "${namespace}"
-    elif [ "$command" == "logs" ] ; then
+    elif [ "$command" == "logs" ] || [ "$command" == "logs -p" ]; then
       if [ -z "$container" ] ; then
         kubectl "${command}" "${object}" -n "${namespace}"
       else
@@ -141,7 +141,7 @@ STATES=()
 NOT_STATES=()
 MESSAGE=""
 COMMAND="describe"
-while getopts o:n:r:s:S:m:lpc:h flag
+while getopts o:n:r:s:S:m:l:pc:h flag
 do
     case "${flag}" in
         o) OBJECT_TYPE=${OPTARG};;
