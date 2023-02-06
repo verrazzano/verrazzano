@@ -88,7 +88,7 @@ const (
 type RancherRegistration struct {
 	// The Rancher cluster ID for this cluster.
 	ClusterID string `json:"clusterID,omitempty"`
-	// A supporting message related to the Rancher registration status.
+	// A supporting message related to the Argo CD registration status.
 	// +optional
 	Message string `json:"message,omitempty"`
 	// The status of the Rancher registration.
