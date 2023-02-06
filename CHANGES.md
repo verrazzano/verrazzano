@@ -1,3 +1,10 @@
+### v1.4.4
+Fixes:
+
+- Fixed IngressTrait JWT related issues to allow multiple paths where one path has requestPrincipals and the other doesn't.
+- Fixed IngressTrait JWT so that requestPrincipals with no paths are allowed.
+- Fixed IngressTrait related AuthorizationPolicy cleanup when application is deleted.
+
 ### v1.4.3
 Fixes:
 
