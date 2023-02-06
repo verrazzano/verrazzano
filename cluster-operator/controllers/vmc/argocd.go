@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	clusterSecretName               = "argoCD-cluster-secret"    //nolint:gosec
+	clusterSecretName               = "argocd-cluster-secret"    //nolint:gosec
 	argocdClusterTokenTTLEnvVarName = "ARGOCD_CLUSTER_TOKEN_TTL" //nolint:gosec
 	createTimestamp                 = "verrazzano.io/create-timestamp"
 	expiresAtTimestamp              = "verrazzano.io/expires-at-timestamp"
