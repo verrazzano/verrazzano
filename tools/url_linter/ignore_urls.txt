@@ -1,4 +1,4 @@
-# Copyright (C) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (C) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 # Test, example, in-cluster URLs, etc...
@@ -45,6 +45,7 @@ https://verrazzano.example.com
 https://verrazzano.xyz.nip.io
 https://kiali.vmi.system
 https://jaeger
+https://docs.docker.com/get-docker/
 
 # Partial URLs (ie: things that get substitutions at runtime that result in valid URLs)
 https://api.github.com/repos/jetstack/cert-manager/tags
