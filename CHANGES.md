@@ -40,6 +40,9 @@ Fixes:
 - Rancher upgrade intermittently fails with errors stating that the available chart version is less than the minimum chart version for Rancher system charts.
 - Fixed Fluentd configuration to prevent duplication of logs in OpenSearch on Fluentd restarts or upgrade.
 - Fixed i/o timeout errors installing Verrazzano on a RKE2 cluster.
+- Fixed IngressTrait JWT related issues to allow multiple paths where one path has requestPrincipals and the other doesn't.
+- Fixed IngressTrait JWT so that requestPrincipals with no paths are allowed.
+- Fixed IngressTrait related AuthorizationPolicy cleanup when application is deleted.
 
 ### v1.4.0
 Features:
