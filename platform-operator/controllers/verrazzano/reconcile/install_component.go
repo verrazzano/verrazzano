@@ -121,7 +121,7 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compSta
 			}
 			if isInstalled && !comp.IsEnabled(compContext.EffectiveCR()) {
 				// start uninstall of a single component
-				compStateContext.state = componentState(compStateUninstallStart)
+				compStateContext.state = compStateUninstallStart
 				continue
 			}
 			compStateContext.state = compStateWriteInstallStartedStatus
@@ -197,11 +197,7 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compSta
 
 			compStateContext.state = compStateInstallEnd
 
-		case compStateUninstallStart:
-		case compStatePreUninstall:
-		case compStateUninstall:
-		case compStateWaitUninstalled:
-		case compStateUninstalleDone:
+		case compStateUninstallStart, compStatePreUninstall, compStateUninstall, compStateWaitUninstalled, compStateUninstalleDone:
 			// Delegates the component uninstall work to
 			result, err := r.uninstallSingleComponent(compContext, compStateContext, comp)
 			if err != nil || result.Requeue {
@@ -278,6 +274,13 @@ func chooseCompState(componentStatus *vzapi.ComponentStatusDetails) componentSta
 // skipComponentFromDetermineComponentState contains the logic about whether to go straight to the component terminal state from compStateInstallInitDetermineComponentState
 func skipComponentFromDetermineComponentState(compContext spi.ComponentContext, comp spi.Component, preUpgrade bool) bool {
 	if !comp.IsEnabled(compContext.EffectiveCR()) {
+		currentlyInstalled, err := comp.IsInstalled(compContext)
+		if err != nil {
+			return false
+		}
+		if currentlyInstalled {
+			return false
+		}
 		compContext.Log().Oncef("Component %s is disabled, skipping install", comp.Name())
 		// User has disabled component in Verrazzano CR, don't install
 		return true
