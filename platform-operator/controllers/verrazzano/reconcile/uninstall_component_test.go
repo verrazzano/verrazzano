@@ -24,13 +24,13 @@ import (
 func TestReconcilerUninstallSingleComponent(t *testing.T) {
 	type args struct {
 		spiCtx           spi.ComponentContext
-		UninstallContext *componentUninstallContext
+		UninstallContext *componentTrackerContext
 		comp             spi.Component
 	}
-	compContext := &componentUninstallContext{
+	compContext := &componentTrackerContext{
 		state: compStateUninstallStart,
 	}
-	compCtxWithUninstall := &componentUninstallContext{
+	compCtxWithUninstall := &componentTrackerContext{
 		state: compStateUninstall,
 	}
 

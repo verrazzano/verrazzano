@@ -18,6 +18,11 @@ import (
 // componentState represents the state of a component
 type componentState string
 
+// componentTrackerContext has the state context for a Verrazzano component used in the in-memory trackers
+type componentTrackerContext struct {
+	state componentState
+}
+
 const (
 	// compStateInstallInitDetermineComponentState is the state when a component is initialized
 	compStateInstallInitDetermineComponentState componentState = "componentStateInit"
@@ -50,11 +55,6 @@ const (
 	compStateInstallEnd componentState = "compStateInstallEnd"
 )
 
-// componentInstallContext has the install context for a Verrazzano component install
-type componentInstallContext struct {
-	state componentState
-}
-
 // installComponents will install the components as required
 func (r *Reconciler) installComponents(spiCtx spi.ComponentContext, tracker *installTracker, preUpgrade bool) (ctrl.Result, error) {
 	spiCtx.Log().Progress("Installing components")
@@ -78,7 +78,7 @@ func (r *Reconciler) installComponents(spiCtx spi.ComponentContext, tracker *ins
 }
 
 // installSingleComponent installs a single component
-func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, installContext *componentInstallContext, comp spi.Component, preUpgrade bool) ctrl.Result {
+func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, installContext *componentTrackerContext, comp spi.Component, preUpgrade bool) ctrl.Result {
 	compName := comp.Name()
 	compContext := spiCtx.Init(compName).Operation(vzconst.InstallOperation)
 	compLog := compContext.Log()
@@ -203,15 +203,10 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 		case compStateWaitUninstalled:
 		case compStateUninstalleDone:
 			// Delegates the uninstall work to
-			nextUninstallState, err := r.executeComponentUninstallState(compContext, comp, installContext.state)
-			if err != nil {
-				if !ctrlerrors.IsRetryableError(err) {
-					compLog.ErrorfThrottled("Error running PreInstall for component %s: %v", compName, err)
-				}
+			result, err := r.uninstallSingleComponent(compContext, installContext, comp)
+			if err != nil || result.Requeue {
 				return ctrl.Result{Requeue: true}
 			}
-			installContext.state = componentState(nextUninstallState)
-
 		}
 
 	}
@@ -255,10 +250,10 @@ func isVersionOk(log vzlog.VerrazzanoLogger, compVersion string, vzVersion strin
 }
 
 // getComponentInstallContext gets the install context for the component
-func (vuc *installTracker) getComponentInstallContext(compName string) *componentInstallContext {
+func (vuc *installTracker) getComponentInstallContext(compName string) *componentTrackerContext {
 	context, ok := vuc.compMap[compName]
 	if !ok {
-		context = &componentInstallContext{
+		context = &componentTrackerContext{
 			state: compStateInstallInitDetermineComponentState,
 		}
 		vuc.compMap[compName] = context

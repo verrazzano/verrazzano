@@ -84,23 +84,23 @@ func TestChooseCompState(t *testing.T) {
 func TestReconcilerInstallSingleComponent(t *testing.T) {
 	type args struct {
 		spiCtx         spi.ComponentContext
-		installContext *componentInstallContext
+		installContext *componentTrackerContext
 		comp           spi.Component
 		preUpgrade     bool
 	}
-	compContext := &componentInstallContext{
+	compContext := &componentTrackerContext{
 		state: compStateInstallInitDisabled,
 	}
-	compCtxWithPreInstall := &componentInstallContext{
+	compCtxWithPreInstall := &componentTrackerContext{
 		state: compStatePreInstall,
 	}
-	compCtxWithInstall := &componentInstallContext{
+	compCtxWithInstall := &componentTrackerContext{
 		state: compStateInstall,
 	}
-	compCtxWithWait := &componentInstallContext{
+	compCtxWithWait := &componentTrackerContext{
 		state: compStateInstallWaitReady,
 	}
-	compCtxWithPostInstall := &componentInstallContext{
+	compCtxWithPostInstall := &componentTrackerContext{
 		state: compStatePostInstall,
 	}
 

@@ -39,11 +39,6 @@ const (
 	compStateUpgradeEnd componentState = "compStateEnd"
 )
 
-// componentUpgradeContext has the upgrade context for a Verrazzano component upgrade
-type componentUpgradeContext struct {
-	state componentState
-}
-
 // upgradeComponents will upgrade the components as required
 func (r *Reconciler) upgradeComponents(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, tracker *upgradeTracker) (ctrl.Result, error) {
 	spiCtx, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
@@ -66,7 +61,7 @@ func (r *Reconciler) upgradeComponents(log vzlog.VerrazzanoLogger, cr *installv1
 }
 
 // upgradeSingleComponent upgrades a single component
-func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgradeContext *componentUpgradeContext, comp spi.Component) (ctrl.Result, error) {
+func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgradeContext *componentTrackerContext, comp spi.Component) (ctrl.Result, error) {
 	compName := comp.Name()
 	compContext := spiCtx.Init(compName).Operation(vzconst.UpgradeOperation)
 	compLog := compContext.Log()
@@ -139,10 +134,10 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 }
 
 // getComponentUpgradeContext gets the upgrade context for the component
-func (vuc *upgradeTracker) getComponentUpgradeContext(compName string) *componentUpgradeContext {
+func (vuc *upgradeTracker) getComponentUpgradeContext(compName string) *componentTrackerContext {
 	context, ok := vuc.compMap[compName]
 	if !ok {
-		context = &componentUpgradeContext{
+		context = &componentTrackerContext{
 			state: compStateUpgradeInit,
 		}
 		vuc.compMap[compName] = context
