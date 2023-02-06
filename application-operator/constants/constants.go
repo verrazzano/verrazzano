@@ -50,6 +50,9 @@ const LabelIstioInjectionDefault = "enabled"
 // LabelWorkloadType - the type of workload, such as WebLogic
 const LabelWorkloadType = "verrazzano.io/workload-type"
 
+// LabelIngressTraitNsn - Namespaced name of the ingress trait
+const LabelIngressTraitNsn = "verrazzano.io/ingress-trait"
+
 // WorkloadTypeWeblogic indicates the workload is WebLogic
 const WorkloadTypeWeblogic = "weblogic"
 

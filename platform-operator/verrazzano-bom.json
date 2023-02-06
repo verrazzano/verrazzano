@@ -219,7 +219,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.5.0-20230202153144-70274a5",
+              "tag": "v1.5.0-20230202214233-6d3523c",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -241,12 +241,12 @@
             {
               "image": "opensearch",
               "tag": "2.3.0-20230123213036-bd387046f04",
-              "helmFullImageKey": "monitoringOperator.esImage"
+              "helmFullImageKey": "monitoringOperator.osImage"
             },
             {
               "image": "opensearch-dashboards",
               "tag": "2.3.0-20230124171546-f9e6353395",
-              "helmFullImageKey": "monitoringOperator.kibanaImage"
+              "helmFullImageKey": "monitoringOperator.osdImage"
             },
             {
               "image": "nginx-ingress-controller",
@@ -266,13 +266,8 @@
           "images": [
             {
               "image": "oraclelinux",
-              "tag": "8-slim",
-              "helmFullImageKey": "monitoringOperator.prometheusInitImage"
-            },
-            {
-              "image": "oraclelinux",
               "tag": "8",
-              "helmFullImageKey": "monitoringOperator.esInitImage"
+              "helmFullImageKey": "monitoringOperator.osInitImage"
             }
           ]
         }
@@ -450,7 +445,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v20.0.1-20230125030008-7d38fe3025",
+              "tag": "v20.0.1-20230203135118-215619ca63",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
