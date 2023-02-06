@@ -120,7 +120,7 @@ function join_by() {
 # usage
 function usage {
     error
-    error "usage: $0 -o object_type -n namespace -m message [-r name_regex] [-s state] [-S not_state] [-l] [-c container] [-h]"
+    error "usage: $0 -o object_type -n namespace -m message [-r name_regex] [-s state] [-S not_state] [-l] [-p] [-c container] [-h]"
     error " -o object_type   Type of the object (i.e. namespaces, pods, jobs, etc)"
     error " -n namespace     Namespace of the given object type"
     error " -r name_regex    Regex to retrieve certain objects by name (Optional)"
@@ -128,6 +128,7 @@ function usage {
     error " -S not_state     Specified state that the described object should not be in (Multiple values allowed) (Optional)"
     error " -m message       Message for the diagnostic header to inform on cause of output"
     error " -l               Retrieve logs for specified object"
+    error " -p               Retrieve previous logs for specified object"
     error " -c container     Container in which to pull logs from"
     error " -h               Help"
     error
@@ -140,7 +141,7 @@ STATES=()
 NOT_STATES=()
 MESSAGE=""
 COMMAND="describe"
-while getopts o:n:r:s:S:m:lc:h flag
+while getopts o:n:r:s:S:m:lpc:h flag
 do
     case "${flag}" in
         o) OBJECT_TYPE=${OPTARG};;
@@ -150,6 +151,7 @@ do
         S) NOT_STATES+=("${OPTARG}");;
         m) MESSAGE=${OPTARG};;
         l) COMMAND="logs";;
+        p) COMMAND="logs -p";;
         c) CONTAINER="${OPTARG}";;
         h) usage;;
         *) usage;;
