@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	clusterSecretName               = "argoCD-cluster-secret"
+	clusterSecretName               = "argoCD-cluster-secret"    //nolint:gosec
 	argocdClusterTokenTTLEnvVarName = "ARGOCD_CLUSTER_TOKEN_TTL" //nolint:gosec
 	createTimestamp                 = "verrazzano.io/create-timestamp"
 	expiresAtTimestamp              = "verrazzano.io/expires-at-timestamp"
@@ -67,11 +67,11 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), err
 	}
 	if vz.Status.VerrazzanoInstance == nil {
-		msg := "No instance information found in Verrazzano resource status"
+		msg := "Failed to find instance information in Verrazzano resource status"
 		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to find instance information in Verrazzano resource status")
 	}
 	if vz.Status.VerrazzanoInstance.RancherURL == nil {
-		msg := "No Rancher URL found in Verrazzano resource status"
+		msg := "Failed to find Rancher URL in Verrazzano resource status"
 		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), r.log.ErrorfNewErr("Unable to find Rancher URL in Verrazzano resource status")
 	}
 	var rancherURL = *(vz.Status.VerrazzanoInstance.RancherURL) + k8sClustersPath + clusterID
@@ -256,6 +256,9 @@ func (r *VerrazzanoManagedClusterReconciler) updateArgoCDClusterRoleBindingTempl
 		"clusterId":      clusterID,
 	}
 	payload, err := json.Marshal(payloadData)
+	if err != nil {
+		return r.log.ErrorfNewErr("Failed to encode payload object: %v", err)
+	}
 	reqURL := rc.BaseURL + clusterroletemplatebindingsPath
 	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken, "Content-Type": "application/json"}
 
