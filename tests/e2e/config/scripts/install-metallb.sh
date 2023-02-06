@@ -12,8 +12,9 @@ ADDRESS_RANGE=${1:-"172.18.0.230-172.18.0.254"}
 wget https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml
 sed -i "s|log-level=info|log-level=debug|g" metallb-native.yaml
 kubectl apply -f metallb-native.yaml --wait=true
-# Wait for the controller and webhook to become available
+# Wait for the controller. webhook, and speaker to become available
 kubectl  rollout status deployment -n metallb-system  controller -w
+kubectl  rollout status daemonset -n metallb-system  speaker -w
 
 # Create the IPAddressPool for the cluster
 kubectl apply -f - <<-EOF
