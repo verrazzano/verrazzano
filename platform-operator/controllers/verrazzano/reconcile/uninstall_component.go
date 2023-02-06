@@ -63,7 +63,7 @@ func (r *Reconciler) uninstallComponents(log vzlog.VerrazzanoLogger, cr *v1alpha
 }
 
 // UninstallSingleComponent Uninstalls a single component
-func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, UninstallContext *componentTrackerContext, comp spi.Component) (ctrl.Result, error) {
+func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, compStateContext *componentTrackerContext, comp spi.Component) (ctrl.Result, error) {
 	compName := comp.Name()
 	compContext := spiCtx.Init(compName).Operation(vzconst.UninstallOperation)
 	compLog := compContext.Log()
@@ -72,17 +72,17 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 		return ctrl.Result{}, err
 	}
 
-	for UninstallContext.state != compStateUninstallEnd {
-		switch UninstallContext.state {
+	for compStateContext.state != compStateUninstallEnd {
+		switch compStateContext.state {
 		case compStateUninstallStart:
 			// Check if operator based uninstall is supported
 			if !comp.IsOperatorUninstallSupported() {
-				UninstallContext.state = compStateUninstallEnd
+				compStateContext.state = compStateUninstallEnd
 				continue
 			}
 			if comp.Name() == rancher.ComponentName && rancherProvisioned {
 				compLog.Oncef("Cluster was provisioned by Rancher. Component %s will not be uninstalled.", rancher.ComponentName)
-				UninstallContext.state = compStateUninstallEnd
+				compStateContext.state = compStateUninstallEnd
 				continue
 			}
 			// Check if component is installed, if not continue
@@ -93,14 +93,14 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 			}
 			if !installed {
 				compLog.Oncef("Component %s is not installed, nothing to do for uninstall", compName)
-				UninstallContext.state = compStateUninstallEnd
+				compStateContext.state = compStateUninstallEnd
 				continue
 			}
 			if err := r.updateComponentStatus(compContext, "Uninstall started", v1alpha1.CondUninstallStarted); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
 			compLog.Oncef("Component %s is starting to uninstall", compName)
-			UninstallContext.state = compStatePreUninstall
+			compStateContext.state = compStatePreUninstall
 
 		case compStatePreUninstall:
 			compLog.Oncef("Component %s is calling pre-uninstall", compName)
@@ -108,7 +108,7 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 				// Components will log errors, could be waiting for condition
 				return ctrl.Result{}, err
 			}
-			UninstallContext.state = compStateUninstall
+			compStateContext.state = compStateUninstall
 
 		case compStateUninstall:
 			compLog.Progressf("Component %s is calling uninstall", compName)
@@ -118,7 +118,7 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 				}
 				return ctrl.Result{}, err
 			}
-			UninstallContext.state = compStateWaitUninstalled
+			compStateContext.state = compStateWaitUninstalled
 
 		case compStateWaitUninstalled:
 			installed, err := comp.IsInstalled(compContext)
@@ -137,14 +137,14 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 				}
 				return newRequeueWithDelay(), nil
 			}
-			UninstallContext.state = compStateUninstalleDone
+			compStateContext.state = compStateUninstalleDone
 
 		case compStateUninstalleDone:
 			if err := r.updateComponentStatus(compContext, "Uninstall complete", v1alpha1.CondUninstallComplete); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
 			compLog.Oncef("Component %s has successfully uninstalled", compName)
-			UninstallContext.state = compStateUninstallEnd
+			compStateContext.state = compStateUninstallEnd
 		}
 	}
 	// Component has been Uninstalled

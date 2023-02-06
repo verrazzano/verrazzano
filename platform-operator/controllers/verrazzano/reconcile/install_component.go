@@ -78,7 +78,7 @@ func (r *Reconciler) installComponents(spiCtx spi.ComponentContext, tracker *ins
 }
 
 // installSingleComponent installs a single component
-func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, installContext *componentTrackerContext, comp spi.Component, preUpgrade bool) ctrl.Result {
+func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compStateContext *componentTrackerContext, comp spi.Component, preUpgrade bool) ctrl.Result {
 	compName := comp.Name()
 	compContext := spiCtx.Init(compName).Operation(vzconst.InstallOperation)
 	compLog := compContext.Log()
@@ -86,32 +86,32 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 	componentStatus, ok := spiCtx.ActualCR().Status.Components[comp.Name()]
 	if !ok {
 		compLog.Debugf("Did not find status details in map for component %s", comp.Name())
-		installContext.state = compStateInstallEnd
+		compStateContext.state = compStateInstallEnd
 	}
 
-	for installContext.state != compStateInstallEnd && installContext.state != componentState(compStateUninstallEnd) {
-		switch installContext.state {
+	for compStateContext.state != compStateInstallEnd && compStateContext.state != componentState(compStateUninstallEnd) {
+		switch compStateContext.state {
 		case compStateInstallInitDetermineComponentState:
 			compLog.Debugf("Component %s is being reconciled", compName)
 
 			if skipComponentFromDetermineComponentState(compContext, comp, preUpgrade) {
-				installContext.state = compStateInstallEnd
+				compStateContext.state = compStateInstallEnd
 				continue
 			}
 
 			// Determine the next state based on the component status state
-			installContext.state = chooseCompState(componentStatus)
+			compStateContext.state = chooseCompState(componentStatus)
 
 		case compStateInstallInitDisabled:
 			if skipComponentFromDisabledState(compContext, comp, preUpgrade) {
-				installContext.state = compStateInstallEnd
+				compStateContext.state = compStateInstallEnd
 				continue
 			}
-			installContext.state = compStateWriteInstallStartedStatus
+			compStateContext.state = compStateWriteInstallStartedStatus
 
 		case compStateInstallInitReady:
 			if skipComponentFromReadyState(compContext, comp, componentStatus) {
-				installContext.state = compStateInstallEnd
+				compStateContext.state = compStateInstallEnd
 				continue
 			}
 			isInstalled, err := comp.IsInstalled(compContext)
@@ -121,10 +121,10 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 			}
 			if isInstalled && !comp.IsEnabled(compContext.EffectiveCR()) {
 				// start uninstall of a single component
-				installContext.state = componentState(compStateUninstallStart)
+				compStateContext.state = componentState(compStateUninstallStart)
 				continue
 			}
-			installContext.state = compStateWriteInstallStartedStatus
+			compStateContext.state = compStateWriteInstallStartedStatus
 
 		case compStateWriteInstallStartedStatus:
 			oldState := componentStatus.State
@@ -137,7 +137,7 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 			compLog.Oncef("CR.generation: %v reset component %s state: %v generation: %v to state: %v generation: %v ",
 				spiCtx.ActualCR().Generation, compName, oldState, oldGen, componentStatus.State, componentStatus.ReconcilingGeneration)
 
-			installContext.state = compStatePreInstall
+			compStateContext.state = compStatePreInstall
 
 		case compStatePreInstall:
 			if !registry.ComponentDependenciesMet(comp, compContext) {
@@ -153,7 +153,7 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 				return ctrl.Result{Requeue: true}
 			}
 
-			installContext.state = compStateInstall
+			compStateContext.state = compStateInstall
 
 		case compStateInstall:
 			// If component is not installed,install it
@@ -166,7 +166,7 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 				return ctrl.Result{Requeue: true}
 			}
 
-			installContext.state = compStateInstallWaitReady
+			compStateContext.state = compStateInstallWaitReady
 
 		case compStateInstallWaitReady:
 			if !comp.IsReady(compContext) {
@@ -175,7 +175,7 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 			}
 			compLog.Oncef("Component %s successfully installed", comp.Name())
 
-			installContext.state = compStatePostInstall
+			compStateContext.state = compStatePostInstall
 
 		case compStatePostInstall:
 			compLog.Oncef("Component %s post-install running", compName)
@@ -187,7 +187,7 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 				return ctrl.Result{Requeue: true}
 			}
 
-			installContext.state = compStateInstallComplete
+			compStateContext.state = compStateInstallComplete
 
 		case compStateInstallComplete:
 			if err := r.updateComponentStatus(compContext, "Install complete", vzapi.CondInstallComplete); err != nil {
@@ -195,15 +195,15 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 				return ctrl.Result{Requeue: true}
 			}
 
-			installContext.state = compStateInstallEnd
+			compStateContext.state = compStateInstallEnd
 
 		case compStateUninstallStart:
 		case compStatePreUninstall:
 		case compStateUninstall:
 		case compStateWaitUninstalled:
 		case compStateUninstalleDone:
-			// Delegates the uninstall work to
-			result, err := r.uninstallSingleComponent(compContext, installContext, comp)
+			// Delegates the component uninstall work to
+			result, err := r.uninstallSingleComponent(compContext, compStateContext, comp)
 			if err != nil || result.Requeue {
 				return ctrl.Result{Requeue: true}
 			}
