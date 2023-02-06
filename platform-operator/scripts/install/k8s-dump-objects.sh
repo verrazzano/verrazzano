@@ -74,11 +74,17 @@ function dump_objects() {
     log "========================================================"
     if [ "$command" == "describe" ] ; then
       kubectl "${command}" "${type}" "${object}" -n "${namespace}"
-    elif [ "$command" == "logs" ] || [ "$command" == "logs --previous" ]; then
+    elif [ "$command" == "logs" ]; then
       if [ -z "$container" ] ; then
         kubectl "${command}" "${object}" -n "${namespace}"
       else
         kubectl "${command}" "${object}" -n "${namespace}" -c "${container}"
+      fi
+    elif [ "$command" == "previousLogs" ]; then
+      if [ -z "$container" ] ; then
+        kubectl "logs" "-p" "${object}" -n "${namespace}"
+      else
+        kubectl "logs" "-p" "${object}" -n "${namespace}" -c "${container}"
       fi
     fi
   done
@@ -151,7 +157,7 @@ do
         S) NOT_STATES+=("${OPTARG}");;
         m) MESSAGE=${OPTARG};;
         l) COMMAND="logs";;
-        p) COMMAND="logs --previous";;
+        p) COMMAND="previousLogs";;
         c) CONTAINER="${OPTARG}";;
         h) usage;;
         *) usage;;
