@@ -304,7 +304,8 @@ pipeline {
         stage('Remove VZ Installation') {
             steps {
                 sh """
-                    kind delete cluster --name ${CLUSTER_NAME}
+                    cd ${GO_REPO_PATH}/verrazzano
+                    ci/scripts/cleanup_kind_clusters.sh ${CLUSTER_NAME} ${KUBECONFIG}
                 """
             }
         }
