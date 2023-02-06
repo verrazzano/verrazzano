@@ -301,10 +301,10 @@ pipeline {
             }
         }
 
-        stage('Uninstall Verrazzano') {
+        stage('Remove VZ Installation') {
             steps {
                 sh """
-                    ${GO_REPO_PATH}/vz uninstall --timeout 30m
+                    kind delete cluster --name ${CLUSTER_NAME}
                 """
             }
         }
