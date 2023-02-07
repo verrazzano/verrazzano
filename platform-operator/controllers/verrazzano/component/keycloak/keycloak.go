@@ -989,6 +989,14 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		if err != nil {
 			return err
 		}
+
+		//Setting the Access Token Lifespan value to 20mins.
+		//Required to ensure Argo CD UI does not log out the user until the Access Token lifespan expires
+		// Setting password policy for Verrazzano realm
+		err = setAccessTokenLifespanForRealm(ctx, cfg, cli, "verrazzano-system")
+		if err != nil {
+			return err
+		}
 	}
 
 	// Setting password policy for master
@@ -1353,6 +1361,20 @@ func CreateOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 
 	ctx.Log().Debugf("CreateOrUpdateClient: Created %s client", clientName)
 	ctx.Log().Oncef("Component Keycloak successfully created client %s", clientName)
+	return nil
+}
+
+func setAccessTokenLifespanForRealm(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, realmName string) error {
+	kcPod := keycloakPod()
+	setTokenCmd := kcAdminScript + " update realms/" + realmName + " -s accessTokenLifespan=1200"
+	ctx.Log().Debugf("setAccessTokenLifespanForRealm: Setting Access Token Lifespan for realm %s Cmd = %s", realmName, setTokenCmd)
+	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(setTokenCmd))
+	if err != nil {
+		ctx.Log().Errorf("Component Keycloak failed setting access token lifespan for verrazzano-system: stdout = %s, stderr = %s", stdout, stderr)
+		return err
+	}
+	ctx.Log().Debugf("setAccessTokenLifespanForRealm: Set Access Token Lifespan for realm %s", realmName)
+	ctx.Log().Oncef("Component Keycloak successfully set the Access Token Lifespan for realm %s", realmName)
 	return nil
 }
 

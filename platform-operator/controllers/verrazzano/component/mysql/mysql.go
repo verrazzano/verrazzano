@@ -6,6 +6,7 @@ package mysql
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"os"
 	"strings"
 
@@ -63,6 +64,8 @@ const (
 	bomSubComponentName   = "mysql-upgrade"
 	mysqlServerImageName  = "mysql-server"
 	imageRepositoryKey    = "image.repository"
+	mySQLPodName          = "mysql-0"
+	mySQLContainerName    = "mysql"
 	initDbScript          = `#!/bin/sh
 
 if [[ $HOSTNAME == *-0 ]]; then
@@ -73,6 +76,8 @@ CREATE USER IF NOT EXISTS keycloak IDENTIFIED BY '%s';
 CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE ON keycloak.* TO '%s'@'%%';
 FLUSH PRIVILEGES;
+USE keycloak;
+GRANT XA_RECOVER_ADMIN ON *.* to 'keycloak'@'%%';
 EOF
    if [[ $IsRestore == false ]]; then
       mysql -u root -p${rootPassword} << EOF
@@ -129,6 +134,13 @@ util.dumpInstance("/var/lib/mysql/dump", {ocimds: true, compatibility: ["strip_d
 EOF
 `
 	innoDBClusterStatusOnline = "ONLINE"
+
+	// Command to grant XA_RECOVER_ADMIN to Keycloak user, during upgrade
+	mySQLGrantXAAdminCommand = `/usr/bin/mysql -uroot -p%s <<EOF
+use keycloak;
+GRANT XA_RECOVER_ADMIN ON *.* to 'keycloak'@'%%';
+EOF
+`
 )
 
 var (
@@ -554,6 +566,11 @@ func postUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	// grant XA_RECOVER_ADMIN to Keycloak user
+	if err := grantXARecoverAdmin(ctx); err != nil {
+		return err
+	}
+
 	return common.ResetVolumeReclaimPolicy(ctx, ComponentName)
 }
 
@@ -647,4 +664,49 @@ func initUnitTesting() {
 // postUninstall performs additional actions after the uninstall step
 func (c mysqlComponent) postUninstall(ctx spi.ComponentContext) error {
 	return mysqlcheck.RepairICStuckDeleting(ctx)
+}
+
+// grantXARecoverAdmin grants XA_RECOVER_ADMIN to Keycloak user
+func grantXARecoverAdmin(ctx spi.ComponentContext) error {
+	if unitTesting {
+		return nil
+	}
+	// Get root password, required to connect to MySQL pod
+	secretName := types.NamespacedName{
+		Namespace: ComponentNamespace,
+		Name:      rootSec,
+	}
+	rootSecret := &v1.Secret{}
+	err := ctx.Client().Get(context.TODO(), secretName, rootSecret)
+	if err != nil {
+		return err
+	}
+	rootPassword := string(rootSecret.Data[mySQLRootKey])
+
+	sqlCmd := fmt.Sprintf(mySQLGrantXAAdminCommand, rootPassword)
+	execCmd := []string{"bash", "-c", sqlCmd}
+	cfg, cli, err := k8sutil.ClientConfig()
+	if err != nil {
+		return err
+	}
+	mysqlPod := mySQLPod()
+
+	// Run script defined by mySQLGrantXAAdminCommand from the MySQL pod as root user to grant XA_RECOVER_ADMIN
+	_, _, err = k8sutil.ExecPodNoTty(cli, cfg, mysqlPod, mySQLContainerName, execCmd)
+	if err != nil {
+		errorMsg := maskPw(fmt.Sprintf("Failed granting XA_RECOVER_ADMIN, err = %v", err))
+		ctx.Log().Error(errorMsg)
+		return fmt.Errorf("error: %s", maskPw(err.Error()))
+	}
+	ctx.Log().Debug("Granted XA_RECOVER_ADMIN to Keycloak user successfully")
+	return nil
+}
+
+func mySQLPod() *v1.Pod {
+	return &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mySQLPodName,
+			Namespace: ComponentNamespace,
+		},
+	}
 }

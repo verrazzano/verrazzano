@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"os"
 	"strconv"
 	"strings"
@@ -629,7 +630,7 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, log vzlo
 	}
 
 	log.Debugf("Creating/updating destination rule %s:%s", namespace, appName)
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, destinationRule, func() error {
+	_, err := common.CreateOrUpdateProtobuf(ctx, r.Client, destinationRule, func() error {
 		return r.mutateDestinationRule(destinationRule, namespace, appName)
 	})
 

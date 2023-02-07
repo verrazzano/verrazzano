@@ -7,10 +7,11 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -260,7 +261,7 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 	}
 
 	if vmc.Status.PrometheusHost == "" {
-		log.Infof("Managed cluster Prometheus Host not found in VMC Status for VMC %s. Waiting for VMC to be registered...", vmc.Name)
+		log.Progressf("Managed cluster Prometheus Host not found in VMC Status for VMC %s. Waiting for VMC to be registered...", vmc.Name)
 	} else {
 		log.Debugf("Syncing the prometheus scraper for VMC %s", vmc.Name)
 		err = r.syncPrometheusScraper(ctx, vmc)
