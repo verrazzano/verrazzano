@@ -50,6 +50,7 @@ rules:
       - list
       - update
       - watch
+      - delete
   - apiGroups:
       - networking.k8s.io
     resources:
