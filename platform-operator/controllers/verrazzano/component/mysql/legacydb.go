@@ -57,9 +57,6 @@ spec:
             runAsUser: 0
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
-          volumeMounts:
-            - mountPath: /var/lib/dump
-              name: keycloak-dump
       volumes:
         - name: keycloak-dump
           persistentVolumeClaim:
@@ -80,9 +77,6 @@ spec:
           resources: {}
           securityContext:
             runAsUser: 0
-          volumeMounts:
-            - mountPath: /var/lib/dump
-              name: keycloak-dump
       restartPolicy: OnFailure
 `
 
@@ -308,6 +302,14 @@ func isJobPodRunning(ctx spi.ComponentContext, jobName string) wait.ConditionFun
 			ctx.Log().Infof("DB load job pod is running or has completed successfully")
 			return true, nil
 		case v1.PodFailed:
+			// Check if the user manually created a pod to do the DB migration
+			if len(podList.Items) > 1 {
+				switch podList.Items[1].Status.Phase {
+				case v1.PodRunning, v1.PodSucceeded:
+					ctx.Log().Infof("DB load job pod is running or has completed successfully")
+					return true, nil
+				}
+			}
 			return false, fmt.Errorf("Job pod has completed with a failure")
 		}
 		return false, nil
@@ -426,7 +428,7 @@ func getMySQLPod(ctx spi.ComponentContext) (*v1.Pod, error) {
 }
 
 // getDbMigrationPod returns the db migration pod that loads the legacy db into upgraded MySQL db
-func getDbMigrationPod(ctx spi.ComponentContext) (*v1.Pod, error) {
+func getDbMigrationPod(ctx spi.ComponentContext) ([]v1.Pod, error) {
 	jobNameReq, _ := kblabels.NewRequirement("job-name", selection.Equals, []string{dbLoadJobName})
 	labelSelector := kblabels.NewSelector()
 	labelSelector = labelSelector.Add(*jobNameReq)
@@ -435,8 +437,8 @@ func getDbMigrationPod(ctx spi.ComponentContext) (*v1.Pod, error) {
 	if err != nil {
 		return nil, err
 	}
-	// return one of the pods
-	return &dbMigrationPods.Items[0], nil
+
+	return dbMigrationPods.Items, nil
 }
 
 // dumpDatabase uses the mySQL Shell utility to dump the instance to its mounted PV
@@ -554,8 +556,22 @@ func cleanupDbMigrationJob(ctx spi.ComponentContext) error {
 func checkDbMigrationJobCompletion(ctx spi.ComponentContext) bool {
 	// check for existence of db restoration job.  If it exists, wait for its completion
 	ctx.Log().Progress("Checking status of keycloak DB restoration")
+
+	// get the associated pod
+	// check the pods first, so in case job has failed user created pod can be checked for completion
+	dbMigrationPods, err := getDbMigrationPod(ctx)
+	if err != nil && !errors.IsNotFound(err) {
+		return false
+	}
+	for _, dbMigrationPod := range dbMigrationPods {
+		for _, container := range dbMigrationPod.Status.ContainerStatuses {
+			if container.Name == dbLoadContainerName && container.State.Terminated != nil && container.State.Terminated.ExitCode == 0 {
+				return true
+			}
+		}
+	}
 	loadJob := &batchv1.Job{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: dbLoadJobName, Namespace: ComponentNamespace}, loadJob)
+	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Name: dbLoadJobName, Namespace: ComponentNamespace}, loadJob)
 	if err != nil {
 		return errors.IsNotFound(err)
 	}
@@ -572,16 +588,6 @@ func checkDbMigrationJobCompletion(ctx spi.ComponentContext) bool {
 		}
 
 		return false
-	}
-	// get the associated pod
-	dbMigrationPod, err := getDbMigrationPod(ctx)
-	if err != nil {
-		return false
-	}
-	for _, container := range dbMigrationPod.Status.ContainerStatuses {
-		if container.Name == dbLoadContainerName && container.State.Terminated != nil && container.State.Terminated.ExitCode == 0 {
-			return true
-		}
 	}
 
 	return false
