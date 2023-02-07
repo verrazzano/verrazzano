@@ -52,12 +52,12 @@ helm repo update
 helm fetch rancher-stable/rancher --untar=true --version=${RANCHER_CHART_VERSION}
 ```
 
-## Mysql
+## MySQL
 
 The `mysql` folder was created by running the following commands:
 
 ```shell
-export MYSQL_CHART_VERSION=1.6.9
+export MYSQL_CHART_VERSION=2.0.8
 rm -rf mysql
 helm repo add stable https://charts.helm.sh/stable
 helm repo update

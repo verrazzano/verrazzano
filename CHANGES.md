@@ -5,6 +5,9 @@ Fixes:
 - Fixed IngressTrait JWT so that requestPrincipals with no paths are allowed.
 - Fixed IngressTrait related AuthorizationPolicy cleanup when application is deleted.
 
+Component version updates:
+  - MySQL v8.0.32
+
 ### v1.4.3
 Fixes:
 
