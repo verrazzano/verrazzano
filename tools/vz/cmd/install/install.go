@@ -6,7 +6,6 @@ package install
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"os"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
