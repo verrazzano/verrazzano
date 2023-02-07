@@ -12,7 +12,6 @@ import (
 func TestGetVZRequirement(t *testing.T) {
 	var tests = []struct {
 		profile ProfileType
-		//nodeCount int
 		cpu     string
 		memory  string
 		storage string
@@ -26,7 +25,6 @@ func TestGetVZRequirement(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(string(tt.profile), func(t *testing.T) {
 			vzReq := getVZRequirement(tt.profile)
-			//assert.Equal(t, tt.nodeCount, vzReq.nodeCount)
 			assert.Equal(t, tt.cpu, vzReq.cpu.allocatable.String())
 			assert.Equal(t, tt.memory, vzReq.memory.allocatable.String())
 			assert.Equal(t, tt.storage, vzReq.ephemeralStorage.allocatable.String())

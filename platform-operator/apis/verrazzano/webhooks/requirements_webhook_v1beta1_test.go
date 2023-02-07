@@ -37,7 +37,6 @@ func TestPrerequisiteValidationWarningForV1beta1(t *testing.T) {
 	res := m.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, allowedFailureMessage)
 	asrt.Len(res.Warnings, 2, expectedWarningFailureMessage)
-	//asrt.Contains(res.Warnings[0], "minimum required number of worker nodes is 3 but the available number of worker nodes is 1")
 	asrt.Contains(res.Warnings[0], "minimum required CPUs is 4 but the CPUs on node node1 is 3")
 	asrt.Contains(res.Warnings[1], "minimum required memory is 32G but the memory on node node1 is 16G")
 }

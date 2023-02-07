@@ -253,7 +253,6 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 	err = cmd.Execute()
 	assert.NoError(t, err)
 
-	//assert.Contains(t, buf.String(), captureVerrazzanoErrMsg)
 	// Commenting the assertions due to intermittent failures
 	// assert.Contains(t, buf.String(), captureLogErrMsg)
 	// assert.Contains(t, buf.String(), "Created bug report")

@@ -16,20 +16,15 @@ import (
 )
 
 var (
-	allNotMet      = []string{cpuReqMsg, memoryReqMsg, storageReqMsg}
-	onlyStorageMet = []string{cpuReqMsg, memoryReqMsg}
-	onlyMemoryMet  = []string{cpuReqMsg, storageReqMsg}
-	onlyCPUMet     = []string{memoryReqMsg, storageReqMsg}
-	//onlyNodeCountMet       = []string{cpuReqMsg, memoryReqMsg, storageReqMsg}
+	allNotMet           = []string{cpuReqMsg, memoryReqMsg, storageReqMsg}
+	onlyStorageMet      = []string{cpuReqMsg, memoryReqMsg}
+	onlyMemoryMet       = []string{cpuReqMsg, storageReqMsg}
+	onlyCPUMet          = []string{memoryReqMsg, storageReqMsg}
 	storageAndMemoryMet = []string{cpuReqMsg}
 	storageAndCPUMet    = []string{memoryReqMsg}
-	//storageAndNodeCountMet = []string{memoryReqMsg, cpuReqMsg}
-	memoryAndCPUMet = []string{storageReqMsg}
-	//memoryAndNodeCountMet  = []string{cpuReqMsg, storageReqMsg}
-	//nodeCountAndCPUMet = []string{memoryReqMsg, storageReqMsg}
-	memoryNotMet = []string{memoryReqMsg}
-	//nodeNotMet             = []string{nodeCountReqMsg}
-	allMet = []string{}
+	memoryAndCPUMet     = []string{storageReqMsg}
+	memoryNotMet        = []string{memoryReqMsg}
+	allMet              = []string{}
 )
 
 type testData = struct {
@@ -48,7 +43,6 @@ func TestPrerequisiteCheck(t *testing.T) {
 		errTypes []string
 	}{
 		{testData{Prod, 2, "1", "423Ki", "50G"}, 7, allNotMet},
-		//{testData{Prod, 3, "1", "12G", "50G"}, 9, onlyNodeCountMet},
 		{testData{Prod, 2, "1", "12G", "100G"}, 5, onlyStorageMet},
 		{testData{Prod, 2, "4", "12G", "50G"}, 5, onlyCPUMet},
 		{testData{Prod, 2, "1", "32G", "50G"}, 5, onlyMemoryMet},
@@ -57,14 +51,12 @@ func TestPrerequisiteCheck(t *testing.T) {
 		{testData{Prod, 2, "3", "32G", "100G"}, 3, storageAndMemoryMet},
 		{testData{Prod, 5, "6", "32G", "500G"}, 0, allMet},
 		{testData{Dev, 0, "1", "10G", "50G"}, 1, allNotMet},
-		//{testData{Dev, 1, "1", "12G", "50G"}, 3, onlyNodeCountMet},
-		//{testData{ManagedCluster, 2, "1", "12G", "100G"}, 4, storageAndNodeCountMet},
-		//{testData{ManagedCluster, 2, "4", "12G", "50G"}, 4, nodeCountAndCPUMet},
-		//{testData{Dev, 2, "2", "2G", "50G"}, 4, nodeCountAndCPUMet},
-		//{testData{Dev, 1, "1", "5G", "100G"}, 2, storageAndNodeCountMet},
+		{testData{ManagedCluster, 2, "1", "12G", "100G"}, 4, onlyStorageMet},
+		{testData{ManagedCluster, 2, "4", "12G", "50G"}, 4, onlyCPUMet},
+		{testData{Dev, 2, "2", "2G", "50G"}, 4, onlyCPUMet},
+		{testData{Dev, 1, "1", "5G", "100G"}, 2, onlyStorageMet},
 		{testData{ManagedCluster, 2, "5", "12G", "100G"}, 2, memoryNotMet},
-		//{testData{Dev, 1, "1", "32G", "10G"}, 2, memoryAndNodeCountMet},
-		//{testData{Dev, 0, "", "", ""}, 1, nodeNotMet},
+		{testData{Dev, 1, "1", "32G", "10G"}, 2, onlyMemoryMet},
 		{testData{"unspecified", 1, "2", "24G", "50G"}, 0, allMet},
 	}
 
@@ -126,8 +118,6 @@ func getNodes(data testData) []client2.Object {
 func getExpectedMessage(errMsg string, nodeName string, vzReq VZRequirement, data testData) string {
 	expectedMsg := ""
 	switch errMsg {
-	//case nodeCountReqMsg:
-	//	expectedMsg = fmt.Sprintf(errMsg, vzReq.nodeCount, data.nodeCount)
 	case cpuReqMsg:
 		expectedMsg = fmt.Sprintf(errMsg, vzReq.cpu.allocatable.Value(),
 			nodeName, data.cpu)

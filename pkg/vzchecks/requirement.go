@@ -14,7 +14,6 @@ type ProfileType string
 type ResourceType string
 
 type VZRequirement struct {
-	//nodeCount        int
 	cpu              *resourceInfo
 	memory           *resourceInfo
 	ephemeralStorage *resourceInfo
@@ -41,7 +40,6 @@ const (
 )
 
 const (
-	//nodeCountReqMsg = "minimum required number of worker nodes is %d but the available number of worker nodes is %d"
 	cpuReqMsg     = "minimum required CPUs is %v but the CPUs on node %s is %v"
 	memoryReqMsg  = "minimum required memory is %sG but the memory on node %s is %sG"
 	storageReqMsg = "minimum required ephemeral storage is %sG but the ephemeral storage on node %s is %sG"
@@ -49,19 +47,16 @@ const (
 
 var (
 	DevReq = VZRequirement{
-		//nodeCount:        1,
 		cpu:              &resourceInfo{resourceType: CPU, allocatable: resource.MustParse("2")},
 		memory:           &resourceInfo{resourceType: Memory, allocatable: resource.MustParse("16G")},
 		ephemeralStorage: &resourceInfo{resourceType: EphemeralStorage, allocatable: resource.MustParse("100G")},
 	}
 	ProdReq = VZRequirement{
-		//nodeCount:        3,
 		cpu:              &resourceInfo{resourceType: CPU, allocatable: resource.MustParse("4")},
 		memory:           &resourceInfo{resourceType: Memory, allocatable: resource.MustParse("32G")},
 		ephemeralStorage: &resourceInfo{resourceType: EphemeralStorage, allocatable: resource.MustParse("100G")},
 	}
 	ManagedReq = VZRequirement{
-		//nodeCount:        1,
 		cpu:              &resourceInfo{resourceType: CPU, allocatable: resource.MustParse("4")},
 		memory:           &resourceInfo{resourceType: Memory, allocatable: resource.MustParse("32G")},
 		ephemeralStorage: &resourceInfo{resourceType: EphemeralStorage, allocatable: resource.MustParse("100G")},
