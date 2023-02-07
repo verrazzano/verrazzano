@@ -7,6 +7,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"net/http"
 	"testing"
 	"time"
@@ -88,17 +91,7 @@ func TestMutateArgoCDClusterSecretWithoutRefresh(t *testing.T) {
 	mocker := gomock.NewController(t)
 	httpMock := mocks.NewMockRequestSender(mocker)
 	// Expect an HTTP request to fetch the token from Rancher only
-	httpMock.EXPECT().
-		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(loginURIPath)).
-		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
-			resp := &http.Response{
-				StatusCode: http.StatusCreated,
-				Body:       r,
-				Request:    &http.Request{Method: http.MethodPost},
-			}
-			return resp, nil
-		})
+	expectHTTPLoginRequests(httpMock)
 	rancherutil.RancherHTTPClient = httpMock
 
 	caData := []byte("ca")
@@ -185,6 +178,36 @@ func TestMutateArgoCDClusterSecretWithRefresh(t *testing.T) {
 	assert.Equal(t, secret.Annotations[expiresAtTimestamp], "zzz")
 }
 
+func expectHTTPLoginRequests(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender {
+	httpMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(loginURIPath)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
+			resp := &http.Response{
+				StatusCode: http.StatusCreated,
+				Body:       r,
+				Request:    &http.Request{Method: http.MethodPost},
+			}
+			return resp, nil
+		})
+	return httpMock
+}
+
+func expectHTTPClusterRoleTemplateUpdateRequests(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender {
+	httpMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterroletemplatebindingsPath)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			r := io.NopCloser(bytes.NewReader([]byte(`{}`)))
+			resp := &http.Response{
+				StatusCode: http.StatusCreated,
+				Body:       r,
+				Request:    &http.Request{Method: http.MethodPost},
+			}
+			return resp, nil
+		})
+	return httpMock
+}
+
 func expectHTTPRequests(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender {
 	// Expect an HTTP request to get created & expiresAt attributes of the token
 	httpMock.EXPECT().
@@ -214,22 +237,12 @@ func expectHTTPRequests(httpMock *mocks.MockRequestSender) *mocks.MockRequestSen
 		})
 
 	// Expect an HTTP request to fetch the token from Rancher
-	httpMock.EXPECT().
-		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(loginURIPath)).
-		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
-			resp := &http.Response{
-				StatusCode: http.StatusCreated,
-				Body:       r,
-				Request:    &http.Request{Method: http.MethodPost},
-			}
-			return resp, nil
-		})
+	expectHTTPLoginRequests(httpMock)
 	return httpMock
 }
 
-func generateClientObject() client.WithWatch {
-	return fake.NewClientBuilder().WithRuntimeObjects(
+func generateClientObject(objs ...runtime.Object) client.WithWatch {
+	totalObjects := []runtime.Object{
 		&corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      constants.ArgoCDClusterRancherSecretName,
@@ -237,6 +250,15 @@ func generateClientObject() client.WithWatch {
 			},
 			Data: map[string][]byte{
 				"password": []byte("foobar"),
+			},
+		},
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "cattle-system",
+				Name:      "rancher-admin-secret",
+			},
+			Data: map[string][]byte{
+				"password": []byte(""),
 			},
 		},
 		&networkv1.Ingress{
@@ -252,111 +274,78 @@ func generateClientObject() client.WithWatch {
 				},
 			},
 		},
-	).Build()
+	}
+	totalObjects = append(totalObjects, objs...)
+	return fake.NewClientBuilder().WithRuntimeObjects(totalObjects...).Build()
 }
 
 // TestUpdateArgoCDClusterRoleBindingTemplate tests the update of cluster role for 'vz-argocd-reg' user
 // GIVEN a call to update argocd cluster role binding
 //
-//	THEN the template binding are updated accordingly with cluster-owner, cluserID, and userID
-/*
+//	THEN the template binding is created/updated via API with no error
 func TestUpdateArgoCDClusterRoleBindingTemplate(t *testing.T) {
 	a := assert.New(t)
+	savedRancherHTTPClient := rancherutil.RancherHTTPClient
+	defer func() {
+		rancherutil.RancherHTTPClient = savedRancherHTTPClient
+	}()
 
-	vmcNoID := &v1alpha1.VerrazzanoManagedCluster{}
+	savedRetry := rancherutil.DefaultRetry
+	defer func() {
+		rancherutil.DefaultRetry = savedRetry
+	}()
+	rancherutil.DefaultRetry = wait.Backoff{
+		Steps:    1,
+		Duration: 1 * time.Millisecond,
+		Factor:   1.0,
+		Jitter:   0.1,
+	}
 
-	vmcID := vmcNoID.DeepCopy()
+	mocker := gomock.NewController(t)
+	httpMock := mocks.NewMockRequestSender(mocker)
+	httpMock = expectHTTPLoginRequests(httpMock)
+	httpMock = expectHTTPClusterRoleTemplateUpdateRequests(httpMock)
+	rancherutil.RancherHTTPClient = httpMock
+
+	vmcID := &v1alpha1.VerrazzanoManagedCluster{}
+
+	clusterID := "testID"
 	vmcID.Status.RancherRegistration.ClusterID = clusterID
 
-	clusterUserNoData := &unstructured.Unstructured{}
-	clusterUserNoData.SetGroupVersionKind(schema.GroupVersionKind{
+	clusterUserData := &unstructured.Unstructured{}
+	clusterUserData.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   APIGroupRancherManagement,
 		Version: APIGroupVersionRancherManagement,
 		Kind:    UserKind,
 	})
-	clusterUserNoData.SetName(constants.ArgoCDClusterRancherUsername)
-
-	clusterUserData := clusterUserNoData.DeepCopy()
+	clusterUserData.SetName(constants.ArgoCDClusterRancherUsername)
 	data := clusterUserData.UnstructuredContent()
 	data[UserUsernameAttribute] = constants.ArgoCDClusterRancherUsername
 
 	tests := []struct {
-		name         string
-		vmc          *v1alpha1.VerrazzanoManagedCluster
-		expectCreate bool
-		expectErr    bool
-		user         *unstructured.Unstructured
+		name string
+		vmc  *v1alpha1.VerrazzanoManagedCluster
+		user *unstructured.Unstructured
 	}{
 		{
-			name:         "test nil vmc",
-			expectCreate: false,
-			expectErr:    false,
-			user:         clusterUserData,
-		},
-		{
-			name:         "test vmc no cluster id",
-			vmc:          vmcNoID,
-			expectCreate: false,
-			expectErr:    false,
-			user:         clusterUserData,
-		},
-		{
-			name:         "test vmc with cluster id",
-			vmc:          vmcID,
-			expectCreate: true,
-			expectErr:    false,
-			user:         clusterUserData,
-		},
-		{
-			name:         "test user doesn't exist",
-			vmc:          vmcID,
-			expectCreate: false,
-			expectErr:    true,
-		},
-		{
-			name:         "test user no username",
-			vmc:          vmcID,
-			expectCreate: false,
-			expectErr:    true,
-			user:         clusterUserNoData,
+			name: "test vmc with cluster id",
+			vmc:  vmcID,
+			user: clusterUserData,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			b := fake.NewClientBuilder()
-			if tt.user != nil {
-				b = b.WithObjects(tt.user)
-			}
-			c := b.Build()
+			cli := generateClientObject(clusterUserData)
 
 			r := &VerrazzanoManagedClusterReconciler{
-				Client: c,
+				Client: cli,
 				log:    vzlog.DefaultLogger(),
 			}
-			err := r.updateArgoCDClusterRoleBindingTemplate(tt.vmc)
+			rc, err := rancherutil.NewAdminRancherConfig(cli, vzlog.DefaultLogger())
+			assert.NoError(t, err)
 
-			if tt.expectErr {
-				a.Error(err)
-				return
-			}
+			err = r.updateArgoCDClusterRoleBindingTemplate(rc, tt.vmc)
 			a.NoError(err)
-
-			if tt.expectCreate {
-				name := fmt.Sprintf("crtb-argocd-%s", clusterID)
-				resource := &unstructured.Unstructured{}
-				resource.SetGroupVersionKind(schema.GroupVersionKind{
-					Group:   APIGroupRancherManagement,
-					Version: APIGroupVersionRancherManagement,
-					Kind:    ClusterRoleTemplateBindingKind,
-				})
-				err = c.Get(context.TODO(), types.NamespacedName{Namespace: clusterID, Name: name}, resource)
-				a.NoError(err)
-				a.NotNil(resource)
-				a.Equal(clusterID, resource.Object[ClusterRoleTemplateBindingAttributeClusterName])
-				a.Equal(constants.ArgoCDClusterRancherUsername, resource.Object[ClusterRoleTemplateBindingAttributeUserName])
-				a.Equal("cluster-owner", resource.Object[ClusterRoleTemplateBindingAttributeRoleTemplateName])
-			}
 		})
 	}
 }
-*/
