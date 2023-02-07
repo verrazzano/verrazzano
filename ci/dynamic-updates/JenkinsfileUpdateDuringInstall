@@ -309,6 +309,9 @@ pipeline {
                     }
                     steps {
                         sh """
+                            # sleep for a period to ensure async deletion of Verrazzano components from uninstall above has completed
+                            sleep 90
+
                             cd ${GO_REPO_PATH}/verrazzano
                             yq -i eval '.spec.components.rancher.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.dns.wildcard.domain = "typodomain.io"' ${INSTALL_CONFIG_FILE_KIND}
