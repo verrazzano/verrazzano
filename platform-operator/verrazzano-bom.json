@@ -672,7 +672,7 @@
             },
             {
               "image": "velero-restic-restore-helper",
-              "tag": "v1.9.1-20220928065349-147272cf",
+              "tag": "v1.9.1-20230119225818-edba946d",
               "helmFullImageKey": "configMaps.restic-restore-action-config.data.image"
             }
           ]
