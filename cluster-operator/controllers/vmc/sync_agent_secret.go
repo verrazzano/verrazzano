@@ -104,7 +104,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncAgentSecret(vmc *clusterapi.Ver
 func (r *VerrazzanoManagedClusterReconciler) buildKubeConfigUsingRancherURL(serviceAccountSecret corev1.Secret) (*vzk8s.KubeConfig, error) {
 	vz, err := r.getVerrazzanoResource()
 	if err != nil {
-		return nil, r.log.ErrorfNewErr("Could not find Verrazzano resource")
+		return nil, err
 	}
 	if vz.Status.VerrazzanoInstance == nil {
 		return nil, r.log.ErrorfNewErr("No instance information found in Verrazzano resource status")
