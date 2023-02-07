@@ -34,8 +34,8 @@ pipeline {
 
     agent {
         docker {
-            image "${RUNNER_DOCKER_IMAGE}"
-            args "${RUNNER_DOCKER_ARGS} --cap-add=NET_ADMIN"
+            image "${RUNNER_DOCKER_IMAGE_1_5}"
+            args "${RUNNER_DOCKER_ARGS_1_5} --cap-add=NET_ADMIN"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             label "${agentLabel}"
         }
