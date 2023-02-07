@@ -6,6 +6,8 @@ package install
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"os"
 	"strings"
 	"time"
@@ -199,6 +201,9 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			err = client.Create(context.TODO(), vz)
 			if err != nil {
 				if retry == 5 {
+					rc := cmdhelpers.NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
+					cmd := analyze.NewCmdAnalyze(rc)
+					err = cmd.Execute()
 					return fmt.Errorf("Failed to create the verrazzano install resource: %s", err.Error())
 				}
 				time.Sleep(time.Second)
