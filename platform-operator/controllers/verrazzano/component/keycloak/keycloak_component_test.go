@@ -97,7 +97,7 @@ func TestReconcileBeforeInstall(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	ctx := spi.NewFakeContext(c, &crEnabled, nil, false)
-	err := NewComponent().Reconcile(ctx)
+	err := NewComponent(nil).Reconcile(ctx)
 	assert.NoError(t, err)
 }
 
