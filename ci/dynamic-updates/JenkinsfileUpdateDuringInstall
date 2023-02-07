@@ -44,24 +44,7 @@ pipeline {
                 choices: [ "v1beta1", "v1alpha1"])
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
-        booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
-        string (name: 'CONSOLE_REPO_BRANCH',
-                defaultValue: '',
-                description: 'The branch to check out after cloning the console repository.',
-                trim: true)
         booleanParam (description: 'Whether to enable debug logging of the istio envoy in the VZ API pod', name: 'ENABLE_API_ENVOY_LOGGING', defaultValue: true)
-        string (name: 'TAGGED_TESTS',
-                defaultValue: '',
-                description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
-                trim: true)
-        string (name: 'INCLUDED_TESTS',
-                defaultValue: '.*',
-                description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*',
-                trim: true)
-        string (name: 'EXCLUDED_TESTS',
-                defaultValue: '_excluded_test',
-                description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
-                trim: true)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
     }
 
@@ -88,9 +71,6 @@ pipeline {
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
-
-        WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
-        DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
 
         // Environment variables required to capture cluster snapshot and bug report on test failure
         DUMP_KUBECONFIG="${KUBECONFIG}"
@@ -129,7 +109,7 @@ pipeline {
         // how many nodes in the KIND cluster
         KIND_NODE_COUNT = 3
 
-        // MARCO: Environment variables I add
+        // used as input parameters to VZ install
         INSTALL_TIMEOUT = "30m"
         VZ_INSTALL_FILE="${WORKSPACE}/acceptance-test-config.yaml"
         TARGET_OPERATOR_FILE="${WORKSPACE}/acceptance-test-operator.yaml"
@@ -210,7 +190,7 @@ pipeline {
                         echo "Downloading VZ CLI from object storage"
                         oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
                         tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
-                        ${GO_REPO_PATH}/vz version
+                        ${VZ_COMMAND} version
                     """
                 }
             }
@@ -312,7 +292,7 @@ pipeline {
         stage('Uninstall Verrazzano') {
             steps {
                 sh """
-                    ${GO_REPO_PATH}/vz uninstall --timeout 30m
+                    ${VZ_COMMAND} uninstall --timeout 30m
                 """
             }
         }
@@ -329,7 +309,7 @@ pipeline {
                             cd ${GO_REPO_PATH}/verrazzano
                             yq -i eval '.spec.components.rancher.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.dns.wildcard.domain = "typodomain.io"' ${INSTALL_CONFIG_FILE_KIND}
-                            ${GO_REPO_PATH}/vz install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT}
+                            ${VZ_COMMAND} install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT}
                         """
                     }
                     post {
