@@ -135,7 +135,7 @@ pipeline {
                         }
                     }
                 }
-                stage ('API Conversion Udpate, Opensearch Update, Jaeger Update, and Post-install Overrides Tests') {
+                stage ('API Conversion Update, Opensearch Update, Jaeger Update, and Post-install Overrides Tests') {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
@@ -143,6 +143,20 @@ pipeline {
                                                booleanParam(name: 'RUN_OPENSEARCH', value: true),
                                                booleanParam(name: 'RUN_JAEGER', value: true),
                                                booleanParam(name: 'RUN_POST_INSTALL_OVERRIDES', value: true)])
+                            }
+                        }
+                    }
+                }
+                stage ('Dynamic Config during Install Tests') {
+                    steps {
+                        retry (count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "/verrazzano-dynamic-config-install-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    ], wait: true
                             }
                         }
                     }
