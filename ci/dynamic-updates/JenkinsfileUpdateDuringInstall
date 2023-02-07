@@ -214,7 +214,7 @@ pipeline {
                         success {
                             script {
                                 if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                                    dumpK8sCluster('dynamic-update-post-install-cluster-snapshot')
+                                    dumpK8sCluster('dynamic-install-post-install-cluster-snapshot1')
                                 }
                             }
                         }
@@ -275,14 +275,14 @@ pipeline {
                 failure {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('dynamic-update-failed-cluster-snapshot')
+                            dumpK8sCluster('dynamic-install-failed-cluster-snapshot1')
                         }
                     }
                 }
                 success {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('dynamic-update-success-cluster-snapshot')
+                            dumpK8sCluster('dynamic-install-success-cluster-snapshot1')
                         }
                     }
                 }
@@ -290,6 +290,9 @@ pipeline {
         }
 
         stage('Uninstall Verrazzano') {
+            options {
+                timeout(time: 30, unit: "MINUTES")
+            }
             steps {
                 sh """
                     ${VZ_COMMAND} uninstall --timeout 30m
@@ -316,7 +319,7 @@ pipeline {
                         success {
                             script {
                                 if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                                    dumpK8sCluster('dynamic-update-post-install-cluster-snapshot')
+                                    dumpK8sCluster('dynamic-install-post-install-cluster-snapshot2')
                                 }
                             }
                         }
@@ -377,14 +380,14 @@ pipeline {
                 failure {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('dynamic-update-failed-cluster-snapshot')
+                            dumpK8sCluster('dynamic-install-failed-cluster-snapshot2')
                         }
                     }
                 }
                 success {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('dynamic-update-success-cluster-snapshot')
+                            dumpK8sCluster('dynamic-install-success-cluster-snapshot2')
                         }
                     }
                 }
