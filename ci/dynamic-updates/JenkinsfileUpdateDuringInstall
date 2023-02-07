@@ -457,128 +457,6 @@ pipeline {
     }
 }
 
-def generateNonWLSAcceptanceTestStages(dumpRoot, skipDeploy = 'false', skipUndeploy = 'false') {
-    return generate_security_tests(dumpRoot) + generate_nonwls_tests(dumpRoot, skipDeploy, skipUndeploy)
-}
-
-def generateAllAcceptanceTestStages(dumpRoot, skipDeploy = 'false', skipUndeploy = 'false') {
-    return generate_security_tests(dumpRoot) +
-        generate_nonwls_tests(dumpRoot, skipDeploy, skipUndeploy) +
-        generate_wls_tests(dumpRoot, skipDeploy, skipUndeploy)
-}
-
-def generateVerifyInfraStages(dumpRoot) {
-    return [
-        "verify-scripts": {
-            runGinkgo('scripts', '', "${KUBECONFIG}")
-        },
-        "verify-infra restapi": {
-            runGinkgoRandomize('verify-infra/restapi', "${dumpRoot}/verify-infra-restapi")
-        },
-        "verify-infra oam": {
-            runGinkgoRandomize('verify-infra/oam', "${dumpRoot}/verify-infra-oam")
-        },
-        "system component metrics": {
-            runGinkgoRandomize('metrics/syscomponents', "${dumpRoot}/system-component-metrics")
-        },
-        "console": {
-            acceptanceTestsConsole("${dumpRoot}")
-        },
-    ]
-}
-
-def generate_security_tests(dumpRoot) {
-    return [
-        "istio authorization policy": {
-            runGinkgo('istio/authz', "${dumpRoot}/istio-authz-policy")
-        },
-        "security rbac": {
-            runGinkgo('security/rbac', "${dumpRoot}/sec-role-based-access")
-        },
-        "security network policies": {
-            if (params.CREATE_CLUSTER_USE_CALICO == true) {
-                runGinkgo('security/netpol', "${dumpRoot}/netpol")
-            } else {
-                echo "Calico not enabled, skipping network policies tests"
-            }
-        },
-    ]
-}
-
-def generate_nonwls_tests(dumpRoot, skipDeploy = 'false', skipUndeploy = 'false') {
-    return [
-        "deployment metrics": {
-            runGinkgo('metrics/deploymetrics', "${dumpRoot}/k8sdeploy-workload-metrics")
-        },
-        "examples logging helidon": {
-            runGinkgo('logging/helidon', "${dumpRoot}/examples-logging-helidon")
-        },
-        "examples springboot": {
-            runGinkgoAppTest('examples/springboot', "springboot", "${dumpRoot}/examples-spring", skipDeploy, skipUndeploy)
-        },
-        "examples helidon": {
-            runGinkgoAppTest('examples/helidon', "hello-helidon", "${dumpRoot}/examples-helidon", skipDeploy, skipUndeploy)
-        },
-        "examples helidon-config": {
-            runGinkgoAppTest('examples/helidonconfig', "helidon-config", "${dumpRoot}/examples-helidon-config", skipDeploy, skipUndeploy)
-        },
-    ]
-}
-
-def generate_wls_tests(dumpRoot, skipDeploy = 'false', skipUndeploy = 'false') {
-    return [
-        "weblogic workload": {
-            runGinkgoAppTest('workloads/weblogic', "hello-wls", "${dumpRoot}/weblogic-workload", skipDeploy, skipUndeploy)
-        },
-        "coherence workload": {
-            runGinkgoAppTest('workloads/coherence', "hello-coherence", "${dumpRoot}/coherence-workload", skipDeploy, skipUndeploy)
-        },
-        "console ingress": {
-            // doesn't work with the deployement hooks
-            runGinkgo('ingress/console', "wls-console", "${dumpRoot}/console-ingress")
-        },
-    ]
-}
-
-def runGinkgoRandomize(testSuitePath, dumpDir = '') {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        sh """
-            if [ ! -z "${dumpDir}" ]; then
-                export DUMP_DIRECTORY=${dumpDir}
-            fi
-            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-        """
-    }
-}
-
-def runGinkgo(testSuitePath, dumpDir = '', kubeconfig = '') {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        sh """
-            if [ ! -z "${dumpDir}" ]; then
-                export DUMP_DIRECTORY=${dumpDir}
-            fi
-            if [ ! -z "${kubeConfig}" ]; then
-                export KUBECONFIG="${kubeConfig}"
-            fi
-            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-        """
-    }
-}
-
-def runGinkgoAppTest(testSuitePath, namespace, dumpDir = '', skipDeploy = 'false', skipUndeploy = 'false') {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        sh """
-            if [ ! -z "${dumpDir}" ]; then
-                export DUMP_DIRECTORY=${dumpDir}
-            fi
-            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --namespace=${namespace}
-        """
-    }
-}
-
 def dumpK8sCluster(dumpDirectory) {
     sh """
         ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
@@ -670,22 +548,6 @@ def getEffectiveDumpOnSuccess() {
     return effectiveValue
 }
 
-// Called in parallel Stage console of Stage Run Acceptance Tests
-def acceptanceTestsConsole(dumpRoot) {
-    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-        try {
-            sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
-        } catch (err) {
-            saveConsoleScreenShots()
-            error "${err}"
-        }
-    }
-}
-
-def saveConsoleScreenShots() {
-    sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
-}
-
 def deleteCluster() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
@@ -714,32 +576,6 @@ def setDisplayName() {
          }
     }
     echo "End setDisplayName"
-}
-
-// Update1 enables disabled components except WLS/COH
-def vzUpdateComponentsV1alpha1(){
-
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano
-        yq -i eval '.spec.components.ingress.enabled = true' ${WORKSPACE}/vz-update1.yaml
-        yq -i eval '.spec.components.elasticsearch.enabled = true' ${WORKSPACE}/vz-update1.yaml
-        yq -i eval '.spec.components.kibana.enabled = true' ${WORKSPACE}/vz-update1.yaml
-        kubectl apply -f ${WORKSPACE}/vz-update1.yaml
-        ${TEST_SCRIPTS_DIR}/wait-for-component-ready.sh
-    """
-}
-
-// Update1 enables disabled components except WLS/COH
-def vzUpdateComponentsV1beta1(){
-
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano
-        yq -i eval '.spec.components.ingressNGINX.enabled = true' ${WORKSPACE}/vz-update1.yaml
-        yq -i eval '.spec.components.opensearch.enabled = true' ${WORKSPACE}/vz-update1.yaml
-        yq -i eval '.spec.components.opensearchDashboards.enabled = true' ${WORKSPACE}/vz-update1.yaml
-        kubectl apply -f ${WORKSPACE}/vz-update1.yaml
-        ${TEST_SCRIPTS_DIR}/wait-for-component-ready.sh
-    """
 }
 
 def patchWildcardDNSDomain() {
