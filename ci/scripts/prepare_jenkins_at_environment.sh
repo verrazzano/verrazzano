@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -57,6 +57,12 @@ kubectl get pods -n kube-system
 echo "Install metallb"
 cd ${GO_REPO_PATH}/verrazzano
 ./tests/e2e/config/scripts/install-metallb.sh
+if [ $? -ne 0 ]; then
+    mkdir $WORKSPACE/kind-logs
+    kind export logs $WORKSPACE/kind-logs
+    echo "Metalllb installation failed"
+    exit 1
+fi
 
 echo "Create Image Pull Secrets"
 cd ${GO_REPO_PATH}/verrazzano
