@@ -1,4 +1,4 @@
-// Copyright (C) 2022, Oracle and/or its affiliates.
+// Copyright (C) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package topology
@@ -119,13 +119,13 @@ var _ = t.Describe("OpenSearch Cluster Topology", func() {
 
 		t.Logs.Info("Adding 2 master/data/ingest nodes")
 		eventuallyUpdateVMI(t, func(vmi *vmov1.VerrazzanoMonitoringInstance) {
-			vmi.Spec.Elasticsearch.MasterNode.Replicas = 3
+			vmi.Spec.Opensearch.MasterNode.Replicas = 3
 		})
 		eventuallyPodsReady(3, 3, 3)
 
 		t.Logs.Info("Adding 3 data/ingest nodes and 1 master node")
 		eventuallyUpdateVMI(t, func(vmi *vmov1.VerrazzanoMonitoringInstance) {
-			vmi.Spec.Elasticsearch.Nodes = []vmov1.ElasticsearchNode{
+			vmi.Spec.Opensearch.Nodes = []vmov1.ElasticsearchNode{
 				{
 					Name:     "data-ingest",
 					Replicas: 3,
@@ -159,7 +159,7 @@ var _ = t.Describe("OpenSearch Cluster Topology", func() {
 
 		t.Logs.Info("Removing 1 master/data/ingest nodes")
 		eventuallyUpdateVMI(t, func(vmi *vmov1.VerrazzanoMonitoringInstance) {
-			vmi.Spec.Elasticsearch.MasterNode.Replicas = 2
+			vmi.Spec.Opensearch.MasterNode.Replicas = 2
 		})
 		eventuallyPodsReady(3, 5, 5)
 	})
@@ -262,7 +262,7 @@ func createSingleNodeVMI() (*vmov1.VerrazzanoMonitoringInstance, error) {
 		},
 		Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
 			SecretsName: verrazzanoName,
-			Elasticsearch: vmov1.Elasticsearch{
+			Opensearch: vmov1.Opensearch{
 				Enabled: true,
 				MasterNode: vmov1.ElasticsearchNode{
 					Name:     "es-master",

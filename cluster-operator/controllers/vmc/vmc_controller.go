@@ -7,10 +7,11 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -226,14 +227,41 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 		r.setStatusConditionManifestPushed(vmc, corev1.ConditionTrue, "Manifest objects pushed to the managed cluster")
 	}
 
+	log.Debugf("Registering ArgoCD for VMC %s", vmc.Name)
+	var argoCDRegistration *clustersv1alpha1.ArgoCDRegistration
+	argoCDEnabled, err := r.isArgoCDEnabled()
+	if err != nil {
+		return newRequeueWithDelay(), err
+	}
+	rancherEnabled, err := r.isRancherEnabled()
+	if err != nil {
+		return newRequeueWithDelay(), err
+	}
+	if argoCDEnabled && rancherEnabled {
+		argoCDRegistration, err = r.registerManagedClusterWithArgoCD(vmc)
+		if err != nil {
+			r.handleError(ctx, vmc, "Failed to register managed cluster with Argo CD", err, log)
+			return newRequeueWithDelay(), err
+		}
+		vmc.Status.ArgoCDRegistration = *argoCDRegistration
+	}
+	if !rancherEnabled && argoCDEnabled {
+		now := metav1.Now()
+		vmc.Status.ArgoCDRegistration = clustersv1alpha1.ArgoCDRegistration{
+			Status:    clustersv1alpha1.RegistrationPendingRancher,
+			Timestamp: &now,
+			Message:   "Skipping Argo CD cluster registration due to Rancher not installed"}
+	}
+
 	r.setStatusConditionReady(vmc, "Ready")
 	statusErr := r.updateStatus(ctx, vmc)
+
 	if statusErr != nil {
 		log.Errorf("Failed to update status to ready for VMC %s: %v", vmc.Name, err)
 	}
 
 	if vmc.Status.PrometheusHost == "" {
-		log.Infof("Managed cluster Prometheus Host not found in VMC Status for VMC %s. Waiting for VMC to be registered...", vmc.Name)
+		log.Progressf("Managed cluster Prometheus Host not found in VMC Status for VMC %s. Waiting for VMC to be registered...", vmc.Name)
 	} else {
 		log.Debugf("Syncing the prometheus scraper for VMC %s", vmc.Name)
 		err = r.syncPrometheusScraper(ctx, vmc)
@@ -372,6 +400,9 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileManagedClusterDelete(ctx c
 	if err := r.deleteClusterPrometheusConfiguration(ctx, vmc); err != nil {
 		return err
 	}
+	if err := r.unregisterClusterFromArgoCD(ctx, vmc); err != nil {
+		return err
+	}
 	return r.deleteClusterFromRancher(ctx, vmc)
 }
 
@@ -495,6 +526,7 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 		r.setStatusCondition(existingVMC, genCondition, genCondition.Type == clustersv1alpha1.ConditionManifestPushed)
 	}
 	existingVMC.Status.State = vmc.Status.State
+	existingVMC.Status.ArgoCDRegistration = vmc.Status.ArgoCDRegistration
 
 	r.log.Debugf("Updating Status of VMC %s: %v", vmc.Name, vmc.Status.Conditions)
 	return r.Status().Update(ctx, existingVMC)
@@ -506,7 +538,8 @@ func (r *VerrazzanoManagedClusterReconciler) getVerrazzanoResource() (*v1beta1.V
 	verrazzano := v1beta1.VerrazzanoList{}
 	err := r.Client.List(context.TODO(), &verrazzano, &client.ListOptions{})
 	if err != nil || len(verrazzano.Items) == 0 {
-		return nil, fmt.Errorf("Verrazzano must be installed: %v", err)
+		return nil, r.log.ErrorfNewErr("Verrazzano must be installed: %v", err)
+
 	}
 	return &verrazzano.Items[0], nil
 }

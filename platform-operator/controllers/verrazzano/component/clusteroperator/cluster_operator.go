@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusteroperator
@@ -37,6 +37,7 @@ const (
 	passwordField = "password"
 
 	clusterRegName = "Verrazzano Cluster Registrar"
+	argocdRegName  = "ArgoCD Cluster Registrar"
 )
 
 // AppendOverrides appends any additional overrides needed by the Cluster Operator component
@@ -83,28 +84,33 @@ func (c clusterOperatorComponent) postInstallUpgrade(ctx spi.ComponentContext) e
 			return err
 		}
 
-		return rancher.CreateOrUpdateRoleTemplate(ctx, vzconst.VerrazzanoClusterRancherName)
+		if err := rancher.CreateOrUpdateRoleTemplate(ctx, vzconst.VerrazzanoClusterRancherName); err != nil {
+			return err
+		}
+		if !vzcr.IsArgoCDEnabled(ctx.EffectiveCR()) {
+			return nil
+		}
+		return createVZArgoCDUser(ctx)
 	}
 	return nil
 }
 
 // createVZClusterUser creates the Verrazzano cluster user in Rancher using the Rancher API
-func createVZClusterUser(ctx spi.ComponentContext) error {
+func createVZUser(userName, regName, userDescription, secretName string, ctx spi.ComponentContext) error {
 	rc, err := rancherutil.NewAdminRancherConfig(ctx.Client(), ctx.Log())
 	if err != nil {
 		return err
 	}
 
 	// Send a request to see if the user exists
-	reqURL := rc.BaseURL + usersByNamePath + url.PathEscape(clusterRegName)
+	reqURL := rc.BaseURL + usersByNamePath + url.PathEscape(regName)
 	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
 	response, body, err := rancherutil.SendRequest(http.MethodGet, reqURL, headers, "", rc, ctx.Log())
 	if err != nil {
 		return err
 	}
 	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusNotFound {
-		return ctx.Log().ErrorfNewErr("Failed getting user %s in Rancher, got status code: %d",
-			vzconst.VerrazzanoClusterRancherUsername, response.StatusCode)
+		return ctx.Log().ErrorfNewErr("Failed getting user %s in Rancher, got status code: %d", userName, response.StatusCode)
 	}
 
 	if response.StatusCode == http.StatusOK {
@@ -113,7 +119,7 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 			return ctx.Log().ErrorfNewErr("Failed to find user given the username: %v", err)
 		}
 		if data != "[]" {
-			ctx.Log().Oncef("User %s was located, skipping the creation process", vzconst.VerrazzanoClusterRancherUsername)
+			ctx.Log().Oncef("User %s was located, skipping the creation process", userName)
 			return nil
 		}
 	}
@@ -124,7 +130,7 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to generate a password for the Verrazzano cluster user: %v", err)
 	}
 	reqURL = rc.BaseURL + usersPath
-	payload, err := constructVZUserJSON(pass)
+	payload, err := constructVZUserJSON(userName, regName, userDescription, pass)
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to construct the user %s JSON: %v", vzconst.VerrazzanoClusterRancherUsername)
 	}
@@ -142,14 +148,14 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 	}
 	if response.StatusCode != http.StatusCreated {
 		return ctx.Log().ErrorfNewErr("Failed creating user %s in Rancher, got status code: %d",
-			vzconst.VerrazzanoClusterRancherUsername, response.StatusCode)
+			userName, response.StatusCode)
 	}
 
 	// Store the password in a secret, so we can later use it to provide the Verrazzano cluster user credentials
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
-			Name:      vzconst.VerrazzanoClusterRancherName,
+			Name:      secretName,
 		},
 	}
 	_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), secret, func() error {
@@ -157,19 +163,29 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 		return nil
 	})
 	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed create or update the Secret for the Verrazzano Cluster User: %v", err)
+		return ctx.Log().ErrorfNewErr("Failed create or update the Secret for the Verrazzano Cluster User %s: %v", userName, err)
 	}
 	return nil
 }
 
-func constructVZUserJSON(pass string) ([]byte, error) {
+// createVZClusterUser creates the Verrazzano cluster user in Rancher using the Rancher API
+func createVZClusterUser(ctx spi.ComponentContext) error {
+	return createVZUser(vzconst.VerrazzanoClusterRancherUsername, clusterRegName, "Verrazzano Cluster Registrar grants permissions to transfer resources to managed clusters", vzconst.VerrazzanoClusterRancherName, ctx)
+}
+
+// createVZArgoCDUser creates the Verrazzano Argo CD cluster user in Rancher using the Rancher API
+func createVZArgoCDUser(ctx spi.ComponentContext) error {
+	return createVZUser(vzconst.ArgoCDClusterRancherUsername, argocdRegName, "ArgoCD Cluster Registrar", vzconst.ArgoCDClusterRancherSecretName, ctx)
+}
+
+func constructVZUserJSON(userName, regName, userDescription, pass string) ([]byte, error) {
 	userMap := map[string]interface{}{
-		"description":        "Verrazzano Cluster Registrar grants permissions to transfer resources to managed clusters",
+		"description":        userDescription,
 		"enabled":            true,
 		"mustChangePassword": false,
-		"name":               clusterRegName,
+		"name":               regName,
 		"password":           pass,
-		"username":           vzconst.VerrazzanoClusterRancherUsername,
+		"username":           userName,
 	}
 	return json.Marshal(userMap)
 }

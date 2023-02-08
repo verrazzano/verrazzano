@@ -14,7 +14,7 @@ import (
 type VerrazzanoHelidonWorkloadSpec struct {
 	// An embedded Helidon application deployment.
 	DeploymentTemplate DeploymentTemplate `json:"deploymentTemplate"`
-	// An embedded Helidon application service
+	// An embedded Helidon application service.
 	ServiceTemplate ServiceTemplate `json:"serviceTemplate,omitempty"`
 }
 
