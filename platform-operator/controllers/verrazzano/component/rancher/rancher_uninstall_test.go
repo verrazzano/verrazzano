@@ -664,7 +664,14 @@ func TestIsRancherNamespace(t *testing.T) {
 	}))
 }
 
-func TestRunCleanupJob(t *testing.T) {
+// TestCleanupJob tests the creation and deletion of the rancher-cleanup job
+// GIVEN a call to runCleanupJob
+// WHEN no cleanup job exists
+// THEN expect a cleanup job to be created
+// GIVEN a call to deleteCleanupJob
+// WHEN a job already exists
+// THEN expect the job to be deleted
+func TestCleanupJob(t *testing.T) {
 	a := assert.New(t)
 	vz := v1alpha1.Verrazzano{}
 
@@ -673,9 +680,17 @@ func TestRunCleanupJob(t *testing.T) {
 	config.SetDefaultBomFilePath("../../../../verrazzano-bom.json")
 	setCleanupJobYamlPath("../../../../thirdparty/manifests/rancher-cleanup/rancher-cleanup.yaml")
 
-	// Expect job to get created
+	// Expect the job to get created
 	err := runCleanupJob(ctx)
 	a.Error(err)
 	a.Contains(err.Error(), "waiting for job")
+	job := batchv1.Job{}
+	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: rancherCleanupJobNamespace, Name: rancherCleanupJobName}, &job)
+	a.NoError(err)
 
+	// Expect the job to get deleted
+	deleteCleanupJob(ctx)
+	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: rancherCleanupJobNamespace, Name: rancherCleanupJobName}, &job)
+	a.Error(err)
+	a.True(apierrors.IsNotFound(err))
 }
