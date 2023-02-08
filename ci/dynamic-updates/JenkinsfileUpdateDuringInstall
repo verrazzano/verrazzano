@@ -280,7 +280,7 @@ pipeline {
             }
         }
 
-        stage('Update during Rancher Install') {
+        stage('Update During Rancher Install') {
             parallel {
                 stage('Install Verrazzano with Wildcard DNS Typo') {
                     environment {
