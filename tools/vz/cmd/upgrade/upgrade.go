@@ -207,5 +207,6 @@ func waitForUpgradeToComplete(client clipkg.Client, kubeClient kubernetes.Interf
 	rc := cmdhelpers.NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
 	cmd := analyze.NewCmdAnalyze(rc)
 	cmd.Execute()
+	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("ANALYZE EXECUTED. err returned from timeout: %s\n", err.Error()))
 	return err
 }
