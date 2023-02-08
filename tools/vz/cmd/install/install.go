@@ -201,7 +201,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			err = client.Create(context.TODO(), vz)
 			rc := cmdhelpers.NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
 			cmd := analyze.NewCmdAnalyze(rc)
-			err = cmd.Execute()
+			cmd.Execute()
 			if err != nil {
 				if retry == 5 {
 					return fmt.Errorf("Failed to create the verrazzano install resource: %s", err.Error())
