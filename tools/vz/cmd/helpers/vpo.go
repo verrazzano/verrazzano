@@ -7,21 +7,16 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"io"
-	"net/http"
-	"os"
-	"regexp"
-	"strings"
-	"time"
-
 	"github.com/spf13/cobra"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"io"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -29,8 +24,14 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
+	"net/http"
+	"os"
+	"regexp"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
+	"time"
 )
 
 const VpoSimpleLogFormatRegexp = `"level":"(.*?)","@timestamp":"(.*?)",(.*?)"message":"(.*?)",`
@@ -288,6 +289,9 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 		return result
 	case <-time.After(timeout):
 		if timeout.Nanoseconds() != 0 {
+			rc := NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
+			cmd := analyze.NewCmdAnalyze(rc)
+			cmd.Execute()
 			return fmt.Errorf("Timeout %v exceeded waiting for %s to complete", timeout.String(), getOperationString(condType))
 		}
 	}

@@ -200,7 +200,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		for {
 			err = client.Create(context.TODO(), vz)
 			rc := cmdhelpers.NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
-			analyze.NewCmdAnalyze(rc)
+			cmd := analyze.NewCmdAnalyze(rc)
 			err = cmd.Execute()
 			if err != nil {
 				if retry == 5 {
@@ -220,9 +220,6 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 
 	// Wait for the Verrazzano install to complete
 	return waitForInstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vzNamespace, Name: vzName}, timeout, vpoTimeout, logFormat)
-	rc := cmdhelpers.NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
-	analyze.NewCmdAnalyze(rc)
-	err = cmd.Execute()
 }
 
 // getVerrazzanoYAML returns the verrazzano install resource to be created
