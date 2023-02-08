@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package fluentd
@@ -277,7 +277,7 @@ func TestValidateInstall(t *testing.T) {
 }
 
 // TestPostUpgrade tests the Fluentd PostUpgrade call; simple wrapper exercise, more detailed testing is done elsewhere
-// GIVEN a Verrazzano component upgrading from 1.1.0 to 1.4.0
+// GIVEN a Verrazzano component upgrading from 1.1.0 to 1.5.0
 //
 //	WHEN I call PostUpgrade
 //	THEN no error is returned
@@ -491,7 +491,7 @@ func TestPreUpgrade(t *testing.T) {
 }
 
 // TestUpgrade tests the Fluentd Upgrade call; simple wrapper exercise, more detailed testing is done elsewhere
-// GIVEN a Fluentd component upgrading from 1.1.0 to 1.4.0
+// GIVEN a Fluentd component upgrading from 1.1.0 to 1.5.0
 //
 //	WHEN I call Upgrade
 //	THEN no error is returned
