@@ -195,7 +195,7 @@ pipeline {
             }
         }
 
-        stage('Kickoff Parallel VZ Install and VZ CR update during Keycloak Install') {
+        stage('Update During Keycloak Install') {
             parallel {
                 stage('Install Verrazzano with Wildcard DNS Typo') {
                     environment {
@@ -280,7 +280,7 @@ pipeline {
             }
         }
 
-        stage('Kickoff Parallel VZ Install and VZ CR update during Rancher Install') {
+        stage('Update during Rancher Install') {
             parallel {
                 stage('Install Verrazzano with Wildcard DNS Typo') {
                     environment {
