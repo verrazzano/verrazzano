@@ -180,6 +180,7 @@ func runCleanupJob(ctx spi.ComponentContext) error {
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: rancherCleanupJobNamespace, Name: rancherCleanupJobName}, job)
 	if err != nil {
 		if errors.IsNotFound(err) {
+			ctx.Log().Infof("Component %s created job %s/%s", ComponentName, job.Namespace, job.Name)
 			return createCleanupJob(ctx)
 		}
 		return err
