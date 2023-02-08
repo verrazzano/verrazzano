@@ -81,7 +81,9 @@ var postUninstallFunc postUninstallFuncSig = invokeRancherSystemToolAndCleanup
 // On subsequent callbacks, we check the status of the goroutine with the 'monitor' object, and postUninstall
 // returns or requeues accordingly.
 func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
-	if monitor.IsRunning() {
+	if monitor.IsCompleted() {
+		return nil
+	} else if monitor.IsRunning() {
 		// Check the result
 		succeeded, err := monitor.CheckResult()
 		if err != nil {
@@ -93,7 +95,7 @@ func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 		monitor.Reset()
 		// If it's not finished running, requeue
 		if succeeded {
-			ctx.Log().Infof("Component %s monitor thread succeeded", ComponentName)
+			monitor.SetCompleted()
 			return nil
 		}
 		// if we were unsuccessful, reset and drop through to try again
@@ -105,7 +107,7 @@ func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 
 // forkPostUninstall - fork uninstall install of Rancher
 func forkPostUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
-	ctx.Log().Debugf("Creating background post-uninstall goroutine for Rancher")
+	ctx.Log().Debug("Creating background post-uninstall goroutine for Rancher")
 
 	monitor.Run(
 		func() error {
@@ -181,7 +183,7 @@ func runCleanupJob(ctx spi.ComponentContext) error {
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: rancherCleanupJobNamespace, Name: rancherCleanupJobName}, job)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			ctx.Log().Infof("Component %s created job %s/%s", ComponentName, job.Namespace, job.Name)
+			ctx.Log().Infof("Component %s created job %s/%s", ComponentName, rancherCleanupJobNamespace, rancherCleanupJobName)
 			return createCleanupJob(ctx)
 		}
 		return err

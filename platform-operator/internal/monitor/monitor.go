@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package monitor
@@ -17,6 +17,10 @@ type BackgroundProcessMonitor interface {
 	Reset()
 	// IsRunning - returns true of the monitor/goroutine are active
 	IsRunning() bool
+	// IsCompleted - returns true if the monitor has run and marked as completed
+	IsCompleted() bool
+	// SetCompleted - sets the monitor thread to true
+	SetCompleted()
 	// Run - Run the operation with the specified args in a background goroutine
 	Run(operation BackgroundFunc)
 }
@@ -28,6 +32,7 @@ type BackgroundFunc func() error
 type BackgroundProcessMonitorType struct {
 	ComponentName string
 	running       bool
+	completed     bool
 	resultCh      chan bool
 }
 
@@ -45,12 +50,23 @@ func (m *BackgroundProcessMonitorType) CheckResult() (bool, error) {
 // Reset - reset the monitor and close the channel
 func (m *BackgroundProcessMonitorType) Reset() {
 	m.running = false
+	m.completed = false
 	close(m.resultCh)
 }
 
 // IsRunning - returns true if the monitor/goroutine are active
 func (m *BackgroundProcessMonitorType) IsRunning() bool {
 	return m.running
+}
+
+// IsCompleted - returns true if the monitor/goroutine is completed
+func (m *BackgroundProcessMonitorType) IsCompleted() bool {
+	return m.completed
+}
+
+// SetCompleted - sets the monitor thread as completed
+func (m *BackgroundProcessMonitorType) SetCompleted() {
+	m.completed = true
 }
 
 // Run - calls the operation in a background goroutine

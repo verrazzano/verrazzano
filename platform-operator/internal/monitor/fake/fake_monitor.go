@@ -7,14 +7,17 @@ import "github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 
 // BackgroundProcessMonitorType - a fake monitor object.
 type BackgroundProcessMonitorType struct {
-	Result  bool
-	Err     error
-	Running bool
+	Result    bool
+	Err       error
+	Running   bool
+	Completed bool
 }
 
 func (f *BackgroundProcessMonitorType) CheckResult() (bool, error)           { return f.Result, f.Err }
 func (f *BackgroundProcessMonitorType) Reset()                               {}
 func (f *BackgroundProcessMonitorType) IsRunning() bool                      { return f.Running }
+func (f *BackgroundProcessMonitorType) IsCompleted() bool                    { return f.Completed }
+func (f *BackgroundProcessMonitorType) SetCompleted()                        { f.Completed = true }
 func (f *BackgroundProcessMonitorType) Run(operation monitor.BackgroundFunc) {}
 
 // Check that &BackgroundProcessMonitorType implements BackgroundProcessMonitor
