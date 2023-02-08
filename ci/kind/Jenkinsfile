@@ -448,13 +448,6 @@ pipeline {
                             steps {
                                 runGinkgo('examples/helidon')
                             }
-                            post {
-                                always {
-                                    sh """
-                                        kubectl exec -it \$(kubectl get pod -l component=speaker -n metallb-system -o jsonpath="{.items[0].metadata.name}") -n metallb-system -- ip addr show
-                                    """
-                                }
-                            }
                         }
                         stage('examples helidon service template') {
                             environment {
@@ -636,7 +629,6 @@ pipeline {
                     dumpVerrazzanoSystemPods()
                     dumpCattleSystemPods()
                     dumpNginxIngressControllerLogs()
-                    dumpPreviousMetallbLogs()
                     dumpVerrazzanoPlatformOperatorLogs()
                     dumpVerrazzanoApplicationOperatorLogs()
                     dumpOamKubernetesRuntimeLogs()
@@ -755,16 +747,6 @@ def dumpNginxIngressControllerLogs() {
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
         export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/nginx-ingress-controller.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -c controller -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
-    """
-}
-
-def dumpPreviousMetallbLogs() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/speaker-previous.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n metallb-system -r "speaker-*" -m "Metallb Sepaker" -c speaker -p || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/controller-previous.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n metallb-system -r "controller-*" -m "Metallb Controller" -c controller -p || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
