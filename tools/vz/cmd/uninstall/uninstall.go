@@ -10,7 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	"io"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"os"
 	"regexp"
 	"time"
 
@@ -159,7 +158,7 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 
 	// Wait for the Verrazzano uninstall to complete.
 	err = waitForUninstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat, useUninstallJob)
-	rc := cmdhelpers.NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
+	rc := cmdhelpers.NewRootCmdContext(genericclioptions.IOStreams{In: vzHelper.GetInputStream(), Out: vzHelper.GetOutputStream(), ErrOut: vzHelper.GetErrorStream()})
 	cmdAnalyze := analyze.NewCmdAnalyze(rc)
 	cmdAnalyze.Execute()
 	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("ANALYZE EXECUTED FROM UNINSTALL. err FROM WAIT FOR UNINSTALL TO COMPLETE%s\n", err.Error()))
