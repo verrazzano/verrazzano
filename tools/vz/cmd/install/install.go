@@ -139,6 +139,13 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		return err
 	}
 
+	cmdAnalyze := analyze.NewCmdAnalyze(vzHelper)
+	cmdAnalyze.Execute()
+	cmd.Println("cmd.println after execute TIME 1 ")
+	fmt.Println("SHOULD'VE CALLED ANALYZE FROM Install time 1 ")
+	fmt.Fprintf(vzHelper.GetErrorStream(), "PRINTING TO ERROR STREAM INSIDE WAIT FOR INSTALL COMLETE TIME 1")
+	fmt.Fprintf(vzHelper.GetOutputStream(), "PRINTING TO output STREAM INSIDE WAIT FOR INSTALL COMLETE TIME 1")
+
 	// Check to see if we have a vz resource already deployed
 	existingvz, _ := helpers.FindVerrazzanoResource(client)
 	if existingvz != nil {
@@ -218,6 +225,12 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		vzName = vz.GetName()
 	}
 
+	cmdAnalyze2 := analyze.NewCmdAnalyze(vzHelper)
+	cmdAnalyze2.Execute()
+	cmd.Println("cmd.println after execute TIME 2 ")
+	fmt.Println("SHOULD'VE CALLED ANALYZE FROM Install before waitForInstall time 2 ")
+	fmt.Fprintf(vzHelper.GetErrorStream(), "PRINTING TO ERROR STREAM INSIDE WAIT FOR INSTALL COMLETE outside waitforinstall")
+	fmt.Fprintf(vzHelper.GetOutputStream(), "PRINTING TO output STREAM INSIDE WAIT FOR INSTALL COMLETE outside wait for isntall")
 	// Wait for the Verrazzano install to complete
 	return waitForInstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vzNamespace, Name: vzName}, timeout, vpoTimeout, logFormat)
 }
@@ -343,6 +356,10 @@ func waitForInstallToComplete(client clipkg.Client, kubeClient kubernetes.Interf
 	err := cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, namespacedName, timeout, vpoTimeout, logFormat, v1beta1.CondInstallComplete)
 	cmd := analyze.NewCmdAnalyze(vzHelper)
 	cmd.Execute()
+	cmd.Println("cmd.println after execute time 3")
+	fmt.Println("SHOULD'VE CALLED ANALYZE FROM INSTALL time 3")
+	fmt.Fprintf(vzHelper.GetErrorStream(), "PRINTING TO ERROR STREAM INSIDE WAIT FOR INSTALL COMLETE")
+	fmt.Fprintf(vzHelper.GetOutputStream(), "PRINTING TO output STREAM INSIDE WAIT FOR INSTALL COMLETE")
 	return err
 }
 
