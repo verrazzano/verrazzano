@@ -15,7 +15,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1675287875757,
+  "id": 39,
+  "iteration": 1675856419652,
   "links": [],
   "panels": [
     {
@@ -42,7 +43,7 @@
         "defaults": {},
         "overrides": []
       },
-      "fill": 1,
+      "fill": 2,
       "fillGradient": 0,
       "gridPos": {
         "h": 8,
@@ -53,10 +54,12 @@
       "hiddenSeries": false,
       "id": 8,
       "legend": {
+        "alignAsTable": true,
         "avg": false,
         "current": false,
         "max": false,
         "min": false,
+        "rightSide": true,
         "show": true,
         "total": false,
         "values": false
@@ -69,7 +72,7 @@
       },
       "percentage": false,
       "pluginVersion": "7.5.17",
-      "pointradius": 2,
+      "pointradius": 0.5,
       "points": false,
       "renderer": "flot",
       "seriesOverrides": [],
@@ -78,10 +81,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "exemplar": true,
-          "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{container=~\".+\"} and on (pod) \nkube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"})\n",
+          "exemplar": false,
+          "expr": "sum((sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{container=~\".+\"}) by (pod)) * on (pod) group_right\nkube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (label_app_oam_dev_component)\n",
           "interval": "",
-          "legendFormat": "$component",
+          "legendFormat": "{{label_app_oam_dev_component}}",
           "refId": "A"
         }
       ],
@@ -89,12 +92,18 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Component CPU Usage (cores)",
+      "title": "CPU(Used: $used_cpu cores, Available: $available_cpu cores)",
       "tooltip": {
-        "shared": true,
-        "sort": 0,
+        "shared": false,
+        "sort": 1,
         "value_type": "individual"
       },
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {}
+        }
+      ],
       "type": "graph",
       "xaxis": {
         "buckets": null,
@@ -140,7 +149,7 @@
         },
         "overrides": []
       },
-      "fill": 1,
+      "fill": 2,
       "fillGradient": 0,
       "gridPos": {
         "h": 8,
@@ -151,10 +160,12 @@
       "hiddenSeries": false,
       "id": 36,
       "legend": {
+        "alignAsTable": true,
         "avg": false,
         "current": false,
         "max": false,
         "min": false,
+        "rightSide": true,
         "show": true,
         "total": false,
         "values": false
@@ -176,11 +187,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "exemplar": true,
-          "expr": "sum(max(container_memory_working_set_bytes{verrazzano_cluster=~\"$vzcluster\", container!=\"\", image!=\"\"}  and on (pod)\nkube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}) by (container))",
+          "exemplar": false,
+          "expr": "sum((sum(max(container_memory_working_set_bytes{verrazzano_cluster=~\"$vzcluster\", container!=\"\", image!=\"\"}) by (container, pod)) by (pod)) * on(pod) group_right kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (label_app_oam_dev_component)",
           "interval": "",
-          "intervalFactor": 2,
-          "legendFormat": "$component",
+          "intervalFactor": 1,
+          "legendFormat": "{{label_app_oam_dev_component}}",
           "refId": "A"
         }
       ],
@@ -188,12 +199,18 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Component Memory Usage (bytes)",
+      "title": "Memory(Used: $used_memory GiB, Available: $available_memory GiB)",
       "tooltip": {
-        "shared": true,
-        "sort": 0,
+        "shared": false,
+        "sort": 1,
         "value_type": "individual"
       },
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {}
+        }
+      ],
       "type": "graph",
       "xaxis": {
         "buckets": null,
@@ -440,6 +457,254 @@
         "x": 0,
         "y": 16
       },
+      "id": 40,
+      "panels": [],
+      "title": "Storage",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "description": "",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "fill": 2,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 17
+      },
+      "hiddenSeries": false,
+      "id": 42,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": false,
+        "hideEmpty": true,
+        "hideZero": true,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "sideWidth": 150,
+        "sort": "max",
+        "sortDesc": false,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.5.17",
+      "pointradius": 0.5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [
+        {
+          "$$hashKey": "object:763"
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "exemplar": false,
+          "expr": "sum((sum(container_fs_usage_bytes{verrazzano_cluster=~\"$vzcluster\"}) by (pod)) * on (pod) group_right kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\",label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (label_app_oam_dev_component)",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "{{label_app_oam_dev_component}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Disk(Used: $used_storage GiB, Available: $available_storage GiB)",
+      "tooltip": {
+        "shared": false,
+        "sort": 1,
+        "value_type": "individual"
+      },
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {}
+        }
+      ],
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:309",
+          "decimals": null,
+          "format": "bytes",
+          "label": "",
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:310",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": true,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "description": "",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "fill": 2,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 17
+      },
+      "hiddenSeries": false,
+      "id": 44,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": false,
+        "hideEmpty": true,
+        "hideZero": true,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "sideWidth": 150,
+        "sort": "max",
+        "sortDesc": false,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.5.17",
+      "pointradius": 0.5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [
+        {
+          "$$hashKey": "object:763"
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "exemplar": false,
+          "expr": "sum((sum(kube_pod_spec_volumes_persistentvolumeclaims_info * on(persistentvolumeclaim, namespace) group_left kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$vzcluster\"}) by (persistentvolumeclaim,pod)) * on(pod) group_left kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (persistentvolumeclaim) ",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "{{persistentvolumeclaim}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "PVC(Used: $used_pvc GiB, Available: $available_pvc GiB)",
+      "tooltip": {
+        "shared": false,
+        "sort": 1,
+        "value_type": "individual"
+      },
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {}
+        }
+      ],
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:309",
+          "decimals": null,
+          "format": "bytes",
+          "label": "",
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:310",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": true,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 25
+      },
       "id": 4,
       "panels": [],
       "title": "Requests",
@@ -462,15 +727,17 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 17
+        "y": 26
       },
       "hiddenSeries": false,
       "id": 37,
       "legend": {
+        "alignAsTable": true,
         "avg": false,
         "current": false,
         "max": false,
         "min": false,
+        "rightSide": true,
         "show": true,
         "total": false,
         "values": false
@@ -493,9 +760,9 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(istio_requests_total{verrazzano_cluster=~\"$vzcluster\"}[1m]) and on (destination_service_name) label_replace(kube_service_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\"))",
+          "expr": "sum((sum(rate(istio_requests_total{verrazzano_cluster=~\"$vzcluster\"}[1m])) by (destination_service_name)) * on (destination_service_name) group_right label_replace(kube_service_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\")) by (label_app_oam_dev_component)",
           "interval": "",
-          "legendFormat": "$component",
+          "legendFormat": "{{label_app_oam_dev_component}}",
           "refId": "A"
         }
       ],
@@ -505,7 +772,7 @@
       "timeShift": null,
       "title": "HTTP Requests/second",
       "tooltip": {
-        "shared": true,
+        "shared": false,
         "sort": 0,
         "value_type": "individual"
       },
@@ -557,15 +824,17 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 17
+        "y": 26
       },
       "hiddenSeries": false,
       "id": 38,
       "legend": {
+        "alignAsTable": true,
         "avg": false,
         "current": false,
         "max": false,
         "min": false,
+        "rightSide": true,
         "show": true,
         "total": false,
         "values": false
@@ -588,9 +857,9 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "100 * sum(rate(istio_requests_total{verrazzano_cluster=~\"$vzcluster\", response_code=~\"5.*\"}[1m]) and on (destination_service_name) label_replace(kube_service_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\")) / sum(rate(istio_requests_total{verrazzano_cluster=~\"$vzcluster\"}[1m]) and on (destination_service_name) label_replace(kube_service_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\"))",
+          "expr": "100 * sum((sum(rate(istio_requests_total{verrazzano_cluster=~\"$vzcluster\", response_code=~\"5.*\"}[$__rate_interval])) by (destination_service_name)) * on (destination_service_name) group_right label_replace(kube_service_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\")) by (label_app_oam_dev_component) / sum((sum(rate(istio_requests_total{verrazzano_cluster=~\"$vzcluster\"}[$__rate_interval])) by (destination_service_name)) * on (destination_service_name) group_right label_replace(kube_service_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\")) by (label_app_oam_dev_component)",
           "interval": "",
-          "legendFormat": "$component",
+          "legendFormat": "{{label_app_oam_dev_component}}",
           "refId": "A"
         }
       ],
@@ -600,7 +869,7 @@
       "timeShift": null,
       "title": "5xx Response Rate",
       "tooltip": {
-        "shared": true,
+        "shared": false,
         "sort": 0,
         "value_type": "individual"
       },
@@ -654,15 +923,17 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 25
+        "y": 34
       },
       "hiddenSeries": false,
       "id": 19,
       "legend": {
+        "alignAsTable": true,
         "avg": false,
         "current": false,
         "max": false,
         "min": false,
+        "rightSide": true,
         "show": true,
         "total": false,
         "values": false
@@ -685,9 +956,9 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(istio_request_duration_milliseconds_sum{verrazzano_cluster=~\"$vzcluster\"} and on (destination_service_name) label_replace(kube_service_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\")) / sum(istio_request_duration_milliseconds_count{verrazzano_cluster=~\"$vzcluster\"} and on (destination_service_name) label_replace(kube_service_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\"))",
+          "expr": "sum((sum(istio_request_duration_milliseconds_sum{verrazzano_cluster=~\"$vzcluster\"}) by (destination_service_name))* on (destination_service_name) group_right label_replace(kube_service_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\")) by (label_app_oam_dev_component)/sum((sum(istio_request_duration_milliseconds_count{verrazzano_cluster=~\"$vzcluster\"}) by (destination_service_name))* on (destination_service_name) group_right label_replace(kube_service_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\",label_app_oam_dev_component=~\"$component\"}, \"destination_service_name\", \"$1\", \"service\", \"(.+)\")) by (label_app_oam_dev_component)",
           "interval": "",
-          "legendFormat": "$component",
+          "legendFormat": "{{label_app_oam_dev_component}}",
           "refId": "A"
         }
       ],
@@ -697,7 +968,7 @@
       "timeShift": null,
       "title": "Avg Request Duration (ms)",
       "tooltip": {
-        "shared": true,
+        "shared": false,
         "sort": 0,
         "value_type": "individual"
       },
@@ -733,7 +1004,7 @@
       }
     }
   ],
-  "refresh": "10s",
+  "refresh": "5s",
   "schemaVersion": 27,
   "style": "dark",
   "tags": [],
@@ -772,19 +1043,14 @@
       },
       {
         "allValue": null,
-        "current": {
-          "isNone": true,
-          "selected": false,
-          "text": "None",
-          "value": ""
-        },
+        "current": {},
         "datasource": null,
         "definition": "label_values(up{verrazzano_cluster=~\"$vzcluster\"}, app_oam_dev_name)",
         "description": null,
         "error": null,
         "hide": 0,
         "includeAll": false,
-        "label": null,
+        "label": "Application",
         "multi": false,
         "name": "application",
         "options": [],
@@ -795,7 +1061,7 @@
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
-        "sort": 0,
+        "sort": 1,
         "tagValuesQuery": "",
         "tags": [],
         "tagsQuery": "",
@@ -804,18 +1070,14 @@
       },
       {
         "allValue": null,
-        "current": {
-          "selected": false,
-          "text": "All",
-          "value": "$__all"
-        },
+        "current": {},
         "datasource": null,
         "definition": "label_values(up{verrazzano_cluster=~\"$vzcluster\", app_oam_dev_name=\"$application\"}, app_oam_dev_component)",
         "description": null,
         "error": null,
         "hide": 0,
         "includeAll": true,
-        "label": null,
+        "label": "Component",
         "multi": true,
         "name": "component",
         "options": [],
@@ -825,6 +1087,234 @@
         },
         "refresh": 2,
         "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {},
+        "datasource": null,
+        "definition": "query_result(round(sum((sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{container=~\".+\"}) by (pod)) and on (pod) kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}),0.01))",
+        "description": null,
+        "error": null,
+        "hide": 2,
+        "includeAll": false,
+        "label": null,
+        "multi": false,
+        "name": "used_cpu",
+        "options": [],
+        "query": {
+          "query": "query_result(round(sum((sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{container=~\".+\"}) by (pod)) and on (pod) kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}),0.01))",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": ".*\\s(.*?)\\s.*",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {},
+        "datasource": null,
+        "definition": "query_result(round(sum(sum(max(container_memory_working_set_bytes{verrazzano_cluster=~\"$vzcluster\", container!=\"\", image!=\"\"}) by (container, pod)) by (pod) and on(pod) kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"})/1024/1024/1024,0.01))",
+        "description": null,
+        "error": null,
+        "hide": 2,
+        "includeAll": false,
+        "label": null,
+        "multi": false,
+        "name": "used_memory",
+        "options": [
+          {
+            "selected": true,
+            "text": "0.64",
+            "value": "0.64"
+          }
+        ],
+        "query": {
+          "query": "query_result(round(sum(sum(max(container_memory_working_set_bytes{verrazzano_cluster=~\"$vzcluster\", container!=\"\", image!=\"\"}) by (container, pod)) by (pod) and on(pod) kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"})/1024/1024/1024,0.01))",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 0,
+        "regex": ".*\\s(.*?)\\s.*",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {},
+        "datasource": null,
+        "definition": "query_result(round(sum(sum(container_fs_usage_bytes{verrazzano_cluster=~\"$vzcluster\"}) by (pod) and on (pod) kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\",label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"})/1024/1024/1024, 0.01))",
+        "description": null,
+        "error": null,
+        "hide": 2,
+        "includeAll": false,
+        "label": null,
+        "multi": false,
+        "name": "used_storage",
+        "options": [],
+        "query": {
+          "query": "query_result(round(sum(sum(container_fs_usage_bytes{verrazzano_cluster=~\"$vzcluster\"}) by (pod) and on (pod) kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\",label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"})/1024/1024/1024, 0.01))",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": ".*\\s(.*?)\\s.*",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {},
+        "datasource": null,
+        "definition": "query_result(round(sum(kube_pod_spec_volumes_persistentvolumeclaims_info * on(persistentvolumeclaim, namespace) group_left kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$vzcluster\"} and on(pod) kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"})/1024/1024/1024,0.01))",
+        "description": null,
+        "error": null,
+        "hide": 2,
+        "includeAll": false,
+        "label": null,
+        "multi": false,
+        "name": "used_pvc",
+        "options": [],
+        "query": {
+          "query": "query_result(round(sum(kube_pod_spec_volumes_persistentvolumeclaims_info * on(persistentvolumeclaim, namespace) group_left kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$vzcluster\"} and on(pod) kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"})/1024/1024/1024,0.01))",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": ".*\\s(.*?)\\s.*",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {},
+        "datasource": null,
+        "definition": "query_result(round(sum(kube_pod_spec_volumes_persistentvolumeclaims_info * on(persistentvolumeclaim, namespace) group_left kubelet_volume_stats_available_bytes{verrazzano_cluster=\"$vzcluster\"} and on(pod) kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"})/1024/1024/1024,0.01))",
+        "description": null,
+        "error": null,
+        "hide": 2,
+        "includeAll": false,
+        "label": null,
+        "multi": false,
+        "name": "available_pvc",
+        "options": [],
+        "query": {
+          "query": "query_result(round(sum(kube_pod_spec_volumes_persistentvolumeclaims_info * on(persistentvolumeclaim, namespace) group_left kubelet_volume_stats_available_bytes{verrazzano_cluster=\"$vzcluster\"} and on(pod) kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"})/1024/1024/1024,0.01))",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": ".*\\s(.*?)\\s.*",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {},
+        "datasource": null,
+        "definition": "query_result(round(sum (count without (cpu, mode) (node_cpu_seconds_total{job=\"node-exporter\",mode=\"idle\",verrazzano_cluster=\"$vzcluster\"}) - ((1 - avg without (cpu) (sum without (mode) (rate(node_cpu_seconds_total{job=\"node-exporter\",mode=~\"idle|iowait|steal\",verrazzano_cluster=\"$vzcluster\"}[5m])))) * count without (cpu, mode) (node_cpu_seconds_total{job=\"node-exporter\",mode=\"idle\",verrazzano_cluster=\"$vzcluster\"}))),0.01))",
+        "description": null,
+        "error": null,
+        "hide": 2,
+        "includeAll": false,
+        "label": null,
+        "multi": false,
+        "name": "available_cpu",
+        "options": [],
+        "query": {
+          "query": "query_result(round(sum (count without (cpu, mode) (node_cpu_seconds_total{job=\"node-exporter\",mode=\"idle\",verrazzano_cluster=\"$vzcluster\"}) - ((1 - avg without (cpu) (sum without (mode) (rate(node_cpu_seconds_total{job=\"node-exporter\",mode=~\"idle|iowait|steal\",verrazzano_cluster=\"$vzcluster\"}[5m])))) * count without (cpu, mode) (node_cpu_seconds_total{job=\"node-exporter\",mode=\"idle\",verrazzano_cluster=\"$vzcluster\"}))),0.01))",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": ".*\\s(.*?)\\s.*",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {},
+        "datasource": null,
+        "definition": "query_result(round(sum(node_memory_MemAvailable_bytes{job=\"node-exporter\",verrazzano_cluster=\"$vzcluster\"} or (node_memory_Buffers_bytes{job=\"node-exporter\",verrazzano_cluster=\"$vzcluster\"} + node_memory_Cached_bytes{job=\"node-exporter\",verrazzano_cluster=\"$vzcluster\"} + node_memory_MemFree_bytes{job=\"node-exporter\",verrazzano_cluster=\"$vzcluster\"} + node_memory_Slab_bytes{job=\"node-exporter\",verrazzano_cluster=\"$vzcluster\"}))/1024/1024/1024,0.01))",
+        "description": null,
+        "error": null,
+        "hide": 2,
+        "includeAll": false,
+        "label": null,
+        "multi": false,
+        "name": "available_memory",
+        "options": [],
+        "query": {
+          "query": "query_result(round(sum(node_memory_MemAvailable_bytes{job=\"node-exporter\",verrazzano_cluster=\"$vzcluster\"} or (node_memory_Buffers_bytes{job=\"node-exporter\",verrazzano_cluster=\"$vzcluster\"} + node_memory_Cached_bytes{job=\"node-exporter\",verrazzano_cluster=\"$vzcluster\"} + node_memory_MemFree_bytes{job=\"node-exporter\",verrazzano_cluster=\"$vzcluster\"} + node_memory_Slab_bytes{job=\"node-exporter\",verrazzano_cluster=\"$vzcluster\"}))/1024/1024/1024,0.01))",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": ".*\\s(.*?)\\s.*",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {},
+        "datasource": null,
+        "definition": "query_result(round(sum(node_filesystem_avail_bytes{mountpoint=\"/\", verrazzano_cluster=\"$vzcluster\"})/1024/1024/1024,0.01))",
+        "description": null,
+        "error": null,
+        "hide": 2,
+        "includeAll": false,
+        "label": null,
+        "multi": false,
+        "name": "available_storage",
+        "options": [
+          {
+            "selected": true,
+            "text": "65.15",
+            "value": "65.15"
+          }
+        ],
+        "query": {
+          "query": "query_result(round(sum(node_filesystem_avail_bytes{mountpoint=\"/\", verrazzano_cluster=\"$vzcluster\"})/1024/1024/1024,0.01))",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 0,
+        "regex": ".*\\s(.*?)\\s.*",
         "skipUrlSync": false,
         "sort": 0,
         "tagValuesQuery": "",
@@ -836,7 +1326,7 @@
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {},

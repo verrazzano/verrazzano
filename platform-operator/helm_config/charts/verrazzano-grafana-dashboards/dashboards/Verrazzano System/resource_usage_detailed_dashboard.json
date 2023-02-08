@@ -15,8 +15,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": null,
-  "iteration": 1675161656806,
+  "id": 8,
+  "iteration": 1675856580161,
   "links": [
     {
       "asDropdown": false,
@@ -33,6 +33,7 @@
   ],
   "panels": [
     {
+      "collapsed": true,
       "datasource": null,
       "gridPos": {
         "h": 1,
@@ -41,480 +42,1006 @@
         "y": 0
       },
       "id": 9,
-      "panels": [],
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": null,
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "fill": 2,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 1
+          },
+          "hiddenSeries": false,
+          "id": 4,
+          "legend": {
+            "alignAsTable": true,
+            "avg": false,
+            "current": false,
+            "hideEmpty": true,
+            "hideZero": true,
+            "max": false,
+            "min": false,
+            "rightSide": true,
+            "show": true,
+            "sideWidth": 150,
+            "sort": "max",
+            "sortDesc": false,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 1,
+          "nullPointMode": "null",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "7.5.17",
+          "pointradius": 0.5,
+          "points": false,
+          "renderer": "flot",
+          "scopedVars": {
+            "component": {}
+          },
+          "seriesOverrides": [
+            {
+              "$$hashKey": "object:763"
+            }
+          ],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "exemplar": false,
+              "expr": "sum((sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{container=~\".+\"}) by (pod))* on(pod) group_right kube_pod_labels{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\", namespace=~\"$namespace\", pod=~\"$pod\"})  by (pod)",
+              "format": "time_series",
+              "instant": false,
+              "interval": "",
+              "legendFormat": "{{pod}}",
+              "refId": "A"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "CPU(Available: $available_cpu cores)",
+          "tooltip": {
+            "shared": false,
+            "sort": 1,
+            "value_type": "individual"
+          },
+          "transformations": [
+            {
+              "id": "calculateField",
+              "options": {}
+            }
+          ],
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "$$hashKey": "object:309",
+              "decimals": null,
+              "format": "short",
+              "label": "",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "$$hashKey": "object:310",
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": true,
+            "alignLevel": null
+          }
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": null,
+          "description": "",
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
+          "fill": 2,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 1
+          },
+          "hiddenSeries": false,
+          "id": 5,
+          "legend": {
+            "alignAsTable": true,
+            "avg": false,
+            "current": false,
+            "hideEmpty": true,
+            "hideZero": true,
+            "max": false,
+            "min": false,
+            "rightSide": true,
+            "show": true,
+            "sideWidth": 150,
+            "sort": "max",
+            "sortDesc": false,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 1,
+          "nullPointMode": "null",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "7.5.17",
+          "pointradius": 0.5,
+          "points": false,
+          "renderer": "flot",
+          "scopedVars": {
+            "component": {}
+          },
+          "seriesOverrides": [
+            {
+              "$$hashKey": "object:763"
+            }
+          ],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "exemplar": false,
+              "expr": "sum(node_namespace_pod_container:container_memory_working_set_bytes{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\",namespace=~\"$namespace\", pod=~\"$pod\"}) by (pod)",
+              "format": "time_series",
+              "instant": false,
+              "interval": "",
+              "legendFormat": "{{pod}}",
+              "refId": "A"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "Memory(Available: $available_memory GiB)",
+          "tooltip": {
+            "shared": false,
+            "sort": 1,
+            "value_type": "individual"
+          },
+          "transformations": [
+            {
+              "id": "calculateField",
+              "options": {}
+            }
+          ],
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "$$hashKey": "object:309",
+              "decimals": null,
+              "format": "bytes",
+              "label": "",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "$$hashKey": "object:310",
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": false
+            }
+          ],
+          "yaxis": {
+            "align": true,
+            "alignLevel": null
+          }
+        },
+        {
+          "datasource": null,
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": null,
+                "filterable": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Memory Usage(bytes)"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "decbytes"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Status"
+                },
+                "properties": [
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "from": "",
+                        "id": 1,
+                        "text": "Not Ready",
+                        "to": "",
+                        "type": 1,
+                        "value": "0"
+                      },
+                      {
+                        "from": "",
+                        "id": 2,
+                        "text": "Ready",
+                        "to": "",
+                        "type": 1,
+                        "value": "1"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 24,
+            "x": 0,
+            "y": 9
+          },
+          "id": 11,
+          "options": {
+            "showHeader": true,
+            "sortBy": [
+              {
+                "desc": true,
+                "displayName": "Memory Usage(bytes)"
+              }
+            ]
+          },
+          "pluginVersion": "7.5.17",
+          "scopedVars": {
+            "component": {}
+          },
+          "targets": [
+            {
+              "exemplar": true,
+              "expr": "kube_pod_info{verrazzano_cluster=\"$cluster\",namespace=~\"$namespace\", pod=~\"$pod\"} and on (pod)\nkube_pod_labels{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\", namespace=~\"$namespace\", pod=~\"$pod\"}",
+              "format": "table",
+              "instant": true,
+              "interval": "",
+              "legendFormat": "",
+              "refId": "Pod Info"
+            },
+            {
+              "exemplar": true,
+              "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{container=~\".+\",namespace=~\"$namespace\", pod=~\"$pod\"} and on (pod)\nkube_pod_labels{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\", namespace=~\"$namespace\", pod=~\"$pod\"}) by (pod)",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "interval": "",
+              "legendFormat": "",
+              "refId": "CPU Usage"
+            },
+            {
+              "exemplar": true,
+              "expr": "sum(node_namespace_pod_container:container_memory_working_set_bytes{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\",namespace=~\"$namespace\", pod=~\"$pod\"}) by (pod)",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "interval": "",
+              "legendFormat": "",
+              "refId": "Memory Usage"
+            },
+            {
+              "exemplar": true,
+              "expr": "sum(kube_pod_container_status_restarts_total{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\", namespace=~\"$namespace\", pod=~\"$pod\"}) by (pod)",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "interval": "",
+              "legendFormat": "",
+              "refId": "Restarts"
+            },
+            {
+              "exemplar": true,
+              "expr": "max(kube_pod_status_ready{condition=\"true\",verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\", namespace=~\"$namespace\", pod=~\"$pod\"}) by (pod)",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "interval": "",
+              "legendFormat": "",
+              "refId": "Status"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Pods",
+          "transformations": [
+            {
+              "id": "labelsToFields",
+              "options": {}
+            },
+            {
+              "id": "seriesToColumns",
+              "options": {
+                "byField": "pod"
+              }
+            },
+            {
+              "id": "filterFieldsByName",
+              "options": {
+                "include": {
+                  "names": [
+                    "node",
+                    "pod",
+                    "Value #CPU Usage",
+                    "Value #Memory Usage",
+                    "Value #Restarts",
+                    "Value #Status"
+                  ]
+                }
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {},
+                "indexByName": {
+                  "Value #CPU Usage": 5,
+                  "Value #Memory Usage": 6,
+                  "Value #Restarts": 4,
+                  "Value #Status": 3,
+                  "node": 1,
+                  "pod": 0,
+                  "verrazzano_component": 2
+                },
+                "renameByName": {
+                  "Value #CPU Usage": "CPU Usage(cores)",
+                  "Value #Memory Usage": "Memory Usage(bytes)",
+                  "Value #Restarts": "Restarts",
+                  "Value #Status": "Status",
+                  "node": "Node",
+                  "pod": "Pod",
+                  "verrazzano_component": "Component"
+                }
+              }
+            }
+          ],
+          "type": "table"
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": null,
+          "description": "",
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
+          "fill": 2,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 16
+          },
+          "hiddenSeries": false,
+          "id": 6,
+          "legend": {
+            "alignAsTable": true,
+            "avg": false,
+            "current": false,
+            "hideEmpty": true,
+            "hideZero": true,
+            "max": false,
+            "min": false,
+            "rightSide": true,
+            "show": true,
+            "sideWidth": 150,
+            "sort": "max",
+            "sortDesc": false,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 1,
+          "nullPointMode": "null",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "7.5.17",
+          "pointradius": 0.5,
+          "points": false,
+          "renderer": "flot",
+          "scopedVars": {
+            "component": {}
+          },
+          "seriesOverrides": [
+            {
+              "$$hashKey": "object:763"
+            }
+          ],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "exemplar": false,
+              "expr": "sum(container_fs_usage_bytes{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\", namespace=~\"$namespace\", pod=~\"$pod\"}) by (verrazzano_component, namespace, pod)",
+              "format": "time_series",
+              "instant": false,
+              "interval": "",
+              "legendFormat": "{{pod}}",
+              "refId": "A"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "Disk(Available: $available_storage GiB)",
+          "tooltip": {
+            "shared": false,
+            "sort": 1,
+            "value_type": "individual"
+          },
+          "transformations": [
+            {
+              "id": "calculateField",
+              "options": {}
+            }
+          ],
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "$$hashKey": "object:309",
+              "decimals": null,
+              "format": "bytes",
+              "label": "",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "$$hashKey": "object:310",
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": false
+            }
+          ],
+          "yaxis": {
+            "align": true,
+            "alignLevel": null
+          }
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": null,
+          "description": "",
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
+          "fill": 2,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 16
+          },
+          "hiddenSeries": false,
+          "id": 7,
+          "legend": {
+            "alignAsTable": true,
+            "avg": false,
+            "current": false,
+            "hideEmpty": true,
+            "hideZero": true,
+            "max": false,
+            "min": false,
+            "rightSide": true,
+            "show": true,
+            "sideWidth": 150,
+            "sort": "max",
+            "sortDesc": false,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 1,
+          "nullPointMode": "null",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "7.5.17",
+          "pointradius": 0.5,
+          "points": false,
+          "renderer": "flot",
+          "scopedVars": {
+            "component": {}
+          },
+          "seriesOverrides": [
+            {
+              "$$hashKey": "object:763"
+            }
+          ],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "exemplar": false,
+              "expr": "sum(kube_pod_spec_volumes_persistentvolumeclaims_info{verrazzano_component=~\"$component\", namespace=~\"$namespace\", pod=~\"$pod\"} * on(persistentvolumeclaim, namespace) group_right(verrazzano_component) kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$cluster\", namespace=~\"$namespace\"}  ) by (verrazzano_component, persistentvolumeclaim, namespace, pod)",
+              "format": "time_series",
+              "instant": false,
+              "interval": "",
+              "legendFormat": "{{persistentvolumeclaim}}",
+              "refId": "A"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "PVC(Available: $available_pvc GiB)",
+          "tooltip": {
+            "shared": false,
+            "sort": 1,
+            "value_type": "individual"
+          },
+          "transformations": [
+            {
+              "id": "calculateField",
+              "options": {}
+            }
+          ],
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "$$hashKey": "object:309",
+              "decimals": null,
+              "format": "bytes",
+              "label": "",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "$$hashKey": "object:310",
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": false
+            }
+          ],
+          "yaxis": {
+            "align": true,
+            "alignLevel": null
+          }
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": null,
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
+          "fill": 1,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 24
+          },
+          "hiddenSeries": false,
+          "id": 13,
+          "legend": {
+            "alignAsTable": true,
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "rightSide": true,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 1,
+          "nullPointMode": "null",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "7.5.17",
+          "pointradius": 0.5,
+          "points": false,
+          "renderer": "flot",
+          "scopedVars": {
+            "component": {}
+          },
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "exemplar": true,
+              "expr": "sum(sum(label_replace(irate(istio_requests_total{verrazzano_cluster=\"$cluster\"}[$__rate_interval]), \"service\", \"$1\", \"destination_service_name\", \"(.+)}\") and on(service) up{verrazzano_cluster=\"$cluster\"} and on(namespace, pod) kube_pod_labels{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\"}) by (verrazzano_cluster, namespace, pod) * on(verrazzano_cluster, namespace, pod) group_right kube_pod_labels{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\"})by(pod)",
+              "interval": "",
+              "legendFormat": "{{pod}}",
+              "refId": "A"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "HTTP Requests/second",
+          "tooltip": {
+            "shared": false,
+            "sort": 1,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": null,
+          "description": "Requests with 5xx responses per second divided by Total Requests per second ",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "fill": 1,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 24
+          },
+          "hiddenSeries": false,
+          "id": 15,
+          "legend": {
+            "alignAsTable": true,
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "rightSide": true,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 1,
+          "nullPointMode": "null",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "7.5.17",
+          "pointradius": 0.5,
+          "points": false,
+          "renderer": "flot",
+          "scopedVars": {
+            "component": {}
+          },
+          "seriesOverrides": [
+            {
+              "$$hashKey": "object:156"
+            }
+          ],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "exemplar": false,
+              "expr": "100 * round(sum(sum(label_replace(rate(istio_requests_total{verrazzano_cluster=\"$cluster\",response_code=~\"5.*\"}[$__rate_interval]), \"service\", \"$1\", \"destination_service_name\", \"(.+)}\") and on(service) up{verrazzano_cluster=\"$cluster\"} and on(namespace, pod) kube_pod_labels{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\"}) by (verrazzano_cluster, namespace, pod) * on(verrazzano_cluster, namespace, pod) group_right kube_pod_labels{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\"}) by (pod)/ sum(sum(label_replace(rate(istio_requests_total{verrazzano_cluster=\"$cluster\"}[$__rate_interval]), \"service\", \"$1\", \"destination_service_name\", \"(.+)}\") and on(service) up{verrazzano_cluster=\"$cluster\"} and on(namespace, pod) kube_pod_labels{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\"}) by (verrazzano_cluster, namespace, pod) * on(verrazzano_cluster, namespace, pod) group_right kube_pod_labels{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\"}) by (pod), 0.01)",
+              "interval": "",
+              "legendFormat": "{{pod}}",
+              "refId": "A"
+            }
+          ],
+          "thresholds": [
+            {
+              "$$hashKey": "object:148",
+              "colorMode": "critical",
+              "fill": true,
+              "line": true,
+              "op": "gt",
+              "yaxis": "left"
+            }
+          ],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "5xx Response Rate",
+          "tooltip": {
+            "shared": false,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "format": "percent",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": null,
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
+          "fill": 1,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 32
+          },
+          "hiddenSeries": false,
+          "id": 17,
+          "legend": {
+            "alignAsTable": true,
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "rightSide": true,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 1,
+          "nullPointMode": "null",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "7.5.17",
+          "pointradius": 0.5,
+          "points": false,
+          "renderer": "flot",
+          "scopedVars": {
+            "component": {}
+          },
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "exemplar": true,
+              "expr": "round(sum(sum(label_replace(istio_request_duration_milliseconds_sum{verrazzano_cluster=\"$cluster\"}, \"service\", \"$1\", \"destination_service_name\", \"(.+)}\") and on(service) up{verrazzano_cluster=\"$cluster\"} and on(namespace, pod) kube_pod_labels{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\"}) by (verrazzano_cluster, namespace, pod) * on(verrazzano_cluster, namespace, pod) group_right kube_pod_labels{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\"}) by (pod)/ sum(sum(label_replace(istio_request_duration_milliseconds_count{verrazzano_cluster=\"$cluster\"}, \"service\", \"$1\", \"destination_service_name\", \"(.+)}\") and on(service) up{verrazzano_cluster=\"$cluster\"} and on(namespace, pod) kube_pod_labels{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\"}) by (verrazzano_cluster, namespace, pod) * on(verrazzano_cluster, namespace, pod) group_right kube_pod_labels{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\"}) by (pod), 0.01)",
+              "interval": "",
+              "legendFormat": "{{pod}}",
+              "refId": "A"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "Avg Request Duration (ms)",
+          "tooltip": {
+            "shared": false,
+            "sort": 1,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
+        }
+      ],
       "repeat": "component",
+      "scopedVars": {
+        "component": {}
+      },
       "title": "$component",
       "type": "row"
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": null,
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "fill": 2,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 7,
-        "w": 6,
-        "x": 0,
-        "y": 1
-      },
-      "hiddenSeries": false,
-      "id": 4,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": false,
-        "hideEmpty": true,
-        "hideZero": true,
-        "max": false,
-        "min": false,
-        "rightSide": true,
-        "show": true,
-        "sideWidth": 150,
-        "sort": "max",
-        "sortDesc": false,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "7.5.17",
-      "pointradius": 0.5,
-      "points": true,
-      "renderer": "flot",
-      "seriesOverrides": [
-        {
-          "$$hashKey": "object:763"
-        }
-      ],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "exemplar": false,
-          "expr": "sum(irate(container_cpu_usage_seconds_total{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])) by (verrazzano_component, namespace, pod)",
-          "format": "time_series",
-          "instant": false,
-          "interval": "",
-          "legendFormat": "{{pod}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "CPU(Available: $available_cpu)",
-      "tooltip": {
-        "shared": false,
-        "sort": 1,
-        "value_type": "individual"
-      },
-      "transformations": [
-        {
-          "id": "calculateField",
-          "options": {}
-        }
-      ],
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:309",
-          "decimals": null,
-          "format": "short",
-          "label": "",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "$$hashKey": "object:310",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": true,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": null,
-      "description": "",
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "fill": 2,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 7,
-        "w": 6,
-        "x": 6,
-        "y": 1
-      },
-      "hiddenSeries": false,
-      "id": 5,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": false,
-        "hideEmpty": true,
-        "hideZero": true,
-        "max": false,
-        "min": false,
-        "rightSide": true,
-        "show": true,
-        "sideWidth": 150,
-        "sort": "max",
-        "sortDesc": false,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "7.5.17",
-      "pointradius": 0.5,
-      "points": true,
-      "renderer": "flot",
-      "seriesOverrides": [
-        {
-          "$$hashKey": "object:763"
-        }
-      ],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "exemplar": false,
-          "expr": "sum(container_memory_working_set_bytes{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\", namespace=~\"$namespace\", pod=~\"$pod\"}) by (verrazzano_component, namespace, pod)",
-          "format": "time_series",
-          "instant": false,
-          "interval": "",
-          "legendFormat": "{{pod}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Memory(Available: $available_memory GiB)",
-      "tooltip": {
-        "shared": false,
-        "sort": 1,
-        "value_type": "individual"
-      },
-      "transformations": [
-        {
-          "id": "calculateField",
-          "options": {}
-        }
-      ],
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:309",
-          "decimals": null,
-          "format": "bytes",
-          "label": "",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "$$hashKey": "object:310",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": false
-        }
-      ],
-      "yaxis": {
-        "align": true,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": null,
-      "description": "",
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "fill": 2,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 7,
-        "w": 6,
-        "x": 12,
-        "y": 1
-      },
-      "hiddenSeries": false,
-      "id": 6,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": false,
-        "hideEmpty": true,
-        "hideZero": true,
-        "max": false,
-        "min": false,
-        "rightSide": true,
-        "show": true,
-        "sideWidth": 150,
-        "sort": "max",
-        "sortDesc": false,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "7.5.17",
-      "pointradius": 0.5,
-      "points": true,
-      "renderer": "flot",
-      "seriesOverrides": [
-        {
-          "$$hashKey": "object:763"
-        }
-      ],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "exemplar": false,
-          "expr": "sum(container_fs_usage_bytes{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\", namespace=~\"$namespace\", pod=~\"$pod\"}) by (verrazzano_component, namespace, pod)",
-          "format": "time_series",
-          "instant": false,
-          "interval": "",
-          "legendFormat": "{{pod}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Disk Storage(Available: $available_storage GiB)",
-      "tooltip": {
-        "shared": false,
-        "sort": 1,
-        "value_type": "individual"
-      },
-      "transformations": [
-        {
-          "id": "calculateField",
-          "options": {}
-        }
-      ],
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:309",
-          "decimals": null,
-          "format": "bytes",
-          "label": "",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "$$hashKey": "object:310",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": false
-        }
-      ],
-      "yaxis": {
-        "align": true,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": null,
-      "description": "",
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "fill": 2,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 7,
-        "w": 6,
-        "x": 18,
-        "y": 1
-      },
-      "hiddenSeries": false,
-      "id": 7,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": false,
-        "hideEmpty": true,
-        "hideZero": true,
-        "max": false,
-        "min": false,
-        "rightSide": true,
-        "show": true,
-        "sideWidth": 150,
-        "sort": "max",
-        "sortDesc": false,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "7.5.17",
-      "pointradius": 0.5,
-      "points": true,
-      "renderer": "flot",
-      "seriesOverrides": [
-        {
-          "$$hashKey": "object:763"
-        }
-      ],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "exemplar": false,
-          "expr": "sum(kube_pod_spec_volumes_persistentvolumeclaims_info{verrazzano_component=~\"$component\", namespace=~\"$namespace\", pod=~\"$pod\"} * on(persistentvolumeclaim, namespace) group_right(verrazzano_component) kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$cluster\", namespace=~\"$namespace\"}  ) by (verrazzano_component, persistentvolumeclaim, namespace, pod)",
-          "format": "time_series",
-          "instant": false,
-          "interval": "",
-          "legendFormat": "{{persistentvolumeclaim}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "PVC Usage(Available: $available_pvc GiB)",
-      "tooltip": {
-        "shared": false,
-        "sort": 1,
-        "value_type": "individual"
-      },
-      "transformations": [
-        {
-          "id": "calculateField",
-          "options": {}
-        }
-      ],
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:309",
-          "decimals": null,
-          "format": "bytes",
-          "label": "",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "$$hashKey": "object:310",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": false
-        }
-      ],
-      "yaxis": {
-        "align": true,
-        "alignLevel": null
-      }
     }
   ],
   "refresh": "5s",
@@ -762,5 +1289,5 @@
   "timezone": "",
   "title": "Resource Usage Detailed",
   "uid": "MxULwuo4z",
-  "version": 39
+  "version": 2
 }
