@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package uninstall
@@ -7,7 +7,10 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	"io"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"os"
 	"regexp"
 	"time"
 
@@ -156,6 +159,10 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 
 	// Wait for the Verrazzano uninstall to complete.
 	err = waitForUninstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat, useUninstallJob)
+	rc := cmdhelpers.NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
+	cmdAnalyze := analyze.NewCmdAnalyze(rc)
+	cmdAnalyze.Execute()
+	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("ANALYZE EXECUTED FROM UNINSTALL. err FROM WAIT FOR UNINSTALL TO COMPLETE%s\n", err.Error()))
 	if err != nil {
 		return fmt.Errorf("Failed to uninstall Verrazzano: %s", err.Error())
 	}
