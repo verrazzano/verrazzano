@@ -9,7 +9,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -90,7 +89,7 @@ func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
 // IsEnabled mysql-specific enabled check for installation
 // If keycloak is enabled, mysql is enabled; disabled otherwise
 func (c mysqlComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzcr.IsKeycloakEnabled(effectiveCR)
+	return true
 }
 
 // PreInstall calls MySQL preInstall function
