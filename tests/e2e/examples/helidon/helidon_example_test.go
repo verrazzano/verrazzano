@@ -6,6 +6,7 @@ package helidon
 import (
 	"fmt"
 	"io"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 	"os"
 	"strings"
@@ -46,6 +47,7 @@ var (
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
+
 	if !skipDeploy {
 		start := time.Now()
 		pkg.DeployHelloHelidonApplication(namespace, "", istioInjection, helloHelidonComponent, helloHelidonAppConfig)
@@ -99,6 +101,15 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Helidon Example: Gateway is not ready")
 		metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 
+		// validate if manualscalertrait applied, then pod count should be 2
+		// examples/hello-helidon/hello-helidon-app-scaler-trait.yaml
+		if strings.Contains(helloHelidonAppConfig, "hello-helidon-app-scaler-trait.yaml") {
+			t.Logs.Info("Helidon Example: check expected pods are running")
+
+			Eventually(func() bool {
+				return isDeploymentSetUpdated()
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+		}
 	}
 	beforeSuitePassed = true
 })
@@ -354,4 +365,21 @@ func nodeExporterProcsRunning() bool {
 
 func nodeExporterDiskIoNow() bool {
 	return pkg.MetricsExist("node_disk_io_now", "job", nodeExporterJobName)
+}
+
+// isDeploymentSetUpdated returns
+// replicas from examples/hello-helidon/hello-helidon-app-scaler-trait.yaml
+// currently configured 2
+func isDeploymentSetUpdated() bool {
+	pods, err := pkg.ListPods(namespace, metav1.ListOptions{})
+	if err != nil {
+		t.Logs.Errorf("Unexpected error while listing the deployments error response=%v", err)
+		return false
+	}
+	t.Logs.Info("current pod count...", len(pods.Items))
+	if len(pods.Items) < 2 {
+		return false
+	} else {
+		return true
+	}
 }
