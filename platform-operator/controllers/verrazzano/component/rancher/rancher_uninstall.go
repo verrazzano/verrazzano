@@ -93,6 +93,7 @@ func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 		monitor.Reset()
 		// If it's not finished running, requeue
 		if succeeded {
+			ctx.Log().Infof("Component %s monitor thread succeeded", ComponentName)
 			return nil
 		}
 		// if we were unsuccessful, reset and drop through to try again
