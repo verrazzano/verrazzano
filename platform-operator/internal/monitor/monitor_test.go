@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package monitor
@@ -119,4 +119,29 @@ func TestMonitorType_Reset(t *testing.T) {
 	res, _ = m.CheckResult()
 	a.False(res)
 	a.False(m.IsRunning())
+}
+
+func TestMonitorType_IsCompleted(t *testing.T) {
+	a := assert.New(t)
+
+	m := &BackgroundProcessMonitorType{ComponentName: fakeCompName}
+	blocker := make(chan int)
+	finished := make(chan int)
+	operation := func() error {
+		defer func() { finished <- 0 }()
+		<-blocker
+		return nil
+	}
+
+	m.Run(operation)
+	a.True(m.IsRunning())
+	m.SetCompleted()
+	a.True(m.IsCompleted())
+	a.False(m.IsRunning())
+
+	// send to the channel to unblock operation
+	blocker <- 0
+
+	// block until the operation says it's finished
+	<-finished
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package fake
@@ -17,7 +17,7 @@ func (f *BackgroundProcessMonitorType) CheckResult() (bool, error)           { r
 func (f *BackgroundProcessMonitorType) Reset()                               {}
 func (f *BackgroundProcessMonitorType) IsRunning() bool                      { return f.Running }
 func (f *BackgroundProcessMonitorType) IsCompleted() bool                    { return f.Completed }
-func (f *BackgroundProcessMonitorType) SetCompleted()                        { f.Completed = true }
+func (f *BackgroundProcessMonitorType) SetCompleted()                        { f.Completed = true; f.Running = false }
 func (f *BackgroundProcessMonitorType) Run(operation monitor.BackgroundFunc) {}
 
 // Check that &BackgroundProcessMonitorType implements BackgroundProcessMonitor

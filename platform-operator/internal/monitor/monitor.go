@@ -67,6 +67,7 @@ func (m *BackgroundProcessMonitorType) IsCompleted() bool {
 // SetCompleted - sets the monitor thread as completed
 func (m *BackgroundProcessMonitorType) SetCompleted() {
 	m.completed = true
+	m.running = false
 }
 
 // Run - calls the operation in a background goroutine
