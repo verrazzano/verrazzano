@@ -44,7 +44,6 @@ pipeline {
                 choices: [ "v1beta1", "v1alpha1"])
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
-        booleanParam (description: 'Whether to enable debug logging of the istio envoy in the VZ API pod', name: 'ENABLE_API_ENVOY_LOGGING', defaultValue: true)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
     }
 
@@ -223,25 +222,6 @@ pipeline {
                         }
                         always {
                             archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
-                            // enable debug logging of Verrazzano api istio proxy
-                            script {
-                                if (params.ENABLE_API_ENVOY_LOGGING) {
-                                    sh '''
-                                        vz_api_pod=\$(kubectl get pod -n verrazzano-system -l app=verrazzano-api --no-headers -o custom-columns=\":metadata.name\")
-                                        if [ -z "\$vz_api_pod" ]; then
-                                            echo "Could not find verrazzano-api pod, not enabling debug logging"
-                                        else
-                                            kubectl exec \$vz_api_pod -c istio-proxy -n verrazzano-system -- curl -X POST http://localhost:15000/logging?level=debug
-                                        fi
-                                        nginx_ing_pod=\$(kubectl get pod -n ingress-nginx -l app.kubernetes.io/component=controller --no-headers -o custom-columns=\":metadata.name\")
-                                        if [ -z "\$nginx_ing_pod" ]; then
-                                            echo "Could not find nginx ingress controller pod, not enabling debug logging"
-                                        else
-                                            kubectl exec \$nginx_ing_pod -c istio-proxy -n ingress-nginx -- curl -X POST http://localhost:15000/logging?level=debug
-                                        fi
-                                    '''
-                                }
-                            }
                         }
                     }
                 }
@@ -331,25 +311,6 @@ pipeline {
                         }
                         always {
                             archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
-                            // enable debug logging of Verrazzano api istio proxy
-                            script {
-                                if (params.ENABLE_API_ENVOY_LOGGING) {
-                                    sh '''
-                                        vz_api_pod=\$(kubectl get pod -n verrazzano-system -l app=verrazzano-api --no-headers -o custom-columns=\":metadata.name\")
-                                        if [ -z "\$vz_api_pod" ]; then
-                                            echo "Could not find verrazzano-api pod, not enabling debug logging"
-                                        else
-                                            kubectl exec \$vz_api_pod -c istio-proxy -n verrazzano-system -- curl -X POST http://localhost:15000/logging?level=debug
-                                        fi
-                                        nginx_ing_pod=\$(kubectl get pod -n ingress-nginx -l app.kubernetes.io/component=controller --no-headers -o custom-columns=\":metadata.name\")
-                                        if [ -z "\$nginx_ing_pod" ]; then
-                                            echo "Could not find nginx ingress controller pod, not enabling debug logging"
-                                        else
-                                            kubectl exec \$nginx_ing_pod -c istio-proxy -n ingress-nginx -- curl -X POST http://localhost:15000/logging?level=debug
-                                        fi
-                                    '''
-                                }
-                            }
                         }
                     }
                 }
