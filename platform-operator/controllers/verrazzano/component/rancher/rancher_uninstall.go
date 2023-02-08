@@ -121,7 +121,7 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	var err error
 
 	// Run the rancher-cleanup job
-	if err := runRancherCleanup(ctx); err != nil {
+	if err := runCleanupJob(ctx); err != nil {
 		return err
 	}
 
@@ -167,35 +167,20 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	// Remove any Rancher CRD finalizers that may be causing CRD deletion to hang
 	removeCRDFinalizers(ctx, crds)
 
+	// Delete the rancher-cleanup job
+	deleteCleanupJob(ctx)
+
 	return nil
 }
 
-// runRancherCleanup - run the rancher-cleanup job
-func runRancherCleanup(ctx spi.ComponentContext) error {
+// runCleanupJob - run the rancher-cleanup job
+func runCleanupJob(ctx spi.ComponentContext) error {
 	// Create the rancher-cleanup job if it does not already exist
 	job := &batchv1.Job{}
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: rancherCleanupJobNamespace, Name: rancherCleanupJobName}, job)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			// Prepare the Yaml to create the rancher-cleanup job
-			jobYaml, err := parseCleanupJobTemplate()
-			if err != nil {
-				ctx.Log().Progressf("Failed to create yaml for %s job: %v", rancherCleanupJobName, err)
-				return err
-			}
-
-			// Write to a temporary file
-			file, err := os.CreateTempFile("vz", jobYaml)
-			if err != nil {
-				return err
-			}
-			defer file.Close()
-
-			// Create the rancher-cleanup job
-			if err = k8sutil.NewYAMLApplier(ctx.Client(), "").ApplyF(file.Name()); err != nil {
-				return ctx.Log().ErrorfNewErr("Failed applying Yaml to create job %s/%s for component %s: %v", rancherCleanupJobNamespace, rancherCleanupJobName, ComponentName, err)
-			}
-			return ctx.Log().ErrorfNewErr("Component %s waiting for job %s/%s to start", ComponentName, rancherCleanupJobNamespace, rancherCleanupJobName)
+			return createCleanupJob(ctx)
 		}
 		return err
 	}
@@ -215,6 +200,52 @@ func runRancherCleanup(ctx spi.ComponentContext) error {
 	ctx.Log().Progressf("Component %s job successfully completed: %s/%s", ComponentName, job.Namespace, job.Name)
 
 	return nil
+}
+
+// createCleanupJob - create the Rancher cleanup job
+func createCleanupJob(ctx spi.ComponentContext) error {
+	// Prepare the Yaml to create the rancher-cleanup job
+	jobYaml, err := parseCleanupJobTemplate()
+	if err != nil {
+		ctx.Log().Progressf("Failed to create yaml for %s job: %v", rancherCleanupJobName, err)
+		return err
+	}
+
+	// Write to a temporary file
+	file, err := os.CreateTempFile("vz", jobYaml)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Create the rancher-cleanup job
+	if err = k8sutil.NewYAMLApplier(ctx.Client(), "").ApplyF(file.Name()); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed applying Yaml to create job %s/%s for component %s: %v", rancherCleanupJobNamespace, rancherCleanupJobName, ComponentName, err)
+	}
+	return ctx.Log().ErrorfNewErr("Component %s waiting for job %s/%s to start", ComponentName, rancherCleanupJobNamespace, rancherCleanupJobName)
+}
+
+// deleteCleanupJob - delete the rancher-cleanup job. Do not return any errors,
+// it could cause the Rancher post-install to start all over
+func deleteCleanupJob(ctx spi.ComponentContext) {
+	// Prepare the Yaml to delete the rancher-cleanup job
+	jobYaml, err := parseCleanupJobTemplate()
+	if err != nil {
+		ctx.Log().Progressf("Failed to create yaml for %s job: %v", rancherCleanupJobName, err)
+		return
+	}
+
+	// Write to a temporary file
+	file, err := os.CreateTempFile("vz", jobYaml)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+
+	// Delete the rancher-cleanup job
+	if err = k8sutil.NewYAMLApplier(ctx.Client(), "").DeleteF(file.Name()); err != nil {
+		ctx.Log().Infof("Failed applying Yaml to delete job %s/%s for component %s: %v", rancherCleanupJobNamespace, rancherCleanupJobName, ComponentName, err)
+	}
 }
 
 // parseCleanupJobTemplate - parse the rancher-cleanup yaml file using
