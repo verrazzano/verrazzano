@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -660,4 +662,20 @@ func TestIsRancherNamespace(t *testing.T) {
 			Name: "p-12345",
 		},
 	}))
+}
+
+func TestRunCleanupJob(t *testing.T) {
+	a := assert.New(t)
+	vz := v1alpha1.Verrazzano{}
+
+	c := fake.NewClientBuilder().WithScheme(getScheme()).Build()
+	ctx := spi.NewFakeContext(c, &vz, nil, false)
+	config.SetDefaultBomFilePath("../../../../verrazzano-bom.json")
+	setCleanupJobYamlPath("../../../../thirdparty/manifests/rancher-cleanup/rancher-cleanup.yaml")
+
+	// Expect job to get created
+	err := runCleanupJob(ctx)
+	a.Error(err)
+	a.Contains(err.Error(), "waiting for job")
+
 }

@@ -34,14 +34,14 @@ import (
 )
 
 const (
-	webhookName                = "rancher.cattle.io"
-	controllerCMName           = "cattle-controllers"
-	lockCMName                 = "rancher-controller-lock"
-	rancherSysNS               = "management.cattle.io/system-namespace"
-	rancherCleanupImage        = "rancher-cleanup"
-	rancherCleanupJobYaml      = "/verrazzano/platform-operator/thirdparty/manifests/rancher-cleanup/rancher-cleanup.yaml"
-	rancherCleanupJobName      = "cleanup-job"
-	rancherCleanupJobNamespace = "kube-system"
+	webhookName                  = "rancher.cattle.io"
+	controllerCMName             = "cattle-controllers"
+	lockCMName                   = "rancher-controller-lock"
+	rancherSysNS                 = "management.cattle.io/system-namespace"
+	rancherCleanupImage          = "rancher-cleanup"
+	defaultRancherCleanupJobYaml = "/verrazzano/platform-operator/thirdparty/manifests/rancher-cleanup/rancher-cleanup.yaml"
+	rancherCleanupJobName        = "cleanup-job"
+	rancherCleanupJobNamespace   = "kube-system"
 )
 
 var rancherSystemNS = []string{
@@ -75,11 +75,20 @@ type postUninstallFuncSig func(ctx spi.ComponentContext) error
 
 var postUninstallFunc postUninstallFuncSig = invokeRancherSystemToolAndCleanup
 
+var rancherCleanupJobYamlPath = defaultRancherCleanupJobYaml
+
+func getCleanupJobYamlPath() string {
+	return rancherCleanupJobYamlPath
+}
+func setCleanupJobYamlPath(path string) {
+	rancherCleanupJobYamlPath = path
+}
+
 // postUninstall - Rancher component post-uninstall
 //
 // This uses the rancher-cleanup tool for uninstall. Launch the uninstall operation in a goroutine and requeue to check back later.
 // On subsequent callbacks, we check the status of the goroutine with the 'monitor' object, and postUninstall
-// returns or requeues accordingly.
+// returns or requeue accordingly.
 func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
 	if monitor.IsCompleted() {
 		return nil
@@ -95,6 +104,8 @@ func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 		monitor.Reset()
 		// If it's not finished running, requeue
 		if succeeded {
+			// Mark the monitor as completed.  Reconcile loop may call this function again
+			// and do not want to call forkPostUninstallFunc more than once.
 			monitor.SetCompleted()
 			return nil
 		}
@@ -276,14 +287,14 @@ func parseCleanupJobTemplate() ([]byte, error) {
 
 	// Parse the template file
 	var jobTemplate *template.Template
-	if jobTemplate, err = template.New("cleanup-job").ParseFiles(rancherCleanupJobYaml); err != nil {
+	if jobTemplate, err = template.New("cleanup-job").ParseFiles(getCleanupJobYamlPath()); err != nil {
 		return []byte{}, err
 	}
 
 	// Parse the filename from the path string, it will become the name of the parsed template
-	_, file := path.Split(rancherCleanupJobYaml)
+	_, file := path.Split(getCleanupJobYamlPath())
 	if len(file) == 0 {
-		return []byte{}, fmt.Errorf("Failed to parse filename from path %s", rancherCleanupJobYaml)
+		return []byte{}, fmt.Errorf("Failed to parse filename from path %s", getCleanupJobYamlPath())
 	}
 
 	// Temporary workaround
