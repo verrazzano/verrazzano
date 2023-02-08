@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
@@ -74,11 +74,17 @@ function dump_objects() {
     log "========================================================"
     if [ "$command" == "describe" ] ; then
       kubectl "${command}" "${type}" "${object}" -n "${namespace}"
-    elif [ "$command" == "logs" ] ; then
+    elif [ "$command" == "logs" ]; then
       if [ -z "$container" ] ; then
         kubectl "${command}" "${object}" -n "${namespace}"
       else
         kubectl "${command}" "${object}" -n "${namespace}" -c "${container}"
+      fi
+    elif [ "$command" == "previousLogs" ]; then
+      if [ -z "$container" ] ; then
+        kubectl "logs" "-p" "${object}" -n "${namespace}"
+      else
+        kubectl "logs" "-p" "${object}" -n "${namespace}" -c "${container}"
       fi
     fi
   done
@@ -120,7 +126,7 @@ function join_by() {
 # usage
 function usage {
     error
-    error "usage: $0 -o object_type -n namespace -m message [-r name_regex] [-s state] [-S not_state] [-l] [-c container] [-h]"
+    error "usage: $0 -o object_type -n namespace -m message [-r name_regex] [-s state] [-S not_state] [-l] [-p] [-c container] [-h]"
     error " -o object_type   Type of the object (i.e. namespaces, pods, jobs, etc)"
     error " -n namespace     Namespace of the given object type"
     error " -r name_regex    Regex to retrieve certain objects by name (Optional)"
@@ -128,6 +134,7 @@ function usage {
     error " -S not_state     Specified state that the described object should not be in (Multiple values allowed) (Optional)"
     error " -m message       Message for the diagnostic header to inform on cause of output"
     error " -l               Retrieve logs for specified object"
+    error " -p               Retrieve previous logs for specified object"
     error " -c container     Container in which to pull logs from"
     error " -h               Help"
     error
@@ -140,7 +147,7 @@ STATES=()
 NOT_STATES=()
 MESSAGE=""
 COMMAND="describe"
-while getopts o:n:r:s:S:m:lc:h flag
+while getopts o:n:r:s:S:m:lpc:h flag
 do
     case "${flag}" in
         o) OBJECT_TYPE=${OPTARG};;
@@ -150,6 +157,7 @@ do
         S) NOT_STATES+=("${OPTARG}");;
         m) MESSAGE=${OPTARG};;
         l) COMMAND="logs";;
+        p) COMMAND="previousLogs";;
         c) CONTAINER="${OPTARG}";;
         h) usage;;
         *) usage;;
