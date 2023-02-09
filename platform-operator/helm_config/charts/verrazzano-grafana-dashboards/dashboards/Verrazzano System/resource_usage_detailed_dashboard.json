@@ -664,7 +664,7 @@
           "targets": [
             {
               "exemplar": false,
-              "expr": "sum(kube_pod_spec_volumes_persistentvolumeclaims_info{verrazzano_component=~\"$component\", namespace=~\"$namespace\", pod=~\"$pod\"} * on(persistentvolumeclaim, namespace) group_right(verrazzano_component) kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$cluster\", namespace=~\"$namespace\"}  ) by (verrazzano_component, persistentvolumeclaim, namespace, pod)",
+              "expr": "sum(kube_pod_spec_volumes_persistentvolumeclaims_info{verrazzano_cluster=\"$cluster\", verrazzano_component=~\"$component\", namespace=~\"$namespace\", pod=~\"$pod\"} * on(persistentvolumeclaim, namespace) group_right(verrazzano_component) kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$cluster\", namespace=~\"$namespace\"}  ) by (verrazzano_component, persistentvolumeclaim, namespace, pod)",
               "format": "time_series",
               "instant": false,
               "interval": "",
@@ -1108,7 +1108,7 @@
         "allValue": null,
         "current": {},
         "datasource": null,
-        "definition": "query_result(round(sum(kube_pod_spec_volumes_persistentvolumeclaims_info{verrazzano_component != \"\"} * on(persistentvolumeclaim, namespace) group_right(verrazzano_component) kubelet_volume_stats_available_bytes{verrazzano_cluster=\"$cluster\"}  )/1024/1024/1024,0.01))",
+        "definition": "query_result(round(sum(kube_pod_spec_volumes_persistentvolumeclaims_info{verrazzano_cluster=\"$cluster\", verrazzano_component != \"\"} * on(persistentvolumeclaim, namespace) group_right(verrazzano_component) kubelet_volume_stats_available_bytes{verrazzano_cluster=\"$cluster\"}  )/1024/1024/1024,0.01))",
         "description": null,
         "error": null,
         "hide": 2,
@@ -1118,7 +1118,7 @@
         "name": "available_pvc",
         "options": [],
         "query": {
-          "query": "query_result(round(sum(kube_pod_spec_volumes_persistentvolumeclaims_info{verrazzano_component != \"\"} * on(persistentvolumeclaim, namespace) group_right(verrazzano_component) kubelet_volume_stats_available_bytes{verrazzano_cluster=\"$cluster\"}  )/1024/1024/1024,0.01))",
+          "query": "query_result(round(sum(kube_pod_spec_volumes_persistentvolumeclaims_info{verrazzano_cluster=\"$cluster\", verrazzano_component != \"\"} * on(persistentvolumeclaim, namespace) group_right(verrazzano_component) kubelet_volume_stats_available_bytes{verrazzano_cluster=\"$cluster\"}  )/1024/1024/1024,0.01))",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,

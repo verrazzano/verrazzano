@@ -638,7 +638,7 @@
       "targets": [
         {
           "exemplar": false,
-          "expr": "sum((sum(kube_pod_spec_volumes_persistentvolumeclaims_info * on(persistentvolumeclaim, namespace) group_left kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$vzcluster\"}) by (persistentvolumeclaim,pod)) * on(pod) group_left kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (persistentvolumeclaim) ",
+          "expr": "sum((sum(kube_pod_spec_volumes_persistentvolumeclaims_info{verrazzano_cluster=\"$vzcluster\"} * on(persistentvolumeclaim, namespace) group_left kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$vzcluster\"}) by (persistentvolumeclaim,pod)) * on(pod) group_left kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"}) by (persistentvolumeclaim) ",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -1186,7 +1186,7 @@
         "allValue": null,
         "current": {},
         "datasource": null,
-        "definition": "query_result(round(sum(kube_pod_spec_volumes_persistentvolumeclaims_info * on(persistentvolumeclaim, namespace) group_left kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$vzcluster\"} and on(pod) kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"})/1024/1024/1024,0.01))",
+        "definition": "query_result(round(sum(kube_pod_spec_volumes_persistentvolumeclaims_info{verrazzano_cluster=\"$vzcluster\"} * on(persistentvolumeclaim, namespace) group_left kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$vzcluster\"} and on(pod) kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"})/1024/1024/1024,0.01))",
         "description": null,
         "error": null,
         "hide": 2,
@@ -1196,7 +1196,7 @@
         "name": "used_pvc",
         "options": [],
         "query": {
-          "query": "query_result(round(sum(kube_pod_spec_volumes_persistentvolumeclaims_info * on(persistentvolumeclaim, namespace) group_left kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$vzcluster\"} and on(pod) kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"})/1024/1024/1024,0.01))",
+          "query": "query_result(round(sum(kube_pod_spec_volumes_persistentvolumeclaims_info{verrazzano_cluster=\"$vzcluster\"} * on(persistentvolumeclaim, namespace) group_left kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$vzcluster\"} and on(pod) kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"})/1024/1024/1024,0.01))",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,
@@ -1213,7 +1213,7 @@
         "allValue": null,
         "current": {},
         "datasource": null,
-        "definition": "query_result(round(sum(kube_pod_spec_volumes_persistentvolumeclaims_info * on(persistentvolumeclaim, namespace) group_left kubelet_volume_stats_available_bytes{verrazzano_cluster=\"$vzcluster\"} and on(pod) kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"})/1024/1024/1024,0.01))",
+        "definition": "query_result(round(sum(kube_pod_spec_volumes_persistentvolumeclaims_info{verrazzano_cluster=\"$vzcluster\"} * on(persistentvolumeclaim, namespace) group_left kubelet_volume_stats_available_bytes{verrazzano_cluster=\"$vzcluster\"} and on(pod) kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"})/1024/1024/1024,0.01))",
         "description": null,
         "error": null,
         "hide": 2,
@@ -1223,7 +1223,7 @@
         "name": "available_pvc",
         "options": [],
         "query": {
-          "query": "query_result(round(sum(kube_pod_spec_volumes_persistentvolumeclaims_info * on(persistentvolumeclaim, namespace) group_left kubelet_volume_stats_available_bytes{verrazzano_cluster=\"$vzcluster\"} and on(pod) kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"})/1024/1024/1024,0.01))",
+          "query": "query_result(round(sum(kube_pod_spec_volumes_persistentvolumeclaims_info{verrazzano_cluster=\"$vzcluster\"} * on(persistentvolumeclaim, namespace) group_left kubelet_volume_stats_available_bytes{verrazzano_cluster=\"$vzcluster\"} and on(pod) kube_pod_labels{verrazzano_cluster=~\"$vzcluster\", label_app_oam_dev_name != \"\", label_app_oam_dev_name=\"$application\", label_app_oam_dev_component=~\"$component\"})/1024/1024/1024,0.01))",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,
