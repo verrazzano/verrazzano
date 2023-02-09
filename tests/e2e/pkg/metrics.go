@@ -6,6 +6,7 @@ package pkg
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -179,6 +180,36 @@ func MetricsExist(metricsName, key, value string) bool {
 	return MetricsExistInCluster(metricsName, m, kubeconfigPath)
 }
 
+// ScrapeTargetsHealthy validates the health of the scrape targets for the given scrapePools
+func ScrapeTargetsHealthy(scrapePools []string) (bool, error) {
+	targets, err := ScrapeTargets()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting scrape targets: %v", err))
+		return false, err
+	}
+	for _, scrapePool := range scrapePools {
+		found := false
+		for _, target := range targets {
+			targetScrapePool := Jq(target, "scrapePool").(string)
+			if strings.Contains(targetScrapePool, scrapePool) {
+				found = true
+				// If any of the target health is not "up" return false
+				if Jq(target, "health") != "up" {
+					scrapeURL := Jq(target, "scrapeUrl").(string)
+					Log(Error, fmt.Sprintf("target with scrapePool %s and scrapeURL %s is not ready with health %s", targetScrapePool, scrapeURL, Jq(target, "health")))
+					return false, errors.New("target with scrapePool" + targetScrapePool + "and scrapeURL" + scrapeURL + "is not healthy")
+				}
+			}
+		}
+		// If target with scrapePool not found, then return false and error
+		if !found {
+			Log(Error, fmt.Sprintf("target with scrapePool %s is not found", scrapePool))
+			return false, errors.New("target with scrapePool" + scrapePool + "not found")
+		}
+	}
+	return true, nil
+}
+
 // ListUnhealthyScrapeTargets lists all the scrape targets that are unhealthy
 func ListUnhealthyScrapeTargets() {
 	targets, err := ScrapeTargets()
@@ -188,7 +219,7 @@ func ListUnhealthyScrapeTargets() {
 	}
 	for _, target := range targets {
 		if Jq(target, "health") != "up" {
-			Log(Info, fmt.Sprintf("target: %s is not ready", Jq(target, "scrapeUrl")))
+			Log(Info, fmt.Sprintf("target with scrapePool %s and scrapeURL %s is not ready with health %s", Jq(target, "scrapePool"), Jq(target, "scrapeUrl"), Jq(target, "health")))
 		}
 	}
 }
@@ -321,33 +352,18 @@ func GetServiceMonitor(namespace, name string) (*promoperapi.ServiceMonitor, err
 	return serviceMonitor, nil
 }
 
-// ScrapeTargetsHealthy validates the health of the scrape targets for the given scrapePools
-func ScrapeTargetsHealthy(scrapePools []string) (bool, error) {
-	targets, err := ScrapeTargets()
-	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting scrape targets: %v", err))
-		return false, err
-	}
-	for _, scrapePool := range scrapePools {
-		found := false
-		for _, target := range targets {
-			targetScrapePool := Jq(target, "scrapePool").(string)
-			if strings.Contains(targetScrapePool, scrapePool) {
-				found = true
-				// If any of the target health is not "up" return false
-				health := Jq(target, "health")
-				if health != "up" {
-					scrapeURL := Jq(target, "scrapeUrl").(string)
-					Log(Error, fmt.Sprintf("target with scrapePool %s and scrapeURL %s is not ready with health %s", targetScrapePool, scrapeURL, health))
-					return false, fmt.Errorf("target with scrapePool %s and scrapeURL %s is not healthy", targetScrapePool, scrapeURL)
-				}
-			}
+func GetScrapePools(namespace, appName string, componentNames []string, isMinVersion140 bool) []string {
+	var scrapePools []string
+	var scrapePool string
+	for _, comp := range componentNames {
+		if isMinVersion140 {
+			scrapePool = "serviceMonitor/" + namespace + "/" + GetAppServiceMonitorName(namespace, appName, comp)
+		} else {
+			// For previous versions than 1.4x, scrapePools were named in different way as there was no concept of service monitors
+			scrapePool = appName + "_default_" + namespace + "_" + comp
 		}
-		// If target with scrapePool not found, then return false and error
-		if !found {
-			Log(Error, fmt.Sprintf("target with scrapePool %s is not found", scrapePool))
-			return false, fmt.Errorf("target with scrapePool %s not found", scrapePool)
-		}
+		scrapePools = append(scrapePools, scrapePool)
 	}
-	return true, nil
+	return scrapePools
+
 }
