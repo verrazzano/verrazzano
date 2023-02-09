@@ -165,7 +165,7 @@ pipeline {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "verrazzano-analyze-tool-test/${BRANCH_NAME.replace(" / ", " % 2 F ")}",
+                                build job: "/verrazzano-analyze-tool-test/${BRANCH_NAME.replace(" / ", " % 2 F ")}",
                                     parameters: [
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
