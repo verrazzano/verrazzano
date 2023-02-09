@@ -77,9 +77,13 @@ var postUninstallFunc postUninstallFuncSig = invokeRancherSystemToolAndCleanup
 
 var rancherCleanupJobYamlPath = defaultRancherCleanupJobYaml
 
+// getCleanupJobYamlPath - get the path to the yaml to create the cleanup job
 func getCleanupJobYamlPath() string {
 	return rancherCleanupJobYamlPath
 }
+
+// setCleanupJobYamlPath - set the path to the yaml for creating the cleanup job.
+// Required for by unit tests.
 func setCleanupJobYamlPath(path string) {
 	rancherCleanupJobYamlPath = path
 }
