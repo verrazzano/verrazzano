@@ -226,7 +226,7 @@ func createCleanupJob(ctx spi.ComponentContext) error {
 	// Prepare the Yaml to create the rancher-cleanup job
 	jobYaml, err := parseCleanupJobTemplate()
 	if err != nil {
-		ctx.Log().Progressf("Failed to create yaml for %s job: %v", rancherCleanupJobName, err)
+		ctx.Log().ErrorfThrottled("Failed to create yaml for %s job: %v", rancherCleanupJobName, err)
 		return err
 	}
 
@@ -250,7 +250,7 @@ func deleteCleanupJob(ctx spi.ComponentContext) {
 	// Prepare the Yaml to delete the rancher-cleanup job
 	jobYaml, err := parseCleanupJobTemplate()
 	if err != nil {
-		ctx.Log().Progressf("Failed to create yaml for %s job: %v", rancherCleanupJobName, err)
+		ctx.Log().ErrorfThrottled("Failed to create yaml for %s job: %v", rancherCleanupJobName, err)
 		return
 	}
 
@@ -263,7 +263,7 @@ func deleteCleanupJob(ctx spi.ComponentContext) {
 
 	// Delete the rancher-cleanup job
 	if err = k8sutil.NewYAMLApplier(ctx.Client(), "").DeleteF(file.Name()); err != nil {
-		ctx.Log().Infof("Failed applying Yaml to delete job %s/%s for component %s: %v", rancherCleanupJobNamespace, rancherCleanupJobName, ComponentName, err)
+		ctx.Log().Errorf("Failed applying Yaml to delete job %s/%s for component %s: %v", rancherCleanupJobNamespace, rancherCleanupJobName, ComponentName, err)
 	}
 }
 
