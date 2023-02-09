@@ -6,6 +6,12 @@ package rancher
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strconv"
+	"strings"
+
 	"github.com/gertd/go-pluralize"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -34,11 +40,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"os"
-	"path/filepath"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strconv"
-	"strings"
 )
 
 // ComponentName is the name of the component
