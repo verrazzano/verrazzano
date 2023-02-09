@@ -199,8 +199,8 @@ type Payload struct {
 }
 
 type TokenResponse struct {
-	Token string `json:"token"`
-	Name  string `json:"name"`
+	Token           string `json:"token"`
+	CreateTimestamp string `json:"createTimestamp"`
 }
 
 // CreateTokenWithTTL creates a user token with ttl (in minutes)
@@ -233,13 +233,13 @@ func CreateTokenWithTTL(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clus
 		return "", "", log.ErrorfNewErr("Failed to parse response: %v", err)
 	}
 
-	return tokenResponse.Token, tokenResponse.Name, nil
+	return tokenResponse.Token, tokenResponse.CreateTimestamp, nil
 }
 
-// GetTokenByName get created & expiresAt attribute of a user token
-func GetTokenByName(rc *RancherConfig, log vzlog.VerrazzanoLogger, tokenName string) (*TokenAttrs, error) {
+// GetTokenByUser get created & expiresAt attribute of a user token with filter
+func GetTokenByUser(rc *RancherConfig, log vzlog.VerrazzanoLogger, userID, clusterID string) (*TokenAttrs, error) {
 	action := http.MethodGet
-	reqURL := rc.BaseURL + tokensPath + "/" + tokenName
+	reqURL := rc.BaseURL + tokensPath + "?userId=" + url.PathEscape(userID) + "&clusterId=" + url.PathEscape(clusterID)
 	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
 
 	response, responseBody, err := SendRequest(action, reqURL, headers, "", rc, log)

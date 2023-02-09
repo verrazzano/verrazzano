@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -30,11 +31,13 @@ import (
 )
 
 const (
-	clusterSecretName               = "argocd-cluster-secret"    //nolint:gosec
-	argocdClusterTokenTTLEnvVarName = "ARGOCD_CLUSTER_TOKEN_TTL" //nolint:gosec
-	createTimestamp                 = "verrazzano.io/create-timestamp"
-	expiresAtTimestamp              = "verrazzano.io/expires-at-timestamp"
-	clusterroletemplatebindingsPath = "/v3/clusterroletemplatebindings"
+	clusterSecretName                      = "argocd-cluster-secret"    //nolint:gosec
+	argocdClusterTokenTTLEnvVarName        = "ARGOCD_CLUSTER_TOKEN_TTL" //nolint:gosec
+	createTimestamp                        = "verrazzano.io/create-timestamp"
+	expiresAtTimestamp                     = "verrazzano.io/expires-at-timestamp"
+	clusterroletemplatebindingsPath        = "/v3/clusterroletemplatebindings"
+	clusterroletemplatebindingByUserIDPath = "/v3/clusterroletemplatebindings?userId="
+	dataField                              = "data"
 )
 
 func (r *VerrazzanoManagedClusterReconciler) isArgoCDEnabled() (bool, error) {
@@ -170,7 +173,7 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateArgoCDSecret(rc *ranc
 	return err
 }
 
-func (r *VerrazzanoManagedClusterReconciler) mutateArgoCDClusterSecret(secret *corev1.Secret, rc *rancherutil.RancherConfig, clusterID, cluserName string, rancherURL string, caData []byte) error {
+func (r *VerrazzanoManagedClusterReconciler) mutateArgoCDClusterSecret(secret *corev1.Secret, rc *rancherutil.RancherConfig, clusterName, clusterID, rancherURL string, caData []byte) error {
 	token := rc.APIAccessToken
 	if secret.Annotations == nil {
 		secret.Annotations = map[string]string{}
@@ -193,19 +196,29 @@ func (r *VerrazzanoManagedClusterReconciler) mutateArgoCDClusterSecret(secret *c
 		lifespan := timeExpires.Sub(timeCreated)
 		createNewToken = now.After(timeCreated.Add(lifespan * 3 / 4))
 	}
-	if createNewToken {
+	if okCreated && !okExpires {
+		//get token by userId/clusterId
+		userID, err := r.getArgoCDClusterUserID()
+		if err != nil {
+			return err
+		}
+		response, err := rancherutil.GetTokenByUser(rc, r.log, userID, clusterID)
+		if err != nil {
+			return err
+		}
+		if response.ExpiresAt != "" {
+			secret.Annotations[expiresAtTimestamp] = response.ExpiresAt
+		}
+	}
+	if createNewToken && okExpires {
 		// Obtain a new token with ttl set using bearer token obtained
 		ttl := os.Getenv(argocdClusterTokenTTLEnvVarName)
-		newToken, tokenName, err := rancherutil.CreateTokenWithTTL(rc, r.log, ttl, clusterID)
+		newToken, createTS, err := rancherutil.CreateTokenWithTTL(rc, r.log, ttl, clusterID)
 		if err != nil {
 			return err
 		}
-		attrs, err := rancherutil.GetTokenByName(rc, r.log, tokenName)
-		if err != nil {
-			return err
-		}
-		secret.Annotations[createTimestamp] = attrs.Created
-		secret.Annotations[expiresAtTimestamp] = attrs.ExpiresAt
+		secret.Annotations[createTimestamp] = createTS
+		delete(secret.Annotations, expiresAtTimestamp)
 		token = newToken
 	}
 
@@ -215,7 +228,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateArgoCDClusterSecret(secret *c
 	secret.Type = corev1.SecretTypeOpaque
 	secret.ObjectMeta.Labels = map[string]string{"argocd.argoproj.io/secret-type": "cluster"}
 
-	secret.StringData["name"] = cluserName
+	secret.StringData["name"] = clusterName
 	secret.StringData["server"] = rancherURL
 
 	rancherConfig := &ArgoCDRancherConfig{
@@ -249,6 +262,28 @@ func (r *VerrazzanoManagedClusterReconciler) updateArgoCDClusterRoleBindingTempl
 		return err
 	}
 
+	// Send a request to see if the clusterroletemplatebinding for the given user exists
+	reqURL := rc.BaseURL + clusterroletemplatebindingByUserIDPath + url.PathEscape(userID) + "&clusterId=" + url.PathEscape(vmc.Status.RancherRegistration.ClusterID)
+	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
+	response, body, err := rancherutil.SendRequest(http.MethodGet, reqURL, headers, "", rc, r.log)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusNotFound {
+		return err
+	}
+
+	if response.StatusCode == http.StatusOK {
+		data, err := httputil.ExtractFieldFromResponseBodyOrReturnError(body, dataField, "failed to locate the data field of the response body")
+		if err != nil {
+			return r.log.ErrorfNewErr("Failed to find clusterroletemplatebinding given the userId %s: %v", userID, err)
+		}
+		if data != "[]" {
+			r.log.Once("clusterroletemplatebinding for user: %s was located, skipping the creation process", userID)
+			return nil
+		}
+	}
+
 	action := http.MethodPost
 	payloadData := map[string]string{
 		"userId":         userID,
@@ -259,10 +294,10 @@ func (r *VerrazzanoManagedClusterReconciler) updateArgoCDClusterRoleBindingTempl
 	if err != nil {
 		return r.log.ErrorfNewErr("Failed to encode payload object: %v", err)
 	}
-	reqURL := rc.BaseURL + clusterroletemplatebindingsPath
-	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken, "Content-Type": "application/json"}
+	reqURL = rc.BaseURL + clusterroletemplatebindingsPath
+	headers = map[string]string{"Authorization": "Bearer " + rc.APIAccessToken, "Content-Type": "application/json"}
 
-	response, _, err := rancherutil.SendRequest(action, reqURL, headers, string(payload), rc, r.log)
+	response, _, err = rancherutil.SendRequest(action, reqURL, headers, string(payload), rc, r.log)
 	if err != nil {
 		return err
 	}

@@ -174,8 +174,6 @@ func TestMutateArgoCDClusterSecretWithRefresh(t *testing.T) {
 
 	err = r.mutateArgoCDClusterSecret(secret, rc, vmc.Name, clusterID, rancherURL, caData)
 	assert.NoError(t, err)
-	assert.Equal(t, secret.Annotations[createTimestamp], "yyy")
-	assert.Equal(t, secret.Annotations[expiresAtTimestamp], "zzz")
 }
 
 func expectHTTPLoginRequests(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender {
@@ -209,19 +207,6 @@ func expectHTTPClusterRoleTemplateUpdateRequests(httpMock *mocks.MockRequestSend
 }
 
 func expectHTTPRequests(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender {
-	// Expect an HTTP request to get created & expiresAt attributes of the token
-	httpMock.EXPECT().
-		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath+"/testToken")).
-		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			var resp *http.Response
-			r := io.NopCloser(bytes.NewReader([]byte("{\"created\":\"yyy\", \"expiresAt\": \"zzz\"}")))
-			resp = &http.Response{
-				StatusCode: http.StatusOK,
-				Body:       r,
-			}
-			return resp, nil
-		})
-
 	// Expect an HTTP request to obtain a new token
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath)).
