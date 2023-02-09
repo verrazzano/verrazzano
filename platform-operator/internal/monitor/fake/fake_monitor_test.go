@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFakeMonitorType_CheckResult(t *testing.T) {
+func TestFakeMonitorTypeCheckResult(t *testing.T) {
 	a := assert.New(t)
 
 	f := &BackgroundProcessMonitorType{Result: true, Err: nil}
@@ -24,7 +24,7 @@ func TestFakeMonitorType_CheckResult(t *testing.T) {
 	a.Error(err)
 }
 
-func TestFakeMonitorType_IsRunning(t *testing.T) {
+func TestFakeMonitorTypeIsRunning(t *testing.T) {
 	a := assert.New(t)
 
 	f := &BackgroundProcessMonitorType{Running: true}
@@ -34,7 +34,7 @@ func TestFakeMonitorType_IsRunning(t *testing.T) {
 	a.False(f.IsRunning())
 }
 
-func TestFakeMonitorType_IsCompleted(t *testing.T) {
+func TestFakeMonitorTypeIsCompleted(t *testing.T) {
 	a := assert.New(t)
 
 	f := &BackgroundProcessMonitorType{Completed: false}

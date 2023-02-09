@@ -13,7 +13,7 @@ import (
 
 var fakeCompName = "fake-component-name"
 
-func TestMonitorType_IsRunning(t *testing.T) {
+func TestMonitorTypeIsRunning(t *testing.T) {
 	a := assert.New(t)
 
 	m := &BackgroundProcessMonitorType{ComponentName: fakeCompName}
@@ -40,7 +40,7 @@ func TestMonitorType_IsRunning(t *testing.T) {
 	a.True(m.IsRunning())
 }
 
-func TestMonitorType_CheckResultWhileRunning(t *testing.T) {
+func TestMonitorTypeCheckResultWhileRunning(t *testing.T) {
 	a := assert.New(t)
 
 	m := &BackgroundProcessMonitorType{ComponentName: fakeCompName}
@@ -57,7 +57,7 @@ func TestMonitorType_CheckResultWhileRunning(t *testing.T) {
 	blocker <- 0
 }
 
-func TestMonitorType_CheckResult(t *testing.T) {
+func TestMonitorTypeCheckResult(t *testing.T) {
 	a := assert.New(t)
 
 	errMsg := "an error from the background operation"
@@ -97,7 +97,7 @@ func TestMonitorType_CheckResult(t *testing.T) {
 	}
 }
 
-func TestMonitorType_Reset(t *testing.T) {
+func TestMonitorTypeReset(t *testing.T) {
 	a := assert.New(t)
 
 	m := &BackgroundProcessMonitorType{ComponentName: fakeCompName}
@@ -121,7 +121,7 @@ func TestMonitorType_Reset(t *testing.T) {
 	a.False(m.IsRunning())
 }
 
-func TestMonitorType_IsCompleted(t *testing.T) {
+func TestMonitorTypeIsCompleted(t *testing.T) {
 	a := assert.New(t)
 
 	m := &BackgroundProcessMonitorType{ComponentName: fakeCompName}
