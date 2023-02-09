@@ -13,7 +13,6 @@ import (
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
@@ -225,9 +224,9 @@ func isLastCondition(st installv1alpha1.VerrazzanoStatus, conditionType installv
 // postVerrazzanoUpgrade restarts pods with old Istio sidecar proxies
 func postVerrazzanoUpgrade(spiCtx spi.ComponentContext) error {
 	log := spiCtx.Log()
-	if err := rancher.ConfigureAuthProviders(spiCtx); err != nil {
-		return err
-	}
+	//if err := rancher.ConfigureAuthProviders(spiCtx); err != nil {
+	//	return err
+	//}
 	log.Oncef("Checking if any pods with outdated sidecars need to be restarted to pick up new container images")
 	if err := restart.RestartComponents(log, config.GetInjectedSystemNamespaces(), spiCtx.ActualCR().Generation, &restart.OutdatedSidecarPodMatcher{}); err != nil {
 		return err
