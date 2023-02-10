@@ -11,6 +11,7 @@ command:
   - "--hostname-strict-https=false"
   - "--spi-login-protocol-openid-connect-legacy-logout-redirect-uri=true"
   - "--spi-login-protocol-openid-connect-suppress-logout-confirmation-screen=true"
+  - "--import-realm"
 
 fullnameOverride: "keycloak"
 nameOverride: "keycloak"
@@ -46,12 +47,17 @@ extraVolumes: |
   - name: keycloak-http
     secret:
        secretName: keycloak-http
+  - name: realms
+    configmap:
+      name: {{ include "keycloak.fullname" . }}-headless
 
 extraVolumeMounts: |
   - name: theme
     mountPath: /opt/keycloak/themes/oracle
   - name: keycloak-http
     mountPath: /etc/keycloak-http
+  - name: realms
+    mountPath: /opt/keycloak/data/import
 
 extraPorts:
   - name: jgroups
