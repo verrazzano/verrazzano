@@ -193,13 +193,24 @@ func expectHTTPLoginRequests(httpMock *mocks.MockRequestSender) *mocks.MockReque
 
 func expectHTTPClusterRoleTemplateUpdateRequests(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender {
 	httpMock.EXPECT().
-		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterroletemplatebindingsPath)).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodPost, clusterroletemplatebindingsPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			r := io.NopCloser(bytes.NewReader([]byte(`{}`)))
 			resp := &http.Response{
 				StatusCode: http.StatusCreated,
 				Body:       r,
 				Request:    &http.Request{Method: http.MethodPost},
+			}
+			return resp, nil
+		})
+	httpMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodGet, clusterroletemplatebindingsPath)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			r := io.NopCloser(bytes.NewReader([]byte(`{"data":[]}`)))
+			resp := &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       r,
+				Request:    &http.Request{Method: http.MethodGet},
 			}
 			return resp, nil
 		})

@@ -193,7 +193,7 @@ type Payload struct {
 	TTL       int    `json:"ttl"`
 }
 
-type TokenResponse struct {
+type TokenPostResponse struct {
 	Token   string `json:"token"`
 	Created string `json:"created"`
 }
@@ -222,18 +222,18 @@ func CreateTokenWithTTL(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clus
 		return "", "", log.ErrorfNewErr("Failed to validate response: %v", err)
 	}
 
-	var tokenResponse TokenResponse
-	err = json.Unmarshal([]byte(responseBody), &tokenResponse)
+	var tokenPostResponse TokenPostResponse
+	err = json.Unmarshal([]byte(responseBody), &tokenPostResponse)
 	if err != nil {
 		return "", "", log.ErrorfNewErr("Failed to parse response: %v", err)
 	}
 
-	return tokenResponse.Token, tokenResponse.Created, nil
+	return tokenPostResponse.Token, tokenPostResponse.Created, nil
 }
 
-type TokenAttrs struct {
+type TokenGetResponse struct {
 	Created   string `json:"created"`
-	ClusterId string `json:"clusterId"`
+	ClusterID string `json:"clusterId"`
 	ExpiresAt string `json:"expiresAt"`
 }
 
@@ -258,13 +258,13 @@ func GetTokenWithFilter(rc *RancherConfig, log vzlog.VerrazzanoLogger, userID, c
 		return "", "", log.ErrorfNewErr("Failed to find data in Rancher response: %v", err)
 	}
 
-	var items []TokenAttrs
+	var items []TokenGetResponse
 	json.Unmarshal([]byte(data), &items)
 	if err != nil {
 		return "", "", log.ErrorfNewErr("Failed to parse response: %v", err)
 	}
 	for _, item := range items {
-		if item.ClusterId == clusterID {
+		if item.ClusterID == clusterID {
 			return item.Created, item.ExpiresAt, nil
 		}
 	}
