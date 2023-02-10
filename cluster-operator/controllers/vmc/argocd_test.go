@@ -174,8 +174,6 @@ func TestMutateArgoCDClusterSecretWithRefresh(t *testing.T) {
 
 	err = r.mutateArgoCDClusterSecret(secret, rc, vmc.Name, clusterID, rancherURL, caData)
 	assert.NoError(t, err)
-	assert.Equal(t, secret.Annotations[createTimestamp], "yyy")
-	assert.Equal(t, secret.Annotations[expiresAtTimestamp], "zzz")
 }
 
 func expectHTTPLoginRequests(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender {
@@ -195,7 +193,7 @@ func expectHTTPLoginRequests(httpMock *mocks.MockRequestSender) *mocks.MockReque
 
 func expectHTTPClusterRoleTemplateUpdateRequests(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender {
 	httpMock.EXPECT().
-		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterroletemplatebindingsPath)).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodPost, clusterroletemplatebindingsPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			r := io.NopCloser(bytes.NewReader([]byte(`{}`)))
 			resp := &http.Response{
@@ -205,23 +203,21 @@ func expectHTTPClusterRoleTemplateUpdateRequests(httpMock *mocks.MockRequestSend
 			}
 			return resp, nil
 		})
+	httpMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodGet, clusterroletemplatebindingsPath)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			r := io.NopCloser(bytes.NewReader([]byte(`{"data":[]}`)))
+			resp := &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       r,
+				Request:    &http.Request{Method: http.MethodGet},
+			}
+			return resp, nil
+		})
 	return httpMock
 }
 
 func expectHTTPRequests(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender {
-	// Expect an HTTP request to get created & expiresAt attributes of the token
-	httpMock.EXPECT().
-		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath+"/testToken")).
-		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			var resp *http.Response
-			r := io.NopCloser(bytes.NewReader([]byte("{\"created\":\"yyy\", \"expiresAt\": \"zzz\"}")))
-			resp = &http.Response{
-				StatusCode: http.StatusOK,
-				Body:       r,
-			}
-			return resp, nil
-		})
-
 	// Expect an HTTP request to obtain a new token
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath)).
