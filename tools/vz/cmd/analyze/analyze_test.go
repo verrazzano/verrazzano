@@ -78,6 +78,8 @@ func TestAnalyzeCommandDetailedReport(t *testing.T) {
 // WHEN I call cmd.Execute with a valid capture-dir and report-format set to "summary"
 // THEN expect the command to provide the report containing only summary for one or more issues reported
 func TestAnalyzeCommandSummaryReport(t *testing.T) {
+	c := getClientWithWatch()
+	installVZ(t, c)
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})

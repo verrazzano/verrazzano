@@ -4,8 +4,9 @@
 package install
 
 import (
-	"context"
+	pckcontext "context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	"os"
 	"strings"
 	"time"
@@ -56,11 +57,24 @@ metadata:
 EOF`, version.GetCLIVersion())
 
 var logsEnum = cmdhelpers.LogFormatSimple
+var kubeconfig string
+var context string
 
 func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return runCmdInstall(cmd, args, vzHelper)
+		err := runCmdInstall(cmd, args, vzHelper)
+		if err != nil {
+			cmd2 := analyze.NewCmdAnalyze(vzHelper)
+			kubeconfigFlag, err :=  cmd.PersistentFlags().GetString(constants.GlobalFlagKubeConfig)
+			if err != nil {
+				fmt.Fprintln(vzHelper.GetErrorStream(), "ERROR IN CMDINSTALL GETTING KUBECONFIG FLAG")
+			}
+			cmd2.PersistentFlags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
+			//cmd2.PersistentFlags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
+			return analyze.RunCmdAnalyze(cmd2, args, vzHelper)
+		}
+		return err
 	}
 	cmd.Example = helpExample
 
@@ -71,6 +85,8 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().StringSliceP(constants.FilenameFlag, constants.FilenameFlagShorthand, []string{}, constants.FilenameFlagHelp)
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
 	cmd.PersistentFlags().StringArrayP(constants.SetFlag, constants.SetFlagShorthand, []string{}, constants.SetFlagHelp)
+	cmd.PersistentFlags().StringVar(&kubeconfig, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
+	cmd.PersistentFlags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
 
 	// Initially the operator-file flag may be for internal use, hide from help until
 	// a decision is made on supporting this option.
@@ -196,7 +212,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		// Sometimes we see intermittent webhook errors due to timeouts.
 		retry := 0
 		for {
-			err = client.Create(context.TODO(), vz)
+			err = client.Create(pckcontext.TODO(), vz)
 			if err != nil {
 				if retry == 5 {
 					return fmt.Errorf("Failed to create the verrazzano install resource: %s", err.Error())
@@ -335,7 +351,15 @@ func getSetArguments(cmd *cobra.Command, vzHelper helpers.VZHelper) (map[string]
 // waitForInstallToComplete waits for the Verrazzano install to complete and shows the logs of
 // the ongoing Verrazzano install.
 func waitForInstallToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, namespacedName types.NamespacedName, timeout time.Duration, vpoTimeout time.Duration, logFormat cmdhelpers.LogFormat) error {
-	return cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, namespacedName, timeout, vpoTimeout, logFormat, v1beta1.CondInstallComplete)
+	//rc := cmdhelpers.NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
+	//cmd := analyze.NewCmdAnalyze(rc)
+	//err1 := cmd.Execute()
+	//fmt.Fprintln(vzHelper.GetOutputStream(),"EXECUTE JUST FINISHED")
+	//fmt.Fprintln(vzHelper.GetErrorStream(), fmt.Sprintf("cmd execute failed, print to err stream: %s", err1))
+	//fmt.Fprintln(vzHelper.GetOutputStream(), fmt.Sprintf("cmd execute failed, print to out: %s", err1))
+	err := cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, namespacedName, timeout, vpoTimeout, logFormat, v1beta1.CondInstallComplete)
+
+	return err
 }
 
 // validateCmd - validate the command line options

@@ -28,13 +28,17 @@ vz analyze
 `
 )
 
+var kubeconfig string
+var context string
+
 func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
+	fmt.Fprintln(vzHelper.GetOutputStream(),"in NewCmdAnalyze")
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		return validateReportFormat(cmd)
 	}
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return runCmdAnalyze(cmd, args, vzHelper)
+		return RunCmdAnalyze(cmd, args, vzHelper)
 	}
 
 	cmd.Example = helpExample
@@ -42,10 +46,13 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().String(constants.ReportFileFlagName, constants.ReportFileFlagValue, constants.ReportFileFlagUsage)
 	cmd.PersistentFlags().String(constants.ReportFormatFlagName, constants.SummaryReport, constants.ReportFormatFlagUsage)
 	cmd.PersistentFlags().BoolP(constants.VerboseFlag, constants.VerboseFlagShorthand, constants.VerboseFlagDefault, constants.VerboseFlagUsage)
+	cmd.PersistentFlags().StringVar(&kubeconfig, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
+	cmd.PersistentFlags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
 	return cmd
 }
 
-func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+func RunCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+	fmt.Fprintln(vzHelper.GetOutputStream(),"in RunCmdAnalyze")
 	reportFileName, err := cmd.PersistentFlags().GetString(constants.ReportFileFlagName)
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
