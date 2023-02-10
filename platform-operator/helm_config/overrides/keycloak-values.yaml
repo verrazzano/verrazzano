@@ -48,7 +48,7 @@ extraVolumes: |
     secret:
        secretName: keycloak-http
   - name: realms
-    configmap:
+    configMap:
       name: {{ include "keycloak.fullname" . }}-headless
 
 extraVolumeMounts: |
