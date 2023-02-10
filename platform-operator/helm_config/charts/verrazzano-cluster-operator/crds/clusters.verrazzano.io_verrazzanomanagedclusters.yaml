@@ -72,15 +72,15 @@ spec:
                 description: The state of ArgoCD registration for this managed cluster.
                 properties:
                   lastSetTimestamp:
-                    description: The timestamp of last status set
+                    description: The timestamp of last status set.
                     format: date-time
                     type: string
                   message:
                     description: Supporting message related to the Argo CD registration
-                      status
+                      status.
                     type: string
                   status:
-                    description: The status of the ArgoCD registration
+                    description: The status of the ArgoCD registration.
                     type: string
                 required:
                 - status
