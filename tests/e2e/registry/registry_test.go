@@ -145,7 +145,6 @@ func getRegistryURL(containerImage string) (string, error) {
 	if imageRegistryMap[imageName] == "" && imageName == "shell" {
 		imageName = "rancher-shell"
 	}
-
 	if imageRegistryMap[imageName] == "" {
 		return "", fmt.Errorf("the image %s is not specified in the BOM from platform operator", imageName)
 	}
