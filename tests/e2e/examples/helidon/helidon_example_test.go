@@ -44,7 +44,6 @@ var (
 	// yamlApplier              = k8sutil.YAMLApplier{}
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 	host                     = ""
-	isMinVersion140          bool
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -58,14 +57,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		Eventually(func() bool {
 			return pkg.ContainerImagePullWait(namespace, expectedPodsHelloHelidon)
 		}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
-	}
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-	}
-	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
-	if err != nil {
-		Fail(err.Error())
 	}
 
 	if !skipVerify {
@@ -193,19 +184,32 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
-	// Verify Prometheus scraped targets
+	// Verify Prometheus scraped metrics
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig without metrics-trait(using default) are created
-	// THEN the application's all scrape targets must be healthy
+	// THEN the application metrics must be accessible
 	t.Describe("for Metrics.", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
-		t.It("Verify all scrape targets are healthy for the application", func() {
+		t.It("Retrieve Prometheus scraped metrics", func() {
 			if skipVerify {
 				Skip(skipVerifications)
 			}
-			Eventually(func() (bool, error) {
-				var componentNames = []string{"hello-helidon-component"}
-				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, helloHelidon, componentNames, isMinVersion140))
-			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+			pkg.Concurrently(
+				func() {
+					Eventually(appMetricsExists, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(appComponentMetricsExists, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(appConfigMetricsExists, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(nodeExporterProcsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(nodeExporterDiskIoNow, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+			)
 		})
 	})
 

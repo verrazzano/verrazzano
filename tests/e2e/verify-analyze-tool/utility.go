@@ -23,8 +23,8 @@ const (
 	ImagePullNotFound      string = "ImagePullNotFound"
 	ImagePullBackOff       string = "ImagePullBackOff"
 	PodProblemsNotReported string = "PodProblemsNotReported"
-	PendingPods            string = "PendingPods"
 	InsufficientMemory     string = "InsufficientMemory"
+	InsufficientCPU        string = "InsufficientCPU"
 	VzSystemNS             string = "verrazzano-system"
 	DeploymentToBePatched  string = "verrazzano-console"
 )

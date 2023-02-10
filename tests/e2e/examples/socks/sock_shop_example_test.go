@@ -46,7 +46,6 @@ const (
 
 var sockShop SockShop
 var username, password string
-var isMinVersion140 bool
 
 var (
 	t                  = framework.NewTestFramework("socks")
@@ -148,17 +147,6 @@ var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
 	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Sock Shop Application Failed to Deploy: Gateway is not ready")
 	metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 
-	// checks that all pods are up and running
-	Eventually(sockshopPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
-
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-	}
-	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
-	if err != nil {
-		Fail(err.Error())
-	}
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -341,18 +329,103 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 		}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("For all those leg lovers out there.")))
 	})
 
-	// Verify all the scrape targets are healthy
+	// Verify Prometheus scraped metrics
 	t.Context("Metrics", Label("f:observability.monitoring.prom"), func() {
 		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 		if err != nil {
 			Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 		}
-		if ok, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath); ok {
-			t.It("Verify all scrape targets are healthy for the application", func() {
-				Eventually(func() (bool, error) {
-					var componentNames = []string{"carts", "catalog", "orders", "payment", "shipping", "users"}
-					return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "sockshop-appconf", componentNames, true))
-				}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+		// Coherence metric fix available only from 1.3.0
+		if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath); ok {
+			t.It("Retrieve Prometheus scraped metrics", func() {
+				if getVariant() == "helidon" {
+					pkg.Concurrently(
+						func() {
+							Eventually(appMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(coherenceMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(appComponentMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(appConfigMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+					)
+				} else if getVariant() == "spring" {
+					pkg.Concurrently(
+						func() {
+							Eventually(func() bool {
+								return springMetricExists("carts")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return springMetricExists("catalog")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return springMetricExists("orders")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return springMetricExists("payment")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return springMetricExists("shipping")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return springMetricExists("users")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(coherenceMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+					)
+				} else if getVariant() == "micronaut" {
+					pkg.Concurrently(
+						func() {
+							Eventually(func() bool {
+								return micronautMetricExists("carts")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return micronautMetricExists("catalog")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return micronautMetricExists("orders")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return micronautMetricExists("payment")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return micronautMetricExists("shipping")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return micronautMetricExists("users")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(coherenceMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+					)
+				}
 			})
 		}
 	})
@@ -429,6 +502,20 @@ var _ = AfterSuite(afterSuite)
 // appMetricExists checks whether app related metrics are available
 func appMetricExists() bool {
 	return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "carts-coh")
+}
+
+func coherenceMetricExists() bool {
+	return pkg.MetricsExist("vendor:coherence_service_messages_local", "role", "Orders")
+}
+
+// appComponentMetricExists checks whether component related metrics are available
+func appComponentMetricExists() bool {
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", sockshopAppName)
+}
+
+// appConfigMetricExists checks whether config metrics are available
+func appConfigMetricExists() bool {
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "orders")
 }
 
 // springMetricExists checks whether sample Spring metrics is available for a given component
