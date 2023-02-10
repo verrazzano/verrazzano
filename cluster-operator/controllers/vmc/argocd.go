@@ -202,10 +202,11 @@ func (r *VerrazzanoManagedClusterReconciler) mutateArgoCDClusterSecret(secret *c
 		if err != nil {
 			return err
 		}
-		expiresAt, err := rancherutil.GetTokenWithFilter(rc, r.log, userID, clusterID)
+		created, expiresAt, err := rancherutil.GetTokenWithFilter(rc, r.log, userID, clusterID)
 		if err != nil {
 			return err
 		}
+		secret.Annotations[createTimestamp] = created
 		if expiresAt != "" {
 			secret.Annotations[expiresAtTimestamp] = expiresAt
 		}
