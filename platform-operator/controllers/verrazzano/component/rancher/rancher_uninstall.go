@@ -301,9 +301,6 @@ func parseCleanupJobTemplate() ([]byte, error) {
 		return []byte{}, fmt.Errorf("Failed to parse filename from path %s", getCleanupJobYamlPath())
 	}
 
-	// Temporary workaround
-	cleanupImage = strings.Replace(cleanupImage, "/rancher", "", 1)
-
 	// Apply the replacement parameters to the template
 	params := map[string]string{
 		"RANCHER_CLEANUP_IMAGE": cleanupImage,
