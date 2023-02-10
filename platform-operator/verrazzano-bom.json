@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.8-20230202182922-e07716258",
-              "dashboard": "v2.6.8-20230202181306-cb764cda",
+              "tag": "v2.6.8-20230209231651-e07716258",
+              "dashboard": "v2.6.8-20230209230057-7fe0dd36",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20230202182922-e07716258"
+              "tag": "v2.6.8-20230209231651-e07716258"
             }
           ]
         },
@@ -445,7 +445,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v20.0.1-20230203135118-215619ca63",
+              "tag": "v20.0.1-20230208153258-215619ca63",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
