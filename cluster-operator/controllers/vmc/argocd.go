@@ -270,17 +270,19 @@ func (r *VerrazzanoManagedClusterReconciler) updateArgoCDClusterRoleBindingTempl
 	if err != nil {
 		return err
 	}
-	if response.StatusCode != http.StatusOK {
-		return r.log.ErrorfNewErr("Failed to find clusterroletemplatebinding given the userId %s", userID)
+	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusNotFound {
+		return r.log.ErrorfNewErr("Failed to find clusterroletemplatebinding given user %s in Rancher, got status code: %d", userID, response.StatusCode)
 	}
 
-	data, err := httputil.ExtractFieldFromResponseBodyOrReturnError(body, "data", "failed to locate the data field of the response body")
-	if err != nil {
-		return r.log.ErrorfNewErr("Failed to locate the data field in the Rancher response: %v", err)
-	}
-	if data != "[]" {
-		r.log.Once("clusterroletemplatebinding for user: %s was located, skipping the creation process", userID)
-		return nil
+	if response.StatusCode == http.StatusOK {
+		data, err := httputil.ExtractFieldFromResponseBodyOrReturnError(body, "data", "failed to locate the data field of the response body")
+		if err != nil {
+			return r.log.ErrorfNewErr("Failed to locate the data field in the Rancher response: %v", err)
+		}
+		if data != "[]" {
+			r.log.Once("clusterroletemplatebinding for user: %s was located, skipping the creation process", userID)
+			return nil
+		}
 	}
 
 	action := http.MethodPost
