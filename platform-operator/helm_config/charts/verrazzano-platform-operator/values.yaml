@@ -40,6 +40,4 @@ webhookAffinity:
           topologyKey: kubernetes.io/hostname
         weight: 100
 
-webhook:
-  args:
-    - --resourceValidation=false
+resourceValidation: false
