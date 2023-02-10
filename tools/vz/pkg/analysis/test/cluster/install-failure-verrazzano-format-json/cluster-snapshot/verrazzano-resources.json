@@ -1,0 +1,634 @@
+{
+  "kind": "Verrazzano",
+  "apiVersion": "install.verrazzano.io/v1beta1",
+  "metadata": {
+    "name": "admin",
+    "namespace": "default",
+    "uid": "b29a15dd-fd47-4e82-aadd-4eb3a6a0f961",
+    "resourceVersion": "201442",
+    "generation": 2,
+    "creationTimestamp": "2023-02-09T06:57:48Z",
+    "finalizers": [
+      "install.verrazzano.io"
+    ]
+  },
+  "spec": {
+    "components": {
+      "applicationOperator": {
+        "enabled": false
+      },
+      "coherenceOperator": {
+        "enabled": false
+      },
+      "fluentd": {
+        "enabled": false
+      },
+      "grafana": {
+        "enabled": false
+      },
+      "keycloak": {
+        "mysql": {
+          "volumeSource": {
+            "persistentVolumeClaim": {
+              "claimName": "mysql"
+            }
+          }
+        }
+      },
+      "kiali": {
+        "enabled": false
+      },
+      "opensearch": {
+        "enabled": false,
+        "plugins": {
+          "enabled": false
+        }
+      },
+      "opensearchDashboards": {
+        "enabled": false,
+        "plugins": {
+          "enabled": false
+        }
+      },
+      "prometheus": {
+        "enabled": false
+      },
+      "prometheusOperator": {
+        "enabled": false
+      },
+      "rancher": {
+        "enabled": false
+      },
+      "weblogicOperator": {
+        "enabled": false
+      }
+    },
+    "defaultVolumeSource": {
+      "persistentVolumeClaim": {
+        "claimName": "vmi"
+      }
+    },
+    "profile": "dev",
+    "security": {},
+    "version": "v1.5.0-local+492a001a",
+    "volumeClaimSpecTemplates": [
+      {
+        "metadata": {
+          "name": "mysql",
+          "creationTimestamp": null
+        },
+        "spec": {
+          "resources": {
+            "requests": {
+              "storage": "2Gi"
+            }
+          }
+        }
+      },
+      {
+        "metadata": {
+          "name": "vmi",
+          "creationTimestamp": null
+        },
+        "spec": {
+          "resources": {
+            "requests": {
+              "storage": "2Gi"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "status": {
+    "available": "9/12",
+    "components": {
+      "argocd": {
+        "name": "argocd",
+        "state": "Disabled"
+      },
+      "cert-manager": {
+        "available": "Available",
+        "conditions": [
+          {
+            "lastTransitionTime": "2023-02-09T06:57:50Z",
+            "message": "PreInstall started",
+            "status": "True",
+            "type": "PreInstall"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T06:57:57Z",
+            "message": "Install started",
+            "status": "True",
+            "type": "InstallStarted"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T06:58:47Z",
+            "message": "Install complete",
+            "status": "True",
+            "type": "InstallComplete"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:33:34Z",
+            "message": "Upgrade started",
+            "status": "True",
+            "type": "UpgradeStarted"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:34:07Z",
+            "message": "Upgrade complete",
+            "status": "True",
+            "type": "UpgradeComplete"
+          }
+        ],
+        "lastReconciledGeneration": 1,
+        "name": "cert-manager",
+        "reconcilingGeneration": 2,
+        "state": "Ready",
+        "version": "v1.9.1"
+      },
+      "coherence-operator": {
+        "lastReconciledGeneration": 1,
+        "name": "coherence-operator",
+        "state": "Disabled"
+      },
+      "external-dns": {
+        "lastReconciledGeneration": 1,
+        "name": "external-dns",
+        "state": "Disabled"
+      },
+      "fluentd": {
+        "lastReconciledGeneration": 1,
+        "name": "fluentd",
+        "state": "Disabled"
+      },
+      "grafana": {
+        "lastReconciledGeneration": 1,
+        "name": "grafana",
+        "state": "Disabled"
+      },
+      "ingress-controller": {
+        "available": "Available",
+        "conditions": [
+          {
+            "lastTransitionTime": "2023-02-09T06:57:50Z",
+            "message": "PreInstall started",
+            "status": "True",
+            "type": "PreInstall"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T06:59:09Z",
+            "message": "Install started",
+            "status": "True",
+            "type": "InstallStarted"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T06:59:59Z",
+            "message": "Install complete",
+            "status": "True",
+            "type": "InstallComplete"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:32:45Z",
+            "message": "Upgrade started",
+            "status": "True",
+            "type": "UpgradeStarted"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:33:33Z",
+            "message": "Upgrade complete",
+            "status": "True",
+            "type": "UpgradeComplete"
+          }
+        ],
+        "lastReconciledGeneration": 1,
+        "name": "ingress-controller",
+        "reconcilingGeneration": 2,
+        "state": "Ready"
+      },
+      "istio": {
+        "available": "Available",
+        "conditions": [
+          {
+            "lastTransitionTime": "2023-02-09T06:57:50Z",
+            "message": "PreInstall started",
+            "status": "True",
+            "type": "PreInstall"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T06:59:17Z",
+            "message": "Install started",
+            "status": "True",
+            "type": "InstallStarted"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T06:59:19Z",
+            "message": "Install complete",
+            "status": "True",
+            "type": "InstallComplete"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:31:56Z",
+            "message": "Upgrade started",
+            "status": "True",
+            "type": "UpgradeStarted"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:32:45Z",
+            "message": "Upgrade complete",
+            "status": "True",
+            "type": "UpgradeComplete"
+          }
+        ],
+        "lastReconciledGeneration": 1,
+        "name": "istio",
+        "reconcilingGeneration": 2,
+        "state": "Ready",
+        "version": "1.15.3"
+      },
+      "jaeger-operator": {
+        "lastReconciledGeneration": 1,
+        "name": "jaeger-operator",
+        "state": "Disabled"
+      },
+      "keycloak": {
+        "available": "Available",
+        "conditions": [
+          {
+            "lastTransitionTime": "2023-02-09T06:57:50Z",
+            "message": "PreInstall started",
+            "status": "True",
+            "type": "PreInstall"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:00:21Z",
+            "message": "Install started",
+            "status": "True",
+            "type": "InstallStarted"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:03:33Z",
+            "message": "Component is Ready",
+            "status": "True",
+            "type": "InstallComplete"
+          }
+        ],
+        "lastReconciledGeneration": 1,
+        "name": "keycloak",
+        "state": "Ready",
+        "version": "15.0.2"
+      },
+      "kiali-server": {
+        "lastReconciledGeneration": 1,
+        "name": "kiali-server",
+        "state": "Disabled"
+      },
+      "kube-state-metrics": {
+        "available": "Unavailable",
+        "lastReconciledGeneration": 1,
+        "name": "kube-state-metrics",
+        "state": "Disabled"
+      },
+      "mysql": {
+        "available": "Unavailable",
+        "conditions": [
+          {
+            "lastTransitionTime": "2023-02-09T06:57:50Z",
+            "message": "PreInstall started",
+            "status": "True",
+            "type": "PreInstall"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T06:59:16Z",
+            "message": "Install started",
+            "status": "True",
+            "type": "InstallStarted"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:00:41Z",
+            "message": "Install complete",
+            "status": "True",
+            "type": "InstallComplete"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:34:29Z",
+            "message": "Upgrade started",
+            "status": "True",
+            "type": "UpgradeStarted"
+          }
+        ],
+        "lastReconciledGeneration": 1,
+        "name": "mysql",
+        "reconcilingGeneration": 2,
+        "state": "Upgrading",
+        "version": "v8.0.29"
+      },
+      "mysql-operator": {
+        "available": "Available",
+        "conditions": [
+          {
+            "lastTransitionTime": "2023-02-09T07:31:11Z",
+            "message": "Install started",
+            "status": "True",
+            "type": "InstallStarted"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:31:40Z",
+            "message": "Install complete",
+            "status": "True",
+            "type": "InstallComplete"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:34:24Z",
+            "message": "Upgrade started",
+            "status": "True",
+            "type": "UpgradeStarted"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:34:29Z",
+            "message": "Upgrade complete",
+            "status": "True",
+            "type": "UpgradeComplete"
+          }
+        ],
+        "lastReconciledGeneration": 2,
+        "name": "mysql-operator",
+        "reconcilingGeneration": 2,
+        "state": "Ready",
+        "version": "8.0.32"
+      },
+      "oam-kubernetes-runtime": {
+        "available": "Available",
+        "conditions": [
+          {
+            "lastTransitionTime": "2023-02-09T06:57:50Z",
+            "message": "PreInstall started",
+            "status": "True",
+            "type": "PreInstall"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T06:57:54Z",
+            "message": "Install started",
+            "status": "True",
+            "type": "InstallStarted"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T06:58:03Z",
+            "message": "Install complete",
+            "status": "True",
+            "type": "InstallComplete"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:31:42Z",
+            "message": "Upgrade started",
+            "status": "True",
+            "type": "UpgradeStarted"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:31:56Z",
+            "message": "Upgrade complete",
+            "status": "True",
+            "type": "UpgradeComplete"
+          }
+        ],
+        "lastReconciledGeneration": 1,
+        "name": "oam-kubernetes-runtime",
+        "reconcilingGeneration": 2,
+        "state": "Ready",
+        "version": "0.3.3"
+      },
+      "opensearch": {
+        "lastReconciledGeneration": 1,
+        "name": "opensearch",
+        "state": "Disabled"
+      },
+      "opensearch-dashboards": {
+        "lastReconciledGeneration": 1,
+        "name": "opensearch-dashboards",
+        "state": "Disabled"
+      },
+      "prometheus-adapter": {
+        "lastReconciledGeneration": 1,
+        "name": "prometheus-adapter",
+        "state": "Disabled"
+      },
+      "prometheus-node-exporter": {
+        "lastReconciledGeneration": 1,
+        "name": "prometheus-node-exporter",
+        "state": "Disabled"
+      },
+      "prometheus-operator": {
+        "lastReconciledGeneration": 1,
+        "name": "prometheus-operator",
+        "state": "Disabled"
+      },
+      "prometheus-pushgateway": {
+        "lastReconciledGeneration": 1,
+        "name": "prometheus-pushgateway",
+        "state": "Disabled"
+      },
+      "rancher": {
+        "lastReconciledGeneration": 1,
+        "name": "rancher",
+        "state": "Disabled"
+      },
+      "rancher-backup": {
+        "lastReconciledGeneration": 1,
+        "name": "rancher-backup",
+        "state": "Disabled"
+      },
+      "velero": {
+        "lastReconciledGeneration": 1,
+        "name": "velero",
+        "state": "Disabled"
+      },
+      "verrazzano": {
+        "available": "Available",
+        "conditions": [
+          {
+            "lastTransitionTime": "2023-02-09T06:57:50Z",
+            "message": "PreInstall started",
+            "status": "True",
+            "type": "PreInstall"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:00:20Z",
+            "message": "Install started",
+            "status": "True",
+            "type": "InstallStarted"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:00:22Z",
+            "message": "Install complete",
+            "status": "True",
+            "type": "InstallComplete"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:34:07Z",
+            "message": "Upgrade started",
+            "status": "True",
+            "type": "UpgradeStarted"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:34:08Z",
+            "message": "Upgrade complete",
+            "status": "True",
+            "type": "UpgradeComplete"
+          }
+        ],
+        "lastReconciledGeneration": 1,
+        "name": "verrazzano",
+        "reconcilingGeneration": 2,
+        "state": "Ready",
+        "version": "1.4.0"
+      },
+      "verrazzano-application-operator": {
+        "lastReconciledGeneration": 1,
+        "name": "verrazzano-application-operator",
+        "state": "Disabled"
+      },
+      "verrazzano-authproxy": {
+        "available": "Available",
+        "conditions": [
+          {
+            "lastTransitionTime": "2023-02-09T06:57:50Z",
+            "message": "PreInstall started",
+            "status": "True",
+            "type": "PreInstall"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:00:04Z",
+            "message": "Install started",
+            "status": "True",
+            "type": "InstallStarted"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:00:20Z",
+            "message": "Install complete",
+            "status": "True",
+            "type": "InstallComplete"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:34:09Z",
+            "message": "Upgrade started",
+            "status": "True",
+            "type": "UpgradeStarted"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:34:24Z",
+            "message": "Upgrade complete",
+            "status": "True",
+            "type": "UpgradeComplete"
+          }
+        ],
+        "lastReconciledGeneration": 1,
+        "name": "verrazzano-authproxy",
+        "reconcilingGeneration": 2,
+        "state": "Ready"
+      },
+      "verrazzano-cluster-operator": {
+        "available": "Unavailable",
+        "name": "verrazzano-cluster-operator",
+        "state": "Disabled"
+      },
+      "verrazzano-console": {
+        "available": "Available",
+        "conditions": [
+          {
+            "lastTransitionTime": "2023-02-09T06:57:50Z",
+            "message": "PreInstall started",
+            "status": "True",
+            "type": "PreInstall"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:00:21Z",
+            "message": "Install started",
+            "status": "True",
+            "type": "InstallStarted"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:01:09Z",
+            "message": "Install complete",
+            "status": "True",
+            "type": "InstallComplete"
+          }
+        ],
+        "lastReconciledGeneration": 1,
+        "name": "verrazzano-console",
+        "state": "Ready"
+      },
+      "verrazzano-grafana-dashboards": {
+        "name": "verrazzano-grafana-dashboards",
+        "state": "Disabled"
+      },
+      "verrazzano-monitoring-operator": {
+        "lastReconciledGeneration": 1,
+        "name": "verrazzano-monitoring-operator",
+        "state": "Disabled"
+      },
+      "verrazzano-network-policies": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2023-02-09T07:31:10Z",
+            "message": "Install started",
+            "status": "True",
+            "type": "InstallStarted"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:31:11Z",
+            "message": "Install complete",
+            "status": "True",
+            "type": "InstallComplete"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:31:40Z",
+            "message": "Upgrade started",
+            "status": "True",
+            "type": "UpgradeStarted"
+          },
+          {
+            "lastTransitionTime": "2023-02-09T07:31:42Z",
+            "message": "Upgrade complete",
+            "status": "True",
+            "type": "UpgradeComplete"
+          }
+        ],
+        "lastReconciledGeneration": 2,
+        "name": "verrazzano-network-policies",
+        "reconcilingGeneration": 2,
+        "state": "Ready"
+      },
+      "weblogic-operator": {
+        "lastReconciledGeneration": 1,
+        "name": "weblogic-operator",
+        "state": "Disabled"
+      }
+    },
+    "conditions": [
+      {
+        "lastTransitionTime": "2023-02-09T06:57:50Z",
+        "message": "Verrazzano install in progress",
+        "status": "True",
+        "type": "InstallStarted"
+      },
+      {
+        "lastTransitionTime": "2023-02-09T07:03:15Z",
+        "message": "Verrazzano install completed successfully",
+        "status": "True",
+        "type": "InstallComplete"
+      },
+      {
+        "lastTransitionTime": "2023-02-09T07:31:40Z",
+        "message": "Verrazzano upgrade to version v1.5.0-local+492a001a in progress",
+        "status": "True",
+        "type": "UpgradeStarted"
+      }
+    ],
+    "state": "Upgrading",
+    "instance": {
+      "consoleUrl": "https://verrazzano.default.2e9cdad9ea34144318bdb01ead1ccf3cdf22474187877b031b1fd6cf00e50303.nip.io",
+      "keyCloakUrl": "https://keycloak.default.2e9cdad9ea34144318bdb01ead1ccf3cdf22474187877b031b1fd6cf00e50303.nip.io"
+    },
+    "version": "1.4.2"
+  }
+}
