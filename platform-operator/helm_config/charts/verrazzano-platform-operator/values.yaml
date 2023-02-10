@@ -42,4 +42,4 @@ webhookAffinity:
 
 webhook:
   args:
-    - resourceValidation=false
+    - --resource-validation=false

@@ -127,7 +127,7 @@ metadata:
   labels:
     app: {{ .Values.name }}
 webhooks:
-{{- if .Values.webhook.args.resourceValidation }}
+{{- if .Values.webhook.args.resource-validation }}
   - name: v1beta1-platform-requirements-validator.verrazzano.io.v1beta1
     namespaceSelector:
       matchExpressions:
