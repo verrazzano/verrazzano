@@ -188,19 +188,14 @@ func getUserToken(rc *RancherConfig, log vzlog.VerrazzanoLogger, secret, usernam
 	return httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "token", "unable to find token in Rancher response")
 }
 
-type TokenAttrs struct {
-	Created   string `json:"created"`
-	ExpiresAt string `json:"expiresAt"`
-}
-
 type Payload struct {
 	ClusterID string `json:"clusterID"`
 	TTL       int    `json:"ttl"`
 }
 
 type TokenResponse struct {
-	Token           string `json:"token"`
-	CreateTimestamp string `json:"createTimestamp"`
+	Token   string `json:"token"`
+	Created string `json:"created"`
 }
 
 // CreateTokenWithTTL creates a user token with ttl (in minutes)
@@ -233,32 +228,55 @@ func CreateTokenWithTTL(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clus
 		return "", "", log.ErrorfNewErr("Failed to parse response: %v", err)
 	}
 
-	return tokenResponse.Token, tokenResponse.CreateTimestamp, nil
+	return tokenResponse.Token, tokenResponse.Created, nil
 }
 
-// GetTokenByUser get created & expiresAt attribute of a user token with filter
-func GetTokenByUser(rc *RancherConfig, log vzlog.VerrazzanoLogger, userID, clusterID string) (*TokenAttrs, error) {
+// GetTokenWithFilter get expiresAt attribute of a user token with filter
+func GetTokenWithFilter(rc *RancherConfig, log vzlog.VerrazzanoLogger, userID, clusterID string) (string, error) {
 	action := http.MethodGet
 	reqURL := rc.BaseURL + tokensPath + "?userId=" + url.PathEscape(userID) + "&clusterId=" + url.PathEscape(clusterID)
 	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
 
 	response, responseBody, err := SendRequest(action, reqURL, headers, "", rc, log)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	err = httputil.ValidateResponseCode(response, http.StatusOK)
 	if err != nil {
-		return nil, log.ErrorfNewErr("Failed to validate response: %v", err)
+		return "", log.ErrorfNewErr("Failed to validate response: %v", err)
 	}
 
-	var attrs TokenAttrs
-	err = json.Unmarshal([]byte(responseBody), &attrs)
+	data, err := httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "data", "failed to locate the data field of the response body")
 	if err != nil {
-		return nil, err
+		return "", log.ErrorfNewErr("Failed to find data in Rancher response: %v", err)
 	}
 
-	return &attrs, nil
+	var items []interface{}
+	json.Unmarshal([]byte(data), &items)
+	if err != nil {
+		return "", log.ErrorfNewErr("Failed to parse response: %v", err)
+	}
+	for _, item := range items {
+		var i map[string]interface{}
+		var ok bool
+		if i, ok = item.(map[string]interface{}); !ok {
+			log.Infof("Expected item to be of type 'map[string]interface{}': %s", responseBody)
+			continue
+		}
+		var clusterId, expiresTS interface{} //nolint:revive
+		if clusterId, ok = i["clusterId"]; !ok {
+			log.Infof("Expected to find 'clusterId' field in Rancher cluster data: %s", responseBody)
+		}
+		if expiresTS, ok = i["expiresAt"]; !ok {
+			log.Infof("Expected to find 'expiresAt' field in Rancher cluster data: %s", responseBody)
+			continue
+		}
+		if clusterId == clusterID {
+			return expiresTS.(string), nil
+		}
+	}
+	return "", nil
 }
 
 // getProxyURL returns an HTTP proxy from the environment if one is set, otherwise an empty string

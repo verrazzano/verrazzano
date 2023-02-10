@@ -202,15 +202,16 @@ func (r *VerrazzanoManagedClusterReconciler) mutateArgoCDClusterSecret(secret *c
 		if err != nil {
 			return err
 		}
-		response, err := rancherutil.GetTokenByUser(rc, r.log, userID, clusterID)
+		expiresAt, err := rancherutil.GetTokenWithFilter(rc, r.log, userID, clusterID)
 		if err != nil {
 			return err
 		}
-		if response.ExpiresAt != "" {
-			secret.Annotations[expiresAtTimestamp] = response.ExpiresAt
+		if expiresAt != "" {
+			secret.Annotations[expiresAtTimestamp] = expiresAt
 		}
+		createNewToken = false
 	}
-	if createNewToken && okExpires {
+	if createNewToken {
 		// Obtain a new token with ttl set using bearer token obtained
 		ttl := os.Getenv(argocdClusterTokenTTLEnvVarName)
 		newToken, createTS, err := rancherutil.CreateTokenWithTTL(rc, r.log, ttl, clusterID)
