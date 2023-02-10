@@ -64,7 +64,12 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		err := runCmdInstall(cmd, args, vzHelper)
-		if err != nil {
+		//autoanalyzeFlag, err2 := cmd.Flags().GetBool(constants.AutoanalyzeFlag)
+		//if err2 != nil {
+		//	fmt.Fprintln(vzHelper.GetErrorStream(), "ERROR IN CMDINSTALL GETTING AUTOANALYZE FLAG")
+		//}
+		bool := false
+		if err != nil && bool {
 			cmd2 := analyze.NewCmdAnalyze(vzHelper)
 			kubeconfigFlag, err :=  cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
 			if err != nil {
@@ -91,6 +96,7 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().StringSliceP(constants.FilenameFlag, constants.FilenameFlagShorthand, []string{}, constants.FilenameFlagHelp)
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
 	cmd.PersistentFlags().StringArrayP(constants.SetFlag, constants.SetFlagShorthand, []string{}, constants.SetFlagHelp)
+	cmd.PersistentFlags().Bool(constants.AutoanalyzeFlag, constants.AutoanalyzeFlagDefault, constants.AutoanalyzeFlagHelp)
 
 	// Initially the operator-file flag may be for internal use, hide from help until
 	// a decision is made on supporting this option.
