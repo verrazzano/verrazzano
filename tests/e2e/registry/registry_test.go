@@ -24,7 +24,7 @@ const (
 
 	extOSPod                   = "opensearch-cluster-master-0"
 	helmOperationPodNamePrefix = "helm-operation"
-	shellImage                 = "/shell:"
+	shellImage                 = "/rancher-shell:"
 )
 
 var registry = os.Getenv("REGISTRY")
