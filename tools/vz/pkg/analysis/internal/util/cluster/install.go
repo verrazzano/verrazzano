@@ -7,6 +7,11 @@ package cluster
 import (
 	encjson "encoding/json"
 	"fmt"
+	"io"
+	"os"
+	"regexp"
+	"strings"
+
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
@@ -14,11 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"go.uber.org/zap"
-	"io"
 	corev1 "k8s.io/api/core/v1"
-	"os"
-	"regexp"
-	"strings"
 )
 
 // Compiled Regular expressions
@@ -337,24 +338,35 @@ func getComponentsNotReady(log *zap.SugaredLogger, clusterRoot string) ([]string
 		return compsNotReady, err
 	}
 
-	// There should be only one Verrazzano resource, so the first item from the list should be good enough
-	for _, vzRes := range vzResourceList.Items {
-		if vzRes.Status.State != installv1alpha1.VzStateReady {
-			log.Debugf("Verrazzano installation is not complete, installation state %s", vzRes.Status.State)
-
-			// Verrazzano installation is not complete, find out the list of components which are not ready
-			for _, compStatusDetail := range vzRes.Status.Components {
-				if compStatusDetail.State != installv1alpha1.CompStateReady {
-					if compStatusDetail.State == installv1alpha1.CompStateDisabled {
-						continue
-					}
-					log.Debugf("Component %s is not in ready state, state is %s", compStatusDetail.Name, vzRes.Status.State)
-					compsNotReady = append(compsNotReady, compStatusDetail.Name)
-				}
-			}
-			return compsNotReady, nil
+	var vzRes installv1alpha1.Verrazzano
+	if len(vzResourceList.Items) > 0 {
+		// There should be only one Verrazzano resource, so the first item from the list should be good enough
+		vzRes = vzResourceList.Items[0]
+	} else {
+		// If the items are empty, try unmarshalling directly to Verrazzano type
+		err := encjson.Unmarshal(fileBytes, &vzRes)
+		if err != nil {
+			log.Infof("Failed to unmarshal Verrazzano resource at %s", vzResourcesPath)
+			return compsNotReady, err
 		}
 	}
+
+	if vzRes.Status.State != installv1alpha1.VzStateReady {
+		log.Debugf("Verrazzano installation is not complete, installation state %s", vzRes.Status.State)
+
+		// Verrazzano installation is not complete, find out the list of components which are not ready
+		for _, compStatusDetail := range vzRes.Status.Components {
+			if compStatusDetail.State != installv1alpha1.CompStateReady {
+				if compStatusDetail.State == installv1alpha1.CompStateDisabled {
+					continue
+				}
+				log.Debugf("Component %s is not in ready state, state is %s", compStatusDetail.Name, vzRes.Status.State)
+				compsNotReady = append(compsNotReady, compStatusDetail.Name)
+			}
+		}
+		return compsNotReady, nil
+	}
+
 	return compsNotReady, nil
 }
 

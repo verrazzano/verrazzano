@@ -104,14 +104,14 @@ const (
 	MCRegistrationFailed       ArgoCDRegistrationStatus = "Failed"
 )
 
-// ArgoCDRegistration defines the Argo CD registration state for a managed cluster
+// ArgoCDRegistration defines the Argo CD registration state for a managed cluster.
 type ArgoCDRegistration struct {
-	// The status of the ArgoCD registration
+	// The status of the ArgoCD registration.
 	Status ArgoCDRegistrationStatus `json:"status"`
-	// The timestamp of last status set
+	// The timestamp of last status set.
 	// +optional
 	Timestamp *metav1.Time `json:"lastSetTimestamp,omitempty"`
-	// Supporting message related to the Argo CD registration status
+	// Supporting message related to the Argo CD registration status.
 	// +optional
 	Message string `json:"message,omitempty"`
 }
