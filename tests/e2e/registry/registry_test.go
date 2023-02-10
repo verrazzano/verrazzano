@@ -142,7 +142,7 @@ func getRegistryURL(containerImage string) (string, error) {
 	}
 	imageName := getImageName(containerImage)
 	// If the image is not defined in the bom, return an error
-	if imageRegistryMap[imageName] == "" || imageRegistryMap["rancher-shell"] == "" {
+	if imageRegistryMap[imageName] == "" && imageRegistryMap["rancher-shell"] == "" {
 		return "", fmt.Errorf("the image %s is not specified in the BOM from platform operator", imageName)
 	}
 	registryURLFromBom := imageRegistryMap[imageName]
