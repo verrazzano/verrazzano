@@ -1,0 +1,89 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: hello-domain
+spec:
+  workload:
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoWebLogicWorkload
+    spec:
+      template:
+        apiVersion: weblogic.oracle/v9
+        metadata:
+          name: hello-domain
+        spec:
+          adminServer:
+            adminChannelPortForwardingEnabled: true
+          domainUID: hellodomain
+          domainHome: /u01/domains/hellodomain
+          image: container-registry.oracle.com/middleware/weblogic:12.2.1.4
+          imagePullSecrets:
+            - name: hellodomain-repo-credentials
+          domainHomeSourceType: "FromModel"
+          includeServerOutInPodLog: true
+          replicas: 1
+          webLogicCredentialsSecret:
+            name: hellodomain-weblogic-credentials
+          clusters:
+            - name: cluster-1
+          configuration:
+            introspectorJobActiveDeadlineSeconds: 900
+            model:
+              auxiliaryImages:
+                - image: ghcr.io/verrazzano/weblogic-app:1.0.0-1-20220319111617-b157b52a
+              configMap: hellodomain-wdt-config-map
+              domainType: WLS
+              runtimeEncryptionSecret: hellodomain-runtime-encrypt-secret
+          serverPod:
+            labels:
+              app: hello-domain
+              version: v1
+            env:
+              - name: JAVA_OPTIONS
+                value: "-Dweblogic.StdoutDebugEnabled=false"
+              - name: USER_MEM_ARGS
+                value: "-Djava.security.egd=file:/dev/./urandom -Xms64m -Xmx256m "
+              - name: WL_HOME
+                value: /u01/oracle/wlserver
+              - name: MW_HOME
+                value: /u01/oracle
+      clusters:
+        - apiVersion: weblogic.oracle/v1
+          metadata:
+            name: cluster-1
+            labels:
+              weblogic.resourceVersion: domain-v1
+              weblogic.domainUID: hellodomain
+          spec:
+            clusterName: Cluster1
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: hellodomain-configmap
+spec:
+  workload:
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      labels:
+        weblogic.domainUID: hellodomain
+      name: hellodomain-wdt-config-map
+    data:
+      wdt_cluster.yaml: |
+        topology:
+          Cluster:
+            "Cluster1":
+              DynamicServers:
+                ServerTemplate: "Cluster1Template"
+                ServerNamePrefix: "ManagedServer"
+                DynamicClusterSize: 5
+                MaxDynamicClusterSize: 5
+                CalculatedListenPorts: false
+          ServerTemplate:
+            "Cluster1Template":
+              Cluster: "Cluster1"
+              ListenPort: 8001
