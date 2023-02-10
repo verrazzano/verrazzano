@@ -24,7 +24,7 @@ const (
 
 	extOSPod                   = "opensearch-cluster-master-0"
 	helmOperationPodNamePrefix = "helm-operation"
-	shellImage                 = "/shell:"
+	shellImage                 = "/rancher-shell:"
 )
 
 var registry = os.Getenv("REGISTRY")
@@ -142,9 +142,14 @@ func getRegistryURL(containerImage string) (string, error) {
 	}
 	imageName := getImageName(containerImage)
 	// If the image is not defined in the bom, return an error
-	if imageRegistryMap[imageName] == "" && imageRegistryMap["rancher-shell"] == "" {
+	if imageRegistryMap[imageName] == "" && imageName == "shell" {
+		imageName = "rancher-shell"
+	}
+
+	if imageRegistryMap[imageName] == "" {
 		return "", fmt.Errorf("the image %s is not specified in the BOM from platform operator", imageName)
 	}
+
 	registryURLFromBom := imageRegistryMap[imageName]
 	// If the registry of the image is docker.io and the container image does not have the registry prefix,
 	// remove docker.io from the constructed registry url. This is mainly to address the case where some of the
