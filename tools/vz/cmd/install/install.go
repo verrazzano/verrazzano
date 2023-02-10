@@ -66,12 +66,18 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 		err := runCmdInstall(cmd, args, vzHelper)
 		if err != nil {
 			cmd2 := analyze.NewCmdAnalyze(vzHelper)
-			kubeconfigFlag, err :=  cmd.PersistentFlags().GetString(constants.GlobalFlagKubeConfig)
+			kubeconfigFlag, err :=  cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
 			if err != nil {
 				fmt.Fprintln(vzHelper.GetErrorStream(), "ERROR IN CMDINSTALL GETTING KUBECONFIG FLAG")
 			}
-			cmd2.PersistentFlags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
-			//cmd2.PersistentFlags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
+			contextFlag, err :=  cmd.Flags().GetString(constants.GlobalFlagContext)
+			if err != nil {
+				fmt.Fprintln(vzHelper.GetErrorStream(), "ERROR IN CMDINSTALL GETTING CONTEXT FLAG")
+			}
+			cmd2.Flags().StringVar(&kubeconfig, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
+			cmd2.Flags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
+			cmd2.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
+			cmd2.Flags().Set(constants.GlobalFlagContext, contextFlag)
 			return analyze.RunCmdAnalyze(cmd2, args, vzHelper)
 		}
 		return err
@@ -85,8 +91,6 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().StringSliceP(constants.FilenameFlag, constants.FilenameFlagShorthand, []string{}, constants.FilenameFlagHelp)
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
 	cmd.PersistentFlags().StringArrayP(constants.SetFlag, constants.SetFlagShorthand, []string{}, constants.SetFlagHelp)
-	cmd.PersistentFlags().StringVar(&kubeconfig, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
-	cmd.PersistentFlags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
 
 	// Initially the operator-file flag may be for internal use, hide from help until
 	// a decision is made on supporting this option.

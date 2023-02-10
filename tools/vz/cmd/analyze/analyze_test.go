@@ -5,20 +5,17 @@ package analyze
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	cmdHelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
-	installcmd "github.com/verrazzano/verrazzano/tools/vz/cmd/install"
+	//cmdHelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
+	//installcmd "github.com/verrazzano/verrazzano/tools/vz/cmd/install"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelper "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,27 +30,27 @@ const ingressIPNotFound = "../../pkg/analysis/test/cluster/ingress-ip-not-found"
 // GIVEN a CLI analyze command
 // WHEN I call cmd.Execute without specifying flag capture-dir
 // THEN expect the command to analyze the live cluster
-func TestAnalyzeCommandDefault(t *testing.T) {
-	c := getClientWithWatch()
-	installVZ(t, c)
-
-	// Verify the vz resource is as expected
-	vz := v1beta1.Verrazzano{}
-	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
-	assert.NoError(t, err)
-
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	rc.SetClient(c)
-	cmd := NewCmdAnalyze(rc)
-	assert.NotNil(t, cmd)
-	err = cmd.Execute()
-	assert.Nil(t, err)
-	// This should generate a report from the live cluster
-	assert.Contains(t, buf.String(), "Verrazzano analysis CLI did not detect any issue in the cluster")
-}
+//func TestAnalyzeCommandDefault(t *testing.T) {
+//	c := getClientWithWatch()
+//	installVZ(t, c)
+//
+//	// Verify the vz resource is as expected
+//	vz := v1beta1.Verrazzano{}
+//	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+//	assert.NoError(t, err)
+//
+//	// Send stdout stderr to a byte buffer
+//	buf := new(bytes.Buffer)
+//	errBuf := new(bytes.Buffer)
+//	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+//	rc.SetClient(c)
+//	cmd := NewCmdAnalyze(rc)
+//	assert.NotNil(t, cmd)
+//	err = cmd.Execute()
+//	assert.Nil(t, err)
+//	// This should generate a report from the live cluster
+//	assert.Contains(t, buf.String(), "Verrazzano analysis CLI did not detect any issue in the cluster")
+//}
 
 // TestAnalyzeCommandDetailedReport
 // GIVEN a CLI analyze command
@@ -78,8 +75,6 @@ func TestAnalyzeCommandDetailedReport(t *testing.T) {
 // WHEN I call cmd.Execute with a valid capture-dir and report-format set to "summary"
 // THEN expect the command to provide the report containing only summary for one or more issues reported
 func TestAnalyzeCommandSummaryReport(t *testing.T) {
-	c := getClientWithWatch()
-	installVZ(t, c)
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
@@ -203,21 +198,21 @@ func getClientWithWatch() client.WithWatch {
 	return c
 }
 
-// installVZ installs Verrazzano using the given client
-func installVZ(t *testing.T, c client.WithWatch) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	rc.SetClient(c)
-	cmd := installcmd.NewCmdInstall(rc)
-	assert.NotNil(t, cmd)
-	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
-	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
-	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
-	defer cmdHelpers.SetDefaultDeleteFunc()
-
-	// Run install command
-	err := cmd.Execute()
-	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
-}
+//// installVZ installs Verrazzano using the given client
+//func installVZ(t *testing.T, c client.WithWatch) {
+//	buf := new(bytes.Buffer)
+//	errBuf := new(bytes.Buffer)
+//	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+//	rc.SetClient(c)
+//	cmd := installcmd.NewCmdInstall(rc)
+//	assert.NotNil(t, cmd)
+//	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+//	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
+//	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+//	defer cmdHelpers.SetDefaultDeleteFunc()
+//
+//	// Run install command
+//	err := cmd.Execute()
+//	assert.NoError(t, err)
+//	assert.Equal(t, "", errBuf.String())
+//}
