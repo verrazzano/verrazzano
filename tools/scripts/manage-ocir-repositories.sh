@@ -99,7 +99,7 @@ function create_ocir_repo() {
   local repo_path=$1
 
   local is_public="false"
-  if [ "$resolvedRepository" == "rancher" ] || [ "$from_image_name" == "verrazzano-platform-operator" ] \
+  if [ "$resolvedRepository" =~ "rancher*" ] || [ "$from_image_name" == "verrazzano-platform-operator" ] \
     || [ "$from_image_name" == "fluentd-kubernetes-daemonset" ] || [ "$from_image_name" == "proxyv2" ] \
     || [ "$from_image_name" == "weblogic-monitoring-exporter" ]; then
     # Rancher repos must be public
@@ -306,7 +306,7 @@ function check() {
     if [[ "${USE_LOCAL_IMAGES}" == "true" && (-n "${INCLUDE_COMPONENTS}" || -n "${EXCLUDE_COMPONENTS}") ]]; then
       echo "Delete repositories, can only use -e or -n with -b (BOM File) option, not -l"
       exit 1
-    fi 
+    fi
   fi
 
   if [ "${CREATE_REPOS}" == "true" ] && [ "${DELETE_ALL_REPOS}" == "true" ]; then
@@ -389,4 +389,3 @@ function main() {
 
 check
 main
-
