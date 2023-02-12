@@ -98,10 +98,12 @@ $0 -d -r phx -i ocid1.compartment.oc1..aaaaaaaa7cfqxbsnon63unlmm5z63zidx5wvq4gie
 function create_ocir_repo() {
   local repo_path=$1
 
+  echo "create_ocir_repo: resolved repo: $resolvedRepository, from image: $from_image_name"
+
   local is_public="false"
   if [ "$resolvedRepository" == "rancher" ] || [ "$from_image_name" == "verrazzano-platform-operator" ] \
     || [ "$from_image_name" == "fluentd-kubernetes-daemonset" ] || [ "$from_image_name" == "proxyv2" ] \
-    || [ "$from_image_name" == "weblogic-monitoring-exporter" ] || [[ "$from_image_name" =~ rancher-* ]]; then
+    || [ "$from_image_name" == "weblogic-monitoring-exporter" ] || [[ "$from_image_name" =~ *rancher-* ]]; then
     # Rancher repos must be public
     is_public="true"
   fi
