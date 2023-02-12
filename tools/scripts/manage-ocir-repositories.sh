@@ -101,7 +101,7 @@ function create_ocir_repo() {
   local is_public="false"
   if [ "$resolvedRepository" == "rancher" ] || [ "$from_image_name" == "verrazzano-platform-operator" ] \
     || [ "$from_image_name" == "fluentd-kubernetes-daemonset" ] || [ "$from_image_name" == "proxyv2" ] \
-    || [ "$from_image_name" == "weblogic-monitoring-exporter" ] || [ "$from_image_name" =~ "rancher-*" ]; then
+    || [ "$from_image_name" == "weblogic-monitoring-exporter" ] || [[ "$from_image_name" =~ rancher-* ]]; then
     # Rancher repos must be public
     is_public="true"
   fi
@@ -112,7 +112,7 @@ function create_ocir_repo() {
     oci --region ${REGION} artifacts container repository create --display-name ${repo_path} \
       --is-public ${is_public} --compartment-id ${COMPARTMENT_ID}
   else
-    echo "Dry run, skipping action..."
+    echo "Dry run, skipping action... resolved repo: $resolvedRepository  from image: $from_image_name   is_public: $is_public"
   fi
 }
 
