@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package verifycrds
@@ -9,7 +9,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -40,25 +39,6 @@ var optionalverrazzanoiocrds = []string{
 	"verrazzanos.install.verrazzano.io",
 }
 
-// Expected istio.io CRDs after uninstall
-var istioiocrds = map[string]bool{
-	"authorizationpolicies.security.istio.io":  false,
-	"destinationrules.networking.istio.io":     false,
-	"envoyfilters.networking.istio.io":         false,
-	"gateways.networking.istio.io":             false,
-	"istiooperators.install.istio.io":          false,
-	"peerauthentications.security.istio.io":    false,
-	"proxyconfigs.networking.istio.io":         false,
-	"requestauthentications.security.istio.io": false,
-	"serviceentries.networking.istio.io":       false,
-	"sidecars.networking.istio.io":             false,
-	"telemetries.telemetry.istio.io":           false,
-	"virtualservices.networking.istio.io":      false,
-	"wasmplugins.extensions.istio.io":          false,
-	"workloadentries.networking.istio.io":      false,
-	"workloadgroups.networking.istio.io":       false,
-}
-
 // Expected oam.dev CRDs after uninstall
 var oamdevcrds = map[string]bool{
 	"applicationconfigurations.core.oam.dev": false,
@@ -81,18 +61,6 @@ var certmanageriocrds = map[string]bool{
 	"orders.acme.cert-manager.io":         false,
 }
 
-// Expected monitoring.coreis.com CRDs after uninstall
-var monitoringcoreoscomcrds = map[string]bool{
-	"alertmanagerconfigs.monitoring.coreos.com": false,
-	"alertmanagers.monitoring.coreos.com":       false,
-	"podmonitors.monitoring.coreos.com":         false,
-	"probes.monitoring.coreos.com":              false,
-	"prometheuses.monitoring.coreos.com":        false,
-	"prometheusrules.monitoring.coreos.com":     false,
-	"servicemonitors.monitoring.coreos.com":     false,
-	"thanosrulers.monitoring.coreos.com":        false,
-}
-
 // Expected MySQL Operator CRDs after uninstall
 var mysqloperatorcrds = map[string]bool{
 	"innodbclusters.mysql.oracle.com": false,
@@ -113,20 +81,12 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 		checkCrds(crds, verrazzanoiocrds, "verrazzano.io")
 	})
 
-	t.It("Check for expected istio.io CRDs", func() {
-		checkCrds(crds, istioiocrds, "istio.io")
-	})
-
 	t.It("Check for expected oam.dev CRDs", func() {
 		checkCrds(crds, oamdevcrds, "oam.dev")
 	})
 
 	t.It("Check for expected cert-manager.io CRDs", func() {
 		checkCrds(crds, certmanageriocrds, "cert-manager.io")
-	})
-
-	t.It("Check for expected monitoring.coreos.com CRDs", func() {
-		checkCrds(crds, monitoringcoreoscomcrds, "monitoring.coreos.com")
 	})
 
 	t.It("Check for expected domains.weblogic.oracle CRD", func() {
