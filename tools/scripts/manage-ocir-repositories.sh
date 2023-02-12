@@ -99,7 +99,7 @@ function create_ocir_repo() {
   local repo_path=$1
 
   local is_public="false"
-  if [ "$resolvedRepository" == "rancher" ] || [ "$from_image_name" == "verrazzano-platform-operator" ] \
+  if [ "$from_image_name" =~ .*"rancher".* ] || [ "$from_image_name" == "verrazzano-platform-operator" ] \
     || [ "$from_image_name" == "fluentd-kubernetes-daemonset" ] || [ "$from_image_name" == "proxyv2" ] \
     || [ "$from_image_name" == "weblogic-monitoring-exporter" ]; then
     # Rancher repos must be public
