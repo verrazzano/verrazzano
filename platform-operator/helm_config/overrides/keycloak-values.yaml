@@ -49,7 +49,7 @@ extraVolumes: |
        secretName: keycloak-http
   - name: realms
     configMap:
-      name: {{ include "keycloak.fullname" . }}-headless
+      name: {{ include "keycloak.fullname" . }}-realms
 
 extraVolumeMounts: |
   - name: theme

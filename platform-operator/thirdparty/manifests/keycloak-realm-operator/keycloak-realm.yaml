@@ -1,0 +1,13 @@
+apiVersion: legacy.k8s.keycloak.org/v1alpha1
+kind: KeycloakRealm
+metadata:
+  name: verrazzano-system
+  namespace: keycloak
+  labels:
+    app: verrazzano-external-keycloak
+spec:
+  realm:
+    realm: verrazzano-system
+  instanceSelector:
+    matchLabels:
+      app: verrazzano-external-keycloak

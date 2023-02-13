@@ -1,0 +1,35 @@
+{
+  "realm": "verrazzano-system",
+  "enabled": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "vz_api_access"
+      }
+    ]
+  },
+  "groups": [
+    {
+      "name": "verrazzano-users",
+      "path": "/verrazzano-users",
+      "realmRoles": [
+        "vz_api_access"
+      ],
+      "subGroups": [
+        {
+          "name": "verrazzano-monitors",
+          "path": "/verrazzano-users/verrazzano-monitors"
+        },
+        {
+          "name": "verrazzano-admins",
+          "path": "/verrazzano-users/verrazzano-admins"
+        },
+        {
+          "name": "verrazzano-system-users",
+          "path": "/verrazzano-users/verrazzano-system-users"
+        }
+      ]
+    }
+  ],
+  "passwordPolicy": "length(8) and notUsername"
+}

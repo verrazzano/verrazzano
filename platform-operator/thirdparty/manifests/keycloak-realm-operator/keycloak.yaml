@@ -1,0 +1,57 @@
+kubectl apply -f - <<EOF
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: Keycloak
+metadata:
+  name: example-kc
+  namespace: keycloak
+spec:
+  db:
+    vendor: mysql
+    usernameSecret:
+      name: mysql-cluster-secret
+      key: userName
+    passwordSecret:
+      name: mysql-cluster-secret
+      key: userPassword
+    host: mysql
+    database: keycloak
+    port: 3306
+    schema: schema
+  hostname:
+    strict: false
+    strictBackchannel: false
+  additionalOptions:
+    - name: proxy
+      value: edge
+  unsupported:
+    podTemplate:
+      spec:
+        volumes:
+          - name: theme
+            emptyDir: { }
+          - name: cacerts
+            emptyDir: { }
+          - name: keycloak-http
+            secret:
+              secretName: keycloak-http
+        containers:
+          - name: keycloak
+            image: ghcr.io/verrazzano/keycloak:v20.0.1-20230208153258-215619ca63
+            env:
+              - name: KEYCLOAK_ADMIN
+                value: "keycloakadmin"
+              - name: KEYCLOAK_ADMIN_PASSWORD
+                value: test1
+              - name: JAVA_OPTS_APPEND
+                value: -Djgroups.dns.query=keycloak-headless
+            volumeMounts:
+              - name: theme
+                mountPath: /opt/keycloak/themes/oracle
+              - name: keycloak-http
+                mountPath: /etc/keycloak-http
+            ports:
+              - name: jgroups
+                containerPort: 7800
+                protocol: TCP
+EOF
+    
