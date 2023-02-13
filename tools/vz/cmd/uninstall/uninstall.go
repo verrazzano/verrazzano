@@ -72,7 +72,7 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 		}
 		// if runCmdUninstall() returned an err and auto-analyze is set to true
 		if err != nil && autoanalyzeFlag {
-			//print the runCmdInstall err
+			//print the runCmdUninstall err
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Install error: %s", err.Error())
 			cmd2 := analyze.NewCmdAnalyze(vzHelper)
 			kubeconfigFlag, errFlag :=  cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
