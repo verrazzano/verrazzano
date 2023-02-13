@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # Create a Docker repository in a specific compartment using an exploded tarball of Verrazzano images; useful for
@@ -99,9 +99,9 @@ function create_ocir_repo() {
   local repo_path=$1
 
   local is_public="false"
-  if [ "$resolvedRepository" == "rancher" ] || [ "$from_image_name" == "verrazzano-platform-operator" ] \
-    || [ "$from_image_name" == "fluentd-kubernetes-daemonset" ] || [ "$from_image_name" == "proxyv2" ] \
-    || [ "$from_image_name" == "weblogic-monitoring-exporter" ]; then
+  if [[ "$from_image_name" =~ rancher.* ]] || [[ "$from_image_name" == "verrazzano-platform-operator" ]] \
+    || [[ "$from_image_name" == "fluentd-kubernetes-daemonset" ]] || [[ "$from_image_name" == "proxyv2" ]] \
+    || [[ "$from_image_name" == "weblogic-monitoring-exporter" ]]; then
     # Rancher repos must be public
     is_public="true"
   fi
