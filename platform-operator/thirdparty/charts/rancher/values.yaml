@@ -143,7 +143,7 @@ customLogos:
 postDelete:
   enabled: false
   image:
-    repository: rancher/shell
+    repository: rancher-shell
     tag: v0.1.18
   namespaceList:
     - cattle-fleet-system

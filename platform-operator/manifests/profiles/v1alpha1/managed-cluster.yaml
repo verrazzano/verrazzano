@@ -4,6 +4,8 @@ spec:
   components:
     keycloak:
       enabled: false
+    mySQLOperator:
+      enabled: false
     rancher:
       enabled: false
     elasticsearch:
