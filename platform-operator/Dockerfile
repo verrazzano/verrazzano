@@ -37,11 +37,6 @@ RUN groupadd -r verrazzano \
     && mkdir /home/verrazzano \
     && chown -R 1000:verrazzano /home/verrazzano
 
-# install Rancher system-tools (used by uninstall)
-RUN wget https://github.com/rancher/system-tools/releases/download/v0.1.1-rc7/system-tools_linux-amd64 \
-    -O /usr/local/bin/system-tools \
-    && chmod +x /usr/local/bin/system-tools
-
 # Copy the operator binary
 COPY --from=build_base --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
 
