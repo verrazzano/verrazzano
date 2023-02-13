@@ -193,6 +193,10 @@ pipeline {
             }
         }
 
+        // This kicks off two parallel stages:
+        //     1. A stage to install Verrazzano, with a typo in the Verrazzano CRD
+        //     2. A stage that waits a certain amount of time, then updates the Verrazzano CRD to fix the typo while the first stage is installing
+        // This aims to test that updates to the Verrazzano CRD during initial install does not break the installation.
         stage('Update During Install') {
             parallel {
                 stage('Install Verrazzano with Wildcard DNS Typo') {
@@ -201,6 +205,8 @@ pipeline {
                         OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                     }
                     steps {
+                        // This installs Verrazzano with an invalid WildcardDNS domain of "typodomain.io"
+                        // This also makes sure that certain components relevant to testing are enabled
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
                             yq -i eval '.spec.components.keycloak.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
@@ -231,6 +237,7 @@ pipeline {
                     }
                     steps {
                         script {
+                            // first wait for certain resources to be created, then update the Verrazzano CRD to fix the WildcardDNS typo
                             if (params.WAIT_FOR_RESOURCE_BEFORE_UPDATE == 'mysql statefulset') {
                                 waitForKeycloakMySqlStatefulset()
                             } else if (params.WAIT_FOR_RESOURCE_BEFORE_UPDATE == 'rancher bootstrap secret') {
