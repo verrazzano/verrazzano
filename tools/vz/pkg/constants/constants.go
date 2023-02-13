@@ -53,7 +53,7 @@ const (
 	VerboseFlagUsage     = "Enable verbose output."
 
 	AutoanalyzeFlag = "auto-analyze"
-	AutoanalyzeFlagDefault = false
+	AutoanalyzeFlagDefault = true
 	AutoanalyzeFlagHelp = "Automatically call vz analyze if command fails"
 )
 
