@@ -533,16 +533,19 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) {
 			return
 		}
 		for i, rb := range rbList.Items {
+			ctx.Log().Infof("MGIANATA processing %s/%s", rb.GetNamespace(), rb.GetName())
 			// If any of the finalizers contains a rancher one, remove them all
 			for _, finalizer := range rb.Finalizers {
+				ctx.Log().Infof("MGIANATA checking finalizer %s", finalizer)
 				if strings.Contains(finalizer, "cattle.io") {
+					ctx.Log().Infof("MGIANATA deleting finalizer %s", finalizer)
 					err := resource.Resource{
 						Name:      rb.GetName(),
 						Namespace: rb.GetNamespace(),
 						Client:    ctx.Client(),
 						Object:    &rbList.Items[i],
 						Log:       ctx.Log(),
-					}.Delete()
+					}.RemoveFinalizers()
 					if err != nil {
 						ctx.Log().Errorf("Component %s failed to delete finalizers from %s/%s: %v", ComponentName, rb.GetNamespace(), rb.GetName(), err)
 						return
