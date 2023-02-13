@@ -5,8 +5,8 @@ package helidonconfig
 
 import (
 	"fmt"
-	"time"
 	"os"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -30,7 +30,7 @@ const (
 
 	ingress        = "helidon-config-ingress-rule"
 	helidonService = "helidon-config-deployment"
-	targetsVersion           = "1.4.0"
+	targetsVersion = "1.4.0"
 )
 
 var (
@@ -114,7 +114,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return result
 	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Helidon Config Failed to Deploy: VirtualService is not ready")
 
-	var err error
 	// Get the host from the Istio gateway resource.
 	start := time.Now()
 	t.Logs.Info("Helidon Config: check expected Gateway is ready")

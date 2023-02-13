@@ -426,19 +426,13 @@ var afterSuite = clusterDump.AfterSuiteFunc(func() {
 
 var _ = AfterSuite(afterSuite)
 
-// appMetricExists checks whether app related metrics are available
-func appMetricExists() bool {
-	return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "carts-coh")
-}
-
-// springMetricExists checks whether sample Spring metrics is available for a given component
-func springMetricExists(comp string) bool {
-	return pkg.MetricsExist(sampleSpringMetric, oamComponent, comp)
-}
-
-// micronautMetricExists checks whether sample Micronaut metrics is available for a given component
-func micronautMetricExists(comp string) bool {
-	return pkg.MetricsExist(sampleMicronautMetric, oamComponent, comp)
+// sockshopPodsRunning checks whether the application pods are ready
+func sockshopPodsRunning() bool {
+	result, err := pkg.PodsRunning(namespace, expectedPods)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+	}
+	return result
 }
 
 // getVariant returns the variant of the sock shop application being tested
