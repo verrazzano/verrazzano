@@ -5,7 +5,6 @@
 package report
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -52,7 +51,7 @@ var reportMutex = &sync.Mutex{}
 
 // ContributeIssuesMap allows a map of issues to be contributed
 func ContributeIssuesMap(log *zap.SugaredLogger, source string, issues map[string]Issue) (err error) {
-	log.Debugf("ContributeIssues called for source %s with %d issues", len(issues))
+	log.Debugf("ContributeIssues called for source %s with %d issues", source, len(issues))
 	if len(source) == 0 {
 		return errors.New("ContributeIssues requires a non-empty source be specified")
 	}
@@ -78,10 +77,10 @@ func ContributeIssuesMap(log *zap.SugaredLogger, source string, issues map[strin
 
 // ContributeIssue allows a single issue to be contributed
 func ContributeIssue(log *zap.SugaredLogger, issue Issue) (err error) {
-	log.Debugf("ContributeIssue called for source %s with %v", issue)
+	log.Debugf("ContributeIssue called for source with %v", issue)
 	err = issue.Validate(log, "")
 	if err != nil {
-		log.Debugf("Validate failed", err)
+		log.Debugf("Validate failed %s", err.Error())
 		return err
 	}
 	reportMutex.Lock()
@@ -102,32 +101,17 @@ func ContributeIssue(log *zap.SugaredLogger, issue Issue) (err error) {
 func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat string, includeSupportData bool, includeInfo bool, includeActions bool, minConfidence int, minImpact int, vzHelper helpers.VZHelper) (err error) {
 	// Default to stdout if no reportfile is supplied
 	//TODO: Eventually add support other reportFormat type (json)
-	var writeOut = bufio.NewWriter(vzHelper.GetOutputStream())
-	if len(reportFile) > 0 {
-		log.Debugf("Generating human report to file: %s", reportFile)
-		// Open the file for write
-		fileOut, err := os.Create(reportFile)
-		if err != nil {
-			log.Errorf("Failed to create report file %s", reportFile, err)
-			return err
-		}
-		defer fileOut.Close()
-		writeOut = bufio.NewWriter(fileOut)
-	} else {
-		log.Debugf("Generating human report to stdout")
-	}
-
+	writeOut := ""
 	// Lock the report data while generating the report itself
 	reportMutex.Lock()
 	sourcesWithoutIssues := allSourcesAnalyzed
 	for source, reportIssues := range reports {
 		log.Debugf("Will report on %d issues that were reported for %s", len(reportIssues), source)
-
 		// We need to filter and sort the list of Issues that will be reported
 		// TODO: Need to sort them as well eventually
 		actuallyReported := filterReportIssues(log, reportIssues, includeInfo, minConfidence, minImpact)
 		if len(actuallyReported) == 0 {
-			log.Debugf("No issues to report for source: %s")
+			log.Debugf("No issues to report for source: %s", source)
 			continue
 		}
 
@@ -140,160 +124,112 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 			issuesDetected = fmt.Sprintf("Detected %d issues for %s:", len(actuallyReported), source)
 		}
 		sep := strings.Repeat(constants.LineSeparator, len(issuesDetected))
-		fmt.Fprintf(writeOut, "\n"+issuesDetected+"\n")
-		fmt.Fprintf(writeOut, sep+"\n")
-
+		fmt.Fprintf(os.Stdout, "\n"+issuesDetected+"\n")
+		fmt.Fprintf(os.Stdout, sep+"\n")
 		for _, issue := range actuallyReported {
 			// Display only summary and action when the report-format is set to summary
 			if reportFormat == constants.SummaryReport {
-				_, err = fmt.Fprintf(writeOut, "\n\tISSUE (%s): %s\n", issue.Type, issue.Summary)
+				_, err = fmt.Fprintf(os.Stdout, "\n\tISSUE (%s): %s\n", issue.Type, issue.Summary)
 				if err != nil {
 					return err
 				}
 				for _, action := range issue.Actions {
-					_, err = fmt.Fprintf(writeOut, "\t%s\n", action.Summary)
+					_, err = fmt.Fprintf(os.Stdout, "\t%s\n", action.Summary)
 					if err != nil {
 						return err
 					}
 				}
-				continue
+
 			}
 
-			// Print the Issue out
-			_, err = fmt.Fprintf(writeOut, "\n\tISSUE (%s)\n\t\tsummary: %s\n", issue.Type, issue.Summary)
-			if err != nil {
-				return err
-			}
-			// Revisit to display confidence and impact, if/when required
-			//_, err = fmt.Fprintf(writeOut, "\t\tconfidence: %d\n", issue.Confidence)
-			//if err != nil {
-			//	return err
-			//}
-			//_, err = fmt.Fprintf(writeOut, "\t\timpact: %d\n", issue.Impact)
-			//if err != nil {
-			//	return err
-			//}
+			writeOut += fmt.Sprintf("\n\tISSUE (%s)\n\t\tsummary: %s\n", issue.Type, issue.Summary)
 			if len(issue.Actions) > 0 && includeActions {
 				log.Debugf("Output actions")
-				_, err = fmt.Fprintf(writeOut, "\t\tactions:\n")
-				if err != nil {
-					return err
-				}
+				writeOut += fmt.Sprintf("\t\tactions:\n")
 				for _, action := range issue.Actions {
-					_, err = fmt.Fprintf(writeOut, "\t\t\taction: %s\n", action.Summary)
-					if err != nil {
-						return err
-					}
+					writeOut += fmt.Sprintf("\t\t\taction: %s\n", action.Summary)
 					if len(action.Steps) > 0 {
-						_, err = fmt.Fprintf(writeOut, "\t\t\t\tSteps:\n")
-						if err != nil {
-							return err
-						}
+						writeOut += fmt.Sprintf("\t\t\t\tSteps:\n")
 						for i, step := range action.Steps {
-							_, err = fmt.Fprintf(writeOut, "\t\t\t\t\tStep %d: %s\n", i+1, step)
-							if err != nil {
-								return err
-							}
+							writeOut += fmt.Sprintf("\t\t\t\t\tStep %d: %s\n", i+1, step)
 						}
 					}
 					if len(action.Links) > 0 {
-						_, err = fmt.Fprintf(writeOut, "\t\t\t\tLinks:\n")
-						if err != nil {
-							return err
-						}
+						writeOut += fmt.Sprintf("\t\t\t\tLinks:\n")
 						for _, link := range action.Links {
-							_, err = fmt.Fprintf(writeOut, "\t\t\t\t\t%s\n", link)
-							if err != nil {
-								return err
-							}
+							writeOut += fmt.Sprintf("\t\t\t\t\t%s\n", link)
 						}
 					}
 				}
 			}
 			if len(issue.SupportingData) > 0 && includeSupportData {
 				log.Debugf("Output supporting data")
-				_, err = fmt.Fprintf(writeOut, "\t\tsupportingData:\n")
-				if err != nil {
-					return err
-				}
+				writeOut += fmt.Sprintf("\t\tsupportingData:\n")
 				for _, data := range issue.SupportingData {
 					if len(data.Messages) > 0 {
-						_, err = fmt.Fprintf(writeOut, "\t\t\tmessages:\n")
-						if err != nil {
-							return err
-						}
+						writeOut += fmt.Sprintf("\t\t\tmessages:\n")
 						for _, message := range data.Messages {
-							_, err = fmt.Fprintf(writeOut, "\t\t\t\t%s\n", message)
-							if err != nil {
-								return err
-							}
+							writeOut += fmt.Sprintf("\t\t\t\t%s\n", message)
 						}
 					}
 					if len(data.TextMatches) > 0 {
-						_, err = fmt.Fprintf(writeOut, "\t\t\tsearch matches:\n")
-						if err != nil {
-							return err
-						}
+						writeOut += fmt.Sprintf("\t\t\tsearch matches:\n")
 						for _, match := range data.TextMatches {
 							if helpers.GetIsLiveCluster() {
-								_, err = fmt.Fprintf(writeOut, "\t\t\t%s: %s\n", match.FileName, match.MatchedText)
+								writeOut += fmt.Sprintf("\t\t\t%s: %s\n", match.FileName, match.MatchedText)
 							} else {
-								_, err = fmt.Fprintf(writeOut, "\t\t\t\t%s:%d: %s\n", match.FileName, match.FileLine, match.MatchedText)
-							}
-							if err != nil {
-								return err
+								writeOut += fmt.Sprintf("\t\t\t\t%s:%d: %s\n", match.FileName, match.FileLine, match.MatchedText)
 							}
 						}
 					}
 					if len(data.JSONPaths) > 0 {
-						_, err = fmt.Fprintf(writeOut, "\t\t\trelated json:\n")
-						if err != nil {
-							return err
-						}
+						writeOut += fmt.Sprintf("\t\t\trelated json:\n")
 						for _, path := range data.JSONPaths {
-							_, err = fmt.Fprintf(writeOut, "\t\t\t\t%s: %s\n", path.File, path.Path)
-							if err != nil {
-								return err
-							}
+							writeOut += fmt.Sprintf("\t\t\t\t%s: %s\n", path.File, path.Path)
 						}
 					}
 					if len(data.RelatedFiles) > 0 {
-						_, err = fmt.Fprintf(writeOut, "\t\t\trelated resource(s):\n")
-						if err != nil {
-							return err
-						}
+						writeOut += fmt.Sprintf("\t\t\trelated resource(s):\n")
 						for _, fileName := range data.RelatedFiles {
-							_, err = fmt.Fprintf(writeOut, "\t\t\t\t%s\n", fileName)
-							if err != nil {
-								return err
-							}
+							writeOut += fmt.Sprintf("\t\t\t\t%s\n", fileName)
 						}
 					}
 				}
 			}
 		}
 	}
-
 	if includeInfo {
 		if len(sourcesWithoutIssues) > 0 {
-			_, err = fmt.Fprintf(writeOut, "\n\n")
+			fmt.Fprintf(os.Stdout, "\n\n")
 		}
 		if len(sourcesWithoutIssues) == 1 {
 			// This is a workaround to avoid printing the source when analyzing the live cluster, although it impacts the
 			// regular use case with a directory containing a single cluster snapshot
-			_, err = fmt.Fprintf(writeOut, "Verrazzano analysis CLI did not detect any issue in the cluster\n")
+			_, err = fmt.Fprintf(os.Stdout, "Verrazzano analysis CLI did not detect any issue in the cluster\n")
 		} else {
 			for _, source := range sourcesWithoutIssues {
-				_, err = fmt.Fprintf(writeOut, "Verrazzano analysis CLI did not detect any issue in %s\n", source)
+				_, err = fmt.Fprintf(os.Stdout, "Verrazzano analysis CLI did not detect any issue in %s\n", source)
 			}
 		}
 	}
-
-	log.Debugf("Flushing output")
-	err = writeOut.Flush()
-	if err != nil {
-		log.Errorf("Failed to flush writer for file %s", reportFile, err)
-		return err
+	if len(writeOut) > 0 {
+		fileOut, err := os.Create(reportFile)
+		if err != nil {
+			log.Errorf("Failed to create report file : %s, error found : %s", reportFile, err.Error())
+			return err
+		}
+		defer func() {
+			if reportFormat == constants.DetailedReport {
+				fmt.Fprintf(os.Stdout, "%s", writeOut)
+			}
+			fileOut.Close()
+			fmt.Fprintf(os.Stdout, "\nFor Detailed Report, Please Check File (%s)\n", reportFile)
+		}()
+		_, err = fileOut.Write([]byte(writeOut))
+		if err != nil {
+			log.Errorf("Failed to write to report file %s,error found : %s", reportFile, err.Error())
+			return err
+		}
 	}
 	reportMutex.Unlock()
 	return nil

@@ -50,6 +50,9 @@ func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
 	}
+	if reportFileName == "" {
+		reportFileName = "details.out"
+	}
 	reportFormat := getReportFormat(cmd)
 
 	// set the flag to control the display the resources captured
