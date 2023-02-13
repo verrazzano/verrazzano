@@ -179,6 +179,9 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 
 	crds := getCRDList(ctx)
 
+	// Delete finalizers not handled by the cleanup job
+	deleteRancherFinalizers(ctx)
+
 	// Remove any Rancher custom resources that remain
 	removeCRs(ctx, crds)
 
@@ -514,4 +517,39 @@ func isRancherNamespace(ns *corev1.Namespace) bool {
 		return true
 	}
 	return false
+}
+
+// deleteRancherFinalizers - delete Rancher finalizers on resources that the cleanup job
+// didn't catch
+func deleteRancherFinalizers(ctx spi.ComponentContext) {
+	namespaces := []string{"verrazzano-system", "keycloak"}
+
+	for _, namespace := range namespaces {
+		// Check the finalizers of all RoleBindings
+		rbList := rbacv1.RoleBindingList{}
+		listOptions := client.ListOptions{Namespace: namespace}
+		if err := ctx.Client().List(context.TODO(), &rbList, &listOptions); err != nil {
+			ctx.Log().Errorf("Component %s failed to list RoleBindings: %v", ComponentName, err)
+			return
+		}
+		for i, rb := range rbList.Items {
+			// If any of the finalizers contains a rancher one, remove them all
+			for _, finalizer := range rb.Finalizers {
+				if strings.Contains(finalizer, "cattle.io") {
+					err := resource.Resource{
+						Name:      rb.GetName(),
+						Namespace: rb.GetNamespace(),
+						Client:    ctx.Client(),
+						Object:    &rbList.Items[i],
+						Log:       ctx.Log(),
+					}.Delete()
+					if err != nil {
+						ctx.Log().Errorf("Component %s failed to delete finalizers from %s/%s: %v", ComponentName, rb.GetNamespace(), rb.GetName(), err)
+						return
+					}
+					break
+				}
+			}
+		}
+	}
 }
