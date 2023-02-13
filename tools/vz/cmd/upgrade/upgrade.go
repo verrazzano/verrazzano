@@ -5,6 +5,7 @@ package upgrade
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -33,11 +34,39 @@ vz upgrade
 vz upgrade --version v%[1]s --timeout 20m`, version.GetCLIVersion())
 
 var logsEnum = cmdhelpers.LogFormatSimple
+var kubeconfig string
+var context string
 
 func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return runCmdUpgrade(cmd, vzHelper)
+		err := runCmdUpgrade(cmd, vzHelper)
+		autoanalyzeFlag, errFlag := cmd.Flags().GetBool(constants.AutoanalyzeFlag)
+		if errFlag != nil {
+			fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", errFlag.Error())
+		}
+		// if runCmdUpgrade() returned an err and auto-analyze is set to true
+		if err != nil && autoanalyzeFlag {
+			//print the runCmdUpgrade err
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Install error: %s", err.Error())
+			cmd2 := analyze.NewCmdAnalyze(vzHelper)
+			kubeconfigFlag, errFlag :=  cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
+			if errFlag != nil {
+				fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", errFlag.Error())
+			}
+			contextFlag, errFlag2 :=  cmd.Flags().GetString(constants.GlobalFlagContext)
+			if errFlag2 != nil {
+				fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", errFlag2.Error())
+			}
+			cmd2.Flags().StringVar(&kubeconfig, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
+			cmd2.Flags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
+			cmd2.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
+			cmd2.Flags().Set(constants.GlobalFlagContext, contextFlag)
+			cmd2.PersistentFlags().Set(constants.ReportFormatFlagName, constants.SummaryReport)
+			return analyze.RunCmdAnalyze(cmd2, args, vzHelper)
+		}
+		//otherwise, just return the runCmdUpgrade err
+		return err
 	}
 	cmd.Example = helpExample
 
@@ -46,6 +75,7 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Duration(constants.VPOTimeoutFlag, time.Minute*5, constants.VPOTimeoutFlagHelp)
 	cmd.PersistentFlags().String(constants.VersionFlag, constants.VersionFlagDefault, constants.VersionFlagUpgradeHelp)
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
+	cmd.PersistentFlags().Bool(constants.AutoanalyzeFlag, constants.AutoanalyzeFlagDefault, constants.AutoanalyzeFlagHelp)
 
 	// Initially the operator-file flag may be for internal use, hide from help until
 	// a decision is made on supporting this option.
