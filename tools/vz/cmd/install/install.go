@@ -86,7 +86,11 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 			cmd2.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
 			cmd2.Flags().Set(constants.GlobalFlagContext, contextFlag)
 			cmd2.PersistentFlags().Set(constants.ReportFormatFlagName, constants.SummaryReport)
-			return analyze.RunCmdAnalyze(cmd2, args, vzHelper)
+			err4 := analyze.RunCmdAnalyze(cmd2, args, vzHelper)
+			if err4 != nil {
+				fmt.Fprintf(vzHelper.GetOutputStream(), "error calling analyze %s", err4.Error())
+			}
+			return err
 		}
 		//otherwise, just return the runCmdInstall err
 		return err
