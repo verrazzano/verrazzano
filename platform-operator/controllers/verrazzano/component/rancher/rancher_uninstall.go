@@ -42,6 +42,7 @@ const (
 	defaultRancherCleanupJobYaml = "/verrazzano/platform-operator/thirdparty/manifests/rancher-cleanup/rancher-cleanup.yaml"
 	rancherCleanupJobName        = "cleanup-job"
 	rancherCleanupJobNamespace   = "kube-system"
+	finalizerSubString           = ".cattle.io"
 )
 
 var rancherSystemNS = []string{
@@ -68,7 +69,7 @@ var rancherSystemNS = []string{
 
 // cleanupFinalizerNS - list of namespaces that may have objects with Rancher finalizers
 // after the rancher cleanup job has completed.
-var cleanupFinalizerNS = []string{"verrazzano-system", "keycloak"}
+var cleanupFinalizerNS = []string{constants.VerrazzanoSystemNamespace, constants.KeycloakNamespace}
 
 // create func vars for unit tests
 type forkPostUninstallFuncSig func(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error
@@ -367,7 +368,7 @@ func getCRDList(ctx spi.ComponentContext) *v1.CustomResourceDefinitionList {
 func removeCRs(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) {
 	ctx.Log().Oncef("Removing Rancher custom resources")
 	for _, crd := range crds.Items {
-		if strings.HasSuffix(crd.Name, ".cattle.io") {
+		if strings.HasSuffix(crd.Name, finalizerSubString) {
 			for _, version := range crd.Spec.Versions {
 				rancherCRs := unstructured.UnstructuredList{}
 				rancherCRs.SetAPIVersion(fmt.Sprintf("%s/%s", crd.Spec.Group, version.Name))
@@ -397,7 +398,7 @@ func removeCRs(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) 
 func removeCRDFinalizers(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) {
 	var rancherDeletedCRDs []v1.CustomResourceDefinition
 	for _, crd := range crds.Items {
-		if strings.HasSuffix(crd.Name, ".cattle.io") && crd.DeletionTimestamp != nil && !crd.DeletionTimestamp.IsZero() {
+		if strings.Contains(crd.Name, finalizerSubString) && crd.DeletionTimestamp != nil && !crd.DeletionTimestamp.IsZero() {
 			rancherDeletedCRDs = append(rancherDeletedCRDs, crd)
 		}
 	}
@@ -538,7 +539,7 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) {
 		for i, rb := range rbList.Items {
 			// If any of the finalizers contains a rancher one, remove them all
 			for _, finalizer := range rb.Finalizers {
-				if strings.Contains(finalizer, "cattle.io") {
+				if strings.Contains(finalizer, finalizerSubString) {
 					removeFinalizer(ctx, &rbList.Items[i])
 					break
 				}
@@ -554,7 +555,7 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) {
 		for i, role := range roleList.Items {
 			// If any of the finalizers contains a rancher one, remove them all
 			for _, finalizer := range role.Finalizers {
-				if strings.Contains(finalizer, "cattle.io") {
+				if strings.Contains(finalizer, finalizerSubString) {
 					removeFinalizer(ctx, &roleList.Items[i])
 					break
 				}

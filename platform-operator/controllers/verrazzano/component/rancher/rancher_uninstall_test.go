@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	constants2 "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	"github.com/stretchr/testify/assert"
@@ -693,4 +694,77 @@ func TestCleanupJob(t *testing.T) {
 	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: rancherCleanupJobNamespace, Name: rancherCleanupJobName}, &job)
 	a.Error(err)
 	a.True(apierrors.IsNotFound(err))
+}
+
+// TestDeleteRancherFinalizers
+// GIVEN cluster resources with rancher finalizers
+//
+//	WHEN deleteRancherFinalizers is called
+//	THEN expect those resources to have their finalizers removed
+func TestDeleteRancherFinalizers(t *testing.T) {
+	a := assert.New(t)
+	vz := v1alpha1.Verrazzano{}
+
+	// Role and RoleBinding that does not contain any Rancher finalizers
+	r1 := newRole("rb1", constants2.VerrazzanoSystemNamespace, []string{"test"})
+	rb1 := newRoleBinding("rb1", constants2.VerrazzanoSystemNamespace, []string{"test"})
+
+	// Role and RoleBinding that does contain Rancher finalizers
+	r2 := newRole("rb2", constants2.VerrazzanoSystemNamespace, []string{"test", "test.cattle.io"})
+	rb2 := newRoleBinding("rb2", constants2.VerrazzanoSystemNamespace, []string{"test", "test.cattle.io"})
+
+	// RoleBinding that does contain Rancher finalizers
+	r3 := newRole("rb3", constants2.KeycloakNamespace, []string{"test", "test.cattle.io"})
+	rb3 := newRoleBinding("rb3", constants2.KeycloakNamespace, []string{"test", "test.cattle.io"})
+
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(r1, r2, r3, rb1, rb2, rb3).Build()
+	ctx := spi.NewFakeContext(c, &vz, nil, false)
+	deleteRancherFinalizers(ctx)
+
+	var role = &rbacv1.Role{}
+	var roleBinding = &rbacv1.RoleBinding{}
+
+	type testCase struct {
+		clipkg.Object
+		expectedFinalizers int
+		destObject         clipkg.Object
+	}
+	testCases := []testCase{
+		{Object: rb1, expectedFinalizers: 1, destObject: roleBinding},
+		{Object: rb2, expectedFinalizers: 0, destObject: roleBinding},
+		{Object: rb3, expectedFinalizers: 0, destObject: roleBinding},
+		{Object: r1, expectedFinalizers: 1, destObject: role},
+		{Object: r2, expectedFinalizers: 0, destObject: role},
+		{Object: r3, expectedFinalizers: 0, destObject: role},
+	}
+
+	for _, test := range testCases {
+		err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: test.GetNamespace(), Name: test.GetName()}, test.destObject)
+		a.NoError(err)
+		a.Equal(test.expectedFinalizers, len(test.destObject.GetFinalizers()))
+	}
+}
+
+func newRole(name string, namespace string, finalizers []string) *rbacv1.Role {
+	return &rbacv1.Role{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:  namespace,
+			Name:       name,
+			Finalizers: finalizers,
+		},
+	}
+}
+
+func newRoleBinding(name string, namespace string, finalizers []string) *rbacv1.RoleBinding {
+	return &rbacv1.RoleBinding{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "RoleBinding",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:  namespace,
+			Name:       name,
+			Finalizers: finalizers,
+		},
+	}
 }
