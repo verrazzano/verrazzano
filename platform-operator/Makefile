@@ -89,7 +89,7 @@ go-build:
 .PHONY: go-build-linux
 go-build-linux:
 	GOOS=linux GOARCH=amd64 $(GO) build \
-		-ldflags "${GO_LDFLAGS}" \
+		-ldflags "-s -w ${GO_LDFLAGS}" \
 		-o out/linux_amd64/verrazzano-platform-operator \
 		main.go
 
