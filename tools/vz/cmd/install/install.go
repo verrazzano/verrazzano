@@ -4,7 +4,7 @@
 package install
 
 import (
-	pckcontext "context"
+	pkgcontext "context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	"os"
@@ -64,19 +64,22 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		err := runCmdInstall(cmd, args, vzHelper)
-		autoanalyzeFlag, err2 := cmd.Flags().GetBool(constants.AutoanalyzeFlag)
-		if err2 != nil {
-			fmt.Fprintln(vzHelper.GetErrorStream(), "ERROR IN CMDINSTALL GETTING AUTOANALYZE FLAG")
+		autoanalyzeFlag, errFlag := cmd.Flags().GetBool(constants.AutoanalyzeFlag)
+		if errFlag != nil {
+			fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", errFlag.Error())
 		}
+		// if runCmdInstall() returned an err and auto-analyze is set to true
 		if err != nil && autoanalyzeFlag {
+			//print the runCmdInstall err
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Install error: %s", err.Error())
 			cmd2 := analyze.NewCmdAnalyze(vzHelper)
-			kubeconfigFlag, err :=  cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
-			if err != nil {
-				fmt.Fprintln(vzHelper.GetErrorStream(), "ERROR IN CMDINSTALL GETTING KUBECONFIG FLAG")
+			kubeconfigFlag, errFlag :=  cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
+			if errFlag != nil {
+				fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", errFlag.Error())
 			}
-			contextFlag, err :=  cmd.Flags().GetString(constants.GlobalFlagContext)
-			if err != nil {
-				fmt.Fprintln(vzHelper.GetErrorStream(), "ERROR IN CMDINSTALL GETTING CONTEXT FLAG")
+			contextFlag, errFlag2 :=  cmd.Flags().GetString(constants.GlobalFlagContext)
+			if errFlag2 != nil {
+				fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", errFlag2.Error())
 			}
 			cmd2.Flags().StringVar(&kubeconfig, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
 			cmd2.Flags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
@@ -85,6 +88,7 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 			cmd2.PersistentFlags().Set(constants.ReportFormatFlagName, constants.SummaryReport)
 			return analyze.RunCmdAnalyze(cmd2, args, vzHelper)
 		}
+		//otherwise, just return the runCmdInstall err
 		return err
 	}
 	cmd.Example = helpExample
@@ -222,7 +226,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		// Sometimes we see intermittent webhook errors due to timeouts.
 		retry := 0
 		for {
-			err = client.Create(pckcontext.TODO(), vz)
+			err = client.Create(pkgcontext.TODO(), vz)
 			if err != nil {
 				if retry == 5 {
 					return fmt.Errorf("Failed to create the verrazzano install resource: %s", err.Error())
@@ -361,15 +365,7 @@ func getSetArguments(cmd *cobra.Command, vzHelper helpers.VZHelper) (map[string]
 // waitForInstallToComplete waits for the Verrazzano install to complete and shows the logs of
 // the ongoing Verrazzano install.
 func waitForInstallToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, namespacedName types.NamespacedName, timeout time.Duration, vpoTimeout time.Duration, logFormat cmdhelpers.LogFormat) error {
-	//rc := cmdhelpers.NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
-	//cmd := analyze.NewCmdAnalyze(rc)
-	//err1 := cmd.Execute()
-	//fmt.Fprintln(vzHelper.GetOutputStream(),"EXECUTE JUST FINISHED")
-	//fmt.Fprintln(vzHelper.GetErrorStream(), fmt.Sprintf("cmd execute failed, print to err stream: %s", err1))
-	//fmt.Fprintln(vzHelper.GetOutputStream(), fmt.Sprintf("cmd execute failed, print to out: %s", err1))
-	err := cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, namespacedName, timeout, vpoTimeout, logFormat, v1beta1.CondInstallComplete)
-
-	return err
+	return cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, namespacedName, timeout, vpoTimeout, logFormat, v1beta1.CondInstallComplete)
 }
 
 // validateCmd - validate the command line options
