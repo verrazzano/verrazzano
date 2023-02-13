@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # Create a Docker repository in a specific compartment using an exploded tarball of Verrazzano images; useful for
@@ -176,10 +176,10 @@ function create_image_repos_from_archives() {
 
     # When OCIR_SCAN_TARGET_ID is set, all of the repositories used for scanning are created as private (we only use them for scanning)
     local is_public="false"
-    if [ "$from_repository" == "rancher" ] || [ "$from_repository" == "verrazzano/rancher" ] \
-      || [ "$from_image_name" == "verrazzano-platform-operator" ] \
-      || [ "$from_image_name" == "fluentd-kubernetes-daemonset" ] || [ "$from_image_name" == "proxyv2" ] \
-      || [ "$from_image_name" == "weblogic-monitoring-exporter" ] && [ -z $OCIR_SCAN_TARGET_ID ]; then
+    if [[ "$from_image_name" =~ rancher.* ]] || [[ "$from_repository" == "verrazzano/rancher" ]] \
+      || [[ "$from_image_name" == "verrazzano-platform-operator" ]] \
+      || [[ "$from_image_name" == "fluentd-kubernetes-daemonset" ]] || [[ "$from_image_name" == "proxyv2" ]] \
+      || [[ "$from_image_name" == "weblogic-monitoring-exporter" ]] && [[ -z $OCIR_SCAN_TARGET_ID ]]; then
       # Rancher repos must be public
       is_public="true"
     fi
