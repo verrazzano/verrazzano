@@ -625,6 +625,20 @@ func createMySQLInitFile(ctx spi.ComponentContext, userPwd []byte) (string, erro
 	return file.Name(), nil
 }
 
+// getRootDBPassword returns the password to access the DB as root
+func getRootDBPassword(compContext spi.ComponentContext) ([]byte, error) {
+	secretName := types.NamespacedName{
+		Namespace: ComponentNamespace,
+		Name:      rootSec,
+	}
+	dbSecret := &v1.Secret{}
+	err := compContext.Client().Get(context.TODO(), secretName, dbSecret)
+	if err != nil {
+		return nil, err
+	}
+	return dbSecret.Data[mySQLRootKey], nil
+}
+
 // getOrCreateDBUserPassword creates or updates a secret containing the password used by keycloak to access the DB
 func getOrCreateDBUserPassword(compContext spi.ComponentContext) (string, error) {
 	secretName := types.NamespacedName{

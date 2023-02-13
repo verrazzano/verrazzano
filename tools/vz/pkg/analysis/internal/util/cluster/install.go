@@ -94,7 +94,7 @@ func AnalyzeVerrazzanoResource(log *zap.SugaredLogger, clusterRoot string, issue
 	return nil
 }
 
-func checkIfLoadJobFailed(log *zap.SugaredLogger, errorLogs []files.LogMessage, infoLogs []files.LogMessage, clusterRoot string, issueReporter *report.IssueReporter) {
+func checkIfLoadJobFailed(vpoLog string, errorLogs []files.LogMessage, infoLogs []files.LogMessage, clusterRoot string, issueReporter *report.IssueReporter) {
 	dbLoadJobFailure := false
 	dbLoadJobSuccess := false
 
@@ -113,8 +113,22 @@ func checkIfLoadJobFailed(log *zap.SugaredLogger, errorLogs []files.LogMessage, 
 		}
 	}
 
+	reportVzResource := ""
+	reportVpoLog := ""
+	// Construct resource in the analysis report, differently for live analysis
+	if helpers.GetIsLiveCluster() {
+		reportVzResource = report.GetRelatedVZResourceMessage()
+		reportVpoLog = report.GetRelatedLogFromPodMessage(vpoLog)
+	} else {
+		reportVzResource = clusterRoot + "/" + verrazzanoResource
+		reportVpoLog = vpoLog
+	}
+	files := make(StringSlice, 2)
+	files[0] = reportVzResource
+	files[1] = reportVpoLog
+
 	if dbLoadJobFailure && !dbLoadJobSuccess {
-		issueReporter.AddKnownIssueMessagesFiles(report.KeycloakDataMigrationFailure, clusterRoot, messages, nil)
+		issueReporter.AddKnownIssueMessagesFiles(report.KeycloakDataMigrationFailure, clusterRoot, messages, files)
 	}
 }
 
@@ -431,7 +445,7 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 			if err != nil {
 				log.Debugf("Failed to get info logs for %s component", comp)
 			}
-			checkIfLoadJobFailed(log, allErrors, allInfo, clusterRoot, issueReporter)
+			checkIfLoadJobFailed(vpoLog, allErrors, allInfo, clusterRoot, issueReporter)
 		}
 
 		// Display only the last error for the component from the install log.

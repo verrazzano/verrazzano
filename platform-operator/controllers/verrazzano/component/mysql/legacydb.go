@@ -57,6 +57,9 @@ spec:
             runAsUser: 0
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /var/lib/dump
+              name: keycloak-dump
       volumes:
         - name: keycloak-dump
           persistentVolumeClaim:
@@ -77,6 +80,9 @@ spec:
           resources: {}
           securityContext:
             runAsUser: 0
+          volumeMounts:
+            - mountPath: /var/lib/dump
+              name: keycloak-dump
       restartPolicy: OnFailure
 `
 
@@ -361,7 +367,14 @@ func createLegacyUpgradeJob(ctx spi.ComponentContext) error {
 			// add the root password
 			var rootPassword []byte
 			if rootPassword, err = getLegacyRootPassword(ctx); err != nil {
-				return err
+				if errors.IsNotFound(err) {
+					rootPassword, err = getRootDBPassword(ctx)
+					if err != nil {
+						return err
+					}
+				} else {
+					return err
+				}
 			}
 			values.RootPassword = string(rootPassword)
 
@@ -558,16 +571,17 @@ func checkDbMigrationJobCompletion(ctx spi.ComponentContext) bool {
 	// Check if the Db Migration was done manually in case of terminal job failure
 	dbManuallyMigrated := isDatabaseMigrationStageCompleted(ctx, manualDbMigrationStage)
 	if dbManuallyMigrated {
+		ctx.Log().Once("Keycloak DB successfully migrated")
 		return true
 	}
 
 	loadJob := &batchv1.Job{}
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: dbLoadJobName, Namespace: ComponentNamespace}, loadJob)
 	if err != nil {
-		return false
+		return errors.IsNotFound(err)
 	}
 	// check to see if job has failed and re-submit
-	if loadJob.Status.Failed == 1 {
+	if isJobFailed(loadJob) {
 		ctx.Log().Errorf("DB load job has failed and will be retried.")
 		// delete the job
 		if err := cleanupDbMigrationJob(ctx); err != nil {
@@ -587,7 +601,7 @@ func checkDbMigrationJobCompletion(ctx spi.ComponentContext) bool {
 	}
 	for _, container := range dbMigrationPod.Status.ContainerStatuses {
 		if container.Name == dbLoadContainerName && container.State.Terminated != nil && container.State.Terminated.ExitCode == 0 {
-			ctx.Log().Info("Keycloak DB successfully migrated")
+			ctx.Log().Once("Keycloak DB successfully migrated")
 			return true
 		}
 	}
