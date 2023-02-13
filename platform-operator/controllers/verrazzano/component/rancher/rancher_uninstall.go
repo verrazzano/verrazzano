@@ -533,26 +533,43 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) {
 			return
 		}
 		for i, rb := range rbList.Items {
-			ctx.Log().Infof("MGIANATA processing %s/%s", rb.GetNamespace(), rb.GetName())
 			// If any of the finalizers contains a rancher one, remove them all
 			for _, finalizer := range rb.Finalizers {
-				ctx.Log().Infof("MGIANATA checking finalizer %s", finalizer)
 				if strings.Contains(finalizer, "cattle.io") {
-					ctx.Log().Infof("MGIANATA deleting finalizer %s", finalizer)
-					err := resource.Resource{
-						Name:      rb.GetName(),
-						Namespace: rb.GetNamespace(),
-						Client:    ctx.Client(),
-						Object:    &rbList.Items[i],
-						Log:       ctx.Log(),
-					}.RemoveFinalizers()
-					if err != nil {
-						ctx.Log().Errorf("Component %s failed to delete finalizers from %s/%s: %v", ComponentName, rb.GetNamespace(), rb.GetName(), err)
-						return
-					}
+					removeFinalizer(ctx, &rbList.Items[i])
 					break
 				}
 			}
 		}
+
+		// Check the finalizers of all Roles
+		roleList := rbacv1.RoleList{}
+		if err := ctx.Client().List(context.TODO(), &roleList, &listOptions); err != nil {
+			ctx.Log().Errorf("Component %s failed to list Roles: %v", ComponentName, err)
+			return
+		}
+		for i, role := range roleList.Items {
+			// If any of the finalizers contains a rancher one, remove them all
+			for _, finalizer := range role.Finalizers {
+				if strings.Contains(finalizer, "cattle.io") {
+					removeFinalizer(ctx, &roleList.Items[i])
+					break
+				}
+			}
+		}
+	}
+}
+
+func removeFinalizer(ctx spi.ComponentContext, object client.Object) {
+	err := resource.Resource{
+		Name:      object.GetName(),
+		Namespace: object.GetNamespace(),
+		Client:    ctx.Client(),
+		Object:    object,
+		Log:       ctx.Log(),
+	}.RemoveFinalizers()
+	if err != nil {
+		ctx.Log().Errorf("Component %s failed to delete finalizers from %s/%s: %v", ComponentName, object.GetNamespace(), object.GetName(), err)
+		return
 	}
 }
