@@ -113,21 +113,21 @@ func checkIfLoadJobFailed(vpoLog string, errorLogs []files.LogMessage, infoLogs 
 		}
 	}
 
-	reportVzResource := ""
-	reportVpoLog := ""
-	// Construct resource in the analysis report, differently for live analysis
-	if helpers.GetIsLiveCluster() {
-		reportVzResource = report.GetRelatedVZResourceMessage()
-		reportVpoLog = report.GetRelatedLogFromPodMessage(vpoLog)
-	} else {
-		reportVzResource = clusterRoot + "/" + verrazzanoResource
-		reportVpoLog = vpoLog
-	}
-	files := make(StringSlice, 2)
-	files[0] = reportVzResource
-	files[1] = reportVpoLog
-
 	if dbLoadJobFailure && !dbLoadJobSuccess {
+		reportVzResource := ""
+		reportVpoLog := ""
+		// Construct resource in the analysis report, differently for live analysis
+		if helpers.GetIsLiveCluster() {
+			reportVzResource = report.GetRelatedVZResourceMessage()
+			reportVpoLog = report.GetRelatedLogFromPodMessage(vpoLog)
+		} else {
+			reportVzResource = clusterRoot + "/" + verrazzanoResource
+			reportVpoLog = vpoLog
+		}
+		files := make(StringSlice, 2)
+		files[0] = reportVzResource
+		files[1] = reportVpoLog
+
 		issueReporter.AddKnownIssueMessagesFiles(report.KeycloakDataMigrationFailure, clusterRoot, messages, files)
 	}
 }
