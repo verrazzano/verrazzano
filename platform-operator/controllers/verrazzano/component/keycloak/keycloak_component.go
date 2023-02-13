@@ -103,7 +103,8 @@ func (c KeycloakComponent) Reconcile(ctx spi.ComponentContext) error {
 	// If ephemeral storage is being used, the Keycloak configuration will be rebuilt if needed.
 	if c.isKeycloakReady(ctx) {
 		ctx.Log().Debugf("Component %s calling configureKeycloakRealms from Reconcile", ComponentName)
-		return configureKeycloakRealms(ctx)
+		//return configureKeycloakRealms(ctx)
+		return nil
 	}
 	return fmt.Errorf("Component %s not ready yet to check configuration", ComponentName)
 }

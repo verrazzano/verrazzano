@@ -7,7 +7,7 @@ metadata:
 spec:
   realmSelector:
     matchLabels:
-    app: verrazzano-{{ .Values.keycloakName }}
+      app: verrazzano-{{ .Values.keycloakName }}
   user:
     username: verrazzano
     firstName: verrazzano
@@ -28,7 +28,7 @@ metadata:
 spec:
   realmSelector:
     matchLabels:
-    app: verrazzano-{{ .Values.keycloakName }}
+      app: verrazzano-{{ .Values.keycloakName }}
   user:
     username: verrazzano-prom-internal
     enabled: true
@@ -47,7 +47,7 @@ metadata:
 spec:
   realmSelector:
     matchLabels:
-    app: verrazzano-{{ .Values.keycloakName }}
+      app: verrazzano-{{ .Values.keycloakName }}
   user:
     username: verrazzano-es-internal
     enabled: true

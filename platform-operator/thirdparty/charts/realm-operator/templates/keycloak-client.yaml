@@ -215,7 +215,6 @@ spec:
     clientId: managed-cluster
     enabled: true
     surrogateAuthRequired: false
-    alwaysDisplayInConsole: false
     clientAuthenticatorType: client-secret
     redirectUris:
       - https://prometheus.vmi.system.{{ .Values.dns }}/*
