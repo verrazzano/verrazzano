@@ -1,0 +1,6 @@
+keycloakName: keycloak
+dns:
+keycloakAdminPassword:
+verrazzanoPassword:
+verrazzanoPromInternalPassword:
+verrazzanoESInternalPassword:

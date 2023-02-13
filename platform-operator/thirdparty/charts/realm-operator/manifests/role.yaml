@@ -1,0 +1,50 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: keycloak-realm-operator
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - services
+  - services/finalizers
+  - events
+  - configmaps
+  - secrets
+  verbs:
+  - list
+  - get
+  - create
+  - patch
+  - update
+  - watch
+  - delete
+- apiGroups:
+  - apps
+  resourceNames:
+  - keycloak-realm-operator
+  resources:
+  - deployments/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - legacy.k8s.keycloak.org
+  resources:
+  - externalkeycloaks
+  - externalkeycloaks/status
+  - externalkeycloaks/finalizers
+  - keycloakrealms
+  - keycloakrealms/status
+  - keycloakrealms/finalizers
+  - keycloakclients
+  - keycloakclients/status
+  - keycloakclients/finalizers
+  - keycloakusers
+  - keycloakusers/status
+  - keycloakusers/finalizers
+  verbs:
+  - get
+  - list
+  - update
+  - watch

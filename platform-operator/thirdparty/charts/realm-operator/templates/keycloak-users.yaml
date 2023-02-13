@@ -1,0 +1,58 @@
+apiVersion: legacy.k8s.keycloak.org/v1alpha1
+kind: KeycloakUser
+metadata:
+  name: verrazzano
+  labels:
+    app: verrazzano-{{ .Values.keycloakName }}
+spec:
+  realmSelector:
+    matchLabels:
+    app: verrazzano-{{ .Values.keycloakName }}
+  user:
+    username: verrazzano
+    firstName: verrazzano
+    lastName: admin
+    enabled: true
+    credentials:
+      - type: password
+        value: {{ .Values.verrazzanoPassword }}
+    groups:
+      - verrazzano-users/verrazzano-admins
+---
+apiVersion: legacy.k8s.keycloak.org/v1alpha1
+kind: KeycloakUser
+metadata:
+  name: prom-internal
+  labels:
+    app: verrazzano-{{ .Values.keycloakName }}
+spec:
+  realmSelector:
+    matchLabels:
+    app: verrazzano-{{ .Values.keycloakName }}
+  user:
+    username: verrazzano-prom-internal
+    enabled: true
+    credentials:
+      - type: password
+        value: {{ .Values.verrazzanoPromInternalPassword }}
+    groups:
+      - verrazzano-users/verrazzano-system-users
+---
+apiVersion: legacy.k8s.keycloak.org/v1alpha1
+kind: KeycloakUser
+metadata:
+  name: es-internal
+  labels:
+    app: verrazzano-{{ .Values.keycloakName }}
+spec:
+  realmSelector:
+    matchLabels:
+    app: verrazzano-{{ .Values.keycloakName }}
+  user:
+    username: verrazzano-es-internal
+    enabled: true
+    credentials:
+      - type: password
+        value: {{ .Values.verrazzanoESInternalPassword }}
+    groups:
+      - verrazzano-users/verrazzano-system-users

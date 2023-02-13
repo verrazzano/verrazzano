@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak-realm-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: keycloak-realm-operator
+  template:
+    metadata:
+      labels:
+        name: keycloak-realm-operator
+    spec:
+      serviceAccountName: keycloak-realm-operator
+      containers:
+        - name: keycloak-realm-operator
+          # Replace this with the built image name
+          image: quay.io/keycloak/keycloak-realm-operator:latest
+          command:
+          - keycloak-realm-operator
+          imagePullPolicy: Always
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "keycloak-realm-operator"

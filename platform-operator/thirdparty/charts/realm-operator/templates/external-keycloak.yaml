@@ -1,0 +1,8 @@
+apiVersion: legacy.k8s.keycloak.org/v1alpha1
+kind: ExternalKeycloak
+metadata:
+  name: external-{{ .Values.keycloakName }}
+  labels:
+    app: verrazzano-{{ .Values.keycloakName }}
+spec:
+  url: http://keycloak-http:80
