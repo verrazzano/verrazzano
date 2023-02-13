@@ -66,6 +66,10 @@ var rancherSystemNS = []string{
 	"local",
 }
 
+// cleanupFinalizerNS - list of namespaces that may have objects with Rancher finalizers
+// after the rancher cleanup job has completed.
+var cleanupFinalizerNS = []string{"verrazzano-system", "keycloak"}
+
 // create func vars for unit tests
 type forkPostUninstallFuncSig func(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error
 
@@ -522,9 +526,8 @@ func isRancherNamespace(ns *corev1.Namespace) bool {
 // deleteRancherFinalizers - delete Rancher finalizers on resources that the cleanup job
 // didn't catch
 func deleteRancherFinalizers(ctx spi.ComponentContext) {
-	namespaces := []string{"verrazzano-system", "keycloak"}
 
-	for _, namespace := range namespaces {
+	for _, namespace := range cleanupFinalizerNS {
 		// Check the finalizers of all RoleBindings
 		rbList := rbacv1.RoleBindingList{}
 		listOptions := client.ListOptions{Namespace: namespace}
@@ -560,6 +563,7 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) {
 	}
 }
 
+// removeFinalizer - remove finalizers from an object
 func removeFinalizer(ctx spi.ComponentContext, object client.Object) {
 	err := resource.Resource{
 		Name:      object.GetName(),
@@ -569,7 +573,7 @@ func removeFinalizer(ctx spi.ComponentContext, object client.Object) {
 		Log:       ctx.Log(),
 	}.RemoveFinalizers()
 	if err != nil {
-		ctx.Log().Errorf("Component %s failed to delete finalizers from %s/%s: %v", ComponentName, object.GetNamespace(), object.GetName(), err)
+		ctx.Log().Errorf("Component %s failed to remove finalizers from %s/%s: %v", ComponentName, object.GetNamespace(), object.GetName(), err)
 		return
 	}
 }
