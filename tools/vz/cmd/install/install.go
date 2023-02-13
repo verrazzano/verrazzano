@@ -64,12 +64,11 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		err := runCmdInstall(cmd, args, vzHelper)
-		//autoanalyzeFlag, err2 := cmd.Flags().GetBool(constants.AutoanalyzeFlag)
-		//if err2 != nil {
-		//	fmt.Fprintln(vzHelper.GetErrorStream(), "ERROR IN CMDINSTALL GETTING AUTOANALYZE FLAG")
-		//}
-		bool := false
-		if err != nil && bool {
+		autoanalyzeFlag, err2 := cmd.Flags().GetBool(constants.AutoanalyzeFlag)
+		if err2 != nil {
+			fmt.Fprintln(vzHelper.GetErrorStream(), "ERROR IN CMDINSTALL GETTING AUTOANALYZE FLAG")
+		}
+		if err != nil && autoanalyzeFlag {
 			cmd2 := analyze.NewCmdAnalyze(vzHelper)
 			kubeconfigFlag, err :=  cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
 			if err != nil {
