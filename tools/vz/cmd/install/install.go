@@ -82,6 +82,7 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 			cmd2.Flags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
 			cmd2.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
 			cmd2.Flags().Set(constants.GlobalFlagContext, contextFlag)
+			cmd2.PersistentFlags().Set(constants.ReportFormatFlagName, constants.SummaryReport)
 			return analyze.RunCmdAnalyze(cmd2, args, vzHelper)
 		}
 		return err
