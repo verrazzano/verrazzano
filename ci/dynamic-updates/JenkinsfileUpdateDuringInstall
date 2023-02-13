@@ -45,6 +45,9 @@ pipeline {
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
+        choice (name:'WAIT_FOR_RESOURCE_BEFORE_UPDATE',
+                description: 'The update to the VZ CR will occur after this specified resource is created. This affects the timing of the update.',
+                choices: [ "mysql statefulset", "rancher bootstrap secret"])
     }
 
     environment {
@@ -107,11 +110,6 @@ pipeline {
 
         // how many nodes in the KIND cluster
         KIND_NODE_COUNT = 3
-
-        // used as input parameters to VZ install
-        INSTALL_TIMEOUT = "30m"
-        VZ_INSTALL_FILE="${WORKSPACE}/acceptance-test-config.yaml"
-        TARGET_OPERATOR_FILE="${WORKSPACE}/acceptance-test-operator.yaml"
     }
 
     stages {
@@ -195,7 +193,7 @@ pipeline {
             }
         }
 
-        stage('Update During Keycloak Install') {
+        stage('Update During Install') {
             parallel {
                 stage('Install Verrazzano with Wildcard DNS Typo') {
                     environment {
@@ -206,6 +204,7 @@ pipeline {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
                             yq -i eval '.spec.components.keycloak.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.rancher.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} "typodomain.io"
                         """
                     }
@@ -226,114 +225,17 @@ pipeline {
                     }
                 }
 
-                stage('Change the VZ CR during Keycloak Component Installation') {
+                stage('Update the VZ CR') {
                     options {
                         timeout(time: 30, unit: "MINUTES")
                     }
                     steps {
-                        sh """
-                            while ! kubectl get vz
-                            do
-                                echo "Waiting for verrazzano resource to be created..."
-                                sleep 30s
-                            done
-
-                            while ! kubectl get statefulset mysql -n keycloak
-                            do
-                                echo "Waiting for keycloak/mysql statefuleset to be created..."
-                                sleep 15s
-                            done
-                        """
                         script {
-                            patchWildcardDNSDomain()
-                        }
-                    }
-                }
-            }
-
-            post {
-                failure {
-                    script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('dynamic-install-failed-cluster-snapshot1')
-                        }
-                    }
-                }
-                success {
-                    script {
-                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('dynamic-install-success-cluster-snapshot1')
-                        }
-                    }
-                }
-            }
-        }
-
-        stage('Uninstall Verrazzano') {
-            options {
-                timeout(time: 30, unit: "MINUTES")
-            }
-            steps {
-                sh """
-                    ${VZ_COMMAND} uninstall --timeout 30m
-                """
-            }
-        }
-
-        stage('Update During Rancher Install') {
-            parallel {
-                stage('Install Verrazzano with Wildcard DNS Typo') {
-                    environment {
-                        KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
-                        OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
-                    }
-                    steps {
-                        sh """
-                            # sleep for a period to ensure async deletion of Verrazzano components from uninstall above has completed
-                            sleep 90
-
-                            cd ${GO_REPO_PATH}/verrazzano
-                            yq -i eval '.spec.components.rancher.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-                            yq -i eval '.spec.components.dns.wildcard.domain = "typodomain.io"' ${INSTALL_CONFIG_FILE_KIND}
-                            ${VZ_COMMAND} install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT}
-                        """
-                    }
-                    post {
-                        success {
-                            script {
-                                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                                    dumpK8sCluster('dynamic-install-post-install-cluster-snapshot2')
-                                }
+                            if (params.WAIT_FOR_RESOURCE_BEFORE_UPDATE == 'mysql statefulset') {
+                                waitForKeycloakMySqlStatefulset()
+                            } else if (params.WAIT_FOR_RESOURCE_BEFORE_UPDATE == 'rancher bootstrap secret') {
+                                waitForRancherBootstrapSecret()
                             }
-                        }
-                        failure {
-                            archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
-                        }
-                        always {
-                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
-                        }
-                    }
-                }
-
-                stage('Change the VZ CR during Rancher Component Installation') {
-                    options {
-                        timeout(time: 30, unit: "MINUTES")
-                    }
-                    steps {
-                        sh """
-                            while ! kubectl get vz
-                            do
-                                echo "Waiting for verrazzano resource to be created..."
-                                sleep 30s
-                            done
-
-                            while ! kubectl get secret bootstrap-secret --namespace cattle-system
-                            do
-                                echo "Waiting for bootstrap-secret Secret to be created..."
-                                sleep 1m
-                            done
-                        """
-                        script {
                             patchWildcardDNSDomain()
                         }
                     }
@@ -344,14 +246,14 @@ pipeline {
                 failure {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('dynamic-install-failed-cluster-snapshot2')
+                            dumpK8sCluster('dynamic-install-failed-cluster-snapshot')
                         }
                     }
                 }
                 success {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('dynamic-install-success-cluster-snapshot2')
+                            dumpK8sCluster('dynamic-install-success-cluster-snapshot')
                         }
                     }
                 }
@@ -535,5 +437,37 @@ def patchWildcardDNSDomain() {
 
         echo "WildcardDNSConfiguration after patching:"
         kubectl get vz my-verrazzano -o yaml | grep 'domain:'
+    """
+}
+
+def waitForRancherBootstrapSecret() {
+    sh """
+        while ! kubectl get vz
+        do
+            echo "Waiting for verrazzano resource to be created..."
+            sleep 30s
+        done
+
+        while ! kubectl get secret bootstrap-secret --namespace cattle-system
+        do
+            echo "Waiting for bootstrap-secret Secret to be created..."
+            sleep 1m
+        done
+    """
+}
+
+def waitForKeycloakMySqlStatefulset() {
+    sh """
+        while ! kubectl get vz
+        do
+            echo "Waiting for verrazzano resource to be created..."
+            sleep 30s
+        done
+
+        while ! kubectl get statefulset mysql -n keycloak
+        do
+            echo "Waiting for keycloak/mysql statefuleset to be created..."
+            sleep 15s
+        done
     """
 }
