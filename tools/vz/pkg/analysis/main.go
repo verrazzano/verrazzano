@@ -25,7 +25,6 @@ var logger *zap.SugaredLogger
 // The analyze tool will analyze information which has already been captured from an environment
 func AnalysisMain(vzHelper helpers.VZHelper, directory string, reportFile string, reportFormat string) error {
 	logger = zap.S()
-	fmt.Fprintln(vzHelper.GetOutputStream(),"in Analysis Main")
 	return handleMain(vzHelper, directory, reportFile, reportFormat)
 }
 
@@ -39,7 +38,6 @@ func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, 
 	// gather up information, sanitize it in a way that it could be sent along to someone else for further analysis, etc...
 
 	// Call the analyzer for the type specified
-	fmt.Fprintln(vzHelper.GetOutputStream(),"in HandleMain")
 	err := Analyze(logger, analyzerType, directory)
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "Analyze failed with error: %s, exiting.\n", err.Error())

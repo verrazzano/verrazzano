@@ -28,11 +28,7 @@ vz analyze
 `
 )
 
-var kubeconfig string
-var context string
-
 func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
-	fmt.Fprintln(vzHelper.GetOutputStream(),"in NewCmdAnalyze")
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		return validateReportFormat(cmd)
@@ -50,7 +46,6 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func RunCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	fmt.Fprintln(vzHelper.GetOutputStream(),"in RunCmdAnalyze")
 	reportFileName, err := cmd.PersistentFlags().GetString(constants.ReportFileFlagName)
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
