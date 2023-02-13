@@ -556,6 +556,52 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 	assert.Contains(t, err.Error(), "Unable to install version v1.3.1, install of version v1.3.2 is in progress")
 }
 
+// TestAnalyzeCommandDefault
+// GIVEN a CLI analyze command
+// WHEN I call cmd.Execute without specifying flag capture-dir
+// THEN expect the command to analyze the live cluster
+//func TestAnalyzeCommandDefault(t *testing.T) {
+//	c := getClientWithWatch()
+//	installVZ(t, c)
+//
+//	// Verify the vz resource is as expected
+//	vz := v1beta1.Verrazzano{}
+//	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+//	assert.NoError(t, err)
+//
+//	// Send stdout stderr to a byte buffer
+//	buf := new(bytes.Buffer)
+//	errBuf := new(bytes.Buffer)
+//	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+//	rc.SetClient(c)
+//	cmd := NewCmdAnalyze(rc)
+//	assert.NotNil(t, cmd)
+//	err = cmd.Execute()
+//	assert.Nil(t, err)
+//	// This should generate a report from the live cluster
+//	assert.Contains(t, buf.String(), "Verrazzano analysis CLI did not detect any issue in the cluster")
+//}
+
+
+//// installVZ installs Verrazzano using the given client
+//func installVZ(t *testing.T, c client.WithWatch) {
+//	buf := new(bytes.Buffer)
+//	errBuf := new(bytes.Buffer)
+//	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+//	rc.SetClient(c)
+//	cmd := installcmd.NewCmdInstall(rc)
+//	assert.NotNil(t, cmd)
+//	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+//	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
+//	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+//	defer cmdHelpers.SetDefaultDeleteFunc()
+//
+//	// Run install command
+//	err := cmd.Execute()
+//	assert.NoError(t, err)
+//	assert.Equal(t, "", errBuf.String())
+//}
+
 func createNewTestCommandAndBuffers(t *testing.T, c client.Client) (*cobra.Command, *bytes.Buffer, *bytes.Buffer, *testhelpers.FakeRootCmdContext) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
