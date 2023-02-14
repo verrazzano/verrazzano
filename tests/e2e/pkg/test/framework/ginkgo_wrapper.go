@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package framework
@@ -24,9 +24,16 @@ type TestFramework struct {
 
 func NewTestFramework(pkg string) *TestFramework {
 	t := new(TestFramework)
+
 	t.Pkg = pkg
-	t.Metrics, _ = metrics.NewLogger(pkg, metrics.MetricsIndex)
-	t.Logs, _ = metrics.NewLogger(pkg, metrics.TestLogIndex, "stdout")
+
+	logLevel, isSet := os.LookupEnv("FRAMEWORK_LOG_LEVEL")
+	if !isSet {
+		logLevel = "info"
+	}
+	t.Metrics, _ = metrics.NewLogger(pkg, metrics.MetricsIndex, logLevel)
+	t.Logs, _ = metrics.NewLogger(pkg, metrics.TestLogIndex, logLevel, "stdout")
+
 	t.initDumpDirectoryIfNecessary()
 	return t
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusteroperator
@@ -346,4 +346,78 @@ func adminTokenMock(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender 
 			return resp, nil
 		})
 	return httpMock
+}
+
+// TestCreateVZClusterUser tests the creation of the VZ cluster user through the Rancher API
+func TestCreateVZArgoCDClusterUser(t *testing.T) {
+	cli := createClusterUserTestObjects().Build()
+	mocker := gomock.NewController(t)
+
+	vz := &v1alpha1.Verrazzano{}
+
+	savedRancherHTTPClient := rancherutil.RancherHTTPClient
+	defer func() {
+		rancherutil.RancherHTTPClient = savedRancherHTTPClient
+	}()
+
+	savedRetry := rancherutil.DefaultRetry
+	defer func() {
+		rancherutil.DefaultRetry = savedRetry
+	}()
+	rancherutil.DefaultRetry = wait.Backoff{
+		Steps:    1,
+		Duration: 1 * time.Millisecond,
+		Factor:   1.0,
+		Jitter:   0.1,
+	}
+
+	tests := []struct {
+		name      string
+		mock      *mocks.MockRequestSender
+		expectErr bool
+	}{
+		// GIVEN a call to createVZArgoCDUser
+		// WHEN  the user exists
+		// THEN  no error is returned
+		{
+			name:      "test user exists",
+			mock:      createClusterUserExists(mocks.NewMockRequestSender(mocker), http.StatusOK),
+			expectErr: false,
+		},
+		// GIVEN a call to createVZArgoCDUser
+		// WHEN  the user API call fails
+		// THEN  an error is returned
+		{
+			name:      "test fail check users",
+			mock:      createClusterUserExists(mocks.NewMockRequestSender(mocker), http.StatusUnauthorized),
+			expectErr: true,
+		},
+		// GIVEN a call to createVZArgoCDUser
+		// WHEN  the user does not exist
+		// THEN  a user is created and no error is returned
+		{
+			name:      "test user does not exist",
+			mock:      createClusterUserDoesNotExist(mocks.NewMockRequestSender(mocker), http.StatusCreated),
+			expectErr: false,
+		},
+		// GIVEN a call to createVZArgoCDUser
+		// WHEN  the user creation API call fails
+		// THEN  an error is returned
+		{
+			name:      "test user failed create",
+			mock:      createClusterUserDoesNotExist(mocks.NewMockRequestSender(mocker), http.StatusUnauthorized),
+			expectErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rancherutil.RancherHTTPClient = tt.mock
+			err := createVZArgoCDUser(spi.NewFakeContext(cli, vz, nil, false))
+			if tt.expectErr {
+				asserts.Error(t, err)
+				return
+			}
+			asserts.NoError(t, err)
+		})
+	}
 }

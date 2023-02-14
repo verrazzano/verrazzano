@@ -3,10 +3,12 @@
 package analysis
 
 import (
+	"fmt"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/log"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
-	"testing"
 )
 
 // TestHandleMain Tests the handleMain function
@@ -422,6 +424,54 @@ func TestExternalDNSConfigurationIssue(t *testing.T) {
 	problemsFound := 0
 	for _, issue := range reportedIssues {
 		if issue.Type == report.ExternalDNSConfigureIssue {
+			problemsFound++
+		}
+	}
+	assert.True(t, problemsFound > 0)
+}
+
+// TestResourceJSONWithVerrazzanoFormat Tests that analysis of a cluster dump
+// when there is an install failure and the verrazzano-resource.json contains Verrazzano type instead of VerrazzanoList type
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN the cluster-snapshot shows components not in ready state
+// THEN a report is generated with install failure
+func TestResourceJSONWithVerrazzanoFormat(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+
+	report.ClearReports()
+	err := Analyze(logger, "cluster", "test/cluster/install-failure-verrazzano-format-json")
+	assert.Nil(t, err)
+
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.NotNil(t, reportedIssues)
+	assert.True(t, len(reportedIssues) > 0)
+	problemsFound := 0
+	for _, issue := range reportedIssues {
+		fmt.Println(issue)
+		if issue.Type == report.InstallFailure {
+			problemsFound++
+		}
+	}
+	assert.True(t, problemsFound > 0)
+}
+
+// TestKeycloakDataMigrationFailure tests that analysis of a cluster dump when keycloak data migration during upgrade has failed
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN the cluster-snapshot data load job failure
+// THEN a report is generated with issues identified
+func TestKeycloakDataMigrationFailure(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+
+	report.ClearReports()
+	err := Analyze(logger, "cluster", "test/cluster/keycloak-data-migration-failure")
+	assert.Nil(t, err)
+
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.NotNil(t, reportedIssues)
+	assert.True(t, len(reportedIssues) > 0)
+	problemsFound := 0
+	for _, issue := range reportedIssues {
+		if issue.Type == report.KeycloakDataMigrationFailure {
 			problemsFound++
 		}
 	}

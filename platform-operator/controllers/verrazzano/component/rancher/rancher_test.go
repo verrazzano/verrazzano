@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -6,13 +6,11 @@ package rancher
 import (
 	"context"
 	"fmt"
-	"github.com/golang/mock/gomock"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"strings"
 	"testing"
 
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -20,9 +18,11 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
-
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	admv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -86,6 +86,7 @@ func getScheme() *runtime.Scheme {
 	_ = admv1.AddToScheme(scheme)
 	_ = rbacv1.AddToScheme(scheme)
 	_ = v12.AddToScheme(scheme)
+	_ = batchv1.AddToScheme(scheme)
 	return scheme
 }
 

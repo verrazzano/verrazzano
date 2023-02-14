@@ -470,6 +470,14 @@ pipeline {
                                         runGinkgoKeepGoing('examples/helidon')
                                     }
                                 }
+                                stage('argocd helidon deploy') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-argocd-helidon"
+                                    }
+                                    steps {
+                                        runGinkgoKeepGoing('examples/argocd-helidon')
+                                    }
+                                }
                                 stage('weblogic workload') {
                                     environment {
                                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
@@ -486,15 +494,7 @@ pipeline {
                                         runGinkgoKeepGoing('workloads/coherence')
                                     }
                                 }
-                                stage('console ingress') {
-                                    environment {
-                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
-                                    }
-                                    steps {
-                                        runGinkgoKeepGoing('ingress/console')
-                                    }
-                                }
-                                stage('logging trait WebLogic workload') {
+                                stage('Ingress & logging trait WebLogic workload') {
                                     environment {
                                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
                                     }

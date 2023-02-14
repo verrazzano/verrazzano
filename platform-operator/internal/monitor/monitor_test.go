@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package monitor
@@ -13,7 +13,7 @@ import (
 
 var fakeCompName = "fake-component-name"
 
-func TestMonitorType_IsRunning(t *testing.T) {
+func TestMonitorTypeIsRunning(t *testing.T) {
 	a := assert.New(t)
 
 	m := &BackgroundProcessMonitorType{ComponentName: fakeCompName}
@@ -40,7 +40,7 @@ func TestMonitorType_IsRunning(t *testing.T) {
 	a.True(m.IsRunning())
 }
 
-func TestMonitorType_CheckResultWhileRunning(t *testing.T) {
+func TestMonitorTypeCheckResultWhileRunning(t *testing.T) {
 	a := assert.New(t)
 
 	m := &BackgroundProcessMonitorType{ComponentName: fakeCompName}
@@ -57,7 +57,7 @@ func TestMonitorType_CheckResultWhileRunning(t *testing.T) {
 	blocker <- 0
 }
 
-func TestMonitorType_CheckResult(t *testing.T) {
+func TestMonitorTypeCheckResult(t *testing.T) {
 	a := assert.New(t)
 
 	errMsg := "an error from the background operation"
@@ -97,7 +97,7 @@ func TestMonitorType_CheckResult(t *testing.T) {
 	}
 }
 
-func TestMonitorType_Reset(t *testing.T) {
+func TestMonitorTypeReset(t *testing.T) {
 	a := assert.New(t)
 
 	m := &BackgroundProcessMonitorType{ComponentName: fakeCompName}
@@ -119,4 +119,29 @@ func TestMonitorType_Reset(t *testing.T) {
 	res, _ = m.CheckResult()
 	a.False(res)
 	a.False(m.IsRunning())
+}
+
+func TestMonitorTypeIsCompleted(t *testing.T) {
+	a := assert.New(t)
+
+	m := &BackgroundProcessMonitorType{ComponentName: fakeCompName}
+	blocker := make(chan int)
+	finished := make(chan int)
+	operation := func() error {
+		defer func() { finished <- 0 }()
+		<-blocker
+		return nil
+	}
+
+	m.Run(operation)
+	a.True(m.IsRunning())
+	m.SetCompleted()
+	a.True(m.IsCompleted())
+	a.False(m.IsRunning())
+
+	// send to the channel to unblock operation
+	blocker <- 0
+
+	// block until the operation says it's finished
+	<-finished
 }

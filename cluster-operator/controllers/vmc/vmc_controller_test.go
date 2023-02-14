@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vmc
@@ -154,6 +154,11 @@ func doTestCreateVMC(t *testing.T, rancherEnabled bool) {
 
 	// expect status updated with condition Ready=true
 	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "", false)
+
+	// stub out keycloak client creation for these tests
+	createClient = func(r *VerrazzanoManagedClusterReconciler, vmc *v1alpha1.VerrazzanoManagedCluster) error {
+		return nil
+	}
 
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
@@ -1827,7 +1832,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			}
 			list.Items = append(list.Items, vz)
 			return nil
-		})
+		}).Times(3)
 
 	// Expect a call to get the tls ingress and return the ingress.
 	if !externalES {
@@ -2549,6 +2554,13 @@ func expectMockCallsForDelete(t *testing.T, mock *mocks.MockClient, namespace st
 			// validate that the cert for the cluster being deleted is no longer present
 			asserts.Len(secret.Data, 1, "Expected only one managed cluster cert")
 			asserts.Contains(secret.Data, "ca-test2", "Expected to find cert for managed cluster not being deleted")
+			return nil
+		})
+
+	// Expect a call to delete the argocd cluster secret
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
 			return nil
 		})
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancherutil
@@ -28,6 +28,7 @@ import (
 var (
 	loginURLParts = strings.Split(loginPath, "?")
 	loginURIPath  = loginURLParts[0]
+	testToken     = "test"
 )
 
 // TestCreateRancherRequest tests the creation of a Rancher request sender to make sure that
@@ -77,6 +78,12 @@ func TestCreateRancherRequest(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, testBody, body)
 	assert.Equal(t, http.StatusOK, response.StatusCode)
+
+	response, _, err = SendRequest(http.MethodPost, tokensPath, map[string]string{}, "", rc, log)
+	assert.NoError(t, err)
+
+	response, _, err = SendRequest(http.MethodGet, tokensPath+testToken, map[string]string{}, "", rc, log)
+	assert.NoError(t, err)
 }
 
 func createTestObjects() client.WithWatch {
@@ -115,6 +122,28 @@ func createTestObjects() client.WithWatch {
 }
 
 func expectHTTPRequests(httpMock *mocks.MockRequestSender, testPath, testBody string) *mocks.MockRequestSender {
+	httpMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath+testToken)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			var resp *http.Response
+			r := io.NopCloser(bytes.NewReader([]byte(testBody)))
+			resp = &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       r,
+			}
+			return resp, nil
+		})
+	httpMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			var resp *http.Response
+			r := io.NopCloser(bytes.NewReader([]byte(testBody)))
+			resp = &http.Response{
+				StatusCode: http.StatusCreated,
+				Body:       r,
+			}
+			return resp, nil
+		}).Times(1)
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(testPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {

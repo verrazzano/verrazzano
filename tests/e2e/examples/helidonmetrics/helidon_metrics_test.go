@@ -1,24 +1,23 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helidonmetrics
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-
 	"fmt"
 	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
@@ -26,11 +25,15 @@ const (
 	longPollingInterval  = 20 * time.Second
 	shortPollingInterval = 10 * time.Second
 	shortWaitTimeout     = 5 * time.Minute
+
+	ingress        = "hello-helidon-ingress-rule"
+	helidonService = "hello-helidon-deployment"
 )
 
 var (
 	t                  = framework.NewTestFramework("helidonmetrics")
 	generatedNamespace = pkg.GenerateNamespace("helidon-metrics")
+	host               = ""
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -61,7 +64,44 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		beforeSuitePassed = true
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
-	Eventually(helidonConfigPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
+
+	t.Logs.Info("Helidon Example: check expected pods are running")
+	Eventually(func() bool {
+		result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+		}
+		return result
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Helidon Example Failed to Deploy: Pods are not ready")
+
+	t.Logs.Info("Helidon Example: check expected Services are running")
+	Eventually(func() bool {
+		result, err := pkg.DoesServiceExist(namespace, helidonService)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Helidon Service %s is not running in the namespace: %v, error: %v", helidonService, namespace, err))
+		}
+		return result
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Helidon Example Failed to Deploy: Services are not ready")
+
+	t.Logs.Info("Helidon Example: check expected VirtualService is ready")
+	Eventually(func() bool {
+		result, err := pkg.DoesVirtualServiceExist(namespace, ingress)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Helidon VirtualService %s is not running in the namespace: %v, error: %v", ingress, namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Helidon Example Failed to Deploy: VirtualService is not ready")
+
+	var err error
+	// Get the host from the Istio gateway resource.
+	start := time.Now()
+	t.Logs.Info("Helidon Example: check expected Gateway is ready")
+	Eventually(func() (string, error) {
+		host, err = k8sutil.GetHostnameFromGateway(namespace, "")
+		return host, err
+	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Helidon Example: Gateway is not ready")
+	metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
+
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -185,14 +225,6 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		})
 	})
 })
-
-func helidonConfigPodsRunning() bool {
-	result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
-	if err != nil {
-		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
-	}
-	return result
-}
 
 func serviceMonitorExists() bool {
 	smName := pkg.GetAppServiceMonitorName(namespace, "hello-helidon", "hello-helidon-component")
