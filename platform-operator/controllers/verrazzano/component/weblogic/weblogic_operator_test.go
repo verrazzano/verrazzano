@@ -96,7 +96,7 @@ func TestIsWeblogicOperatorReady(t *testing.T) {
 			},
 		},
 	).Build()
-	weblogic := NewComponent().(weblogicComponent)
+	weblogic := NewComponent(nil).(weblogicComponent)
 	assert.True(t, weblogic.isWeblogicOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
 }
 
@@ -118,6 +118,6 @@ func TestIsWeblogicOperatorNotReady(t *testing.T) {
 			UpdatedReplicas:   0,
 		},
 	}).Build()
-	weblogic := NewComponent().(weblogicComponent)
+	weblogic := NewComponent(nil).(weblogicComponent)
 	assert.False(t, weblogic.isWeblogicOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
 }
