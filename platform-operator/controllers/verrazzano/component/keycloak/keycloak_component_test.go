@@ -16,7 +16,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -25,7 +24,7 @@ import (
 
 var (
 	kcComponent = NewComponent(nil)
-	testScheme  = runtime.NewScheme()
+	//testScheme  = runtime.NewScheme()
 )
 
 // TestIsEnabled tests the Keycloak IsEnabled call

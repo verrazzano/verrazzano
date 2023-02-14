@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/modules"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/reconciler"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -47,11 +46,11 @@ type KeycloakComponent struct {
 	helm.HelmComponent
 }
 
-func (c KeycloakComponent) ReconcileModule(ctx spi.ComponentContext) error {
-	return nil
-}
-
-func (c KeycloakComponent) SetStatusWriter(statusWriter client.StatusWriter) {}
+//func (c KeycloakComponent) ReconcileModule(ctx spi.ComponentContext) error {
+//	return nil
+//}
+//
+//func (c KeycloakComponent) SetStatusWriter(statusWriter client.StatusWriter) {}
 
 // Verify that KeycloakComponent implements Component
 var _ spi.Component = KeycloakComponent{}
@@ -61,7 +60,7 @@ var certificates = []types.NamespacedName{
 }
 
 // NewComponent returns a new Keycloak component
-func NewComponent(module *modulesv1alpha1.Module) modules.DelegateReconciler {
+func NewComponent(module *modulesv1alpha1.Module) spi.Component {
 	h := helm.HelmComponent{
 		ChartDir:               config.GetThirdPartyDir(),
 		ImagePullSecretKeyname: secret.DefaultImagePullSecretKeyName,

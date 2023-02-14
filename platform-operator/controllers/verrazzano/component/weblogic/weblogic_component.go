@@ -5,8 +5,6 @@ package weblogic
 
 import (
 	"fmt"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -17,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/modules"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/reconciler"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
@@ -45,15 +42,15 @@ type weblogicComponent struct {
 	helm.HelmComponent
 }
 
-func (c weblogicComponent) ReconcileModule(ctx spi.ComponentContext) error {
-	return nil
-}
+//func (c weblogicComponent) ReconcileModule(ctx spi.ComponentContext) error {
+//	return nil
+//}
+//
+//func (c weblogicComponent) SetStatusWriter(statusWriter client.StatusWriter) {}
 
-func (c weblogicComponent) SetStatusWriter(statusWriter client.StatusWriter) {}
+//var _ modules.DelegateReconciler = &weblogicComponent{}
 
-var _ modules.DelegateReconciler = &weblogicComponent{}
-
-func NewComponent(module *modulesv1alpha1.Module) modules.DelegateReconciler {
+func NewComponent(module *modulesv1alpha1.Module) spi.Component {
 	h := helm.HelmComponent{
 		ChartDir:               config.GetThirdPartyDir(),
 		ImagePullSecretKeyname: secret.DefaultImagePullSecretKeyName,
