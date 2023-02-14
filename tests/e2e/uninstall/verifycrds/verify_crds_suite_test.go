@@ -4,10 +4,17 @@
 package verifycrds
 
 import (
+	"flag"
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
 )
+
+var mySQLOperatorEnabled bool
+
+func init() {
+	flag.BoolVar(&mySQLOperatorEnabled, "mySQLOperatorEnabled", true, "mySQLOperatorEnabled describes whether the mySQLOperator component is enabled")
+}
 
 func TestVerifyCRDs(test *testing.T) {
 	t.RegisterFailHandler()
