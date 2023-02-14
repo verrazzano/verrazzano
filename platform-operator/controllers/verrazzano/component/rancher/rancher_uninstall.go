@@ -139,10 +139,10 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	var err error
 
 	// Run the rancher-cleanup job
-	/*	if err := runCleanupJob(ctx); err != nil {
-			return err
-		}
-	*/
+	if err := runCleanupJob(ctx); err != nil {
+		return err
+	}
+
 	// Remove the Rancher webhooks
 	err = deleteWebhooks(ctx)
 	if err != nil {
