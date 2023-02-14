@@ -14,6 +14,7 @@ import (
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -27,6 +28,8 @@ var installNGINXIngressControllerFailedRe = regexp.MustCompile(`Installing NGINX
 var noIPForIngressControllerRegExp = regexp.MustCompile(`Failed getting DNS suffix: No IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer`)
 var errorSettingRancherTokenRegExp = regexp.MustCompile(`Failed setting Rancher access token.*no such host`)
 var noIPForIstioIngressReqExp = regexp.MustCompile(`Ingress external IP pending for component istio: No IP found for service istio-ingressgateway with type *`)
+var dbLoadJobFailedRe = regexp.MustCompile(`.*DB load job has failed.*`)
+var dbLoadJobCompletedRe = regexp.MustCompile(`.*Keycloak DB successfully migrated.*`)
 
 // I'm going with a more general pattern for limit reached as the supporting details should give the precise message
 // and the advice can be to refer to the supporting details on the limit that was exceeded. We can change it up
@@ -39,6 +42,7 @@ var loadBalancerCreationIssue = regexp.MustCompile(`.*Private subnet.* is not al
 var vpoErrorMessages []string
 
 const logLevelError = "error"
+const logLevelInfo = "info"
 const verrazzanoResource = "verrazzano-resources.json"
 const eventsJSON = "events.json"
 const servicesJSON = "services.json"
@@ -88,6 +92,44 @@ func AnalyzeVerrazzanoResource(log *zap.SugaredLogger, clusterRoot string, issue
 	}
 	// Handle uninstall issue here, before returning
 	return nil
+}
+
+func checkIfLoadJobFailed(vpoLog string, errorLogs []files.LogMessage, infoLogs []files.LogMessage, clusterRoot string, issueReporter *report.IssueReporter) {
+	dbLoadJobFailure := false
+	dbLoadJobSuccess := false
+
+	messages := make(StringSlice, 1)
+
+	for _, errLog := range errorLogs {
+		if dbLoadJobFailedRe.MatchString(errLog.Message) {
+			dbLoadJobFailure = true
+			messages[0] = errLog.Message
+		}
+	}
+
+	for _, infoLog := range infoLogs {
+		if dbLoadJobCompletedRe.MatchString(infoLog.Message) {
+			dbLoadJobSuccess = true
+		}
+	}
+
+	if dbLoadJobFailure && !dbLoadJobSuccess {
+		reportVzResource := ""
+		reportVpoLog := ""
+		// Construct resource in the analysis report, differently for live analysis
+		if helpers.GetIsLiveCluster() {
+			reportVzResource = report.GetRelatedVZResourceMessage()
+			reportVpoLog = report.GetRelatedLogFromPodMessage(vpoLog)
+		} else {
+			reportVzResource = clusterRoot + "/" + verrazzanoResource
+			reportVpoLog = vpoLog
+		}
+		files := make(StringSlice, 2)
+		files[0] = reportVzResource
+		files[1] = reportVpoLog
+
+		issueReporter.AddKnownIssueMessagesFiles(report.KeycloakDataMigrationFailure, clusterRoot, messages, files)
+	}
 }
 
 // analyzeVerrazzanoInstallIssue is called when we have reason to believe that the installation has failed
@@ -397,6 +439,15 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 		if err != nil {
 			log.Infof("There is an error: %s reading install log: %s", err, vpoLog)
 		}
+
+		if comp == mysql.ComponentName {
+			allInfo, err := files.FilterLogsByLevelComponent(logLevelInfo, comp, allMessages)
+			if err != nil {
+				log.Debugf("Failed to get info logs for %s component", comp)
+			}
+			checkIfLoadJobFailed(vpoLog, allErrors, allInfo, clusterRoot, issueReporter)
+		}
+
 		// Display only the last error for the component from the install log.
 		// Need a better way to handle distinct errors for a component, however some of the errors during the initial
 		// stages of the install might not indicate any real issue always, as reconcile takes care of healing those errors.
