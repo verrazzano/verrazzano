@@ -63,37 +63,7 @@ var context string
 func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		err := runCmdInstall(cmd, args, vzHelper)
-		autoanalyzeFlag, errFlag := cmd.Flags().GetBool(constants.AutoanalyzeFlag)
-		if errFlag != nil {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", errFlag.Error())
-		}
-		// if runCmdInstall() returned an err and auto-analyze is set to true
-		if err != nil && autoanalyzeFlag {
-			//print the runCmdInstall err
-			fmt.Fprintf(vzHelper.GetOutputStream(), "Install error: %s", err.Error())
-			cmd2 := analyze.NewCmdAnalyze(vzHelper)
-			kubeconfigFlag, errFlag :=  cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
-			if errFlag != nil {
-				fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", errFlag.Error())
-			}
-			contextFlag, errFlag2 :=  cmd.Flags().GetString(constants.GlobalFlagContext)
-			if errFlag2 != nil {
-				fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", errFlag2.Error())
-			}
-			cmd2.Flags().StringVar(&kubeconfig, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
-			cmd2.Flags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
-			cmd2.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
-			cmd2.Flags().Set(constants.GlobalFlagContext, contextFlag)
-			cmd2.PersistentFlags().Set(constants.ReportFormatFlagName, constants.SummaryReport)
-			err4 := analyze.RunCmdAnalyze(cmd2, args, vzHelper)
-			if err4 != nil {
-				fmt.Fprintf(vzHelper.GetOutputStream(), "error calling analyze %s", err4.Error())
-			}
-			return err
-		}
-		//otherwise, just return the runCmdInstall err
-		return err
+		return runCmdInstall(cmd, args, vzHelper)
 	}
 	cmd.Example = helpExample
 
@@ -248,7 +218,35 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Wait for the Verrazzano install to complete
-	return waitForInstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vzNamespace, Name: vzName}, timeout, vpoTimeout, logFormat)
+	err = waitForInstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vzNamespace, Name: vzName}, timeout, vpoTimeout, logFormat)
+	autoanalyzeFlag, errFlag := cmd.Flags().GetBool(constants.AutoanalyzeFlag)
+	if errFlag != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", errFlag.Error())
+	}
+	// if waitForInstallToComplete() returned an err and auto-analyze is set to true, call vz analyze
+	if err != nil && autoanalyzeFlag {
+		cmd2 := analyze.NewCmdAnalyze(vzHelper)
+		kubeconfigFlag, errFlag :=  cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
+		if errFlag != nil {
+			fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", errFlag.Error())
+		}
+		contextFlag, errFlag2 :=  cmd.Flags().GetString(constants.GlobalFlagContext)
+		if errFlag2 != nil {
+			fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", errFlag2.Error())
+		}
+		cmd2.Flags().StringVar(&kubeconfig, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
+		cmd2.Flags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
+		cmd2.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
+		cmd2.Flags().Set(constants.GlobalFlagContext, contextFlag)
+		cmd2.PersistentFlags().Set(constants.ReportFormatFlagName, constants.SummaryReport)
+		analyzeErr := analyze.RunCmdAnalyze(cmd2, args, vzHelper)
+		if analyzeErr != nil {
+			fmt.Fprintf(vzHelper.GetOutputStream(), "error calling analyze %s", analyzeErr.Error())
+		}
+		return err
+	}
+	//otherwise, just return the waitForInstallToComplete() err
+	return err
 }
 
 // getVerrazzanoYAML returns the verrazzano install resource to be created

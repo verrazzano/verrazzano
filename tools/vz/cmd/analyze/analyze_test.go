@@ -1,23 +1,15 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package analyze
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/stretchr/testify/assert"
-	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
-	pkghelper "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"os"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
 
@@ -128,44 +120,4 @@ func TestAnalyzeCommandInvalidCapturedDir(t *testing.T) {
 	err := cmd.Execute()
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Cluster Analyzer runAnalysis didn't find any clusters")
-}
-
-// getClientWithWatch returns a client for installing Verrazzano
-func getClientWithWatch() client.WithWatch {
-	vpo := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      constants.VerrazzanoPlatformOperator,
-			Labels: map[string]string{
-				"app":               constants.VerrazzanoPlatformOperator,
-				"pod-template-hash": "45f78ffddd",
-			},
-		},
-	}
-	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      constants.VerrazzanoPlatformOperator,
-		},
-		Spec: appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
-			},
-		},
-		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 1,
-			UpdatedReplicas:   1,
-		},
-	}
-	replicaset := &appsv1.ReplicaSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      fmt.Sprintf("%s-45f78ffddd", constants.VerrazzanoPlatformOperator),
-			Annotations: map[string]string{
-				"deployment.kubernetes.io/revision": "1",
-			},
-		},
-	}
-	c := fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(vpo, deployment, replicaset).Build()
-	return c
 }
