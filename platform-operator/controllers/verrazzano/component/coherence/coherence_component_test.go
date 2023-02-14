@@ -68,7 +68,7 @@ func TestValidateUpdate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewComponent()
+			c := NewComponent(nil)
 			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -131,7 +131,7 @@ func TestValidateUpdateV1beta1(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewComponent()
+			c := NewComponent(nil)
 			if err := c.ValidateUpdateV1Beta1(tt.old, tt.new); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -143,7 +143,7 @@ func TestValidateUpdateV1beta1(t *testing.T) {
 func TestIsReady(t *testing.T) {
 	c := fake.NewClientBuilder().Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
-	assert.False(t, NewComponent().IsReady(ctx))
+	assert.False(t, NewComponent(nil).IsReady(ctx))
 }
 
 // test Monitoroverrides method
@@ -201,7 +201,7 @@ func TestMonitorOverride(t *testing.T) {
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(nil, tests[i].actualCR, nil, false)
-			assert.Equal(t, tt.expectTrue, NewComponent().MonitorOverrides(ctx))
+			assert.Equal(t, tt.expectTrue, NewComponent(nil).MonitorOverrides(ctx))
 		})
 	}
 }
@@ -210,5 +210,5 @@ func TestMonitorOverride(t *testing.T) {
 func TestPostUninstallcomponent(t *testing.T) {
 	c := fake.NewClientBuilder().Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, true)
-	assert.Nil(t, NewComponent().PostUninstall(ctx))
+	assert.Nil(t, NewComponent(nil).PostUninstall(ctx))
 }

@@ -6,6 +6,9 @@ package keycloak
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"net/url"
 	"strings"
 	"testing"
@@ -1466,8 +1469,30 @@ func TestIsKeycloakReady(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.c, testVZ, nil, false)
-			c := NewComponent(nil)
-			assert.Equal(t, tt.isReady, c.(KeycloakComponent).isKeycloakReady(ctx))
+			//c := NewComponent(nil)
+			c := KeycloakComponent{
+				helm.HelmComponent{
+					ChartDir:               config.GetThirdPartyDir(),
+					ImagePullSecretKeyname: secret.DefaultImagePullSecretKeyName,
+					AppendOverridesFunc:    AppendKeycloakOverrides,
+					Certificates:           certificates,
+					IngressNames: []types.NamespacedName{
+						{
+							Namespace: ComponentNamespace,
+							Name:      constants.KeycloakIngress,
+						},
+					},
+					AvailabilityObjects: &ready.AvailabilityObjects{
+						StatefulsetNames: []types.NamespacedName{
+							{
+								Name:      ComponentName,
+								Namespace: ComponentNamespace,
+							},
+						},
+					},
+				},
+			}
+			assert.Equal(t, tt.isReady, c.isKeycloakReady(ctx))
 		})
 	}
 }

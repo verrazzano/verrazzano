@@ -1,8 +1,13 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package weblogic
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"k8s.io/apimachinery/pkg/types"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,6 +27,10 @@ import (
 //	WHEN I call with no extra kvs
 //	THEN the correct number of KeyValue objects are returned and no errors occur
 func Test_appendWeblogicOperatorOverrides(t *testing.T) {
+	config.TestHelmConfigDir = "../../../../helm_config"
+	defer func() {
+		config.TestHelmConfigDir = ""
+	}()
 	kvs, err := AppendWeblogicOperatorOverrides(spi.NewFakeContext(nil, nil, nil, false), "weblogic-operator", "verrazzano-system", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4)
@@ -49,6 +58,10 @@ func Test_appendWeblogicOperatorOverridesExtraKVs(t *testing.T) {
 //	THEN no errors are returned
 func Test_weblogicOperatorPreInstall(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	config.TestHelmConfigDir = "../../../../helm_config"
+	defer func() {
+		config.TestHelmConfigDir = ""
+	}()
 	err := WeblogicOperatorPreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false), "weblogic-operator", "verrazzano-system", "")
 	assert.NoError(t, err)
 }
@@ -96,7 +109,22 @@ func TestIsWeblogicOperatorReady(t *testing.T) {
 			},
 		},
 	).Build()
-	weblogic := NewComponent(nil).(weblogicComponent)
+	weblogic := weblogicComponent{
+		helm.HelmComponent{
+			ChartDir:               config.GetThirdPartyDir(),
+			ImagePullSecretKeyname: secret.DefaultImagePullSecretKeyName,
+			PreInstallFunc:         WeblogicOperatorPreInstall,
+			AppendOverridesFunc:    AppendWeblogicOperatorOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
+		},
+	}
 	assert.True(t, weblogic.isWeblogicOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
 }
 
@@ -118,6 +146,22 @@ func TestIsWeblogicOperatorNotReady(t *testing.T) {
 			UpdatedReplicas:   0,
 		},
 	}).Build()
-	weblogic := NewComponent(nil).(weblogicComponent)
+	//weblogic := NewComponent(nil).(weblogicComponent)
+	weblogic := weblogicComponent{
+		helm.HelmComponent{
+			ChartDir:               config.GetThirdPartyDir(),
+			ImagePullSecretKeyname: secret.DefaultImagePullSecretKeyName,
+			PreInstallFunc:         WeblogicOperatorPreInstall,
+			AppendOverridesFunc:    AppendWeblogicOperatorOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
+		},
+	}
 	assert.False(t, weblogic.isWeblogicOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
 }

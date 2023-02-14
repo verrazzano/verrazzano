@@ -3,9 +3,14 @@
 package coherence
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -59,8 +64,21 @@ func TestIsCoherenceOperatorReady(t *testing.T) {
 			},
 		},
 	).Build()
-	coherence := NewComponent().(coherenceComponent)
-	assert.True(t, coherence.isCoherenceOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
+	coh := coherenceComponent{
+		HelmComponent: helm.HelmComponent{
+			ChartDir:               config.GetThirdPartyDir(),
+			ImagePullSecretKeyname: secret.DefaultImagePullSecretKeyName,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
+		},
+	}
+	assert.True(t, coh.isCoherenceOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
 }
 
 // TestIsCoherenceOperatorNotReady tests the isCoherenceOperatorReady function
@@ -80,8 +98,21 @@ func TestIsCoherenceOperatorNotReady(t *testing.T) {
 			UpdatedReplicas:   0,
 		},
 	}).Build()
-	coherence := NewComponent().(coherenceComponent)
-	assert.False(t, coherence.isCoherenceOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
+	coh := coherenceComponent{
+		HelmComponent: helm.HelmComponent{
+			ChartDir:               config.GetThirdPartyDir(),
+			ImagePullSecretKeyname: secret.DefaultImagePullSecretKeyName,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
+		},
+	}
+	assert.False(t, coh.isCoherenceOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
 }
 
 func TestGetOverrides(t *testing.T) {
