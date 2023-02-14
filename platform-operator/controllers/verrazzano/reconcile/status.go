@@ -76,13 +76,24 @@ func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha
 	state := conditionToVzState(conditionType)
 	log.Debugf("Setting Verrazzano resource condition and state: %v/%v", condition.Type, state)
 
-	// Update the status
-	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
+	event := &vzstatus.UpdateEvent{
 		Verrazzano: cr,
 		Version:    version,
 		State:      state,
 		Conditions: conditions,
-	})
+	}
+
+	if conditionType == installv1alpha1.CondInstallComplete {
+		spiCtx, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
+		if err != nil {
+			spiCtx.Log().Errorf("Failed to create component context: %v", err)
+			return err
+		}
+		event.InstanceInfo = vzinstance.GetInstanceInfo(spiCtx)
+	}
+
+	// Update the status
+	r.StatusUpdater.Update(event)
 	return nil
 }
 
@@ -160,20 +171,17 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 			componentStatus.ReconcilingGeneration = cr.Generation
 		}
 	}
+	componentStatus.Conditions = appendConditionIfNecessary(log, componentStatus.Name, componentStatus.Conditions, condition)
 
-	if conditionType != nil {
-		componentStatus.Conditions = appendConditionIfNecessary(log, componentStatus.Name, componentStatus.Conditions, condition)
+	// Set the state of resource
+	componentStatus.State = checkCondtitionType(conditionType)
 
-		// Set the state of resource
-		componentStatus.State = checkCondtitionType(conditionType)
-
-		// Set the version of component when install and upgrade complete
-		if conditionType == installv1alpha1.CondInstallComplete || conditionType == installv1alpha1.CondUpgradeComplete {
-			instanceInfo = vzinstance.GetInstanceInfo(compContext)
-			if bomFile, err := r.getBOM(); err == nil {
-				if component, er := bomFile.GetComponent(componentName); er == nil {
-					componentStatus.Version = component.Version
-				}
+	// Set the version of component when install and upgrade complete
+	if conditionType == installv1alpha1.CondInstallComplete || conditionType == installv1alpha1.CondUpgradeComplete {
+		instanceInfo = vzinstance.GetInstanceInfo(compContext)
+		if bomFile, err := r.getBOM(); err == nil {
+			if component, er := bomFile.GetComponent(componentName); er == nil {
+				componentStatus.Version = component.Version
 			}
 		}
 	}
