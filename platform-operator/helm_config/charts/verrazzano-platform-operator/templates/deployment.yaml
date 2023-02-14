@@ -24,9 +24,12 @@ spec:
       terminationGracePeriodSeconds: 0
       initContainers:
         - name: webhookswait
+          env:
+            - name: ENABLE_VALIDATING_WEBHOOKS
+              value: {{ .Values.webhooks.resourceValidation }}
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           image: {{ .Values.image }}
-          command: [ 'sh', '-c', "/verrazzano/platform-operator/scripts/wait4webhook.sh {{ .Values.webhooks.resourceValidation }}" ]
+          command: [ 'sh', '-c', "/verrazzano/platform-operator/scripts/wait4webhook.sh ${ENABLE_VALIDATING_WEBHOOKS}" ]
           securityContext:
             privileged: false
             allowPrivilegeEscalation: false
@@ -141,7 +144,7 @@ spec:
           args:
             - --zap-log-level=info
             - --run-webhooks=true
-            - --resourceValidation=false
+            - --{{ .Values.webhooks.resourceValidation }}=false
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
