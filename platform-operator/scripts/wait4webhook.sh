@@ -6,8 +6,7 @@ while [[ "$(curl --insecure -s -o /dev/null -w '%{http_code}' https://verrazzano
 while [[ "$(curl --insecure -s -o /dev/null -w '%{http_code}' https://verrazzano-platform-operator-webhook:443/validate-install-verrazzano-io-v1beta1-verrazzano -H 'Content-Type: application/json')" != "200" ]]; do sleep 5; done
 while [[ "$(curl --insecure -s -o /dev/null -w '%{http_code}' https://verrazzano-platform-operator-webhook:443/v1beta1-validate-mysql-install-override-values -H 'Content-Type: application/json')" != "200" ]]; do sleep 5; done
 while [[ "$(curl --insecure -s -o /dev/null -w '%{http_code}' https://verrazzano-platform-operator-webhook:443/v1alpha1-validate-mysql-install-override-values -H 'Content-Type: application/json')" != "200" ]]; do sleep 5; done
-resourceValidation=${1}
-if [[ "$resourceValidation" != "false" ]]; then
+if [[ "$ENABLE_RESOURCE_VALIDATION" != "false" ]]; then
   while [[ "$(curl --insecure -s -o /dev/null -w '%{http_code}' https://verrazzano-platform-operator-webhook:443/v1beta1-validate-requirements -H 'Content-Type: application/json')" != "200" ]]; do sleep 5; done
   while [[ "$(curl --insecure -s -o /dev/null -w '%{http_code}' https://verrazzano-platform-operator-webhook:443/v1alpha1-validate-requirements -H 'Content-Type: application/json')" != "200" ]]; do sleep 5; done
 fi
