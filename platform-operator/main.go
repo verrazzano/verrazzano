@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
 	"os"
 
 	cmapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -41,6 +42,7 @@ func init() {
 	_ = vmov1.AddToScheme(scheme)
 	_ = installv1alpha1.AddToScheme(scheme)
 	_ = installv1beta1.AddToScheme(scheme)
+	_ = modulesv1alpha1.AddToScheme(scheme)
 	_ = clustersv1alpha1.AddToScheme(scheme)
 
 	_ = istioclinet.AddToScheme(scheme)
