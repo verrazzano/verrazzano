@@ -24,10 +24,7 @@ ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/platform-operator/repos/*.repo /etc/yum.repos.d/
 
 RUN microdnf update -y \
-    && microdnf install -y openssl jq \
-    && microdnf install -y kubectl-1.23.11-1.el8 \
-    && microdnf install -y istio-istioctl-1.15.3-1.el8 \
-    && microdnf install -y helm-3.9.2-1.el8 \
+    && microdnf install -y --setopt=install_weak_deps=0 --setopt=tsflags=nodocs openssl jq kubectl-1.23.11-1.el8 istio-istioctl-1.15.3-1.el8 helm-3.9.2-1.el8 \
     && microdnf clean all \
     && rm -rf /var/cache/yum /var/lib/rpm/* \
     && groupadd -r verrazzano \
