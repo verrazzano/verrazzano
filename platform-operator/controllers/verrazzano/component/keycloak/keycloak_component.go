@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/modules"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/reconciler"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -55,7 +56,7 @@ var certificates = []types.NamespacedName{
 }
 
 // NewComponent returns a new Keycloak component
-func NewComponent(module *modulesv1alpha1.Module) spi.Component {
+func NewComponent(module *modulesv1alpha1.Module) modules.DelegateReconciler {
 	h := helm.HelmComponent{
 		ChartDir:               config.GetThirdPartyDir(),
 		ImagePullSecretKeyname: secret.DefaultImagePullSecretKeyName,
