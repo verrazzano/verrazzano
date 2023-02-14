@@ -47,12 +47,6 @@ type KeycloakComponent struct {
 	helm.HelmComponent
 }
 
-//func (c KeycloakComponent) ReconcileModule(ctx spi.ComponentContext) error {
-//	return nil
-//}
-//
-//func (c KeycloakComponent) SetStatusWriter(statusWriter client.StatusWriter) {}
-
 // Verify that KeycloakComponent implements Component
 var _ spi.Component = KeycloakComponent{}
 
