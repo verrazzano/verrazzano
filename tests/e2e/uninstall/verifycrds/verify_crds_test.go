@@ -140,12 +140,10 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 		checkCrds(crds, map[string]bool{"coherence.coherence.oracle.com": false}, "coherence.coherence.oracle.com")
 	})
 
-	if mySQLOperatorEnabled {
-		t.It("Check for expected MySQL Operator CRDs", func() {
-			checkCrds(crds, mysqloperatorcrds, "mysql.oracle.com")
-			checkCrds(crds, mysqloperatorcrds, "zalando.org")
-		})
-	}
+	t.It("Check for expected MySQL Operator CRDs", func() {
+		checkCrds(crds, mysqloperatorcrds, "mysql.oracle.com")
+		checkCrds(crds, mysqloperatorcrds, "zalando.org")
+	})
 
 	t.It("Check for unexpected CRDs", func() {
 		var unexpectedCRDs []string
