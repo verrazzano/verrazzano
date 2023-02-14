@@ -6,10 +6,8 @@ package coherence
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"k8s.io/apimachinery/pkg/types"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -18,7 +16,6 @@ import (
 	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/modules"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/reconciler"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -39,13 +36,7 @@ type coherenceComponent struct {
 	helm.HelmComponent
 }
 
-func (c coherenceComponent) ReconcileModule(ctx spi.ComponentContext) error {
-	return nil
-}
-
-func (c coherenceComponent) SetStatusWriter(statusWriter client.StatusWriter) {}
-
-func NewComponent(module *modulesv1alpha1.Module) modules.DelegateReconciler {
+func NewComponent(module *modulesv1alpha1.Module) spi.Component {
 	h := helm.HelmComponent{
 		ChartDir:               config.GetThirdPartyDir(),
 		ImagePullSecretKeyname: secret.DefaultImagePullSecretKeyName,

@@ -5,6 +5,7 @@ package keycloak
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -130,6 +131,10 @@ func TestPreinstall(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			config.TestHelmConfigDir = "../../../../helm_config"
+			defer func() {
+				config.TestHelmConfigDir = ""
+			}()
 			ctx := spi.NewFakeContext(tt.client, testVZ, nil, false)
 			err := NewComponent(nil).PreInstall(ctx)
 			if tt.isErr {

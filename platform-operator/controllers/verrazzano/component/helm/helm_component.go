@@ -142,8 +142,6 @@ type uninstallFunSig func(log vzlog.VerrazzanoLogger, releaseName string, namesp
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
 
-var uninstallFunc uninstallFunSig = helm.Uninstall
-
 func SetUpgradeFunc(f upgradeFuncSig) {
 	upgradeFunc = f
 }

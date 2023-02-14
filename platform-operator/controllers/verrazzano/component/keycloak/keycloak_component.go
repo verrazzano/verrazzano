@@ -6,6 +6,7 @@ package keycloak
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/reconciler"
 
@@ -70,6 +71,14 @@ func NewComponent(module *modulesv1alpha1.Module) spi.Component {
 			{
 				Namespace: ComponentNamespace,
 				Name:      constants.KeycloakIngress,
+			},
+		},
+		AvailabilityObjects: &ready.AvailabilityObjects{
+			StatefulsetNames: []types.NamespacedName{
+				{
+					Name:      ComponentName,
+					Namespace: ComponentNamespace,
+				},
 			},
 		},
 	}
