@@ -146,7 +146,7 @@ var knownIssues = map[string]Issue{
 	IstioIngressPrivateSubnet:    {Type: IstioIngressPrivateSubnet, Summary: "Failed to create LoadBalancer for Istio Ingress Gateway", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IstioIngressPrivateSubnet]}},
 	NginxIngressPrivateSubnet:    {Type: NginxIngressPrivateSubnet, Summary: "Failed to create LoadBalancer for Nginx Ingress Controller", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[NginxIngressPrivateSubnet]}},
 	ExternalDNSConfigureIssue:    {Type: ExternalDNSConfigureIssue, Summary: "Failed to setup DNS configuration", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ExternalDNSConfigureIssue]}},
-	KeycloakDataMigrationFailure: {Type: KeycloakDataMigrationFailure, Summary: "Failure(s) migrating Keycloak data during MYSQL upgrade", Informational: true, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[KeycloakDataMigrationFailure]}},
+	KeycloakDataMigrationFailure: {Type: KeycloakDataMigrationFailure, Summary: "Failure(s) migrating Keycloak data during MySQL upgrade", Informational: true, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[KeycloakDataMigrationFailure]}},
 }
 
 // NewKnownIssueSupportingData adds a known issue
