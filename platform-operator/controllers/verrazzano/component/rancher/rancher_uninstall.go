@@ -533,7 +533,7 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) {
 
 		// Check the finalizers of all ClusterRoles
 		crList := rbacv1.ClusterRoleList{}
-		if err := ctx.Client().List(context.TODO(), &crList, &listOptions); err != nil {
+		if err := ctx.Client().List(context.TODO(), &crList); err != nil {
 			ctx.Log().Errorf("Component %s failed to list ClusterRoles: %v", ComponentName, err)
 			return
 		}
@@ -552,7 +552,7 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) {
 
 		// Check the finalizers of all ClusterRoleBindings
 		crbList := rbacv1.ClusterRoleBindingList{}
-		if err := ctx.Client().List(context.TODO(), &crbList, &listOptions); err != nil {
+		if err := ctx.Client().List(context.TODO(), &crbList); err != nil {
 			ctx.Log().Errorf("Component %s failed to list ClusterRoleBindings: %v", ComponentName, err)
 			return
 		}
