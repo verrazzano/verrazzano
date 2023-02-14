@@ -9,17 +9,16 @@ COPY . .
 
 COPY out/linux_amd64/verrazzano-application-operator /usr/local/bin/verrazzano-application-operator
 
-RUN chmod 500 /usr/local/bin/verrazzano-application-operator
-RUN chmod 500 /root/go/src/github.com/verrazzano/application-operator/scripts/wait4webhook.sh
+RUN chmod 500 /usr/local/bin/verrazzano-application-operator \
+    && chmod 500 /root/go/src/github.com/verrazzano/application-operator/scripts/wait4webhook.sh
 
 # Create the verrazzano-application-operator image
 FROM ghcr.io/oracle/oraclelinux:8-slim AS final
 
 RUN microdnf update -y \
     && microdnf clean all \
-    && rm -rf /var/cache/yum /var/lib/rpm/*
-
-RUN groupadd -r verrazzano  \
+    && rm -rf /var/cache/yum /var/lib/rpm/* \
+    && groupadd -r verrazzano  \
     && useradd --no-log-init -r -g verrazzano -u 1000 verrazzano \
     && mkdir /home/verrazzano \
     && chown -R 1000:verrazzano /home/verrazzano

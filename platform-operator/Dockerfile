@@ -20,19 +20,17 @@ FROM ghcr.io/oracle/oraclelinux:8-slim AS final
 
 ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 
+# copy olcne repos needed to install kubectl, istioctl, and helm
 COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/platform-operator/repos/*.repo /etc/yum.repos.d/
 
-# Use olcne15, which is required for kubectl
-# Use developer/olcne, which is required for istioctl/helm
 RUN microdnf update -y \
     && microdnf install -y openssl jq \
     && microdnf install -y kubectl-1.23.11-1.el8 \
     && microdnf install -y istio-istioctl-1.15.3-1.el8 \
     && microdnf install -y helm-3.9.2-1.el8 \
     && microdnf clean all \
-    && rm -rf /var/cache/yum /var/lib/rpm/*
-
-RUN groupadd -r verrazzano \
+    && rm -rf /var/cache/yum /var/lib/rpm/* \
+    && groupadd -r verrazzano \
     && useradd --no-log-init -r -m -d /verrazzano -g verrazzano -u 1000 verrazzano \
     && mkdir /home/verrazzano \
     && chown -R 1000:verrazzano /home/verrazzano
