@@ -1,4 +1,4 @@
-# Copyright (C) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (C) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 include ../make/quality.mk
@@ -122,10 +122,10 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build: go-build-linux docker-build-common
+docker-build: generate-bom go-build-linux docker-build-common
 
 .PHONY: docker-build-debug
-docker-build-debug: go-build-linux-debug docker-build-common
+docker-build-debug: generate-bom go-build-linux-debug docker-build-common
 
 .PHONY: docker-build-common
 docker-build-common:
