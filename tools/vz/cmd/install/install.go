@@ -219,7 +219,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 
 	// Wait for the Verrazzano install to complete
 	err = waitForInstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vzNamespace, Name: vzName}, timeout, vpoTimeout, logFormat)
-	if err == nil  {
+	if err == nil {
 		return nil
 	}
 	autoanalyzeFlag, errFlag := cmd.Flags().GetBool(constants.AutoanalyzeFlag)
@@ -229,11 +229,11 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	// if waitForInstallToComplete() returned an err and auto-analyze is set to true, call vz analyze
 	if autoanalyzeFlag {
 		cmd2 := analyze.NewCmdAnalyze(vzHelper)
-		kubeconfigFlag, errFlag :=  cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
+		kubeconfigFlag, errFlag := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
 		if errFlag != nil {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
 		}
-		contextFlag, errFlag2 :=  cmd.Flags().GetString(constants.GlobalFlagContext)
+		contextFlag, errFlag2 := cmd.Flags().GetString(constants.GlobalFlagContext)
 		if errFlag2 != nil {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag2.Error())
 		}

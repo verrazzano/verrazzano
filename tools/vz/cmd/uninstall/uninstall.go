@@ -170,11 +170,11 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	// if waitForUninstallToComplete() returned an err and auto-analyze is set to true, call vz analyze
 	if autoanalyzeFlag {
 		cmd2 := analyze.NewCmdAnalyze(vzHelper)
-		kubeconfigFlag, errFlag :=  cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
+		kubeconfigFlag, errFlag := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
 		if errFlag != nil {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
 		}
-		contextFlag, errFlag2 :=  cmd.Flags().GetString(constants.GlobalFlagContext)
+		contextFlag, errFlag2 := cmd.Flags().GetString(constants.GlobalFlagContext)
 		if errFlag2 != nil {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag2.Error())
 		}
