@@ -600,7 +600,7 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) {
 	}
 }
 
-func removeFinalizers(ctx spi.ComponentContext, object []client.Object) {
+/*func removeFinalizers(ctx spi.ComponentContext, object []client.Object) {
 	for i, clusterRole := range object {
 		// If any of the finalizers contains a rancher one, remove them all
 		for _, finalizer := range clusterRole.GetFinalizers() {
@@ -611,7 +611,7 @@ func removeFinalizers(ctx spi.ComponentContext, object []client.Object) {
 		}
 	}
 
-}
+}*/
 
 // removeFinalizer - remove finalizers from an object
 func removeFinalizer(ctx spi.ComponentContext, object client.Object) {
