@@ -190,9 +190,8 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		err = waitForUpgradeToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat)
 		if err != nil {
 			return callVzAnalyze(cmd, vzHelper, err)
-		} else {
-			return nil
 		}
+		return nil
 	}
 
 	// If we already started the upgrade no need to apply the operator.yaml, wait for VPO, and update the verrazzano
@@ -202,13 +201,10 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		err = waitForUpgradeToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat)
 		if err != nil {
 			return callVzAnalyze(cmd, vzHelper, err)
-		} else {
-			return nil
 		}
+		return nil
 	}
-
 	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Verrazzano has already been upgraded to version %s\n", vz.Status.Version))
-
 	return nil
 }
 
@@ -220,11 +216,11 @@ func callVzAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) err
 	// if waitForUpgradeToComplete() returned an err and auto-analyze is set to true
 	if autoanalyzeFlag {
 		cmd2 := analyze.NewCmdAnalyze(vzHelper)
-		kubeconfigFlag, errFlag :=  cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
+		kubeconfigFlag, errFlag := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
 		if errFlag != nil {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
 		}
-		contextFlag, errFlag2 :=  cmd.Flags().GetString(constants.GlobalFlagContext)
+		contextFlag, errFlag2 := cmd.Flags().GetString(constants.GlobalFlagContext)
 		if errFlag2 != nil {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag2.Error())
 		}

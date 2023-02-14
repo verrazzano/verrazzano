@@ -20,7 +20,6 @@ import (
 	cmdHelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	pkghelper "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -586,7 +585,6 @@ func TestAnalyzeCommandDefault(t *testing.T) {
 	assert.Contains(t, buf.String(), "Verrazzano analysis CLI did not detect any issue in the cluster")
 }
 
-
 // installVZ installs Verrazzano using the given client
 func installVZ(t *testing.T, c client.WithWatch) {
 	buf := new(bytes.Buffer)
@@ -642,7 +640,7 @@ func getClientWithWatch() client.WithWatch {
 			},
 		},
 	}
-	c := fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(vpo, deployment, replicaset).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment, replicaset).Build()
 	return c
 }
 

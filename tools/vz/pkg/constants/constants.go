@@ -52,9 +52,9 @@ const (
 	VerboseFlagDefault   = false
 	VerboseFlagUsage     = "Enable verbose output."
 
-	AutoanalyzeFlag = "auto-analyze"
+	AutoanalyzeFlag        = "auto-analyze"
 	AutoanalyzeFlagDefault = true
-	AutoanalyzeFlagHelp = "Automatically call vz analyze if command fails"
+	AutoanalyzeFlagHelp    = "Automatically call vz analyze if command fails"
 )
 
 // VerrazzanoReleaseList - API for getting the list of Verrazzano releases
