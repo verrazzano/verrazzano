@@ -141,9 +141,8 @@ func getRegistryURL(containerImage string) (string, error) {
 		}
 	}
 	imageName := getImageName(containerImage)
-	// When the Rancher images changed from vz/rancher/shell to vz/rancher-shell, this logic was needed
-	// in the case of private registry upgrade. This function throws an error if the old container image
-	// is "shell" but the new image is upgraded to "rancher-shell".
+	// Due to the Rancher images changing from vz/rancher/shell to vz/rancher-shell, this logic handles looking up both
+	// the old and new shell image names in the BOM. If neither are found, then this function returns an error.
 	if imageRegistryMap[imageName] == "" && imageName == "shell" {
 		imageName = "rancher-shell"
 	}
