@@ -119,6 +119,7 @@ webhooks:
       - v1beta1
       - v1
 ---
+{{- if .Values.webhooks.resourceValidation }}
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
@@ -126,7 +127,6 @@ metadata:
   namespace: {{ .Values.namespace }}
   labels:
     app: {{ .Values.name }}
-{{- if .Values.resourceValidation }}
 webhooks:
   - name: v1beta1-platform-requirements-validator.verrazzano.io.v1beta1
     namespaceSelector:
