@@ -539,9 +539,11 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) {
 		}
 
 		for i, clusterRole := range crList.Items {
+			ctx.Log().Infof("Checking finalizers on ClusterRole %s", clusterRole.GetName())
 			// If any of the finalizers contains a rancher one, remove them all
 			for _, finalizer := range clusterRole.Finalizers {
 				if strings.Contains(finalizer, finalizerSubString) {
+					ctx.Log().Infof("Removing finalizer from ClusterRole %s", clusterRole.GetName())
 					removeFinalizer(ctx, &crList.Items[i])
 					break
 				}
@@ -598,6 +600,19 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) {
 			}
 		}
 	}
+}
+
+func removeFinalizers(ctx spi.ComponentContext, object []client.Object) {
+	for i, clusterRole := range object {
+		// If any of the finalizers contains a rancher one, remove them all
+		for _, finalizer := range clusterRole.GetFinalizers() {
+			if strings.Contains(finalizer, finalizerSubString) {
+				removeFinalizer(ctx, object[i])
+				break
+			}
+		}
+	}
+
 }
 
 // removeFinalizer - remove finalizers from an object
