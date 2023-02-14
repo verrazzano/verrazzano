@@ -48,6 +48,7 @@ func NewComponent(module *modulesv1alpha1.Module) spi.Component {
 				},
 			},
 		},
+		GetInstallOverridesFunc: GetOverrides,
 	}
 	helm.SetForModule(&h, module)
 	return &reconciler.Reconciler{
