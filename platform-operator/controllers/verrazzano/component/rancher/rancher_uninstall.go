@@ -69,7 +69,7 @@ var rancherSystemNS = []string{
 
 // cleanupFinalizerNS - list of namespaces that may have objects with Rancher finalizers
 // after the rancher cleanup job has completed.
-var cleanupFinalizerNS = []string{constants.VerrazzanoSystemNamespace, constants.KeycloakNamespace}
+var cleanupFinalizerNS = []string{"default", constants.VerrazzanoSystemNamespace, constants.KeycloakNamespace}
 
 // create func vars for unit tests
 type forkPostUninstallFuncSig func(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error
@@ -529,16 +529,35 @@ func isRancherNamespace(ns *corev1.Namespace) bool {
 func deleteRancherFinalizers(ctx spi.ComponentContext) {
 
 	for _, namespace := range cleanupFinalizerNS {
+		listOptions := client.ListOptions{Namespace: namespace}
+
+		// Check the finalizers of all ClusterRoles
+		crList := rbacv1.ClusterRoleList{}
+		if err := ctx.Client().List(context.TODO(), &crList, &listOptions); err != nil {
+			ctx.Log().Errorf("Component %s failed to list ClusterRole: %v", ComponentName, err)
+			return
+		}
+
+		for i, clusterRole := range crList.Items {
+			// If any of the finalizers contains a rancher one, remove them all
+			for _, finalizer := range clusterRole.Finalizers {
+				if strings.Contains(finalizer, finalizerSubString) {
+					removeFinalizer(ctx, &crList.Items[i])
+					break
+				}
+			}
+		}
+
 		// Check the finalizers of all RoleBindings
 		rbList := rbacv1.RoleBindingList{}
-		listOptions := client.ListOptions{Namespace: namespace}
 		if err := ctx.Client().List(context.TODO(), &rbList, &listOptions); err != nil {
 			ctx.Log().Errorf("Component %s failed to list RoleBindings: %v", ComponentName, err)
 			return
 		}
-		for i, rb := range rbList.Items {
+
+		for i, roleBinding := range rbList.Items {
 			// If any of the finalizers contains a rancher one, remove them all
-			for _, finalizer := range rb.Finalizers {
+			for _, finalizer := range roleBinding.Finalizers {
 				if strings.Contains(finalizer, finalizerSubString) {
 					removeFinalizer(ctx, &rbList.Items[i])
 					break
