@@ -93,6 +93,13 @@ go-build-linux:
 		-o out/linux_amd64/verrazzano-platform-operator \
 		main.go
 
+.PHONY: go-build-linux-debug
+go-build-linux-debug:
+	GOOS=linux GOARCH=amd64 $(GO) build \
+		-ldflags "${GO_LDFLAGS}" \
+		-o out/linux_amd64/verrazzano-platform-operator \
+		main.go
+
 .PHONY: go-install
 go-install:
 	$(GO) install ./...
@@ -115,7 +122,13 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build: generate-bom go-build-linux
+docker-build: go-build-linux docker-build-common
+
+.PHONY: docker-build-debug
+docker-build-debug: go-build-linux-debug docker-build-common
+
+.PHONY: docker-build-common
+docker-build-common:
 	@echo Building verrazzano-platform-operator image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	@echo using verrazzano-application-operator image ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}
 	@echo using verrazzano-cluster-operator image ${VERRAZZANO_CLUSTER_OPERATOR_IMAGE}
@@ -126,7 +139,13 @@ docker-build: generate-bom go-build-linux
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
 .PHONY: docker-push
-docker-push: docker-build
+docker-push: docker-build docker-push-common
+
+.PHONY: docker-push-debug
+docker-push-debug: docker-build-debug docker-push-common
+
+.PHONY: docker-push-common
+docker-push-common:
 	docker tag ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
 	$(call retry_docker_push,${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG})
 

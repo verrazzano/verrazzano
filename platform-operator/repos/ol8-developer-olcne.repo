@@ -1,0 +1,5 @@
+[ol8_developer-olcne]
+name=Oracle Linux 8 OLCNE Developer
+baseurl=http://yum.oracle.com/repo/OracleLinux/OL8/developer/olcne/x86_64
+gpgcheck=0
+enabled=1

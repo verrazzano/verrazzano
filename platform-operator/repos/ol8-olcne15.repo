@@ -1,0 +1,5 @@
+[ol8-olcne]
+name=Oracle Linux 8 OLCNE 1.5
+baseurl=https://yum.oracle.com/repo/OracleLinux/OL8/olcne15/x86_64
+gpgcheck=0
+enabled=1
