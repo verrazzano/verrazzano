@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/modules"
 	"k8s.io/apimachinery/pkg/types"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -36,7 +37,7 @@ type coherenceComponent struct {
 	helm.HelmComponent
 }
 
-func NewComponent(module *modulesv1alpha1.Module) spi.Component {
+func NewComponent(module *modulesv1alpha1.Module) modules.DelegateReconciler {
 	h := helm.HelmComponent{
 		ChartDir:               config.GetThirdPartyDir(),
 		ImagePullSecretKeyname: secret.DefaultImagePullSecretKeyName,
