@@ -87,3 +87,9 @@ spec:
             "Cluster1Template":
               Cluster: "Cluster1"
               ListenPort: 8001
+        appDeployments:
+          Application:
+            HelloApp:
+              SourcePath: wlsdeploy/applications/hello.war
+              ModuleType: war
+              Target: 'Cluster1'
