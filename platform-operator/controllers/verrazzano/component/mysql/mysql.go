@@ -688,16 +688,10 @@ func grantXARecoverAdmin(ctx spi.ComponentContext) error {
 		return nil
 	}
 	// Get root password, required to connect to MySQL pod
-	secretName := types.NamespacedName{
-		Namespace: ComponentNamespace,
-		Name:      rootSec,
-	}
-	rootSecret := &v1.Secret{}
-	err := ctx.Client().Get(context.TODO(), secretName, rootSecret)
+	rootPassword, err := getRootDBPassword(ctx)
 	if err != nil {
 		return err
 	}
-	rootPassword := string(rootSecret.Data[mySQLRootKey])
 
 	sqlCmd := fmt.Sprintf(mySQLGrantXAAdminCommand, rootPassword)
 	execCmd := []string{"bash", "-c", sqlCmd}
