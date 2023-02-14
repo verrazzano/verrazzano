@@ -141,10 +141,13 @@ func getRegistryURL(containerImage string) (string, error) {
 		}
 	}
 	imageName := getImageName(containerImage)
-	// If the image is not defined in the bom, return an error
+	// When the Rancher images changed from vz/rancher/shell to vz/rancher-shell, this logic was needed
+	// in the case of private registry upgrade. This function throws an error if the old container image
+	// is "shell" but the new image is upgraded to "rancher-shell".
 	if imageRegistryMap[imageName] == "" && imageName == "shell" {
 		imageName = "rancher-shell"
 	}
+	// If the image is not defined in the bom, return an error
 	if imageRegistryMap[imageName] == "" {
 		return "", fmt.Errorf("the image %s is not specified in the BOM from platform operator", imageName)
 	}
