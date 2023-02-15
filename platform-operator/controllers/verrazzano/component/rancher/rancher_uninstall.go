@@ -537,9 +537,7 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) {
 			ctx.Log().Errorf("Component %s failed to list ClusterRoles: %v", ComponentName, err)
 			return
 		}
-
 		for i, clusterRole := range crList.Items {
-			// If any of the finalizers contains a rancher one, remove them all
 			removeFinalizer(ctx, &crList.Items[i], clusterRole.Finalizers)
 		}
 
@@ -549,9 +547,7 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) {
 			ctx.Log().Errorf("Component %s failed to list ClusterRoleBindings: %v", ComponentName, err)
 			return
 		}
-
 		for i, clusterRoleBinding := range crbList.Items {
-			// If any of the finalizers contains a rancher one, remove them all
 			removeFinalizer(ctx, &crbList.Items[i], clusterRoleBinding.Finalizers)
 		}
 
@@ -561,9 +557,7 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) {
 			ctx.Log().Errorf("Component %s failed to list RoleBindings: %v", ComponentName, err)
 			return
 		}
-
 		for i, roleBinding := range rbList.Items {
-			// If any of the finalizers contains a rancher one, remove them all
 			removeFinalizer(ctx, &rbList.Items[i], roleBinding.Finalizers)
 		}
 
@@ -574,13 +568,12 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) {
 			return
 		}
 		for i, role := range roleList.Items {
-			// If any of the finalizers contains a rancher one, remove them all
 			removeFinalizer(ctx, &roleList.Items[i], role.Finalizers)
 		}
 	}
 }
 
-// removeFinalizer - remove finalizers from an object
+// removeFinalizer - remove finalizers from an object if one is owned by Rancher
 func removeFinalizer(ctx spi.ComponentContext, object client.Object, finalizers []string) {
 	// If any of the finalizers contains a rancher one, remove them all
 	for _, finalizer := range finalizers {
