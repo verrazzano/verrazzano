@@ -166,13 +166,13 @@ function downloadSourceCode() {
 function getReleaseBranch() {
   local imageTag=$1
   local componentName=$2
-  if [[ "$componentName" == "opensearch" ]] || [[ "$componentName" == "opensearch-dashboards" ]] ; then
-    echo "oracle-2.3.0"
-    return
-  fi
   imageVersion=$(echo "${imageTag}"|cut -d'-' -f1)
   if [[ $imageVersion == v* ]]; then
     imageVersion="${imageVersion:1}"
+  fi
+  if [[ "$componentName" == "opensearch" ]] || [[ "$componentName" == "opensearch-dashboards" ]] ; then
+    echo "oracle-${imageVersion}"
+    return
   fi
   releaseBranch="oracle/release/${imageVersion}"
   echo "${releaseBranch}"
