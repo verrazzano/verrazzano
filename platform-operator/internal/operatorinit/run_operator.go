@@ -6,7 +6,9 @@ package operatorinit
 import (
 	"github.com/pkg/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
@@ -15,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
+	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sync"
 	"time"
@@ -69,6 +72,14 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 		StatusUpdater: statusUpdater,
 	}).SetupWithManager(mgr); err != nil {
 		return errors.Wrap(err, "Failed to setup controller VerrazzanoConfigMaps")
+	}
+
+	if err = (&module.Reconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoConfigMaps")
+		os.Exit(1)
 	}
 
 	// Setup MySQL checker
