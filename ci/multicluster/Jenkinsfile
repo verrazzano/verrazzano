@@ -460,6 +460,11 @@ pipeline {
                         runGinkgo('multicluster/verify-rancher', '${TEST_DUMP_ROOT}/verify-rancher')
                     }
                 }
+                stage('verify-argocd') {
+                    steps {
+                        runGinkgo('multicluster/verify-argocd', '${TEST_DUMP_ROOT}/verify-argocd')
+                    }
+                }
                 stage('verify-cluster-sync') {
                     steps {
                         runGinkgoAdmin('multicluster/verify-cluster-sync')

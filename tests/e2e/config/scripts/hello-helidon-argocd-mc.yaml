@@ -1,0 +1,25 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app1
+  namespace: argocd
+spec:
+  destination:
+    name: 'managed1'
+    namespace: argocd-helidon
+    server: ''
+  source:
+    path: 'examples/multicluster/hello-helidon'
+    repoURL: 'https://github.com/verrazzano/verrazzano'
+    targetRevision: master
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
+
