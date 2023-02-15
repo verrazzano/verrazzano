@@ -142,6 +142,8 @@ function downloadSourceCode() {
     continue
   fi
 
+  releaseBranch=$(getReleaseBranch "${imageTag}" "${compKey}")
+  echo "Release Branch ${releaseBranch}"
   # Create a blobless clone, downloads all reachable commits and trees while fetching blobs on-demand.
   git clone --filter=blob:none "${repoUrl}"
   cd "${changeDir}"
@@ -163,7 +165,8 @@ function downloadSourceCode() {
 function getReleaseBranch() {
   local imageTag=$1
   local componentName=$2
-  if [[ "$componentName" == "verrazzano/opensearch" ]] || [[ "$componentName" == "verrazzano/opensearch-dashboards" ]] ; then
+  echo "Component Name $componentName"
+  if [[ "$componentName" == "opensearch" ]] || [[ "$componentName" == "opensearch-dashboards" ]] ; then
     echo "oracle-2.3.0"
     return
   fi
