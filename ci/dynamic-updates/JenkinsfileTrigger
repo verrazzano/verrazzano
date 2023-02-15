@@ -116,9 +116,9 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                startBuildJob([booleanParam(name: 'RUN_POST_UPDATE1', value: true),
-                                               booleanParam(name: 'RUN_POST_UPDATE2', value: true),
-                                               booleanParam(name: 'RUN_NGINX_ISTIO', value: true)])
+                                startDCTestJob([booleanParam(name: 'RUN_POST_UPDATE1', value: true),
+                                                booleanParam(name: 'RUN_POST_UPDATE2', value: true),
+                                                booleanParam(name: 'RUN_NGINX_ISTIO', value: true)])
                             }
                         }
                     }
@@ -127,22 +127,41 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                startBuildJob([booleanParam(name: 'RUN_AVAILABILITY_STATUS', value: true),
-                                               booleanParam(name: 'RUN_AUTHPROXY', value: true),
-                                               booleanParam(name: 'RUN_CERT_MANAGER', value: true),
-                                               booleanParam(name: 'RUN_FLUENTD', value: true)])
+                                startDCTestJob([booleanParam(name: 'RUN_AVAILABILITY_STATUS', value: true),
+                                                booleanParam(name: 'RUN_AUTHPROXY', value: true),
+                                                booleanParam(name: 'RUN_CERT_MANAGER', value: true),
+                                                booleanParam(name: 'RUN_FLUENTD', value: true)])
                             }
                         }
                     }
                 }
-                stage ('API Conversion Udpate, Opensearch Update, Jaeger Update, and Post-install Overrides Tests') {
+                stage ('API Conversion Update, Opensearch Update, Jaeger Update, and Post-install Overrides Tests') {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                startBuildJob([booleanParam(name: 'RUN_API_CONVERSION', value: true),
-                                               booleanParam(name: 'RUN_OPENSEARCH', value: true),
-                                               booleanParam(name: 'RUN_JAEGER', value: true),
-                                               booleanParam(name: 'RUN_POST_INSTALL_OVERRIDES', value: true)])
+                                startDCTestJob([booleanParam(name: 'RUN_API_CONVERSION', value: true),
+                                                booleanParam(name: 'RUN_OPENSEARCH', value: true),
+                                                booleanParam(name: 'RUN_JAEGER', value: true),
+                                                booleanParam(name: 'RUN_POST_INSTALL_OVERRIDES', value: true)])
+                            }
+                        }
+                    }
+                }
+
+                stage ('Update during Keycloak Install') {
+                    steps {
+                        retry (count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                startDCInstallTestJob([string(name: 'WAIT_FOR_RESOURCE_BEFORE_UPDATE', value: 'mysql statefulset')])
+                            }
+                        }
+                    }
+                }
+                stage ('Update during Rancher Install') {
+                    steps {
+                        retry (count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                startDCInstallTestJob([string(name: 'WAIT_FOR_RESOURCE_BEFORE_UPDATE', value: 'rancher bootstrap secret')])
                             }
                         }
                     }
@@ -150,6 +169,7 @@ pipeline {
             }
         }
     }
+
     post {
         failure {
             script {
@@ -290,7 +310,7 @@ def getSuspectList(commitList, userMappings) {
     return retValue
 }
 
-def startBuildJob(additionalParams) {
+def startDCTestJob(additionalParams) {
     def jobParameters = [
         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -303,5 +323,17 @@ def startBuildJob(additionalParams) {
     jobParameters = jobParameters + additionalParams
 
     build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
+        parameters: jobParameters, wait: true
+}
+
+def startDCInstallTestJob(additionalParams) {
+    def jobParameters = [
+        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+    ]
+    jobParameters = jobParameters + additionalParams
+
+    build job: "/verrazzano-dynamic-config-install-tests/${CLEAN_BRANCH_NAME}",
         parameters: jobParameters, wait: true
 }
