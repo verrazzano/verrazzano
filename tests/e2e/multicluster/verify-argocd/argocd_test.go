@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster/examples"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
@@ -30,7 +31,7 @@ const (
 	argoCdHelidonApplicationFile = "tests/e2e/config/scripts/hello-helidon-argocd-mc.yaml"
 )
 
-var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
+var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 
@@ -63,6 +64,19 @@ var _ = t.AfterEach(func() {
 })
 
 var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.install"), func() {
+	t.Context("Admin Cluster", func() {
+		t.BeforeEach(func() {
+			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
+		})
+
+		t.It("has the expected secrets", func() {
+			secretName := fmt.Sprintf("%s-argocd-cluster-secret", managedClusterName)
+			Eventually(func() bool {
+				return findSecret(argoCDNamespace, secretName)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find secret "+secretName)
+		})
+	})
+
 	t.Context("Managed Cluster", func() {
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
@@ -140,4 +154,13 @@ func deleteArgoCDApplication(kubeconfigPath string) error {
 
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	return nil
+}
+
+func findSecret(namespace, name string) bool {
+	s, err := pkg.GetSecret(namespace, name)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get secret %s in namespace %s with error: %v", name, namespace, err))
+		return false
+	}
+	return s != nil
 }
