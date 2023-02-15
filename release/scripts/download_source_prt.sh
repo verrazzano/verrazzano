@@ -142,8 +142,6 @@ function downloadSourceCode() {
     continue
   fi
 
-  releaseBranch=$(getReleaseBranch "${imageTag}" "${compKey}")
-  echo "Release Branch ${releaseBranch}"
   # Create a blobless clone, downloads all reachable commits and trees while fetching blobs on-demand.
   git clone --filter=blob:none "${repoUrl}"
   cd "${changeDir}"
@@ -153,6 +151,7 @@ function downloadSourceCode() {
   ret=$?
   if [ $ret -ne 0 ]; then
     releaseBranch=$(getReleaseBranch "${imageTag}" "${compKey}")
+    echo "Release Branch ${releaseBranch}"
     echo "There is an issue in pulling source from commit/branch ${commitOrBranch}, switching to release branch ${releaseBranch}"
     git -c advice.detachedHead=false checkout "${releaseBranch}"
   fi
@@ -165,7 +164,6 @@ function downloadSourceCode() {
 function getReleaseBranch() {
   local imageTag=$1
   local componentName=$2
-  echo "Component Name $componentName"
   if [[ "$componentName" == "opensearch" ]] || [[ "$componentName" == "opensearch-dashboards" ]] ; then
     echo "oracle-2.3.0"
     return

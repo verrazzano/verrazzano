@@ -23,8 +23,6 @@ pipeline {
         string (description: 'The release version (major.minor.patch format, e.g. 1.5.0) used to name the source archive', name: 'RELEASE_VERSION', defaultValue: 'NONE', trim: true)
         string (description: 'verrazzano-helper branch, use the appropriate release branch', name: 'VERRAZZANO_HELPER_BRANCH',
                 defaultValue: 'master', trim: true)
-        string (description: 'verrazzano-examples branch, user branch name is used for testing purpose only', name: 'VERRAZZANO_EXAMPLES_BRANCH',
-                defaultValue: 'master', trim: true)
     }
 
     environment {
