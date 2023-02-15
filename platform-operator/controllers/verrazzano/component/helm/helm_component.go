@@ -135,9 +135,6 @@ type resolveNamespaceSig func(ns string) string
 // upgradeFuncSig is a function needed for unit test override
 type upgradeFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (stdout []byte, stderr []byte, err error)
 
-// uninstallFuncSig is the uninstall function
-type uninstallFunSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
-
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
 
