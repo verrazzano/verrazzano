@@ -53,10 +53,11 @@ function splitSourceArchive() {
       ${SHA256_CMD} ${i} > ${i}.sha256
 
       # Upload the file and the SHA to Object Storage for release branches
-      if [[ "${BRANCH_NAME}" == "release-"* ]];then
+      #if [[ "${BRANCH_NAME}" == "release-"* ]];then
+        echo "Upload source archive ${i} and ${i}.sha256 ..."
         oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${BRANCH_NAME}/${i} --file ${i}
         oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${BRANCH_NAME}/${i}.sha256 --file ${i}.sha256
-      fi
+      #fi
       split_count=$(($split_count+1))
     done
     echo "The source archive is split into ${split_count} files, make sure that they can be combined to form a .tar.gz file, which can be extracted"
@@ -64,11 +65,13 @@ function splitSourceArchive() {
   else
     echo "Created source archive ${ARCHIVE_DIR}/${SOURCE_ARCHIVE}"
     sha256sum ${SOURCE_ARCHIVE} > ${SOURCE_ARCHIVE}.sha256
+    cat ${SOURCE_ARCHIVE}.sha256
     # Upload the file and the SHA to Object Storage for release branches
-    if [[ "${BRANCH_NAME}" == "release-"* ]];then
+    #if [[ "${BRANCH_NAME}" == "release-"* ]];then
+      echo "Upload source archive ${SOURCE_ARCHIVE} and ${SOURCE_ARCHIVE}.sha256 ..."
       oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${BRANCH_NAME}/${SOURCE_ARCHIVE} --file ${SOURCE_ARCHIVE}
       oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${BRANCH_NAME}/${SOURCE_ARCHIVE}.sha256 --file ${SOURCE_ARCHIVE}.sha256
-    fi
+    #fi
   fi
 }
 

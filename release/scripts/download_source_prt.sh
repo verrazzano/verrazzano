@@ -99,22 +99,9 @@ function processImagesToPublish() {
       key=$(echo $key | tr '.' '_')
       key=${key#$VZ_REPO_PREFIX}
 
-      echo "Key $key"
-      # Workaround for some components
-      if [[ "$key" == "opensearch" ]]; then
-        value="oracle-2.3.0"
-      elif [[ "$key" == "grafana" ]]; then
-        value="oracle/release/7.5.17"
-      elif [[ "$key" == "prometheus" ]]; then
-        value="oracle/release/2.38.0"
-      elif [[ "$key" == "alertmanager" ]]; then
-        value="oracle/release/0.24.0"
-      else
-        # Remove till last - from value to get the short commit
-        value=${value##*-}
-      fi
-      echo "Value $value"
-      downloadSourceCode "$key" "${value}"
+      imageTag=$value
+      value=${value##*-}
+      downloadSourceCode "$key" "${value}" "" "${imageTag}"
     done < "${imagesToPublish}"
   else
     echo "$imagesToPublish here not found."
@@ -126,6 +113,7 @@ function downloadSourceCode() {
   local compKey=$1
   local commitOrBranch=$2
   local repoUrl=$3
+  local imageTag=$4
   if [ "${repoUrl}" = "" ]; then
     repoUrl=$(getRepoUrl "${key}")
     if [ "${repoUrl}" = "" ]; then
@@ -156,16 +144,35 @@ function downloadSourceCode() {
 
   # Create a blobless clone, downloads all reachable commits and trees while fetching blobs on-demand.
   git clone --filter=blob:none "${repoUrl}"
-  echo "Change directory ${changeDir}"
-  echo "Commit or branch ${commitOrBranch}"
   cd "${changeDir}"
 
   # -c advice.detachedHead=false is used to avoid the Git message for the detached HEAD
   git -c advice.detachedHead=false checkout "${commitOrBranch}"
-
+  ret=$?
+  if [ $ret -ne 0 ]; then
+    releaseBranch=$(getReleaseBranch "${imageTag}" "${compKey}")
+    echo "There is an issue in pulling source from commit/branch ${commitOrBranch}, switching to release branch ${releaseBranch}"
+    git -c advice.detachedHead=false checkout "${releaseBranch}"
+  fi
   # Remove git history and other files
   rm -rf .git .gitignore .github .gitattributes
   printf "\n"
+}
+
+# Derive the release branch for the components
+function getReleaseBranch() {
+  local imageTag=$1
+  local componentName=$2
+  if [[ "$componentName" == "verrazzano/opensearch" ]] || [[ "$componentName" == "verrazzano/opensearch-dashboards" ]] ; then
+    echo "oracle-2.3.0"
+    return
+  fi
+  imageVersion=$(echo "${imageTag}"|cut -d'-' -f1)
+  if [[ $imageVersion == v* ]]; then
+    imageVersion="${imageVersion:1}"
+  fi
+  releaseBranch="oracle/release/${imageVersion}"
+  echo "${releaseBranch}"
 }
 
 # Handle the examples repository as a special case and get the source from master/main branch
@@ -217,7 +224,7 @@ function downloadAdditionalSource() {
       key=$(echo $key | tr '.' '_')
       url=$(echo "${value}"|cut -d':' -f2-)
       branchInfo=$(echo "${value}"|cut -d':' -f1)
-      downloadSourceCode "$key" ${branchInfo} "${url}"
+      downloadSourceCode "$key" ${branchInfo} "${url}" ""
     done < "${additionalSource}"
   else
     echo "$additionalSource here not found."
