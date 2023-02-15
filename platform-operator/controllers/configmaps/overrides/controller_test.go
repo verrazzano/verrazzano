@@ -5,6 +5,7 @@ package overrides
 
 import (
 	"context"
+	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"testing"
@@ -268,6 +269,7 @@ func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	_ = corev1.AddToScheme(scheme)
 	_ = vzapi.AddToScheme(scheme)
+	_ = modulesv1alpha1.AddToScheme(scheme)
 	return scheme
 }
 
