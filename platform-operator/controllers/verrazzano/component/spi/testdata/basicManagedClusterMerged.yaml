@@ -238,7 +238,7 @@ spec:
     kubeStateMetrics:
       enabled: true
     mySQLOperator:
-      enabled: true
+      enabled: false
     kibana:
       enabled: false
       replicas: 1

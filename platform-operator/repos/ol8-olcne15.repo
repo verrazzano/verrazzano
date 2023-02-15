@@ -1,0 +1,8 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+[ol8-olcne]
+name=Oracle Linux 8 OLCNE 1.5
+baseurl=https://yum.oracle.com/repo/OracleLinux/OL8/olcne15/x86_64
+gpgcheck=0
+enabled=1
