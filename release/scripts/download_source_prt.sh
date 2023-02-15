@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # A script to download the source code for the images build from source.
@@ -99,9 +99,15 @@ function processImagesToPublish() {
       key=$(echo $key | tr '.' '_')
       key=${key#$VZ_REPO_PREFIX}
 
-      # Remove till last - from value to get the short commit
-      value=${value##*-}
-
+      # Workaround for OpenSearch and Grafana
+      if [[ "$key" == "opensearch" ]]; then
+        value="oracle-2.3.0"
+      elif [[ "$key" == "grafana" ]]; then
+        value="oracle/release/7.5.17"
+      else
+        # Remove till last - from value to get the short commit
+        value=${value##*-}
+      fi
       downloadSourceCode "$key" "${value}"
     done < "${imagesToPublish}"
   else
@@ -170,6 +176,7 @@ function downloadSourceExamples() {
 
   git clone "${repoUrl}"
   cd examples
+
   # Remove git history and other files
   rm -rf .git .gitignore .github .gitattributes
   printf "\n"

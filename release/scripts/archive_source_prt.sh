@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # A script to archive the source as a .tar.gz file. When the size of the source archive is more than 4GB, it is split into
@@ -36,7 +36,7 @@ SOURCE_ARCHIVE=${VERRAZZANO_RELEASE}.tar.gz
 # Create an archive from source code in SOURCE_DIR
 function createSourceArchive() {
   cd $SOURCE_DIR
-  tar czf ${ARCHIVE_DIR}/${SOURCE_ARCHIVE} .
+  tar -czf ${ARCHIVE_DIR}/${SOURCE_ARCHIVE} *
 }
 
 # Split the generated tar file, such that each of the source code file has maximum of 4GB
