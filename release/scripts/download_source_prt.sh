@@ -156,7 +156,6 @@ function downloadSourceCode() {
     echo "There is an issue in pulling source from commit/branch ${commitOrBranch}, switching to release branch ${releaseBranch}"
     git -c advice.detachedHead=false checkout "${releaseBranch}"
   fi
-  git pull
 
   # Remove git history and other files
   rm -rf .git .gitignore .github .gitattributes
@@ -195,7 +194,6 @@ function downloadSourceExamples() {
 
   git clone "${repoUrl}"
   cd examples
-  git pull
 
   # Remove git history and other files
   rm -rf .git .gitignore .github .gitattributes
