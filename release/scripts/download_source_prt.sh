@@ -148,13 +148,16 @@ function downloadSourceCode() {
 
   # -c advice.detachedHead=false is used to avoid the Git message for the detached HEAD
   git -c advice.detachedHead=false checkout "${commitOrBranch}"
+
+  # When the git checkout of a commit fails, checkout the source from the respective release branch
   ret=$?
   if [ $ret -ne 0 ]; then
     releaseBranch=$(getReleaseBranch "${imageTag}" "${compKey}")
-    echo "Release Branch ${releaseBranch}"
     echo "There is an issue in pulling source from commit/branch ${commitOrBranch}, switching to release branch ${releaseBranch}"
     git -c advice.detachedHead=false checkout "${releaseBranch}"
   fi
+  git pull
+
   # Remove git history and other files
   rm -rf .git .gitignore .github .gitattributes
   printf "\n"
@@ -192,6 +195,7 @@ function downloadSourceExamples() {
 
   git clone "${repoUrl}"
   cd examples
+  git pull
 
   # Remove git history and other files
   rm -rf .git .gitignore .github .gitattributes
