@@ -100,11 +100,15 @@ function processImagesToPublish() {
       key=${key#$VZ_REPO_PREFIX}
 
       echo "Key $key"
-      # Workaround for OpenSearch and Grafana
+      # Workaround for some components
       if [[ "$key" == "opensearch" ]]; then
         value="oracle-2.3.0"
       elif [[ "$key" == "grafana" ]]; then
         value="oracle/release/7.5.17"
+      elif [[ "$key" == "prometheus" ]]; then
+        value="oracle/release/2.38.0"
+      elif [[ "$key" == "alertmanager" ]]; then
+        value="oracle/release/0.24.0"
       else
         # Remove till last - from value to get the short commit
         value=${value##*-}
