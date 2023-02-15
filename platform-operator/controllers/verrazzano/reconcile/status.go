@@ -317,30 +317,30 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 			// Skip components that have already been processed
 			continue
 		}
-		if comp.IsOperatorInstallSupported() {
-			// If the component is installed then mark it as ready
-			compContext := newContext.Init(comp.Name()).Operation(vzconst.InitializeOperation)
-			lastReconciled := int64(0)
-			state := installv1alpha1.CompStateDisabled
-			if !unitTesting {
-				installed, err := comp.IsInstalled(compContext)
-				if err != nil {
-					log.Errorf("Failed to determine if component %s is installed: %v", comp.Name(), err)
-					return newRequeueWithDelay(), err
-				}
-				if installed {
-					state = installv1alpha1.CompStateReady
-					lastReconciled = compContext.ActualCR().Generation
-				}
+		//if comp.IsOperatorInstallSupported() {
+		// If the component is installed then mark it as ready
+		compContext := newContext.Init(comp.Name()).Operation(vzconst.InitializeOperation)
+		lastReconciled := int64(0)
+		state := installv1alpha1.CompStateDisabled
+		if !unitTesting {
+			installed, err := comp.IsInstalled(compContext)
+			if err != nil {
+				log.Errorf("Failed to determine if component %s is installed: %v", comp.Name(), err)
+				return newRequeueWithDelay(), err
 			}
-			componentsToUpdate[comp.Name()] = &installv1alpha1.ComponentStatusDetails{
-				Name:                     comp.Name(),
-				State:                    state,
-				LastReconciledGeneration: lastReconciled,
+			if installed {
+				state = installv1alpha1.CompStateReady
+				lastReconciled = compContext.ActualCR().Generation
 			}
-			statusUpdated = true
 		}
+		componentsToUpdate[comp.Name()] = &installv1alpha1.ComponentStatusDetails{
+			Name:                     comp.Name(),
+			State:                    state,
+			LastReconciledGeneration: lastReconciled,
+		}
+		statusUpdated = true
 	}
+	//}
 	// Update the status
 	if statusUpdated {
 		r.StatusUpdater.Update(&vzstatus.UpdateEvent{

@@ -458,20 +458,20 @@ func testUpdate(t *testing.T,
 func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
 	statusMap := make(vzapi.ComponentStatusMap)
 	for _, comp := range registry.GetComponents() {
-		if comp.IsOperatorInstallSupported() {
-			var available vzapi.ComponentAvailability = vzapi.ComponentAvailable
-			statusMap[comp.Name()] = &vzapi.ComponentStatusDetails{
-				Name: comp.Name(),
-				Conditions: []vzapi.Condition{
-					{
-						Type:   vzapi.CondInstallComplete,
-						Status: corev1.ConditionTrue,
-					},
+		//if comp.IsOperatorInstallSupported() {
+		var available vzapi.ComponentAvailability = vzapi.ComponentAvailable
+		statusMap[comp.Name()] = &vzapi.ComponentStatusDetails{
+			Name: comp.Name(),
+			Conditions: []vzapi.Condition{
+				{
+					Type:   vzapi.CondInstallComplete,
+					Status: corev1.ConditionTrue,
 				},
-				State:     vzapi.CompStateReady,
-				Available: &available,
-			}
+			},
+			State:     vzapi.CompStateReady,
+			Available: &available,
 		}
+		//}
 	}
 	return statusMap
 }
@@ -479,14 +479,14 @@ func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
 func makeVerrazzanoComponentStatusMapDisabled() vzapi.ComponentStatusMap {
 	statusMap := make(vzapi.ComponentStatusMap)
 	for _, comp := range registry.GetComponents() {
-		if comp.IsOperatorInstallSupported() {
-			var available vzapi.ComponentAvailability = vzapi.ComponentUnavailable
-			statusMap[comp.Name()] = &vzapi.ComponentStatusDetails{
-				Name:      comp.Name(),
-				State:     vzapi.CompStateDisabled,
-				Available: &available,
-			}
+		//if comp.IsOperatorInstallSupported() {
+		var available vzapi.ComponentAvailability = vzapi.ComponentUnavailable
+		statusMap[comp.Name()] = &vzapi.ComponentStatusDetails{
+			Name:      comp.Name(),
+			State:     vzapi.CompStateDisabled,
+			Available: &available,
 		}
+		//}
 	}
 	return statusMap
 }
