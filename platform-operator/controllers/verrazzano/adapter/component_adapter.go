@@ -23,7 +23,7 @@ type componentAdapter struct {
 	InstallOverrides vzapi.InstallOverrides
 }
 
-func NewAdapter(enabled bool) *componentAdapter {
+func newAdapter(enabled bool) *componentAdapter {
 	return &componentAdapter{
 		IsEnabled: enabled,
 	}
