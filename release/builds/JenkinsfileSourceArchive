@@ -42,8 +42,7 @@ pipeline {
         RELEASE_VERSION = "${params.RELEASE_VERSION}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
 
-        GITLAB_URL_PREFIX = credentials('gitlab-url-prefix')
-        REPO_URLS_PROPS = "source_repo_urls.properties"
+        REPO_URLS = "source_repo_urls.properties"
         PUBLIC_REPO_URLS = "public_source_repo_urls.properties"
         INTERNAL_REPO_URLS = "internal_source_repo_urls.properties"
 
@@ -179,9 +178,9 @@ pipeline {
         always {
             sh """
                 echo "Sorting the source repository URLs before archiving"
-                if [ -f ${REPO_URLS_PROPS} ];
+                if [ -f ${REPO_URLS} ];
                 then
-                 sort -u -o ${REPO_URLS_PROPS} ${REPO_URLS_PROPS}
+                 sort -u -o ${REPO_URLS} ${REPO_URLS}
                 fi
             """
             archiveArtifacts artifacts: "**/${REPO_URLS},**/verrazzano_*.txt,**/${ARCHIVE_SOURCE_ERR},**/${ARCHIVE_SOURCE_OUT},**/${DOWNLOAD_SOURCE_OUT},**/${DOWNLOAD_SOURCE_ERR}", allowEmptyArchive: true
