@@ -6,6 +6,7 @@ package adapter
 import (
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	corev1 "k8s.io/api/core/v1"
@@ -23,6 +24,31 @@ func ApplyComponentAsModule(client clipkg.Client, vz *vzapi.Verrazzano, componen
 }
 
 var componentAdapters = map[string]func(*vzapi.Verrazzano) *componentAdapter{
+	// Keycloak Adapter
+	coherence.ComponentName: func(vz *vzapi.Verrazzano) *componentAdapter {
+		adapter := newAdapter(vzcr.IsCoherenceOperatorEnabled(vz))
+		if adapter.IsEnabled {
+			adapter.Name = coherence.ComponentName
+			adapter.Namespace = vz.Namespace
+			adapter.ChartNamespace = coherence.ComponentNamespace
+			adapter.ChartPath = coherence.ComponentName
+			coh := vz.Spec.Components.CoherenceOperator
+			if coh != nil {
+				adapter.InstallOverrides = coh.InstallOverrides
+				//override := vzapi.Overrides{
+				//	ConfigMapRef: &corev1.ConfigMapKeySelector{
+				//		Key: valuesYaml,
+				//		LocalObjectReference: corev1.LocalObjectReference{
+				//			Name: coherence.ConfigMapName,
+				//		},
+				//	},
+				//}
+				//adapter.InstallOverrides.ValueOverrides = append([]vzapi.Overrides{override}, kc.ValueOverrides...)
+			}
+		}
+		return adapter
+	},
+
 	// Keycloak Adapter
 	keycloak.ComponentName: func(vz *vzapi.Verrazzano) *componentAdapter {
 		adapter := newAdapter(vzcr.IsKeycloakEnabled(vz))

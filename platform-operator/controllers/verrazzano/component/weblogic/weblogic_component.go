@@ -97,6 +97,9 @@ func NewComponent(module *modulesv1alpha1.Module) modules.DelegateReconciler {
 }
 
 func (c weblogicComponent) PreInstall(ctx spi.ComponentContext) error {
+	if err := c.HelmComponent.PreInstall(ctx); err != nil {
+		return err
+	}
 	return common.ApplyOverride(ctx, overridesFile)
 }
 
