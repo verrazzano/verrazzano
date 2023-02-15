@@ -704,6 +704,10 @@ func TestDeleteRancherFinalizers(t *testing.T) {
 	a := assert.New(t)
 	vz := v1alpha1.Verrazzano{}
 
+	// Namespaces
+	ns1 := newNamespace(constants2.KeycloakNamespace)
+	ns2 := newNamespace(constants2.VerrazzanoSystemNamespace)
+
 	// ClusterRole that contains Rancher finalizers
 	cr1 := newClusterRole("cr1", "default", []string{"test", "test.cattle.io"})
 	crb1 := newClusterRoleBinding("crb1", "default", []string{"test", "test.cattle.io"})
@@ -720,7 +724,7 @@ func TestDeleteRancherFinalizers(t *testing.T) {
 	r3 := newRole("rb3", constants2.KeycloakNamespace, []string{"test", "test.cattle.io"})
 	rb3 := newRoleBinding("rb3", constants2.KeycloakNamespace, []string{"test", "test.cattle.io"})
 
-	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(cr1, crb1, r1, r2, r3, rb1, rb2, rb3).Build()
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(ns1, ns2, cr1, crb1, r1, r2, r3, rb1, rb2, rb3).Build()
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
 	deleteRancherFinalizers(ctx)
 
@@ -752,9 +756,15 @@ func TestDeleteRancherFinalizers(t *testing.T) {
 	}
 }
 
+func newNamespace(name string) *v1.Namespace {
+	return &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+}
 func newClusterRole(name string, namespace string, finalizers []string) *rbacv1.ClusterRole {
 	return &rbacv1.ClusterRole{
-		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:  namespace,
 			Name:       name,
@@ -765,7 +775,6 @@ func newClusterRole(name string, namespace string, finalizers []string) *rbacv1.
 
 func newClusterRoleBinding(name string, namespace string, finalizers []string) *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
-		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:  namespace,
 			Name:       name,
@@ -776,7 +785,6 @@ func newClusterRoleBinding(name string, namespace string, finalizers []string) *
 
 func newRole(name string, namespace string, finalizers []string) *rbacv1.Role {
 	return &rbacv1.Role{
-		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:  namespace,
 			Name:       name,
@@ -787,9 +795,6 @@ func newRole(name string, namespace string, finalizers []string) *rbacv1.Role {
 
 func newRoleBinding(name string, namespace string, finalizers []string) *rbacv1.RoleBinding {
 	return &rbacv1.RoleBinding{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "RoleBinding",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:  namespace,
 			Name:       name,

@@ -67,10 +67,6 @@ var rancherSystemNS = []string{
 	"local",
 }
 
-// cleanupFinalizerNS - list of namespaces that may have objects with Rancher finalizers
-// after the rancher cleanup job has completed.
-var cleanupFinalizerNS = []string{"default", constants.VerrazzanoSystemNamespace, constants.KeycloakNamespace}
-
 // create func vars for unit tests
 type forkPostUninstallFuncSig func(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error
 
@@ -528,26 +524,37 @@ func isRancherNamespace(ns *corev1.Namespace) bool {
 // didn't catch
 func deleteRancherFinalizers(ctx spi.ComponentContext) {
 
-	for _, namespace := range cleanupFinalizerNS {
-		listOptions := client.ListOptions{Namespace: namespace}
+	// Check the finalizers of all ClusterRoles
+	crList := rbacv1.ClusterRoleList{}
+	if err := ctx.Client().List(context.TODO(), &crList); err != nil {
+		ctx.Log().Errorf("Component %s failed to list ClusterRoles: %v", ComponentName, err)
+	}
+	for i, clusterRole := range crList.Items {
+		removeFinalizer(ctx, &crList.Items[i], clusterRole.Finalizers)
+	}
 
-		// Check the finalizers of all ClusterRoles
-		crList := rbacv1.ClusterRoleList{}
-		if err := ctx.Client().List(context.TODO(), &crList); err != nil {
-			ctx.Log().Errorf("Component %s failed to list ClusterRoles: %v", ComponentName, err)
-		}
-		for i, clusterRole := range crList.Items {
-			removeFinalizer(ctx, &crList.Items[i], clusterRole.Finalizers)
-		}
+	// Check the finalizers of all ClusterRoleBindings
+	crbList := rbacv1.ClusterRoleBindingList{}
+	if err := ctx.Client().List(context.TODO(), &crbList); err != nil {
+		ctx.Log().Errorf("Component %s failed to list ClusterRoleBindings: %v", ComponentName, err)
+	}
+	for i, clusterRoleBinding := range crbList.Items {
+		removeFinalizer(ctx, &crbList.Items[i], clusterRoleBinding.Finalizers)
+	}
 
-		// Check the finalizers of all ClusterRoleBindings
-		crbList := rbacv1.ClusterRoleBindingList{}
-		if err := ctx.Client().List(context.TODO(), &crbList); err != nil {
-			ctx.Log().Errorf("Component %s failed to list ClusterRoleBindings: %v", ComponentName, err)
+	// Check the finalizers of Roles and RoleBindings of all namespaces.  Rancher adds a finalizer
+	// to every one of them.
+	nsList := corev1.NamespaceList{}
+	if err := ctx.Client().List(context.TODO(), &nsList); err != nil {
+		ctx.Log().Errorf("Component %s failed to list Namespaces: %v", ComponentName, err)
+	}
+
+	for _, ns := range nsList.Items {
+		// Skip system namespace
+		if strings.HasPrefix(ns.Name, "kube-") {
+			continue
 		}
-		for i, clusterRoleBinding := range crbList.Items {
-			removeFinalizer(ctx, &crbList.Items[i], clusterRoleBinding.Finalizers)
-		}
+		listOptions := client.ListOptions{Namespace: ns.Name}
 
 		// Check the finalizers of all RoleBindings
 		rbList := rbacv1.RoleBindingList{}
