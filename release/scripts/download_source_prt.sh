@@ -99,6 +99,7 @@ function processImagesToPublish() {
       key=$(echo $key | tr '.' '_')
       key=${key#$VZ_REPO_PREFIX}
 
+      echo "Key $key"
       # Workaround for OpenSearch and Grafana
       if [[ "$key" == "opensearch" ]]; then
         value="oracle-2.3.0"
@@ -108,6 +109,7 @@ function processImagesToPublish() {
         # Remove till last - from value to get the short commit
         value=${value##*-}
       fi
+      echo "Value $value"
       downloadSourceCode "$key" "${value}"
     done < "${imagesToPublish}"
   else
@@ -150,6 +152,8 @@ function downloadSourceCode() {
 
   # Create a blobless clone, downloads all reachable commits and trees while fetching blobs on-demand.
   git clone --filter=blob:none "${repoUrl}"
+  echo "Change directory ${changeDir}"
+  echo "Commit or branch ${commitOrBranch}"
   cd "${changeDir}"
 
   # -c advice.detachedHead=false is used to avoid the Git message for the detached HEAD
@@ -256,6 +260,4 @@ fi
 
 if [ "$DRY_RUN" == true ] ; then
    echo "Completed running the script with DRY_RUN = true"
-else
-  echo "Completed archiving source code, take a look at the contents of ${SAVE_DIR}"
 fi
