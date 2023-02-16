@@ -3818,7 +3818,7 @@
           "value": ""
         },
         "datasource": null,
-        "definition": "label_values(wls_jvm_uptime{verrazzano_cluster=~\"$vzcluster\", weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\",weblogic_serverName=\"$serverName\"},service)",
+        "definition": "label_values(wls_jvm_uptime{verrazzano_cluster=~\"$vzcluster\", weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\"},service)",
         "description": null,
         "error": null,
         "hide": 0,
@@ -3828,7 +3828,7 @@
         "name": "serviceName",
         "options": [],
         "query": {
-          "query": "label_values(wls_jvm_uptime{verrazzano_cluster=~\"$vzcluster\", weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\",weblogic_serverName=\"$serverName\"},service)",
+          "query": "label_values(wls_jvm_uptime{verrazzano_cluster=~\"$vzcluster\", weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\"},service)",
           "refId": "Prometheus-service-Variable-Query"
         },
         "refresh": 2,
