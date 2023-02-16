@@ -126,6 +126,7 @@ metadata:
   namespace: {{ .Values.namespace }}
   labels:
     app: {{ .Values.name }}
+{{- if .Values.webhooks.resourceValidation }}
 webhooks:
   - name: v1beta1-platform-requirements-validator.verrazzano.io.v1beta1
     namespaceSelector:
@@ -179,3 +180,4 @@ webhooks:
     admissionReviewVersions:
       - v1beta1
       - v1
+{{- end }}
