@@ -60,10 +60,6 @@ type OperatorConfig struct {
 	// RunWebhookInit Runs the webhook init path instead of the operator reconciler
 	RunWebhookInit bool
 
-	// ResourceRequirementsValidation toggles the suppression of resource requirement validation webhook
-	// default-value: false, disabling the validation
-	ResourceRequirementsValidation bool
-
 	// WebhookValidationEnabled enables/disables webhook validation without removing the webhook itself
 	WebhookValidationEnabled bool
 
@@ -86,18 +82,17 @@ type OperatorConfig struct {
 
 // The singleton instance of the operator config
 var instance = OperatorConfig{
-	CertDir:                        "/etc/webhook/certs",
-	MetricsAddr:                    ":8080",
-	LeaderElectionEnabled:          false,
-	VersionCheckEnabled:            true,
-	RunWebhookInit:                 false,
-	RunWebhooks:                    false,
-	ResourceRequirementsValidation: false,
-	WebhookValidationEnabled:       true,
-	VerrazzanoRootDir:              rootDir,
-	HealthCheckPeriodSeconds:       60,
-	MySQLCheckPeriodSeconds:        60,
-	MySQLRepairTimeoutSeconds:      120,
+	CertDir:                   "/etc/webhook/certs",
+	MetricsAddr:               ":8080",
+	LeaderElectionEnabled:     false,
+	VersionCheckEnabled:       true,
+	RunWebhookInit:            false,
+	RunWebhooks:               false,
+	WebhookValidationEnabled:  true,
+	VerrazzanoRootDir:         rootDir,
+	HealthCheckPeriodSeconds:  60,
+	MySQLCheckPeriodSeconds:   60,
+	MySQLRepairTimeoutSeconds: 120,
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests
