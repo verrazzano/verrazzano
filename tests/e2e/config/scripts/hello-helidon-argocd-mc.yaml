@@ -7,13 +7,13 @@ metadata:
   namespace: argocd
 spec:
   destination:
-    name: 'managed1'
-    namespace: 'mc-sockshop'
-    server: ''
+    name: ''
+    namespace: hello-helidon
+    server: 'https://kubernetes.default.svc'
   source:
-    path: 'examples/multicluster/sock-shop'
+    path: 'examples/multicluster/hello-helidon'
     repoURL: 'https://github.com/verrazzano/verrazzano'
-    targetRevision: master
+    targetRevision: HEAD
   project: default
   syncPolicy:
     automated:
