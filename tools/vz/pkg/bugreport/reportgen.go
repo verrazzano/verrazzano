@@ -282,9 +282,8 @@ func captureAdditionalResources(client clipkg.Client, kubeClient kubernetes.Inte
 	}
 }
 
-
 // captureMultiClusterResources captures Projects and VerrazzanoManagedCluster resource
-func captureMultiClusterResources (dynamicClient dynamic.Interface, captureDir string, vzHelper pkghelpers.VZHelper) error {
+func captureMultiClusterResources(dynamicClient dynamic.Interface, captureDir string, vzHelper pkghelpers.VZHelper) error {
 	// Return nil when dynamicClient is nil, useful to get clean unit tests
 	if dynamicClient == nil {
 		return nil
