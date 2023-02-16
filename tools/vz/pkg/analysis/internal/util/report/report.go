@@ -106,9 +106,9 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 	if err != nil {
 		return err
 	}
-	writeOut += fmt.Sprintf("\nVerrazzano Version (%s),\tKubernetes Version: %s\n", helpers.GetVzVer(), k8sVer)
+	versionOut := fmt.Sprintf("\nVerrazzano Version (%s),\tKubernetes Version: %s\n", helpers.GetVzVer(), k8sVer)
 	if reportFormat == constants.SummaryReport {
-		fmt.Fprintf(os.Stdout, "\n (%s)\n", writeOut)
+		fmt.Fprintf(os.Stdout, "%s", versionOut)
 	}
 	// Lock the report data while generating the report itself
 	reportMutex.Lock()
@@ -149,7 +149,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 				}
 
 			}
-
+			writeOut += versionOut
 			writeOut += fmt.Sprintf("\n\tISSUE (%s)\n\t\tsummary: %s\n", issue.Type, issue.Summary)
 			if len(issue.Actions) > 0 && includeActions {
 				log.Debugf("Output actions")
