@@ -1,0 +1,279 @@
+# Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+# serviceAccount specifies the name of the ServiceAccount in the operator's namespace that the
+# operator will use to make requests to the Kubernetes API server.
+# The customer is responsible for creating the ServiceAccount in the same namespace as this Helm release.
+# If not specified, the operator will use the Helm release namespace's 'default' ServiceAccount.
+#serviceAccount: default
+
+# domainNamespaceSelectionStrategy specifies how the operator will select the set of namespaces
+# that it will manage. Legal values are: LabelSelector, RegExp, List, and Dedicated.
+# If set to 'LabelSelector', then the operator will manage the set of namespaces discovered by a list
+# of namespaces using the value specified by 'domainNamespaceLabelSelector' as a label selector.
+# If set to 'RegExp', then the operator will manage the set of namespaces discovered by a list
+# of namespaces using the value specified by 'domainNamespaceRegExp' as a regular expression matched
+# against the namespace names.
+# If set to 'List', then the operator will manage the set of namespaces listed by the 'domainNamespaces' value.
+# If set to 'Dedicated', then operator will manage WebLogic Domains only in the same namespace
+# where the operator itself is deployed, which is the namespace of the Helm release.
+# If not specified, the default is LabelSelector
+#domainNamespaceSelectionStrategy: LabelSelector
+
+# domainNamespaceLabelSelector specifies the label selector value that the operator will use when listing
+# namespaces in search of the namespaces that contain WebLogic Domains that this operator will manage. Ignored
+# if 'domainNamespaceSelectionStrategy' is not 'LabelSelector'. If not specified, the default is "weblogic-operator=enabled"
+#
+# Example: manage any namespace with a label named "weblogic-operator" that has value "enabled".
+#
+# domainNamespaceLabelSelector: 'weblogic-operator=enabled'
+
+# domainNamespaceRegExp specifies a regular expression that will be matched against namespace names when listing
+# namespaces in search of the namespaces that contain WebLogic Domains that this operator will manage. Ignored
+# if 'domainNamespaceSelectionStrategy' is not 'RegExp'.
+#
+# Example: manage any namespace where the namespace name starts with "prod".
+#
+# domainNamespaceRegExp: ^prod
+
+# domainNamespaces specifies list of WebLogic Domain namespaces that this operator manages. This value
+# is ignored if 'domainNamespaceSelectionStrategy' is not 'List'. The customer is responsible for creating these
+# namespaces. If not specified, then the operator will manage WebLogic Domains in the Kubernetes 'default' namespace.
+#
+# Example: In the configuration below, the operator will manage namespace1 and namespace2.
+#
+# domainNamespaces:
+# - "namespace1"
+# - "namespace2"
+
+# enableClusterRoleBinding specifies whether the roles necessary for the operator to manage domains
+# will be granted using a ClusterRoleBinding rather than using RoleBindings in each managed namespace.
+# If not specified, the default is true unless 'domainNamespaceSelectionStrategy' is 'Dedicated, in which
+# case this value is ignored as all resources will be created in the namespace where the operator is deployed.
+#
+enableClusterRoleBinding: true
+
+# image specifies the container image containing the operator.
+#image: "ghcr.io/oracle/weblogic-kubernetes-operator:4.0.4"
+
+# imagePullPolicy specifies the image pull policy for the operator's container image.
+imagePullPolicy: IfNotPresent
+
+# imagePullSecrets contains an optional list of Kubernetes Secrets, in the operator's namespace,
+# that are needed to access the registry containing the operator's container image.
+# The customer is responsible for creating the Secret.
+# If no Secrets are required, then omit this property.
+#
+# Example: a Secret is needed, and has been stored in 'my-operator-secret'
+#
+# imagePullSecrets:
+# - name: "my-operator-secret"
+
+# externalRestEnabled specifies whether the operator's REST interface is exposed
+# outside the Kubernetes cluster on the port specified by the 'externalRestHttpsPort'
+# property.
+#
+# If set to true, then the customer must provide the SSL certificate and private key for
+# the operator's external REST interface by specifying the 'externalOperatorCert' and
+# 'externalOperatorKey' properties.
+externalRestEnabled: false
+
+# externalRestHttpsPort specifies the node port that should be allocated for the external operator REST HTTPS interface.
+# This parameter is required if 'externalRestEnabled' is true.
+# Otherwise, it is ignored.
+externalRestHttpsPort: 31001
+
+# The name of the Secret used to store the certificate and private key to use for the external operator REST HTTPS interface.
+# The Secret has to be created in the same namespace of the WebLogic operator.
+# This parameter is required if 'externalRestEnabled' is true. Otherwise, it is ignored.
+# As example, an external REST identity can be created using the following sample script
+# kubernetes/samples/scripts/rest/generate-external-rest-identity.sh
+# externalRestIdentitySecret:
+
+# elkIntegrationEnabled specifies whether ELK integration is enabled.
+elkIntegrationEnabled: false
+
+# logStashImage specifies the container image containing Logstash.
+# This parameter is ignored if 'elkIntegrationEnabled' is false.
+logStashImage: "logstash:6.8.23"
+
+# elasticSearchHost specifies the hostname of where elasticsearch is running.
+# This parameter is ignored if 'elkIntegrationEnabled' is false.
+elasticSearchHost: "elasticsearch.default.svc.cluster.local"
+
+# elasticSearchPort specifies the port number of where elasticsearch is running.
+# This parameter is ignored if 'elkIntegrationEnabled' is false.
+elasticSearchPort: 9200
+
+# elasticSearchProtocol specifies the protocol to be used for communication with elasticsearch.
+# This parameter is ignored if 'elkIntegrationEnabled' is false.
+elasticSearchProtocol: http
+
+# createlogStashConfigMap specifies whether a ConfigMap named
+# weblogic-operator-logstash-cm should be created during helm install.
+# The ConfigMap contains the Logstash pipeline configuration for the Logstash
+# container running in the operator pod.
+# If set to true, a ConfigMap will be created during Helm install using the
+# logstash.conf file in the kubernetes/samples/charts/weblogic-operator directory.
+# Set createLogStashConfigMap to false if the ConfigMap
+# already exists in the operator's namespace with the Logstash 
+# configuration provided by the customer.
+# This parameter is ignored if 'elkIntegrationEnabled' is false.
+createLogStashConfigMap: true
+
+# featureGates specifies a set of key=value pairs separated by commas that describe whether a given
+# operator feature is enabled. You enable a feature by including a key=value pair where the key is the
+# feature name and the value is "true". This will allow the operator team to release features that
+# are not yet ready to be enabled by default, but that are ready for testing by customers. Once a feature is
+# stable then it will be enabled by default and can not be disabled using this configuration.
+# featureGates: "...,AuxiliaryImage=true"
+
+# javaLoggingLevel specifies the Java logging level for the operator. This affects the operator pod's
+# log output and the contents of log files in the container's /logs/ directory.
+# Valid values are: "SEVERE", "WARNING", "INFO", "CONFIG", "FINE", "FINER", and "FINEST".
+javaLoggingLevel: "INFO"
+
+# javaLoggingFileSizeLimit specifies the maximum size in bytes for an individual Java logging file in the operator container's
+# /logs/ directory.
+javaLoggingFileSizeLimit: 20000000
+
+# javaLoggingFileCount specifies the number of Java logging files to preserve in the operator container's /logs/
+# directory as the files are rotated.
+javaLoggingFileCount: 10
+
+# labels specifies a set of key-value labels that will be added to each pod running the operator.
+# See https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+#labels:
+
+# annotations specifies a set of key-value annotations that will be added to each pod running the operator.
+# See https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+#annotations:
+
+# nodeSelector specifies a matching rule that the Kubernetes scheduler will use when selecting the node
+# where the operator will run. If the nodeSelector value is specified, then this content will be added to
+# the operator's deployment. See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector
+# for more information on node selectors.
+#nodeSelector:
+ 
+# webhookOnly specifies whether only the conversion webhook should be installed during the helm install
+# and that the operator installation should be skipped.
+# By default, the helm install command installs both the operator and the conversion webhook.
+# If set to true, the helm install will install only the conversion webhook (and not the operator).
+# The default value is false.
+webhookOnly: false
+
+# operatorOnly specifies whether only the operator should be installed during the helm install and that 
+# the conversion webhook installation should be skipped.
+# By default, the helm install command installs both the operator and the conversion webhook.
+# If set to true, the helm install will install only the operator (and not the conversion webhook).
+# The default value is false.
+operatorOnly: false
+ 
+# preserveWebhook specifies whether the previous webhook deployment should be preserved
+# when the chart is uninstalled using helm uninstall.
+# By default, the helm uninstall will remove both the webhook deployment and the operator deployment.
+# If set to true, the helm uninstall command will skip removing the webhook deployment.
+# The default value is false.
+preserveWebhook: false
+
+# affinity specifies a set of matching rules related to the presence of other workloads that the Kubernetes scheduler
+# will use when selecting the node where the operator will run. If the affinity value is specified, then this content
+# will be added to the operator's deployment. See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity
+# for more information on affinity and anti-affinity.
+#affinity:
+
+# tolerations and taints work together to ensure that pods are not scheduled on inappropriate nodes. If the tolerations value is specified,
+# then this content will be added to the operator's deployment. See https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+# for more information on tolerations and taints.
+#tolerations:
+
+# Values related to debugging the operator.
+# Customers should not need to use the following properties
+
+# remoteDebugNodePortEnabled specifies whether the operator will provide a Java remote debug interface on the
+# provided port. If the 'suspendOnDebugStartup' property is specified, the operator will suspend execution
+# until a remote debugger has attached.
+# The 'internalDebugHttpPort' property controls the port number inside the Kubernetes
+# cluster and the 'externalDebugHttpPort' property controls the port number outside
+# the Kubernetes cluster.
+remoteDebugNodePortEnabled: false
+
+#suspendOnDebugStartup specifies whether the operator will suspend on startup when a Java remote debugging is enabled.
+suspendOnDebugStartup: false
+
+# internalDebugHttpPort specifies the port number inside the Kubernetes cluster for the operator's Java
+# remote debug interface.
+# This parameter is required if 'remoteDebugNodePortEnabled' is true.
+# Otherwise, it is ignored.
+internalDebugHttpPort: 30999
+
+# externalDebugHttpPort specifies the node port that should be allocated for the operator's
+# Java remote debug interface.
+# This parameter is required if 'remoteDebugNodePortEnabled' is true.
+# Otherwise, it is ignored.
+externalDebugHttpPort: 30999
+
+# webhookDebugHttpPort specifies the port number inside the Kubernetes cluster for the webhook's Java
+# remote debug interface.
+# This parameter is required if 'remoteDebugNodePortEnabled' is true.
+# Otherwise, it is ignored.
+webhookDebugHttpPort: 31999
+
+# dns1123Fields overrides the default list of field names that the operator
+# converts to DNS-1123 legal values when replacing variable references in the 
+# Domain resource. The default list can be found inside the class LegalNames
+# in the oracle.kubernetes.operator.helpers package.
+# Supply a comma separated list of field names to customize the list of fields
+# such as "name, claimName, volumeName", or leave it commented out to use 
+# the default list of field names.
+# dns1123Fields: ""
+
+# introspectorJobNameSuffix overrides the default suffix that the operator uses
+# to append to the domainUID to form the name of the domain introspector job name.
+# Note that the resultant job name should not be more than 58 characters due to
+# the Kubernetes limit to the name of a job and Kubernetes appends five additional
+# characters to the name of the pod that is created by the job controller.
+# The default suffix is '-introspector'.
+# The default suffix in pre-3.1.0 is "-introspect-domain-job"
+introspectorJobNameSuffix: "-introspector"
+
+# externalServiceNameSuffix overrides the default suffix that the operator uses
+# to append to the domainUID and the WebLogic admin server name, to form the name
+# of the domain's admin server external service.
+# Note that the resultant name should not be more than 63 characters due to
+# the Kubernetes limit to the name of a service.
+# The default suffix is '-ext'.
+# The default suffix in pre-3.1.0 is "-external".
+externalServiceNameSuffix: "-ext"
+
+# clusterSizePaddingValidationEnabled specifies if additional one or two characters
+# need to be reserved to account for longer managed server names because of an increased
+# cluster size.
+# The default value is true.
+clusterSizePaddingValidationEnabled: true
+
+# tokenReviewAuthentication, if set to true, specifies whether the operator's REST API should use
+#   1. Kubernetes token review API for authenticating users, and
+#   2. Kubernetes subject access review API for authorizing a user's operation (get, list,
+#      patch, etc) on a resource.
+#   3. Update the Domain resource using the operator's privileges.
+# This parameter, if set to false, will use the caller's bearer token for any update
+# to the Domain resource so that it is done using the caller's privileges.
+# The default value is false.
+#tokenReviewAuthentication: false
+
+# runAsuser specifies the UID to run the operator and conversion webhook container processes. 
+# If not specified, it defaults to the user specified in the operator's container image.
+#runAsUser: 1000
+
+##########
+# Verrazzano modifications
+annotations:
+  traffic.sidecar.istio.io/excludeOutboundPorts: "443"
+domainNamespaceLabelSelector: verrazzano-managed
+domainNamespaceSelectionStrategy: LabelSelector
+image: ghcr.io/oracle/weblogic-kubernetes-operator:4.0.4
+imagePullSecrets:
+  - name: verrazzano-container-registry
+serviceAccount: weblogic-operator-sa
+weblogicMonitoringExporterImage: ghcr.io/oracle/weblogic-monitoring-exporter:2.1.1
