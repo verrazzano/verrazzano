@@ -65,17 +65,16 @@ func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	directoryFlag := cmd.PersistentFlags().Lookup(constants.DirectoryFlagName)
 
 	directory := ""
+	// Get the controller runtime client
+	client, err := vzHelper.GetClient(cmd)
+	if err != nil {
+		return err
+	}
 	if directoryFlag == nil || directoryFlag.Value.String() == "" {
 		// Analyze live cluster by capturing the snapshot, when capture-dir is not set
 
 		// Get the kubernetes clientset, which will validate that the kubeconfig and context are valid.
 		kubeClient, err := vzHelper.GetKubeClient(cmd)
-		if err != nil {
-			return err
-		}
-
-		// Get the controller runtime client
-		client, err := vzHelper.GetClient(cmd)
 		if err != nil {
 			return err
 		}
@@ -121,6 +120,10 @@ func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		if err != nil {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
 		}
+	}
+
+	if helpers.SetVzVer(client) != nil {
+		return fmt.Errorf("an error occurred while fetching the verrazzano version: %s", err.Error())
 	}
 	return analysis.AnalysisMain(vzHelper, directory, reportFileName, reportFormat)
 }

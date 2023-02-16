@@ -102,6 +102,14 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 	// Default to stdout if no reportfile is supplied
 	//TODO: Eventually add support other reportFormat type (json)
 	writeOut := ""
+	k8sVer, err := helpers.GetK8sVer()
+	if err != nil {
+		return err
+	}
+	writeOut += fmt.Sprintf("\nVerrazzano Version (%s),\tKubernetes Version: %s\n", helpers.GetVzVer(), k8sVer)
+	if reportFormat == constants.SummaryReport {
+		fmt.Fprintf(os.Stdout, "\n (%s)\n", writeOut)
+	}
 	// Lock the report data while generating the report itself
 	reportMutex.Lock()
 	sourcesWithoutIssues := allSourcesAnalyzed

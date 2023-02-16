@@ -44,6 +44,8 @@ var isVerbose bool
 var multiWriterOut io.Writer
 var multiWriterErr io.Writer
 
+var vzVer string
+
 // CreateReportArchive creates the .tar.gz file specified by bugReportFile, from the files in captureDir
 func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
 
@@ -762,4 +764,17 @@ func removePods(podList []corev1.Pod, pods []string) []corev1.Pod {
 		podList = removePod(podList, p)
 	}
 	return podList
+}
+
+func SetVzVer(client clipkg.Client) error {
+	vz, err := FindVerrazzanoResource(client)
+	if err != nil {
+		return err
+	}
+	vzVer = vz.Status.Version
+	return nil
+}
+
+func GetVzVer() string {
+	return vzVer
 }

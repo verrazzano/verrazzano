@@ -8,6 +8,7 @@ import (
 	"fmt"
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	v1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -270,4 +271,23 @@ func GetOperatorYaml(version string) (string, error) {
 		url = fmt.Sprintf(vzconstants.VerrazzanoOperatorURL, version)
 	}
 	return url, nil
+}
+
+func GetK8sVer() (string, error) {
+	config, err := k8sutil.GetConfigFromController()
+	if err != nil {
+		return "", fmt.Errorf("error while getting kubernetes client config %v", err.Error())
+	}
+
+	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return "", fmt.Errorf("error while getting kubernetes client %v", err.Error())
+	}
+
+	versionInfo, err := client.ServerVersion()
+	if err != nil {
+		return "", fmt.Errorf("error while getting kubernetes version %v", err.Error())
+	}
+
+	return versionInfo.String(), nil
 }
