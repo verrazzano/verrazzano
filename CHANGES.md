@@ -1,7 +1,7 @@
 ### v1.5.1
 Fixes:
 
-- Fixed WebLogic Grafana dashboards to get data properly when multiple server values were selected from the dropdown.
+- Fixed the query for the Service variable in WebLogic Grafana dashboard.
 
 
 ### v1.5.0
