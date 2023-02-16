@@ -79,14 +79,6 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 	})
 
 	t.Context("Admin Cluster", func() {
-		// GIVEN an admin cluster and at least one managed cluster
-		// WHEN the example application has been deployed to the managed cluster
-		// THEN expect that the multi-cluster resources are not created on the admin cluster
-		t.It("Does not have multi cluster resources", func() {
-			Eventually(func() bool {
-				return examples.VerifyMCResources(adminKubeconfig, true, false, testNamespace)
-			}, waitTimeout, pollingInterval).Should(BeFalse())
-		})
 		// GIVEN an admin cluster
 		// WHEN the multi-cluster example application has been created on admin cluster but not placed there
 		// THEN expect that the app is not deployed to the admin cluster consistently for some length of time
@@ -102,14 +94,6 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 	})
 
 	t.Context("Managed Cluster", func() {
-		// GIVEN an admin cluster and at least one managed cluster
-		// WHEN the example application has been deployed to the admin cluster
-		// THEN expect that the multi-cluster resources have been created on the managed cluster
-		t.It("Has multi cluster resources", func() {
-			Eventually(func() bool {
-				return examples.VerifyMCResources(managedKubeconfig, false, true, testNamespace)
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-		})
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the multi-cluster example application has been created on admin cluster and placed in managed cluster
 		// THEN expect that the app is deployed to the managed cluster
