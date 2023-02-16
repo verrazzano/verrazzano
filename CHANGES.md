@@ -1,3 +1,9 @@
+### v1.5.1
+Fixes:
+
+- Fixed WebLogic Grafana dashboards to get data properly when multiple server values were selected from the dropdown.
+
+
 ### v1.5.0
 Features:
 
