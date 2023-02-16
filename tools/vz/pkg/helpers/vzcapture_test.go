@@ -130,7 +130,7 @@ func TestCaptureMultiClusterResources(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	assert.NoError(t, CaptureMultiClusterOAMResources(dynamicClient, []string{constants.VerrazzanoInstall}, captureDir, rc))
+	assert.NoError(t, CaptureMultiClusterResources(dynamicClient, []string{constants.VerrazzanoInstall}, captureDir, rc))
 }
 
 // TestCaptureOAMResources tests the functionality to capture the OAM resources in the cluster
