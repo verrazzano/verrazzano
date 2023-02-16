@@ -23,8 +23,8 @@ const (
 	waitTimeout          = 5 * time.Minute
 	pollingInterval      = 10 * time.Second
 	consistentlyDuration = 1 * time.Minute
-	testNamespace        = "mc-sockshop"
-	testProjectName      = "sockshop"
+	testNamespace        = "hello-helidon"
+	testProjectName      = "hello-helidon"
 	argoCDNamespace      = "argocd"
 )
 
