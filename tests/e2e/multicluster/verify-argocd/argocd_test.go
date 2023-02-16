@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster/examples"
+	"github.com/verrazzano/verrazzano/tests/e2e/multicluster/examples/sock-shop"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
@@ -20,15 +21,16 @@ import (
 )
 
 const (
-	waitTimeout     = 5 * time.Minute
-	pollingInterval = 10 * time.Second
-	testNamespace   = "hello-helidon"
-	testProjectName = "hello-helidon"
-	argoCDNamespace = "argocd"
+	waitTimeout          = 5 * time.Minute
+	pollingInterval      = 10 * time.Second
+	consistentlyDuration = 1 * time.Minute
+	testNamespace        = "mc-sockshop"
+	testProjectName      = "sockshop"
+	argoCDNamespace      = "argocd"
 )
 
 const (
-	argoCdHelidonApplicationFile = "tests/e2e/config/scripts/hello-helidon-argocd-mc.yaml"
+	argoCDSocksShopApplicationFile = "tests/e2e/config/scripts/socks-shop-argocd-mc.yaml"
 )
 
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
@@ -43,7 +45,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	// This should internally deploy the helidon app to the managed cluster
 	start := time.Now()
 	Eventually(func() error {
-		file, err := pkg.FindTestDataFile(argoCdHelidonApplicationFile)
+		file, err := pkg.FindTestDataFile(argoCDSocksShopApplicationFile)
 		if err != nil {
 			return err
 		}
@@ -77,6 +79,29 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 		})
 	})
 
+	t.Context("Admin Cluster", func() {
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deployed to the admin cluster
+		// THEN expect that the multi-cluster resources have been created on the admin cluster
+		t.It("Has multi cluster resources", func() {
+			Eventually(func() bool {
+				return examples.VerifyMCResources(adminKubeconfig, true, false, testNamespace)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+		// GIVEN an admin cluster
+		// WHEN the multi-cluster example application has been created on admin cluster but not placed there
+		// THEN expect that the app is not deployed to the admin cluster consistently for some length of time
+		t.It("Does not have application placed", func() {
+			Consistently(func() bool {
+				result, err := sock_shop.VerifySockShopInCluster(adminKubeconfig, true, false, testProjectName, testNamespace)
+				if err != nil {
+					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+				}
+				return result
+			}, consistentlyDuration, pollingInterval).Should(BeTrue())
+		})
+	})
+
 	t.Context("Managed Cluster", func() {
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
@@ -91,7 +116,7 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 		// THEN expect that the app is deployed to the managed cluster
 		t.It("Has application placed", func() {
 			Eventually(func() bool {
-				result, err := examples.VerifyHelloHelidonInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
+				result, err := sock_shop.VerifySockShopInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
 				if err != nil {
 					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
 				}
@@ -109,27 +134,16 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 
 		t.It("Verify deletion on admin cluster", func() {
 			Eventually(func() bool {
-				return examples.VerifyHelloHelidonDeletedAdminCluster(adminKubeconfig, false, testNamespace, testProjectName)
+				return sock_shop.VerifySockShopDeleteOnAdminCluster(adminKubeconfig, false, testNamespace, testProjectName)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		t.It("Verify automatic deletion on managed cluster", func() {
 			Eventually(func() bool {
-				return examples.VerifyHelloHelidonDeletedInManagedCluster(managedKubeconfig, testNamespace, testProjectName)
+				return sock_shop.VerifySockShopDeleteOnManagedCluster(managedKubeconfig, testNamespace, testProjectName)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		t.It("Delete test namespace on managed cluster", func() {
-			Eventually(func() error {
-				return pkg.DeleteNamespaceInCluster(examples.TestNamespace, managedKubeconfig)
-			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
-		})
-
-		t.It("Delete test namespace on admin cluster", func() {
-			Eventually(func() error {
-				return pkg.DeleteNamespaceInCluster(examples.TestNamespace, adminKubeconfig)
-			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
-		})
 	})
 
 })
@@ -144,7 +158,7 @@ var _ = AfterSuite(afterSuite)
 
 func deleteArgoCDApplication(kubeconfigPath string) error {
 	start := time.Now()
-	file, err := pkg.FindTestDataFile(argoCdHelidonApplicationFile)
+	file, err := pkg.FindTestDataFile(argoCDSocksShopApplicationFile)
 	if err != nil {
 		return err
 	}

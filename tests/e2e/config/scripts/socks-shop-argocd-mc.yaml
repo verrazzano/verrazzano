@@ -8,10 +8,10 @@ metadata:
 spec:
   destination:
     name: 'managed1'
-    namespace: argocd-helidon
+    namespace: 'mc-sockshop'
     server: ''
   source:
-    path: 'examples/multicluster/hello-helidon'
+    path: 'examples/multicluster/sock-shop'
     repoURL: 'https://github.com/verrazzano/verrazzano'
     targetRevision: master
   project: default
