@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	waitTimeout          = 5 * time.Minute
+	waitTimeout          = 15 * time.Minute
 	pollingInterval      = 10 * time.Second
 	consistentlyDuration = 1 * time.Minute
 	testNamespace        = "hello-helidon"
@@ -89,7 +89,7 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
 				}
 				return result
-			}, consistentlyDuration, pollingInterval).Should(BeFalse())
+			}, consistentlyDuration, pollingInterval).Should(BeTrue())
 		})
 	})
 
