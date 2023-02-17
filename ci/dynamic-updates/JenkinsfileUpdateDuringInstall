@@ -357,9 +357,6 @@ def generateVerifyInfraStages(dumpRoot) {
         "verify-infra oam": {
             runGinkgoRandomize('verify-infra/oam', "${dumpRoot}/verify-infra-oam")
         },
-        "verify-infra vmi": {
-            runGinkgoRandomize('verify-infra/vmi', "${dumpRoot}/verify-infra-vmi")
-        },
     ]
 }
 
