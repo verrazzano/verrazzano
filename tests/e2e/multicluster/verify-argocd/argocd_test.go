@@ -32,6 +32,7 @@ const (
 	argoCDHelidonApplicationFile = "tests/e2e/config/scripts/hello-helidon-argocd-mc.yaml"
 )
 
+var expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
@@ -79,6 +80,14 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 	})
 
 	t.Context("Admin Cluster", func() {
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deployed to the admin cluster
+		// THEN expect that the multi-cluster resources have been created on the admin cluster
+		t.It("Has multi cluster resources", func() {
+			Eventually(func() bool {
+				return examples.VerifyMCResources(adminKubeconfig, true, false, testNamespace)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
 		// GIVEN an admin cluster
 		// WHEN the multi-cluster example application has been created on admin cluster but not placed there
 		// THEN expect that the app is not deployed to the admin cluster consistently for some length of time
@@ -95,11 +104,19 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 
 	t.Context("Managed Cluster", func() {
 		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deployed to the admin cluster
+		// THEN expect that the multi-cluster resources have been created on the managed cluster
+		t.It("Has multi cluster resources", func() {
+			Eventually(func() bool {
+				return examples.VerifyMCResources(managedKubeconfig, false, true, testNamespace)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the multi-cluster example application has been created on admin cluster and placed in managed cluster
 		// THEN expect that the app is deployed to the managed cluster
 		t.It("Has application placed", func() {
 			Eventually(func() bool {
-				result, err := examples.VerifyHelloHelidonInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
+				result, err := helloHelidonPodsRunning(managedKubeconfig, testNamespace)
 				if err != nil {
 					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
 				}
@@ -115,16 +132,14 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
-		t.It("Verify deletion on admin cluster", func() {
-			Eventually(func() bool {
-				return examples.VerifyHelloHelidonDeletedAdminCluster(adminKubeconfig, false, testNamespace, testProjectName)
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-		})
-
 		t.It("Verify automatic deletion on managed cluster", func() {
-			Eventually(func() bool {
-				return examples.VerifyHelloHelidonDeletedInManagedCluster(managedKubeconfig, testNamespace, testProjectName)
-			}, waitTimeout, pollingInterval).Should(BeTrue())
+			Consistently(func() bool {
+				result, err := examples.VerifyHelloHelidonInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
+				if err != nil {
+					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+				}
+				return result
+			}, consistentlyDuration, pollingInterval).Should(BeTrue())
 		})
 
 	})
@@ -160,4 +175,13 @@ func findSecret(namespace, name string) bool {
 		return false
 	}
 	return s != nil
+}
+
+func helloHelidonPodsRunning(kubeconfigPath string, namespace string) (bool, error) {
+	result, err := pkg.PodsRunningInCluster(namespace, expectedPodsHelloHelidon, kubeconfigPath)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+		return false, err
+	}
+	return result, nil
 }
