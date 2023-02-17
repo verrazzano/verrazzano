@@ -315,7 +315,7 @@
     },
     {
       "name": "weblogic-operator",
-      "version": "3.4.5",
+      "version": "3.4.6",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -323,12 +323,12 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "3.4.5",
+              "tag": "3.4.6",
               "helmFullImageKey": "image"
             },
             {
               "image": "weblogic-monitoring-exporter",
-              "tag": "2.1.1",
+              "tag": "2.1.2",
               "helmFullImageKey": "weblogicMonitoringExporterImage"
             }
           ]

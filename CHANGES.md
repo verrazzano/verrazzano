@@ -6,6 +6,11 @@ Fixes:
 - Fixed IngressTrait related AuthorizationPolicy cleanup when application is deleted.
 - Fixed the query for the Service variable in WebLogic Grafana dashboard.
 
+Component version updates:
+
+- WebLogic Kubernetes Operator v3.4.6
+- WebLogic Monitoring Exporter v2.1.2
+
 ### v1.4.3
 Fixes:
 
