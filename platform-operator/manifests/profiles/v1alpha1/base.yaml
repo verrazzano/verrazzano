@@ -265,5 +265,5 @@ spec:
       enabled: true
     weblogicOperator:
       enabled: true
-    argoCd:
+    argoCD:
       enabled: false

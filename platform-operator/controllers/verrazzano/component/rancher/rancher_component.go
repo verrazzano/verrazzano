@@ -6,6 +6,12 @@ package rancher
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strconv"
+	"strings"
+
 	"github.com/gertd/go-pluralize"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -34,11 +40,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"os"
-	"path/filepath"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strconv"
-	"strings"
 )
 
 // ComponentName is the name of the component
@@ -56,7 +57,7 @@ const rancherIngressClassNameKey = "ingress.ingressClassName"
 const rancherImageSubcomponent = "additional-rancher"
 
 // cattleShellImageName is the name of the shell image used for the shell override special case
-const cattleShellImageName = "shell"
+const cattleShellImageName = "rancher-shell"
 
 // cattleUIEnvName is the environment variable name to set for the Rancher dashboard
 const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
@@ -64,11 +65,11 @@ const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
 // Environment variables for the Rancher images
 // format: imageName: baseEnvVar
 var imageEnvVars = map[string]string{
-	"fleet":           "FLEET_IMAGE",
-	"fleet-agent":     "FLEET_AGENT_IMAGE",
-	"shell":           "CATTLE_SHELL_IMAGE",
-	"rancher-webhook": "RANCHER_WEBHOOK_IMAGE",
-	"gitjob":          "GITJOB_IMAGE",
+	"rancher-fleet":       "FLEET_IMAGE",
+	"rancher-fleet-agent": "FLEET_AGENT_IMAGE",
+	"rancher-shell":       "CATTLE_SHELL_IMAGE",
+	"rancher-webhook":     "RANCHER_WEBHOOK_IMAGE",
+	"rancher-gitjob":      "GITJOB_IMAGE",
 }
 
 type envVar struct {

@@ -462,6 +462,23 @@ pipeline {
                                 runGinkgo('examples/helidon')
                             }
                         }
+                        stage('examples helidon service template') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-service-template"
+                            }
+                            steps {
+                                runGinkgoAppTest('examples/helidon', 'hello-helidon-service-template', "${DUMP_DIRECTORY}", 'false', 'false', 'examples/hello-helidon/hello-helidon-comp-service-template.yaml', 'examples/hello-helidon/hello-helidon-app-custom-port.yaml')
+                            }
+                        }
+                        stage('examples helidon manualscalertait') {
+                                                    environment {
+                                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-manualscalertait"
+                                                    }
+                                                    steps {
+                                                        runGinkgoAppTest('examples/helidon', 'examples-helidon-manualscalertait', "${DUMP_DIRECTORY}", 'false', 'false','examples/hello-helidon/hello-helidon-comp.yaml', 'examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
+                                                    }
+                                                }
+
                         stage('jaeger helidon') {
                             environment {
                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-helidon"
@@ -579,15 +596,7 @@ pipeline {
                                 runGinkgoRandomize('opensearch/topology')
                             }
                         }
-                        stage('console ingress') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
-                            }
-                            steps {
-                                runGinkgo('ingress/console')
-                            }
-                        }
-                        stage('logging trait WebLogic workload') {
+                        stage('Ingress & logging trait WebLogic workload') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
                             }
@@ -682,6 +691,18 @@ def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
             if [ -d "${testSuitePath}" ]; then
                 ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
             fi
+        """
+    }
+}
+
+def runGinkgoAppTest(testSuitePath, namespace, dumpDir='', skipDeploy='false', skipUndeploy='false', component='', appConfig='') {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            if [ ! -z "${dumpDir}" ]; then
+                export DUMP_DIRECTORY=${dumpDir}
+            fi
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v --keep-going --no-color ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --namespace=${namespace} --component=${component} --appconfig=${appConfig}
         """
     }
 }

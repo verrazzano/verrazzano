@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ---
 apiVersion: apiextensions.k8s.io/v1
@@ -68,6 +68,23 @@ spec:
               apiUrl:
                 description: The Verrazzano API server URL for this managed cluster.
                 type: string
+              argoCDRegistration:
+                description: The state of ArgoCD registration for this managed cluster.
+                properties:
+                  lastSetTimestamp:
+                    description: The timestamp of last status set.
+                    format: date-time
+                    type: string
+                  message:
+                    description: Supporting message related to the Argo CD registration
+                      status.
+                    type: string
+                  status:
+                    description: The status of the ArgoCD registration.
+                    type: string
+                required:
+                - status
+                type: object
               conditions:
                 description: The current state of this managed cluster.
                 items:

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package metrics
@@ -208,6 +208,19 @@ func createServiceMonitorEndpoint(info ScrapeInfo, portIncrement int) (promopera
 			"name",
 		},
 		TargetLabel: "webapp",
+	})
+
+	// Add a relabel config that will copy the value of "app" to "application" if "application" is empty
+	endpoint.RelabelConfigs = append(endpoint.RelabelConfigs, &promoperapi.RelabelConfig{
+		Action:      "replace",
+		Regex:       `;(.*)`,
+		Replacement: "$1",
+		Separator:   ";",
+		SourceLabels: []promoperapi.LabelName{
+			"application",
+			"app",
+		},
+		TargetLabel: "application",
 	})
 
 	return endpoint, nil

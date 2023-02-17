@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package opensearchdashboards
@@ -14,16 +14,16 @@ import (
 
 // updateFunc is passed into CreateOrUpdateVMI to create the necessary VMI resources
 func updateFunc(ctx spi.ComponentContext, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error {
-	vmi.Spec.Kibana = newOpenSearchDashboards(ctx.EffectiveCR())
+	vmi.Spec.OpensearchDashboards = newOpenSearchDashboards(ctx.EffectiveCR())
 	return nil
 }
 
-func newOpenSearchDashboards(cr *vzapi.Verrazzano) vmov1.Kibana {
+func newOpenSearchDashboards(cr *vzapi.Verrazzano) vmov1.OpensearchDashboards {
 	if cr.Spec.Components.Kibana == nil {
-		return vmov1.Kibana{}
+		return vmov1.OpensearchDashboards{}
 	}
 	kibanaValues := cr.Spec.Components.Kibana
-	opensearchDashboards := vmov1.Kibana{
+	opensearchDashboards := vmov1.OpensearchDashboards{
 		Enabled: kibanaValues.Enabled != nil && *kibanaValues.Enabled,
 		Resources: vmov1.Resources{
 			RequestMemory: "192Mi",

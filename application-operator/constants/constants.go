@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package constants
@@ -49,6 +49,9 @@ const LabelIstioInjectionDefault = "enabled"
 
 // LabelWorkloadType - the type of workload, such as WebLogic
 const LabelWorkloadType = "verrazzano.io/workload-type"
+
+// LabelIngressTraitNsn - Namespaced name of the ingress trait
+const LabelIngressTraitNsn = "verrazzano.io/ingress-trait"
 
 // WorkloadTypeWeblogic indicates the workload is WebLogic
 const WorkloadTypeWeblogic = "weblogic"

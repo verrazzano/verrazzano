@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vmc
@@ -141,7 +141,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncCACertSecret(vmc *clusterapi.Ve
 		return false, err
 	}
 	if !isActive {
-		r.log.Infof("Waiting for managed cluster with id %s to become active before fetching CA cert", clusterID)
+		r.log.Progressf("Waiting for managed cluster with id %s to become active before fetching CA cert", clusterID)
 		return false, nil
 	}
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package verify
@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -61,7 +61,7 @@ func updateConfigMap() {
 		testJobFound := false
 		updateMap := false
 		for _, nsc := range scrapeConfigs {
-			scrapeConfig := nsc.(map[interface{}]interface{})
+			scrapeConfig := nsc.(map[string]interface{})
 			// Change the default value of an existing default job
 			if scrapeConfig[vzconst.PrometheusJobNameKey] == "prometheus" && scrapeConfig["scrape_interval"].(string) != vzconst.TestPrometheusJobScrapeInterval {
 				scrapeConfig["scrape_interval"] = vzconst.TestPrometheusJobScrapeInterval
@@ -119,7 +119,7 @@ var _ = t.Describe("Update prometheus configmap", Label("f:platform-lcm.upgrade"
 				intervalUpdated := false
 				testJobFound := false
 				for _, nsc := range scrapeConfigs {
-					scrapeConfig := nsc.(map[interface{}]interface{})
+					scrapeConfig := nsc.(map[string]interface{})
 					// Check that interval is updated
 					if scrapeConfig[vzconst.PrometheusJobNameKey] == "prometheus" {
 						intervalUpdated = (scrapeConfig["scrape_interval"].(string) == vzconst.TestPrometheusJobScrapeInterval)

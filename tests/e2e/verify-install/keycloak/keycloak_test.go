@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package keycloak
@@ -35,6 +35,8 @@ const (
 	kialiURI          = "kiali.vmi.system."
 	verrazzanoURI     = "verrazzano."
 	rancherURI        = "rancher."
+	kcAdminScript     = "/opt/keycloak/bin/kcadm.sh"
+	argocdURI         = "argocd."
 )
 
 // KeycloakClients represents an array of clients currently configured in Keycloak
@@ -119,6 +121,7 @@ var t = framework.NewTestFramework("keycloak")
 var isMinVersion140 bool
 var isMinVersion150 bool
 var isKeycloakEnabled bool
+var isArgoCDEnabled bool
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
@@ -134,6 +137,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	isKeycloakEnabled = pkg.IsKeycloakEnabled(kubeconfigPath)
 	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
 	isMinVersion150, err = pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
+	isArgoCDEnabled = pkg.IsArgoCDEnabled(kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
 	}
@@ -249,7 +253,7 @@ var _ = t.Describe("Verify client role", Label("f:platform-lcm.install"), func()
 })
 
 func verifyKeycloakVerrazzanoRealmPasswordPolicyIsCorrect() bool {
-	return verifyKeycloakRealmPasswordPolicyIsCorrect("verrazzano-system")
+	return verifyKeycloakRealmPasswordPolicyIsCorrect(vzSysRealm)
 }
 
 func verifyKeycloakMasterRealmPasswordPolicyIsCorrect() bool {
@@ -319,7 +323,7 @@ func verifyKeycloakClientURIs() bool {
 	}
 
 	// Get the Client ID JSON array
-	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "clients", "-r", "verrazzano-system", "--fields", "id,clientId")
+	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", kcAdminScript, "get", "clients", "-r", vzSysRealm, "--fields", "id,clientId")
 	out, err := cmd.Output()
 	if err != nil {
 		t.Logs.Error(fmt.Printf("Error retrieving ID for client ID, zero length: %s\n", err))
@@ -371,6 +375,18 @@ func verifyKeycloakClientURIs() bool {
 		}
 	}
 
+	if isArgoCDEnabled {
+		keycloakClient, err = getKeycloakClientByClientID(keycloakClients, "argocd")
+		if err != nil {
+			t.Logs.Error(fmt.Printf("Error retrieving Verrazzano argocd client: %s\n", err))
+			return false
+		}
+
+		if !verifyArgoCDClientURIs(keycloakClient, env) {
+			return false
+		}
+	}
+
 	return true
 }
 
@@ -408,7 +424,7 @@ func getKeycloakClientByClientID(keycloakClients KeycloakClients, clientID strin
 
 	// Get the client Info
 	client := "clients/" + id
-	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", client, "-r", "verrazzano-system")
+	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", kcAdminScript, "get", client, "-r", vzSysRealm)
 	out, err := cmd.Output()
 	if err != nil {
 		err := fmt.Errorf("error retrieving clientID json: %s", err)
@@ -553,6 +569,33 @@ func verifyRancherClientURIs(keycloakClient *Client, env string) bool {
 	return true
 }
 
+func verifyArgoCDClientURIs(keycloakClient *Client, env string) bool {
+	// Verify Correct number of RedirectURIs
+	if len(keycloakClient.RedirectUris) != 1 {
+		t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
+		return false
+	}
+
+	// Verify Correct number of WebOrigins
+	if len(keycloakClient.WebOrigins) != 1 {
+		t.Logs.Error(fmt.Printf("Incorrect Number of WebOrigins returned for client %+v\n", keycloakClient.WebOrigins))
+		return false
+	}
+
+	// Verify Argo CD redirectUI
+	if !verifyURIs(keycloakClient.RedirectUris, argocdURI+env, 1) {
+		t.Logs.Error(fmt.Printf("Expected 1 ArgoCD redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
+		return false
+	}
+	// Verify Argo CD web origin
+	if !verifyURIs(keycloakClient.WebOrigins, argocdURI+env, 1) {
+		t.Logs.Error(fmt.Printf("Expected 1 ArgoCD weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
+		return false
+	}
+
+	return true
+}
+
 // loginKeycloak logs into master realm, by calling kcadmin.sh config credentials
 func loginKeycloak() bool {
 	// Get the Keycloak admin password
@@ -570,7 +613,7 @@ func loginKeycloak() bool {
 
 	// Login to Keycloak
 	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--",
-		"/opt/jboss/keycloak/bin/kcadm.sh", "config", "credentials", "--server", "http://localhost:8080/auth", "--realm", "master", "--user", "keycloakadmin", "--password", keycloakpw)
+		kcAdminScript, "config", "credentials", "--server", "http://localhost:8080/auth", "--realm", "master", "--user", "keycloakadmin", "--password", keycloakpw)
 	_, err = cmd.Output()
 	if err != nil {
 		t.Logs.Error(fmt.Printf("Error logging into Keycloak: %s\n", err))
@@ -589,7 +632,7 @@ func verifyUserClientRole(user, userRole string) bool {
 	}
 
 	// Get the roles for the user
-	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get-roles", "-r", vzSysRealm, "--uusername", user, "--cclientid", realmMgmt, "--effective", "--fields", "name")
+	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", kcAdminScript, "get-roles", "-r", vzSysRealm, "--uusername", user, "--cclientid", realmMgmt, "--effective", "--fields", "name")
 	out, err := cmd.Output()
 	if err != nil {
 		t.Logs.Error(fmt.Printf("Error retrieving client role for the user %s: %s\n", vzUser, err.Error()))

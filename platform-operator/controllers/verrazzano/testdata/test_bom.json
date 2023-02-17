@@ -136,15 +136,15 @@
           ]
         },
         {
-          "repository": "verrazzano/rancher",
+          "repository": "verrazzano",
           "name": "additional-rancher",
           "images": [
             {
-              "image": "shell",
+              "image": "rancher-shell",
               "tag": "v0.1.18-20221005202314-33ac76c"
             },
             {
-              "image": "kubectl",
+              "image": "rancher-kubectl",
               "tag": "v1.20.2-20220930193658-a830250"
             },
             {
@@ -152,15 +152,15 @@
               "tag": "v0.2.6-20221005161115-fee4a23"
             },
             {
-              "image": "fleet-agent",
+              "image": "rancher-fleet-agent",
               "tag": "v0.3.11-20221005160548-f5e4fc9"
             },
             {
-              "image": "fleet",
+              "image": "rancher-fleet",
               "tag": "v0.3.11-20221005160548-f5e4fc9"
             },
             {
-              "image": "gitjob",
+              "image": "rancher-gitjob",
               "tag": "v0.1.30-20221005155218-6e7ba2d"
             }
           ]
@@ -191,24 +191,14 @@
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
-              "image": "prometheus",
-              "tag": "v2.13.1",
-              "helmFullImageKey": "monitoringOperator.prometheusImage"
+              "image": "opensearch",
+              "tag": "1.2.3-20220715164419-c1dbc115d8a",
+              "helmFullImageKey": "monitoringOperator.osImage"
             },
             {
-              "image": "elasticsearch",
-              "tag": "7.6.1-20201130145440-5c76ab1",
-              "helmFullImageKey": "monitoringOperator.esImage"
-            },
-            {
-              "image": "verrazzano-monitoring-instance-eswait",
-              "tag": "0.15.0-20210521020822-9b87485",
-              "helmFullImageKey": "monitoringOperator.esWaitImage"
-            },
-            {
-              "image": "kibana",
-              "tag": "7.6.1-20201130145840-7717e73",
-              "helmFullImageKey": "monitoringOperator.kibanaImage"
+              "image": "opensearch-dashboards",
+              "tag": "2.3.0-20230124171546-f9e6353395",
+              "helmFullImageKey": "monitoringOperator.osdImage"
             },
             {
               "image": "nginx-ingress-controller",
@@ -251,13 +241,8 @@
           "images": [
             {
               "image": "oraclelinux",
-              "tag": "7-slim",
-              "helmFullImageKey": "monitoringOperator.prometheusInitImage"
-            },
-            {
-              "image": "oraclelinux",
               "tag": "7.8",
-              "helmFullImageKey": "monitoringOperator.esInitImage"
+              "helmFullImageKey": "monitoringOperator.osInitImage"
             }
           ]
         }

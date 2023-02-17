@@ -40,10 +40,13 @@ const EnvVarKubeConfig = "KUBECONFIG"
 // EnvVarTestKubeConfig Name of Environment Variable for test KUBECONFIG
 const EnvVarTestKubeConfig = "TEST_KUBECONFIG"
 
+const APIServerBurst = 150
+const APIServerQPS = 100
+
 type ClientConfigFunc func() (*rest.Config, kubernetes.Interface, error)
 
 var ClientConfig ClientConfigFunc = func() (*rest.Config, kubernetes.Interface, error) {
-	cfg, err := controllerruntime.GetConfig()
+	cfg, err := GetConfigFromController()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -65,6 +68,23 @@ func SetFakeClient(client kubernetes.Interface) {
 // ClearFakeClient for unit tests
 func ClearFakeClient() {
 	fakeClient = nil
+}
+
+// GetConfigFromController get the config from the Controller Runtime and set the default QPS and burst.
+func GetConfigFromController() (*rest.Config, error) {
+	cfg, err := controllerruntime.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	setConfigQPSBurst(cfg)
+	return cfg, nil
+}
+
+// GetConfigOrDieFromController get the config from the Controller Runtime and set the default QPS and burst.
+func GetConfigOrDieFromController() *rest.Config {
+	cfg := controllerruntime.GetConfigOrDie()
+	setConfigQPSBurst(cfg)
+	return cfg
 }
 
 // GetKubeConfigLocation Helper function to obtain the default kubeConfig location
@@ -91,7 +111,12 @@ func GetKubeConfigGivenPath(kubeconfigPath string) (*rest.Config, error) {
 }
 
 func BuildKubeConfig(kubeconfig string) (*rest.Config, error) {
-	return clientcmd.BuildConfigFromFlags("", kubeconfig)
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		return nil, err
+	}
+	setConfigQPSBurst(config)
+	return config, nil
 }
 
 // GetKubeConfig Returns kubeconfig from KUBECONFIG env var if set
@@ -100,10 +125,14 @@ func GetKubeConfig() (*rest.Config, error) {
 	var config *rest.Config
 	kubeConfigLoc, err := GetKubeConfigLocation()
 	if err != nil {
-		return config, err
+		return nil, err
 	}
 	config, err = clientcmd.BuildConfigFromFlags("", kubeConfigLoc)
-	return config, err
+	if err != nil {
+		return nil, err
+	}
+	setConfigQPSBurst(config)
+	return config, nil
 }
 
 // GetKubeConfigGivenPathAndContext returns a rest.Config given a kubeConfig and kubeContext.
@@ -122,9 +151,14 @@ func GetKubeConfigGivenPathAndContext(kubeConfigPath string, kubeContext string)
 		}
 	}
 
-	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeConfigPath},
 		&clientcmd.ConfigOverrides{CurrentContext: kubeContext}).ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	setConfigQPSBurst(config)
+	return config, nil
 }
 
 // GetKubernetesClientset returns the Kubernetes clientset for the cluster set in the environment
@@ -183,7 +217,7 @@ var GetDynamicClientFunc = GetDynamicClient
 
 // GetDynamicClient returns the Dynamic Interface
 func GetDynamicClient() (dynamic.Interface, error) {
-	config, err := controllerruntime.GetConfig()
+	config, err := GetConfigFromController()
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +257,7 @@ func GetCertManagerClienset() (*certmanagerv1.CertmanagerV1Client, error) {
 	return GetCertManagerClientsetInCluster(kubeConfigLoc)
 }
 
-// GetCertManagerClienset returns the clientset object for CertManager
+// GetCertManagerClientsetInCluster returns the clientset object for CertManager
 func GetCertManagerClientsetInCluster(kubeconfigPath string) (*certmanagerv1.CertmanagerV1Client, error) {
 	var cs *certmanagerv1.CertmanagerV1Client
 	kubeConfig, err := GetKubeConfigGivenPath(kubeconfigPath)
@@ -237,7 +271,7 @@ func GetCertManagerClientsetInCluster(kubeconfigPath string) (*certmanagerv1.Cer
 // GetHostnameFromGateway returns the host name from the application gateway that was
 // created for the ApplicationConfiguration with name appConfigName from list of input gateways. If
 // the input list of gateways is not provided, it is fetched from the kubernetes cluster
-func GetHostnameFromGateway(namespace string, appConfigName string, gateways ...istiov1alpha3.Gateway) (string, error) {
+func GetHostnameFromGateway(namespace string, appConfigName string, gateways ...*istiov1alpha3.Gateway) (string, error) {
 	var config string
 	kubeConfigLoc, err := GetKubeConfigLocation()
 	if err != nil {
@@ -249,7 +283,7 @@ func GetHostnameFromGateway(namespace string, appConfigName string, gateways ...
 // GetHostnameFromGatewayInCluster returns the host name from the application gateway that was
 // created for the ApplicationConfiguration with name appConfigName from list of input gateways. If
 // the input list of gateways is not provided, it is fetched from the kubernetes cluster
-func GetHostnameFromGatewayInCluster(namespace string, appConfigName string, kubeconfigPath string, gateways ...istiov1alpha3.Gateway) (string, error) {
+func GetHostnameFromGatewayInCluster(namespace string, appConfigName string, kubeconfigPath string, gateways ...*istiov1alpha3.Gateway) (string, error) {
 	if len(gateways) == 0 {
 		cs, err := GetIstioClientsetInCluster(kubeconfigPath)
 		if err != nil {
@@ -285,7 +319,7 @@ func GetHostnameFromGatewayInCluster(namespace string, appConfigName string, kub
 	}
 
 	// this can happen if the app gateway has not been created yet, the caller should
-	// keep retrying and eventually we should get a gateway with a host
+	// keep retrying, and eventually we should get a gateway with a host
 	fmt.Printf("Could not find host in application ingress gateways in namespace: %s\n", namespace)
 	return "", nil
 }
@@ -372,7 +406,7 @@ func GetGoClient(log ...vzlog.VerrazzanoLogger) (kubernetes.Interface, error) {
 	if fakeClient != nil {
 		return fakeClient, nil
 	}
-	config, err := controllerruntime.GetConfig()
+	config, err := GetConfigFromController()
 	if err != nil {
 		if logger != nil {
 			logger.Errorf("Failed to get kubeconfig: %v", err)
@@ -400,7 +434,7 @@ func GetDynamicClientInCluster(kubeconfigPath string) (dynamic.Interface, error)
 	return dynamic.NewForConfig(config)
 }
 
-// GetHostFromIngress returns the url for an Ingress
+// GetURLForIngress returns the url for an Ingress
 func GetURLForIngress(client client.Client, name string, namespace string, scheme string) (string, error) {
 	var ingress = &networkingv1.Ingress{}
 	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, ingress)
@@ -463,11 +497,11 @@ func ErrorIfDeploymentExists(namespace string, names ...string) error {
 
 // ErrorIfServiceExists reports error if any of the Services exists
 func ErrorIfServiceExists(namespace string, names ...string) error {
-	client, err := GetCoreV1Func()
+	cli, err := GetCoreV1Func()
 	if err != nil {
 		return err
 	}
-	serviceList, err := client.Services(namespace).List(context.TODO(), metav1.ListOptions{})
+	serviceList, err := cli.Services(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && !kerrs.IsNotFound(err) {
 		return err
 
@@ -480,4 +514,9 @@ func ErrorIfServiceExists(namespace string, names ...string) error {
 		}
 	}
 	return nil
+}
+
+func setConfigQPSBurst(config *rest.Config) {
+	config.Burst = APIServerBurst
+	config.QPS = APIServerQPS
 }

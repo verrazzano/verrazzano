@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package operatorinit
@@ -7,6 +7,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/webhooks"
 	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"go.uber.org/zap"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -20,7 +21,7 @@ import (
 func WebhookInit(certDir string, log *zap.SugaredLogger) error {
 	log.Debug("Creating certificates used by webhooks")
 
-	conf, err := ctrl.GetConfig()
+	conf, err := k8sutil.GetConfigFromController()
 	if err != nil {
 		log.Errorf("Failed to get config: %v", err)
 		return err
@@ -41,7 +42,7 @@ func WebhookInit(certDir string, log *zap.SugaredLogger) error {
 }
 
 func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeaderElection bool, certDir string, scheme *runtime.Scheme) error {
-	config, err := ctrl.GetConfig()
+	config, err := k8sutil.GetConfigFromController()
 	if err != nil {
 		log.Errorf("Failed to get kubeconfig: %v", err)
 		return err

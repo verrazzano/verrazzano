@@ -244,3 +244,9 @@ const RancherBackupNamesSpace = "cattle-resources-system"
 const VerrazzanoManagedKey = "verrazzano.io/namespace"
 
 const ExternalDNSNamespace = "cert-manager"
+
+// ServiceMonitorNameKubelet indicates the name of serviceMonitor resource for kubelet monitoring
+const ServiceMonitorNameKubelet = "prometheus-operator-kube-p-kubelet"
+
+// ServiceMonitorNameKubeStateMetrics indicates the name of serviceMonitor resource for kube-state-metrics monitoring
+const ServiceMonitorNameKubeStateMetrics = "kube-state-metrics"

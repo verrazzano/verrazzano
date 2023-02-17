@@ -275,6 +275,15 @@ func GetService(namespace string, serviceName string) (*corev1.Service, error) {
 	return svc, nil
 }
 
+// DoesServiceExist returns whether a Service with the given name and namespace exists for the cluster
+func DoesServiceExist(namespace string, name string) (bool, error) {
+	_, err := GetService(namespace, name)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // GetIngressList returns a list of ingresses in the given namespace
 func GetIngressList(namespace string) (*netv1.IngressList, error) {
 	// Get the Kubernetes clientset
@@ -305,6 +314,24 @@ func GetIngress(namespace string, ingressName string) (*netv1.Ingress, error) {
 	return ingress, nil
 }
 
+// DoesVirtualServiceExist returns whether a VirtualService with the given name and namespace exists for the cluster
+func DoesVirtualServiceExist(namespace string, name string) (bool, error) {
+	services, err := GetVirtualServiceList(namespace)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to list VirtualServices from namespace %s: %v", namespace, err))
+		return false, err
+	}
+
+	// Verify that the virtual services contain the expected environment name
+	for _, virtualService := range services.Items {
+		service := virtualService.Name
+		if strings.Contains(service, name) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // GetVirtualServiceList returns a list of virtual services in the given namespace
 func GetVirtualServiceList(namespace string) (*istionetv1beta1.VirtualServiceList, error) {
 	// Get the Istio clientset
@@ -318,6 +345,21 @@ func GetVirtualServiceList(namespace string) (*istionetv1beta1.VirtualServiceLis
 		return nil, err
 	}
 	return VirtualServiceList, nil
+}
+
+// DoesSecretExist returns whether a Secret with the given name and namespace exists for the cluster
+func DoesSecretExist(namespace string, name string) (bool, error) {
+	secrets, err := ListSecrets(namespace)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to list Secrets from namespace %s: %v", namespace, err))
+		return false, err
+	}
+	for i := range secrets.Items {
+		if strings.HasPrefix(secrets.Items[i].Name, name) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // GetCertificateList returns a list of certificates in the given namespace
@@ -391,6 +433,38 @@ func GetNodeCount() (uint32, error) {
 		return 0, fmt.Errorf("can not find node in the cluster")
 	}
 	return uint32(len(nodes.Items)), nil
+}
+
+// GetSchedulableNodeCount returns the number of schedulabe nodes in the cluster
+func GetSchedulableNodeCount() (uint32, error) {
+	nodes, err := ListNodes()
+	if err != nil {
+		return 0, err
+	}
+	nodeCount := 0
+	for _, node := range nodes.Items {
+		if NodeIsSchedulable(node) {
+			nodeCount++
+		}
+	}
+	if nodeCount < 1 {
+		return 0, fmt.Errorf("can not find node in the cluster")
+	}
+	return uint32(nodeCount), nil
+}
+
+// NodeIsSchedulable returns false if a node has the control-plane/master taint and is unschedulable, true otherwise
+func NodeIsSchedulable(node corev1.Node) bool {
+	for _, taint := range node.Spec.Taints {
+		switch taint.Key {
+		case "node-role.kubernetes.io/control-plane":
+		case "node-role.kubernetes.io/master":
+			if taint.Effect == corev1.TaintEffectNoSchedule {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // GetPodsFromSelector returns a collection of pods for the given namespace and selector
@@ -913,6 +987,19 @@ func IsRancherBackupEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	return *vz.Spec.Components.RancherBackup.Enabled
+}
+
+// IsArgoCDEnabled returns false if the Argocd component is not set, or the value of its Enabled field otherwise
+func IsArgoCDEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.ArgoCD == nil || vz.Spec.Components.ArgoCD.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.ArgoCD.Enabled
 }
 
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.

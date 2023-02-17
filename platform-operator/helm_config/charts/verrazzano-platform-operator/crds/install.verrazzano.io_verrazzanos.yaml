@@ -88,7 +88,7 @@ spec:
                           type: object
                         type: array
                     type: object
-                  argoCd:
+                  argoCD:
                     properties:
                       enabled:
                         type: boolean
@@ -781,6 +781,8 @@ spec:
                     type: object
                   elasticsearch:
                     properties:
+                      disableDefaultPolicy:
+                        type: boolean
                       enabled:
                         type: boolean
                       installArgs:
@@ -803,6 +805,8 @@ spec:
                       nodes:
                         items:
                           properties:
+                            javaOpts:
+                              type: string
                             name:
                               type: string
                             replicas:
@@ -4135,7 +4139,7 @@ spec:
                 type: array
               instance:
                 properties:
-                  argoCdUrl:
+                  argoCDUrl:
                     type: string
                   consoleUrl:
                     type: string
@@ -4231,7 +4235,7 @@ spec:
                           type: object
                         type: array
                     type: object
-                  argoCd:
+                  argoCD:
                     properties:
                       enabled:
                         type: boolean
@@ -5698,11 +5702,15 @@ spec:
                     type: object
                   opensearch:
                     properties:
+                      disableDefaultPolicy:
+                        type: boolean
                       enabled:
                         type: boolean
                       nodes:
                         items:
                           properties:
+                            javaOpts:
+                              type: string
                             name:
                               type: string
                             replicas:
@@ -7030,7 +7038,7 @@ spec:
                 type: array
               instance:
                 properties:
-                  argoCdUrl:
+                  argoCDUrl:
                     type: string
                   consoleUrl:
                     type: string
