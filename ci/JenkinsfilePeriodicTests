@@ -445,6 +445,50 @@ pipeline {
                         }
                     }
                 }
+                stage('Dynamic Config during Keycloak Install') {
+                    steps {
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "verrazzano-dynamic-config-install-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                        string(name: 'WAIT_FOR_RESOURCE_BEFORE_UPDATE', value: 'mysql statefulset')
+                                    ], wait: true
+                            }
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                TESTS_FAILED = true
+                            }
+                        }
+                    }
+                }
+                stage('Dynamic Config during Rancher Install') {
+                    steps {
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "verrazzano-dynamic-config-install-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                        string(name: 'WAIT_FOR_RESOURCE_BEFORE_UPDATE', value: 'rancher bootstrap secret')
+                                    ], wait: true
+                            }
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                TESTS_FAILED = true
+                            }
+                        }
+                    }
+                }
                 stage('OCI DNS/ACME-Staging Tests') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
