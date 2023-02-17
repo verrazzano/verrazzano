@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package dashboards
@@ -22,6 +22,8 @@ const (
 	pollingInterval             = 10 * time.Second
 	oldPatternsTestDataFile     = "testdata/upgrade/opensearch-dashboards/old-index-patterns.txt"
 	updatedPatternsTestDataFile = "testdata/upgrade/opensearch-dashboards/updated-index-patterns.txt"
+	// post 1.5 verrazzano-system and verrazzano-application* patterns are created by default
+	post15PatternsTestDataFile = "testdata/upgrade/opensearch-dashboards/post-1.5-index-patterns.txt"
 )
 
 var t = framework.NewTestFramework("opensearch-dashboards")
@@ -39,9 +41,17 @@ var _ = t.Describe("Pre Upgrade OpenSearch Dashboards Setup", Label("f:observabi
 					pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
 					return false
 				}
+				isVersionAbove1_5_0, err := pkg.IsVerrazzanoMinVersion("1.5.0", kubeConfigPath)
+				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
+					return false
+				}
 				patternFile := oldPatternsTestDataFile
 				if isVersionAbove1_3_0 {
 					patternFile = updatedPatternsTestDataFile
+				}
+				if isVersionAbove1_5_0 {
+					patternFile = post15PatternsTestDataFile
 				}
 				file, err := pkg.FindTestDataFile(patternFile)
 				if err != nil {
