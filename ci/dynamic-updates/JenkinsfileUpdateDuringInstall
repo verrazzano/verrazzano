@@ -47,7 +47,7 @@ pipeline {
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
         choice (name:'WAIT_FOR_RESOURCE_BEFORE_UPDATE',
                 description: 'The update to the VZ CR will occur after this specified resource is created. This affects the timing of the update.',
-                choices: [ "mysql statefulset", "rancher bootstrap secret"])
+                choices: [ "keycloak auth secret", "rancher bootstrap secret"])
     }
 
     environment {
@@ -226,7 +226,7 @@ pipeline {
                     steps {
                         script {
                             // first wait for certain resources to be created, then update the Verrazzano CRD to fix the WildcardDNS typo
-                            if (params.WAIT_FOR_RESOURCE_BEFORE_UPDATE == 'mysql statefulset') {
+                            if (params.WAIT_FOR_RESOURCE_BEFORE_UPDATE == 'keycloak auth secret') {
                                 waitForKeycloakAuthSecret()
                             } else if (params.WAIT_FOR_RESOURCE_BEFORE_UPDATE == 'rancher bootstrap secret') {
                                 waitForRancherBootstrapSecret()
