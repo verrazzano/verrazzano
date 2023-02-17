@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package operator
@@ -558,7 +558,7 @@ func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
 			if _, ok := authPolicy.Labels[constants.IstioAppLabel]; !ok {
 				continue
 			}
-			_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), &authPolicy, func() error {
+			_, err = common.CreateOrUpdateProtobuf(context.TODO(), ctx.Client(), authPolicy, func() error {
 				rules := authPolicy.Spec.Rules
 				if len(rules) <= 0 || rules[0] == nil {
 					return nil

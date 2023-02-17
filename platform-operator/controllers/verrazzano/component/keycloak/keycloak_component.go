@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package keycloak
@@ -89,9 +89,16 @@ func NewComponent() spi.Component {
 	}
 }
 
-// Reconcile - the only condition currently being handled by this function is to restore
-// the Keycloak configuration when the MySQL pod gets restarted and ephemeral storage is being used.
+// Reconcile - first checks whether Keycloak is installed yet, then
+// handles the condition to restore the Keycloak configuration when the MySQL pod gets restarted
+// and ephemeral storage is being used.
 func (c KeycloakComponent) Reconcile(ctx spi.ComponentContext) error {
+	// If Keycloak still needs to be installed for the first time, return a nil error to continue installation
+	installed, err := c.IsInstalled(ctx)
+	if !installed {
+		return err
+	}
+
 	// If the Keycloak component is ready, confirm the configuration is working.
 	// If ephemeral storage is being used, the Keycloak configuration will be rebuilt if needed.
 	if c.isKeycloakReady(ctx) {
@@ -164,14 +171,19 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 
 // PreUpgrade - component level processing for pre-upgrade
 func (c KeycloakComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	// Determine if additional processing is required for the upgrade of the StatefulSet
-	if err := upgradeStatefulSet(ctx); err != nil {
+	// Delete the StatefulSet before the upgrade
+	if err := deleteStatefulSet(ctx); err != nil {
+		return err
+	}
+
+	// Delete the headless service before the upgrade
+	if err := deleteHeadlessService(ctx); err != nil {
 		return err
 	}
 	return c.HelmComponent.PreUpgrade(ctx)
 }
 
-// PostUpgrade Keycloak-post-upgrade processing, create or update the Kiali ingress
+// PostUpgrade Keycloak-post-upgrade processing, create or update the Keycloak ingress
 func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err

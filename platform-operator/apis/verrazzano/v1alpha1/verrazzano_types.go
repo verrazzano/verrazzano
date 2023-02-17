@@ -127,8 +127,8 @@ type VolumeClaimSpecTemplate struct {
 
 // InstanceInfo details of installed Verrazzano instance maintained in status field.
 type InstanceInfo struct {
-	// ArgoCDURL The Argo CD UI URL for this Verrazzano installation
-	ArgoCDURL *string `json:"argoCdUrl,omitempty"`
+	// The Argo CD UI URL for this Verrazzano installation.
+	ArgoCDURL *string `json:"argoCDUrl,omitempty"`
 	// The Console URL for this Verrazzano installation.
 	ConsoleURL *string `json:"consoleUrl,omitempty"`
 	// The OpenSearch URL for this Verrazzano installation.
@@ -307,9 +307,9 @@ type ComponentSpec struct {
 	// +optional
 	ApplicationOperator *ApplicationOperatorComponent `json:"applicationOperator,omitempty"`
 
-	// Argo CD configuration
+	// The Argo CD component configuration.
 	// +optional
-	ArgoCD *ArgoCDComponent `json:"argoCd,omitempty"`
+	ArgoCD *ArgoCDComponent `json:"argoCD,omitempty"`
 
 	// The AuthProxy component configuration.
 	// +optional
@@ -448,6 +448,8 @@ type ElasticsearchComponent struct {
 	// Enable to add 3rd Party / Custom plugins not offered in the default OpenSearch image
 	// +optional
 	Plugins vmov1.OpenSearchPlugins `json:"plugins,omitempty"`
+	// To disable the default ISM policies.
+	DisableDefaultPolicy bool `json:"disableDefaultPolicy,omitempty"`
 }
 
 // OpenSearchNode specifies a node group in the OpenSearch cluster.
@@ -465,6 +467,9 @@ type OpenSearchNode struct {
 	// Storage settings for the node group.
 	// +optional
 	Storage *OpenSearchNodeStorage `json:"storage,omitempty"`
+	// JavaOpts settings for the OpenSearch JVM.
+	// +optional
+	JavaOpts string `json:"javaOpts,omitempty"`
 }
 
 type OpenSearchNodeStorage struct {
@@ -997,7 +1002,7 @@ type WebLogicOperatorComponent struct {
 	InstallOverrides `json:",inline"`
 }
 
-// VeleroComponent  specifies the Velero configuration.
+// VeleroComponent specifies the Velero configuration.
 type VeleroComponent struct {
 	// If true, then Velero will be installed.
 	// +optional
@@ -1011,10 +1016,17 @@ type VeleroComponent struct {
 	InstallOverrides `json:",inline"`
 }
 
-// ArgoCDComponent specifies the Argo CD configuration
+// ArgoCDComponent specifies the Argo CD configuration.
 type ArgoCDComponent struct {
+	// If true, then Argo CD will be installed.
 	// +optional
-	Enabled          *bool `json:"enabled,omitempty"`
+	Enabled *bool `json:"enabled,omitempty"`
+	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/argo-cd/values.yaml %}} )
+	// and invalid values will be ignored.
+	// +optional
 	InstallOverrides `json:",inline"`
 }
 

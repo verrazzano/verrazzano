@@ -1,34 +1,74 @@
 image:
   pullPolicy: IfNotPresent
-  # The repository setting indicates where the images will be pulled
-  #repository:
   pullSecrets:
     enabled: false
     secretName:
 
-mysqlOperator:
-  image:
 
 credentials:
   root:
     user: root
 #    password: sakila
     host: "%"
-#  user:
-#    name:
-#    password:
 
 tls:
   useSelfSigned: false
 #  caSecretName:
 #  serverCertAndPKsecretName:
-#  routerCertAndPKsecretName:
+#  routerCertAndPKsecretName: # our use router.certAndPKsecretName
 
-#serverVersion: 8.0.30
+#serverVersion: 8.0.31
 serverInstances: 3
-routerInstances: 1
+routerInstances: 1 # or use router.instances
 baseServerId: 1000
 
+#router:
+#  instances: 1
+#  certAndPKsecretName:
+#  podSpec:
+#  podAnnotations:
+#  podLabels:
+
+#keyring:
+#  file:
+#    fileName:
+#    readOnly:
+#    storage:
+#  encryptedFile:
+#    fileName:
+#    readOnly:
+#    storage:
+#    password:
+#  oci:
+#    user: "ocid1.user.oc1..."
+#    keySecret: "oci-credentials"
+#    keyFingerprint: ""
+#    tenancy: "ocid1.tenancy.oc1..."
+#    compartment: "ocid1.compartment.oc1..."
+#    virtualVault: "ocid1.vault.oc1.."
+#    masterKey: "ocid1.key.oc1..."
+#    caCertificate: ""
+#    endpoints:
+#      encryption: "<identifier>-crypto.kms.<region>.oraclecloud.com"
+#      management: "<identifier>-management.kms.<region>.oraclecloud.com"
+#      vaults: "vaults.<region>.oci.oraclecloud.com"
+#      secrets: "secrets.vaults.<region>.oci.oraclecloud.com"
+      
+    
+
+#podSpec:
+#  containers:
+#  - name: mysql
+#    resources:
+#      requests:
+#        memory: "2048Mi"  # adapt to your needs
+#        cpu: "1800m"      # adapt to your needs
+#      limits:
+#        memory: "8192Mi"  # adapt to your needs
+#        cpu: "3600m"      # adapt to your needs
+#
+#podAnnotations:
+#podLabels:
 
 #serverConfig:
 #  mycnf: |
@@ -58,6 +98,7 @@ baseServerId: 1000
 #    donorUrl:
 #    rootUser:
 #    credentials:
+
 
 #backupProfiles:
 #- name: dump-instance-profile-pvc
@@ -104,11 +145,3 @@ baseServerId: 1000
 #          prefix : /
 #          bucketName: idbcluster_backup
 #          credentials: oci-credentials
-
-#initdbScripts: {}
-
-# Custom mysql configuration files path
-configurationFilesPath: /etc/mysql/conf.d/
-
-# Custom mysql configuration files
-# configurationFiles: {}

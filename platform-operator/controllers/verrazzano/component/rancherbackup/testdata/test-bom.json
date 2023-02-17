@@ -102,12 +102,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.15.1",
+              "tag": "1.15.3",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.15.1",
+              "tag": "1.15.3",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -181,7 +181,7 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.15.1",
+              "tag": "1.15.3",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -226,7 +226,7 @@
             },
             {
               "image": "proxyv2",
-              "tag": "1.15.1",
+              "tag": "1.15.3",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -235,19 +235,14 @@
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
-              "image": "prometheus",
-              "tag": "v2.34.0-1",
-              "helmFullImageKey": "monitoringOperator.prometheusImage"
-            },
-            {
               "image": "opensearch",
               "tag": "1.2.3-20220715164419-c1dbc115d8a",
-              "helmFullImageKey": "monitoringOperator.esImage"
+              "helmFullImageKey": "monitoringOperator.osImage"
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "1.2.0-20220301201035-be0efd47ab",
-              "helmFullImageKey": "monitoringOperator.kibanaImage"
+              "tag": "2.3.0-20230124171546-f9e6353395",
+              "helmFullImageKey": "monitoringOperator.osdImage"
             },
             {
               "image": "configmap-reload",
@@ -272,13 +267,8 @@
           "images": [
             {
               "image": "oraclelinux",
-              "tag": "7-slim",
-              "helmFullImageKey": "monitoringOperator.prometheusInitImage"
-            },
-            {
-              "image": "oraclelinux",
               "tag": "7.9",
-              "helmFullImageKey": "monitoringOperator.esInitImage"
+              "helmFullImageKey": "monitoringOperator.osInitImage"
             }
           ]
         }
@@ -679,11 +669,11 @@
       "name": "rancher-backup",
       "subcomponents": [
         {
-          "repository": "verrazzano/rancher",
+          "repository": "verrazzano",
           "name": "rancher-backup",
           "images": [
             {
-              "image": "backup-restore-operator",
+              "image": "rancher-backup-restore-operator",
               "tag": "v2.1.0-20220716000233-1a1d2a1",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"

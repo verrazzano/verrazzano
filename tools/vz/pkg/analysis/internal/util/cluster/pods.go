@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package cluster handles cluster analysis
@@ -216,25 +216,36 @@ func handleImagePullBackOff(log *zap.SugaredLogger, clusterRoot string, podFile 
 	}
 }
 
+func registerIssues(messages map[string][]string, files []string, clusterRoot string, issueReporter *report.IssueReporter) {
+	if len(messages[report.InsufficientMemory]) > 0 {
+		issueReporter.AddKnownIssueMessagesFiles(report.InsufficientMemory, clusterRoot, messages[report.InsufficientMemory], files)
+	}
+	if len(messages[report.InsufficientCPU]) > 0 {
+		issueReporter.AddKnownIssueMessagesFiles(report.InsufficientCPU, clusterRoot, messages[report.InsufficientCPU], files)
+	}
+}
+
 func podStatusConditionIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
-	log.Debugf("MemoryIssues called for %s", clusterRoot)
+	log.Debugf("Memory or CPU Issues called for %s", clusterRoot)
 
 	if len(pod.Status.Conditions) > 0 {
-		messages := make([]string, 0)
+		messages := make(map[string][]string)
 		for _, condition := range pod.Status.Conditions {
 			if strings.Contains(condition.Message, "Insufficient memory") {
-				messages = append(messages, fmt.Sprintf("Namespace %s, Pod %s, Status %s, Reason %s, Message %s",
+				messages[report.InsufficientMemory] = append(messages[report.InsufficientMemory], fmt.Sprintf("Namespace %s, Pod %s, Status %s, Reason %s, Message %s",
+					pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, condition.Status, condition.Reason, condition.Message))
+			}
+			if strings.Contains(condition.Message, "Insufficient cpu") {
+				messages[report.InsufficientCPU] = append(messages[report.InsufficientCPU], fmt.Sprintf("Namespace %s, Pod %s, Status %s, Reason %s, Message %s",
 					pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, condition.Status, condition.Reason, condition.Message))
 			}
 		}
 		if len(messages) > 0 {
-			var files []string
+			files := []string{podFile}
 			if helpers.GetIsLiveCluster() {
 				files = []string{report.GetRelatedPodMessage(pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)}
-			} else {
-				files = []string{podFile}
 			}
-			issueReporter.AddKnownIssueMessagesFiles(report.InsufficientMemory, clusterRoot, messages, files)
+			registerIssues(messages, files, clusterRoot, issueReporter)
 		}
 	}
 	return nil

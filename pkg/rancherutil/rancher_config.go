@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancherutil
@@ -7,12 +7,14 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -35,7 +37,8 @@ const (
 	rancherAdminSecret   = "rancher-admin-secret" //nolint:gosec //#gosec G101
 	rancherAdminUsername = "admin"
 
-	loginPath = "/v3-public/localProviders/local?action=login"
+	loginPath  = "/v3-public/localProviders/local?action=login"
+	tokensPath = "/v3/tokens" //nolint:gosec
 
 	// this host resolves to the cluster IP
 	nginxIngressHostName = "ingress-controller-ingress-nginx-controller.ingress-nginx"
@@ -183,6 +186,89 @@ func getUserToken(rc *RancherConfig, log vzlog.VerrazzanoLogger, secret, usernam
 	}
 
 	return httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "token", "unable to find token in Rancher response")
+}
+
+type Payload struct {
+	ClusterID string `json:"clusterID"`
+	TTL       int    `json:"ttl"`
+}
+
+type TokenPostResponse struct {
+	Token   string `json:"token"`
+	Created string `json:"created"`
+}
+
+// CreateTokenWithTTL creates a user token with ttl (in minutes)
+func CreateTokenWithTTL(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clusterID string) (string, string, error) {
+	val, _ := strconv.Atoi(ttl)
+	payload := &Payload{
+		ClusterID: clusterID,
+		TTL:       val * 60000,
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return "", "", err
+	}
+	action := http.MethodPost
+	reqURL := rc.BaseURL + tokensPath
+	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken, "Content-Type": "application/json"}
+
+	response, responseBody, err := SendRequest(action, reqURL, headers, string(data), rc, log)
+	if err != nil {
+		return "", "", err
+	}
+	err = httputil.ValidateResponseCode(response, http.StatusCreated)
+	if err != nil {
+		return "", "", log.ErrorfNewErr("Failed to validate response: %v", err)
+	}
+
+	var tokenPostResponse TokenPostResponse
+	err = json.Unmarshal([]byte(responseBody), &tokenPostResponse)
+	if err != nil {
+		return "", "", log.ErrorfNewErr("Failed to parse response: %v", err)
+	}
+
+	return tokenPostResponse.Token, tokenPostResponse.Created, nil
+}
+
+type TokenGetResponse struct {
+	Created   string `json:"created"`
+	ClusterID string `json:"clusterId"`
+	ExpiresAt string `json:"expiresAt"`
+}
+
+// GetTokenWithFilter get created expiresAt attribute of a user token with filter
+func GetTokenWithFilter(rc *RancherConfig, log vzlog.VerrazzanoLogger, userID, clusterID string) (string, string, error) {
+	action := http.MethodGet
+	reqURL := rc.BaseURL + tokensPath + "?userId=" + url.PathEscape(userID) + "&clusterId=" + url.PathEscape(clusterID)
+	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
+
+	response, responseBody, err := SendRequest(action, reqURL, headers, "", rc, log)
+	if err != nil {
+		return "", "", err
+	}
+
+	err = httputil.ValidateResponseCode(response, http.StatusOK)
+	if err != nil {
+		return "", "", log.ErrorfNewErr("Failed to validate response: %v", err)
+	}
+
+	data, err := httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "data", "failed to locate the data field of the response body")
+	if err != nil {
+		return "", "", log.ErrorfNewErr("Failed to find data in Rancher response: %v", err)
+	}
+
+	var items []TokenGetResponse
+	json.Unmarshal([]byte(data), &items)
+	if err != nil {
+		return "", "", log.ErrorfNewErr("Failed to parse response: %v", err)
+	}
+	for _, item := range items {
+		if item.ClusterID == clusterID {
+			return item.Created, item.ExpiresAt, nil
+		}
+	}
+	return "", "", log.ErrorfNewErr("Failed to find the token in Rancher response")
 }
 
 // getProxyURL returns an HTTP proxy from the environment if one is set, otherwise an empty string

@@ -1,0 +1,81 @@
+{
+  "kind": "Verrazzano",
+  "apiVersion": "install.verrazzano.io/v1beta1",
+  "metadata": {
+    "name": "admin",
+    "namespace": "default",
+    "uid": "53548f0d-5d73-4025-b6b7-2dd441d00ced",
+    "resourceVersion": "8754",
+    "generation": 2,
+    "creationTimestamp": "2023-02-13T13:06:46Z",
+    "finalizers": [
+      "install.verrazzano.io"
+    ]
+  },
+  "status": {
+    "available": "10/13",
+    "components": {
+      "mysql": {
+        "available": "Unavailable",
+        "conditions": [
+          {
+            "lastTransitionTime": "2023-02-13T13:06:49Z",
+            "message": "PreInstall started",
+            "status": "True",
+            "type": "PreInstall"
+          },
+          {
+            "lastTransitionTime": "2023-02-13T13:08:14Z",
+            "message": "Install started",
+            "status": "True",
+            "type": "InstallStarted"
+          },
+          {
+            "lastTransitionTime": "2023-02-13T13:09:59Z",
+            "message": "Install complete",
+            "status": "True",
+            "type": "InstallComplete"
+          },
+          {
+            "lastTransitionTime": "2023-02-13T13:21:46Z",
+            "message": "Upgrade started",
+            "status": "True",
+            "type": "UpgradeStarted"
+          }
+        ],
+        "lastReconciledGeneration": 1,
+        "name": "mysql",
+        "reconcilingGeneration": 2,
+        "state": "Upgrading",
+        "version": "8.0.32"
+      }
+    },
+    "conditions": [
+      {
+        "lastTransitionTime": "2023-02-13T13:06:48Z",
+        "message": "Verrazzano install in progress",
+        "status": "True",
+        "type": "InstallStarted"
+      },
+      {
+        "lastTransitionTime": "2023-02-13T13:16:22Z",
+        "message": "Verrazzano install completed successfully",
+        "status": "True",
+        "type": "InstallComplete"
+      },
+      {
+        "lastTransitionTime": "2023-02-13T13:18:02Z",
+        "message": "Verrazzano upgrade to version v1.5.0-local+a8e77b70 in progress",
+        "status": "True",
+        "type": "UpgradeStarted"
+      }
+    ],
+    "state": "Upgrading",
+    "instance": {
+      "consoleUrl": "https://verrazzano.default.7ed7cb67814b7917ceed19b9ed9bf71a20abc3229c707bba0172c822829e599e.nip.io",
+      "keyCloakUrl": "https://keycloak.default.7ed7cb67814b7917ceed19b9ed9bf71a20abc3229c707bba0172c822829e599e.nip.io",
+      "openSearchUrl": "https://opensearch.vmi.system.default.7ed7cb67814b7917ceed19b9ed9bf71a20abc3229c707bba0172c822829e599e.nip.io"
+    },
+    "version": "1.4.2"
+  }
+}

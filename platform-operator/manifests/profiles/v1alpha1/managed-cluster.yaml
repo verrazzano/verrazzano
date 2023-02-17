@@ -4,6 +4,8 @@ spec:
   components:
     keycloak:
       enabled: false
+    mySQLOperator:
+      enabled: false
     rancher:
       enabled: false
     elasticsearch:
@@ -16,5 +18,5 @@ spec:
       enabled: false
     kiali:
       enabled: false
-    argoCd:
+    argoCD:
       enabled: false

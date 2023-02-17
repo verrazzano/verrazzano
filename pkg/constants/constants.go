@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package constants
@@ -73,6 +73,9 @@ const IngressNamespace = "ingress-nginx"
 // PrometheusOperatorNamespace - the namespace where Verrazzano installs Prometheus Operator
 // and its related components.
 const PrometheusOperatorNamespace = "verrazzano-monitoring"
+
+// ArgoCDNamespace - the Argocd namespace
+const ArgoCDNamespace = "argocd"
 
 // LabelIstioInjection - constant for a Kubernetes label that is applied by Verrazzano
 const LabelIstioInjection = "istio-injection"
@@ -170,6 +173,13 @@ const VerrazzanoClusterRancherName = "verrazzano-cluster-registrar"
 
 // VerrazzanoClusterRancherUsername is the username in Rancher used to identify the Verrazzano cluster user
 const VerrazzanoClusterRancherUsername = "vz-cluster-reg"
+
+// ArgoCDClusterRancherSecretName is the name of secret for the Verrazzano Argo CD cluster user
+// #nosec
+const ArgoCDClusterRancherSecretName = "verrazzano-argocd-secret"
+
+// ArgoCDClusterRancherUsername is the username in Rancher used to identify the Verrazzano Argo CD cluster user
+const ArgoCDClusterRancherUsername = "vz-argoCD-reg"
 
 // Components Names
 const (

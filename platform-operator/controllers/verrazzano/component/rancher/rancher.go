@@ -26,7 +26,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -40,7 +39,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -102,6 +100,7 @@ const (
 	ClusterKind                       = "Cluster"
 	ProviderCattleIoLabel             = "provider.cattle.io"
 	UserVerrazzano                    = "u-verrazzano"
+	UsernameVerrazzano                = "verrazzano"
 	UserVerrazzanoDescription         = "Verrazzano Admin"
 	GlobalRoleBindingVerrazzanoPrefix = "grb-"
 	SettingUIPL                       = "ui-pl"
@@ -156,6 +155,7 @@ const (
 
 // roles and groups
 const (
+	ClusterAdminRoleName        = "cluster-admin"
 	AdminRoleName               = "admin"
 	VerrazzanoAdminRoleName     = "verrazzano-admin"
 	ViewRoleName                = "view"
@@ -192,7 +192,7 @@ var GVKRoleTemplate = common.GetRancherMgmtAPIGVKForKind("RoleTemplate")
 var GroupRolePairs = []map[string]string{
 	{
 		GroupKey:       VerrazzanoAdminsGroupName,
-		ClusterRoleKey: AdminRoleName,
+		ClusterRoleKey: ClusterAdminRoleName,
 	},
 	{
 		GroupKey:       VerrazzanoAdminsGroupName,
@@ -297,7 +297,7 @@ func scaleDownRancherDeployment(c client.Client, log vzlog.VerrazzanoLogger) err
 
 // getDynamicClient returns a dynamic k8s client
 func getDynamicClient() (dynamic.Interface, error) {
-	config, err := ctrl.GetConfig()
+	config, err := k8sutil.GetConfigFromController()
 	if err != nil {
 		return nil, err
 	}

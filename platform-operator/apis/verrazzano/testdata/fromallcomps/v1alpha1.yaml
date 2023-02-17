@@ -6,7 +6,7 @@ metadata:
   name: verrazzano
 spec:
   profile: dev
-  version: 1.4.0
+  version: 1.5.0
   environmentName: env
   security:
     monitorSubjects:
@@ -325,7 +325,7 @@ spec:
       overrides:
         - values:
             frobber: frob
-    argoCd:
+    argoCD:
       enabled: true
       overrides:
         - values:

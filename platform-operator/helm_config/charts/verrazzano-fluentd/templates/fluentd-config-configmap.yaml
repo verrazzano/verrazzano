@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: v1
@@ -1003,7 +1003,7 @@ data:
         "settings":{
           "index.refresh_interval":"5s",
           "index.mapping.total_fields.limit":"2000",
-          "number_of_shards":5,
+          "number_of_shards":1,
           "index.number_of_replicas":0,
           "index.auto_expand_replicas":"0-1"
         },
