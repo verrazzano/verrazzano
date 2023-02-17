@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vmc
@@ -77,6 +77,11 @@ func registerManagedClusterWithRancher(rc *rancherutil.RancherConfig, clusterNam
 // ImportClusterToRancher uses the Rancher API to import the cluster. The cluster will show as "pending" until the registration
 // YAML is applied on the managed cluster.
 func ImportClusterToRancher(rc *rancherutil.RancherConfig, clusterName string, labels map[string]string, log vzlog.VerrazzanoLogger) (string, error) {
+	clusterId, _ := GetClusterIDFromRancher(rc, clusterName, log)
+	if clusterId != "" {
+		return clusterId, nil
+	}
+
 	action := http.MethodPost
 
 	payload, err := makeClusterPayload(clusterName, labels)
