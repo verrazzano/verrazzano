@@ -20,6 +20,7 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS_1_5}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
+            label "phxsmall_1_5"
         }
     }
 

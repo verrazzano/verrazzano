@@ -11,7 +11,7 @@ pipeline {
        docker {
             image "${RUNNER_DOCKER_IMAGE_1_5}"
             args "${RUNNER_DOCKER_ARGS_1_5}"
-            label "small"
+            label "phxsmall_1_5"
             registryCredentialsId 'ocir-pull-and-push-account'
         }
     }
