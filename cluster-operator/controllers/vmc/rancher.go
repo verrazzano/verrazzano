@@ -77,9 +77,9 @@ func registerManagedClusterWithRancher(rc *rancherutil.RancherConfig, clusterNam
 // ImportClusterToRancher uses the Rancher API to import the cluster. The cluster will show as "pending" until the registration
 // YAML is applied on the managed cluster.
 func ImportClusterToRancher(rc *rancherutil.RancherConfig, clusterName string, labels map[string]string, log vzlog.VerrazzanoLogger) (string, error) {
-	clusterId, _ := GetClusterIDFromRancher(rc, clusterName, log)
-	if clusterId != "" {
-		return clusterId, nil
+	clusterID, _ := GetClusterIDFromRancher(rc, clusterName, log)
+	if clusterID != "" {
+		return clusterID, nil
 	}
 
 	action := http.MethodPost
