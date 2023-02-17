@@ -17,7 +17,7 @@ var _ = t.Describe("Argo CD", Label("f:infra-lcm",
 	"f:ui.console"), func() {
 
 	t.BeforeEach(func() {
-		argoCD := vz.Status.Components["keycloak"]
+		argoCD := vz.Status.Components["argoCD"]
 		if argoCD == nil || argoCD.State == v1alpha1.CompStateDisabled {
 			Skip("Argo CD disabled, skipping test")
 		}
