@@ -5,7 +5,7 @@ Fixes:
 - Fixed IngressTrait JWT so that requestPrincipals with no paths are allowed.
 - Fixed IngressTrait related AuthorizationPolicy cleanup when application is deleted.
 - Fixed the query for the Service variable in WebLogic Grafana dashboard.
-- Fixed issues with Keycloak startup due to stale jgroupsping entries after pod restarts.
+- Fixed issues with Keycloak startup due to stale JGROUPSPING entries after pod restarts.
 
 ### v1.4.3
 Fixes:
