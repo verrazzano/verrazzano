@@ -1,3 +1,9 @@
+### v1.5.1
+Fixes:
+
+- Fixed the query for the Service variable in WebLogic Grafana dashboard.
+
+
 ### v1.5.0
 Features:
 
