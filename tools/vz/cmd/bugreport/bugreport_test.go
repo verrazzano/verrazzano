@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package bugreport
@@ -258,8 +258,8 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 // TestBugReportV1Alpha1Verrazzano
 // GIVEN a CLI bug-report command
 //
-//  WHEN I call cmd.Execute with a v1alpha1 Verrazzano installed
-//  THEN expect the command to resolve the v1alpha1 to a v1beta1 and return no error
+//	WHEN I call cmd.Execute with a v1alpha1 Verrazzano installed
+//	THEN expect the command to resolve the v1alpha1 to a v1beta1 and return no error
 func TestBugReportV1Alpha1Verrazzano(t *testing.T) {
 	c := getClientWithV1Alpha1VZWatch()
 	buf := new(bytes.Buffer)
@@ -449,4 +449,62 @@ func installVZ(t *testing.T, c client.WithWatch) {
 	err := cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
+}
+
+// getClientWithVZWatch returns a client containing all VPO objects and the Verrazzano CR
+func getClientWithVZWatch() client.WithWatch {
+	return fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(getVpoObjects()...).Build()
+}
+
+// cleanupTempDir cleans up the given temp directory after the test run
+func cleanupTempDir(t *testing.T, dirName string) {
+	if err := os.RemoveAll(dirName); err != nil {
+		t.Fatalf("Remove directory failed: %v", err)
+	}
+}
+
+// TestBugReportSuccess
+// GIVEN a CLI bug-report command
+// WHEN I call cmd.Execute with include logs of  additional namespace and duration
+// THEN expect the command to show the resources captured in the standard output and create the bug report file
+func TestBugReportSuccessWithDuration(t *testing.T) {
+	c := getClientWithVZWatch()
+
+	// Verify the vz resource is as expected
+	vz := v1beta1.Verrazzano{}
+	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+	assert.NoError(t, err)
+
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	cmd := NewCmdBugReport(rc)
+	assert.NotNil(t, cmd)
+
+	tmpDir, _ := os.MkdirTemp("", "bug-report")
+	defer cleanupTempDir(t, tmpDir)
+
+	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
+	assert.NoError(t, err)
+	err = cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
+	assert.NoError(t, err)
+	err = cmd.PersistentFlags().Set(constants.BugReportIncludeNSFlagName, "dummy,verrazzano-install,default,test")
+	assert.NoError(t, err)
+	err = cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
+	assert.NoError(t, err)
+	err = cmd.PersistentFlags().Set(constants.BugReportLogFlagName, "true")
+	assert.NoError(t, err)
+	// If invalid time value is given then error is expected
+	err = cmd.PersistentFlags().Set(constants.BugReportTimeFlagName, "3t")
+	assert.Error(t, err)
+	// Valid time value
+	err = cmd.PersistentFlags().Set(constants.BugReportTimeFlagName, "3h")
+	assert.NoError(t, err)
+	err = cmd.Execute()
+	if err != nil {
+		assert.Error(t, err)
+	}
+
+	assert.NoError(t, err)
 }
