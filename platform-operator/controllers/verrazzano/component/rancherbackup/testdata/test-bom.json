@@ -669,11 +669,11 @@
       "name": "rancher-backup",
       "subcomponents": [
         {
-          "repository": "verrazzano/rancher",
+          "repository": "verrazzano",
           "name": "rancher-backup",
           "images": [
             {
-              "image": "backup-restore-operator",
+              "image": "rancher-backup-restore-operator",
               "tag": "v2.1.0-20220716000233-1a1d2a1",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
