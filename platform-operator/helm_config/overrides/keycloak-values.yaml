@@ -1,4 +1,4 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 # NOTE: The extraInitContainers value is now set in the installation script (4-install-keycloak.sh) so that we can specify the
@@ -16,6 +16,8 @@ extraEnv: |
     value: "2"
   - name: JGROUPS_DISCOVERY_PROTOCOL
     value: JDBC_PING
+  - name: JGROUPS_DISCOVERY_PROPERTIES
+    value: "remove_all_data_on_view_change=true"
   - name: DB_VENDOR
     value: mysql
   - name: DB_ADDR
