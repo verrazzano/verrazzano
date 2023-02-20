@@ -106,7 +106,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 	if err != nil {
 		return err
 	}
-	versionOut := fmt.Sprintf("\nVerrazzano Version (%s),\tKubernetes Version: %s\n", helpers.GetVzVer(), k8sVer)
+	versionOut := fmt.Sprintf("\nVerrazzano Version (%s), Kubernetes Version: %s\n", helpers.GetVzVer(), k8sVer)
 	if reportFormat == constants.SummaryReport {
 		fmt.Fprintf(os.Stdout, "%s", versionOut)
 	}
@@ -221,17 +221,26 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 		}
 	}
 	if len(writeOut) > 0 {
-		fileOut, err := os.Create(reportFile)
-		if err != nil {
-			log.Errorf("Failed to create report file : %s, error found : %s", reportFile, err.Error())
-			return err
+		var fileOut *os.File
+		if _, e := os.Stat(reportFile); e != nil {
+			fileOut, err = os.CreateTemp(".", reportFile+".*.temp")
+			if err != nil {
+				log.Errorf("Failed to create temp report file : %s, error found : %s", reportFile, err.Error())
+				return err
+			}
+		} else {
+			fileOut, err = os.Create(reportFile)
+			if err != nil {
+				log.Errorf("Failed to create report file : %s, error found : %s", reportFile, err.Error())
+				return err
+			}
 		}
 		defer func() {
 			if reportFormat == constants.DetailedReport {
 				fmt.Fprintf(os.Stdout, "%s", writeOut)
 			}
 			fileOut.Close()
-			fmt.Fprintf(os.Stdout, "\nFor Detailed Report, Please Check File (%s)\n", reportFile)
+			fmt.Fprintf(os.Stdout, "\nFor Detailed Report, Please Check File (%s)\n", fileOut.Name())
 		}()
 		_, err = fileOut.Write([]byte(writeOut))
 		if err != nil {
