@@ -2,7 +2,7 @@
 Fixes:
 
 - Fixed the query for the Service variable in WebLogic Grafana dashboard.
-
+- Updated base and other images to resolve CVEs.
 
 ### v1.5.0
 Features:
