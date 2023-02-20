@@ -96,6 +96,11 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	if len(additionalNS) > 0 {
 		captureAdditionalResources(client, kubeClient, dynamicClient, vzHelper, bugReportDir, additionalNS, podLogs)
 	}
+
+	// Capture Verrazzano Projects and VerrazzanoManagedCluster
+	if err := captureMultiClusterResources(dynamicClient, bugReportDir, vzHelper); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -272,7 +277,26 @@ func captureAdditionalResources(client clipkg.Client, kubeClient kubernetes.Inte
 			pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the logs: %s", err.Error()))
 		}
 	}
-	if err := pkghelpers.CaptureMultiClusterResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
+	if err := pkghelpers.CaptureMultiClusterOAMResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
 		pkghelpers.LogError(fmt.Sprintf("There is an error in capturing the multi-cluster resources : %s", err.Error()))
 	}
+}
+
+// captureMultiClusterResources captures Projects and VerrazzanoManagedCluster resource
+func captureMultiClusterResources(dynamicClient dynamic.Interface, captureDir string, vzHelper pkghelpers.VZHelper) error {
+	// Return nil when dynamicClient is nil, useful to get clean unit tests
+	if dynamicClient == nil {
+		return nil
+	}
+
+	// Capture Verrazzano projects in verrazzano-mc namespace
+	if err := pkghelpers.CaptureVerrazzanoProjects(dynamicClient, captureDir, vzHelper); err != nil {
+		return err
+	}
+
+	// Capture Verrazzano projects in verrazzano-mc namespace
+	if err := pkghelpers.CaptureVerrazzanoManagedCluster(dynamicClient, captureDir, vzHelper); err != nil {
+		return err
+	}
+	return nil
 }
