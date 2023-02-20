@@ -153,17 +153,17 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 			writeOut += fmt.Sprintf("\n\tISSUE (%s)\n\t\tsummary: %s\n", issue.Type, issue.Summary)
 			if len(issue.Actions) > 0 && includeActions {
 				log.Debugf("Output actions")
-				writeOut += fmt.Sprintf("\t\tactions:\n")
+				writeOut += "\t\tactions:\n"
 				for _, action := range issue.Actions {
 					writeOut += fmt.Sprintf("\t\t\taction: %s\n", action.Summary)
 					if len(action.Steps) > 0 {
-						writeOut += fmt.Sprintf("\t\t\t\tSteps:\n")
+						writeOut += "\t\t\t\tSteps:\n"
 						for i, step := range action.Steps {
 							writeOut += fmt.Sprintf("\t\t\t\t\tStep %d: %s\n", i+1, step)
 						}
 					}
 					if len(action.Links) > 0 {
-						writeOut += fmt.Sprintf("\t\t\t\tLinks:\n")
+						writeOut += "\t\t\t\tLinks:\n"
 						for _, link := range action.Links {
 							writeOut += fmt.Sprintf("\t\t\t\t\t%s\n", link)
 						}
@@ -172,16 +172,16 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 			}
 			if len(issue.SupportingData) > 0 && includeSupportData {
 				log.Debugf("Output supporting data")
-				writeOut += fmt.Sprintf("\t\tsupportingData:\n")
+				writeOut += "\t\tsupportingData:\n"
 				for _, data := range issue.SupportingData {
 					if len(data.Messages) > 0 {
-						writeOut += fmt.Sprintf("\t\t\tmessages:\n")
+						writeOut += "\t\t\tmessages:\n"
 						for _, message := range data.Messages {
 							writeOut += fmt.Sprintf("\t\t\t\t%s\n", message)
 						}
 					}
 					if len(data.TextMatches) > 0 {
-						writeOut += fmt.Sprintf("\t\t\tsearch matches:\n")
+						writeOut += "\t\t\tsearch matches:\n"
 						for _, match := range data.TextMatches {
 							if helpers.GetIsLiveCluster() {
 								writeOut += fmt.Sprintf("\t\t\t%s: %s\n", match.FileName, match.MatchedText)
@@ -191,13 +191,13 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 						}
 					}
 					if len(data.JSONPaths) > 0 {
-						writeOut += fmt.Sprintf("\t\t\trelated json:\n")
+						writeOut += "\t\t\trelated json:\n"
 						for _, path := range data.JSONPaths {
 							writeOut += fmt.Sprintf("\t\t\t\t%s: %s\n", path.File, path.Path)
 						}
 					}
 					if len(data.RelatedFiles) > 0 {
-						writeOut += fmt.Sprintf("\t\t\trelated resource(s):\n")
+						writeOut += "\t\t\trelated resource(s):\n"
 						for _, fileName := range data.RelatedFiles {
 							writeOut += fmt.Sprintf("\t\t\t\t%s\n", fileName)
 						}
