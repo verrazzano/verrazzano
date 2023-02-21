@@ -1,4 +1,9 @@
 ### v1.5.1
+Component version updates:
+
+- WebLogic Kubernetes Operator v4.0.5
+- WebLogic Monitoring Exporter v2.1.2
+
 Fixes:
 
 - Fixed the query for the Service variable in WebLogic Grafana dashboard.
