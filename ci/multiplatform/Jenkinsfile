@@ -10,7 +10,7 @@ Collections.shuffle(availableRegions)
 def zoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def dns_zone_ocid = 'dummy'
 def OKE_CLUSTER_PREFIX = ""
-def agentLabel = "VM.Standard2.8_1_3"
+def agentLabel = "EXP_tvlaonfig_1.3-large"
 
 pipeline {
     options {

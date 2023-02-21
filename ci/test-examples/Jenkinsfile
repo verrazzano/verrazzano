@@ -8,7 +8,7 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS_1_3}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "VM.Standard2.8_1_3"
+            label "EXP_tvlaonfig_1.3-large"
         }
     }
 
