@@ -15,8 +15,6 @@ pipeline {
         }
     }
 
-    triggers { cron("@daily") }
-
     environment {
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
 
