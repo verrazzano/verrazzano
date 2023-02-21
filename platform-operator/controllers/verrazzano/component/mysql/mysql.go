@@ -6,9 +6,10 @@ package mysql
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"os"
 	"strings"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -37,36 +38,37 @@ import (
 )
 
 const (
-	rootSec               = "mysql-cluster-secret"
-	helmRootPwd           = "credentials.root.password" //nolint:gosec //#gosec G101
-	helmUserPwd           = "credentials.user.password" //nolint:gosec //#gosec G101
-	helmUserName          = "credentials.user.name"     //nolint:gosec //#gosec G101
-	mysqlUpgradeSubComp   = "mysql-upgrade"
-	mySQLRootKey          = "rootPassword"
-	mySQLUserKey          = "userPassword"
-	secretName            = "mysql"
-	secretKey             = "mysql-password"
-	mySQLUsername         = "keycloak"
-	rootPasswordKey       = "mysql-root-password" //nolint:gosec //#gosec G101
-	legacyDBDumpClaim     = "dump-claim"
-	mySQLInitFilePrefix   = "init-mysql-"
-	dbLoadJobName         = "load-dump"
-	dbLoadContainerName   = "mysqlsh-load-dump"
-	deploymentFoundStage  = "deployment-found"
-	databaseDumpedStage   = "database-dumped"
-	pvcDeletedStage       = "pvc-deleted"
-	pvcRecreatedStage     = "pvc-recreated"
-	initdbScriptsFile     = "initdbScripts.create-db\\.sh"
-	backupHookScriptsFile = "configurationFiles.mysql-hook\\.sh"
-	dbMigrationSecret     = "db-migration"
-	mySQLHookFile         = "platform-operator/scripts/hooks/mysql-hook.sh"
-	serverVersionKey      = "serverVersion"
-	bomSubComponentName   = "mysql-upgrade"
-	mysqlServerImageName  = "mysql-server"
-	imageRepositoryKey    = "image.repository"
-	mySQLPodName          = "mysql-0"
-	mySQLContainerName    = "mysql"
-	initDbScript          = `#!/bin/sh
+	rootSec                = "mysql-cluster-secret"
+	helmRootPwd            = "credentials.root.password" //nolint:gosec //#gosec G101
+	helmUserPwd            = "credentials.user.password" //nolint:gosec //#gosec G101
+	helmUserName           = "credentials.user.name"     //nolint:gosec //#gosec G101
+	mysqlUpgradeSubComp    = "mysql-upgrade"
+	mySQLRootKey           = "rootPassword"
+	mySQLUserKey           = "userPassword"
+	secretName             = "mysql"
+	secretKey              = "mysql-password"
+	mySQLUsername          = "keycloak"
+	rootPasswordKey        = "mysql-root-password" //nolint:gosec //#gosec G101
+	legacyDBDumpClaim      = "dump-claim"
+	mySQLInitFilePrefix    = "init-mysql-"
+	dbLoadJobName          = "load-dump"
+	dbLoadContainerName    = "mysqlsh-load-dump"
+	deploymentFoundStage   = "deployment-found"
+	databaseDumpedStage    = "database-dumped"
+	pvcDeletedStage        = "pvc-deleted"
+	pvcRecreatedStage      = "pvc-recreated"
+	manualDbMigrationStage = "db-migrated"
+	initdbScriptsFile      = "initdbScripts.create-db\\.sh"
+	backupHookScriptsFile  = "configurationFiles.mysql-hook\\.sh"
+	dbMigrationSecret      = "db-migration"
+	mySQLHookFile          = "platform-operator/scripts/hooks/mysql-hook.sh"
+	serverVersionKey       = "serverVersion"
+	bomSubComponentName    = "mysql-upgrade"
+	mysqlServerImageName   = "mysql-server"
+	imageRepositoryKey     = "image.repository"
+	mySQLPodName           = "mysql-0"
+	mySQLContainerName     = "mysql"
+	initDbScript           = `#!/bin/sh
 
 if [[ $HOSTNAME == *-0 ]]; then
    IsRestore="${DB_RESTORE:-false}"
@@ -623,6 +625,20 @@ func createMySQLInitFile(ctx spi.ComponentContext, userPwd []byte) (string, erro
 	return file.Name(), nil
 }
 
+// getRootDBPassword returns the password to access the DB as root
+func getRootDBPassword(compContext spi.ComponentContext) ([]byte, error) {
+	secretName := types.NamespacedName{
+		Namespace: ComponentNamespace,
+		Name:      rootSec,
+	}
+	dbSecret := &v1.Secret{}
+	err := compContext.Client().Get(context.TODO(), secretName, dbSecret)
+	if err != nil {
+		return nil, err
+	}
+	return dbSecret.Data[mySQLRootKey], nil
+}
+
 // getOrCreateDBUserPassword creates or updates a secret containing the password used by keycloak to access the DB
 func getOrCreateDBUserPassword(compContext spi.ComponentContext) (string, error) {
 	secretName := types.NamespacedName{
@@ -672,16 +688,10 @@ func grantXARecoverAdmin(ctx spi.ComponentContext) error {
 		return nil
 	}
 	// Get root password, required to connect to MySQL pod
-	secretName := types.NamespacedName{
-		Namespace: ComponentNamespace,
-		Name:      rootSec,
-	}
-	rootSecret := &v1.Secret{}
-	err := ctx.Client().Get(context.TODO(), secretName, rootSecret)
+	rootPassword, err := getRootDBPassword(ctx)
 	if err != nil {
 		return err
 	}
-	rootPassword := string(rootSecret.Data[mySQLRootKey])
 
 	sqlCmd := fmt.Sprintf(mySQLGrantXAAdminCommand, rootPassword)
 	execCmd := []string{"bash", "-c", sqlCmd}

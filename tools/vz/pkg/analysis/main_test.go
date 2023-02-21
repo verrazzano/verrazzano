@@ -454,3 +454,26 @@ func TestResourceJSONWithVerrazzanoFormat(t *testing.T) {
 	}
 	assert.True(t, problemsFound > 0)
 }
+
+// TestKeycloakDataMigrationFailure tests that analysis of a cluster dump when keycloak data migration during upgrade has failed
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN the cluster-snapshot data load job failure
+// THEN a report is generated with issues identified
+func TestKeycloakDataMigrationFailure(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+
+	report.ClearReports()
+	err := Analyze(logger, "cluster", "test/cluster/keycloak-data-migration-failure")
+	assert.Nil(t, err)
+
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.NotNil(t, reportedIssues)
+	assert.True(t, len(reportedIssues) > 0)
+	problemsFound := 0
+	for _, issue := range reportedIssues {
+		if issue.Type == report.KeycloakDataMigrationFailure {
+			problemsFound++
+		}
+	}
+	assert.True(t, problemsFound > 0)
+}

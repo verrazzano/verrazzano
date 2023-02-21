@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package verifycrds
@@ -9,7 +9,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -141,10 +140,12 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 		checkCrds(crds, map[string]bool{"coherence.coherence.oracle.com": false}, "coherence.coherence.oracle.com")
 	})
 
-	t.It("Check for expected MySQL Operator CRDs", func() {
-		checkCrds(crds, mysqloperatorcrds, "mysql.oracle.com")
-		checkCrds(crds, mysqloperatorcrds, "zalando.org")
-	})
+	if mySQLOperatorEnabled {
+		t.It("Check for expected MySQL Operator CRDs", func() {
+			checkCrds(crds, mysqloperatorcrds, "mysql.oracle.com")
+			checkCrds(crds, mysqloperatorcrds, "zalando.org")
+		})
+	}
 
 	t.It("Check for unexpected CRDs", func() {
 		var unexpectedCRDs []string
