@@ -64,6 +64,8 @@ func registerManagedClusterWithRancher(rc *rancherutil.RancherConfig, clusterNam
 		}
 	}
 
+	log.Oncef("Sdosapat: Getting registration YAML from Rancher for cluster %s with id %s", clusterName, clusterID)
+	log.Infof("Sdosapat: Getting registration YAML from Rancher for cluster %s with id %s", clusterName, clusterID)
 	log.Oncef("Getting registration YAML from Rancher for cluster %s with id %s", clusterName, clusterID)
 	regYAML, err := getRegistrationYAMLFromRancher(rc, clusterID, log)
 	if err != nil {
