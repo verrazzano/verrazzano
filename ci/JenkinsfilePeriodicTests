@@ -444,7 +444,7 @@ pipeline {
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                         string(name: 'WAIT_FOR_RESOURCE_BEFORE_UPDATE', value: 'mysql statefulset')
                                     ], wait: true
                             }
@@ -469,7 +469,7 @@ pipeline {
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                         string(name: 'WAIT_FOR_RESOURCE_BEFORE_UPDATE', value: 'rancher bootstrap secret')
                                     ], wait: true
                             }
