@@ -102,11 +102,12 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 	// Default to stdout if no reportfile is supplied
 	//TODO: Eventually add support other reportFormat type (json)
 	writeOut := ""
+	writeSummaryOut := ""
+	versionOut := fmt.Sprintf("\nVerrazzano Version (%s)\n", helpers.GetVzVer())
 	k8sVer, err := helpers.GetK8sVer()
-	if err != nil {
-		return err
+	if err == nil {
+		versionOut += fmt.Sprintf("\nKubernetes Version: %s\n", k8sVer)
 	}
-	versionOut := fmt.Sprintf("\nVerrazzano Version (%s), Kubernetes Version: %s\n", helpers.GetVzVer(), k8sVer)
 	if reportFormat == constants.SummaryReport {
 		fmt.Fprintf(os.Stdout, "%s", versionOut)
 	}
@@ -137,15 +138,9 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 		for _, issue := range actuallyReported {
 			// Display only summary and action when the report-format is set to summary
 			if reportFormat == constants.SummaryReport {
-				_, err = fmt.Fprintf(os.Stdout, "\n\tISSUE (%s): %s\n", issue.Type, issue.Summary)
-				if err != nil {
-					return err
-				}
+				writeSummaryOut += fmt.Sprintf("\n\tISSUE (%s): %s\n", issue.Type, issue.Summary)
 				for _, action := range issue.Actions {
-					_, err = fmt.Fprintf(os.Stdout, "\t%s\n", action.Summary)
-					if err != nil {
-						return err
-					}
+					writeSummaryOut += fmt.Sprintf("\t%s\n", action.Summary)
 				}
 
 			}
@@ -206,20 +201,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 			}
 		}
 	}
-	if includeInfo {
-		if len(sourcesWithoutIssues) > 0 {
-			fmt.Fprintf(os.Stdout, "\n\n")
-		}
-		if len(sourcesWithoutIssues) == 1 {
-			// This is a workaround to avoid printing the source when analyzing the live cluster, although it impacts the
-			// regular use case with a directory containing a single cluster snapshot
-			_, err = fmt.Fprintf(os.Stdout, "Verrazzano analysis CLI did not detect any issue in the cluster\n")
-		} else {
-			for _, source := range sourcesWithoutIssues {
-				_, err = fmt.Fprintf(os.Stdout, "Verrazzano analysis CLI did not detect any issue in %s\n", source)
-			}
-		}
-	}
+
 	if len(writeOut) > 0 {
 		var fileOut *os.File
 		if _, e := os.Stat(reportFile); e == nil {
@@ -238,6 +220,11 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 		defer func() {
 			if reportFormat == constants.DetailedReport {
 				fmt.Fprintf(os.Stdout, "%s", writeOut)
+				fmt.Fprintf(vzHelper.GetOutputStream(), writeOut)
+			}
+			if reportFormat == constants.SummaryReport {
+				fmt.Fprintf(os.Stdout, "%s", writeSummaryOut)
+				fmt.Fprintf(vzHelper.GetOutputStream(), writeSummaryOut)
 			}
 			fileOut.Close()
 			fmt.Fprintf(os.Stdout, "\nFor Detailed Report, Please Check File (%s)\n", fileOut.Name())
@@ -246,6 +233,26 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 		if err != nil {
 			log.Errorf("Failed to write to report file %s,error found : %s", reportFile, err.Error())
 			return err
+		}
+	} else {
+		if includeInfo {
+			if len(sourcesWithoutIssues) > 0 {
+				writeOut += "\n\n"
+				//fmt.Fprintf(os.Stdout, "\n\n")
+			}
+			if len(sourcesWithoutIssues) == 1 {
+				// This is a workaround to avoid printing the source when analyzing the live cluster, although it impacts the
+				// regular use case with a directory containing a single cluster snapshot
+				//_, err = fmt.Fprintf(vzHelper.GetOutputStream(), "Verrazzano analysis CLI did not detect any issue in the cluster\n")
+				writeOut += fmt.Sprintf("Verrazzano analysis CLI did not detect any issue in the cluster\n")
+			} else {
+				for _, source := range sourcesWithoutIssues {
+					//_, err = fmt.Fprintf(os.Stdout, "Verrazzano analysis CLI did not detect any issue in %s\n", source)
+					writeOut += fmt.Sprintf("Verrazzano analysis CLI did not detect any issue in %s\n", source)
+				}
+			}
+			fmt.Fprintf(vzHelper.GetOutputStream(), writeOut)
+			fmt.Fprintf(os.Stdout, "%s", writeOut)
 		}
 	}
 	reportMutex.Unlock()

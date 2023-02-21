@@ -66,10 +66,7 @@ func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 
 	directory := ""
 	// Get the controller runtime client
-	client, err := vzHelper.GetClient(cmd)
-	if err != nil {
-		return err
-	}
+
 	if directoryFlag == nil || directoryFlag.Value.String() == "" {
 		// Analyze live cluster by capturing the snapshot, when capture-dir is not set
 
@@ -81,6 +78,11 @@ func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 
 		// Get the dynamic client to retrieve OAM resources
 		dynamicClient, err := vzHelper.GetDynamicClient(cmd)
+		if err != nil {
+			return err
+		}
+
+		client, err := vzHelper.GetClient(cmd)
 		if err != nil {
 			return err
 		}
@@ -115,6 +117,9 @@ func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		if err != nil {
 			return fmt.Errorf(err.Error())
 		}
+		if helpers.SetVzVer(client) != nil {
+			return fmt.Errorf("an error occurred while fetching the verrazzano version: %s", err.Error())
+		}
 	} else {
 		directory, err = cmd.PersistentFlags().GetString(constants.DirectoryFlagName)
 		if err != nil {
@@ -122,9 +127,6 @@ func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		}
 	}
 
-	if helpers.SetVzVer(client) != nil {
-		return fmt.Errorf("an error occurred while fetching the verrazzano version: %s", err.Error())
-	}
 	return analysis.AnalysisMain(vzHelper, directory, reportFileName, reportFormat)
 }
 
