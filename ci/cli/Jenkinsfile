@@ -1,0 +1,212 @@
+// Copyright (c) 2023, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+String agentLabel = "cli-rpm-ol8-x86"
+
+pipeline {
+    options {
+        timeout(time: 1, unit: 'HOURS')
+        skipDefaultCheckout true
+        timestamps()
+    }
+
+    agent {
+        label "${agentLabel}"
+    }
+
+    parameters {
+        string(name: 'GIT_COMMIT_TO_USE',
+                defaultValue: 'NONE',
+                description: 'This is the full git commit hash from the source build to be used for all jobs',
+                trim: true)
+        choice(name: 'BUILD_PLAT',
+                description: 'Platform architecture',
+                // 1st choice is the default value
+                choices: ["amd64", "arm64"])
+        choice(name: 'BUILD_OS',
+                description: 'Build os. Eg: ol8',
+                // 1st choice is the default value
+                choices: ["ol8", "ol9"])
+    }
+
+    environment {
+        GOPATH = '/home/opc/go'
+        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
+        TMP_MODULE_SOURCE_DIR = "${WORKSPACE}/tmp/modulebuild/builds/verrazzano-cli"
+
+        OCI_CLI_AUTH = "instance_principal"
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_OS_BUCKET = "verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET = "verrazzano-builds-by-commit"
+    }
+
+    stages {
+        stage('Clean workspace and checkout') {
+            steps {
+                sh """
+                    echo "${NODE_LABELS}"
+                """
+
+                script {
+                    if (params.GIT_COMMIT_TO_USE == "NONE") {
+                        echo "Specific GIT commit was not specified, use current head"
+                        def scmInfo = checkout scm
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                    } else {
+                        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
+                        def scmInfo = checkout([
+                                $class                           : 'GitSCM',
+                                branches                         : [[name: params.GIT_COMMIT_TO_USE]],
+                                doGenerateSubmoduleConfigurations: false,
+                                extensions                       : [],
+                                submoduleCfg                     : [],
+                                userRemoteConfigs                : [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                        // If the commit we were handed is not what the SCM says we are using, fail
+                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
+                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+                            exit 1
+                        }
+                    }
+                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                }
+
+                script {
+                    def props = readProperties file: '.verrazzano-development-version'
+                    VERSION = props['verrazzano-development-version']
+                    MAJOR = sh(returnStdout: true, script: "echo ${VERSION} | cut -d '.' -f 1").trim()
+                    MINOR = sh(returnStdout: true, script: "echo ${VERSION} | cut -d '.' -f 2").trim()
+                    env.VZ_VERSION = sh(returnStdout: true, script: "echo ${VERSION}").trim()
+                    env.MODULE_STREAM_VERSION = sh(returnStdout: true, script: "echo \"${MAJOR}.${MINOR}\"").trim()
+                    env.MODULE_VERSION = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+                }
+            }
+        }
+
+
+        stage('Create Verrazzano CLI source tar file') {
+            steps {
+                createCliSourceTar("${env.GO_REPO_PATH}")
+            }
+        }
+
+        stage('Prepare CLI RPM environment') {
+            environment {
+                GIT_COMMIT_TO_USE = "${env.GIT_COMMIT}"
+                MODULE_STREAM_VERSION = "${env.MODULE_STREAM_VERSION}"
+                MODULE_VERSION = "${env.MODULE_VERSION}"
+                VZ_VERSION = "${env.VZ_VERSION}"
+                TMP_BUILD_DIR = "${env.TMP_MODULE_SOURCE_DIR}/${env.GIT_COMMIT}"
+            }
+            steps {
+                sh """
+                    ${WORKSPACE}/ci/scripts/prepare_vz_cli_rpm_pipeline.sh
+                """
+            }
+        }
+
+        stage('Build RPM') {
+            steps {
+                invokeMBS()
+            }
+            post {
+                always {
+                    script {
+                        // TODO: Point module build directory to a directory under WORKSPACE while invoking module build service.
+                        env.MODULE_BUILD_DIR = sh(returnStdout: true, script: "sudo find /root/modulebuild/builds -name module-verrazzano-cli-${MODULE_STREAM_VERSION}-*${MODULE_VERSION}").trim()
+                        archiveMBSLogs()
+                        env.MODULE_REPO_DIR = sh(returnStdout: true, script: "find ${WORKSPACE}/modulebuild -name module-verrazzano-cli-${MODULE_STREAM_VERSION}-*${MODULE_VERSION}").trim()
+                    }
+                }
+            }
+        }
+
+        stage('Test RPM') {
+            environment {
+                TMP_BUILD_DIR = "${env.TMP_MODULE_SOURCE_DIR}/${env.GIT_COMMIT}"
+                MODULE_BUILD_DIR = "${env.MODULE_REPO_DIR}"
+                MODULE_STREAM_VERSION = "${env.MODULE_STREAM_VERSION}"
+                BUILD_OS = "${params.BUILD_OS}"
+                BUILD_PLAT = "${params.BUILD_PLAT}"
+            }
+            steps {
+                sh """
+                    ${WORKSPACE}/ci/scripts/test_vz_cli_rpm.sh
+                """
+            }
+        }
+
+        stage('Save CLI binary') {
+            environment {
+                TMP_BUILD_DIR = "${env.TMP_MODULE_SOURCE_DIR}/${env.GIT_COMMIT}"
+                RPM_FILE = sh(returnStdout: true, script: "find ${MODULE_REPO_DIR}/results -name *64.rpm").trim()
+                BUILD_OS = "${params.BUILD_OS}"
+                BUILD_PLAT = "${params.BUILD_PLAT}"
+            }
+            steps {
+                sh """
+                    ${WORKSPACE}/ci/scripts/save_cli_from_rpm.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
+                """
+                saveGeneratedArtifacts()
+            }
+        }
+    }
+    post {
+        cleanup {
+            deleteDir()
+        }
+    }
+}
+
+def createCliSourceTar(GO_REPO_PATH) {
+    sh """
+        rm -rf ${GO_REPO_PATH}/verrazzano
+        mkdir -p ${GO_REPO_PATH}/verrazzano
+        tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+        cd ${GO_REPO_PATH}/verrazzano/tools/vz
+        cp ../../go.mod .
+        sed -i "s|^module github.com/verrazzano/verrazzano.*|module github.com/verrazzano/verrazzano/tools/vz|" go.mod
+        echo "replace github.com/verrazzano/verrazzano => ../../" >> go.mod
+        go mod tidy
+        go mod vendor
+        rm -rf ${TMP_MODULE_SOURCE_DIR}/${GIT_COMMIT}/verrazzano-cli
+        mkdir -p ${TMP_MODULE_SOURCE_DIR}/${GIT_COMMIT}/verrazzano-cli
+        cd ..
+        tar czf ${TMP_MODULE_SOURCE_DIR}/${GIT_COMMIT}/verrazzano-cli/verrazzano-cli-${VERSION}.tar.gz vz
+        cp vz/vzcli.spec ${TMP_MODULE_SOURCE_DIR}/${GIT_COMMIT}/verrazzano-cli/verrazzano-cli.spec
+    """
+}
+
+def archiveMBSLogs() {
+    sh """
+        mkdir -p ${WORKSPACE}/modulebuild
+        sudo cp -r ${MODULE_BUILD_DIR} ${WORKSPACE}/modulebuild
+        sudo chown -R opc:opc ${WORKSPACE}/modulebuild
+        sudo rm -rf ${MODULE_BUILD_DIR}
+    """
+    archiveArtifacts artifacts: '**/module-verrazzano-cli*/**', allowEmptyArchive: true
+}
+
+def invokeMBS() {
+    sh """
+        ## Invoke MBS to build RPM
+        cat "${TMP_MODULE_SOURCE_DIR}/${GIT_COMMIT}/verrazzano-cli-stream.yaml"
+        sudo mbs-manager build_module_locally --offline --stream "${MODULE_STREAM_VERSION}" --file "${TMP_MODULE_SOURCE_DIR}/${GIT_COMMIT}/verrazzano-cli-stream.yaml"
+    """
+}
+
+// Save generated module stream repo
+def saveGeneratedArtifacts() {
+    sh """
+        tar -czf ${WORKSPACE}/vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz -C ${WORKSPACE}/modulebuild .
+        cd ${WORKSPACE}
+        sha256sum vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz > vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz --file vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256 --file vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz --file vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256 --file vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256
+    """
+}
