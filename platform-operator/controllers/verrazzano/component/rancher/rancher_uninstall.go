@@ -41,7 +41,7 @@ const (
 	rancherCleanupImage          = "rancher-cleanup"
 	defaultRancherCleanupJobYaml = "/verrazzano/platform-operator/thirdparty/manifests/rancher-cleanup/rancher-cleanup.yaml"
 	rancherCleanupJobName        = "cleanup-job"
-	rancherCleanupJobNamespace   = "kube-system"
+	rancherCleanupJobNamespace   = constants.VerrazzanoInstallNamespace
 	finalizerSubString           = ".cattle.io"
 )
 

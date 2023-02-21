@@ -244,7 +244,7 @@
             },
             {
               "image": "opensearch",
-              "tag": "2.3.0-20230123213036-bd387046f04",
+              "tag": "2.3.0-20230210125230-1ff5dd09b32",
               "helmFullImageKey": "monitoringOperator.osImage"
             },
             {
@@ -758,7 +758,7 @@
           "images": [
             {
               "image": "argocd",
-              "tag": "v2.5.3-20230130225915-436ed2a9",
+              "tag": "v2.5.3-20230221043507-436ed2a9",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
