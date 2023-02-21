@@ -210,7 +210,7 @@ func (y *YAMLApplier) applyAction(obj *unstructured.Unstructured) error {
 			}
 		}
 		// Delete any keys in server obj not included in the client fields.
-		for key, _ := range obj.Object {
+		for key := range obj.Object {
 			if key == "kind" || key == "apiVersion" {
 				continue
 			}
