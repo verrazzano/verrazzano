@@ -209,6 +209,25 @@ func (y *YAMLApplier) applyAction(obj *unstructured.Unstructured) error {
 				return err
 			}
 		}
+		// Delete any keys in server obj not included in the client fields.
+		for key, _ := range obj.Object {
+			if key == "kind" || key == "apiVersion" {
+				continue
+			}
+			keyFound := false
+			for _, clientField := range clientFields {
+				if clientField.name == key {
+					keyFound = true
+					break
+				}
+			}
+			if !keyFound {
+				err = unstructured.SetNestedField(obj.Object, nil, key)
+				if err != nil {
+					return err
+				}
+			}
+		}
 		return nil
 	})
 	if err != nil {
