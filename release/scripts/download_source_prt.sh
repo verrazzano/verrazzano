@@ -99,9 +99,10 @@ function processImagesToPublish() {
       key=$(echo $key | tr '.' '_')
       key=${key#$VZ_REPO_PREFIX}
 
+      # Remove till last - from value to get the short commit
       imageTag=$value
       value=${value##*-}
-      downloadSourceCode "$key" "${value}" "" "${imageTag}"
+      downloadSourceCode "$key" "${value}"
     done < "${imagesToPublish}"
   else
     echo "$imagesToPublish here not found."
@@ -113,7 +114,6 @@ function downloadSourceCode() {
   local compKey=$1
   local commitOrBranch=$2
   local repoUrl=$3
-  local imageTag=$4
   if [ "${repoUrl}" = "" ]; then
     repoUrl=$(getRepoUrl "${key}")
     if [ "${repoUrl}" = "" ]; then
@@ -149,33 +149,9 @@ function downloadSourceCode() {
   # -c advice.detachedHead=false is used to avoid the Git message for the detached HEAD
   git -c advice.detachedHead=false checkout "${commitOrBranch}"
 
-  # When the git checkout of a commit fails, checkout the source from the respective release branch
-  ret=$?
-  if [ $ret -ne 0 ]; then
-    releaseBranch=$(getReleaseBranch "${imageTag}" "${compKey}")
-    echo "There is an issue in pulling source from commit/branch ${commitOrBranch}, switching to release branch ${releaseBranch}"
-    git -c advice.detachedHead=false checkout "${releaseBranch}"
-  fi
-
   # Remove git history and other files
   rm -rf .git .gitignore .github .gitattributes
   printf "\n"
-}
-
-# Derive the release branch for the components
-function getReleaseBranch() {
-  local imageTag=$1
-  local componentName=$2
-  imageVersion=$(echo "${imageTag}"|cut -d'-' -f1)
-  if [[ $imageVersion == v* ]]; then
-    imageVersion="${imageVersion:1}"
-  fi
-  if [[ "$componentName" == "opensearch" ]] || [[ "$componentName" == "opensearch-dashboards" ]] ; then
-    echo "oracle-${imageVersion}"
-    return
-  fi
-  releaseBranch="oracle/release/${imageVersion}"
-  echo "${releaseBranch}"
 }
 
 # Handle the examples repository as a special case and get the source from master/main branch
@@ -194,7 +170,6 @@ function downloadSourceExamples() {
 
   git clone "${repoUrl}"
   cd examples
-
   # Remove git history and other files
   rm -rf .git .gitignore .github .gitattributes
   printf "\n"
@@ -227,7 +202,7 @@ function downloadAdditionalSource() {
       key=$(echo $key | tr '.' '_')
       url=$(echo "${value}"|cut -d':' -f2-)
       branchInfo=$(echo "${value}"|cut -d':' -f1)
-      downloadSourceCode "$key" ${branchInfo} "${url}" ""
+      downloadSourceCode "$key" ${branchInfo} "${url}"
     done < "${additionalSource}"
   else
     echo "$additionalSource here not found."
