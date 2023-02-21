@@ -108,9 +108,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 	if err == nil {
 		versionOut += fmt.Sprintf("\nKubernetes Version: %s\n", k8sVer)
 	}
-	if reportFormat == constants.SummaryReport {
-		fmt.Fprintf(os.Stdout, "%s", versionOut)
-	}
+
 	// Lock the report data while generating the report itself
 	reportMutex.Lock()
 	sourcesWithoutIssues := allSourcesAnalyzed
@@ -144,7 +142,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 				}
 
 			}
-			writeOut += versionOut
+			//writeOut += versionOut
 			writeOut += fmt.Sprintf("\n\tISSUE (%s)\n\t\tsummary: %s\n", issue.Type, issue.Summary)
 			if len(issue.Actions) > 0 && includeActions {
 				log.Debugf("Output actions")
@@ -203,6 +201,8 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 	}
 
 	if len(writeOut) > 0 {
+		writeOut = versionOut + writeOut
+		writeSummaryOut = versionOut + writeSummaryOut
 		var fileOut *os.File
 		if _, e := os.Stat(reportFile); e == nil {
 			fileOut, err = os.CreateTemp(".", reportFile+".*.temp")
@@ -219,11 +219,9 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 		}
 		defer func() {
 			if reportFormat == constants.DetailedReport {
-				fmt.Fprintf(os.Stdout, "%s", writeOut)
 				fmt.Fprintf(vzHelper.GetOutputStream(), writeOut)
 			}
 			if reportFormat == constants.SummaryReport {
-				fmt.Fprintf(os.Stdout, "%s", writeSummaryOut)
 				fmt.Fprintf(vzHelper.GetOutputStream(), writeSummaryOut)
 			}
 			fileOut.Close()
@@ -235,6 +233,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 			return err
 		}
 	} else {
+		writeOut = versionOut + writeOut
 		if includeInfo {
 			if len(sourcesWithoutIssues) > 0 {
 				writeOut += "\n\n"
@@ -252,7 +251,6 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 				}
 			}
 			fmt.Fprintf(vzHelper.GetOutputStream(), writeOut)
-			fmt.Fprintf(os.Stdout, "%s", writeOut)
 		}
 	}
 	reportMutex.Unlock()
