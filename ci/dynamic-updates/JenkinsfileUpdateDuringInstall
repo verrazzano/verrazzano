@@ -92,6 +92,9 @@ pipeline {
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
         CAPTURE_FULL_CLUSTER="${params.CAPTURE_FULL_CLUSTER}"
 
+        // Environment variable for Verrazzano CLI executable
+        VZ_COMMAND="${GO_REPO_PATH}/vz"
+
         VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
         VERRAZZANO_INSTALL_LOG="verrazzano-install.log"
 
@@ -101,6 +104,7 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+        VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
 
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
@@ -189,6 +193,14 @@ pipeline {
                     // update the description with some meaningful info
                     setDisplayName()
                     currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                }
+                script {
+                    sh """
+                        echo "Downloading VZ CLI from object storage"
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+                        tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
+                        ${VZ_COMMAND} version
+                    """
                 }
             }
         }
