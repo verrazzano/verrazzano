@@ -100,8 +100,8 @@ function processImagesToPublish() {
       key=${key#$VZ_REPO_PREFIX}
 
       # Remove till last - from value to get the short commit
-      imageTag=$value
       value=${value##*-}
+
       downloadSourceCode "$key" "${value}"
     done < "${imagesToPublish}"
   else
