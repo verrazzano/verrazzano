@@ -33,31 +33,21 @@ function list_images() {
     local sub_components=$(list_subcomponent_names ${component})
     for subcomponent in ${sub_components}; do
       local override_registry=$(resolve_subcomponent_registry_from_bom ${component} ${subcomponent})
-      local from_repository=$(get_subcomponent_repo ${component} ${subcomponent})
-      if [[ $from_repository == "$REPOS" ]] || [[ $from_repository == "$REPOS"/rancher ]]; then
-        local image_names=$(list_subcomponent_images ${component} ${subcomponent})
-        for base_image in ${image_names}; do
-          local override_repo=$(get_image_repo_override ${component} ${subcomponent} ${base_image})
-          local from_image
-          if [ -n "$override_registry" ] && [ "$override_registry" != "null" ]; then
-              if [ -n "$override_repo" ] && [ "$override_repo" != "null" ]; then
-                  from_image=${override_registry}/${override_repo}/${base_image}
-              else
-                  from_image=${override_registry}/${from_repository}/${base_image}
-              fi
-          else
-              if [ -n "$override_repo" ] && [ "$override_repo" != "null" ]; then
-                  from_image=${override_repo}/${base_image}
-              else
-                  from_image=${from_repository}/${base_image}
-              fi
-          fi
-          local existing=$(cat ${IMG_LIST_FILE} | grep ${from_image})
-          if [ -z "$existing" ]; then
-            echo "${from_image}" >> ${IMG_LIST_FILE}
-          fi
-        done
-      fi
+      local image_names=$(list_subcomponent_images ${component} ${subcomponent})
+      for base_image in ${image_names}; do
+        local from_repository=$(resolve_image_repo_from_bom ${component} ${subcomponent} ${base_image})
+        local from_image
+        if [ -n "$override_registry" ] && [ "$override_registry" != "null" ]; then
+          from_image=${override_registry}/${from_repository}/${base_image}
+        else
+          from_image=${from_repository}/${base_image}
+        fi
+        local existing=$(cat ${IMG_LIST_FILE} | grep ${from_image})
+        if [ -z "$existing" ]; then
+          echo "${from_image}" >> ${IMG_LIST_FILE}
+        fi
+      done
+
     done
   done
 }
