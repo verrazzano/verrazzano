@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
@@ -37,11 +37,20 @@ function list_images() {
       if [[ $from_repository == "$REPOS" ]] || [[ $from_repository == "$REPOS"/rancher ]]; then
         local image_names=$(list_subcomponent_images ${component} ${subcomponent})
         for base_image in ${image_names}; do
+          local override_repo=$(get_image_repo_override ${component} ${subcomponent} ${base_image})
           local from_image
-          if [ "$override_registry" == "null" ]; then
-              from_image=${from_repository}/${base_image}
+          if [ -n "$override_registry" ] && [ "$override_registry" != "null" ]; then
+              if [ -n "$override_repo" ] && [ "$override_repo" != "null" ]; then
+                  from_image=${override_registry}/${override_repo}/${base_image}
+              else
+                  from_image=${override_registry}/${from_repository}/${base_image}
+              fi
           else
-              from_image=${override_registry}/${from_repository}/${base_image}
+              if [ -n "$override_repo" ] && [ "$override_repo" != "null" ]; then
+                  from_image=${override_repo}/${base_image}
+              else
+                  from_image=${from_repository}/${base_image}
+              fi
           fi
           local existing=$(cat ${IMG_LIST_FILE} | grep ${from_image})
           if [ -z "$existing" ]; then
