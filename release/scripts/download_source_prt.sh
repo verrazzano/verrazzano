@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # A script to download the source code for the images build from source.
@@ -249,6 +249,4 @@ fi
 
 if [ "$DRY_RUN" == true ] ; then
    echo "Completed running the script with DRY_RUN = true"
-else
-  echo "Completed archiving source code, take a look at the contents of ${SAVE_DIR}"
 fi
