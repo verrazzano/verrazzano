@@ -141,9 +141,8 @@ func TestApplyFNonSpec(t *testing.T) {
 	assert.Equal(t, 1, len(saUpdated.ImagePullSecrets))
 	assert.Equal(t, "verrazzano-container-registry", saUpdated.ImagePullSecrets[0].Name)
 
-	assert.NotEmpty(t, saUpdated.Secrets)
-	assert.Equal(t, 1, len(saUpdated.Secrets))
-	assert.Equal(t, "verrazzano-platform-operator-token", saUpdated.Secrets[0].Name)
+	assert.Empty(t, saUpdated.Secrets)
+	assert.Equal(t, 0, len(saUpdated.Secrets))
 }
 
 // TestApplyFMerge
