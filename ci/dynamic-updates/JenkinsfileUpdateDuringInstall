@@ -42,6 +42,18 @@ pipeline {
                 description: 'This is the API crd version.',
                 // 1st choice is the default value
                 choices: [ "v1beta1", "v1alpha1"])
+        string (name: 'TAGGED_TESTS',
+                defaultValue: '',
+                description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
+                trim: true)
+        string (name: 'INCLUDED_TESTS',
+                defaultValue: '.*',
+                description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*',
+                trim: true)
+        string (name: 'EXCLUDED_TESTS',
+                defaultValue: '_excluded_test',
+                description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
+                trim: true)
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
@@ -218,7 +230,7 @@ pipeline {
                         success {
                             script {
                                 if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                                    dumpK8sCluster('dynamic-install-post-install-cluster-snapshot1')
+                                    dumpK8sCluster('dynamic-install-post-install-cluster-snapshot')
                                 }
                             }
                         }
@@ -266,6 +278,56 @@ pipeline {
                 }
             }
         }
+
+        stage('Verify Tests') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-install-verify-infra"
+            }
+            steps {
+                // Verrazzano may continue reconciling even after the `vz install` command exits, so
+                // wait a bit before running the verify-install tests.
+                sleep time: 5, unit: 'MINUTES'
+
+                runGinkgoRandomize('verify-install')
+            }
+            post {
+                failure {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('dynamic-install-verify-install-failed-cluster-snapshot')
+                        }
+                    }
+                }
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
+
+        stage('Infra Tests') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-install-infra-tests"
+            }
+            steps {
+                script {
+                    parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-install-infra-tests")
+                }
+            }
+            post {
+                failure {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('dynamic-install-verify-infra-failed-cluster-snapshot')
+                        }
+                    }
+                }
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
     }
 
     post {
@@ -310,6 +372,29 @@ pipeline {
         cleanup {
             deleteDir()
         }
+    }
+}
+
+def generateVerifyInfraStages(dumpRoot) {
+    return [
+        "verify-infra restapi": {
+            runGinkgoRandomize('verify-infra/restapi', "${dumpRoot}/verify-infra-restapi")
+        },
+        "verify-infra oam": {
+            runGinkgoRandomize('verify-infra/oam', "${dumpRoot}/verify-infra-oam")
+        },
+    ]
+}
+
+def runGinkgoRandomize(testSuitePath, dumpDir = '') {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            if [ ! -z "${dumpDir}" ]; then
+                export DUMP_DIRECTORY=${dumpDir}
+            fi
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
     }
 }
 
