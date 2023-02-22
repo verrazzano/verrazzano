@@ -202,5 +202,9 @@ func findServerName(namespace, name string) bool {
 	}
 	servername := string(s.Data["name"])
 	decodeServerName, err := b64.StdEncoding.DecodeString(servername)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to decode secret data %s in secret %s with error: %v", servername, name, err))
+		return false
+	}
 	return string(decodeServerName) != managedClusterName
 }
