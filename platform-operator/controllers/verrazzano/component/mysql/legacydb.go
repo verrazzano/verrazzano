@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mysql
@@ -7,6 +7,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"text/template"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -25,8 +28,6 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
-	"text/template"
-	"time"
 )
 
 // legacyDbLoadJob is the template for the db load job
@@ -307,6 +308,14 @@ func isJobPodRunning(ctx spi.ComponentContext, jobName string) wait.ConditionFun
 			ctx.Log().Infof("DB load job pod is running or has completed successfully")
 			return true, nil
 		case v1.PodFailed:
+			// Check if the user manually created a pod to do the DB migration
+			if len(podList.Items) > 1 {
+				switch podList.Items[1].Status.Phase {
+				case v1.PodRunning, v1.PodSucceeded:
+					ctx.Log().Infof("DB load job pod is running or has completed successfully")
+					return true, nil
+				}
+			}
 			return false, fmt.Errorf("Job pod has completed with a failure")
 		}
 		return false, nil
@@ -358,7 +367,14 @@ func createLegacyUpgradeJob(ctx spi.ComponentContext) error {
 			// add the root password
 			var rootPassword []byte
 			if rootPassword, err = getLegacyRootPassword(ctx); err != nil {
-				return err
+				if errors.IsNotFound(err) {
+					rootPassword, err = getRootDBPassword(ctx)
+					if err != nil {
+						return err
+					}
+				} else {
+					return err
+				}
 			}
 			values.RootPassword = string(rootPassword)
 
@@ -379,6 +395,17 @@ func createLegacyUpgradeJob(ctx spi.ComponentContext) error {
 			}
 		} else {
 			return err
+		}
+	} else {
+		// Job already exists, check its status
+		// If it has failed, clean up the old job so a new one can be queued in the next try
+		if isJobFailed(job) {
+			// delete the job
+			if err := cleanupDbMigrationJob(ctx); err != nil {
+				return err
+			}
+			// return an error so that waitForJobPodRunning will not be executed
+			return fmt.Errorf("DB load job has failed and will be retried")
 		}
 	}
 	return nil
@@ -540,13 +567,21 @@ func cleanupDbMigrationJob(ctx spi.ComponentContext) error {
 func checkDbMigrationJobCompletion(ctx spi.ComponentContext) bool {
 	// check for existence of db restoration job.  If it exists, wait for its completion
 	ctx.Log().Progress("Checking status of keycloak DB restoration")
+
+	// Check if the Db Migration was done manually in case of terminal job failure
+	dbManuallyMigrated := isDatabaseMigrationStageCompleted(ctx, manualDbMigrationStage)
+	if dbManuallyMigrated {
+		ctx.Log().Once("Keycloak DB successfully migrated")
+		return true
+	}
+
 	loadJob := &batchv1.Job{}
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: dbLoadJobName, Namespace: ComponentNamespace}, loadJob)
 	if err != nil {
 		return errors.IsNotFound(err)
 	}
 	// check to see if job has failed and re-submit
-	if loadJob.Status.Failed == 1 {
+	if isJobFailed(loadJob) {
 		ctx.Log().Errorf("DB load job has failed and will be retried.")
 		// delete the job
 		if err := cleanupDbMigrationJob(ctx); err != nil {
@@ -566,6 +601,21 @@ func checkDbMigrationJobCompletion(ctx spi.ComponentContext) bool {
 	}
 	for _, container := range dbMigrationPod.Status.ContainerStatuses {
 		if container.Name == dbLoadContainerName && container.State.Terminated != nil && container.State.Terminated.ExitCode == 0 {
+			ctx.Log().Once("Keycloak DB successfully migrated")
+			return true
+		}
+	}
+
+	return false
+}
+
+func isJobFailed(job *batchv1.Job) bool {
+	if job.Status.Failed == 1 {
+		return true
+	}
+
+	for _, condition := range job.Status.Conditions {
+		if condition.Type == batchv1.JobFailed && condition.Status == v1.ConditionTrue {
 			return true
 		}
 	}
