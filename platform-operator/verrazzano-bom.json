@@ -503,7 +503,7 @@
           "images": [
             {
               "image": "alertmanager",
-              "tag": "v0.24.0-20230209062327-fb73d30f",
+              "tag": "v0.24.0-20230221214421-a20fd08d",
               "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
               "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
             }
@@ -515,7 +515,7 @@
           "images": [
             {
               "image": "prometheus",
-              "tag": "v2.38.0-20230209074214-5cc7f3b4",
+              "tag": "v2.38.0-20230221215349-cf7b5418",
               "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
               "helmTagKey": "prometheus.prometheusSpec.image.tag"
             }
