@@ -322,7 +322,7 @@ pipeline {
                         then
                             kubectl apply -f https://github.com/verrazzano/verrazzano/releases/download/${params.INTERIM_UPGRADE_VERSION}/operator.yaml
                         else
-                            kubectl apply -f https://github.com/verrazzano/verrazzano/releases/download/${params.INTERIM_UPGRADE_VERSION}/verrazzazzano-platform-operator.yaml
+                            kubectl apply -f https://github.com/verrazzano/verrazzano/releases/download/${params.INTERIM_UPGRADE_VERSION}/verrazzano-platform-operator.yaml
                         fi
                     else
                         echo "Upgrading VPO to this commit version"
