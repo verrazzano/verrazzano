@@ -4,6 +4,7 @@
 package argocd_test
 
 import (
+	b64 "encoding/base64"
 	"fmt"
 	"os"
 	"time"
@@ -76,6 +77,13 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 			Eventually(func() bool {
 				return findSecret(argoCDNamespace, secretName)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find secret "+secretName)
+		})
+
+		t.It("secret has the data content with the same name as managed cluster", func() {
+			secretName := fmt.Sprintf("%s-argocd-cluster-secret", managedClusterName)
+			Eventually(func() bool {
+				return findServerName(argoCDNamespace, secretName)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find managed cluster name "+managedClusterName)
 		})
 	})
 
@@ -184,4 +192,15 @@ func helloHelidonPodsRunning(kubeconfigPath string, namespace string) (bool, err
 		return false, err
 	}
 	return result, nil
+}
+
+func findServerName(namespace, name string) bool {
+	s, err := pkg.GetSecret(namespace, name)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get secret %s in namespace %s with error: %v", name, namespace, err))
+		return false
+	}
+	servername := string(s.Data["name"])
+	decodeServerName, err := b64.StdEncoding.DecodeString(servername)
+	return string(decodeServerName) != managedClusterName
 }
