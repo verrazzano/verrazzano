@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package k8sutil
@@ -207,6 +207,25 @@ func (y *YAMLApplier) applyAction(obj *unstructured.Unstructured) error {
 			err = unstructured.SetNestedField(obj.Object, serverField, clientField.name)
 			if err != nil {
 				return err
+			}
+		}
+		// Delete any keys in server obj not included in the client fields.
+		for key := range obj.Object {
+			if key == "kind" || key == "apiVersion" {
+				continue
+			}
+			keyFound := false
+			for _, clientField := range clientFields {
+				if clientField.name == key {
+					keyFound = true
+					break
+				}
+			}
+			if !keyFound {
+				err = unstructured.SetNestedField(obj.Object, nil, key)
+				if err != nil {
+					return err
+				}
 			}
 		}
 		return nil
