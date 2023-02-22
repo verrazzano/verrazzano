@@ -103,7 +103,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 	//TODO: Eventually add support other reportFormat type (json)
 	writeOut := ""
 	writeSummaryOut := ""
-	versionOut := fmt.Sprintf("\nVerrazzano Version (%s)\n", helpers.GetVzVer())
+	versionOut := fmt.Sprintf("\nVerrazzano Version: %s", helpers.GetVzVer())
 	k8sVer, err := helpers.GetK8sVer()
 	if err == nil {
 		versionOut += fmt.Sprintf("\nKubernetes Version: %s\n", k8sVer)
@@ -203,19 +203,10 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 	if len(writeOut) > 0 {
 		writeOut = versionOut + writeOut
 		writeSummaryOut = versionOut + writeSummaryOut
-		var fileOut *os.File
-		if _, e := os.Stat(reportFile); e == nil {
-			fileOut, err = os.CreateTemp(".", reportFile+".*.temp")
-			if err != nil {
-				log.Errorf("Failed to create temp report file : %s, error found : %s", reportFile, err.Error())
-				return err
-			}
-		} else {
-			fileOut, err = os.Create(reportFile)
-			if err != nil {
-				log.Errorf("Failed to create report file : %s, error found : %s", reportFile, err.Error())
-				return err
-			}
+		fileOut, err := os.CreateTemp("", reportFile+constants.DetailsTmpFileExtn)
+		if err != nil {
+			log.Errorf("Failed to create temp report file : %s, error found : %s", reportFile, err.Error())
+			return err
 		}
 		defer func() {
 			if reportFormat == constants.DetailedReport {

@@ -273,6 +273,7 @@ func GetOperatorYaml(version string) (string, error) {
 	return url, nil
 }
 
+// GetK8sVer returns cluster Kubernetes version
 func GetK8sVer() (string, error) {
 	config, err := k8sutil.GetConfigFromController()
 	if err != nil {
