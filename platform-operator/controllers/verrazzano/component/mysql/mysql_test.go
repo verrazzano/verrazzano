@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mysql
@@ -1605,6 +1605,41 @@ func TestCreateLegacyUpgradeJob(t *testing.T) {
 	assert.NotNil(t, job)
 	assert.True(t, len(job.Spec.Template.Spec.Containers) == 1)
 	assert.True(t, len(job.Spec.Template.Spec.InitContainers) == 1)
+}
+
+// TestCreateLegacyUpgradeJobLoadJobFailed tests the createLegacyUpgradeJob function
+// GIVEN a call to createLegacyUpgradeJob during preUpgrade
+// WHEN a load job already exists and has failed
+// THEN the load job should be deleted, so it can be re-queued
+func TestCreateLegacyUpgradeJobLoadJobFailed(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	vz := &vzapi.Verrazzano{}
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: ComponentNamespace,
+		},
+		Data: map[string][]byte{secretKey: []byte("test-user-key")},
+	}
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      dbLoadJobName,
+			Namespace: ComponentNamespace,
+		},
+		Status: batchv1.JobStatus{
+			Failed: 1,
+		},
+	}
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(secret, job).Build()
+	ctx := spi.NewFakeContext(fakeClient, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
+	err := createLegacyUpgradeJob(ctx)
+	assert.Error(t, err)
+	job = &batchv1.Job{}
+	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Name: dbLoadJobName, Namespace: ComponentNamespace}, job)
+	assert.True(t, errors.IsNotFound(err))
 }
 
 // TestCheckDbMigrationJobCompletionForFailedJob tests the checkDbMigrationJobCompletion function

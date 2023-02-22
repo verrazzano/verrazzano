@@ -188,19 +188,14 @@ func getUserToken(rc *RancherConfig, log vzlog.VerrazzanoLogger, secret, usernam
 	return httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "token", "unable to find token in Rancher response")
 }
 
-type TokenAttrs struct {
-	Created   string `json:"created"`
-	ExpiresAt string `json:"expiresAt"`
-}
-
 type Payload struct {
 	ClusterID string `json:"clusterID"`
 	TTL       int    `json:"ttl"`
 }
 
-type TokenResponse struct {
-	Token string `json:"token"`
-	Name  string `json:"name"`
+type TokenPostResponse struct {
+	Token   string `json:"token"`
+	Created string `json:"created"`
 }
 
 // CreateTokenWithTTL creates a user token with ttl (in minutes)
@@ -227,38 +222,53 @@ func CreateTokenWithTTL(rc *RancherConfig, log vzlog.VerrazzanoLogger, ttl, clus
 		return "", "", log.ErrorfNewErr("Failed to validate response: %v", err)
 	}
 
-	var tokenResponse TokenResponse
-	err = json.Unmarshal([]byte(responseBody), &tokenResponse)
+	var tokenPostResponse TokenPostResponse
+	err = json.Unmarshal([]byte(responseBody), &tokenPostResponse)
 	if err != nil {
 		return "", "", log.ErrorfNewErr("Failed to parse response: %v", err)
 	}
 
-	return tokenResponse.Token, tokenResponse.Name, nil
+	return tokenPostResponse.Token, tokenPostResponse.Created, nil
 }
 
-// GetTokenByName get created & expiresAt attribute of a user token
-func GetTokenByName(rc *RancherConfig, log vzlog.VerrazzanoLogger, tokenName string) (*TokenAttrs, error) {
+type TokenGetResponse struct {
+	Created   string `json:"created"`
+	ClusterID string `json:"clusterId"`
+	ExpiresAt string `json:"expiresAt"`
+}
+
+// GetTokenWithFilter get created expiresAt attribute of a user token with filter
+func GetTokenWithFilter(rc *RancherConfig, log vzlog.VerrazzanoLogger, userID, clusterID string) (string, string, error) {
 	action := http.MethodGet
-	reqURL := rc.BaseURL + tokensPath + "/" + tokenName
+	reqURL := rc.BaseURL + tokensPath + "?userId=" + url.PathEscape(userID) + "&clusterId=" + url.PathEscape(clusterID)
 	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
 
 	response, responseBody, err := SendRequest(action, reqURL, headers, "", rc, log)
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 
 	err = httputil.ValidateResponseCode(response, http.StatusOK)
 	if err != nil {
-		return nil, log.ErrorfNewErr("Failed to validate response: %v", err)
+		return "", "", log.ErrorfNewErr("Failed to validate response: %v", err)
 	}
 
-	var attrs TokenAttrs
-	err = json.Unmarshal([]byte(responseBody), &attrs)
+	data, err := httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "data", "failed to locate the data field of the response body")
 	if err != nil {
-		return nil, err
+		return "", "", log.ErrorfNewErr("Failed to find data in Rancher response: %v", err)
 	}
 
-	return &attrs, nil
+	var items []TokenGetResponse
+	json.Unmarshal([]byte(data), &items)
+	if err != nil {
+		return "", "", log.ErrorfNewErr("Failed to parse response: %v", err)
+	}
+	for _, item := range items {
+		if item.ClusterID == clusterID {
+			return item.Created, item.ExpiresAt, nil
+		}
+	}
+	return "", "", log.ErrorfNewErr("Failed to find the token in Rancher response")
 }
 
 // getProxyURL returns an HTTP proxy from the environment if one is set, otherwise an empty string

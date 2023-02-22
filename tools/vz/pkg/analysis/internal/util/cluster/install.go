@@ -7,18 +7,20 @@ package cluster
 import (
 	encjson "encoding/json"
 	"fmt"
+	"io"
+	"os"
+	"regexp"
+	"strings"
+
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"go.uber.org/zap"
-	"io"
 	corev1 "k8s.io/api/core/v1"
-	"os"
-	"regexp"
-	"strings"
 )
 
 // Compiled Regular expressions
@@ -26,6 +28,8 @@ var installNGINXIngressControllerFailedRe = regexp.MustCompile(`Installing NGINX
 var noIPForIngressControllerRegExp = regexp.MustCompile(`Failed getting DNS suffix: No IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer`)
 var errorSettingRancherTokenRegExp = regexp.MustCompile(`Failed setting Rancher access token.*no such host`)
 var noIPForIstioIngressReqExp = regexp.MustCompile(`Ingress external IP pending for component istio: No IP found for service istio-ingressgateway with type *`)
+var dbLoadJobFailedRe = regexp.MustCompile(`.*DB load job has failed.*`)
+var dbLoadJobCompletedRe = regexp.MustCompile(`.*Keycloak DB successfully migrated.*`)
 
 // I'm going with a more general pattern for limit reached as the supporting details should give the precise message
 // and the advice can be to refer to the supporting details on the limit that was exceeded. We can change it up
@@ -38,6 +42,7 @@ var loadBalancerCreationIssue = regexp.MustCompile(`.*Private subnet.* is not al
 var vpoErrorMessages []string
 
 const logLevelError = "error"
+const logLevelInfo = "info"
 const verrazzanoResource = "verrazzano-resources.json"
 const eventsJSON = "events.json"
 const servicesJSON = "services.json"
@@ -87,6 +92,44 @@ func AnalyzeVerrazzanoResource(log *zap.SugaredLogger, clusterRoot string, issue
 	}
 	// Handle uninstall issue here, before returning
 	return nil
+}
+
+func checkIfLoadJobFailed(vpoLog string, errorLogs []files.LogMessage, infoLogs []files.LogMessage, clusterRoot string, issueReporter *report.IssueReporter) {
+	dbLoadJobFailure := false
+	dbLoadJobSuccess := false
+
+	messages := make(StringSlice, 1)
+
+	for _, errLog := range errorLogs {
+		if dbLoadJobFailedRe.MatchString(errLog.Message) {
+			dbLoadJobFailure = true
+			messages[0] = errLog.Message
+		}
+	}
+
+	for _, infoLog := range infoLogs {
+		if dbLoadJobCompletedRe.MatchString(infoLog.Message) {
+			dbLoadJobSuccess = true
+		}
+	}
+
+	if dbLoadJobFailure && !dbLoadJobSuccess {
+		reportVzResource := ""
+		reportVpoLog := ""
+		// Construct resource in the analysis report, differently for live analysis
+		if helpers.GetIsLiveCluster() {
+			reportVzResource = report.GetRelatedVZResourceMessage()
+			reportVpoLog = report.GetRelatedLogFromPodMessage(vpoLog)
+		} else {
+			reportVzResource = clusterRoot + "/" + verrazzanoResource
+			reportVpoLog = vpoLog
+		}
+		files := make(StringSlice, 2)
+		files[0] = reportVzResource
+		files[1] = reportVpoLog
+
+		issueReporter.AddKnownIssueMessagesFiles(report.KeycloakDataMigrationFailure, clusterRoot, messages, files)
+	}
 }
 
 // analyzeVerrazzanoInstallIssue is called when we have reason to believe that the installation has failed
@@ -337,24 +380,35 @@ func getComponentsNotReady(log *zap.SugaredLogger, clusterRoot string) ([]string
 		return compsNotReady, err
 	}
 
-	// There should be only one Verrazzano resource, so the first item from the list should be good enough
-	for _, vzRes := range vzResourceList.Items {
-		if vzRes.Status.State != installv1alpha1.VzStateReady {
-			log.Debugf("Verrazzano installation is not complete, installation state %s", vzRes.Status.State)
-
-			// Verrazzano installation is not complete, find out the list of components which are not ready
-			for _, compStatusDetail := range vzRes.Status.Components {
-				if compStatusDetail.State != installv1alpha1.CompStateReady {
-					if compStatusDetail.State == installv1alpha1.CompStateDisabled {
-						continue
-					}
-					log.Debugf("Component %s is not in ready state, state is %s", compStatusDetail.Name, vzRes.Status.State)
-					compsNotReady = append(compsNotReady, compStatusDetail.Name)
-				}
-			}
-			return compsNotReady, nil
+	var vzRes installv1alpha1.Verrazzano
+	if len(vzResourceList.Items) > 0 {
+		// There should be only one Verrazzano resource, so the first item from the list should be good enough
+		vzRes = vzResourceList.Items[0]
+	} else {
+		// If the items are empty, try unmarshalling directly to Verrazzano type
+		err := encjson.Unmarshal(fileBytes, &vzRes)
+		if err != nil {
+			log.Infof("Failed to unmarshal Verrazzano resource at %s", vzResourcesPath)
+			return compsNotReady, err
 		}
 	}
+
+	if vzRes.Status.State != installv1alpha1.VzStateReady {
+		log.Debugf("Verrazzano installation is not complete, installation state %s", vzRes.Status.State)
+
+		// Verrazzano installation is not complete, find out the list of components which are not ready
+		for _, compStatusDetail := range vzRes.Status.Components {
+			if compStatusDetail.State != installv1alpha1.CompStateReady {
+				if compStatusDetail.State == installv1alpha1.CompStateDisabled {
+					continue
+				}
+				log.Debugf("Component %s is not in ready state, state is %s", compStatusDetail.Name, vzRes.Status.State)
+				compsNotReady = append(compsNotReady, compStatusDetail.Name)
+			}
+		}
+		return compsNotReady, nil
+	}
+
 	return compsNotReady, nil
 }
 
@@ -385,6 +439,15 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 		if err != nil {
 			log.Infof("There is an error: %s reading install log: %s", err, vpoLog)
 		}
+
+		if comp == mysql.ComponentName {
+			allInfo, err := files.FilterLogsByLevelComponent(logLevelInfo, comp, allMessages)
+			if err != nil {
+				log.Debugf("Failed to get info logs for %s component", comp)
+			}
+			checkIfLoadJobFailed(vpoLog, allErrors, allInfo, clusterRoot, issueReporter)
+		}
+
 		// Display only the last error for the component from the install log.
 		// Need a better way to handle distinct errors for a component, however some of the errors during the initial
 		// stages of the install might not indicate any real issue always, as reconcile takes care of healing those errors.
