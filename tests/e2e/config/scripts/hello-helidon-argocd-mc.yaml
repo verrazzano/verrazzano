@@ -8,7 +8,7 @@ metadata:
 spec:
   destination:
     name: managed1
-    namespace: hello-helidon
+    namespace: hello-helidon-argo
     server: ''
   source:
     path: 'examples/helidon-config'
