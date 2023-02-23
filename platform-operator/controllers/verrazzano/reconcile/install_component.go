@@ -89,7 +89,7 @@ func (r *Reconciler) reconcileSingleComponent(spiCtx spi.ComponentContext, compS
 		compStateContext.state = compStateInstallEnd
 	}
 
-	for compStateContext.state != compStateInstallEnd && compStateContext.state != componentState(compStateUninstallEnd) {
+	for compStateContext.state != compStateInstallEnd && compStateContext.state != compStateUninstallEnd {
 		switch compStateContext.state {
 		case compStateInstallInitDetermineComponentState:
 			compLog.Debugf("Component %s is being reconciled", compName)
