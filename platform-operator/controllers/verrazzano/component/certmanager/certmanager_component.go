@@ -150,6 +150,10 @@ func (c certManagerComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) err
 
 // ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c certManagerComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
+	// Do not allow any changes except to enable the component post-install
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
 	if _, err := validateConfiguration(new.Spec.Components.CertManager); err != nil {
 		return err
 	}
