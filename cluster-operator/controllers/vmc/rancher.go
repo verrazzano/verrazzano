@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vmc
@@ -6,9 +6,6 @@ package vmc
 import (
 	"crypto/md5" //nolint:gosec //#gosec G501 // package used for caching only, not security
 	"fmt"
-	"io"
-	"net/http"
-
 	"github.com/Jeffail/gabs/v2"
 	cons "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
@@ -16,12 +13,14 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"github.com/verrazzano/verrazzano/pkg/rancherutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"io"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -352,28 +351,34 @@ func getRegistrationYAMLFromRancher(rc *rancherutil.RancherConfig, rancherCluste
 	headers := map[string]string{"Content-Type": "application/json"}
 	headers["Authorization"] = "Bearer " + rc.APIAccessToken
 
-	response, manifestContent, err := rancherutil.SendRequest(action, reqURL, headers, payload, rc, log)
-
+	var token string
+	token, err := getRegistrationTokenFromRancher(rc, rancherClusterID, log)
 	if err != nil {
-		return "", err
+		return "", nil
 	}
 
-	err = httputil.ValidateResponseCode(response, http.StatusCreated)
-	if err != nil {
-		return "", err
-	}
+	if token == "" {
+		response, manifestContent, err := rancherutil.SendRequest(action, reqURL, headers, payload, rc, log)
+		if err != nil {
+			return "", err
+		}
 
-	// get the manifest token from the response, construct a URL, and fetch its contents
-	token, err := httputil.ExtractFieldFromResponseBodyOrReturnError(manifestContent, "token", "unable to find manifest token in Rancher response")
-	if err != nil {
-		return "", err
-	}
+		err = httputil.ValidateResponseCode(response, http.StatusCreated)
+		if err != nil {
+			return "", err
+		}
 
+		// get the manifest token from the response, construct a URL, and fetch its contents
+		token, err = httputil.ExtractFieldFromResponseBodyOrReturnError(manifestContent, "token", "unable to find manifest token in Rancher response")
+		if err != nil {
+			return "", err
+		}
+	}
 	// Rancher 2.5.x added the cluster ID to the manifest URL.
 	manifestURL := rc.BaseURL + manifestPath + token + "_" + rancherClusterID + ".yaml"
 
 	action = http.MethodGet
-	response, manifestContent, err = rancherutil.SendRequest(action, manifestURL, headers, "", rc, log)
+	response, manifestContent, err := rancherutil.SendRequest(action, manifestURL, headers, "", rc, log)
 
 	if err != nil {
 		return "", err
@@ -385,6 +390,45 @@ func getRegistrationYAMLFromRancher(rc *rancherutil.RancherConfig, rancherCluste
 	}
 
 	return manifestContent, nil
+}
+
+type ClusterRegistrationTokens struct {
+	Created   string `json:"created"`
+	ClusterID string `json:"clusterId"`
+	ExpiresAt string `json:"expiresAt"`
+	State     string `json:"state"`
+	Token     string `json:"token"`
+}
+
+func getRegistrationTokenFromRancher(rc *rancherutil.RancherConfig, rancherClusterID string, log vzlog.VerrazzanoLogger) (string, error) {
+
+	action := http.MethodGet
+	reqURL := rc.BaseURL + "v3/clusterregistrationtoken?state=active&&clusterId=" + rancherClusterID
+	headers := map[string]string{"Content-Type": "application/json"}
+	headers["Authorization"] = "Bearer " + rc.APIAccessToken
+
+	response, manifestContent, err := rancherutil.SendRequest(action, reqURL, headers, "", rc, log)
+	err = httputil.ValidateResponseCode(response, http.StatusOK)
+	if err != nil {
+		return "", err
+	}
+
+	data, err := httputil.ExtractFieldFromResponseBodyOrReturnError(manifestContent, "data", "unable to find data token in Rancher response")
+	if err != nil {
+		return "", err
+	}
+
+	var items []ClusterRegistrationTokens
+	json.Unmarshal([]byte(data), &items)
+	for _, item := range items {
+		if item.ClusterID == rancherClusterID && item.State == "active" {
+			log.Oncef("ClusterRegistrationToken exists for the cluster %s", rancherClusterID)
+			return item.Token, nil
+		}
+	}
+
+	log.Infof("No active clusterRegistrationToken found")
+	return "", nil
 }
 
 // createOrUpdateSecretRancherProxy simulates the controllerutil create or update function through the Rancher Proxy API for secrets
