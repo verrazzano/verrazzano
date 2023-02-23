@@ -408,6 +408,9 @@ func getRegistrationTokenFromRancher(rc *rancherutil.RancherConfig, rancherClust
 	headers["Authorization"] = "Bearer " + rc.APIAccessToken
 
 	response, manifestContent, err := rancherutil.SendRequest(action, reqURL, headers, "", rc, log)
+	if err != nil {
+		return "", err
+	}
 	err = httputil.ValidateResponseCode(response, http.StatusOK)
 	if err != nil {
 		return "", err
