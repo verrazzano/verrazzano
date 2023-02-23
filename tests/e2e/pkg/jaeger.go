@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package pkg
@@ -335,7 +335,7 @@ func ListCronJobNamesMatchingLabels(kubeconfigPath, namespace string, matchLabel
 	if majorVersion > 1 {
 		return nil, fmt.Errorf("Unknown major version %d", majorVersion)
 	}
-	// Remove the + symbol added to 1.24 versioning
+	// Remove the + symbol added to 1.24+ versioning
 	minorVersion, err := strconv.Atoi(strings.ReplaceAll(info.Minor, "+", ""))
 	if err != nil {
 		return nil, err
