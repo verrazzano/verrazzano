@@ -354,7 +354,7 @@ func getRegistrationYAMLFromRancher(rc *rancherutil.RancherConfig, rancherCluste
 	var token string
 	token, err := getRegistrationTokenFromRancher(rc, rancherClusterID, log)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	if token == "" {
@@ -411,7 +411,7 @@ func getRegistrationTokenFromRancher(rc *rancherutil.RancherConfig, rancherClust
 	if err != nil {
 		return "", err
 	}
-	
+
 	err = httputil.ValidateResponseCode(response, http.StatusOK)
 	if err != nil {
 		return "", err
