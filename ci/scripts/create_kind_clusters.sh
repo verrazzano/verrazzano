@@ -42,13 +42,13 @@ create_kind_cluster() {
   fi
 
   if [ ${K8S_VERSION} == 1.21 ]; then
-    KIND_IMAGE="ghcr.io/verrazzano/kind:v1.21.14-20230222165627-1488a60f"
+    KIND_IMAGE="v1.21.14-20230222165627-1488a60f"
   elif [ ${K8S_VERSION} == 1.22 ]; then
-    KIND_IMAGE="ghcr.io/verrazzano/kind:v1.22.15-20230222171728-1488a60f"
+    KIND_IMAGE="v1.22.15-20230222171728-1488a60f"
   elif [ ${K8S_VERSION} == 1.23 ]; then
-    KIND_IMAGE="ghcr.io/verrazzano/kind:v1.23.13-20230222173514-1488a60f"
+    KIND_IMAGE="v1.23.13-20230222173514-1488a60f"
   elif [ ${K8S_VERSION} == 1.24 ]; then
-    KIND_IMAGE="ghcr.io/verrazzano/kind:v1.24.7-20230222180054-1488a60f"
+    KIND_IMAGE="v1.24.7-20230222180054-1488a60f"
   else
     echo "ERROR: Invalid value for Kubernetes Version ${K8S_VERSION}."
     exit 1
@@ -99,7 +99,7 @@ create_kind_cluster() {
   for (( n=2; n<=${NODE_COUNT}; n++ ))
   do
     echo "  - role: worker" >> ${KIND_CONFIG_FILE}
-    echo "    image: kindest/node:KIND_IMAGE" >> ${KIND_CONFIG_FILE}
+    echo "    image: ghcr.io/verrazzano/kind:KIND_IMAGE" >> ${KIND_CONFIG_FILE}
   done
   sed -i -e "s/KIND_IMAGE/${KIND_IMAGE}/g" ${KIND_CONFIG_FILE}
 
