@@ -13,7 +13,7 @@ def LAST_PERIODIC_RUN_COMMIT = ""
 def VERRAZZANO_DEV_VERSION = ""
 @Field
 def RELEASABLE_IMAGES_OBJECT_STORE = ""
-def agentLabel = "EXP_tvlaonfig_1.4-small"
+def agentLabel = "1.4-small"
 @Field
 def TESTS_FAILED = false
 @Field

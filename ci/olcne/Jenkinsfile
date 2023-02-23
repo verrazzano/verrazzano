@@ -11,7 +11,7 @@
 // -> Cleanup resources
 
 def testEnvironments=["OCNE"]
-def agentLabel="EXP_tvlaonfig_1.4-large"
+def agentLabel="1.4-large"
 // pulling "ap-*" from the test regions given discovery of image pull issues
 def availableRegions=["us-ashburn-1"]
 def availableDomains=["hXgQ:US-ASHBURN-AD-1", "hXgQ:US-ASHBURN-AD-2", "hXgQ:US-ASHBURN-AD-3"]

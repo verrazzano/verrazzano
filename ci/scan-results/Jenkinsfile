@@ -11,7 +11,7 @@ pipeline {
        docker {
             image "${RUNNER_DOCKER_IMAGE_1_4}"
             args "${RUNNER_DOCKER_ARGS_1_4}"
-            label "EXP_tvlaonfig_1.4-small"
+            label "1.4-small"
             registryCredentialsId 'ocir-pull-and-push-account'
         }
     }
