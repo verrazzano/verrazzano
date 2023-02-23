@@ -101,8 +101,7 @@ func ContributeIssue(log *zap.SugaredLogger, issue Issue) (err error) {
 func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat string, includeSupportData bool, includeInfo bool, includeActions bool, minConfidence int, minImpact int, vzHelper helpers.VZHelper) (err error) {
 	// Default to stdout if no reportfile is supplied
 	//TODO: Eventually add support other reportFormat type (json)
-	writeOut := ""
-	writeSummaryOut := ""
+	writeOut, writeSummaryOut := "", ""
 	versionOut := fmt.Sprintf("\nVerrazzano Version: %s", helpers.GetVzVer())
 	k8sVer, err := helpers.GetK8sVer()
 	if err == nil {
@@ -142,7 +141,6 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 				}
 
 			}
-			//writeOut += versionOut
 			writeOut += fmt.Sprintf("\n\tISSUE (%s)\n\t\tsummary: %s\n", issue.Type, issue.Summary)
 			if len(issue.Actions) > 0 && includeActions {
 				log.Debugf("Output actions")
@@ -215,12 +213,12 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 			if reportFormat == constants.SummaryReport {
 				fmt.Fprintf(vzHelper.GetOutputStream(), writeSummaryOut)
 			}
+			fmt.Fprintf(os.Stdout, "\nDetailed report available in %s\n", fileOut.Name())
 			fileOut.Close()
-			fmt.Fprintf(os.Stdout, "\nFor Detailed Report, Please Check File (%s)\n", fileOut.Name())
 		}()
 		_, err = fileOut.Write([]byte(writeOut))
 		if err != nil {
-			log.Errorf("Failed to write to report file %s,error found : %s", reportFile, err.Error())
+			log.Errorf("Failed to write to report file %s, error found : %s", reportFile, err.Error())
 			return err
 		}
 	} else {
@@ -228,16 +226,13 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 		if includeInfo {
 			if len(sourcesWithoutIssues) > 0 {
 				writeOut += "\n\n"
-				//fmt.Fprintf(os.Stdout, "\n\n")
 			}
 			if len(sourcesWithoutIssues) == 1 {
 				// This is a workaround to avoid printing the source when analyzing the live cluster, although it impacts the
 				// regular use case with a directory containing a single cluster snapshot
-				//_, err = fmt.Fprintf(vzHelper.GetOutputStream(), "Verrazzano analysis CLI did not detect any issue in the cluster\n")
 				writeOut += "Verrazzano analysis CLI did not detect any issue in the cluster\n"
 			} else {
 				for _, source := range sourcesWithoutIssues {
-					//_, err = fmt.Fprintf(os.Stdout, "Verrazzano analysis CLI did not detect any issue in %s\n", source)
 					writeOut += fmt.Sprintf("Verrazzano analysis CLI did not detect any issue in %s\n", source)
 				}
 			}
