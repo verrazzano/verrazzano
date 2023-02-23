@@ -335,7 +335,8 @@ func ListCronJobNamesMatchingLabels(kubeconfigPath, namespace string, matchLabel
 	if majorVersion > 1 {
 		return nil, fmt.Errorf("Unknown major version %d", majorVersion)
 	}
-	minorVersion, err := strconv.Atoi(info.Minor)
+	// Remove the + symbol added to 1.24 versioning
+	minorVersion, err := strconv.Atoi(strings.ReplaceAll(info.Minor, "+", ""))
 	if err != nil {
 		return nil, err
 	}
