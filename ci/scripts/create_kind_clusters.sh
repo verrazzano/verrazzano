@@ -69,7 +69,7 @@ create_kind_cluster() {
   KIND_CONFIG_FILE_NAME=kind-config${CALICO_SUFFIX}.yaml
   SOURCE_KIND_CONFIG_FILE=${TEST_SCRIPTS_DIR}/${KIND_CONFIG_FILE_NAME}
   KIND_CONFIG_FILE=${WORKSPACE}/${KIND_CONFIG_FILE_NAME}
-  if [ ${KIND_AT_CACHE} == true ]; then
+  if false; then
     if [ ${KIND_AT_CACHE_NAME} != "NONE" ]; then
       # If a cache name was specified, replace the at_test cache name with the one specified (this is used only
       # for multi-cluster tests at the moment)
@@ -84,7 +84,7 @@ create_kind_cluster() {
   cp -v ${SOURCE_KIND_CONFIG_FILE} ${KIND_CONFIG_FILE}
 
   # Update the caching configuration if necessary
-  if [ ${KIND_AT_CACHE} == true ]; then
+  if false; then
     if [ ${KIND_AT_CACHE_NAME} != "NONE" ]; then
       sed -i "s;v8o_cache/at_tests;v8o_cache/${KIND_AT_CACHE_NAME};g" ${KIND_CONFIG_FILE}
     fi

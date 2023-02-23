@@ -55,7 +55,7 @@ create_kind_cluster() {
   echo "KIND Image : ${KIND_IMAGE}"
   cd ${SCRIPT_DIR}/
   KIND_CONFIG_FILE=kind-config${CALICO_SUFFIX}.yaml
-  if [ ${KIND_AT_CACHE} == true ]; then
+  if false; then
     if [ ${KIND_AT_CACHE_NAME} != "NONE" ]; then
       # If a cache name was specified, replace the at_test cache name with the one specified (this is used only
       # for multi-cluster tests at the moment)
