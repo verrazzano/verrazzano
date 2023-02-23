@@ -2171,7 +2171,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 
 	manifestToken := "unit-test-manifest-token"
 
-	// Expect an HTTP request to create the registration token in Rancher
+	Expect an HTTP request to create the registration token in Rancher
 	requestSenderMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterRegTokenPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
@@ -2194,6 +2194,14 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 				Request:    &http.Request{Method: http.MethodPost},
 			}
 			return resp, nil
+		})
+
+	// Expect an HTTP request to fetch the registration token in rancher
+	requestSenderMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			asserts.Contains(clusterRegTokenPath+"?state=active&&clusterId="+unitTestRancherClusterID, req.URL.Path)
+			return nil, nil
 		})
 
 	// Expect an HTTP request to fetch the manifest YAML from Rancher

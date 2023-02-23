@@ -345,8 +345,7 @@ func getCACertFromManagedClusterSecret(rc *rancherutil.RancherConfig, clusterID,
 // getRegistrationYAMLFromRancher creates a registration token in Rancher for the managed cluster and uses the
 // returned token to fetch the registration (manifest) YAML.
 func getRegistrationYAMLFromRancher(rc *rancherutil.RancherConfig, rancherClusterID string, log vzlog.VerrazzanoLogger) (string, error) {
-	action := http.MethodPost
-	payload := `{"type": "clusterRegistrationToken", "clusterId": "` + rancherClusterID + `"}`
+
 	reqURL := rc.BaseURL + clusterRegTokenPath
 	headers := map[string]string{"Content-Type": "application/json"}
 	headers["Authorization"] = "Bearer " + rc.APIAccessToken
@@ -354,10 +353,12 @@ func getRegistrationYAMLFromRancher(rc *rancherutil.RancherConfig, rancherCluste
 	var token string
 	token, err := getRegistrationTokenFromRancher(rc, rancherClusterID, log)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
-
 	if token == "" {
+		action := http.MethodPost
+		payload := `{"type": "clusterRegistrationToken", "clusterId": "` + rancherClusterID + `"}`
+
 		response, manifestContent, err := rancherutil.SendRequest(action, reqURL, headers, payload, rc, log)
 		if err != nil {
 			return "", err
@@ -376,8 +377,7 @@ func getRegistrationYAMLFromRancher(rc *rancherutil.RancherConfig, rancherCluste
 	}
 	// Rancher 2.5.x added the cluster ID to the manifest URL.
 	manifestURL := rc.BaseURL + manifestPath + token + "_" + rancherClusterID + ".yaml"
-
-	action = http.MethodGet
+	action := http.MethodGet
 	response, manifestContent, err := rancherutil.SendRequest(action, manifestURL, headers, "", rc, log)
 
 	if err != nil {
@@ -402,12 +402,15 @@ type ClusterRegistrationTokens struct {
 
 func getRegistrationTokenFromRancher(rc *rancherutil.RancherConfig, rancherClusterID string, log vzlog.VerrazzanoLogger) (string, error) {
 
+	log.Infof("Calling getRegistrationTokenFromRancher")
 	action := http.MethodGet
-	reqURL := rc.BaseURL + "v3/clusterregistrationtoken?state=active&&clusterId=" + rancherClusterID
+	reqURL := rc.BaseURL + clusterRegTokenPath + "?state=active&&clusterId=" + rancherClusterID
 	headers := map[string]string{"Content-Type": "application/json"}
 	headers["Authorization"] = "Bearer " + rc.APIAccessToken
 
-	response, manifestContent, err := rancherutil.SendRequest(action, reqURL, headers, "", rc, log)
+	response, manifestContent, err := rancherutil.SendRequest(action, reqURL, headers, "{}", rc, log)
+	log.Infof("Called getRegistrationTokenFromRancher")
+	log.Info(response)
 	if err != nil {
 		return "", err
 	}
@@ -417,6 +420,7 @@ func getRegistrationTokenFromRancher(rc *rancherutil.RancherConfig, rancherClust
 	}
 
 	data, err := httputil.ExtractFieldFromResponseBodyOrReturnError(manifestContent, "data", "unable to find data token in Rancher response")
+	log.Infof("Extracted data")
 	if err != nil {
 		return "", err
 	}
@@ -431,7 +435,7 @@ func getRegistrationTokenFromRancher(rc *rancherutil.RancherConfig, rancherClust
 	}
 
 	log.Infof("No active clusterRegistrationToken found")
-	return "", nil
+	return "", err
 }
 
 // createOrUpdateSecretRancherProxy simulates the controllerutil create or update function through the Rancher Proxy API for secrets
