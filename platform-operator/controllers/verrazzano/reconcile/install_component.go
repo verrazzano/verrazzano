@@ -196,7 +196,7 @@ func (r *Reconciler) reconcileSingleComponent(spiCtx spi.ComponentContext, compS
 
 			compStateContext.state = compStateInstallEnd
 
-		case compStateUninstallStart, compStatePreUninstall, compStateUninstall, compStateWaitUninstalled, compStateUninstalleDone:
+		case compStateUninstallStart, compStatePreUninstall, compStateUninstall, compStateWaitUninstalled, compStateUninstallDone:
 			// Delegates the component uninstall work to
 			result, err := r.uninstallSingleComponent(compContext, compStateContext, comp)
 			if err != nil || result.Requeue {

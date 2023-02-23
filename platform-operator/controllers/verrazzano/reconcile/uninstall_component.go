@@ -27,8 +27,8 @@ const (
 	// compStateWaitUninstalled is the state when a component is waiting to be uninstalled
 	compStateWaitUninstalled componentState = "compStateWaitUninstalled"
 
-	// compStateUninstalleDone is the state when component Uninstall is done
-	compStateUninstalleDone componentState = "compStateUninstalleDone"
+	// compStateUninstallDone is the state when component Uninstall is done
+	compStateUninstallDone componentState = "compStateUninstallDone"
 
 	// compStateUninstallEnd is the terminal state
 	compStateUninstallEnd componentState = "compStateUninstallEnd"
@@ -137,9 +137,9 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, compS
 				}
 				return newRequeueWithDelay(), nil
 			}
-			compStateContext.state = compStateUninstalleDone
+			compStateContext.state = compStateUninstallDone
 
-		case compStateUninstalleDone:
+		case compStateUninstallDone:
 			if err := r.updateComponentStatus(compContext, "Uninstall complete", v1alpha1.CondUninstallComplete); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
