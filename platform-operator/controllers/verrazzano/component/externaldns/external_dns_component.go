@@ -99,6 +99,10 @@ func (c externalDNSComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.V
 
 // ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c externalDNSComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	// Do not allow any changes except to enable the component post-install
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling an existing OCI DNS configuration is not allowed")
+	}
 	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }
 
