@@ -158,9 +158,7 @@ func (c prometheusComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 // ValidateUpdate verifies the upgrade of the Verrazzano object
 func (c prometheusComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		if vzcr.IsPrometheusEnabled(new) {
-			return fmt.Errorf("disabling component %s is not allowed while %s is enabled", ComponentJSONName, prometheusName)
-		}
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	convertedVZ := installv1beta1.Verrazzano{}
 	if err := common.ConvertVerrazzanoCR(new, &convertedVZ); err != nil {
@@ -180,9 +178,7 @@ func (c prometheusComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzan
 // ValidateUpdateV1Beta1 verifies the upgrade of the Verrazzano object
 func (c prometheusComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		if vzcr.IsPrometheusEnabled(new) {
-			return fmt.Errorf("disabling component %s is not allowed while %s is enabled", ComponentJSONName, prometheusName)
-		}
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	return c.validatePrometheusOperator(new)
 }
