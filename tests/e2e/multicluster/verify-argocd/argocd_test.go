@@ -35,7 +35,6 @@ const (
 
 var expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
-var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 
 var t = framework.NewTestFramework("argocd_test")
