@@ -10,7 +10,7 @@ def VERRAZZANO_DEV_VERSION = ""
 def tarfilePrefix=""
 def storeLocation=""
 
-def agentLabel = "EXP_tvlaonfig_1.3-large"
+def agentLabel = "1.3-large"
 
 pipeline {
     options {
