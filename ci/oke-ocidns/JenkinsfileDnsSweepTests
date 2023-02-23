@@ -377,7 +377,7 @@ pipeline {
                        retry(count: JOB_PROMOTION_RETRIES) {
                            script {
                                println("AUTH_TYPE=IP : DNS_SCOPE=GLOBAL : Nginx_LB=GLOBAL : Istio_LB=PRIVATE")
-                               build job: "/vverrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                               build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                    parameters: [
                                        string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
                                        string(name: 'ISTIO_LB_SCOPE', value: 'PRIVATE'),
