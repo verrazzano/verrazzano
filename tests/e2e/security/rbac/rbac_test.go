@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rbac
@@ -354,7 +354,8 @@ var _ = t.Describe("Test Verrazzano API Service Account", func() {
 			version, err := clientset.ServerVersion()
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(version.Major).To(Equal("1"), "Kubernetes major version was not 1 - I don't know what to do!")
-			minor, err := strconv.Atoi(version.Minor)
+			// remove + for 1.24 versioning
+			minor, err := strconv.Atoi(strings.ReplaceAll(version.Minor, "+", ""))
 			Expect(err).ShouldNot(HaveOccurred())
 
 			secretMatched := false
