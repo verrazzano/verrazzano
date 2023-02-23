@@ -102,7 +102,7 @@ const (
 	ImagePullNotFound            = "ImagePullNotFound"
 	ImagePullService             = "ImagePullService"
 	InsufficientMemory           = "InsufficientMemory"
-	InsufficientCPU              = "InsufficientCpu"
+	InsufficientCPU              = "InsufficientCPU"
 	IngressInstallFailure        = "IngressInstallFailure"
 	IngressLBLimitExceeded       = "IngressLBLimitExceeded"
 	IngressNoLoadBalancerIP      = "IngressNoLoadBalancerIP"
