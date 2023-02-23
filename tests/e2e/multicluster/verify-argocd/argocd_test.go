@@ -87,40 +87,9 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 		})
 	})
 
-	t.Context("Admin Cluster", func() {
-		// GIVEN an admin cluster and at least one managed cluster
-		// WHEN the example application has been deployed to the admin cluster
-		// THEN expect that the multi-cluster resources have been created on the admin cluster
-		t.It("Has multi cluster resources", func() {
-			Eventually(func() bool {
-				return examples.VerifyMCResources(adminKubeconfig, true, false, testNamespace)
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-		})
-		// GIVEN an admin cluster
-		// WHEN the multi-cluster example application has been created on admin cluster but not placed there
-		// THEN expect that the app is not deployed to the admin cluster consistently for some length of time
-		t.It("Does not have application placed", func() {
-			Consistently(func() bool {
-				result, err := examples.VerifyHelloHelidonInCluster(adminKubeconfig, true, false, testProjectName, testNamespace)
-				if err != nil {
-					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
-				}
-				return result
-			}, consistentlyDuration, pollingInterval).Should(BeTrue())
-		})
-	})
-
 	t.Context("Managed Cluster", func() {
 		// GIVEN an admin cluster and at least one managed cluster
-		// WHEN the example application has been deployed to the admin cluster
-		// THEN expect that the multi-cluster resources have been created on the managed cluster
-		t.It("Has multi cluster resources", func() {
-			Eventually(func() bool {
-				return examples.VerifyMCResources(managedKubeconfig, false, true, testNamespace)
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-		})
-		// GIVEN an admin cluster and at least one managed cluster
-		// WHEN the multi-cluster example application has been created on admin cluster and placed in managed cluster
+		// WHEN the multi-cluster example application has been  placed in managed cluster
 		// THEN expect that the app is deployed to the managed cluster
 		t.It("Has application placed", func() {
 			Eventually(func() bool {
@@ -136,7 +105,7 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 	t.Context("Delete resources", func() {
 		t.It("Delete resources on admin cluster", func() {
 			Eventually(func() error {
-				return deleteArgoCDApplication(adminKubeconfig)
+				return deleteArgoCDApplication(managedKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 

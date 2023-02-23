@@ -7,11 +7,11 @@ metadata:
   namespace: argocd
 spec:
   destination:
-    name: ''
+    name: managed1
     namespace: hello-helidon
-    server: 'https://kubernetes.default.svc'
+    server: ''
   source:
-    path: 'examples/multicluster/hello-helidon'
+    path: 'examples/helidon-config'
     repoURL: 'https://github.com/verrazzano/verrazzano'
     targetRevision: HEAD
   project: default
