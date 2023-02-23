@@ -109,12 +109,8 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 		})
 
 		t.It("Verify automatic deletion on managed cluster", func() {
-			Consistently(func() bool {
-				result, err := examples.VerifyHelloHelidonInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
-				if err != nil {
-					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
-				}
-				return result
+			Eventually(func() bool {
+				return examples.VerifyAppDeleted(managedKubeconfig, testNamespace)
 			}, consistentlyDuration, pollingInterval).Should(BeTrue())
 		})
 
