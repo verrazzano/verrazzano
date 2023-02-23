@@ -403,14 +403,15 @@ type ClusterRegistrationTokens struct {
 func getRegistrationTokenFromRancher(rc *rancherutil.RancherConfig, rancherClusterID string, log vzlog.VerrazzanoLogger) (string, error) {
 
 	action := http.MethodGet
-	reqURL := rc.BaseURL + "v3/clusterregistrationtoken?state=active&&clusterId=" + rancherClusterID
+	reqURL := rc.BaseURL + clusterRegTokenPath + "?state=active&&clusterId=" + rancherClusterID
 	headers := map[string]string{"Content-Type": "application/json"}
 	headers["Authorization"] = "Bearer " + rc.APIAccessToken
 
-	response, manifestContent, err := rancherutil.SendRequest(action, reqURL, headers, "", rc, log)
+	response, manifestContent, err := rancherutil.SendRequest(action, reqURL, headers, "{}", rc, log)
 	if err != nil {
 		return "", err
 	}
+	
 	err = httputil.ValidateResponseCode(response, http.StatusOK)
 	if err != nil {
 		return "", err

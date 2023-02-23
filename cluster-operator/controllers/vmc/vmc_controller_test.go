@@ -2175,6 +2175,27 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 	requestSenderMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterRegTokenPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			asserts.Contains(clusterRegTokenPath, req.URL.Path)
+
+			// assert that the cluster ID in the request body is what we expect
+			_, err := io.ReadAll(req.Body)
+			asserts.NoError(err)
+
+			// return a response with the CRT
+			r := io.NopCloser(bytes.NewReader([]byte(`{"data":[]}`)))
+			//r = io.NopCloser(bytes.NewReader([]byte(`{"data":[{"token":"` + manifestToken + `"}]}`)))
+			resp := &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       r,
+				Request:    &http.Request{Method: http.MethodGet},
+			}
+			return resp, nil
+		})
+
+	// Expect an HTTP request to create the registration token in Rancher
+	requestSenderMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterRegTokenPath)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			asserts.Equal(clusterRegTokenPath, req.URL.Path)
 
 			// assert that the cluster ID in the request body is what we expect
