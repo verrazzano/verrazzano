@@ -24,8 +24,8 @@ const (
 	waitTimeout          = 15 * time.Minute
 	pollingInterval      = 10 * time.Second
 	consistentlyDuration = 1 * time.Minute
-	testNamespace        = "hello-helidon"
-	testProjectName      = "hello-helidon"
+	testNamespace        = "hello-helidon-argo"
+	testProjectName      = "hello-helidon-argo"
 	argoCDNamespace      = "argocd"
 )
 
