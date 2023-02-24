@@ -6,6 +6,9 @@ package vmc
 import (
 	"crypto/md5" //nolint:gosec //#gosec G501 // package used for caching only, not security
 	"fmt"
+	"io"
+	"net/http"
+
 	"github.com/Jeffail/gabs/v2"
 	cons "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
@@ -13,14 +16,12 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"github.com/verrazzano/verrazzano/pkg/rancherutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"io"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/yaml"
-	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -351,7 +352,7 @@ func getRegistrationYAMLFromRancher(rc *rancherutil.RancherConfig, rancherCluste
 	var token string
 	token, err := getRegistrationTokenFromRancher(rc, rancherClusterID, log)
 	if err != nil {
-		return "", err
+		log.Error(err.Error())
 	}
 
 	if token == "" {
@@ -359,6 +360,7 @@ func getRegistrationYAMLFromRancher(rc *rancherutil.RancherConfig, rancherCluste
 		payload := `{"type": "clusterRegistrationToken", "clusterId": "` + rancherClusterID + `"}`
 		reqURL := rc.BaseURL + clusterRegTokenPath
 
+		log.Infof("Creating cluster registration token for cluster %s", rancherClusterID)
 		response, manifestContent, err := rancherutil.SendRequest(action, reqURL, headers, payload, rc, log)
 		if err != nil {
 			return "", err
@@ -430,8 +432,7 @@ func getRegistrationTokenFromRancher(rc *rancherutil.RancherConfig, rancherClust
 		}
 	}
 
-	log.Oncef("No active cluster registration token found for cluster %s", rancherClusterID)
-	return "", nil
+	return "", log.ErrorfNewErr("No active cluster registration token found for cluster %s", rancherClusterID)
 }
 
 // createOrUpdateSecretRancherProxy simulates the controllerutil create or update function through the Rancher Proxy API for secrets

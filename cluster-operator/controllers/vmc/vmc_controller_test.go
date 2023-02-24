@@ -1357,7 +1357,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			_, err := io.ReadAll(req.Body)
 			asserts.NoError(err)
 
-			r := io.NopCloser(bytes.NewReader([]byte(`{"data":[{"token":"unit-test-token","state":"active"}]}`)))
+			r := io.NopCloser(bytes.NewReader([]byte(`{"data":[]}`)))
 			resp := &http.Response{
 				StatusCode: http.StatusOK,
 				Body:       r,
@@ -1434,7 +1434,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			asserts.NoError(err)
 
 			// return a response with the CRT
-			r := io.NopCloser(bytes.NewReader([]byte(`{"data":[{"token":"manifest-token","state":"active"}]}`)))
+			r := io.NopCloser(bytes.NewReader([]byte(`{"data":[{"token":"manifest-token","state":"active","clusterId":"some-cluster"}]}`)))
 			resp := &http.Response{
 				StatusCode: http.StatusOK,
 				Body:       r,
@@ -2195,7 +2195,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 
 	manifestToken := "unit-test-manifest-token"
 
-	// Expect an HTTP request to create the registration token in Rancher
+	// Expect an HTTP request to get the registration token in Rancher
 	requestSenderMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterRegTokenPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
@@ -2205,7 +2205,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 			_, err := io.ReadAll(req.Body)
 			asserts.NoError(err)
 
-			// return a response with the CRT
+			// return a response with the empty data, no CRT exists for this cluster
 			r := io.NopCloser(bytes.NewReader([]byte(`{"data":[]}`)))
 			resp := &http.Response{
 				StatusCode: http.StatusOK,
