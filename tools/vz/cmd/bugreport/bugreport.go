@@ -53,7 +53,7 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return runCmdBugReport(cmd, args, vzHelper)
+		return RunCmdBugReport(cmd, vzHelper)
 	}
 
 	cmd.Example = helpExample
@@ -65,7 +65,7 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	return cmd
 }
 
-func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+func RunCmdBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	start := time.Now()
 	bugReportFile, err := getBugReportFile(cmd, vzHelper)
 	if err != nil {
