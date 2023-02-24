@@ -189,7 +189,7 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		// Wait for the Verrazzano upgrade to complete
 		err = waitForUpgradeToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat)
 		if err != nil {
-			return callVzAnalyze(cmd, vzHelper, err)
+			return callVzBugReport(cmd, vzHelper, err)
 		}
 		return nil
 	}
@@ -200,7 +200,7 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	if !vzStatusVersion.IsEqualTo(vzSpecVersion) {
 		err = waitForUpgradeToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat)
 		if err != nil {
-			return callVzAnalyze(cmd, vzHelper, err)
+			return callVzBugReport(cmd, vzHelper, err)
 		}
 		return nil
 	}
@@ -208,13 +208,13 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	return nil
 }
 
-func callVzAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) error {
-	autoanalyzeFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
+func callVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) error {
+	autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
 	if errFlag != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
 	}
-	// if waitForUpgradeToComplete() returned an err and auto-analyze is set to true
-	if autoanalyzeFlag {
+	// if waitForUpgradeToComplete() returned an err and auto-bug-report is set to true
+	if autoBugReportFlag {
 		cmd2 := bugreport.NewCmdBugReport(vzHelper)
 		kubeconfigFlag, errFlag := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
 		if errFlag != nil {
@@ -231,10 +231,9 @@ func callVzAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) err
 		cmd2.PersistentFlags().Set(constants.ReportFormatFlagName, constants.SummaryReport)
 		analyzeErr := bugreport.RunCmdBugReport(cmd2, vzHelper)
 		if analyzeErr != nil {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "Error calling VZ analyze %s \n", analyzeErr.Error())
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Error calling vz bug-report %s \n", analyzeErr.Error())
 		}
 	}
-	//return the waitForUpgradeToComplete() err
 	return err
 }
 

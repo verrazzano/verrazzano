@@ -243,7 +243,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		cmd2.Flags().Set(constants.GlobalFlagContext, contextFlag)
 		analyzeErr := bugreport.RunCmdBugReport(cmd2, vzHelper)
 		if analyzeErr != nil {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "Error calling VZ bug-report %s \n", analyzeErr.Error())
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Error calling vz bug-report %s \n", analyzeErr.Error())
 		}
 	}
 	return err
