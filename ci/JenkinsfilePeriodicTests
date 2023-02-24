@@ -445,6 +445,54 @@ pipeline {
                         }
                     }
                 }
+                stage('Dynamic Config during Keycloak Install') {
+                    steps {
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "verrazzano-dynamic-config-install-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                        string(name: 'WAIT_FOR_RESOURCE_BEFORE_UPDATE', value: 'keycloak auth secret')
+                                    ], wait: true
+                            }
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                TESTS_FAILED = true
+                            }
+                        }
+                    }
+                }
+                stage('Dynamic Config during Rancher Install') {
+                    steps {
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "verrazzano-dynamic-config-install-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                        string(name: 'WAIT_FOR_RESOURCE_BEFORE_UPDATE', value: 'rancher bootstrap secret')
+                                    ], wait: true
+                            }
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                TESTS_FAILED = true
+                            }
+                        }
+                    }
+                }
                 stage('OCI DNS/ACME-Staging Tests') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
