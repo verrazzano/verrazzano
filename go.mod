@@ -161,10 +161,8 @@ require (
 )
 
 replace (
-	github.com/ajeddeloh/go-json v0.0.0-20200220154158-5ae607161559 => github.com/coreos/go-json v0.0.0-20220325222439-31b2177291ae
 	github.com/crossplane/crossplane-runtime => github.com/verrazzano/crossplane-runtime v0.17.0-1
 	github.com/crossplane/oam-kubernetes-runtime => github.com/verrazzano/oam-kubernetes-runtime v0.3.3-3
-	github.com/emicklei/go-restful => github.com/emicklei/go-restful v2.16.0+incompatible
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 	github.com/onsi/ginkgo/v2 => github.com/onsi/ginkgo/v2 v2.0.0
 	github.com/onsi/gomega => github.com/onsi/gomega v1.17.0
