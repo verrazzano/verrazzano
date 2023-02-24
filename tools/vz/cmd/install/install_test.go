@@ -585,6 +585,28 @@ func TestAnalyzeCommandDefault(t *testing.T) {
 	assert.Contains(t, buf.String(), "Verrazzano analysis CLI did not detect any issue in the cluster")
 }
 
+func TestAnalyzeFlagOff(t *testing.T) {
+	c := getClientWithWatch()
+	installVZ(t, c)
+
+	// Verify the vz resource is as expected
+	vz := v1beta1.Verrazzano{}
+	err := c.Get(pkgcontext.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+	assert.NoError(t, err)
+
+	// Send stdout stderr to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	cmd := analyze.NewCmdAnalyze(rc)
+	assert.NotNil(t, cmd)
+	err = cmd.Execute()
+	assert.Nil(t, err)
+	// This should generate a report from the live cluster
+	assert.Contains(t, buf.String(), "Verrazzano analysis CLI did not detect any issue in the cluster")
+}
+
 // installVZ installs Verrazzano using the given client
 func installVZ(t *testing.T, c client.WithWatch) {
 	buf := new(bytes.Buffer)

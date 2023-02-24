@@ -246,7 +246,16 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		if analyzeErr != nil {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Error calling VZ analyze %s \n", analyzeErr.Error())
 		}
-		return err
+		//cmd3 := bugreport.NewCmdBugReport(vzHelper)
+		//cmd3.Flags().StringVar(&kubeconfig, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
+		//cmd3.Flags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
+		//cmd3.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
+		//cmd3.Flags().Set(constants.GlobalFlagContext, contextFlag)
+		//bugReportErr := bugreport.RunCmdBugReport(cmd3, vzHelper)
+		//if bugReportErr != nil {
+		//	fmt.Fprintf(vzHelper.GetOutputStream(), "Error calling VZ bug-report %s \n", bugReportErr.Error())
+		//}
+		//return err
 	}
 	//return the waitForInstallToComplete() err
 	return err
