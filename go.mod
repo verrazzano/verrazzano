@@ -10,7 +10,7 @@ require (
 	github.com/cert-manager/cert-manager v1.9.1
 	github.com/crossplane/crossplane-runtime v0.17.0
 	github.com/crossplane/oam-kubernetes-runtime v0.3.3
-	github.com/gertd/go-pluralize v0.2.0
+	github.com/gertd/go-pluralize v0.2.1
 	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.9
