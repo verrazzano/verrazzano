@@ -1357,7 +1357,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			_, err := io.ReadAll(req.Body)
 			asserts.NoError(err)
 
-			r := io.NopCloser(bytes.NewReader([]byte(`{"data":[{"token":"unit-test-token"}]}`)))
+			r := io.NopCloser(bytes.NewReader([]byte(`{"data":[{"token":"unit-test-token","state":"active"}]}`)))
 			resp := &http.Response{
 				StatusCode: http.StatusOK,
 				Body:       r,
@@ -1434,7 +1434,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			asserts.NoError(err)
 
 			// return a response with the CRT
-			r := io.NopCloser(bytes.NewReader([]byte(`{"data":[{"token":"manifest-token"}]}`)))
+			r := io.NopCloser(bytes.NewReader([]byte(`{"data":[{"token":"manifest-token","state":"active"}]}`)))
 			resp := &http.Response{
 				StatusCode: http.StatusOK,
 				Body:       r,
@@ -2207,7 +2207,6 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 
 			// return a response with the CRT
 			r := io.NopCloser(bytes.NewReader([]byte(`{"data":[]}`)))
-			//r = io.NopCloser(bytes.NewReader([]byte(`{"data":[{"token":"` + manifestToken + `"}]}`)))
 			resp := &http.Response{
 				StatusCode: http.StatusOK,
 				Body:       r,
