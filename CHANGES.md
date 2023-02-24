@@ -8,6 +8,8 @@ Fixes:
 
 - Fixed the query for the Service variable in WebLogic Grafana dashboard.
 - Updated component images to resolve CVEs.
+- Fixed upgrade issue with PVCs getting deleted when OpenSearch master node's StatefulSet was occasionally killed during upgrade.
+- Fixed OpenSearch plugin install to fail only the master nodes in case of plugin install failure.
 
 ### v1.5.0
 Features:
