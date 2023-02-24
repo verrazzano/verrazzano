@@ -25,7 +25,6 @@ const (
 	pollingInterval      = 10 * time.Second
 	consistentlyDuration = 1 * time.Minute
 	testNamespace        = "hello-helidon-argo"
-	testProjectName      = "hello-helidon-argo"
 	argoCDNamespace      = "argocd"
 )
 
@@ -88,6 +87,9 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 	})
 
 	t.Context("Managed Cluster", func() {
+		t.BeforeEach(func() {
+			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("MANAGED_KUBECONFIG"))
+		})
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the multi-cluster example application has been  placed in managed cluster
 		// THEN expect that the app is deployed to the managed cluster
@@ -104,6 +106,9 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 	})
 
 	t.Context("Delete resources", func() {
+		t.BeforeEach(func() {
+			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
+		})
 		t.It("Delete resources on admin cluster", func() {
 			Eventually(func() error {
 				return deleteArgoCDApplication(adminKubeconfig)
