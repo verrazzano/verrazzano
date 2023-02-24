@@ -12,7 +12,7 @@ Collections.shuffle(availableRegions)
 def zoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def dns_zone_ocid = 'dummy'
 def OKE_CLUSTER_PREFIX = ""
-def agentLabel = "VM.Standard2.8_1_3"
+def agentLabel = "1.3-large"
 
 installerFileName = "install-verrazzano.yaml"
 
