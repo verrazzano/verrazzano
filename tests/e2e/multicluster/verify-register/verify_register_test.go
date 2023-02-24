@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
@@ -42,6 +43,7 @@ var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var vmiEsIngressURL = getVmiEsIngressURL()
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var externalEsURL = pkg.GetExternalOpenSearchURL(adminKubeconfig)
+var testEnv = os.Getenv("TEST_ENV")
 
 var t = framework.NewTestFramework("register_test")
 
@@ -210,6 +212,10 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 				},
 				func() {
 					Eventually(func() bool {
+						// Skip test for kind BFS, currently systemd logs cannot be collected by fluentd
+						if strings.Contains(strings.ToLower(testEnv), "kind") {
+							return true
+						}
 						return pkg.FindLog(systemdIndex,
 							[]pkg.Match{
 								{Key: "tag", Value: "systemd"},
@@ -231,6 +237,10 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 				},
 				func() {
 					Eventually(func() bool {
+						// Skip test for kind BFS, currently systemd logs cannot be collected by fluentd
+						if strings.Contains(strings.ToLower(testEnv), "kind") {
+							return true
+						}
 						return pkg.FindLog(systemdIndex,
 							[]pkg.Match{
 								{Key: "tag", Value: "systemd"},
