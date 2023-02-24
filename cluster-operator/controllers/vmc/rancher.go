@@ -345,9 +345,6 @@ func getCACertFromManagedClusterSecret(rc *rancherutil.RancherConfig, clusterID,
 // getRegistrationYAMLFromRancher creates a registration token in Rancher for the managed cluster and uses the
 // returned token to fetch the registration (manifest) YAML.
 func getRegistrationYAMLFromRancher(rc *rancherutil.RancherConfig, rancherClusterID string, log vzlog.VerrazzanoLogger) (string, error) {
-	action := http.MethodPost
-	payload := `{"type": "clusterRegistrationToken", "clusterId": "` + rancherClusterID + `"}`
-	reqURL := rc.BaseURL + clusterRegTokenPath
 	headers := map[string]string{"Content-Type": "application/json"}
 	headers["Authorization"] = "Bearer " + rc.APIAccessToken
 
@@ -358,6 +355,10 @@ func getRegistrationYAMLFromRancher(rc *rancherutil.RancherConfig, rancherCluste
 	}
 
 	if token == "" {
+		action := http.MethodPost
+		payload := `{"type": "clusterRegistrationToken", "clusterId": "` + rancherClusterID + `"}`
+		reqURL := rc.BaseURL + clusterRegTokenPath
+
 		response, manifestContent, err := rancherutil.SendRequest(action, reqURL, headers, payload, rc, log)
 		if err != nil {
 			return "", err
@@ -377,7 +378,7 @@ func getRegistrationYAMLFromRancher(rc *rancherutil.RancherConfig, rancherCluste
 	// Rancher 2.5.x added the cluster ID to the manifest URL.
 	manifestURL := rc.BaseURL + manifestPath + token + "_" + rancherClusterID + ".yaml"
 
-	action = http.MethodGet
+	action := http.MethodGet
 	response, manifestContent, err := rancherutil.SendRequest(action, manifestURL, headers, "", rc, log)
 
 	if err != nil {
@@ -393,9 +394,7 @@ func getRegistrationYAMLFromRancher(rc *rancherutil.RancherConfig, rancherCluste
 }
 
 type ClusterRegistrationTokens struct {
-	Created   string `json:"created"`
 	ClusterID string `json:"clusterId"`
-	ExpiresAt string `json:"expiresAt"`
 	State     string `json:"state"`
 	Token     string `json:"token"`
 }
@@ -403,7 +402,7 @@ type ClusterRegistrationTokens struct {
 func getRegistrationTokenFromRancher(rc *rancherutil.RancherConfig, rancherClusterID string, log vzlog.VerrazzanoLogger) (string, error) {
 
 	action := http.MethodGet
-	reqURL := rc.BaseURL + clusterRegTokenPath + "?state=active&&clusterId=" + rancherClusterID
+	reqURL := rc.BaseURL + clusterRegTokenPath + "?state=active&clusterId=" + rancherClusterID
 	headers := map[string]string{"Content-Type": "application/json"}
 	headers["Authorization"] = "Bearer " + rc.APIAccessToken
 
@@ -431,7 +430,7 @@ func getRegistrationTokenFromRancher(rc *rancherutil.RancherConfig, rancherClust
 		}
 	}
 
-	log.Infof("No active clusterRegistrationToken found")
+	log.Oncef("No active cluster registration token found for cluster %s", rancherClusterID)
 	return "", nil
 }
 
