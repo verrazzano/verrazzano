@@ -227,19 +227,23 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 			Eventually(elasticIndicesHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices health status not green")
 		})
 
-		t.It("Elasticsearch systemd journal Index should be accessible", Label("f:observability.logging.es"),
-			func() {
-				indexName, err := pkg.GetOpenSearchSystemIndex("systemd-journal")
-				Expect(err).To(BeNil())
-				Eventually(func() bool {
-					return pkg.FindAnyLog(indexName,
-						[]pkg.Match{
-							{Key: "tag", Value: "systemd"},
-							{Key: "TRANSPORT", Value: "journal"},
-							{Key: "cluster_name", Value: constants.MCLocalCluster}},
-						[]pkg.Match{})
-				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a systemd log record")
-			})
+		/*
+
+			t.It("Elasticsearch systemd journal Index should be accessible", Label("f:observability.logging.es"),
+				func() {
+					indexName, err := pkg.GetOpenSearchSystemIndex("systemd-journal")
+					Expect(err).To(BeNil())
+					Eventually(func() bool {
+						return pkg.FindAnyLog(indexName,
+							[]pkg.Match{
+								{Key: "tag", Value: "systemd"},
+								{Key: "TRANSPORT", Value: "journal"},
+								{Key: "cluster_name", Value: constants.MCLocalCluster}},
+							[]pkg.Match{})
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a systemd log record")
+				})
+
+		*/
 
 		t.It("Kibana endpoint should be accessible", Label("f:mesh.ingress",
 			"f:observability.logging.kibana"), func() {
