@@ -281,6 +281,10 @@ func chooseCompState(componentStatus *vzapi.ComponentStatusDetails) componentIns
 func skipComponentFromDetermineComponentState(compContext spi.ComponentContext, comp spi.Component, preUpgrade bool) bool {
 	if !comp.IsEnabled(compContext.EffectiveCR()) {
 		compContext.Log().Oncef("Component %s is disabled, skipping install", comp.Name())
+		if isCurrentlyInstalled(compContext, comp) {
+			compContext.Log().Oncef("Installed component %s has been disabled, uninstalling", comp.Name())
+			return false
+		}
 		// User has disabled component in Verrazzano CR, don't install
 		return true
 	}
