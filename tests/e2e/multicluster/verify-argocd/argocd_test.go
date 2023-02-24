@@ -33,8 +33,9 @@ const (
 	argoCDHelidonApplicationFile = "tests/e2e/config/scripts/hello-helidon-argocd-mc.yaml"
 )
 
-var expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
+var expectedPodsHelloHelidon = []string{"helidon-config-deployment"}
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
+var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 
 var t = framework.NewTestFramework("argocd_test")
@@ -94,7 +95,8 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 			Eventually(func() bool {
 				result, err := helloHelidonPodsRunning(managedKubeconfig, testNamespace)
 				if err != nil {
-					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+					pkg.Log(pkg.Error, fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+					return false
 				}
 				return result
 			}, waitTimeout, pollingInterval).Should(BeTrue())
@@ -104,7 +106,7 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 	t.Context("Delete resources", func() {
 		t.It("Delete resources on admin cluster", func() {
 			Eventually(func() error {
-				return deleteArgoCDApplication(managedKubeconfig)
+				return deleteArgoCDApplication(adminKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
