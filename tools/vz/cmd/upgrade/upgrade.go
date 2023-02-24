@@ -5,7 +5,7 @@ package upgrade
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -49,7 +49,7 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Duration(constants.VPOTimeoutFlag, time.Minute*5, constants.VPOTimeoutFlagHelp)
 	cmd.PersistentFlags().String(constants.VersionFlag, constants.VersionFlagDefault, constants.VersionFlagUpgradeHelp)
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
-	cmd.PersistentFlags().Bool(constants.AutoanalyzeFlag, constants.AutoanalyzeFlagDefault, constants.AutoanalyzeFlagHelp)
+	cmd.PersistentFlags().Bool(constants.AutoBugReportFlag, constants.AutoBugReportFlagDefault, constants.AutoBugReportFlagHelp)
 
 	// Initially the operator-file flag may be for internal use, hide from help until
 	// a decision is made on supporting this option.
@@ -209,13 +209,13 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 }
 
 func callVzAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) error {
-	autoanalyzeFlag, errFlag := cmd.Flags().GetBool(constants.AutoanalyzeFlag)
+	autoanalyzeFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
 	if errFlag != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
 	}
 	// if waitForUpgradeToComplete() returned an err and auto-analyze is set to true
 	if autoanalyzeFlag {
-		cmd2 := analyze.NewCmdAnalyze(vzHelper)
+		cmd2 := bugreport.NewCmdBugReport(vzHelper)
 		kubeconfigFlag, errFlag := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
 		if errFlag != nil {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
@@ -229,7 +229,7 @@ func callVzAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) err
 		cmd2.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
 		cmd2.Flags().Set(constants.GlobalFlagContext, contextFlag)
 		cmd2.PersistentFlags().Set(constants.ReportFormatFlagName, constants.SummaryReport)
-		analyzeErr := analyze.RunCmdAnalyze(cmd2, vzHelper)
+		analyzeErr := bugreport.RunCmdBugReport(cmd2, vzHelper)
 		if analyzeErr != nil {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Error calling VZ analyze %s \n", analyzeErr.Error())
 		}
