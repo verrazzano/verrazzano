@@ -7,7 +7,7 @@ import (
 	"bufio"
 	pkgcontext "context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	"io"
 	"regexp"
 	"time"
@@ -73,7 +73,7 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*30, constants.TimeoutFlagHelp)
 	cmd.PersistentFlags().Duration(constants.VPOTimeoutFlag, time.Minute*5, constants.VPOTimeoutFlagHelp)
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
-	cmd.PersistentFlags().Bool(constants.AutoanalyzeFlag, constants.AutoanalyzeFlagDefault, constants.AutoanalyzeFlagHelp)
+	cmd.PersistentFlags().Bool(constants.AutoBugReportFlag, constants.AutoBugReportFlagDefault, constants.AutoBugReportFlagHelp)
 
 	// Remove CRD's flag is still being discussed - keep hidden for now
 	cmd.PersistentFlags().Bool(crdsFlag, false, crdsFlagHelp)
@@ -163,13 +163,13 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	if err == nil {
 		return nil
 	}
-	autoanalyzeFlag, errFlag := cmd.Flags().GetBool(constants.AutoanalyzeFlag)
+	autoanalyzeFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
 	if errFlag != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
 	}
 	// if waitForUninstallToComplete() returned an err and auto-analyze is set to true, call vz analyze
 	if autoanalyzeFlag {
-		cmd2 := analyze.NewCmdAnalyze(vzHelper)
+		cmd2 := bugreport.NewCmdBugReport(vzHelper)
 		kubeconfigFlag, errFlag := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
 		if errFlag != nil {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
@@ -183,7 +183,7 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		cmd2.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
 		cmd2.Flags().Set(constants.GlobalFlagContext, contextFlag)
 		cmd2.PersistentFlags().Set(constants.ReportFormatFlagName, constants.SummaryReport)
-		analyzeErr := analyze.RunCmdAnalyze(cmd2, vzHelper)
+		analyzeErr := bugreport.RunCmdBugReport(cmd2, vzHelper)
 		if analyzeErr != nil {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Error calling VZ analyze %s \n", analyzeErr.Error())
 		}

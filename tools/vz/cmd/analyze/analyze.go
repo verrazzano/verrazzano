@@ -34,7 +34,7 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 		return validateReportFormat(cmd)
 	}
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return RunCmdAnalyze(cmd, vzHelper)
+		return runCmdAnalyze(cmd, vzHelper)
 	}
 
 	cmd.Example = helpExample
@@ -45,7 +45,7 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 	return cmd
 }
 
-func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+func runCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	reportFileName, err := cmd.PersistentFlags().GetString(constants.ReportFileFlagName)
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())

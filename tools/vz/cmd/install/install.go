@@ -6,7 +6,7 @@ package install
 import (
 	pkgcontext "context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	"os"
 	"strings"
 	"time"
@@ -74,7 +74,7 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().StringSliceP(constants.FilenameFlag, constants.FilenameFlagShorthand, []string{}, constants.FilenameFlagHelp)
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
 	cmd.PersistentFlags().StringArrayP(constants.SetFlag, constants.SetFlagShorthand, []string{}, constants.SetFlagHelp)
-	cmd.PersistentFlags().Bool(constants.AutoanalyzeFlag, constants.AutoanalyzeFlagDefault, constants.AutoanalyzeFlagHelp)
+	cmd.PersistentFlags().Bool(constants.AutoBugReportFlag, constants.AutoBugReportFlagDefault, constants.AutoBugReportFlagHelp)
 
 	// Initially the operator-file flag may be for internal use, hide from help until
 	// a decision is made on supporting this option.
@@ -222,13 +222,13 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	if err == nil {
 		return nil
 	}
-	autoanalyzeFlag, errFlag := cmd.Flags().GetBool(constants.AutoanalyzeFlag)
+	autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
 	if errFlag != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
 	}
-	// if waitForInstallToComplete() returned an err and auto-analyze is set to true, call vz analyze
-	if autoanalyzeFlag {
-		cmd2 := analyze.NewCmdAnalyze(vzHelper)
+	// if waitForInstallToComplete() returned an err and auto-bug-report is set to true, call vz bug-report
+	if autoBugReportFlag {
+		cmd2 := bugreport.NewCmdBugReport(vzHelper)
 		kubeconfigFlag, errFlag := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
 		if errFlag != nil {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
@@ -241,23 +241,11 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		cmd2.Flags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
 		cmd2.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
 		cmd2.Flags().Set(constants.GlobalFlagContext, contextFlag)
-		cmd2.PersistentFlags().Set(constants.ReportFormatFlagName, constants.SummaryReport)
-		analyzeErr := analyze.RunCmdAnalyze(cmd2, vzHelper)
+		analyzeErr := bugreport.RunCmdBugReport(cmd2, vzHelper)
 		if analyzeErr != nil {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "Error calling VZ analyze %s \n", analyzeErr.Error())
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Error calling VZ bug-report %s \n", analyzeErr.Error())
 		}
-		//cmd3 := bugreport.NewCmdBugReport(vzHelper)
-		//cmd3.Flags().StringVar(&kubeconfig, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
-		//cmd3.Flags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
-		//cmd3.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
-		//cmd3.Flags().Set(constants.GlobalFlagContext, contextFlag)
-		//bugReportErr := bugreport.RunCmdBugReport(cmd3, vzHelper)
-		//if bugReportErr != nil {
-		//	fmt.Fprintf(vzHelper.GetOutputStream(), "Error calling VZ bug-report %s \n", bugReportErr.Error())
-		//}
-		//return err
 	}
-	//return the waitForInstallToComplete() err
 	return err
 }
 
