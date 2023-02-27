@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"go.uber.org/zap"
+	"io/fs"
 	"os"
 	"reflect"
 	"strings"
@@ -201,7 +202,10 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 	if len(writeOut) > 0 {
 		writeOut = versionOut + writeOut
 		writeSummaryOut = versionOut + writeSummaryOut
-		fileOut, err := os.CreateTemp("", reportFile+constants.DetailsTmpFileExtn)
+		fileOut, err := os.Create(reportFile)
+		if err != nil && reportFile == constants.DetailsTmpFile && errors.Is(err, fs.ErrPermission) {
+			fileOut, err = os.CreateTemp("", reportFile+constants.DetailsTmpExtn)
+		}
 		if err != nil {
 			log.Errorf("Failed to create temp report file : %s, error found : %s", reportFile, err.Error())
 			return err

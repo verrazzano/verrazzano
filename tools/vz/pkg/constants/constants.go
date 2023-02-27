@@ -52,8 +52,8 @@ const (
 	VerboseFlagDefault   = false
 	VerboseFlagUsage     = "Enable verbose output."
 
-	DetailsTmpFile     = "details"
-	DetailsTmpFileExtn = ".*.tmp"
+	DetailsTmpFile = "details.out"
+	DetailsTmpExtn = ".*"
 )
 
 // VerrazzanoReleaseList - API for getting the list of Verrazzano releases

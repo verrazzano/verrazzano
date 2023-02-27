@@ -48,7 +48,7 @@ func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, 
 	err = report.GenerateHumanReport(logger, reportFile, reportFormat, includeSupport, includeInfo, includeActions, minConfidence, minImpact, vzHelper)
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "\nReport generation failed, exiting.\n")
-		return fmt.Errorf("\nreport generation failed, exiting")
+		return fmt.Errorf("%s", err.Error())
 	}
 	return nil
 }
