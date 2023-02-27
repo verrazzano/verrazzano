@@ -77,6 +77,8 @@ func main() {
 	flag.BoolVar(&config.DryRun, "dry-run", config.DryRun, "Run operator in dry run mode.")
 	flag.BoolVar(&config.WebhookValidationEnabled, "enable-webhook-validation", config.WebhookValidationEnabled,
 		"Enable webhooks validation for the operator")
+	flag.BoolVar(&config.ResourceRequirementsValidation, "resource-validation",
+		config.ResourceRequirementsValidation, "Enables of resource validation webhooks.")
 	flag.BoolVar(&config.RunWebhooks, "run-webhooks", config.RunWebhooks,
 		"Runs in webhook mode; if false, runs the main operator reconcile loop")
 	flag.BoolVar(&config.RunWebhookInit, "run-webhook-init", config.RunWebhookInit,

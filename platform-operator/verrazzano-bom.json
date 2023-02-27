@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.8-20230213180120-e07716258",
+              "tag": "v2.6.8-20230221221104-40baa52fa",
               "dashboard": "v2.6.8-20230213174539-1e3c4622",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20230213180120-e07716258"
+              "tag": "v2.6.8-20230221221104-40baa52fa"
             }
           ]
         },
@@ -223,7 +223,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.6.0-20230216162915-dd6e2de",
+              "tag": "v1.6.0-20230224051054-fa7ca84",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -331,7 +331,7 @@
     },
     {
       "name": "weblogic-operator",
-      "version": "4.0.4",
+      "version": "4.0.5",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -339,12 +339,12 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "4.0.4",
+              "tag": "4.0.5",
               "helmFullImageKey": "image"
             },
             {
               "image": "weblogic-monitoring-exporter",
-              "tag": "2.1.1",
+              "tag": "2.1.2",
               "helmFullImageKey": "weblogicMonitoringExporterImage"
             }
           ]
@@ -507,7 +507,7 @@
           "images": [
             {
               "image": "alertmanager",
-              "tag": "v0.24.0-20230209062327-fb73d30f",
+              "tag": "v0.24.0-20230221214421-a20fd08d",
               "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
               "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
             }
@@ -519,7 +519,7 @@
           "images": [
             {
               "image": "prometheus",
-              "tag": "v2.38.0-20230209074214-5cc7f3b4",
+              "tag": "v2.38.0-20230221215349-cf7b5418",
               "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
               "helmTagKey": "prometheus.prometheusSpec.image.tag"
             }
@@ -780,7 +780,6 @@
     }
   ],
   "supportedKubernetesVersions": [
-    "v1.20.0",
     "v1.21.0",
     "v1.22.0",
     "v1.23.0",
