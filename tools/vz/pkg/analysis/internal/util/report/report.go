@@ -202,10 +202,17 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 	if len(writeOut) > 0 {
 		writeOut = versionOut + writeOut
 		writeSummaryOut = versionOut + writeSummaryOut
-		fileOut, err := os.Create(reportFile)
-		if err != nil && reportFile == constants.DetailsTmpFile && errors.Is(err, fs.ErrPermission) {
-			fileOut, err = os.CreateTemp("", reportFile+constants.DetailsTmpExtn)
+		var fileOut *os.File
+		if reportFile == constants.DetailsTmpFile {
+			fileOut, err = os.CreateTemp(".", reportFile+constants.DetailsTmpExtn)
+			if err != nil && errors.Is(err, fs.ErrPermission) {
+				fmt.Fprintf(vzHelper.GetOutputStream(), "warning: %s\n", err.Error())
+				fileOut, err = os.CreateTemp("", reportFile+constants.DetailsTmpExtn)
+			}
+		} else {
+			fileOut, err = os.Create(reportFile)
 		}
+
 		if err != nil {
 			log.Errorf("Failed to create temp report file : %s, error found : %s", reportFile, err.Error())
 			return err
