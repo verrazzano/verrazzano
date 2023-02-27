@@ -128,7 +128,7 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		configDir := os.Getenv("KUBECONFIG_DIR")
-		os.Setenv("DUMP_KUBECONFIG", fmt.Sprintf("%s/2/kube_config", configDir))
+		os.Setenv("DUMP_KUBECONFIG", fmt.Sprintf("%s/1/kube_config", configDir))
 		dump.ExecuteBugReport(testNamespace)
 	}
 })
