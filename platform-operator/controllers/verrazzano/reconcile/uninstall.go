@@ -74,7 +74,7 @@ type uninstallState string
 type UninstallTracker struct {
 	vzState uninstallState
 	gen     int64
-	compMap map[string]*componentUninstallContext
+	compMap map[string]*componentTrackerContext
 }
 
 // UninstallTrackerMap has a map of UninstallTrackers, one entry per Verrazzano CR resource generation
@@ -172,7 +172,7 @@ func getUninstallTracker(cr *installv1alpha1.Verrazzano) *UninstallTracker {
 		vuc = &UninstallTracker{
 			vzState: vzStateUninstallStart,
 			gen:     cr.Generation,
-			compMap: make(map[string]*componentUninstallContext),
+			compMap: make(map[string]*componentTrackerContext),
 		}
 		UninstallTrackerMap[key] = vuc
 	}

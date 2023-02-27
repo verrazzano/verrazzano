@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package reconcile
@@ -84,24 +84,24 @@ func TestChooseCompState(t *testing.T) {
 func TestReconcilerInstallSingleComponent(t *testing.T) {
 	type args struct {
 		spiCtx         spi.ComponentContext
-		installContext *componentInstallContext
+		installContext *componentTrackerContext
 		comp           spi.Component
 		preUpgrade     bool
 	}
-	compContext := &componentInstallContext{
-		state: compStateInstallInitDisabled,
+	compContext := &componentTrackerContext{
+		installState: compStateInstallInitDisabled,
 	}
-	compCtxWithPreInstall := &componentInstallContext{
-		state: compStatePreInstall,
+	compCtxWithPreInstall := &componentTrackerContext{
+		installState: compStatePreInstall,
 	}
-	compCtxWithInstall := &componentInstallContext{
-		state: compStateInstall,
+	compCtxWithInstall := &componentTrackerContext{
+		installState: compStateInstall,
 	}
-	compCtxWithWait := &componentInstallContext{
-		state: compStateInstallWaitReady,
+	compCtxWithWait := &componentTrackerContext{
+		installState: compStateInstallWaitReady,
 	}
-	compCtxWithPostInstall := &componentInstallContext{
-		state: compStatePostInstall,
+	compCtxWithPostInstall := &componentTrackerContext{
+		installState: compStatePostInstall,
 	}
 
 	mockClient := fake.NewClientBuilder().Build()
