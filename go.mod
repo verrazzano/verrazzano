@@ -50,6 +50,7 @@ require (
 )
 
 require (
+	cloud.google.com/go/compute v1.7.0 // indirect
 	github.com/BurntSushi/toml v1.1.0 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
@@ -171,5 +172,11 @@ replace (
 	golang.org/x/lint => golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
 	gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 => helm.sh/helm/v3 v3.10.3
+	k8s.io/api v0.26.1 => k8s.io/api v0.25.2
+	k8s.io/apiextensions-apiserver v0.26.1 => k8s.io/apiextensions-apiserver v0.25.2
+	k8s.io/apimachinery v0.26.1 => k8s.io/apimachinery v0.25.2
+	k8s.io/client-go v0.26.1 => k8s.io/client-go v0.25.2
+	k8s.io/code-generator v0.26.1 => k8s.io/code-generator v0.25.2
+	sigs.k8s.io/controller-runtime v0.14.4 => sigs.k8s.io/controller-runtime v0.13.1
 	sigs.k8s.io/kind => github.com/verrazzano/kind v0.0.0-20221129215948-885481909133
 )
