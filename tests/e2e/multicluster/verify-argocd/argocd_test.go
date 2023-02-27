@@ -91,7 +91,7 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("MANAGED_KUBECONFIG"))
 		})
 		// GIVEN an admin cluster and at least one managed cluster
-		// WHEN the multi-cluster example application has been  placed in managed cluster
+		// WHEN the  example application has been  placed in managed cluster
 		// THEN expect that the app is deployed to the managed cluster
 		t.It("Has application placed", func() {
 			Eventually(func() bool {
@@ -127,6 +127,8 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
+		configDir := os.Getenv("KUBECONFIG_DIR")
+		os.Setenv("DUMP_KUBECONFIG", fmt.Sprintf("%s/2/kube_config", configDir))
 		dump.ExecuteBugReport(testNamespace)
 	}
 })
