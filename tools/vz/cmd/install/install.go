@@ -222,31 +222,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	if err == nil {
 		return nil
 	}
-	autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
-	if errFlag != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
-	}
-	// if waitForInstallToComplete() returned an err and auto-bug-report is set to true, call vz bug-report
-	if autoBugReportFlag {
-		cmd2 := bugreport.NewCmdBugReport(vzHelper)
-		kubeconfigFlag, errFlag := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
-		if errFlag != nil {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
-		}
-		contextFlag, errFlag2 := cmd.Flags().GetString(constants.GlobalFlagContext)
-		if errFlag2 != nil {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag2.Error())
-		}
-		cmd2.Flags().StringVar(&kubeconfig, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
-		cmd2.Flags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
-		cmd2.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
-		cmd2.Flags().Set(constants.GlobalFlagContext, contextFlag)
-		analyzeErr := bugreport.RunCmdBugReport(cmd2, vzHelper)
-		if analyzeErr != nil {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "Error calling vz bug-report %s \n", analyzeErr.Error())
-		}
-	}
-	return err
+	return bugreport.CallVzBugReport(cmd, vzHelper, err)
 }
 
 // getVerrazzanoYAML returns the verrazzano install resource to be created

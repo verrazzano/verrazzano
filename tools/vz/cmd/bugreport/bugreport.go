@@ -49,6 +49,9 @@ vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2 --include
 
 const minLineLength = 100
 
+var kubeconfig string
+var context string
+
 func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 
@@ -248,4 +251,32 @@ func isDirEmpty(directory string, ignoreFilesCount int) bool {
 		return false
 	}
 	return len(entries) == ignoreFilesCount
+}
+
+func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) error {
+	autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
+	if errFlag != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
+	}
+	// if waitForUpgradeToComplete() returned an err and auto-bug-report is set to true
+	if autoBugReportFlag {
+		cmd2 := NewCmdBugReport(vzHelper)
+		//kubeconfigFlag, errFlag := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
+		//if errFlag != nil {
+		//	fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
+		//}
+		//contextFlag, errFlag2 := cmd.Flags().GetString(constants.GlobalFlagContext)
+		//if errFlag2 != nil {
+		//	fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag2.Error())
+		//}
+		//cmd2.Flags().StringVar(&kubeconfig, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
+		//cmd2.Flags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
+		//cmd2.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
+		//cmd2.Flags().Set(constants.GlobalFlagContext, contextFlag)
+		bugReportErr := RunCmdBugReport(cmd2, vzHelper)
+		if bugReportErr != nil {
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Error calling vz bug-report %s \n", bugReportErr.Error())
+		}
+	}
+	return err
 }
