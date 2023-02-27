@@ -403,7 +403,7 @@ pipeline {
                     }
                 }
 
-                stage('Run Acceptance Tests Deployments') {
+                stage('Run Acceptance Tests Deployments Group 1') {
                     parallel {
                         stage('istio authorization policy') {
                             environment {
