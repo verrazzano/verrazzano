@@ -28,11 +28,11 @@ pipeline {
                 // 1st choice is the default value
                 choices: ["1.21", "1.22", "1.23", "1.24" ])
         string (name: 'VERSION_FOR_INSTALL',
-                defaultValue: 'v1.2.2',
+                defaultValue: 'v1.3.8',
                 description: 'This is the Verrazzano version for install.  By default, the latest Master release will be installed',
                 trim: true)
         string (name: 'INTERIM_UPGRADE_VERSION',
-                defaultValue: 'v1.3.4',
+                defaultValue: 'v1.4.3',
                 description: 'This is the Verrazzano version for interim upgrade.',
                 trim: true)
         string (name: 'GIT_COMMIT_FOR_UPGRADE',
@@ -312,8 +312,8 @@ pipeline {
                     echo "Upgrading the Verrazzano platform operator"
                     if [[ "upgrade.failed.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
                     then
-                        echo "Upgrading VPO to version 1.2.0"
-                        kubectl apply -f https://github.com/verrazzano/verrazzano/releases/download/v1.2.0/operator.yaml
+                        echo "Upgrading VPO to version 1.3.8"
+                        kubectl apply -f https://github.com/verrazzano/verrazzano/releases/download/v1.3.8/operator.yaml
 
                     elif [[ "upgrade.failing.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
                     then
@@ -365,7 +365,7 @@ pipeline {
                     // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
                     VERRAZZANO_INTERIM_VERSION = "NONE"
                     if ("upgrade.failed.upgrade".equals(params.CHAOS_TEST_TYPE)) {
-                        VERRAZZANO_INTERIM_VERSION = "1.2.0"
+                        VERRAZZANO_INTERIM_VERSION = "1.3.8"
                     } else if ("upgrade.failing.upgrade".equals(params.CHAOS_TEST_TYPE)) {
                         VERRAZZANO_INTERIM_VERSION = params.INTERIM_UPGRADE_VERSION
                     }
