@@ -5,6 +5,10 @@ package bugreport
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"sync"
+
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/vzchecks"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -13,10 +17,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"os"
-	"path/filepath"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"sync"
 )
 
 // The bug-report command captures the following resources from the cluster by default
@@ -108,9 +109,10 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bug
 	// List of pods to collect the logs
 	vpoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
 	vaoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoApplicationOperator, vzconstants.VerrazzanoSystemNamespace)
+	vcoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoClusterOperator, vzconstants.VerrazzanoSystemNamespace)
 	vmoPod, _ := pkghelpers.GetPodList(client, constants.K8SAppLabel, constants.VerrazzanoMonitoringOperator, vzconstants.VerrazzanoSystemNamespace)
 	externalDNSPod, _ := pkghelpers.GetPodList(client, constants.K8sAppLabelExternalDNS, vzconstants.ExternalDNS, vzconstants.CertManager)
-	wgCount := 3 + len(namespaces)
+	wgCount := 4 + len(namespaces)
 	wgCount++ // increment for the verrrazzano resource
 	if len(externalDNSPod) > 0 {
 		wgCount++
@@ -128,6 +130,7 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bug
 	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vpoPod, Namespace: vzconstants.VerrazzanoInstallNamespace}, bugReportDir, vzHelper, 0)
 	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vmoPod, Namespace: vzconstants.VerrazzanoSystemNamespace}, bugReportDir, vzHelper, 0)
 	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vaoPod, Namespace: vzconstants.VerrazzanoSystemNamespace}, bugReportDir, vzHelper, 0)
+	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vcoPod, Namespace: vzconstants.VerrazzanoSystemNamespace}, bugReportDir, vzHelper, 0)
 
 	if len(externalDNSPod) > 0 {
 		go captureLogs(wg, ecl, kubeClient, Pods{PodList: externalDNSPod, Namespace: vzconstants.CertManager}, bugReportDir, vzHelper, 0)
