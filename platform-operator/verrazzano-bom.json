@@ -122,7 +122,7 @@
     },
     {
       "name": "rancher",
-      "version": "v2.6.8",
+      "version": "v2.7.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -167,7 +167,7 @@
             },
             {
               "image": "rancher-cleanup",
-              "tag": "v1.0.0-20230214151314-ebdc62b"
+              "tag": "20230227140104-5147ad3"
             }
           ]
         }
