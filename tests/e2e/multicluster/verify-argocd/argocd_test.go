@@ -73,16 +73,26 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 
 		t.It("has the expected secrets", func() {
 			secretName := fmt.Sprintf("%s-argocd-cluster-secret", managedClusterName)
-			Eventually(func() bool {
-				return findSecret(argoCDNamespace, secretName)
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find secret "+secretName)
+			Eventually(func() error {
+				result, err := findSecret(argoCDNamespace, secretName)
+				if result != false {
+					pkg.Log(pkg.Error, fmt.Sprintf("Failed to get secret %s in namespace %s with error: %v", secretName, argoCDNamespace, err))
+					return err
+				}
+				return err
+			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to find secret "+secretName)
 		})
 
 		t.It("secret has the data content with the same name as managed cluster", func() {
 			secretName := fmt.Sprintf("%s-argocd-cluster-secret", managedClusterName)
-			Eventually(func() bool {
-				return findServerName(argoCDNamespace, secretName)
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find managed cluster name "+managedClusterName)
+			Eventually(func() error {
+				result, err := findServerName(argoCDNamespace, secretName)
+				if result != false {
+					pkg.Log(pkg.Error, fmt.Sprintf("Failed to get servername in secret %s with error: %v", secretName, err))
+					return err
+				}
+				return err
+			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to find managed cluster name "+managedClusterName)
 		})
 	})
 
@@ -127,8 +137,6 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
-		configDir := os.Getenv("KUBECONFIG_DIR")
-		os.Setenv("DUMP_KUBECONFIG", fmt.Sprintf("%s/1/kube_config", configDir))
 		dump.ExecuteBugReport(testNamespace)
 	}
 })
@@ -149,13 +157,12 @@ func deleteArgoCDApplication(kubeconfigPath string) error {
 	return nil
 }
 
-func findSecret(namespace, name string) bool {
+func findSecret(namespace, name string) (bool, error) {
 	s, err := pkg.GetSecret(namespace, name)
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get secret %s in namespace %s with error: %v", name, namespace, err))
-		return false
+		return false, err
 	}
-	return s != nil
+	return s != nil, nil
 }
 
 func helloHelidonPodsRunning(kubeconfigPath string, namespace string) (bool, error) {
@@ -167,17 +174,17 @@ func helloHelidonPodsRunning(kubeconfigPath string, namespace string) (bool, err
 	return result, nil
 }
 
-func findServerName(namespace, name string) bool {
+func findServerName(namespace, name string) (bool, error) {
 	s, err := pkg.GetSecret(namespace, name)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get secret %s in namespace %s with error: %v", name, namespace, err))
-		return false
+		return false, err
 	}
 	servername := string(s.Data["name"])
 	decodeServerName, err := b64.StdEncoding.DecodeString(servername)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to decode secret data %s in secret %s with error: %v", servername, name, err))
-		return false
+		return false, err
 	}
-	return string(decodeServerName) != managedClusterName
+	return string(decodeServerName) != managedClusterName, nil
 }
