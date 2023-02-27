@@ -5,6 +5,10 @@ package bugreport
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"sync"
+
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/vzchecks"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -13,10 +17,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"os"
-	"path/filepath"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"sync"
 )
 
 // The bug-report command captures the following resources from the cluster by default
@@ -96,6 +97,11 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	if len(additionalNS) > 0 {
 		captureAdditionalResources(client, kubeClient, dynamicClient, vzHelper, bugReportDir, additionalNS, podLogs)
 	}
+
+	// Capture Verrazzano Projects and VerrazzanoManagedCluster
+	if err := captureMultiClusterResources(dynamicClient, bugReportDir, vzHelper); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -103,9 +109,10 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bug
 	// List of pods to collect the logs
 	vpoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
 	vaoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoApplicationOperator, vzconstants.VerrazzanoSystemNamespace)
+	vcoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoClusterOperator, vzconstants.VerrazzanoSystemNamespace)
 	vmoPod, _ := pkghelpers.GetPodList(client, constants.K8SAppLabel, constants.VerrazzanoMonitoringOperator, vzconstants.VerrazzanoSystemNamespace)
 	externalDNSPod, _ := pkghelpers.GetPodList(client, constants.K8sAppLabelExternalDNS, vzconstants.ExternalDNS, vzconstants.CertManager)
-	wgCount := 3 + len(namespaces)
+	wgCount := 4 + len(namespaces)
 	wgCount++ // increment for the verrrazzano resource
 	if len(externalDNSPod) > 0 {
 		wgCount++
@@ -123,6 +130,7 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bug
 	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vpoPod, Namespace: vzconstants.VerrazzanoInstallNamespace}, bugReportDir, vzHelper, 0)
 	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vmoPod, Namespace: vzconstants.VerrazzanoSystemNamespace}, bugReportDir, vzHelper, 0)
 	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vaoPod, Namespace: vzconstants.VerrazzanoSystemNamespace}, bugReportDir, vzHelper, 0)
+	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vcoPod, Namespace: vzconstants.VerrazzanoSystemNamespace}, bugReportDir, vzHelper, 0)
 
 	if len(externalDNSPod) > 0 {
 		go captureLogs(wg, ecl, kubeClient, Pods{PodList: externalDNSPod, Namespace: vzconstants.CertManager}, bugReportDir, vzHelper, 0)
@@ -272,7 +280,26 @@ func captureAdditionalResources(client clipkg.Client, kubeClient kubernetes.Inte
 			pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the logs: %s", err.Error()))
 		}
 	}
-	if err := pkghelpers.CaptureMultiClusterResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
+	if err := pkghelpers.CaptureMultiClusterOAMResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
 		pkghelpers.LogError(fmt.Sprintf("There is an error in capturing the multi-cluster resources : %s", err.Error()))
 	}
+}
+
+// captureMultiClusterResources captures Projects and VerrazzanoManagedCluster resource
+func captureMultiClusterResources(dynamicClient dynamic.Interface, captureDir string, vzHelper pkghelpers.VZHelper) error {
+	// Return nil when dynamicClient is nil, useful to get clean unit tests
+	if dynamicClient == nil {
+		return nil
+	}
+
+	// Capture Verrazzano projects in verrazzano-mc namespace
+	if err := pkghelpers.CaptureVerrazzanoProjects(dynamicClient, captureDir, vzHelper); err != nil {
+		return err
+	}
+
+	// Capture Verrazzano projects in verrazzano-mc namespace
+	if err := pkghelpers.CaptureVerrazzanoManagedCluster(dynamicClient, captureDir, vzHelper); err != nil {
+		return err
+	}
+	return nil
 }

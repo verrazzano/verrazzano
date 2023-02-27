@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package reconcile
@@ -56,7 +56,7 @@ func (r *Reconciler) checkUpgradeComplete(vzctx vzcontext.VerrazzanoContext) (bo
 	// Set upgrade complete IFF all subcomponent status' are "CompStateReady"
 	message := "Verrazzano upgrade completed successfully"
 	// Status and State update must be performed on the actual CR read from K8S
-	return true, r.updateVzStatusAndState(log, actualCR, message, installv1alpha1.CondUpgradeComplete, installv1alpha1.VzStateReady)
+	return true, r.updateVzStatusAndState(vzctx, log, actualCR, message, installv1alpha1.CondUpgradeComplete, installv1alpha1.VzStateReady)
 }
 
 // updateStatus updates the status in the Verrazzano CR
@@ -76,13 +76,24 @@ func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha
 	state := conditionToVzState(conditionType)
 	log.Debugf("Setting Verrazzano resource condition and state: %v/%v", condition.Type, state)
 
-	// Update the status
-	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
+	event := &vzstatus.UpdateEvent{
 		Verrazzano: cr,
 		Version:    version,
 		State:      state,
 		Conditions: conditions,
-	})
+	}
+
+	if conditionType == installv1alpha1.CondInstallComplete {
+		spiCtx, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
+		if err != nil {
+			spiCtx.Log().Errorf("Failed to create component context: %v", err)
+			return err
+		}
+		event.InstanceInfo = vzinstance.GetInstanceInfo(spiCtx)
+	}
+
+	// Update the status
+	r.StatusUpdater.Update(event)
 	return nil
 }
 
@@ -97,7 +108,7 @@ func (r *Reconciler) updateVzState(log vzlog.VerrazzanoLogger, cr *installv1alph
 }
 
 // updateVzState updates the status state in the Verrazzano CR
-func (r *Reconciler) updateVzStatusAndState(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType, state installv1alpha1.VzStateType) error {
+func (r *Reconciler) updateVzStatusAndState(vzctx vzcontext.VerrazzanoContext, log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType, state installv1alpha1.VzStateType) error {
 	t := time.Now().UTC()
 	condition := installv1alpha1.Condition{
 		Type:    conditionType,
@@ -109,11 +120,19 @@ func (r *Reconciler) updateVzStatusAndState(log vzlog.VerrazzanoLogger, cr *inst
 	}
 	conditions := appendConditionIfNecessary(log, cr.Name, cr.Status.Conditions, condition)
 	log.Debugf("Setting Verrazzano state: %v", state)
+
+	spiCtx, err := spi.NewContext(vzctx.Log, r.Client, vzctx.ActualCR, nil, r.DryRun)
+	if err != nil {
+		spiCtx.Log().Errorf("Failed to create component context: %v", err)
+		return err
+	}
+
 	// Update the status
 	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
-		Verrazzano: cr,
-		State:      state,
-		Conditions: conditions,
+		Verrazzano:   cr,
+		State:        state,
+		Conditions:   conditions,
+		InstanceInfo: vzinstance.GetInstanceInfo(spiCtx),
 	})
 	return nil
 }

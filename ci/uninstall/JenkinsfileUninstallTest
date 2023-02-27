@@ -1,4 +1,4 @@
-// Copyright (c) 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -7,7 +7,7 @@ EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 pipeline {
     options {
-        timeout(time: 2, unit: 'HOURS')
+        timeout(time: 150, unit: 'MINUTES')
         skipDefaultCheckout true
         timestamps ()
     }
@@ -395,9 +395,10 @@ def runVerifyTests(stageName, iteration) {
 }
 
 def generateVerifyUninstallStages() {
+    boolean mySQLOperatorEnabled = params.INSTALL_PROFILE != 'managed-cluster'
     uninstallTests = [
         "verifycrds": {
-            runGinkgo('uninstall/verifycrds')
+            runGinkgoWithPassThroughs('uninstall/verifycrds', mySQLOperatorEnabled)
         },
         "verifyrancher": {
             runGinkgo('uninstall/verifyrancher')
@@ -582,6 +583,21 @@ def runGinkgo(testSuitePath, dumpDir = '', kubeconfig = '') {
             fi
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
+    }
+}
+
+def runGinkgoWithPassThroughs(testSuitePath, mySQLOperatorEnabled, dumpDir = '', kubeconfig = '') {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            if [ ! -z "${dumpDir}" ]; then
+                export DUMP_DIRECTORY=${dumpDir}
+            fi
+            if [ ! -z "${kubeConfig}" ]; then
+                export KUBECONFIG="${kubeConfig}"
+            fi
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --mySQLOperatorEnabled=${mySQLOperatorEnabled}
         """
     }
 }
