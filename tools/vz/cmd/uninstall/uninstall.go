@@ -163,31 +163,7 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	if err == nil {
 		return nil
 	}
-	autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
-	if errFlag != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
-	}
-	// if waitForUninstallToComplete() returned an err and auto-bug-report is set to true, call vz analyze
-	if autoBugReportFlag {
-		cmd2 := bugreport.NewCmdBugReport(vzHelper)
-		kubeconfigFlag, errFlag := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
-		if errFlag != nil {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
-		}
-		contextFlag, errFlag2 := cmd.Flags().GetString(constants.GlobalFlagContext)
-		if errFlag2 != nil {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag2.Error())
-		}
-		cmd2.Flags().StringVar(&kubeconfig, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
-		cmd2.Flags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
-		cmd2.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
-		cmd2.Flags().Set(constants.GlobalFlagContext, contextFlag)
-		cmd2.PersistentFlags().Set(constants.ReportFormatFlagName, constants.SummaryReport)
-		analyzeErr := bugreport.RunCmdBugReport(cmd2, vzHelper)
-		if analyzeErr != nil {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "Error calling vz bug-report %s \n", analyzeErr.Error())
-		}
-	}
+	err = bugreport.CallVzBugReport(cmd, vzHelper, err)
 	//return the waitForUninstallToComplete() err
 	return fmt.Errorf("Failed to uninstall Verrazzano: %s", err.Error())
 }
