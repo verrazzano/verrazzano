@@ -4,7 +4,7 @@
 package install
 
 import (
-	pkgcontext "context"
+	pkgContext "context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	"os"
@@ -200,7 +200,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		// Sometimes we see intermittent webhook errors due to timeouts.
 		retry := 0
 		for {
-			err = client.Create(pkgcontext.TODO(), vz)
+			err = client.Create(pkgContext.TODO(), vz)
 			if err != nil {
 				if retry == 5 {
 					return fmt.Errorf("Failed to create the verrazzano install resource: %s", err.Error())
