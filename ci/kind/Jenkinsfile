@@ -376,7 +376,7 @@ pipeline {
                     }
                 }
 
-                stage('Run Acceptance Tests Deployments') {
+                stage('Run Acceptance Tests Deployments Group 1') {
                     parallel {
                         stage('istio authorization policy') {
                             environment {
@@ -516,6 +516,30 @@ pipeline {
                                 runGinkgo('jwt/helidon-svc')
                             }
                         }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('Run Acceptance Tests Deployments Group 2') {
+                    parallel {
+                        stage('opensearch-topology') {
+                            steps {
+                                runGinkgoRandomize('opensearch/topology')
+                            }
+                        }
+                        stage('Ingress & logging trait WebLogic workload') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
+                            }
+                            steps {
+                                runGinkgo('loggingtrait/weblogicworkload')
+                            }
+                        }
                         stage('weblogic workload') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
@@ -565,30 +589,6 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('loggingtrait/coherenceworkload')
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
-                }
-
-                stage('Run Acceptance Tests Deployments Group 2') {
-                    parallel {
-                        stage('opensearch-topology') {
-                            steps {
-                                runGinkgoRandomize('opensearch/topology')
-                            }
-                        }
-                        stage('Ingress & logging trait WebLogic workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
-                            }
-                            steps {
-                                runGinkgo('loggingtrait/weblogicworkload')
                             }
                         }
                     }
