@@ -20,7 +20,8 @@ type Interface interface {
 	ClustersV1alpha1() clustersv1alpha1.ClustersV1alpha1Interface
 }
 
-// Clientset contains the clients for groups.
+// Clientset contains the clients for groups. Each group has exactly one
+// version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
 	clustersV1alpha1 *clustersv1alpha1.ClustersV1alpha1Client
