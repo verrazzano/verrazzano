@@ -5,6 +5,8 @@ package vzconfig
 
 import (
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -38,7 +40,6 @@ func TestCheckExternalIPsArgs(t *testing.T) {
 	vz := getVZWithIstioOverride(validIP)
 	err := CheckExternalIPsArgs(vz.Spec.Components.Istio.IstioInstallArgs, vz.Spec.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, compName)
 	asserts.NoError(err)
-
 	vz = getVZWithIstioOverride(invalidIP)
 	err = CheckExternalIPsArgs(vz.Spec.Components.Istio.IstioInstallArgs, vz.Spec.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, compName)
 	asserts.Error(err)
@@ -48,6 +49,10 @@ func TestCheckExternalIPsArgs(t *testing.T) {
 	err = CheckExternalIPsArgs(vz.Spec.Components.Istio.IstioInstallArgs, vz.Spec.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, compName)
 	asserts.Error(err)
 	asserts.Contains(err.Error(), "not found for component")
+
+	// NEW TEST for configMap
+	vz = getVZWithConfigMapOverride()
+	err = CheckExternalIPsArgs(vz.Spec.Components.Istio.IstioInstallArgs, vz.Spec.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, compName)
 }
 
 // TestCheckExternalIPsOverridesArgs tests CheckExternalIPsOverridesArgs
@@ -151,4 +156,40 @@ func getv1beta1VZWithIstioOverride(externalIP string) installv1beta1.Verrazzano 
 		},
 	}
 	return vz
+}
+
+// getVZWithConfigMapOverride returns vz CR with istio component using a configMap override
+func getVZWithConfigMapOverride() vzapi.Verrazzano {
+	vz := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Istio: &vzapi.IstioComponent{
+					InstallOverrides: vzapi.InstallOverrides{
+						ValueOverrides: []vzapi.Overrides{
+							{
+								ConfigMapRef: &corev1.ConfigMapKeySelector{
+									Key: "configMapKey",
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "testCMName",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	return vz
+}
+
+func createTestConfigMap() *corev1.ConfigMap {
+	data := make(map[string]string)
+	data["configMapKey"] = "data-left-empty-on-purpose"
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "testCMName",
+		},
+		Data: data,
+	}
 }

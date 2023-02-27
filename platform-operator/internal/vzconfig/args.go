@@ -17,7 +17,10 @@ import (
 // It also checks whether IP addresses are valid and provided in a List format
 func CheckExternalIPsArgs(installArgs []vzapi.InstallArgs, overrides []vzapi.Overrides, argsKeyName, jsonPath, compName string) error {
 	var keyPresent bool
-	for _, override := range overrides {
+	for i, override := range overrides {
+		if err := checkIfConfigMapOrSecret(overrides, i); err != nil {
+			return err
+		}
 		o, err := gabs.ParseJSON(override.Values.Raw)
 		if err != nil {
 			return err
@@ -95,5 +98,13 @@ func validateExternalIP(addresses []string, key, compName string) error {
 	if net.ParseIP(addresses[0]) == nil {
 		return fmt.Errorf("Controller external service key \"%v\" with IP \"%v\" is of invalid format for %s. Must be a proper IP address format", key, addresses[0], compName)
 	}
+	return nil
+}
+
+func checkIfConfigMapOrSecret(overrides []vzapi.Overrides, override int) error {
+	if _, err := gabs.ParseJSON([]byte(overrides[override].ConfigMapRef.Name)); err != nil {
+		return err
+	}
+
 	return nil
 }
