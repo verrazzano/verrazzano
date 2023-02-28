@@ -203,7 +203,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 		writeSummaryOut = versionOut + writeSummaryOut
 		var fileOut *os.File
 		if reportFile == "" {
-			reportFile = constants.DetailsTmpFile
+			reportFile = constants.VzAnalysisReportTmpFile
 			fileOut, err = os.CreateTemp(".", reportFile)
 			if err != nil && errors.Is(err, fs.ErrPermission) {
 				fmt.Fprintf(vzHelper.GetOutputStream(), "Warning: %s to open report file in current directory\n", fs.ErrPermission)

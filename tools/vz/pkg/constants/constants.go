@@ -52,7 +52,7 @@ const (
 	VerboseFlagDefault   = false
 	VerboseFlagUsage     = "Enable verbose output."
 
-	DetailsTmpFile = "details-.*.out"
+	VzAnalysisReportTmpFile = "details-*.out"
 )
 
 // VerrazzanoReleaseList - API for getting the list of Verrazzano releases
