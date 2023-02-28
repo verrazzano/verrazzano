@@ -76,6 +76,8 @@ const VerrazzanoRequirementsValidatorWebhook = "verrazzano-platform-requirements
 
 const VerrazzanoApplicationOperator = "verrazzano-application-operator"
 
+const VerrazzanoClusterOperator = "verrazzano-cluster-operator"
+
 const VerrazzanoMonitoringOperator = "verrazzano-monitoring-operator"
 
 const VerrazzanoUninstall = "verrazzano-uninstall"

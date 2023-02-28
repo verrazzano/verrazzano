@@ -275,7 +275,7 @@ func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) e
 		cmd2.Flags().Set(constants.GlobalFlagContext, contextFlag)
 		bugReportErr := RunCmdBugReport(cmd2, vzHelper)
 		if bugReportErr != nil {
-			fmt.Fprintf(vzHelper.GetErrorStream(), "Error calling vz bug-report %s \n", bugReportErr.Error())
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Error calling vz bug-report %s \n", bugReportErr.Error())
 		}
 	}
 	return err
