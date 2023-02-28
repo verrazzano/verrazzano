@@ -131,8 +131,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 			issuesDetected = fmt.Sprintf("Detected %d issues for %s:", len(actuallyReported), source)
 		}
 		sep := strings.Repeat(constants.LineSeparator, len(issuesDetected))
-		fmt.Fprintf(os.Stdout, "\n"+issuesDetected+"\n")
-		fmt.Fprintf(os.Stdout, sep+"\n")
+		versionOut += "\n" + issuesDetected + "\n" + sep + "\n"
 		for _, issue := range actuallyReported {
 			// Display only summary and action when the report-format is set to summary
 			if reportFormat == constants.SummaryReport {
@@ -205,10 +204,10 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 		var fileOut *os.File
 		if reportFile == "" {
 			reportFile = constants.DetailsTmpFile
-			fileOut, err = os.CreateTemp(".", reportFile+constants.DetailsTmpExtn)
+			fileOut, err = os.CreateTemp(".", reportFile)
 			if err != nil && errors.Is(err, fs.ErrPermission) {
-				fmt.Fprintf(vzHelper.GetOutputStream(), "warning: %s\n", err.Error())
-				fileOut, err = os.CreateTemp("", reportFile+constants.DetailsTmpExtn)
+				fmt.Fprintf(vzHelper.GetOutputStream(), "Warning: %s to open report file in current directory\n", fs.ErrPermission)
+				fileOut, err = os.CreateTemp("", reportFile)
 			}
 		} else {
 			if _, fe := os.Stat(reportFile); fe == nil {
