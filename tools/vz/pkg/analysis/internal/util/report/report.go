@@ -210,11 +210,13 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 				fileOut, err = os.CreateTemp("", reportFile+constants.DetailsTmpExtn)
 			}
 		} else {
+			if _, fe := os.Stat(reportFile); fe == nil {
+				return errors.New(fmt.Sprintf("report file %s already exists", reportFile))
+			}
 			fileOut, err = os.Create(reportFile)
 		}
-
 		if err != nil {
-			log.Errorf("Failed to create temp report file : %s, error found : %s", reportFile, err.Error())
+			log.Errorf("Failed to create report file : %s, error found : %s", reportFile, err.Error())
 			return err
 		}
 		defer func() {
