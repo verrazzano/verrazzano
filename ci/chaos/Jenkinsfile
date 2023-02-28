@@ -447,8 +447,12 @@ pipeline {
                         kubectl -n verrazzano-install exec \$POD -- /bin/bash -c "mv /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml.bak"
                         # Initiate upgrade
                         kubectl apply -f ${WORKSPACE}/verrazzano-interim-cr.yaml
-                        # wait for the expected error
-                        kubectl wait --timeout=15m --for=condition=UpgradeFailed verrazzano/my-verrazzano
+                        # The upgrade will indefinitely remain in the upgrading state.  Wait for indication that the Verrazzano component is failing to upgrade
+                        until [ `kubectl logs -l app=verrazzano-platform-operator -n verrazzano-install --tail -1 | grep "Failed upgrading component verrazzano" | wc -l` -gt 0 ]
+                        do
+                            echo "Waiting for Verrazzano to fail upgrade ..."
+                            sleep 30
+                        done                        
                         mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
                         kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-before-final-upgrade-pod.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
                         # Upgrade to the latest VPO
