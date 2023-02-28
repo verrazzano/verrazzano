@@ -189,6 +189,9 @@ func (c prometheusComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 
 	if vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) {
 		ns := ComponentNamespace
+		if !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) && !vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
+			return ingressNames
+		}
 		if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
 			ns = authproxy.ComponentNamespace
 		}
