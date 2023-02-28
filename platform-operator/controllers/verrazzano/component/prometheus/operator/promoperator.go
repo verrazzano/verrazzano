@@ -135,10 +135,8 @@ func postInstallUpgrade(ctx spi.ComponentContext) error {
 		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
 		ExtraAnnotations: common.SameSiteCookieAnnotations(prometheusName),
 	}
-	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) && vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
-		if err := common.CreateOrUpdateSystemComponentIngress(ctx, props); err != nil {
-			return err
-		}
+	if err := common.CreateOrUpdateSystemComponentIngress(ctx, props); err != nil {
+		return err
 	}
 	if err := createOrUpdatePrometheusAuthPolicy(ctx); err != nil {
 		return err
