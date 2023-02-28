@@ -171,9 +171,6 @@ const MysqlBackupMutatingWebhookPath = "/mysql-backup-job-annotate"
 // MysqlStatefulSetMutatingWebhookPath specifies the path of mysql webhook.
 const MysqlStatefulSetMutatingWebhookPath = "/mysql-statefulset-annotate"
 
-// PodSecurityMutatingWebhookPath specifies the path of mysql webhook.
-const PodSecurityMutatingWebhookPath = "/pod-security"
-
 // VerrazzanoClusterRancherName is the name for the Rancher cluster role and secret used to grant permissions to the Verrazzano cluster user
 const VerrazzanoClusterRancherName = "verrazzano-cluster-registrar"
 
