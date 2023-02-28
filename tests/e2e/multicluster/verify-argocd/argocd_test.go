@@ -29,7 +29,7 @@ const (
 )
 
 const (
-	argoCDHelidonApplicationFile = "tests/e2e/config/scripts/hello-helidon-argocd-mc.yaml"
+	argoCDHelidonApplicationFile = "tests/e2e/multicluster/verify-argocd/testdata/hello-helidon-argocd-mc.yaml"
 )
 
 var expectedPodsHelloHelidon = []string{"helidon-config-deployment"}
