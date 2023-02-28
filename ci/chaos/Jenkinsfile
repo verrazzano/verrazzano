@@ -310,12 +310,7 @@ pipeline {
                     cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/upgrade-test-operator.yaml
 
                     echo "Upgrading the Verrazzano platform operator"
-                    if [[ "upgrade.failed.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
-                    then
-                        echo "Upgrading VPO to version 1.5.0"
-                        kubectl apply -f https://github.com/verrazzano/verrazzano/releases/download/v1.5.0/verrazzano-platform-operator.yaml
-
-                    elif [[ "upgrade.failing.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
+                    if [[ "upgrade.failed.upgrade" == ${params.CHAOS_TEST_TYPE} || "upgrade.failing.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
                     then
                         echo "Upgrading VPO to interim version ${params.INTERIM_UPGRADE_VERSION}"
                         if [[ ${params.INTERIM_UPGRADE_VERSION} == "v1.3."* ]]
@@ -365,7 +360,7 @@ pipeline {
                     // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
                     VERRAZZANO_INTERIM_VERSION = "NONE"
                     if ("upgrade.failed.upgrade".equals(params.CHAOS_TEST_TYPE)) {
-                        VERRAZZANO_INTERIM_VERSION = "1.5.0"
+                        VERRAZZANO_INTERIM_VERSION = params.INTERIM_UPGRADE_VERSION
                     } else if ("upgrade.failing.upgrade".equals(params.CHAOS_TEST_TYPE)) {
                         VERRAZZANO_INTERIM_VERSION = params.INTERIM_UPGRADE_VERSION
                     }
