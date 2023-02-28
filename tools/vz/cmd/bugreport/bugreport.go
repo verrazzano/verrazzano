@@ -261,21 +261,21 @@ func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) e
 	// if waitForUpgradeToComplete() returned an err and auto-bug-report is set to true
 	if autoBugReportFlag {
 		cmd2 := NewCmdBugReport(vzHelper)
-		//kubeconfigFlag, errFlag := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
-		//if errFlag != nil {
-		//	fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
-		//}
-		//contextFlag, errFlag2 := cmd.Flags().GetString(constants.GlobalFlagContext)
-		//if errFlag2 != nil {
-		//	fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag2.Error())
-		//}
-		//cmd2.Flags().StringVar(&kubeconfig, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
-		//cmd2.Flags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
-		//cmd2.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
-		//cmd2.Flags().Set(constants.GlobalFlagContext, contextFlag)
+		kubeconfigFlag, errFlag := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
+		if errFlag != nil {
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
+		}
+		contextFlag, errFlag2 := cmd.Flags().GetString(constants.GlobalFlagContext)
+		if errFlag2 != nil {
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag2.Error())
+		}
+		cmd2.Flags().StringVar(&kubeconfig, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
+		cmd2.Flags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
+		cmd2.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
+		cmd2.Flags().Set(constants.GlobalFlagContext, contextFlag)
 		bugReportErr := RunCmdBugReport(cmd2, vzHelper)
 		if bugReportErr != nil {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "Error calling vz bug-report %s \n", bugReportErr.Error())
+			fmt.Fprintf(vzHelper.GetErrorStream(), "Error calling vz bug-report %s \n", bugReportErr.Error())
 		}
 	}
 	return err
