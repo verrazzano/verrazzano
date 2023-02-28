@@ -203,7 +203,8 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 		writeOut = versionOut + writeOut
 		writeSummaryOut = versionOut + writeSummaryOut
 		var fileOut *os.File
-		if reportFile == constants.DetailsTmpFile {
+		if reportFile == "" {
+			reportFile = constants.DetailsTmpFile
 			fileOut, err = os.CreateTemp(".", reportFile+constants.DetailsTmpExtn)
 			if err != nil && errors.Is(err, fs.ErrPermission) {
 				fmt.Fprintf(vzHelper.GetOutputStream(), "warning: %s\n", err.Error())
@@ -211,7 +212,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 			}
 		} else {
 			if _, fe := os.Stat(reportFile); fe == nil {
-				return errors.New(fmt.Sprintf("report file %s already exists", reportFile))
+				return fmt.Errorf("report file %s already exists", reportFile)
 			}
 			fileOut, err = os.Create(reportFile)
 		}
