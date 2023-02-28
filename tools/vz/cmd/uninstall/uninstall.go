@@ -50,8 +50,6 @@ const uninstallDefaultWaitRetries = 300
 const verrazzanoUninstallJobDetectWait = 1
 
 var uninstallWaitRetries = uninstallDefaultWaitRetries
-var kubeconfig string
-var context string
 
 // Used with unit testing
 func setWaitRetries(retries int) { uninstallWaitRetries = retries }

@@ -57,8 +57,6 @@ metadata:
 EOF`, version.GetCLIVersion())
 
 var logsEnum = cmdhelpers.LogFormatSimple
-var kubeconfig string
-var context string
 
 func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
