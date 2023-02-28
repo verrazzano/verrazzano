@@ -223,7 +223,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.6.0-20230224051054-fa7ca84",
+              "tag": "v1.6.0-20230227053515-af08806",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -378,7 +378,7 @@
           "images": [
             {
               "image": "kiali",
-              "tag": "v1.57.1-20230209072051-f8743fd9",
+              "tag": "v1.57.1-20230223193254-0e6b42d8",
               "helmFullImageKey": "deployment.image_name",
               "helmTagKey": "deployment.image_version"
             }
@@ -553,7 +553,7 @@
           "images": [
             {
               "image": "kube-state-metrics",
-              "tag": "v2.6.0-20230209065128-fda95595",
+              "tag": "v2.6.0-20230223191441-e3cc4e3d",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
