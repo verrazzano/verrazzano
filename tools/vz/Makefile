@@ -6,8 +6,13 @@ VZ_DIR:=github.com$(shell echo ${MAKEFILE_DIR} | sed 's/.*github.com//')
 VERSION_DIR:=${VZ_DIR}/cmd/version
 
 NAME:=vz
+GO_MIN_VERSION:=1.19.1
+RPM_RELEASE_VERSION:=1
 
-GIT_COMMIT:=$(shell git rev-parse HEAD)
+ifndef GIT_COMMIT
+	GIT_COMMIT=$(shell git rev-parse HEAD)
+endif
+
 CLI_VERSION:=$(shell grep verrazzano-development-version ${MAKEFILE_DIR}/../../.verrazzano-development-version | cut -d= -f 2)
 BUILD_DATE:=$(shell date +"%Y-%m-%dT%H:%M:%SZ")
 
@@ -58,3 +63,20 @@ cli: ## build the CLI
 .PHONY: unit-test
 unit-test: cli
 	$(GO) test -v  ./...
+
+.PHONY: cli-rpm-source
+cli-rpm-source:
+	cp ../../go.mod .
+	sed -i "s|^module github.com/verrazzano/verrazzano.*|module github.com/verrazzano/verrazzano/tools/vz|" go.mod
+	echo "replace github.com/verrazzano/verrazzano => ../../" >> go.mod
+	go mod tidy
+	go mod vendor
+	tar czf /tmp/verrazzano-cli-${CLI_VERSION}.tar.gz -C .. vz
+	mkdir -p out
+	mv /tmp/verrazzano-cli-${CLI_VERSION}.tar.gz out
+	cp vzcli.spec out/verrazzano-cli.spec
+	sed -i "s|^%global APP_VERSION.*|%global APP_VERSION ${CLI_VERSION}|" out/verrazzano-cli.spec
+	sed -i "s|^%global CLI_COMMIT.*|%global CLI_COMMIT ${GIT_COMMIT}|" out/verrazzano-cli.spec
+	sed -i "s|^%global RELEASE_VERSION.*|%global RELEASE_VERSION ${RPM_RELEASE_VERSION}|" out/verrazzano-cli.spec
+	sed -i "s|^%global GO_VERSION.*|%global GO_VERSION ${GO_MIN_VERSION}|" out/verrazzano-cli.spec
+	rm go.mod

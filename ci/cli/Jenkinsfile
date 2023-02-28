@@ -72,6 +72,7 @@ pipeline {
                     }
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                 }
+                moveContentToGoRepoPath()
 
                 script {
                     def props = readProperties file: '.verrazzano-development-version'
@@ -89,17 +90,18 @@ pipeline {
 
         stage('Create Verrazzano CLI source tar file') {
             steps {
-                createCliSourceTar("${env.GO_REPO_PATH}")
+                createCliRPMSource("${env.GO_REPO_PATH}")
             }
         }
 
         stage('Prepare CLI RPM environment') {
             environment {
-                GIT_COMMIT_TO_USE = "${env.GIT_COMMIT}"
+                GO_REPO_PATH = "${env.GO_REPO_PATH}"
                 MODULE_STREAM_VERSION = "${env.MODULE_STREAM_VERSION}"
                 MODULE_VERSION = "${env.MODULE_VERSION}"
                 VZ_VERSION = "${env.VZ_VERSION}"
                 TMP_BUILD_DIR = "${env.TMP_MODULE_SOURCE_DIR}/${env.GIT_COMMIT}"
+                RPM_SPEC_REPO = "${env.TMP_MODULE_SOURCE_DIR}/${env.GIT_COMMIT}/verrazzano-cli"
             }
             steps {
                 sh """
@@ -161,22 +163,19 @@ pipeline {
     }
 }
 
-def createCliSourceTar(GO_REPO_PATH) {
+// Called in Stage Clean workspace and checkout steps
+def moveContentToGoRepoPath() {
     sh """
         rm -rf ${GO_REPO_PATH}/verrazzano
         mkdir -p ${GO_REPO_PATH}/verrazzano
         tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+    """
+}
+
+def createCliRPMSource(GO_REPO_PATH) {
+    sh """
         cd ${GO_REPO_PATH}/verrazzano/tools/vz
-        cp ../../go.mod .
-        sed -i "s|^module github.com/verrazzano/verrazzano.*|module github.com/verrazzano/verrazzano/tools/vz|" go.mod
-        echo "replace github.com/verrazzano/verrazzano => ../../" >> go.mod
-        go mod tidy
-        go mod vendor
-        rm -rf ${TMP_MODULE_SOURCE_DIR}/${GIT_COMMIT}/verrazzano-cli
-        mkdir -p ${TMP_MODULE_SOURCE_DIR}/${GIT_COMMIT}/verrazzano-cli
-        cd ..
-        tar czf ${TMP_MODULE_SOURCE_DIR}/${GIT_COMMIT}/verrazzano-cli/verrazzano-cli-${VERSION}.tar.gz vz
-        cp vz/vzcli.spec ${TMP_MODULE_SOURCE_DIR}/${GIT_COMMIT}/verrazzano-cli/verrazzano-cli.spec
+        make cli-rpm-source 
     """
 }
 

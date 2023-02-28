@@ -6,21 +6,18 @@
 set -e -o pipefail
 set -xv
 
-if [ -z "$GIT_COMMIT_TO_USE" ] || [ -z "$VZ_VERSION" ] || [ -z "$MODULE_STREAM_VERSION" ] || [ -z "$MODULE_VERSION" ] ||
-  [ -z "$TMP_BUILD_DIR" ]; then
+if [ -z "$RPM_SPEC_REPO" ] || [ -z "$VZ_VERSION" ] || [ -z "$MODULE_STREAM_VERSION" ] || [ -z "$MODULE_VERSION" ] ||
+  [ -z "$TMP_BUILD_DIR" ] || [ -z "$GO_REPO_PATH" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
 
-GO_VERSION=1.19.4
-RPM_RELEASE_VERSION=1
-
 create_spec_repo() {
-  cd ${TMP_BUILD_DIR}/verrazzano-cli
-  sed -i "s|^%global APP_VERSION.*|%global APP_VERSION ${VZ_VERSION}|" verrazzano-cli.spec
-  sed -i "s|^%global CLI_COMMIT.*|%global CLI_COMMIT ${GIT_COMMIT_TO_USE}|" verrazzano-cli.spec
-  sed -i "s|^%global RELEASE_VERSION.*|%global RELEASE_VERSION ${RPM_RELEASE_VERSION}|" verrazzano-cli.spec
-  sed -i "s|^%global GO_VERSION.*|%global GO_VERSION ${GO_VERSION}|" verrazzano-cli.spec
+  rm -rf "${RPM_SPEC_REPO}"
+  mkdir -p "${RPM_SPEC_REPO}"
+  cp "${GO_REPO_PATH}/verrazzano/tools/vz/out/verrazzano-cli.spec" "${RPM_SPEC_REPO}"
+  cp "${GO_REPO_PATH}/verrazzano/tools/vz/out/verrazzano-cli-${VZ_VERSION}.tar.gz" "${RPM_SPEC_REPO}"
+  cd "${RPM_SPEC_REPO}"
   git init
   git add *
   git commit -m "Verrazzano CLI RPM spec file"
