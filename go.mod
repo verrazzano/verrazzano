@@ -165,8 +165,6 @@ replace (
 	github.com/crossplane/crossplane-runtime => github.com/verrazzano/crossplane-runtime v0.17.0-1
 	github.com/crossplane/oam-kubernetes-runtime => github.com/verrazzano/oam-kubernetes-runtime v0.3.3-3
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
-	github.com/onsi/ginkgo/v2 => github.com/onsi/ginkgo/v2 v2.0.0
-	github.com/onsi/gomega => github.com/onsi/gomega v1.17.0
 	github.com/spf13/cobra => github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify => github.com/stretchr/testify v1.7.1
 	golang.org/x/lint => golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
