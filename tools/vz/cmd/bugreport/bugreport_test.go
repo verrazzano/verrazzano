@@ -5,7 +5,7 @@ package bugreport
 
 import (
 	"bytes"
-	"context"
+	pkgContext "context"
 	"fmt"
 	"os"
 	"testing"
@@ -165,7 +165,7 @@ func TestBugReportSuccess(t *testing.T) {
 
 	// Verify the vz resource is as expected
 	vz := v1beta1.Verrazzano{}
-	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+	err := c.Get(pkgContext.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 
 	buf := new(bytes.Buffer)
@@ -239,7 +239,7 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 
 	// Verify the vz resource is as expected
 	vz := v1beta1.Verrazzano{}
-	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+	err := c.Get(pkgContext.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 
 	buf := new(bytes.Buffer)
@@ -428,7 +428,7 @@ func TestBugReportSuccessWithDuration(t *testing.T) {
 
 	// Verify the vz resource is as expected
 	vz := v1beta1.Verrazzano{}
-	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+	err := c.Get(pkgContext.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 
 	buf := new(bytes.Buffer)
