@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package report handles reporting
@@ -46,6 +46,7 @@ var RunbookLinks = map[string][]string{
 	ImagePullNotFound:         {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/imagepullnotfound"},
 	ImagePullService:          {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/imagepullservice"},
 	InsufficientMemory:        {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/insufficientmemory"},
+	InsufficientCPU:           {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/insufficientcpu"},
 	IngressInstallFailure:     {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/ingressinstallfailure"},
 	IngressLBLimitExceeded:    {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/ingresslblimitexceeded"},
 	IngressNoLoadBalancerIP:   {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/ingressnoloadbalancerip"},
@@ -65,6 +66,7 @@ var KnownActions = map[string]Action{
 	ImagePullNotFound:         {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[ImagePullNotFound][0])},
 	ImagePullService:          {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[ImagePullService][0])},
 	InsufficientMemory:        {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[InsufficientMemory][0])},
+	InsufficientCPU:           {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[InsufficientCPU][0])},
 	IngressInstallFailure:     {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IngressInstallFailure][0])},
 	IngressLBLimitExceeded:    {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IngressLBLimitExceeded][0])},
 	IngressNoLoadBalancerIP:   {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IngressNoLoadBalancerIP][0])},

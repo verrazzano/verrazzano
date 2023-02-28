@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package report handles reporting
@@ -101,6 +101,7 @@ const (
 	ImagePullNotFound         = "ImagePullNotFound"
 	ImagePullService          = "ImagePullService"
 	InsufficientMemory        = "InsufficientMemory"
+	InsufficientCPU           = "InsufficientCpu"
 	IngressInstallFailure     = "IngressInstallFailure"
 	IngressLBLimitExceeded    = "IngressLBLimitExceeded"
 	IngressNoLoadBalancerIP   = "IngressNoLoadBalancerIP"
@@ -125,6 +126,7 @@ var knownIssues = map[string]Issue{
 	ImagePullNotFound:         {Type: ImagePullNotFound, Summary: "Failure(s) pulling images have been detected due to the image not being found", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ImagePullNotFound]}},
 	ImagePullService:          {Type: ImagePullService, Summary: "Failure(s) pulling images have been detected due to the service not being available, the service may be unreachable or may be incorrectly specified", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ImagePullService]}},
 	InsufficientMemory:        {Type: InsufficientMemory, Summary: "Failure(s) due to insufficient memory on nodes have been detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[InsufficientMemory]}},
+	InsufficientCPU:           {Type: InsufficientCPU, Summary: "Failure(s) due to insufficient CPU on nodes have been detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[InsufficientCPU]}},
 	IngressInstallFailure:     {Type: IngressInstallFailure, Summary: "Verrazzano install failed while installing the NGINX Ingress Controller, however a specific root cause was not identified", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressInstallFailure]}},
 	IngressLBLimitExceeded:    {Type: IngressLBLimitExceeded, Summary: "Verrazzano install failed while installing the NGINX Ingress Controller, the root cause appears to be that the load balancer service limit has been reached", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressLBLimitExceeded]}},
 	IngressNoLoadBalancerIP:   {Type: IngressNoLoadBalancerIP, Summary: "Verrazzano install failed while installing the NGINX Ingress Controller, the root cause appears to be the LoadBalancer is not there or is unable to set the ingress IP address on the NGINX Ingress service", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressNoLoadBalancerIP]}},
