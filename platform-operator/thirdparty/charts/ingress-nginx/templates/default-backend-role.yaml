@@ -1,4 +1,5 @@
 {{- if and .Values.rbac.create .Values.podSecurityPolicy.enabled .Values.defaultBackend.enabled -}}
+{{- if .Capabilities.APIVersions.Has "policy/v1beta1/PodSecurityPolicy" }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -19,4 +20,5 @@ rules:
     {{- else }}
     resourceNames:  [{{ include "ingress-nginx.fullname" . }}-backend]
     {{- end }}
+{{- end }}
 {{- end }}
