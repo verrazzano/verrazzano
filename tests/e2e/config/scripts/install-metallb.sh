@@ -18,6 +18,7 @@ kubectl wait --namespace metallb-system \
                 --for=condition=ready pod \
                 --selector=component=controller \
                 --timeout=600s
+kubectl set resources daemonset -n metallb-system speaker --limits memory=256Mi,cpu=200m
 kubectl wait --namespace metallb-system \
                 --for=condition=ready pod \
                 --selector=component=speaker \
