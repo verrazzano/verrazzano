@@ -1,8 +1,6 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-String agentLabel = "cli-rpm-ol8-x86"
-
 pipeline {
     options {
         timeout(time: 1, unit: 'HOURS')
@@ -11,7 +9,7 @@ pipeline {
     }
 
     agent {
-        label "${agentLabel}"
+        label "cli-rpm-${params.BUILD_OS}-${params.BUILD_PLAT}"
     }
 
     parameters {

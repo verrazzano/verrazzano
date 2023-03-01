@@ -79,4 +79,4 @@ cli-rpm-source:
 	sed -i "s|^%global CLI_COMMIT.*|%global CLI_COMMIT ${GIT_COMMIT}|" out/verrazzano-cli.spec
 	sed -i "s|^%global RELEASE_VERSION.*|%global RELEASE_VERSION ${RPM_RELEASE_VERSION}|" out/verrazzano-cli.spec
 	sed -i "s|^%global GO_VERSION.*|%global GO_VERSION ${GO_MIN_VERSION}|" out/verrazzano-cli.spec
-	rm go.mod
+	rm go.mod go.sum
