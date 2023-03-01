@@ -136,7 +136,7 @@ func postInstallUpgrade(ctx spi.ComponentContext) error {
 		ExtraAnnotations: common.SameSiteCookieAnnotations(prometheusName),
 	}
 
-	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) && vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
 		if err := common.CreateOrUpdateSystemComponentIngress(ctx, props); err != nil {
 			return err
 		}
