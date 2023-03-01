@@ -75,7 +75,6 @@ func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2s exceeded waiting for install to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
-	//assert.Contains(t, buf.String(), "Created bug report")
 	assert.FileExists(t, "bug-report.tar.gz")
 	os.Remove("bug-report.tar.gz")
 }
@@ -101,7 +100,6 @@ func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2s exceeded waiting for install to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
-	//assert.NotContains(t, buf.String(), "Created bug report")
 	assert.NoFileExists(t, "bug-report.tar.gz")
 }
 

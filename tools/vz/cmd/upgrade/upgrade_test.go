@@ -22,6 +22,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+const (
+	testKubeConfig = "/tmp/kubeconfig"
+	testK8sContext = "testcontext"
+)
+
 // TestUpgradeCmdDefaultNoWait
 // GIVEN a CLI upgrade command with all defaults and --wait==false
 //
@@ -49,12 +54,12 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 	assert.Equal(t, "", errBuf.String())
 }
 
-// TestUpgradeCmdDefaultTimeout
+// TestUpgradeCmdDefaultTimeoutBugReport
 // GIVEN a CLI upgrade command with all defaults and --timeout=2s
 //
 //	WHEN I call cmd.Execute for upgrade
-//	THEN the CLI upgrade command times out
-func TestUpgradeCmdDefaultTimeout(t *testing.T) {
+//	THEN the CLI upgrade command times out and a bug report is generated
+func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 
@@ -67,6 +72,8 @@ func TestUpgradeCmdDefaultTimeout(t *testing.T) {
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2s")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
@@ -75,6 +82,40 @@ func TestUpgradeCmdDefaultTimeout(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2s exceeded waiting for upgrade to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
+	assert.FileExists(t, "bug-report.tar.gz")
+	os.Remove("bug-report.tar.gz")
+}
+
+// TestUpgradeCmdDefaultTimeoutNoBugReport
+// GIVEN a CLI upgrade command with all --timeout=2s and auto-bug-report=false
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command times out and a bug report is not generated
+func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
+	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
+
+	// Send stdout stderr to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	cmd := NewCmdUpgrade(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2s")
+	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
+	cmd.PersistentFlags().Set(constants.AutoBugReportFlag, "false")
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	// Run upgrade command
+	err := cmd.Execute()
+	assert.Error(t, err)
+	assert.Equal(t, "Error: Timeout 2s exceeded waiting for upgrade to complete\n", errBuf.String())
+	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
+	assert.NoFileExists(t, "bug-report.tar.gz")
 }
 
 // TestUpgradeCmdDefaultNoVPO
