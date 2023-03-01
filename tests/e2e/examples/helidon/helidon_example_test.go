@@ -5,6 +5,13 @@ package helidon
 
 import (
 	"fmt"
+	"io"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"net/http"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -13,11 +20,6 @@ import (
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
-	"io"
-	"net/http"
-	"os"
-	"strings"
-	"time"
 )
 
 const (
@@ -31,6 +33,9 @@ const (
 	helloHelidon               = "hello-helidon"
 	nodeExporterJobName        = "node-exporter"
 	helloHelidonDeploymentName = "hello-helidon-deployment"
+
+	ingress        = "hello-helidon-ingress-rule"
+	helidonService = "hello-helidon-deployment"
 )
 
 var (
@@ -38,25 +43,73 @@ var (
 	generatedNamespace = pkg.GenerateNamespace(helloHelidon)
 	// yamlApplier              = k8sutil.YAMLApplier{}
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
+	host                     = ""
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
+
 	if !skipDeploy {
 		start := time.Now()
-		pkg.DeployHelloHelidonApplication(namespace, "", istioInjection, helloHelidonAppConfig)
+		pkg.DeployHelloHelidonApplication(namespace, "", istioInjection, helloHelidonComponent, helloHelidonAppConfig)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
+		t.Logs.Info("Container image pull check")
 		Eventually(func() bool {
 			return pkg.ContainerImagePullWait(namespace, expectedPodsHelloHelidon)
 		}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	}
 
-	// Verify hello-helidon-deployment pod is running
-	// GIVEN OAM hello-helidon app is deployed
-	// WHEN the component and appconfig are created
-	// THEN the expected pod must be running in the test namespace
 	if !skipVerify {
-		Eventually(helloHelidonPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
+		// Verify hello-helidon-deployment pod is running
+		// GIVEN OAM hello-helidon app is deployed
+		// WHEN the component and appconfig are created
+		// THEN the expected pod must be running in the test namespace
+		t.Logs.Info("Helidon Example: check expected pods are running")
+		Eventually(func() bool {
+			result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
+			if err != nil {
+				AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+			}
+			return result
+		}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Helidon Example Failed to Deploy: Pods are not ready")
+
+		t.Logs.Info("Helidon Example: check expected Services are running")
+		Eventually(func() bool {
+			result, err := pkg.DoesServiceExist(namespace, helidonService)
+			if err != nil {
+				AbortSuite(fmt.Sprintf("Helidon Service %s is not running in the namespace: %v, error: %v", helidonService, namespace, err))
+			}
+			return result
+		}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Helidon Example Failed to Deploy: Services are not ready")
+
+		t.Logs.Info("Helidon Example: check expected VirtualService is ready")
+		Eventually(func() bool {
+			result, err := pkg.DoesVirtualServiceExist(namespace, ingress)
+			if err != nil {
+				AbortSuite(fmt.Sprintf("Helidon VirtualService %s is not running in the namespace: %v, error: %v", ingress, namespace, err))
+			}
+			return result
+		}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Helidon Example Failed to Deploy: VirtualService is not ready")
+
+		var err error
+		// Get the host from the Istio gateway resource.
+		start := time.Now()
+		t.Logs.Info("Helidon Example: check expected Gateway is ready")
+		Eventually(func() (string, error) {
+			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
+			return host, err
+		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Helidon Example: Gateway is not ready")
+		metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
+
+		// validate if manualscalertrait applied, then pod count should be 2
+		// examples/hello-helidon/hello-helidon-app-scaler-trait.yaml
+		if strings.Contains(helloHelidonAppConfig, "hello-helidon-app-scaler-trait.yaml") {
+			t.Logs.Info("Helidon Example: check expected pods are running")
+
+			Eventually(func() bool {
+				return isDeploymentSetUpdated()
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+		}
 	}
 	beforeSuitePassed = true
 })
@@ -76,7 +129,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}
 	if !skipUndeploy {
 		start := time.Now()
-		pkg.UndeployHelloHelidonApplication(namespace, helloHelidonAppConfig)
+		pkg.UndeployHelloHelidonApplication(namespace, helloHelidonComponent, helloHelidonAppConfig)
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
@@ -312,4 +365,21 @@ func nodeExporterProcsRunning() bool {
 
 func nodeExporterDiskIoNow() bool {
 	return pkg.MetricsExist("node_disk_io_now", "job", nodeExporterJobName)
+}
+
+// isDeploymentSetUpdated returns
+// replicas from examples/hello-helidon/hello-helidon-app-scaler-trait.yaml
+// currently configured 2
+func isDeploymentSetUpdated() bool {
+	pods, err := pkg.ListPods(namespace, metav1.ListOptions{})
+	if err != nil {
+		t.Logs.Errorf("Unexpected error while listing the deployments error response=%v", err)
+		return false
+	}
+	t.Logs.Info("current pod count...", len(pods.Items))
+	if len(pods.Items) < 2 {
+		return false
+	} else {
+		return true
+	}
 }

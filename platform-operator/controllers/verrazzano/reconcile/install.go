@@ -45,7 +45,7 @@ type reconcileState string
 type installTracker struct {
 	vzState reconcileState
 	gen     int64
-	compMap map[string]*componentInstallContext
+	compMap map[string]*componentTrackerContext
 }
 
 // installTrackerMap has a map of InstallTrackers with key from VZ name, namespace, and UID
@@ -65,7 +65,7 @@ func getInstallTracker(cr *vzapi.Verrazzano) *installTracker {
 		vuc = &installTracker{
 			vzState: vzStateReconcileWatchedComponents,
 			gen:     cr.Generation,
-			compMap: make(map[string]*componentInstallContext),
+			compMap: make(map[string]*componentTrackerContext),
 		}
 		installTrackerMap[key] = vuc
 	}
@@ -186,10 +186,10 @@ func checkGenerationUpdated(spiCtx spi.ComponentContext) bool {
 // if it a watched component
 func (r *Reconciler) reconcileWatchedComponents(spiCtx spi.ComponentContext) error {
 	for _, comp := range registry.GetComponents() {
-		spiCtx.Log().Debugf("Reconciling watched component %", comp.Name())
+		spiCtx.Log().Debugf("Reconciling watched component %s", comp.Name())
 		if r.IsWatchedComponent(comp.GetJSONName()) {
 			if err := comp.Reconcile(spiCtx); err != nil {
-				spiCtx.Log().ErrorfThrottled("Error reconciling watched component %: %v", comp.Name(), err)
+				spiCtx.Log().ErrorfThrottled("Error reconciling watched component %s: %v", comp.Name(), err)
 				return err
 			}
 			r.ClearWatch(comp.GetJSONName())

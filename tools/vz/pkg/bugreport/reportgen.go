@@ -4,22 +4,20 @@
 package bugreport
 
 import (
-	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"sync"
+
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/vzchecks"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelpers "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"os"
-	"path/filepath"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"sync"
 )
 
 // The bug-report command captures the following resources from the cluster by default
@@ -69,33 +67,10 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	pkghelpers.SetMultiWriterOut(vzHelper.GetOutputStream(), stdOutFile)
 	pkghelpers.SetMultiWriterErr(vzHelper.GetErrorStream(), stdErrFile)
 
-	// Verrazzano as a list is required for the analysis tool
-	vz := v1beta1.VerrazzanoList{}
-	err = client.List(context.TODO(), &vz)
-	if err != nil && !meta.IsNoMatchError(err) {
-		return err
-	}
-
-	// Loop through the existing v1alpha1 Verrazzano and convert them to v1beta1
-	// Add them to the vz list so that the bug report is not skipped
-	vzA1 := v1alpha1.VerrazzanoList{}
-	err = client.List(context.TODO(), &vzA1)
-	if err != nil && !meta.IsNoMatchError(err) {
-		return err
-	}
-	if len(vzA1.Items) != 0 {
-		for _, vzA1Item := range vzA1.Items {
-			convertedVZ := v1beta1.Verrazzano{}
-			err = vzA1Item.ConvertTo(&convertedVZ)
-			if err != nil {
-				return err
-			}
-			vz.Items = append(vz.Items, convertedVZ)
-		}
-	}
-
-	if len(vz.Items) == 0 {
-		return fmt.Errorf("skip analyzing the cluster as Verrazzano is not installed")
+	// Find the Verrazzano resource to analyze.
+	vz, err := pkghelpers.FindVerrazzanoResource(client)
+	if err != nil {
+		return fmt.Errorf("Verrazzano is not installed: %s", err.Error())
 	}
 
 	// Get the list of namespaces based on the failed components and value specified by flag --include-namespaces
@@ -109,12 +84,12 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	// Print initial message to console output only
 	fmt.Fprintf(vzHelper.GetOutputStream(), msgPrefix+"resources from the cluster ...\n")
 	// Capture list of resources from verrazzano-install and verrazzano-system namespaces
-	err = captureResources(client, kubeClient, bugReportDir, vz, vzHelper, nsList, 0)
+	err = captureResources(client, kubeClient, bugReportDir, vz, vzHelper, nsList)
 	if err != nil {
 		pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the Verrazzano resources: %s", err.Error()))
 	}
 
-	for _, e := range vzchecks.PrerequisiteCheck(client, vzchecks.ProfileType(vz.Items[0].Spec.Profile)) {
+	for _, e := range vzchecks.PrerequisiteCheck(client, vzchecks.ProfileType(vz.Spec.Profile)) {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "Warning: "+e.Error()+"\n")
 	}
 
@@ -122,19 +97,23 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	if len(additionalNS) > 0 {
 		captureAdditionalResources(client, kubeClient, dynamicClient, vzHelper, bugReportDir, additionalNS, podLogs)
 	}
+
+	// Capture Verrazzano Projects and VerrazzanoManagedCluster
+	if err := captureMultiClusterResources(dynamicClient, bugReportDir, vzHelper); err != nil {
+		return err
+	}
 	return nil
 }
 
-func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bugReportDir string, vz v1beta1.VerrazzanoList, vzHelper pkghelpers.VZHelper, namespaces []string, duration int64) error {
+func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bugReportDir string, vz *v1beta1.Verrazzano, vzHelper pkghelpers.VZHelper, namespaces []string) error {
 	// List of pods to collect the logs
 	vpoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
 	vaoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoApplicationOperator, vzconstants.VerrazzanoSystemNamespace)
+	vcoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoClusterOperator, vzconstants.VerrazzanoSystemNamespace)
 	vmoPod, _ := pkghelpers.GetPodList(client, constants.K8SAppLabel, constants.VerrazzanoMonitoringOperator, vzconstants.VerrazzanoSystemNamespace)
 	externalDNSPod, _ := pkghelpers.GetPodList(client, constants.K8sAppLabelExternalDNS, vzconstants.ExternalDNS, vzconstants.CertManager)
-	wgCount := 3 + len(namespaces)
-	if len(vz.Items) > 0 {
-		wgCount++
-	}
+	wgCount := 4 + len(namespaces)
+	wgCount++ // increment for the verrrazzano resource
 	if len(externalDNSPod) > 0 {
 		wgCount++
 	}
@@ -146,13 +125,12 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bug
 	ecr := make(chan ErrorsChannel, 1)
 	ecl := make(chan ErrorsChannelLogs, 1)
 
-	if len(vz.Items) > 0 {
-		go captureVZResource(wg, evr, vz, bugReportDir, vzHelper)
-	}
+	go captureVZResource(wg, evr, vz, bugReportDir, vzHelper)
 
 	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vpoPod, Namespace: vzconstants.VerrazzanoInstallNamespace}, bugReportDir, vzHelper, 0)
 	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vmoPod, Namespace: vzconstants.VerrazzanoSystemNamespace}, bugReportDir, vzHelper, 0)
 	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vaoPod, Namespace: vzconstants.VerrazzanoSystemNamespace}, bugReportDir, vzHelper, 0)
+	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vcoPod, Namespace: vzconstants.VerrazzanoSystemNamespace}, bugReportDir, vzHelper, 0)
 
 	if len(externalDNSPod) > 0 {
 		go captureLogs(wg, ecl, kubeClient, Pods{PodList: externalDNSPod, Namespace: vzconstants.CertManager}, bugReportDir, vzHelper, 0)
@@ -218,7 +196,7 @@ func captureAdditionalLogs(client clipkg.Client, kubeClient kubernetes.Interface
 }
 
 // captureVZResource collects the Verrazzano resource as a JSON, in parallel
-func captureVZResource(wg *sync.WaitGroup, ec chan ErrorsChannel, vz v1beta1.VerrazzanoList, bugReportDir string, vzHelper pkghelpers.VZHelper) {
+func captureVZResource(wg *sync.WaitGroup, ec chan ErrorsChannel, vz *v1beta1.Verrazzano, bugReportDir string, vzHelper pkghelpers.VZHelper) {
 	defer wg.Done()
 	err := pkghelpers.CaptureVZResource(bugReportDir, vz, vzHelper)
 	if err != nil {
@@ -250,15 +228,13 @@ func captureK8SResources(wg *sync.WaitGroup, ec chan ErrorsChannel, kubeClient k
 }
 
 // collectNamespaces gathers list of unique namespaces, to be considered to collect the information
-func collectNamespaces(kubeClient kubernetes.Interface, includedNS []string, vz v1beta1.VerrazzanoList, vzHelper pkghelpers.VZHelper) ([]string, []string) {
+func collectNamespaces(kubeClient kubernetes.Interface, includedNS []string, vz *v1beta1.Verrazzano, vzHelper pkghelpers.VZHelper) ([]string, []string) {
 
 	var nsList []string
 
 	// Include namespaces for all the components
-	if len(vz.Items) != 0 {
-		allCompNS := pkghelpers.GetNamespacesForAllComponents(vz.Items[0])
-		nsList = append(nsList, allCompNS...)
-	}
+	allCompNS := pkghelpers.GetNamespacesForAllComponents(vz)
+	nsList = append(nsList, allCompNS...)
 
 	// Include the namespaces specified by flag --include-namespaces
 	var additionalNS []string
@@ -304,7 +280,26 @@ func captureAdditionalResources(client clipkg.Client, kubeClient kubernetes.Inte
 			pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the logs: %s", err.Error()))
 		}
 	}
-	if err := pkghelpers.CaptureMultiClusterResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
+	if err := pkghelpers.CaptureMultiClusterOAMResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
 		pkghelpers.LogError(fmt.Sprintf("There is an error in capturing the multi-cluster resources : %s", err.Error()))
 	}
+}
+
+// captureMultiClusterResources captures Projects and VerrazzanoManagedCluster resource
+func captureMultiClusterResources(dynamicClient dynamic.Interface, captureDir string, vzHelper pkghelpers.VZHelper) error {
+	// Return nil when dynamicClient is nil, useful to get clean unit tests
+	if dynamicClient == nil {
+		return nil
+	}
+
+	// Capture Verrazzano projects in verrazzano-mc namespace
+	if err := pkghelpers.CaptureVerrazzanoProjects(dynamicClient, captureDir, vzHelper); err != nil {
+		return err
+	}
+
+	// Capture Verrazzano projects in verrazzano-mc namespace
+	if err := pkghelpers.CaptureVerrazzanoManagedCluster(dynamicClient, captureDir, vzHelper); err != nil {
+		return err
+	}
+	return nil
 }

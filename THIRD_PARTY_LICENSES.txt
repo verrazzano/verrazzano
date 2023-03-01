@@ -5,19 +5,45 @@ SPDX:UPL-1.0
 
 ---------------------------------- Copyright -----------------------------------
 Copyright (C) 2020, 2022, Oracle and/or its affiliates.
+Copyright (C) 2020, 2023, Oracle and/or its affiliates.
 Copyright (C) 2021, 2022, Oracle and/or its affiliates.
+Copyright (C) 2021, 2023, Oracle and/or its affiliates.
 Copyright (C) 2021, Oracle and/or its affiliates.
+Copyright (C) 2022, 2023, Oracle and/or its affiliates.
 Copyright (C) 2022, Oracle and/or its affiliates.
 Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
 Copyright (c) 2015-2021 Bitnami
 Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 Copyright (c) 2020, 2022, Oracle America, Inc. and its affiliates.
 Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 Copyright (c) 2020, Oracle and/or its affiliates.
 Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 Copyright (c) 2021, Oracle and/or its affiliates.
+Copyright (c) 2021, Oracle and/or its affiliates. -->")
+Copyright (c) 2021, Oracle and/or its affiliates.")
+Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 Copyright (c) 2022, Oracle and/or its affiliates.
+Copyright (c) 2022, Oracle and/or its affiliates. -->
+Copyright (c) 2023, Oracle and/or its affiliates.
+Copyright 2018 The Kubernetes Authors.
+Copyright 2018 The Kubernetes Authors. All Rights Reserved.
 Copyright 2020, Oracle Corporation and/or its affiliates.
+Copyright 2023, Oracle Corporation and/or its affiliates.
+
+----------------------------------- Notices ------------------------------------
+# Copyright (c) 2023, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+The Initial Developer of verrazzano/platform-operator/controllers/verrazzano/component/common/controller_runtime.go,
+is Kubernetes (https://kubernetes.io/).
+Copyright 2018 The Kubernetes Authors. All Rights Reserved.
+
+The initial developer of several functions in verrazzano/platform-operator/controllers/verrazzano/component/common/controller_runtime.go is the
+Kubernetes controller-runtime project authors (https://github.com/kubernetes-sigs/controller-runtime).
+Copyright 2018 The Kubernetes Authors. All Rights Reserved.
+
 
 -------------------------- Fourth Party Dependencies ---------------------------
 
@@ -257,6 +283,8 @@ SPDX:Apache-2.0
 Copyright 2016 The Crossplane Authors. All rights reserved.
 Copyright 2019 The Crossplane Authors.
 Copyright 2020 The Crossplane Authors.
+Copyright 2021 The Crossplane Authors.
+Copyright 2022 The Crossplane Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -1313,7 +1341,6 @@ SPDX:MIT
 
 == Copyright
 Copyright (c) 2013-2014 Onsi Fakhouri
-Copyright (c) 2014 Amit Kumar Gupta
 
 --------------------------------- (separator) ----------------------------------
 
@@ -1426,14 +1453,10 @@ END OF TERMS AND CONDITIONS
 
 
 == Copyright
-Copyright (c) 2012-2020 Mat Ryer, Tyler Bunnell and contributors.
-Copyright (c) 2013 The Go Authors. All rights reserved.
 Copyright (c) 2016, 2018, 2020, Oracle and/or its affiliates.
 Copyright (c) 2016, 2018, 2020, Oracle and/or its affiliates.  All rights reserved.
 Copyright (c) 2016, 2018, 2021, Oracle and/or its affiliates.  All rights reserved.
 Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
-Copyright © 2012-2020 Mat Ryer, Tyler Bunnell and contributors.
-Copyright © 2013 The Go Authors. All rights reserved.
 
 == Notices
 Copyright (c) 2016, 2018, 2020, Oracle and/or its affiliates.
@@ -1979,16 +2002,7 @@ github.com/spf13/cobra
 SPDX:Apache-2.0
 
 == Copyright
-Copyright (C) 1989, 1991 Free Software Foundation, Inc.,
-Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
-Copyright (C) <year>  <name of author>
-Copyright (C) year name of author
-Copyright 2015 Red Hat Inc. All rights reserved.
-Copyright 2016 French Ben. All rights reserved.
-Copyright © " + year + " " + author
-Copyright © 2013 Steve Francia <spf@spf13.com>.
-Copyright © 2015 Steve Francia <spf@spf13.com>.
-Copyright © 2020 Steve Francia <spf@spf13.com>
+Copyright 2013-2022 The Cobra Authors
 
 --------------------------------- (separator) ----------------------------------
 
@@ -2080,23 +2094,6 @@ Copyright (c) 2018 Aliaksandr Valialkin
 --------------------------------- (separator) ----------------------------------
 
 == Dependency
-github.com/verrazzano/kind
-
-== License Type
-SPDX:Apache-2.0
-
-== Copyright
-Copyright (c) 2015-2018 gimme contributors
-Copyright 2016 The Kubernetes Authors.
-Copyright 2018 The Kubernetes Authors.
-Copyright 2019 The Kubernetes Authors.
-Copyright 2020 The Kubernetes Authors.
-Copyright 2021 The Kubernetes Authors.
-Copyright 2022 The Kubernetes Authors.
-
---------------------------------- (separator) ----------------------------------
-
-== Dependency
 github.com/verrazzano/verrazzano-monitoring-operator
 
 == License Type
@@ -2105,14 +2102,17 @@ SPDX:UPL-1.0
 == Copyright
 Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 Copyright (C) 2020, 2022, Oracle and/or its affiliates.
+Copyright (C) 2020, 2023, Oracle and/or its affiliates.
 Copyright (C) 2020, Oracle and/or its affiliates.
 Copyright (C) 2021, 2022, Oracle and/or its affiliates.
 Copyright (C) 2021, Oracle and/or its affiliates.
+Copyright (C) 2022, 2023, Oracle and/or its affiliates.
 Copyright (C) 2022, Oracle and/or its affiliates.
 Copyright (c) 2020 Oracle America, Inc. and its affiliates.
 Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 Copyright (c) 2022, Oracle and/or its affiliates.
+Copyright (c) 2023, Oracle and/or its affiliates.
 Copyright 2019 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
@@ -2153,6 +2153,9 @@ SPDX:MIT
 Copyright (c) 2016 Uber Technologies, Inc.
 Copyright (c) 2016-2020 Uber Technologies, Inc.
 Copyright (c) 2020 Uber Technologies, Inc.
+Copyright (c) 2020-2021 Uber Technologies, Inc.
+Copyright (c) 2020-{{.ToYear}} Uber Technologies, Inc.
+Copyright (c) 2021 Uber Technologies, Inc.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -2175,7 +2178,6 @@ go.uber.org/zap
 SPDX:MIT
 
 == Copyright
-Copyright (c) "*" Uber Technologies, Inc.")
 Copyright (c) 2016 Uber Technologies, Inc.
 Copyright (c) 2016, 2017 Uber Technologies, Inc.
 Copyright (c) 2016-2017 Uber Technologies, Inc.
@@ -2462,6 +2464,7 @@ Copyright 2016 The Go Authors. All rights reserved.
 Copyright 2017 The Go Authors. All rights reserved.
 Copyright 2018 The Go Authors. All rights reserved.
 Copyright 2019 The Go Authors. All rights reserved.
+Copyright 2021 The Go Authors. All rights reserved.
 
 == Patents
 Additional IP Rights Grant (Patents)
@@ -2623,46 +2626,6 @@ Copyright 2021 Google LLC
 Copyright 2021 Google LLC.
 Copyright 2021 The Grafeas Authors. All rights reserved.
 Copyright 2022 Google LLC
-
---------------------------------- (separator) ----------------------------------
-
-== Dependency
-google.golang.org/grpc
-
-== License Type
-SPDX:Apache-2.0
-
-== Copyright
-Copyright 2014 gRPC authors.
-Copyright 2015 The gRPC Authors
-Copyright 2015 gRPC authors.
-Copyright 2015-2016 gRPC authors.
-Copyright 2016 The gRPC Authors
-Copyright 2016 gRPC authors.
-Copyright 2017 gRPC authors.
-Copyright 2018 The gRPC Authors
-Copyright 2018 gRPC authors.
-Copyright 2019 gRPC authors.
-Copyright 2020 The gRPC Authors
-Copyright 2020 gRPC authors.
-Copyright 2021 gRPC authors.
-Copyright 2022 gRPC authors.
-
-== Notices
-Copyright 2014 gRPC authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
 
 --------------------------------- (separator) ----------------------------------
 
@@ -2871,52 +2834,21 @@ istio.io/api
 SPDX:Apache-2.0
 
 == Copyright
-Copyright (C) 2013 99designs
 Copyright (c) 2009 The Go Authors. All rights reserved.
-Copyright (c) 2009,2014 Google Inc. All rights reserved.
-Copyright (c) 2010-2011 - Gustavo Niemeyer <gustavo@niemeyer.net>
-Copyright (c) 2010-2013 Gustavo Niemeyer <gustavo@niemeyer.net>
-Copyright (c) 2011 Keith Rarick
-Copyright (c) 2012 Alex Ogier. All rights reserved.
-Copyright (c) 2012 Elazar Leibovich. All rights reserved.
 Copyright (c) 2012 Péter Surányi. Portions Copyright (c) 2009 The Go
 Copyright (c) 2012 The Go Authors. All rights reserved.
-Copyright (c) 2012 fsnotify Authors. All rights reserved.
-Copyright (c) 2012, Martin Angers
-Copyright (c) 2012,2013 Ernest Micklei
-Copyright (c) 2012-2016 Dave Collins <dave@davec.name>
-Copyright (c) 2012-2018 Mat Ryer and Tyler Bunnell
-Copyright (c) 2013 Kamil Kisiel
-Copyright (c) 2013 Kamil Kisiel <kamil@kamilkisiel.net>
-Copyright (c) 2013 TOML authors
-Copyright (c) 2013 The Go Authors. All rights reserved.
-Copyright (c) 2013, Patrick Mezard
 Copyright (c) 2013, The GoGo Authors. All rights reserved.
-Copyright (c) 2013-2014 Onsi Fakhouri
-Copyright (c) 2014 ActiveState
-Copyright (c) 2014 Sam Ghods
-Copyright (c) 2014 Stretchr, Inc.
-Copyright (c) 2014 The Go-FlowRate Authors. All rights reserved.
-Copyright (c) 2014, Evan Phoenix
-Copyright (c) 2015 The New York Times Company
-Copyright (c) 2015-2017 Nick Galbreath
-Copyright (c) 2016 Dominik Honnef
-Copyright (c) 2016 Dominik Honnef. All rights reserved.
-Copyright (c) 2016 Mail.Ru Group
-Copyright (c) 2016 Yasuhiro Matsumoto
 Copyright (c) 2016 json-iterator
-Copyright (c) 2017 The Go Authors. All rights reserved.
-Copyright (c) 2017-2018 objx contributors
-Copyright (c) Yasuhiro MATSUMOTO <mattn.jp@gmail.com>
+Copyright (c) 2018 The Go Authors. All rights reserved.
 Copyright 2010 The Go Authors.  All rights reserved.
-Copyright 2012 Keith Rarick
-Copyright 2014 The Kubernetes Authors.
-Copyright 2014-2015 Docker, Inc.
-Copyright 2015 Hewlett Packard Enterprise Development LP
-Copyright 2016-2019 Istio Authors
 Copyright 2016-2020 Istio Authors
+Copyright 2017 Istio Authors
+Copyright 2017-2018 Istio Authors
+Copyright 2018 Istio Authors
 Copyright 2019 Istio Authors
+Copyright 2019 Istio Authors. All Rights Reserved.
 Copyright 2020 Istio Authors
+Copyright 2021 Istio Authors
 
 --------------------------------- (separator) ----------------------------------
 
@@ -2927,74 +2859,24 @@ istio.io/client-go
 SPDX:Apache-2.0
 
 == Copyright
-Copyright (C) 2013 99designs
+Copyright (c) 2006-2010 Kirill Simonov
+Copyright (c) 2006-2011 Kirill Simonov
 Copyright (c) 2009 The Go Authors. All rights reserved.
-Copyright (c) 2009,2014 Google Inc. All rights reserved.
-Copyright (c) 2010-2011 - Gustavo Niemeyer <gustavo@niemeyer.net>
-Copyright (c) 2010-2013 Gustavo Niemeyer <gustavo@niemeyer.net>
-Copyright (c) 2011 Google Inc. All rights reserved.
-Copyright (c) 2011 Keith Rarick
-Copyright (c) 2011-2012 Peter Bourgon
+Copyright (c) 2011-2019 Canonical Ltd
 Copyright (c) 2012 Alex Ogier. All rights reserved.
-Copyright (c) 2012 Dave Grijalva
-Copyright (c) 2012 Elazar Leibovich. All rights reserved.
-Copyright (c) 2012 Joel Stemmer
 Copyright (c) 2012 Péter Surányi. Portions Copyright (c) 2009 The Go
 Copyright (c) 2012 The Go Authors. All rights reserved.
-Copyright (c) 2012 fsnotify Authors. All rights reserved.
-Copyright (c) 2012, Martin Angers
-Copyright (c) 2012,2013 Ernest Micklei
 Copyright (c) 2012-2016 Dave Collins <dave@davec.name>
-Copyright (c) 2012-2018 Mat Ryer and Tyler Bunnell
 Copyright (c) 2013 Dario Castañé. All rights reserved.
-Copyright (c) 2013 Joshua Tacoma
-Copyright (c) 2013 Kamil Kisiel
-Copyright (c) 2013 Kamil Kisiel <kamil@kamilkisiel.net>
-Copyright (c) 2013 TOML authors
-Copyright (c) 2013 The Go Authors. All rights reserved.
-Copyright (c) 2013, Patrick Mezard
 Copyright (c) 2013, The GoGo Authors. All rights reserved.
-Copyright (c) 2013-2014 Onsi Fakhouri
-Copyright (c) 2014 ActiveState
 Copyright (c) 2014 Sam Ghods
-Copyright (c) 2014 Stretchr, Inc.
-Copyright (c) 2014 The Go-FlowRate Authors. All rights reserved.
 Copyright (c) 2014, Evan Phoenix
-Copyright (c) 2015 The New York Times Company
-Copyright (c) 2015-2017 Nick Galbreath
-Copyright (c) 2016 Dominik Honnef
-Copyright (c) 2016 Dominik Honnef. All rights reserved.
-Copyright (c) 2016 Mail.Ru Group
-Copyright (c) 2016 Yasuhiro Matsumoto
+Copyright (c) 2015, Dave Cheney <dave@cheney.net>
 Copyright (c) 2016 json-iterator
 Copyright (c) 2017 The Go Authors. All rights reserved.
-Copyright (c) 2017-2018 objx contributors
-Copyright (c) Yasuhiro MATSUMOTO <mattn.jp@gmail.com>
-Copyright 2009-2017 Andrea Leofreddi <a.leofreddi@vleo.net>. All rights reserved.
+Copyright (c) 2018 The Go Authors. All rights reserved.
 Copyright 2010 The Go Authors.  All rights reserved.
-Copyright 2010-2017 Mike Bostock
-Copyright 2012 Keith Rarick
-Copyright 2012-2013 Rackspace, Inc.
-Copyright 2014 The Kubernetes Authors.
-Copyright 2014-2015 Docker, Inc.
-Copyright 2015 Hewlett Packard Enterprise Development LP
-Copyright 2015 Microsoft Corporation
-Copyright 2016, Google Inc.
-Copyright 2016-2019 Istio Authors
 Copyright 2016-2020 Istio Authors
-Copyright 2019 Istio Authors
-Copyright © 2012 Greg Jones (greg.jones@gmail.com)
-
---------------------------------- (separator) ----------------------------------
-
-== Dependency
-istio.io/gogo-genproto
-
-== License Type
-SPDX:Apache-2.0
-
-== Copyright
-Copyright 2016-2019 Istio Authors
 Copyright 2019 Istio Authors
 
 --------------------------------- (separator) ----------------------------------
@@ -3537,6 +3419,23 @@ Copyright 2021 The Kubernetes Authors.
 --------------------------------- (separator) ----------------------------------
 
 == Dependency
+sigs.k8s.io/kind
+
+== License Type
+SPDX:Apache-2.0
+
+== Copyright
+Copyright (c) 2015-2018 gimme contributors
+Copyright 2016 The Kubernetes Authors.
+Copyright 2018 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
+Copyright 2020 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
+
+--------------------------------- (separator) ----------------------------------
+
+== Dependency
 sigs.k8s.io/kustomize/api
 
 == License Type
@@ -3547,6 +3446,7 @@ Copyright 2018 The Kubernetes Authors.
 Copyright 2019 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -4254,5 +4154,5 @@ The above copyright notice and either this complete permission notice or at a mi
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 === ATTRIBUTION-HELPER-GENERATED:
-=== Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-92-g92f80ee4 GitCommit:92f80ee4d79a936be2aa36fc3b46588ca9455e46 GitTreeState:clean BuildDate:2022-11-10T18:01:03Z GoVersion:go1.19.2 Compiler:gc Platform:linux/amd64}
-=== License file based on go.mod with md5 sum:  50b744501bfe14002d3538345aa62f6a
+=== Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-102-gd9a1a0a1 GitCommit:d9a1a0a141aea4c18363434b6aef258211712951 GitTreeState:clean BuildDate:2023-02-27T06:14:42Z GoVersion:go1.19.1 Compiler:gc Platform:linux/amd64}
+=== License file based on go.mod with md5 sum:  168932ccc9132780161034c07556735c

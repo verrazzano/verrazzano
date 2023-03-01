@@ -24,7 +24,7 @@ const (
 
 	extOSPod                   = "opensearch-cluster-master-0"
 	helmOperationPodNamePrefix = "helm-operation"
-	shellImage                 = "/shell:"
+	shellImage                 = "shell:"
 )
 
 var registry = os.Getenv("REGISTRY")
@@ -141,6 +141,11 @@ func getRegistryURL(containerImage string) (string, error) {
 		}
 	}
 	imageName := getImageName(containerImage)
+	// Due to the Rancher images changing from vz/rancher/shell to vz/rancher-shell, this logic handles looking up both
+	// the old and new shell image names in the BOM. If neither are found, then this function returns an error.
+	if imageRegistryMap[imageName] == "" && imageName == "shell" {
+		imageName = "rancher-shell"
+	}
 	// If the image is not defined in the bom, return an error
 	if imageRegistryMap[imageName] == "" {
 		return "", fmt.Errorf("the image %s is not specified in the BOM from platform operator", imageName)

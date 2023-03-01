@@ -1348,6 +1348,24 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
+	// Expect an HTTP request to get the registration token in Rancher for the clusterId
+	mockRequestSender.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterRegTokenPath)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			asserts.Contains(clusterRegTokenPath, req.URL.Path)
+
+			_, err := io.ReadAll(req.Body)
+			asserts.NoError(err)
+
+			r := io.NopCloser(bytes.NewReader([]byte(`{"data":[]}`)))
+			resp := &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       r,
+				Request:    &http.Request{Method: http.MethodGet},
+			}
+			return resp, nil
+		})
+
 	// Expect an HTTP request to create the registration token in Rancher but the call fails
 	mockRequestSender.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterRegTokenPath)).
@@ -1406,15 +1424,21 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	// Expect an HTTP request to create the registration token in Rancher
+	// Expect an HTTP request to get the registration token in Rancher for the clusterId
 	mockRequestSender.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterRegTokenPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"manifest-token"}`)))
+			asserts.Contains(clusterRegTokenPath, req.URL.Path)
+
+			_, err := io.ReadAll(req.Body)
+			asserts.NoError(err)
+
+			// return a response with the CRT
+			r := io.NopCloser(bytes.NewReader([]byte(`{"data":[{"token":"manifest-token","state":"active","clusterId":"some-cluster"}]}`)))
 			resp := &http.Response{
-				StatusCode: http.StatusCreated,
+				StatusCode: http.StatusOK,
 				Body:       r,
-				Request:    &http.Request{Method: http.MethodPost},
+				Request:    &http.Request{Method: http.MethodGet},
 			}
 			return resp, nil
 		})
@@ -1832,7 +1856,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			}
 			list.Items = append(list.Items, vz)
 			return nil
-		})
+		}).Times(3)
 
 	// Expect a call to get the tls ingress and return the ingress.
 	if !externalES {
@@ -2170,6 +2194,26 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 	}
 
 	manifestToken := "unit-test-manifest-token"
+
+	// Expect an HTTP request to get the registration token in Rancher
+	requestSenderMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterRegTokenPath)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			asserts.Contains(clusterRegTokenPath, req.URL.Path)
+
+			// assert that the cluster ID in the request body is what we expect
+			_, err := io.ReadAll(req.Body)
+			asserts.NoError(err)
+
+			// return a response with the empty data, no CRT exists for this cluster
+			r := io.NopCloser(bytes.NewReader([]byte(`{"data":[]}`)))
+			resp := &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       r,
+				Request:    &http.Request{Method: http.MethodGet},
+			}
+			return resp, nil
+		})
 
 	// Expect an HTTP request to create the registration token in Rancher
 	requestSenderMock.EXPECT().
@@ -2554,6 +2598,13 @@ func expectMockCallsForDelete(t *testing.T, mock *mocks.MockClient, namespace st
 			// validate that the cert for the cluster being deleted is no longer present
 			asserts.Len(secret.Data, 1, "Expected only one managed cluster cert")
 			asserts.Contains(secret.Data, "ca-test2", "Expected to find cert for managed cluster not being deleted")
+			return nil
+		})
+
+	// Expect a call to delete the argocd cluster secret
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
 			return nil
 		})
 

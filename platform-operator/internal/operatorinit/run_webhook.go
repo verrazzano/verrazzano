@@ -1,15 +1,14 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package operatorinit
 
 import (
 	"fmt"
-	"os"
-
 	"github.com/pkg/errors"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
@@ -23,6 +22,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -33,7 +33,7 @@ import (
 func WebhookInit(config internalconfig.OperatorConfig, log *zap.SugaredLogger) error {
 	log.Debug("Creating certificates used by webhooks")
 
-	conf, err := ctrl.GetConfig()
+	conf, err := k8sutil.GetConfigFromController()
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func WebhookInit(config internalconfig.OperatorConfig, log *zap.SugaredLogger) e
 func StartWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
 	log.Debug("Creating certificates used by webhooks")
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	mgr, err := ctrl.NewManager(k8sutil.GetConfigOrDieFromController(), ctrl.Options{
 		Scheme:                  scheme,
 		MetricsBindAddress:      config.MetricsAddr,
 		Port:                    9443,
@@ -85,7 +85,7 @@ func StartWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 // updateWebhooks Updates the webhook configurations and sets up the controllerruntime Manager for the webhook
 func updateWebhooks(log *zap.SugaredLogger, mgr manager.Manager, config internalconfig.OperatorConfig) error {
 	log.Infof("Start called for pod %s", os.Getenv("HOSTNAME"))
-	conf, err := ctrl.GetConfig()
+	conf, err := k8sutil.GetConfigFromController()
 	if err != nil {
 		return fmt.Errorf("Failed to get kubeconfig: %v", err)
 	}
@@ -136,9 +136,12 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 			},
 		},
 	)
-	// register requirements validator webhooks
-	mgr.GetWebhookServer().Register(webhooks.RequirementsV1beta1Path, &webhook.Admission{Handler: &webhooks.RequirementsValidatorV1beta1{}})
-	mgr.GetWebhookServer().Register(webhooks.RequirementsV1alpha1Path, &webhook.Admission{Handler: &webhooks.RequirementsValidatorV1alpha1{}})
+
+	// register requirements validator webhooks, if ResourceRequirementsValidation flag is enabled
+	if config.ResourceRequirementsValidation {
+		mgr.GetWebhookServer().Register(webhooks.RequirementsV1beta1Path, &webhook.Admission{Handler: &webhooks.RequirementsValidatorV1beta1{}})
+		mgr.GetWebhookServer().Register(webhooks.RequirementsV1alpha1Path, &webhook.Admission{Handler: &webhooks.RequirementsValidatorV1alpha1{}})
+	}
 
 	// register MySQL install values webhooks
 	bomFile, err := bom.NewBom(internalconfig.GetDefaultBOMFilePath())

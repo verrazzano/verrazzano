@@ -130,7 +130,7 @@ func TestCaptureMultiClusterResources(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	assert.NoError(t, CaptureMultiClusterResources(dynamicClient, []string{constants.VerrazzanoInstall}, captureDir, rc))
+	assert.NoError(t, CaptureMultiClusterOAMResources(dynamicClient, []string{constants.VerrazzanoInstall}, captureDir, rc))
 }
 
 // TestCaptureOAMResources tests the functionality to capture the OAM resources in the cluster
@@ -240,17 +240,13 @@ func TestCaptureVZResource(t *testing.T) {
 	//  GIVEN a k8s cluster with a user provided Verrazzano CR,
 	//	WHEN I call functions to capture the Verrazzano CR,
 	//	THEN expect the file to contain the JSON output of the Verrazzano CR.
-	vzList := v1beta1.VerrazzanoList{
-		Items: []v1beta1.Verrazzano{
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-					Name:      "myverrazzano",
-				},
-				Spec: v1beta1.VerrazzanoSpec{
-					Profile: v1beta1.Dev,
-				},
-			},
+	vz := &v1beta1.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "myverrazzano",
+		},
+		Spec: v1beta1.VerrazzanoSpec{
+			Profile: v1beta1.Dev,
 		},
 	}
 	tempFile, err := os.CreateTemp("", "testfile")
@@ -260,7 +256,7 @@ func TestCaptureVZResource(t *testing.T) {
 	SetMultiWriterErr(errBuf, tempFile)
 	SetVerboseOutput(true)
 	SetIsLiveCluster()
-	err = CaptureVZResource(captureDir, vzList, rc)
+	err = CaptureVZResource(captureDir, vz, rc)
 	assert.NoError(t, err)
 	assert.NotNil(t, GetMultiWriterOut())
 	assert.NotNil(t, GetMultiWriterErr())

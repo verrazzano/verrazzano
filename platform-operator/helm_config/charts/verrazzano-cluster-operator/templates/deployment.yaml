@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: apps/v1
 kind: Deployment
@@ -39,14 +39,16 @@ spec:
         image: {{ .Values.image }}
         imagePullPolicy: {{ .Values.imagePullPolicy }}
         env:
-        - name: RANCHER_CLUSTER_SYNC_ENABLED
+        - name: CLUSTER_SYNC_ENABLED
           valueFrom:
             configMapKeyRef:
               name: {{ .Values.name }}-selector
               key: enabled
+        - name: ARGOCD_CLUSTER_TOKEN_TTL
+          value: "{{ .Values.argoCDClusterTokenTTL }}"
         volumeMounts:
           - name: cluster-selector
-            mountPath: /var/syncRancherClusters
+            mountPath: /var/syncClusters
         ports:
           - containerPort: 9100
             name: http-metric

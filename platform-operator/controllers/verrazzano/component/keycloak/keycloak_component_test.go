@@ -1,12 +1,15 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package keycloak
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -72,6 +75,26 @@ func TestIsEnabled(t *testing.T) {
 			assert.Equal(t, tt.isEnabled, kcComponent.IsEnabled(ctx.EffectiveCR()))
 		})
 	}
+}
+
+// TestReconcileBeforeInstall tests the Keycloak Reconcile call
+// GIVEN a Keycloak component
+//
+// WHEN I call Reconcile with defaults, before Keycloak is actually installed
+// THEN a nil error is returned
+func TestReconcileBeforeInstall(t *testing.T) {
+	// simulate the case that Keycloak is not installed
+	defer helm.SetDefaultRunner()
+	helm.SetCmdRunner(os.GenericTestRunner{
+		StdOut: []byte(""),
+		StdErr: []byte{},
+		Err:    fmt.Errorf("not found"),
+	})
+
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	ctx := spi.NewFakeContext(c, &crEnabled, nil, false)
+	err := NewComponent().Reconcile(ctx)
+	assert.NoError(t, err)
 }
 
 // TestPreinstall tests the Keycloak PreInstall call

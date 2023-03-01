@@ -9,6 +9,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	k8sready "github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -36,34 +38,37 @@ import (
 )
 
 const (
-	rootSec               = "mysql-cluster-secret"
-	helmRootPwd           = "credentials.root.password" //nolint:gosec //#gosec G101
-	helmUserPwd           = "credentials.user.password" //nolint:gosec //#gosec G101
-	helmUserName          = "credentials.user.name"     //nolint:gosec //#gosec G101
-	mysqlUpgradeSubComp   = "mysql-upgrade"
-	mySQLRootKey          = "rootPassword"
-	mySQLUserKey          = "userPassword"
-	secretName            = "mysql"
-	secretKey             = "mysql-password"
-	mySQLUsername         = "keycloak"
-	rootPasswordKey       = "mysql-root-password" //nolint:gosec //#gosec G101
-	legacyDBDumpClaim     = "dump-claim"
-	mySQLInitFilePrefix   = "init-mysql-"
-	dbLoadJobName         = "load-dump"
-	dbLoadContainerName   = "mysqlsh-load-dump"
-	deploymentFoundStage  = "deployment-found"
-	databaseDumpedStage   = "database-dumped"
-	pvcDeletedStage       = "pvc-deleted"
-	pvcRecreatedStage     = "pvc-recreated"
-	initdbScriptsFile     = "initdbScripts.create-db\\.sh"
-	backupHookScriptsFile = "configurationFiles.mysql-hook\\.sh"
-	dbMigrationSecret     = "db-migration"
-	mySQLHookFile         = "platform-operator/scripts/hooks/mysql-hook.sh"
-	serverVersionKey      = "serverVersion"
-	bomSubComponentName   = "mysql-upgrade"
-	mysqlServerImageName  = "mysql-server"
-	imageRepositoryKey    = "image.repository"
-	initDbScript          = `#!/bin/sh
+	rootSec                = "mysql-cluster-secret"
+	helmRootPwd            = "credentials.root.password" //nolint:gosec //#gosec G101
+	helmUserPwd            = "credentials.user.password" //nolint:gosec //#gosec G101
+	helmUserName           = "credentials.user.name"     //nolint:gosec //#gosec G101
+	mysqlUpgradeSubComp    = "mysql-upgrade"
+	mySQLRootKey           = "rootPassword"
+	mySQLUserKey           = "userPassword"
+	secretName             = "mysql"
+	secretKey              = "mysql-password"
+	mySQLUsername          = "keycloak"
+	rootPasswordKey        = "mysql-root-password" //nolint:gosec //#gosec G101
+	legacyDBDumpClaim      = "dump-claim"
+	mySQLInitFilePrefix    = "init-mysql-"
+	dbLoadJobName          = "load-dump"
+	dbLoadContainerName    = "mysqlsh-load-dump"
+	deploymentFoundStage   = "deployment-found"
+	databaseDumpedStage    = "database-dumped"
+	pvcDeletedStage        = "pvc-deleted"
+	pvcRecreatedStage      = "pvc-recreated"
+	manualDbMigrationStage = "db-migrated"
+	initdbScriptsFile      = "initdbScripts.create-db\\.sh"
+	backupHookScriptsFile  = "configurationFiles.mysql-hook\\.sh"
+	dbMigrationSecret      = "db-migration"
+	mySQLHookFile          = "platform-operator/scripts/hooks/mysql-hook.sh"
+	serverVersionKey       = "serverVersion"
+	bomSubComponentName    = "mysql-upgrade"
+	mysqlServerImageName   = "mysql-server"
+	imageRepositoryKey     = "image.repository"
+	mySQLPodName           = "mysql-0"
+	mySQLContainerName     = "mysql"
+	initDbScript           = `#!/bin/sh
 
 if [[ $HOSTNAME == *-0 ]]; then
    IsRestore="${DB_RESTORE:-false}"
@@ -73,6 +78,8 @@ CREATE USER IF NOT EXISTS keycloak IDENTIFIED BY '%s';
 CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE ON keycloak.* TO '%s'@'%%';
 FLUSH PRIVILEGES;
+USE keycloak;
+GRANT XA_RECOVER_ADMIN ON *.* to 'keycloak'@'%%';
 EOF
    if [[ $IsRestore == false ]]; then
       mysql -u root -p${rootPassword} << EOF
@@ -129,6 +136,13 @@ util.dumpInstance("/var/lib/mysql/dump", {ocimds: true, compatibility: ["strip_d
 EOF
 `
 	innoDBClusterStatusOnline = "ONLINE"
+
+	// Command to grant XA_RECOVER_ADMIN to Keycloak user, during upgrade
+	mySQLGrantXAAdminCommand = `/usr/bin/mysql -uroot -p%s <<EOF
+use keycloak;
+GRANT XA_RECOVER_ADMIN ON *.* to 'keycloak'@'%%';
+EOF
+`
 )
 
 var (
@@ -554,6 +568,11 @@ func postUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	// grant XA_RECOVER_ADMIN to Keycloak user
+	if err := grantXARecoverAdmin(ctx); err != nil {
+		return err
+	}
+
 	return common.ResetVolumeReclaimPolicy(ctx, ComponentName)
 }
 
@@ -606,6 +625,20 @@ func createMySQLInitFile(ctx spi.ComponentContext, userPwd []byte) (string, erro
 	return file.Name(), nil
 }
 
+// getRootDBPassword returns the password to access the DB as root
+func getRootDBPassword(compContext spi.ComponentContext) ([]byte, error) {
+	secretName := types.NamespacedName{
+		Namespace: ComponentNamespace,
+		Name:      rootSec,
+	}
+	dbSecret := &v1.Secret{}
+	err := compContext.Client().Get(context.TODO(), secretName, dbSecret)
+	if err != nil {
+		return nil, err
+	}
+	return dbSecret.Data[mySQLRootKey], nil
+}
+
 // getOrCreateDBUserPassword creates or updates a secret containing the password used by keycloak to access the DB
 func getOrCreateDBUserPassword(compContext spi.ComponentContext) (string, error) {
 	secretName := types.NamespacedName{
@@ -647,4 +680,43 @@ func initUnitTesting() {
 // postUninstall performs additional actions after the uninstall step
 func (c mysqlComponent) postUninstall(ctx spi.ComponentContext) error {
 	return mysqlcheck.RepairICStuckDeleting(ctx)
+}
+
+// grantXARecoverAdmin grants XA_RECOVER_ADMIN to Keycloak user
+func grantXARecoverAdmin(ctx spi.ComponentContext) error {
+	if unitTesting {
+		return nil
+	}
+	// Get root password, required to connect to MySQL pod
+	rootPassword, err := getRootDBPassword(ctx)
+	if err != nil {
+		return err
+	}
+
+	sqlCmd := fmt.Sprintf(mySQLGrantXAAdminCommand, rootPassword)
+	execCmd := []string{"bash", "-c", sqlCmd}
+	cfg, cli, err := k8sutil.ClientConfig()
+	if err != nil {
+		return err
+	}
+	mysqlPod := mySQLPod()
+
+	// Run script defined by mySQLGrantXAAdminCommand from the MySQL pod as root user to grant XA_RECOVER_ADMIN
+	_, _, err = k8sutil.ExecPodNoTty(cli, cfg, mysqlPod, mySQLContainerName, execCmd)
+	if err != nil {
+		errorMsg := maskPw(fmt.Sprintf("Failed granting XA_RECOVER_ADMIN, err = %v", err))
+		ctx.Log().Error(errorMsg)
+		return fmt.Errorf("error: %s", maskPw(err.Error()))
+	}
+	ctx.Log().Debug("Granted XA_RECOVER_ADMIN to Keycloak user successfully")
+	return nil
+}
+
+func mySQLPod() *v1.Pod {
+	return &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mySQLPodName,
+			Namespace: ComponentNamespace,
+		},
+	}
 }

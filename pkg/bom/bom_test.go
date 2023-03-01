@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package bom
@@ -99,9 +99,8 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 			"monitoringOperator.istioProxyImage": "ghcr.io/verrazzano/proxyv2:1.7.3",
 			"monitoringOperator.grafanaImage":    "ghcr.io/verrazzano/grafana:v6.4.4",
 			"monitoringOperator.prometheusImage": "ghcr.io/verrazzano/prometheus:v2.13.1",
-			"monitoringOperator.esImage":         "ghcr.io/verrazzano/elasticsearch:7.6.1-20201130145440-5c76ab1",
-			"monitoringOperator.esWaitImage":     "ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait:0.15.0-20210521020822-9b87485",
-			"monitoringOperator.kibanaImage":     "ghcr.io/verrazzano/kibana:7.6.1-20201130145840-7717e73",
+			"monitoringOperator.osImage":         "ghcr.io/verrazzano/opensearch:2.3.0-20230123213036-bd387046f04",
+			"monitoringOperator.osdImage":        "ghcr.io/verrazzano/opensearch-dashboards:2.3.0-20230124171546-f9e6353395",
 			"monitoringOperator.oidcProxyImage":  "ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210510134749-abc2d2088",
 			"logging.fluentdImage":               "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20210517195222-f345ec2",
 			"console.imageName":                  "ghcr.io/verrazzano/console",
@@ -112,8 +111,7 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 	},
 	"monitoring-init-images": {
 		kvs: map[string]string{
-			"monitoringOperator.prometheusInitImage": "ghcr.io/oracle/oraclelinux:7-slim",
-			"monitoringOperator.esInitImage":         "ghcr.io/oracle/oraclelinux:7.8",
+			"monitoringOperator.osInitImage": "ghcr.io/oracle/oraclelinux:7.8",
 		},
 	},
 	"oam-kubernetes-runtime": {

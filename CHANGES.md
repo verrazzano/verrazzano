@@ -1,3 +1,9 @@
+### v1.6.0
+Component version updates:
+
+- WebLogic Kubernetes Operator v4.0.5
+- WebLogic Monitoring Exporter v2.1.2
+
 ### v1.5.0
 Features:
 
@@ -6,6 +12,7 @@ Features:
 - Rancher clusters are automatically synchronized with VerrazzanoManagedCluster resources. Creating a cluster in Rancher results in a VMC creation and deleting a cluster in Rancher results in a VMC deletion.
 - Applying the Rancher cluster registration manifest to a managed cluster causes additional Verrazzano resources to automatically transfer to the managed cluster.
 - Grafana dashboards are now organized in folders. Added Grafana dashboards for Istio, JVM Micrometer, user applications, and Verrazzano system health.
+- Added Argo CD which can be used as a declarative, GitOps continuous delivery tool for deploying applications.
 
 Component version updates:
 
@@ -30,6 +37,7 @@ Component version updates:
 - Keycloak v20.0.1
 
 Components added:
+- Argo CD v2.5.3
 - MySQL Operator 8.0.32-2.0.8
 
 Fixes:
@@ -38,6 +46,9 @@ Fixes:
 - Rancher upgrade intermittently fails with errors stating that the available chart version is less than the minimum chart version for Rancher system charts.
 - Fixed Fluentd configuration to prevent duplication of logs in OpenSearch on Fluentd restarts or upgrade.
 - Fixed i/o timeout errors installing Verrazzano on a RKE2 cluster.
+- Fixed IngressTrait JWT related issues to allow multiple paths where one path has requestPrincipals and the other doesn't.
+- Fixed IngressTrait JWT so that requestPrincipals with no paths are allowed.
+- Fixed IngressTrait related AuthorizationPolicy cleanup when application is deleted.
 
 ### v1.4.0
 Features:
