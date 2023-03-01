@@ -22,7 +22,7 @@ require (
 	github.com/onsi/gomega v1.24.1
 	github.com/oracle/oci-go-sdk/v53 v53.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.62.0
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.63.0
 	github.com/prometheus/client_golang v1.14.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
@@ -38,11 +38,11 @@ require (
 	istio.io/api v0.0.0-20221208152505-d807bc07da6a
 	istio.io/client-go v1.15.4
 	k8s.io/api v0.26.1
-	k8s.io/apiextensions-apiserver v0.25.4
+	k8s.io/apiextensions-apiserver v0.26.1
 	k8s.io/apimachinery v0.26.1
 	k8s.io/cli-runtime v0.25.4
 	k8s.io/client-go v0.26.1
-	k8s.io/code-generator v0.25.4
+	k8s.io/code-generator v0.26.1
 	sigs.k8s.io/cluster-api v1.2.10
 	sigs.k8s.io/controller-runtime v0.14.4
 	sigs.k8s.io/controller-tools v0.9.2
@@ -171,8 +171,10 @@ replace (
 	gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 => helm.sh/helm/v3 v3.10.3
 	k8s.io/api => k8s.io/api v0.25.4
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.25.4
 	k8s.io/apimachinery => k8s.io/apimachinery v0.25.4
 	k8s.io/client-go => k8s.io/client-go v0.25.4
+	k8s.io/code-generator => k8s.io/code-generator v0.25.4
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.11.2
 	sigs.k8s.io/kind => github.com/verrazzano/kind v0.0.0-20221129215948-885481909133
 )
