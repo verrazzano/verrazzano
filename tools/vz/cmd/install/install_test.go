@@ -27,6 +27,11 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const (
+	testKubeConfig = "/tmp/kubeconfig"
+	testK8sContext = "testcontext"
+)
+
 // TestInstallCmdDefaultNoWait
 // GIVEN a CLI install command with all defaults and --wait==false
 //
@@ -50,14 +55,17 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestInstallCmdDefaultTimeout
+// TestInstallCmdDefaultTimeoutBugReport
 // GIVEN a CLI install command with all defaults and --timeout=2s
 //
 //	WHEN I call cmd.Execute for install
-//	THEN the CLI install command times out
-func TestInstallCmdDefaultTimeout(t *testing.T) {
+//	THEN the CLI install command times out and a bug report is generated
+func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/v1beta1.yaml")
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2s")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
@@ -67,6 +75,34 @@ func TestInstallCmdDefaultTimeout(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2s exceeded waiting for install to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
+	//assert.Contains(t, buf.String(), "Created bug report")
+	assert.FileExists(t, "bug-report.tar.gz")
+	os.Remove("bug-report.tar.gz")
+}
+
+// TestInstallCmdDefaultTimeoutNoBugReport
+// GIVEN a CLI install command with --timeout=2s and auto-bug-report=false
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command times out and a bug report is not generated
+func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
+	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2s")
+	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/v1beta1.yaml")
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
+	cmd.PersistentFlags().Set(constants.AutoBugReportFlag, "false")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	// Run install command
+	err := cmd.Execute()
+	assert.Error(t, err)
+	assert.Equal(t, "Error: Timeout 2s exceeded waiting for install to complete\n", errBuf.String())
+	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
+	//assert.NotContains(t, buf.String(), "Created bug report")
+	assert.NoFileExists(t, "bug-report.tar.gz")
 }
 
 // TestInstallCmdDefaultNoVPO
