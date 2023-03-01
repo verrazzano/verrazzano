@@ -125,7 +125,7 @@ pipeline {
         stage('Clean workspace and checkout') {
             steps {
                 sh """
-                    echo "${NODE_LABELS}"
+                    echo "${NODE_LABELS} testing 123"
                 """
 
                 script {
