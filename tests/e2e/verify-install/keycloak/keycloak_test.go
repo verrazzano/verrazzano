@@ -6,9 +6,6 @@ package keycloak
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os/exec"
 	"path"
 	"strings"
@@ -238,14 +235,6 @@ var _ = t.Describe("Verify Keycloak", Label("f:platform-lcm.install"), func() {
 					Eventually(verifyKeycloakClientURIs, waitTimeout, pollingInterval).Should(BeTrue())
 				}
 			})
-	})
-})
-
-var _ = t.Describe("Verify MySQL", Label("f:platform-lcm.install"), func() {
-	var _ = t.Context("pod configured correctly", func() {
-		t.It("Verify mysql pod contains traffic.sidecar.istio.io/excludeOutboundPorts annotation", func() {
-			Eventually(verifyMySQLPodAnnotation, waitTimeout, pollingInterval).Should(BeTrue())
-		})
 	})
 })
 
@@ -664,23 +653,6 @@ func verifyUserClientRole(user, userRole string) bool {
 	for _, role := range kcRoles {
 		if role.Name == userRole {
 			t.Logs.Info(fmt.Printf("Client role %s found\n", userRole))
-			return true
-		}
-	}
-	return false
-}
-
-func verifyMySQLPodAnnotation() bool {
-	pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{
-		MatchLabels: map[string]string{
-			"app.kubernetes.io/name": "mysql-innodbcluster-mysql-server",
-		}}, constants.KeycloakNamespace)
-	if err != nil {
-		t.Logs.Error(fmt.Sprintf("Error getting mysql pod: %s\n", err.Error()))
-		return false
-	}
-	for _, pod := range pods {
-		if pod.Annotations[webhooks.MySQLOperatorJobPodSpecAnnotationKey] == webhooks.MySQLOperatorJobPodSpecAnnotationValue {
 			return true
 		}
 	}

@@ -35,26 +35,26 @@ webhooks:
     admissionReviewVersions:
       - v1beta1
       - v1
-  - name: verrazzano-mysql-statefulset.verrazzano.io
+  - name: verrazzano-mysql-pod.verrazzano.io
     namespaceSelector:
       matchExpressions:
         - {key: istio-injection, operator: In, values: [enabled]}
-        - {key: verrazzano.io/namespace, operator: NotIn, values: [kube-system]}
+        - {key: verrazzano.io/namespace, operator: In, values: [keycloak]}
     clientConfig:
       service:
         name: {{ .Values.name }}-webhook
         namespace: {{ .Values.namespace }}
-        path: "/mysql-statefulset-annotate"
+        path: "/mysql-pod-annotate"
     rules:
       - apiGroups:
-          - apps
+          - core
         apiVersions:
           - v1
         operations:
           - CREATE
           - UPDATE
         resources:
-          - statefulsets
+          - pods
     sideEffects: None
     failurePolicy: Fail
     matchPolicy: Exact

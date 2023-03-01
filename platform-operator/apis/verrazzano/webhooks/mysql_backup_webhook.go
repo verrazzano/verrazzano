@@ -24,21 +24,24 @@ import (
 
 const (
 
-	// MySQLOperatorLabel and MySQLOperatorJobLabelValue are the label key,value pair
+	// mySQLOperatorLabel and mySQLOperatorLabelValue are the label key,value pair
 	// that are applied to the job by mysql-operator.
 
-	MySQLOperatorLabel         = "app.kubernetes.io/created-by"
-	MySQLOperatorJobLabelValue = "mysql-operator"
+	mySQLOperatorLabel      = "app.kubernetes.io/created-by"
+	mySQLOperatorLabelValue = "mysql-operator"
 
-	// MySQLOperatorJobPodSpecAnnotationKey and MySQLOperatorJobPodSpecAnnotationValue are
+	// mySQLIstioAnnotationKey and mySQLIstioAnnotationValue are
 	// applied to the job spec so that it can talk to the k8s api server.
 
-	MySQLOperatorJobPodSpecAnnotationKey   = "traffic.sidecar.istio.io/excludeOutboundPorts"
-	MySQLOperatorJobPodSpecAnnotationValue = "443"
+	mySQLIstioAnnotationKey   = "traffic.sidecar.istio.io/excludeOutboundPorts"
+	mySQLIstioAnnotationValue = "443"
 
-	// MySQLTierKey labels required for network policy access
-	MySQLTierKey   = "tier"
-	MySQLTierValue = "mysql"
+	// mySQLTierKey labels required for network policy access
+	mySQLTierKey   = "tier"
+	mySQLTierValue = "mysql"
+
+	sidecarIstioInjectKey   = "sidecar.istio.io/inject"
+	sidecarIstioInjectValue = "false"
 )
 
 // MySQLBackupJobWebhook type for Verrazzano mysql backup webhook
@@ -93,15 +96,15 @@ func (m *MySQLBackupJobWebhook) processJob(req admission.Request, job *batchv1.J
 
 	// Check for the annotation "sidecar.istio.io/inject: false".  No action required if annotation is set to false.
 	for key, value := range job.Annotations {
-		if key == "sidecar.istio.io/inject" && value == "false" {
+		if key == sidecarIstioInjectKey && value == sidecarIstioInjectValue {
 			log.Debugf("Job labeled with sidecar.istio.io/inject: false: %s:%s:%s", job.Namespace, job.Name, job.GenerateName)
 			return admission.Allowed("No action required, job labeled with sidecar.istio.io/inject: false")
 		}
 	}
 
-	// Job spec annotation is only done for jobs launched by mysql operator
+	// Job spec annotation is only done for jobs launched by MySQL Operator
 	for key, value := range job.Labels {
-		if key == MySQLOperatorLabel && value == MySQLOperatorJobLabelValue {
+		if key == mySQLOperatorLabel && value == mySQLOperatorLabelValue {
 			mysqlOperatorLabelPresent = true
 			break
 		}
@@ -142,10 +145,10 @@ func (m *MySQLBackupJobWebhook) processJob(req admission.Request, job *batchv1.J
 		return admission.Allowed("No action required, job not labelled with app.kubernetes.io/created-by: mysql-operator")
 	}
 	istioAnnotation := make(map[string]string)
-	istioAnnotation[MySQLOperatorJobPodSpecAnnotationKey] = MySQLOperatorJobPodSpecAnnotationValue
+	istioAnnotation[mySQLIstioAnnotationKey] = mySQLIstioAnnotationValue
 	job.Spec.Template.SetAnnotations(istioAnnotation)
 	jobPodLables := make(map[string]string)
-	jobPodLables[MySQLTierKey] = MySQLTierValue
+	jobPodLables[mySQLTierKey] = mySQLTierValue
 	job.Spec.Template.SetLabels(jobPodLables)
 
 	// Marshal the mutated pod to send back in the admission review response.
@@ -212,7 +215,7 @@ func (m *MySQLBackupJobWebhook) isCronJobCreatedByMysqlOperator(req admission.Re
 
 	// CronJob spec annotation is only done for jobs launched by mysql operator
 	for key, value := range cjob.Labels {
-		if key == MySQLOperatorLabel && value == MySQLOperatorJobLabelValue {
+		if key == mySQLOperatorLabel && value == mySQLOperatorLabelValue {
 			mysqlOperatorLabelPresent = true
 			break
 		}
