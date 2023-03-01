@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package root
@@ -6,13 +6,15 @@ package root
 import (
 	"bytes"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/cluster"
-	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/cluster"
+	 "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
+
 
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/install"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/uninstall"
@@ -29,7 +31,7 @@ func TestNewRootCmd(t *testing.T) {
 
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rootCmd := NewRootCmd(rc)
 	assert.NotNil(t, rootCmd)
 
@@ -74,7 +76,7 @@ func TestNewRootCmd(t *testing.T) {
 func TestClusterCommandIsHiddenInHelp(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rootCmd := NewRootCmd(rc)
 	assert.NotNil(t, rootCmd)
 	args := []string{"-h"}
