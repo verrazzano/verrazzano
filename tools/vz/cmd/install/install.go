@@ -220,12 +220,6 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	if err == nil {
 		return nil
 	}
-	//root := cmd.Root()
-	//bugReportCmd, err := cmdhelpers.GetSubCommand(root)
-	//if err != nil {
-	//	fmt.Printf(err.Error())
-	//}
-	//return bugreport.RunCmdBugReport(bugReportCmd, vzHelper)
 	return bugreport.CallVzBugReport(cmd, vzHelper, err)
 }
 

@@ -86,23 +86,3 @@ func GetOperatorFile(cmd *cobra.Command) (string, error) {
 	}
 	return operatorFile, nil
 }
-
-func GetSubCommand(cmd *cobra.Command) (*cobra.Command, error) {
-	root := cmd.Root()
-	for _, subCmd := range root.Commands() {
-		if subCmd.Name() == "bug-report" {
-			return subCmd, nil
-		}
-	}
-	return nil, fmt.Errorf("Failed to get sub command from root")
-}
-
-func GetSubCommandInstall(cmd *cobra.Command) (*cobra.Command, error) {
-	root := cmd.Root()
-	for _, subCmd := range root.Commands() {
-		if subCmd.Name() == "install" {
-			return subCmd, nil
-		}
-	}
-	return nil, fmt.Errorf("Failed to get sub command from root")
-}
