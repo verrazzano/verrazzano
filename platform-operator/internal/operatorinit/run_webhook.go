@@ -142,7 +142,7 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 	mgr.GetWebhookServer().Register(
 		constants.MysqlStatefulSetMutatingWebhookPath,
 		&webhook.Admission{
-			Handler: &webhooks.MySQLStatefulSetWebhook{
+			Handler: &webhooks.MySQLPodWebhook{
 				Client:        mgr.GetClient(),
 				KubeClient:    kubeClient,
 				DynamicClient: dynamicClient,
