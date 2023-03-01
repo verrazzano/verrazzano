@@ -272,10 +272,6 @@ pipeline {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-install-verify-infra"
             }
             steps {
-                // Verrazzano may continue reconciling even after the `vz install` command exits, so
-                // wait a bit before running the verify-install tests.
-                sleep time: 5, unit: 'MINUTES'
-
                 runGinkgoRandomize('verify-install')
             }
             post {
