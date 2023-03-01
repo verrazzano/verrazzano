@@ -13,8 +13,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/cluster"
-	 "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
-
 
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/install"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/uninstall"
@@ -24,6 +22,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/status"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
+	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
