@@ -42,7 +42,7 @@ require (
 	k8s.io/apimachinery v0.26.1
 	k8s.io/cli-runtime v0.25.4
 	k8s.io/client-go v0.26.1
-	k8s.io/code-generator v0.26.1
+	k8s.io/code-generator v0.25.4
 	sigs.k8s.io/cluster-api v1.2.10
 	sigs.k8s.io/controller-runtime v0.14.4
 	sigs.k8s.io/controller-tools v0.9.2
@@ -174,7 +174,6 @@ replace (
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.25.4
 	k8s.io/apimachinery => k8s.io/apimachinery v0.25.4
 	k8s.io/client-go => k8s.io/client-go v0.25.4
-	k8s.io/code-generator => k8s.io/code-generator v0.25.4
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.11.2
 	sigs.k8s.io/kind => github.com/verrazzano/kind v0.0.0-20221129215948-885481909133
 )
