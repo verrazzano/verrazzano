@@ -125,7 +125,7 @@ func TestHandleSkipAnnotateMysqlBackupJob(t *testing.T) {
 	req.Object = runtime.RawExtension{Raw: marshaledJob}
 	res := defaulter.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
-	assert.Equal(t, metav1.StatusReason("No action required, job not labelled with app.kubernetes.io/created-by: mysql-operator"), res.Result.Reason)
+	assert.Equal(t, metav1.StatusReason("No action required, job not labeled with app.kubernetes.io/created-by: mysql-operator"), res.Result.Reason)
 }
 
 // TestHandleAnnotateMysqlBackupJob tests handling an admission.Request

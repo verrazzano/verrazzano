@@ -4,9 +4,9 @@
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
-  name: verrazzano-mysql-backup
+  name: verrazzano-mysql
   labels:
-    app: verrazzano-mysql-backup
+    app: verrazzano-mysql
 webhooks:
   - name: verrazzano-mysql-backup.verrazzano.io
     namespaceSelector:
@@ -47,7 +47,7 @@ webhooks:
         path: "/mysql-pod-annotate"
     rules:
       - apiGroups:
-          - core
+          - ""
         apiVersions:
           - v1
         operations:

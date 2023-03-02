@@ -69,7 +69,7 @@ func (m *MySQLPodWebhook) processPod(req admission.Request, pod *corev1.Pod, log
 
 	// Check for the annotation or label "sidecar.istio.io/inject: false".  No action required if it is set to false.
 	if pod.Labels[sidecarIstioInjectKey] == sidecarIstioInjectValue || pod.Annotations[sidecarIstioInjectKey] == sidecarIstioInjectValue {
-		log.Debugf("Pod is annotated or labled with sidecar.istio.io/inject: false: %s:%s", pod.Namespace, pod.Name)
+		log.Debugf("Pod is annotated or labeled with sidecar.istio.io/inject: false: %s:%s", pod.Namespace, pod.Name)
 		return admission.Allowed("No action required, Pod annotated or labeled with sidecar.istio.io/inject: false")
 	}
 
