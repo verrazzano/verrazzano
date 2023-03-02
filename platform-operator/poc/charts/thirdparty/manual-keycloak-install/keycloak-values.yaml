@@ -1,0 +1,322 @@
+COMPUTED VALUES:
+affinity: |
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/instance: keycloak
+              app.kubernetes.io/name: keycloak
+          topologyKey: kubernetes.io/hostname
+args: []
+autoscaling:
+  behavior:
+    scaleDown:
+      policies:
+        - periodSeconds: 300
+          type: Pods
+          value: 1
+      stabilizationWindowSeconds: 300
+  enabled: false
+  labels: {}
+  maxReplicas: 10
+  metrics:
+    - resource:
+        name: cpu
+        target:
+          averageUtilization: 80
+          type: Utilization
+      type: Resource
+  minReplicas: 3
+cache:
+  stack: default
+clusterDomain: cluster.local
+command:
+  - /opt/keycloak/bin/kc.sh
+  - start
+  - --http-enabled=true
+  - --hostname-strict=false
+  - --hostname-strict-https=false
+  - --spi-login-protocol-openid-connect-legacy-logout-redirect-uri=true
+  - --spi-login-protocol-openid-connect-suppress-logout-confirmation-screen=true
+database:
+  database: keycloak
+  existingSecret: mysql-cluster-secret
+  existingSecretKey: userPassword
+  hostname: mysql
+  password: null
+  port: 3306
+  username: keycloak
+  vendor: mysql
+dbchecker:
+  enabled: false
+  image:
+    pullPolicy: IfNotPresent
+    repository: docker.io/busybox
+    tag: 1.32
+  resources:
+    limits:
+      cpu: 20m
+      memory: 32Mi
+    requests:
+      cpu: 20m
+      memory: 32Mi
+  securityContext:
+    allowPrivilegeEscalation: false
+    runAsGroup: 1000
+    runAsNonRoot: true
+    runAsUser: 1000
+dnsTarget: keycloak.default.172.18.0.231.nip.io
+enableServiceLinks: true
+extraContainers: ""
+extraEnv: |
+  - name: KEYCLOAK_ADMIN
+    value: "keycloakadmin"
+  - name: KEYCLOAK_ADMIN_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-http
+        key: password
+  - name: JAVA_OPTS_APPEND
+    value: >-
+      -Djgroups.dns.query={{ include "keycloak.fullname" . }}-headless
+extraEnvFrom: ""
+extraInitContainers: |2
+
+      - name: theme-provider
+        image: ghcr.io/verrazzano/keycloak-oracle-theme:v1.5.0-20230124195518-771913f
+        imagePullPolicy: IfNotPresent
+        command:
+          - sh
+        args:
+          - -c
+          - |
+            echo "Copying theme..."
+            cp -R /oracle/* /theme
+        volumeMounts:
+          - name: theme
+            mountPath: /theme
+          - name: cacerts
+            mountPath: /cacerts
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          privileged: false
+          runAsGroup: 0
+          runAsNonRoot: true
+          runAsUser: 1000
+extraPorts:
+  - containerPort: 7800
+    name: jgroups
+    protocol: TCP
+extraServiceMonitor:
+  annotations: {}
+  enabled: false
+  interval: 10s
+  labels: {}
+  namespace: ""
+  namespaceSelector: {}
+  path: '{{ tpl .Values.http.relativePath $ | trimSuffix "/" }}/realms/master/metrics'
+  port: http
+  scrapeTimeout: 10s
+extraVolumeMounts: |
+  - name: theme
+    mountPath: /opt/keycloak/themes/oracle
+  - name: keycloak-http
+    mountPath: /etc/keycloak-http
+extraVolumes: |
+  - name: theme
+    emptyDir: {}
+  - name: cacerts
+    emptyDir: {}
+  - name: keycloak-http
+    secret:
+       secretName: keycloak-http
+fullnameOverride: keycloak
+health:
+  enabled: true
+hostAliases: []
+http:
+  relativePath: /auth
+image:
+  pullPolicy: IfNotPresent
+  repository: ghcr.io/verrazzano/keycloak
+  tag: v20.0.1-20230203135118-215619ca63
+imagePullSecrets: []
+ingress:
+  annotations:
+    external-dns.alpha.kubernetes.io/target: '{{ .Values.dnsTarget }}'
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/app-root: /auth
+    nginx.ingress.kubernetes.io/proxy-buffer-size: 256k
+    nginx.ingress.kubernetes.io/service-upstream: "true"
+    nginx.ingress.kubernetes.io/session-cookie-conditional-samesite-none: "true"
+    nginx.ingress.kubernetes.io/session-cookie-expires: "86400"
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
+    nginx.ingress.kubernetes.io/session-cookie-name: keycloak
+    nginx.ingress.kubernetes.io/session-cookie-samesite: Strict
+    nginx.ingress.kubernetes.io/upstream-vhost: keycloak-http.${namespace}.svc.cluster.local
+  console:
+    annotations: {}
+    enabled: false
+    ingressClassName: ""
+    rules:
+      - host: '{{ .Release.Name }}.keycloak.example.com'
+        paths:
+          - path: '{{ tpl .Values.http.relativePath $ | trimSuffix "/" }}/admin'
+            pathType: Prefix
+    tls: []
+  enabled: true
+  ingressClassName: verrazzano-nginx
+  labels: {}
+  rules:
+    - host: '{{ .Values.rulesHost }}'
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  servicePort: http
+  tls:
+    - hosts:
+        - '{{ .Values.tlsHosts }}'
+      secretName: '{{ .Values.tlsSecret }}'
+lifecycleHooks: ""
+livenessProbe: |
+  httpGet:
+    path: '{{ tpl .Values.http.relativePath $ | trimSuffix "/" }}/health/live'
+    port: http
+  initialDelaySeconds: 0
+  timeoutSeconds: 5
+metrics:
+  enabled: true
+nameOverride: keycloak
+networkPolicy:
+  egress: []
+  enabled: false
+  extraFrom: []
+  labels: {}
+nodeSelector: {}
+podAnnotations:
+  traffic.sidecar.istio.io/excludeInboundPorts: "7800"
+  traffic.sidecar.istio.io/excludeOutboundPorts: "7800"
+podDisruptionBudget: {}
+podLabels: {}
+podManagementPolicy: OrderedReady
+podSecurityContext:
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+priorityClassName: ""
+prometheusRule:
+  annotations: {}
+  enabled: false
+  labels: {}
+  namespace: ""
+  rules: []
+proxy:
+  enabled: true
+  mode: edge
+rbac:
+  create: false
+  rules: []
+readinessProbe: |
+  httpGet:
+    path: '{{ tpl .Values.http.relativePath $ | trimSuffix "/" }}/health/ready'
+    port: http
+  initialDelaySeconds: 10
+  timeoutSeconds: 1
+replicas: 1
+resources: {}
+restartPolicy: Always
+route:
+  annotations: {}
+  enabled: false
+  host: ""
+  labels: {}
+  path: /
+  tls:
+    enabled: true
+    insecureEdgeTerminationPolicy: Redirect
+    termination: edge
+rulesHost: keycloak.default.172.18.0.231.nip.io
+secrets: {}
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  privileged: false
+  runAsGroup: 0
+  runAsNonRoot: true
+  runAsUser: 1000
+service:
+  annotations: {}
+  externalTrafficPolicy: Cluster
+  extraPorts:
+    - name: jgroups
+      port: 7800
+      targetPort: jgroups
+  httpNodePort: null
+  httpPort: 80
+  httpsNodePort: null
+  httpsPort: 8443
+  labels: {}
+  loadBalancerIP: ""
+  loadBalancerSourceRanges: []
+  port: 8083
+  sessionAffinity: ""
+  sessionAffinityConfig: {}
+  type: ClusterIP
+serviceAccount:
+  allowReadPods: false
+  annotations: {}
+  automountServiceAccountToken: true
+  create: true
+  imagePullSecrets: []
+  labels: {}
+  name: ""
+serviceHeadless:
+  annotations: {}
+serviceMonitor:
+  annotations: {}
+  enabled: false
+  interval: 10s
+  labels: {}
+  namespace: ""
+  namespaceSelector: {}
+  path: '{{ tpl .Values.http.relativePath $ | trimSuffix "/" }}/metrics'
+  port: http
+  scrapeTimeout: 10s
+skipInitContainers: false
+startupProbe: |
+  httpGet:
+    path: '{{ tpl .Values.http.relativePath $ | trimSuffix "/" }}/health'
+    port: http
+  initialDelaySeconds: 15
+  timeoutSeconds: 1
+  failureThreshold: 60
+  periodSeconds: 5
+statefulsetAnnotations: {}
+statefulsetLabels: {}
+terminationGracePeriodSeconds: 60
+test:
+  deletionPolicy: before-hook-creation
+  enabled: false
+  image:
+    pullPolicy: IfNotPresent
+    repository: docker.io/joyzoursky/python-chromedriver
+    tag: 3.9-selenium
+  podSecurityContext:
+    fsGroup: 1000
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+tlsHosts: keycloak.default.172.18.0.231.nip.io
+tlsSecret: keycloak-tls
+tolerations: []
+topologySpreadConstraints: null
+updateStrategy: RollingUpdate
