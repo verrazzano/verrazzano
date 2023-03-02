@@ -115,14 +115,15 @@ func runCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	}
 	helpers.SetVerboseOutput(isVerbose)
 	if directoryFlag == nil || directoryFlag.Value.String() == "" {
-		return analyzeLiveCluster(cmd, vzHelper)
+		if err := analyzeLiveCluster(cmd, vzHelper); err != nil {
+			return err
+		}
 	} else {
 		directory, err = cmd.PersistentFlags().GetString(constants.DirectoryFlagName)
 		if err != nil {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
 		}
 	}
-
 	return analysis.AnalysisMain(vzHelper, directory, reportFileName, reportFormat)
 }
 
