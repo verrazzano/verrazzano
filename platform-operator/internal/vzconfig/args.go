@@ -5,7 +5,6 @@ package vzconfig
 
 import (
 	"fmt"
-	"github.com/Jeffail/gabs/v2"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
@@ -22,6 +21,7 @@ var getControllerRuntimeClient = validators.GetClient
 func CheckExternalIPsArgs(installArgs []vzapi.InstallArgs, overrides []vzapi.Overrides, argsKeyName, jsonPath, compName, namespace string) error {
 	var keyPresent bool
 	var v1beta1Overrides = vzapi.ConvertValueOverridesToV1Beta1(overrides)
+
 	c, err := getControllerRuntimeClient(runtime.NewScheme())
 	if err != nil {
 		return nil
@@ -32,7 +32,7 @@ func CheckExternalIPsArgs(installArgs []vzapi.InstallArgs, overrides []vzapi.Ove
 		if err != nil {
 			return err
 		}
-		v := castValuesToString(value, "")
+		v := castValuesToString(value)
 		keyPresent = true
 		if err := validateExternalIP(v, jsonPath, compName); err != nil {
 			return err
@@ -70,7 +70,7 @@ func CheckExternalIPsOverridesArgs(overrides []v1beta1.Overrides, jsonPath, comp
 		if err != nil {
 			return err
 		}
-		v := castValuesToString(value, "")
+		v := castValuesToString(value)
 		if err := validateExternalIP(v, jsonPath, compName); err != nil {
 			return err
 		}
@@ -93,24 +93,15 @@ func CheckExternalIPsOverridesArgsWithPaths(overrides []v1beta1.Overrides, jsonB
 		if err != nil {
 			return err
 		}
-		extractedExternalIp := castValuesToString(value, externalIPPath)
-		if err := validateExternalIP(extractedExternalIp, jsonBasePath, compName); err != nil {
-			return err
-		}
-	}
+		valueMap := value.(map[string]interface{})
+		extractedIP := valueMap[externalIPPath]
+		arrayOfExtractedIPs := castValuesToString(extractedIP)
+		extractedType := valueMap[serviceTypePath]
 
-	for _, override := range overrides {
-		o, err := gabs.ParseJSON(override.Values.Raw)
-		if err != nil {
-			return err
-		}
-		typePathFull := jsonBasePath + "." + serviceTypePath
 		externalIPPathFull := jsonBasePath + "." + externalIPPath
-		if typePathContainer := o.Path(typePathFull); typePathContainer != nil && typePathContainer.Data().(string) == serviceTypeValue {
-			if externalIPPathContainer := o.Path(externalIPPathFull); externalIPPathContainer != nil {
-				if err := validateExternalIP([]string{externalIPPathContainer.Data().(string)}, externalIPPathFull, compName); err != nil {
-					return err
-				}
+		if extractedType != nil && extractedType == serviceTypeValue {
+			if arrayOfExtractedIPs != nil {
+				validateExternalIP(arrayOfExtractedIPs, externalIPPathFull, compName)
 			}
 		}
 	}
@@ -129,25 +120,17 @@ func validateExternalIP(addresses []string, key, compName string) error {
 	return nil
 }
 
-func castValuesToString(value interface{}, externalIPsPath string) []string {
-	var extractedExternalIPs []string
+func castValuesToString(value interface{}) []string {
+	var values []string
 
 	switch value.(type) {
 	case string:
-		extractedExternalIPs = append(extractedExternalIPs, value.(string))
-	case interface{}:
-		valueMap := value.(map[string]interface{})
-		externalIPs := valueMap[externalIPsPath]
-		for _, IP := range externalIPs.([]interface{}) {
-			extractedExternalIPs = append(extractedExternalIPs, IP.(string))
-		}
+		values = append(values, value.(string))
 	case []interface{}:
 		valueArray := value.([]interface{})
 		for _, v := range valueArray {
-			extractedExternalIPs = append(extractedExternalIPs, v.(string))
+			values = append(values, v.(string))
 		}
-	default:
-		fmt.Printf("Default case: The default case is unknown at this time.\n")
 	}
-	return extractedExternalIPs
+	return values
 }
