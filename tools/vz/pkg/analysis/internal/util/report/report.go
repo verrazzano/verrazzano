@@ -210,7 +210,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 				fileOut, err = os.CreateTemp("", reportFile)
 			}
 		} else {
-			fileOut, err = os.OpenFile(reportFile, os.O_CREATE|os.O_EXCL, 0644)
+			fileOut, err = os.OpenFile(reportFile, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
 		}
 		if err != nil {
 			log.Errorf("Failed to create report file : %s, error found : %s", reportFile, err.Error())
