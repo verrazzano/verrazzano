@@ -23,7 +23,7 @@ jobs:
             -B "master" \
             -t "CI: Update Rancher image in BOM" \
             -b "*Automated Pull Request*  Updating Rancher image in BOM for ${{ github.ref }}" \
-            -r "ddsharpe,robertpatrick"
+            -r "${{ vars.RANCHER_PR_NOTIFY_LIST }}"
           echo 'EOF' >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
