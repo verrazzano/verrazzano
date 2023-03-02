@@ -136,7 +136,7 @@ func executeBugReport(vzCommand string, kubeConfig string, bugReportDirectory st
 
 	if len(ns) > 0 {
 		includeNS := strings.Join(ns[:], ",")
-		cmd = exec.Command(vzCommand, "bug-report", "--report-file", filename, "--include-namespaces", includeNS)
+		cmd = exec.Command(vzCommand, "bug-report", "--report-file", filename, "--include-namespaces", includeNS, "--include-logs")
 	} else {
 		cmd = exec.Command(vzCommand, "bug-report", "--report-file", filename)
 	}
