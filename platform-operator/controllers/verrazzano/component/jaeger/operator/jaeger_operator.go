@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"io/fs"
 	"os"
 	"text/template"
@@ -310,7 +311,7 @@ func (c jaegerOperatorComponent) validateJaegerOperator(cr *v1beta1.Verrazzano) 
 
 // validateInstallOverrides validates that the overrides contain only values that are allowed for override
 func validateInstallOverrides(overrides []v1beta1.Overrides, client clipkg.Client) error {
-	overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(client, overrides, ComponentNamespace)
+	overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(client, overrides, ComponentNamespace)
 	if err != nil {
 		return err
 	}
@@ -322,7 +323,7 @@ func validateOverrideYamls(yamlOverrides []string) error {
 	for _, overrideYAML := range yamlOverrides {
 		// Check if there are any Helm chart values that are not allowed to be overridden by the user
 		for _, disallowedOverride := range disallowedOverrides {
-			value, err := common.ExtractValueFromOverrideString(overrideYAML, disallowedOverride)
+			value, err := override.ExtractValueFromOverrideString(overrideYAML, disallowedOverride)
 			if err != nil {
 				return err
 			}
@@ -480,12 +481,12 @@ func canUseVZOpenSearchStorage(ctx spi.ComponentContext) bool {
 
 // getOverrideVal gets the Helm value specified in the VZ CR for the specified override field
 func getOverrideVal(ctx spi.ComponentContext, field string) (interface{}, error) {
-	overrides, err := common.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()).([]v1alpha1.Overrides))
+	overrides, err := override.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()).([]v1alpha1.Overrides))
 	if err != nil {
 		return nil, err
 	}
 	for _, override := range overrides {
-		fieldVal, err := common.ExtractValueFromOverrideString(override, field)
+		fieldVal, err := override.ExtractValueFromOverrideString(override, field)
 		if err != nil {
 			return nil, err
 		}

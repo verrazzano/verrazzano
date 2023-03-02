@@ -6,6 +6,7 @@ package istio
 import (
 	"bytes"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"text/template"
 
 	"github.com/Jeffail/gabs/v2"
@@ -13,7 +14,6 @@ import (
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"sigs.k8s.io/yaml"
 )
@@ -48,7 +48,7 @@ func buildJaegerTracingYaml(ctx spi.ComponentContext, comp *v1beta1.IstioCompone
 		return "", err
 	}
 	expandedYamls := []string{jaegerTracingYaml}
-	installOverrideYamls, err := common.GetInstallOverridesYAMLUsingClient(ctx.Client(), comp.ValueOverrides, namespace)
+	installOverrideYamls, err := override.GetInstallOverridesYAMLUsingClient(ctx.Client(), comp.ValueOverrides, namespace)
 	if err != nil {
 		return "", err
 	}

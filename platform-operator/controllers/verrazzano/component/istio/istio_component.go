@@ -295,7 +295,7 @@ func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 		}
 	}
 
-	return i.validateForExternalIPSWithNodePort(&vz.Spec)
+	return i.validateForExternalIPSWithNodePort(vz)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -309,7 +309,7 @@ func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 			return err
 		}
 	}
-	return i.validateForExternalIPSWithNodePort(&new.Spec)
+	return i.validateForExternalIPSWithNodePort(new)
 }
 
 // ValidateUpdateV1Beta1 checks if the specified Verrazzano CR is valid for this component to be installed
@@ -324,7 +324,7 @@ func (i istioComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, ne
 		}
 	}
 
-	return i.validateForExternalIPSWithNodePortV1Beta1(&new.Spec)
+	return i.validateForExternalIPSWithNodePortV1Beta1(new)
 }
 
 // ValidateInstallV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -337,39 +337,39 @@ func (i istioComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) er
 			return err
 		}
 	}
-	return i.validateForExternalIPSWithNodePortV1Beta1(&vz.Spec)
+	return i.validateForExternalIPSWithNodePortV1Beta1(vz)
 }
 
 // validateForExternalIPSWithNodePort checks that externalIPs are set when Type=NodePort
-func (i istioComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoSpec) error {
+func (i istioComponent) validateForExternalIPSWithNodePort(vz *vzapi.Verrazzano) error {
 	// good if istio or istio.ingress is not set
-	if vz.Components.Istio == nil || vz.Components.Istio.Ingress == nil {
+	if vz.Spec.Components.Istio == nil || vz.Spec.Components.Istio.Ingress == nil {
 		return nil
 	}
 
 	// good if type is not NodePort
-	if vz.Components.Istio.Ingress.Type != vzapi.NodePort {
+	if vz.Spec.Components.Istio.Ingress.Type != vzapi.NodePort {
 		return nil
 	}
 
 	// look for externalIPs if NodePort
-	if vz.Components.Istio.Ingress.Type == vzapi.NodePort {
-		return vzconfig.CheckExternalIPsArgs(vz.Components.Istio.IstioInstallArgs, vz.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, i.Name())
+	if vz.Spec.Components.Istio.Ingress.Type == vzapi.NodePort {
+		return vzconfig.CheckExternalIPsArgs(vz.Spec.Components.Istio.IstioInstallArgs, vz.Spec.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, i.Name(), vz.Namespace)
 	}
 
 	return nil
 }
 
 // validateForExternalIPSWithNodePortV1Beta1 checks that externalIPs are set when Type=NodePort
-func (i istioComponent) validateForExternalIPSWithNodePortV1Beta1(vz *installv1beta1.VerrazzanoSpec) error {
+func (i istioComponent) validateForExternalIPSWithNodePortV1Beta1(vz *installv1beta1.Verrazzano) error {
 	// good if istio is not set
-	if vz.Components.Istio == nil {
+	if vz.Spec.Components.Istio == nil {
 		return nil
 	}
 
 	nodePort := string(installv1beta1.NodePort)
 	// look for externalIPs if NodePort
-	err := vzconfig.CheckExternalIPsOverridesArgsWithPaths(vz.Components.Istio.ValueOverrides, specServiceJSONPath, typeJSONPathSuffix, nodePort, externalIPJsonPathSuffix, i.Name())
+	err := vzconfig.CheckExternalIPsOverridesArgsWithPaths(vz.Spec.Components.Istio.ValueOverrides, specServiceJSONPath, typeJSONPathSuffix, nodePort, externalIPJsonPathSuffix, i.Name(), vz.Namespace)
 	if err != nil {
 		return err
 	}

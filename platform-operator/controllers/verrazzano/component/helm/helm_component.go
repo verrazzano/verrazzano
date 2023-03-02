@@ -6,6 +6,7 @@ package helm
 import (
 	ctx "context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/api/core/v1"
 	"os"
@@ -13,8 +14,6 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -520,7 +519,7 @@ func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, na
 	// Sort the kvs list by priority (0th term has the highest priority)
 
 	// Getting user defined Helm overrides as the highest priority
-	overrideStrings, err := common.GetInstallOverridesYAML(context, h.GetOverrides(context.EffectiveCR()).([]v1alpha1.Overrides))
+	overrideStrings, err := override.GetInstallOverridesYAML(context, h.GetOverrides(context.EffectiveCR()).([]v1alpha1.Overrides))
 	if err != nil {
 		return overrides, err
 	}

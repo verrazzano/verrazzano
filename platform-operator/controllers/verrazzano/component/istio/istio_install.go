@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"os"
 	"path/filepath"
 
@@ -246,7 +247,7 @@ func (i istioComponent) createIstioTempFiles(compContext spi.ComponentContext) (
 }
 
 func appendOverrideFilesInOrder(ctx spi.ComponentContext, cr *v1beta1.Verrazzano, files []string) ([]string, error) {
-	overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(ctx.Client(), cr.Spec.Components.Istio.ValueOverrides, cr.Namespace)
+	overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(ctx.Client(), cr.Spec.Components.Istio.ValueOverrides, cr.Namespace)
 	if err != nil {
 		return files, err
 	}

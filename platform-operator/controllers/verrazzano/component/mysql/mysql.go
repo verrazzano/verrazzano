@@ -6,6 +6,7 @@ package mysql
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"os"
 	"strings"
 
@@ -178,20 +179,20 @@ func (c mysqlComponent) isMySQLReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	serverReplicas := 1
 	routerReplicas := 0
-	overrides, err := common.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()).([]vzapi.Overrides))
+	overrides, err := override.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()).([]vzapi.Overrides))
 	if err != nil {
 		return false
 	}
 	for _, overrideYaml := range overrides {
 		if strings.Contains(overrideYaml, "serverInstances:") {
-			value, err := common.ExtractValueFromOverrideString(overrideYaml, "serverInstances")
+			value, err := override.ExtractValueFromOverrideString(overrideYaml, "serverInstances")
 			if err != nil {
 				return false
 			}
 			serverReplicas = int(value.(float64))
 		}
 		if strings.Contains(overrideYaml, "routerInstances:") {
-			value, err := common.ExtractValueFromOverrideString(overrideYaml, "routerInstances")
+			value, err := override.ExtractValueFromOverrideString(overrideYaml, "routerInstances")
 			if err != nil {
 				return false
 			}
