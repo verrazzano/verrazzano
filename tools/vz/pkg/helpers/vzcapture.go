@@ -755,16 +755,3 @@ func removePods(podList []corev1.Pod, pods []string) []corev1.Pod {
 	}
 	return podList
 }
-
-func SetVzVer(client clipkg.Client) error {
-	vz, err := FindVerrazzanoResource(client)
-	if err != nil {
-		return err
-	}
-	vzVer = vz.Status.Version
-	return nil
-}
-
-func GetVzVer() string {
-	return vzVer
-}

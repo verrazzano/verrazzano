@@ -277,18 +277,33 @@ func GetOperatorYaml(version string) (string, error) {
 func GetK8sVer() (string, error) {
 	config, err := k8sutil.GetConfigFromController()
 	if err != nil {
-		return "", fmt.Errorf("error while getting kubernetes client config %v", err.Error())
+		return "", fmt.Errorf("error getting config from the Controller Runtime: %v", err.Error())
 	}
 
 	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return "", fmt.Errorf("error while getting kubernetes client %v", err.Error())
+		return "", fmt.Errorf("error getting a clientset for the given config %v", err.Error())
 	}
 
 	versionInfo, err := client.ServerVersion()
 	if err != nil {
-		return "", fmt.Errorf("error while getting kubernetes version %v", err.Error())
+		return "", fmt.Errorf("error getting kubernetes version %v", err.Error())
 	}
 
 	return versionInfo.String(), nil
+}
+
+// SetVzVer set verrazzano version
+func SetVzVer(client client.Client) error {
+	vz, err := FindVerrazzanoResource(client)
+	if err != nil {
+		return err
+	}
+	vzVer = vz.Status.Version
+	return nil
+}
+
+// GetVzVer returns verrazzano version
+func GetVzVer() string {
+	return vzVer
 }
