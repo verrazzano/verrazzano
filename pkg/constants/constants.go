@@ -162,14 +162,14 @@ const MetricsTemplateAPIVersion = "app.verrazzano.io/v1alpha1"
 // SecretKind is the kind for a secret
 const SecretKind = "Secret"
 
-// MysqlBackupMutatingWebhookName specifies the name of mysql webhook.
-const MysqlBackupMutatingWebhookName = "verrazzano-mysql-backup"
+// MySQLMutatingWebhookName specifies the name of mysql webhook.
+const MySQLMutatingWebhookName = "verrazzano-mysql"
 
-// MysqlBackupMutatingWebhookPath specifies the path of mysql webhook.
-const MysqlBackupMutatingWebhookPath = "/mysql-backup-job-annotate"
+// MySQLBackupMutatingWebhookPath specifies the path of mysql webhook.
+const MySQLBackupMutatingWebhookPath = "/mysql-backup-job-annotate"
 
-// MysqlStatefulSetMutatingWebhookPath specifies the path of mysql webhook.
-const MysqlStatefulSetMutatingWebhookPath = "/mysql-statefulset-annotate"
+// MySQLPodMutatingWebhookPath specifies the path of mysql webhook.
+const MySQLPodMutatingWebhookPath = "/mysql-statefulset-annotate"
 
 // VerrazzanoClusterRancherName is the name for the Rancher cluster role and secret used to grant permissions to the Verrazzano cluster user
 const VerrazzanoClusterRancherName = "verrazzano-cluster-registrar"
