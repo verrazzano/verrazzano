@@ -1,7 +1,0 @@
-envs:
-  imagesDefaultRegistry: ghcr.io
-  imagesDefaultRepository: verrazzano
-image:
-  registry: ghcr.io
-  repository: verrazzano
-  tag: 8.0.32-2.0.8
