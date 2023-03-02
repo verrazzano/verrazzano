@@ -1,0 +1,8 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: verrazzano-cluster-issuer
+  namespace: cert-manager
+spec:
+  ca:
+    secretName: verrazzano-ca-certificate-secret

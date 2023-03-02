@@ -1,0 +1,16 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/name: keycloak
+  name: keycloak-tls
+  namespace: keycloak
+spec:
+  commonName: keycloak.default.172.18.0.230.nip.io
+  dnsNames:
+    - keycloak.default.172.18.0.230.nip.io
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: verrazzano-cluster-issuer
+  secretName: keycloak-tls
