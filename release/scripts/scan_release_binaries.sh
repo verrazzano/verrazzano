@@ -67,6 +67,7 @@ if [ "$BUNDLE_TO_SCAN" == "Full" ];then
   DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR/verrazzano-${RELEASE_VERSION}"
 fi
 SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
+REPORT_DEBUG="$SCAN_REPORT_DIR/scan_report_debug.out"
 
 function install_scanner() {
   mkdir -p $SCANNER_HOME
@@ -145,11 +146,12 @@ function scan_release_binaries() {
     done
   done < "$scan_summary"
   echo "Count of expected lines in the scan summary: ${result_count}"
+  grep -v 'is OK' $SCAN_REPORT > $REPORT_DEBUG
   if [ "$result_count" == "$array_count" ];then
     echo "Found all the expected lines in the summary of the scan report."
     return 0
   else
-    echo "One or more expected lines are not found in the summary of the scan report, please check the complete report $SCAN_REPORT"
+    echo "One or more expected lines are not found in the summary of the scan report, please check the complete report $SCAN_REPORT and $REPORT_DEBUG which removes the OK lines"
     return 1
   fi
 }
