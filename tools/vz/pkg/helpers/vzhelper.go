@@ -55,8 +55,6 @@ metadata:
 const v1beta1MinVersion = "1.4.0"
 
 var (
-	vzVerErr      error
-	k8sVerErr     error
 	vzVer, k8sVer string
 )
 
@@ -280,45 +278,43 @@ func GetOperatorYaml(version string) (string, error) {
 }
 
 // SetK8sVer returns cluster Kubernetes version
-func SetK8sVer() {
+func SetK8sVer() error {
 	config, err := k8sutil.GetConfigFromController()
 	if err != nil {
-		k8sVer, k8sVerErr = "", fmt.Errorf("error getting config from the Controller Runtime: %v", err.Error())
-		return
+		return fmt.Errorf("error getting config from the Controller Runtime: %v", err.Error())
 	}
 
 	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		k8sVer, k8sVerErr = "", fmt.Errorf("error getting a clientset for the given config %v", err.Error())
-		return
+		return fmt.Errorf("error getting a clientset for the given config %v", err.Error())
 	}
 
 	versionInfo, err := client.ServerVersion()
 	if err != nil {
-		k8sVer, k8sVerErr = "", fmt.Errorf("error getting kubernetes version %v", err.Error())
-		return
+		return fmt.Errorf("error getting kubernetes version %v", err.Error())
 	}
 
-	k8sVer, k8sVerErr = versionInfo.String(), nil
+	k8sVer = versionInfo.String()
+	return nil
 }
 
 // SetVzVer set verrazzano version
-func SetVzVer(client *client.Client) {
+func SetVzVer(client *client.Client) error {
 	vz, vzErr := FindVerrazzanoResource(*client)
 	if vzErr != nil {
-		vzVer, vzVerErr = "", vzErr
-		return
+		return vzErr
 	}
-	vzVer, vzVerErr = vz.Status.Version, vzErr
+	vzVer = vz.Status.Version
+	return nil
 }
 
 // GetVersionOut returns the customised k8s and vz version string
 func GetVersionOut() string {
 	verOut := ""
-	if vzVerErr == nil {
+	if vzVer != "" {
 		verOut += fmt.Sprintf("\nVerrazzano Version: %s", vzVer)
 	}
-	if k8sVerErr == nil {
+	if k8sVer != "" {
 		verOut += fmt.Sprintf("\nKubernetes Version: %s\n", k8sVer)
 	}
 	return verOut

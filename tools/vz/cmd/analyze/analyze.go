@@ -46,13 +46,13 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-	// Get the controller runtime client
-	client, err := vzHelper.GetClient(cmd)
-	if err != nil {
-		return err
-	}
 	directoryFlag := cmd.PersistentFlags().Lookup(constants.DirectoryFlagName)
 	if directoryFlag == nil || directoryFlag.Value.String() == "" {
+		// Get the controller runtime client
+		client, err := vzHelper.GetClient(cmd)
+		if err != nil {
+			return err
+		}
 		// set vz version
 		helpers.SetVzVer(&client)
 		// set cluster k8s version
@@ -84,6 +84,12 @@ func runCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 
 		// Get the dynamic client to retrieve OAM resources
 		dynamicClient, err := vzHelper.GetDynamicClient(cmd)
+		if err != nil {
+			return err
+		}
+
+		// Get the controller runtime client
+		client, err := vzHelper.GetClient(cmd)
 		if err != nil {
 			return err
 		}
