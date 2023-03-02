@@ -23,7 +23,7 @@ ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 # Use olcne15, which is required for kubectl
 # Use developer/olcne, which is required for stioctl/helm
 RUN yum update -y \
-    && yum install -y openssl jq patch wget \
+    && yum install -y openssl jq patch \
     && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne15/x86_64/ \
     && yum install -y kubectl-1.23.11-1.el7 \
     && yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/olcne/x86_64 \
@@ -36,11 +36,6 @@ RUN groupadd -r verrazzano \
     && useradd --no-log-init -r -m -d /verrazzano -g verrazzano -u 1000 verrazzano \
     && mkdir /home/verrazzano \
     && chown -R 1000:verrazzano /home/verrazzano
-
-# install Rancher system-tools (used by uninstall)
-RUN wget https://github.com/rancher/system-tools/releases/download/v0.1.1-rc7/system-tools_linux-amd64 \
-    -O /usr/local/bin/system-tools \
-    && chmod +x /usr/local/bin/system-tools
 
 # Copy the operator binary
 COPY --from=build_base --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
