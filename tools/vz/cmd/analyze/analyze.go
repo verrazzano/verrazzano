@@ -74,7 +74,6 @@ func analyzeLiveCluster(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	if err != nil {
 		return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
 	}
-	defer os.RemoveAll(directory)
 
 	// Create a directory for the analyze command
 	reportDirectory := filepath.Join(directory, constants.BugReportRoot)
@@ -115,6 +114,7 @@ func runCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	}
 	helpers.SetVerboseOutput(isVerbose)
 	if directoryFlag == nil || directoryFlag.Value.String() == "" {
+		defer os.RemoveAll(directory)
 		if err := analyzeLiveCluster(cmd, vzHelper); err != nil {
 			return err
 		}
