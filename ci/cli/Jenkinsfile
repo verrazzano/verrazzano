@@ -30,7 +30,6 @@ pipeline {
     environment {
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
-        TMP_MODULE_SOURCE_DIR = "${WORKSPACE}/tmp/modulebuild/builds/verrazzano-cli"
 
         OCI_CLI_AUTH = "instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
@@ -80,6 +79,7 @@ pipeline {
                     env.VZ_VERSION = sh(returnStdout: true, script: "echo ${VERSION}").trim()
                     env.MODULE_STREAM_VERSION = sh(returnStdout: true, script: "echo \"${MAJOR}.${MINOR}\"").trim()
                     env.MODULE_VERSION = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                    env.MODULE_BUILD_DIR = "${WORKSPACE}/modulebuild/${env.GIT_COMMIT}"
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                 }
             }
@@ -94,12 +94,7 @@ pipeline {
 
         stage('Prepare CLI RPM environment') {
             environment {
-                GO_REPO_PATH = "${env.GO_REPO_PATH}"
-                MODULE_STREAM_VERSION = "${env.MODULE_STREAM_VERSION}"
-                MODULE_VERSION = "${env.MODULE_VERSION}"
-                VZ_VERSION = "${env.VZ_VERSION}"
-                TMP_BUILD_DIR = "${env.TMP_MODULE_SOURCE_DIR}/${env.GIT_COMMIT}"
-                RPM_SPEC_REPO = "${env.TMP_MODULE_SOURCE_DIR}/${env.GIT_COMMIT}/verrazzano-cli"
+                RPM_SPEC_REPO = "${MODULE_BUILD_DIR}/verrazzano-cli"
             }
             steps {
                 sh """
@@ -116,9 +111,9 @@ pipeline {
                 always {
                     script {
                         // TODO: Point module build directory to a directory under WORKSPACE while invoking module build service.
-                        env.MODULE_BUILD_DIR = sh(returnStdout: true, script: "sudo find /root/modulebuild/builds -name module-verrazzano-cli-${MODULE_STREAM_VERSION}-*${MODULE_VERSION}").trim()
+                        MODULE_REPO_DIR = sh(returnStdout: true, script: "sudo find /root/modulebuild/builds -name module-verrazzano-cli-${MODULE_STREAM_VERSION}-*${MODULE_VERSION}").trim()
                         archiveMBSLogs()
-                        env.MODULE_REPO_DIR = sh(returnStdout: true, script: "find ${WORKSPACE}/modulebuild -name module-verrazzano-cli-${MODULE_STREAM_VERSION}-*${MODULE_VERSION}").trim()
+                        env.MODULE_REPO_ARCHIVE_DIR = sh(returnStdout: true, script: "find ${WORKSPACE}/modulerepo -name module-verrazzano-cli-${MODULE_STREAM_VERSION}-*${MODULE_VERSION}").trim()
                     }
                 }
             }
@@ -126,11 +121,7 @@ pipeline {
 
         stage('Test RPM') {
             environment {
-                TMP_BUILD_DIR = "${env.TMP_MODULE_SOURCE_DIR}/${env.GIT_COMMIT}"
-                MODULE_BUILD_DIR = "${env.MODULE_REPO_DIR}"
-                MODULE_STREAM_VERSION = "${env.MODULE_STREAM_VERSION}"
                 BUILD_OS = "${params.BUILD_OS}"
-                BUILD_PLAT = "${params.BUILD_PLAT}"
             }
             steps {
                 sh """
@@ -139,10 +130,9 @@ pipeline {
             }
         }
 
-        stage('Save CLI binary') {
+        stage('Save CLI binary and module stream repo') {
             environment {
-                TMP_BUILD_DIR = "${env.TMP_MODULE_SOURCE_DIR}/${env.GIT_COMMIT}"
-                RPM_FILE = sh(returnStdout: true, script: "find ${MODULE_REPO_DIR}/results -name *64.rpm").trim()
+                RPM_FILE = sh(returnStdout: true, script: "find ${MODULE_REPO_ARCHIVE_DIR}/results -name *64.rpm").trim()
                 BUILD_OS = "${params.BUILD_OS}"
                 BUILD_PLAT = "${params.BUILD_PLAT}"
             }
@@ -150,7 +140,6 @@ pipeline {
                 sh """
                     ${WORKSPACE}/ci/scripts/save_cli_from_rpm.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
                 """
-                saveGeneratedArtifacts()
             }
         }
     }
@@ -179,10 +168,9 @@ def createCliRPMSource(GO_REPO_PATH) {
 
 def archiveMBSLogs() {
     sh """
-        mkdir -p ${WORKSPACE}/modulebuild
-        sudo cp -r ${MODULE_BUILD_DIR} ${WORKSPACE}/modulebuild
-        sudo chown -R opc:opc ${WORKSPACE}/modulebuild
-        sudo rm -rf ${MODULE_BUILD_DIR}
+        mkdir -p ${WORKSPACE}/modulerepo
+        sudo mv ${MODULE_REPO_DIR} ${WORKSPACE}/modulerepo
+        sudo chown -R opc:opc ${WORKSPACE}/modulerepo
     """
     archiveArtifacts artifacts: '**/module-verrazzano-cli*/**', allowEmptyArchive: true
 }
@@ -190,20 +178,7 @@ def archiveMBSLogs() {
 def invokeMBS() {
     sh """
         ## Invoke MBS to build RPM
-        cat "${TMP_MODULE_SOURCE_DIR}/${GIT_COMMIT}/verrazzano-cli-stream.yaml"
-        sudo mbs-manager build_module_locally --offline --stream "${MODULE_STREAM_VERSION}" --file "${TMP_MODULE_SOURCE_DIR}/${GIT_COMMIT}/verrazzano-cli-stream.yaml"
-    """
-}
-
-// Save generated module stream repo
-def saveGeneratedArtifacts() {
-    sh """
-        tar -czf ${WORKSPACE}/vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz -C ${WORKSPACE}/modulebuild .
-        cd ${WORKSPACE}
-        sha256sum vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz > vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256
-        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz --file vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz
-        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256 --file vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256
-        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz --file vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz
-        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256 --file vz-cli-linux-yum-repo-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256
+        cat "${MODULE_BUILD_DIR}/verrazzano-cli-stream.yaml"
+        sudo mbs-manager build_module_locally --offline --stream "${MODULE_STREAM_VERSION}" --file "${MODULE_BUILD_DIR}/verrazzano-cli-stream.yaml"
     """
 }

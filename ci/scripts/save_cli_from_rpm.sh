@@ -19,22 +19,31 @@ fi
 SHORT_COMMIT_HASH_ENV="$2"
 
 if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] ||
-  [ -z "$OCI_OS_COMMIT_BUCKET" ] || [ -z "$RPM_FILE" ] || [ -z "$TMP_BUILD_DIR" ] || [ -z "$BUILD_OS" ] ||
+  [ -z "$OCI_OS_COMMIT_BUCKET" ] || [ -z "$RPM_FILE" ] || [ -z "$MODULE_BUILD_DIR" ] || [ -z "$BUILD_OS" ] ||
   [ -z "$BUILD_PLAT" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
 
-cp "${RPM_FILE}" "${TMP_BUILD_DIR}"
-cd "${TMP_BUILD_DIR}"
+cp "${RPM_FILE}" "${MODULE_BUILD_DIR}"
+cd "${MODULE_BUILD_DIR}"
 rpm2cpio ./*64.rpm | cpio -idmv
 mkdir -p "linux_${BUILD_PLAT}"
 cp usr/bin/vz "linux_${BUILD_PLAT}"
-tar -czf "${WORKSPACE}/vz-linux-yum-${BUILD_OS}-${BUILD_PLAT}.tar.gz" -C "linux_${BUILD_PLAT}" .
+tar -czf "${WORKSPACE}/vz-cli-from-rpm-linux-${BUILD_OS}-${BUILD_PLAT}.tar.gz" -C "linux_${BUILD_PLAT}" .
 
 cd "${WORKSPACE}"
-sha256sum vz-linux-yum-${BUILD_OS}-${BUILD_PLAT}.tar.gz >vz-linux-yum-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256
-oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CURRENT_BRANCH_NAME}/vz-linux-yum-${BUILD_OS}-${BUILD_PLAT}.tar.gz --file vz-linux-yum-${BUILD_OS}-${BUILD_PLAT}.tar.gz
-oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CURRENT_BRANCH_NAME}/vz-linux-yum-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256 --file vz-linux-yum-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256
-oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${CURRENT_BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/vz-linux-yum-${BUILD_OS}-${BUILD_PLAT}.tar.gz --file vz-linux-yum-${BUILD_OS}-${BUILD_PLAT}.tar.gz
-oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${CURRENT_BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/vz-linux-yum-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256 --file vz-linux-yum-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256
+sha256sum vz-cli-from-rpm-linux-${BUILD_OS}-${BUILD_PLAT}.tar.gz >vz-cli-from-rpm-linux-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256
+oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CURRENT_BRANCH_NAME}/vz-cli-from-rpm-linux-${BUILD_OS}-${BUILD_PLAT}.tar.gz --file vz-cli-from-rpm-linux-${BUILD_OS}-${BUILD_PLAT}.tar.gz
+oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CURRENT_BRANCH_NAME}/vz-cli-from-rpm-linux-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256 --file vz-cli-from-rpm-linux-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256
+oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${CURRENT_BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/vz-cli-from-rpm-linux-${BUILD_OS}-${BUILD_PLAT}.tar.gz --file vz-cli-from-rpm-linux-${BUILD_OS}-${BUILD_PLAT}.tar.gz
+oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${CURRENT_BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/vz-cli-from-rpm-linux-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256 --file vz-cli-from-rpm-linux-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256
+
+# Save generated module stream repo
+tar -czf ${WORKSPACE}/vz-cli-yum-repo-llinux-${BUILD_OS}-${BUILD_PLAT}.tar.gz -C ${WORKSPACE}/modulerepo .
+cd ${WORKSPACE}
+sha256sum vz-cli-yum-repo-llinux-${BUILD_OS}-${BUILD_PLAT}.tar.gz >vz-cli-yum-repo-llinux-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256
+oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CURRENT_BRANCH_NAME}/vz-cli-yum-repo-llinux-${BUILD_OS}-${BUILD_PLAT}.tar.gz --file vz-cli-yum-repo-llinux-${BUILD_OS}-${BUILD_PLAT}.tar.gz
+oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CURRENT_BRANCH_NAME}/vz-cli-yum-repo-llinux-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256 --file vz-cli-yum-repo-llinux-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256
+oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${CURRENT_BRANCH_NAME}/${SHORT_COMMIT_HASH}/vz-cli-yum-repo-llinux-${BUILD_OS}-${BUILD_PLAT}.tar.gz --file vz-cli-yum-repo-llinux-${BUILD_OS}-${BUILD_PLAT}.tar.gz
+oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${CURRENT_BRANCH_NAME}/${SHORT_COMMIT_HASH}/vz-cli-yum-repo-llinux-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256 --file vz-cli-yum-repo-llinux-${BUILD_OS}-${BUILD_PLAT}.tar.gz.sha256
