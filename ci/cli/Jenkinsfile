@@ -72,14 +72,7 @@ pipeline {
                 moveContentToGoRepoPath()
 
                 script {
-                    def props = readProperties file: '.verrazzano-development-version'
-                    VERSION = props['verrazzano-development-version']
-                    MAJOR = sh(returnStdout: true, script: "echo ${VERSION} | cut -d '.' -f 1").trim()
-                    MINOR = sh(returnStdout: true, script: "echo ${VERSION} | cut -d '.' -f 2").trim()
-                    env.VZ_VERSION = sh(returnStdout: true, script: "echo ${VERSION}").trim()
-                    env.MODULE_STREAM_VERSION = sh(returnStdout: true, script: "echo \"${MAJOR}.${MINOR}\"").trim()
                     env.MODULE_VERSION = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-                    env.MODULE_BUILD_DIR = "${WORKSPACE}/modulebuild/${env.GIT_COMMIT}"
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                 }
             }
@@ -93,9 +86,6 @@ pipeline {
         }
 
         stage('Prepare CLI RPM environment') {
-            environment {
-                RPM_SPEC_REPO = "${MODULE_BUILD_DIR}/verrazzano-cli"
-            }
             steps {
                 sh """
                     ${WORKSPACE}/ci/scripts/prepare_vz_cli_rpm_pipeline.sh
@@ -105,6 +95,9 @@ pipeline {
 
         stage('Build RPM') {
             steps {
+                script {
+                    env.MODULE_STREAM_VERSION = sh(returnStdout: true, script: "cat \"${GO_REPO_PATH}/verrazzano/tools/vz/out/verrazzano-cli-stream.yaml\"|grep \"stream:\"|cut -d ' ' -f 4").trim()
+                }
                 invokeMBS()
             }
             post {
@@ -132,7 +125,6 @@ pipeline {
 
         stage('Save CLI binary and module stream repo') {
             environment {
-                RPM_FILE = sh(returnStdout: true, script: "find ${MODULE_REPO_ARCHIVE_DIR}/results -name *64.rpm").trim()
                 BUILD_OS = "${params.BUILD_OS}"
                 BUILD_PLAT = "${params.BUILD_PLAT}"
             }
@@ -178,7 +170,7 @@ def archiveMBSLogs() {
 def invokeMBS() {
     sh """
         ## Invoke MBS to build RPM
-        cat "${MODULE_BUILD_DIR}/verrazzano-cli-stream.yaml"
-        sudo mbs-manager build_module_locally --offline --stream "${MODULE_STREAM_VERSION}" --file "${MODULE_BUILD_DIR}/verrazzano-cli-stream.yaml"
+        cat "${GO_REPO_PATH}/verrazzano/tools/vz/out/verrazzano-cli-stream.yaml"
+        sudo mbs-manager build_module_locally --offline --stream "${MODULE_STREAM_VERSION}" --file "${GO_REPO_PATH}/verrazzano/tools/vz/out/verrazzano-cli-stream.yaml"
     """
 }

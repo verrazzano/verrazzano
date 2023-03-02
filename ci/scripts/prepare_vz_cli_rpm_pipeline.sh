@@ -6,11 +6,16 @@
 set -e -o pipefail
 set -xv
 
-if [ -z "$JENKINS_URL" ] || [ -z "$RPM_SPEC_REPO" ] || [ -z "$VZ_VERSION" ] || [ -z "$MODULE_STREAM_VERSION" ] ||
-[ -z "$MODULE_VERSION" ] || [ -z "$MODULE_BUILD_DIR" ] || [ -z "$GO_REPO_PATH" ]; then
+if [ -z "$JENKINS_URL" ] || [ -z "$MODULE_VERSION" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
+
+RPM_SPEC_REPO="${WORKSPACE}/verrazzano-cli"
+VZ_VERSION="$(grep verrazzano-development-version "${GO_REPO_PATH}"/verrazzano/.verrazzano-development-version | cut -d= -f 2)"
+MAJOR=$(echo "${VZ_VERSION}" | cut -d '.' -f 1)
+MINOR=$(echo "${VZ_VERSION}" | cut -d '.' -f 2)
+MODULE_STREAM_VERSION="${MAJOR}"."${MINOR}"
 
 create_spec_repo() {
   rm -rf "${RPM_SPEC_REPO}"
@@ -24,7 +29,7 @@ create_spec_repo() {
 }
 
 generate_module_def() {
-  cat <<EOF >"${MODULE_BUILD_DIR}"/verrazzano-cli-stream.yaml
+  cat <<EOF >"${GO_REPO_PATH}"/verrazzano/tools/vz/out//verrazzano-cli-stream.yaml
 document: modulemd
 version: 2
 data:

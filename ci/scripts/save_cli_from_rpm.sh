@@ -19,14 +19,14 @@ fi
 SHORT_COMMIT_HASH_ENV="$2"
 
 if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] ||
-  [ -z "$OCI_OS_COMMIT_BUCKET" ] || [ -z "$RPM_FILE" ] || [ -z "$MODULE_BUILD_DIR" ] || [ -z "$BUILD_OS" ] ||
-  [ -z "$BUILD_PLAT" ]; then
+  [ -z "$OCI_OS_COMMIT_BUCKET" ] || [ -z "$BUILD_OS" ] || [ -z "$BUILD_PLAT" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
 
-cp "${RPM_FILE}" "${MODULE_BUILD_DIR}"
-cd "${MODULE_BUILD_DIR}"
+RPM_FILE=$(find "${MODULE_REPO_ARCHIVE_DIR}"/results -name \*64.rpm)
+cp "${RPM_FILE}" "${WORKSPACE}"
+cd "${WORKSPACE}"
 rpm2cpio ./*64.rpm | cpio -idmv
 mkdir -p "linux_${BUILD_PLAT}"
 cp usr/bin/vz "linux_${BUILD_PLAT}"
