@@ -6,6 +6,7 @@ package analyze
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis"
 	vzbugreport "github.com/verrazzano/verrazzano/tools/vz/pkg/bugreport"
@@ -47,17 +48,7 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 
 func runCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	directoryFlag := cmd.PersistentFlags().Lookup(constants.DirectoryFlagName)
-	if directoryFlag == nil || directoryFlag.Value.String() == "" {
-		// Get the controller runtime client
-		client, err := vzHelper.GetClient(cmd)
-		if err != nil {
-			return err
-		}
-		// set vz version
-		helpers.SetVzVer(&client)
-		// set cluster k8s version
-		helpers.SetK8sVer()
-		// print k8s and vz version on console stdout
+	if err := setVzK8sVersion(directoryFlag, vzHelper, cmd); err == nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), helpers.GetVersionOut())
 	}
 	reportFileName, err := cmd.PersistentFlags().GetString(constants.ReportFileFlagName)
@@ -132,6 +123,27 @@ func runCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	}
 
 	return analysis.AnalysisMain(vzHelper, directory, reportFileName, reportFormat)
+}
+
+// setVzK8sVersion sets vz and k8s version
+func setVzK8sVersion(directoryFlag *pflag.Flag, vzHelper helpers.VZHelper, cmd *cobra.Command) error {
+	if directoryFlag == nil || directoryFlag.Value.String() == "" {
+		// Get the controller runtime client
+		client, err := vzHelper.GetClient(cmd)
+		if err != nil {
+			return err
+		}
+		// set vz version
+		if err := helpers.SetVzVer(&client); err != nil {
+			return err
+		}
+		// set cluster k8s version
+		if err := helpers.SetK8sVer(); err != nil {
+			return err
+		}
+		// print k8s and vz version on console stdout
+		return nil
+	}
 }
 
 // validateReportFormat validates the value specified for flag report-format
