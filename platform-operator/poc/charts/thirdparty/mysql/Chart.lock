@@ -1,6 +1,0 @@
-dependencies:
-- name: mysql-operator
-  repository: http://localhost:9080/vz/stable
-  version: 2.1.1
-digest: sha256:aef11968cdc4fb778baef316282b2adf504568844ac6f6daeb97b7ca418e0211
-generated: "2023-02-17T14:39:31.226955-05:00"
