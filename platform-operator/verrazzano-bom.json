@@ -28,13 +28,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.3.1-20230209064251-9eca7e983",
+              "tag": "v1.3.1-20230302040354-bf21e9603",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "v1.3.1-20230209064251-9eca7e983",
+              "tag": "v1.3.1-20230302040354-bf21e9603",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -87,7 +87,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.12.2-20230131195426-86e7710e",
+              "tag": "v0.12.2-20230302040401-49b4f66e",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -199,7 +199,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.3.1-20230209064251-9eca7e983",
+              "tag": "v1.3.1-20230302040354-bf21e9603",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             },
@@ -223,7 +223,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.6.0-20230227053515-af08806",
+              "tag": "v1.6.0-20230302034628-8ea4e6c",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -254,7 +254,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.3.1-20230209064251-9eca7e983",
+              "tag": "v1.3.1-20230302040354-bf21e9603",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             }
           ]
@@ -449,7 +449,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v20.0.1-20230208153258-215619ca63",
+              "tag": "v20.0.1-20230301104410-055767339d",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -483,7 +483,7 @@
             },
             {
               "image": "kube-webhook-certgen",
-              "tag": "v1.3.1-20230209064251-9eca7e983",
+              "tag": "v1.3.1-20230302040354-bf21e9603",
               "helmFullImageKey": "prometheusOperator.admissionWebhooks.patch.image.repository",
               "helmTagKey": "prometheusOperator.admissionWebhooks.patch.image.tag"
             }

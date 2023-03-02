@@ -8,8 +8,7 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 )
@@ -18,13 +17,9 @@ var _ = t.Describe("Argo CD", Label("f:infra-lcm",
 	"f:ui.console"), func() {
 
 	t.BeforeEach(func() {
-		var err error
-		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-		Expect(err).ShouldNot(HaveOccurred())
-
-		//Skip the test if Argo CD is disabled
-		if !pkg.IsArgoCDEnabled(kubeconfigPath) {
-			Skip("Skipping Argo CD access test as Argo CD is not enabled.")
+		argoCD := vz.Status.Components["argocd"]
+		if argoCD == nil || argoCD.State == v1alpha1.CompStateDisabled {
+			Skip("Argo CD disabled, skipping test")
 		}
 
 	})
