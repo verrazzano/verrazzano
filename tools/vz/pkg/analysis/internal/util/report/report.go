@@ -192,35 +192,54 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 		}
 	}
 
-	if len(writeOut) > 0 {
-		var fileOut *os.File
-		if reportFile == "" {
-			reportFile = constants.VzAnalysisReportTmpFile
-			fileOut, err = os.CreateTemp(".", reportFile)
-			if err != nil && errors.Is(err, fs.ErrPermission) {
-				fmt.Fprintf(vzHelper.GetOutputStream(), "Warning: %s to open report file in current directory\n", fs.ErrPermission)
-				fileOut, err = os.CreateTemp("", reportFile)
-			}
-		} else {
-			fileOut, err = os.OpenFile(reportFile, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
+	// genTmpReport opens report file at tmp path
+	genTmpReport := func(reportFile *string) (*os.File, error) {
+		*reportFile = constants.VzAnalysisReportTmpFile
+		repFile, err := os.CreateTemp(".", *reportFile)
+		if err != nil && errors.Is(err, fs.ErrPermission) {
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Warning: %s to open report file in current directory\n", fs.ErrPermission)
+			repFile, err = os.CreateTemp("", *reportFile)
 		}
-		if err != nil {
-			log.Errorf("Failed to create report file : %s, error found : %s", reportFile, err.Error())
-			return err
-		}
-		_, err = fileOut.Write([]byte(helpers.GetVersionOut() + sepOut + writeOut))
+		return repFile, err
+	}
+
+	// genUsrDefinedReport opens report file at user defined file path
+	genUsrDefinedReport := func(reportFile *string) (*os.File, error) {
+		return os.OpenFile(*reportFile, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
+	}
+
+	// printReport std outs reports to console
+	printReport := func() {
 		if reportFormat == constants.DetailedReport {
 			fmt.Fprintf(vzHelper.GetOutputStream(), sepOut+writeOut)
 		} else if reportFormat == constants.SummaryReport {
 			fmt.Fprintf(vzHelper.GetOutputStream(), sepOut+writeSummaryOut)
 		}
+	}
+
+	if len(writeOut) > 0 {
+		var repFile *os.File
+		if reportFile == "" {
+			// flag --report-file is unset or empty
+			repFile, err = genTmpReport(&reportFile)
+		} else {
+			// flag --report-file is set
+			repFile, err = genUsrDefinedReport(&reportFile)
+		}
+		if err != nil {
+			log.Errorf("Failed to create report file : %s, error found : %s", reportFile, err.Error())
+			return err
+		}
+		// writes vz & k8s version, a separator and detected issues to report file
+		_, err = repFile.Write([]byte(helpers.GetVersionOut() + sepOut + writeOut))
+		printReport()
 		if err != nil {
 			log.Errorf("Failed to write to report file %s, error found : %s", reportFile, err.Error())
 			return err
 		}
 		defer func() {
-			fmt.Fprintf(os.Stdout, "\nDetailed report available in %s\n", fileOut.Name())
-			fileOut.Close()
+			fmt.Fprintf(os.Stdout, "\nDetailed report available in %s\n", repFile.Name())
+			repFile.Close()
 		}()
 	} else {
 		if includeInfo {

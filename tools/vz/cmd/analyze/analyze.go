@@ -50,8 +50,11 @@ func runCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	if err != nil {
 		return err
 	}
+	// set vz version
 	helpers.SetVzVer(client)
+	// set cluster k8s version
 	helpers.SetK8sVer()
+	// print k8s and vz version on console stdout
 	fmt.Fprintf(vzHelper.GetOutputStream(), helpers.GetVersionOut())
 
 	reportFileName, err := cmd.PersistentFlags().GetString(constants.ReportFileFlagName)
@@ -113,7 +116,6 @@ func runCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 			Duration: int64(0),
 		}
 		err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, reportDirectory, moreNS, vzHelper, podLogs)
-
 		if err != nil {
 			return fmt.Errorf(err.Error())
 		}

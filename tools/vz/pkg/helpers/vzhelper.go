@@ -55,9 +55,9 @@ metadata:
 const v1beta1MinVersion = "1.4.0"
 
 var (
-	VzVersionErr          error
-	VzVersion, K8sVersion string
-	K8sVersionErr         error
+	vzVerErr      error
+	k8sVerErr     error
+	vzVer, k8sVer string
 )
 
 func NewVerrazzanoForVZVersion(version string) (schema.GroupVersion, client.Object, error) {
@@ -279,39 +279,40 @@ func GetOperatorYaml(version string) (string, error) {
 	return url, nil
 }
 
-// GetK8sVer returns cluster Kubernetes version
+// SetK8sVer returns cluster Kubernetes version
 func SetK8sVer() {
 	config, err := k8sutil.GetConfigFromController()
 	if err != nil {
-		K8sVersion, K8sVersionErr = "", fmt.Errorf("error getting config from the Controller Runtime: %v", err.Error())
+		k8sVer, k8sVerErr = "", fmt.Errorf("error getting config from the Controller Runtime: %v", err.Error())
 	}
 
 	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		K8sVersion, K8sVersionErr = "", fmt.Errorf("error getting a clientset for the given config %v", err.Error())
+		k8sVer, k8sVerErr = "", fmt.Errorf("error getting a clientset for the given config %v", err.Error())
 	}
 
 	versionInfo, err := client.ServerVersion()
 	if err != nil {
-		K8sVersion, K8sVersionErr = "", fmt.Errorf("error getting kubernetes version %v", err.Error())
+		k8sVer, k8sVerErr = "", fmt.Errorf("error getting kubernetes version %v", err.Error())
 	}
 
-	K8sVersion, K8sVersionErr = versionInfo.String(), nil
+	k8sVer, k8sVerErr = versionInfo.String(), nil
 }
 
 // SetVzVer set verrazzano version
 func SetVzVer(client client.Client) {
 	vz, vzErr := FindVerrazzanoResource(client)
-	VzVersion, VzVersionErr = vz.Status.Version, vzErr
+	vzVer, vzVerErr = vz.Status.Version, vzErr
 }
 
+// GetVersionOut returns the customised k8s and vz version string
 func GetVersionOut() string {
-	versionOut := ""
-	if VzVersionErr == nil {
-		versionOut += fmt.Sprintf("\nVerrazzano Version: %s", VzVersion)
+	verOut := ""
+	if vzVerErr == nil {
+		verOut += fmt.Sprintf("\nVerrazzano Version: %s", vzVer)
 	}
-	if K8sVersionErr == nil {
-		versionOut += fmt.Sprintf("\nKubernetes Version: %s\n", K8sVersion)
+	if k8sVerErr == nil {
+		verOut += fmt.Sprintf("\nKubernetes Version: %s\n", k8sVer)
 	}
-	return versionOut
+	return verOut
 }
