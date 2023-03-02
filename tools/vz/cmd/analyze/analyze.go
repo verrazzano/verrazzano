@@ -46,17 +46,20 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+	// Get the controller runtime client
 	client, err := vzHelper.GetClient(cmd)
 	if err != nil {
 		return err
 	}
-	// set vz version
-	helpers.SetVzVer(client)
-	// set cluster k8s version
-	helpers.SetK8sVer()
-	// print k8s and vz version on console stdout
-	fmt.Fprintf(vzHelper.GetOutputStream(), helpers.GetVersionOut())
-
+	directoryFlag := cmd.PersistentFlags().Lookup(constants.DirectoryFlagName)
+	if directoryFlag == nil || directoryFlag.Value.String() == "" {
+		// set vz version
+		helpers.SetVzVer(&client)
+		// set cluster k8s version
+		helpers.SetK8sVer()
+		// print k8s and vz version on console stdout
+		fmt.Fprintf(vzHelper.GetOutputStream(), helpers.GetVersionOut())
+	}
 	reportFileName, err := cmd.PersistentFlags().GetString(constants.ReportFileFlagName)
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
@@ -69,12 +72,7 @@ func runCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return fmt.Errorf("an error occurred while reading value for the flag %s: %s", constants.VerboseFlag, err.Error())
 	}
 	helpers.SetVerboseOutput(isVerbose)
-
-	directoryFlag := cmd.PersistentFlags().Lookup(constants.DirectoryFlagName)
-
 	directory := ""
-	// Get the controller runtime client
-
 	if directoryFlag == nil || directoryFlag.Value.String() == "" {
 		// Analyze live cluster by capturing the snapshot, when capture-dir is not set
 

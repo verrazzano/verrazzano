@@ -284,24 +284,31 @@ func SetK8sVer() {
 	config, err := k8sutil.GetConfigFromController()
 	if err != nil {
 		k8sVer, k8sVerErr = "", fmt.Errorf("error getting config from the Controller Runtime: %v", err.Error())
+		return
 	}
 
 	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		k8sVer, k8sVerErr = "", fmt.Errorf("error getting a clientset for the given config %v", err.Error())
+		return
 	}
 
 	versionInfo, err := client.ServerVersion()
 	if err != nil {
 		k8sVer, k8sVerErr = "", fmt.Errorf("error getting kubernetes version %v", err.Error())
+		return
 	}
 
 	k8sVer, k8sVerErr = versionInfo.String(), nil
 }
 
 // SetVzVer set verrazzano version
-func SetVzVer(client client.Client) {
-	vz, vzErr := FindVerrazzanoResource(client)
+func SetVzVer(client *client.Client) {
+	vz, vzErr := FindVerrazzanoResource(*client)
+	if vzErr != nil {
+		vzVer, vzVerErr = "", vzErr
+		return
+	}
 	vzVer, vzVerErr = vz.Status.Version, vzErr
 }
 
