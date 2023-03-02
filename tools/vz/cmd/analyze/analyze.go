@@ -5,6 +5,7 @@ package analyze
 
 import (
 	"fmt"
+	"github.com/go-errors/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
@@ -144,6 +145,7 @@ func setVzK8sVersion(directoryFlag *pflag.Flag, vzHelper helpers.VZHelper, cmd *
 		// print k8s and vz version on console stdout
 		return nil
 	}
+	return errors.New("cannot set vz and k8s version")
 }
 
 // validateReportFormat validates the value specified for flag report-format
