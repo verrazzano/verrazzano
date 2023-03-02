@@ -551,6 +551,7 @@ var createClient = func(r *VerrazzanoManagedClusterReconciler, vmc *clustersv1al
 	// Skip Keycloak client generation if Prometheus isn't present in VMC status
 	// MCAgent on the managed cluster will set this if/when it is ready
 	if len(promHost) == 0 {
+		r.log.Debug("Skipping Prometheus Keycloak client creation: VMC Prometheus not found")
 		return nil
 	}
 
