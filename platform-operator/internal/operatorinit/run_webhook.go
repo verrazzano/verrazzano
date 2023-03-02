@@ -127,7 +127,7 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 
 	// register MySQL backup job mutating webhook
 	mgr.GetWebhookServer().Register(
-		constants.MysqlBackupMutatingWebhookPath,
+		constants.MySQLBackupMutatingWebhookPath,
 		&webhook.Admission{
 			Handler: &webhooks.MySQLBackupJobWebhook{
 				Client:        mgr.GetClient(),
@@ -140,7 +140,7 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 
 	// register MySQL statefulset mutating webhook
 	mgr.GetWebhookServer().Register(
-		constants.MysqlStatefulSetMutatingWebhookPath,
+		constants.MySQLPodMutatingWebhookPath,
 		&webhook.Admission{
 			Handler: &webhooks.MySQLPodWebhook{
 				Client:        mgr.GetClient(),
@@ -191,7 +191,7 @@ func updateWebhookConfigurations(kubeClient *kubernetes.Clientset, log *zap.Suga
 		return fmt.Errorf("Failed to update conversion webhook: %v", err)
 	}
 
-	if err := updateMutatingWebhookConfiguration(kubeClient, constants.MysqlBackupMutatingWebhookName); err != nil {
+	if err := updateMutatingWebhookConfiguration(kubeClient, constants.MySQLMutatingWebhookName); err != nil {
 		return fmt.Errorf("Failed to update pod mutating webhook configuration: %v", err)
 	}
 

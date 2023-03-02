@@ -122,10 +122,10 @@ func TestUpdateMutatingWebhookConfiguration(t *testing.T) {
 	_, err = createExpectedMutatingWebhook(kubeClient)
 	asserts.Nilf(err, "Unexpected error creating expected webhook configuration")
 
-	err = updateMutatingWebhookConfiguration(kubeClient, constants.MysqlBackupMutatingWebhookName)
+	err = updateMutatingWebhookConfiguration(kubeClient, constants.MySQLMutatingWebhookName)
 	asserts.Nilf(err, "Unexpected error returned from updateMutatingWebhookConfiguration: %v", err)
 
-	updatedWebhook, _ := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), constants.MysqlBackupMutatingWebhookName, metav1.GetOptions{})
+	updatedWebhook, _ := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), constants.MySQLMutatingWebhookName, metav1.GetOptions{})
 	asserts.Equal(caCert.Bytes(), updatedWebhook.Webhooks[0].ClientConfig.CABundle, "Expected CA bundle name did not match")
 	asserts.Equal(caCert.Bytes(), updatedWebhook.Webhooks[1].ClientConfig.CABundle, "Expected CA bundle name did not match")
 }
@@ -143,7 +143,7 @@ func TestUpdateMutatingWebhookConfigurationNoCASecret(t *testing.T) {
 	_, err := createExpectedMutatingWebhook(kubeClient)
 	asserts.Nilf(err, "Unexpected error creating expected webhook configuration", err)
 
-	err = updateMutatingWebhookConfiguration(kubeClient, constants.MysqlBackupMutatingWebhookName)
+	err = updateMutatingWebhookConfiguration(kubeClient, constants.MySQLMutatingWebhookName)
 	asserts.NotNil(err, "No error returned when webhook doesn't exist")
 }
 
@@ -160,7 +160,7 @@ func TestUpdateMutatingWebhookConfigurationNoWebhook(t *testing.T) {
 	_, _, err := createExpectedCASecret(kubeClient)
 	asserts.Nilf(err, "Unexpected error creating expected CA secret", err)
 
-	err = updateMutatingWebhookConfiguration(kubeClient, constants.MysqlBackupMutatingWebhookName)
+	err = updateMutatingWebhookConfiguration(kubeClient, constants.MySQLMutatingWebhookName)
 	asserts.NotNil(err, "No error returned when webhook doesn't exist")
 }
 
@@ -238,7 +238,7 @@ func createExpectedMutatingWebhook(kubeClient *fake.Clientset) (*adminv1.Mutatin
 	webhook := adminv1.MutatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: constants.MysqlBackupMutatingWebhookName,
+			Name: constants.MySQLMutatingWebhookName,
 		},
 		Webhooks: []adminv1.MutatingWebhook{
 			{Name: "webhook1"},
