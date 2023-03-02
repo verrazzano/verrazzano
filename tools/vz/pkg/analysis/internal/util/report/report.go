@@ -7,7 +7,6 @@ package report
 import (
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"go.uber.org/zap"
@@ -104,10 +103,6 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 	// Default to stdout if no reportfile is supplied
 	//TODO: Eventually add support other reportFormat type (json)
 	writeOut, writeSummaryOut, sepOut := "", "", ""
-	versionOut := analyze.VzVersion
-	if analyze.K8sVersionErr == nil {
-		versionOut += analyze.K8sVersion
-	}
 
 	// Lock the report data while generating the report itself
 	reportMutex.Lock()
@@ -213,9 +208,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 			log.Errorf("Failed to create report file : %s, error found : %s", reportFile, err.Error())
 			return err
 		}
-		_, err = fileOut.Write([]byte(writeOut))
-		writeOut = versionOut + writeOut
-		writeSummaryOut = versionOut + writeSummaryOut
+		_, err = fileOut.Write([]byte(helpers.GetVersionOut() + sepOut + writeOut))
 		if reportFormat == constants.DetailedReport {
 			fmt.Fprintf(vzHelper.GetOutputStream(), sepOut+writeOut)
 		} else if reportFormat == constants.SummaryReport {

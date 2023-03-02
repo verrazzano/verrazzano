@@ -44,8 +44,6 @@ var isVerbose bool
 var multiWriterOut io.Writer
 var multiWriterErr io.Writer
 
-var vzVer string
-
 // CreateReportArchive creates the .tar.gz file specified by bugReportFile, from the files in captureDir
 func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
 

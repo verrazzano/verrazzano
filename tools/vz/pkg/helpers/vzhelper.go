@@ -54,6 +54,12 @@ metadata:
 
 const v1beta1MinVersion = "1.4.0"
 
+var (
+	VzVersionErr          error
+	VzVersion, K8sVersion string
+	K8sVersionErr         error
+)
+
 func NewVerrazzanoForVZVersion(version string) (schema.GroupVersion, client.Object, error) {
 	if version == "" {
 		// default to a v1beta1 compatible version if not specified
@@ -274,36 +280,38 @@ func GetOperatorYaml(version string) (string, error) {
 }
 
 // GetK8sVer returns cluster Kubernetes version
-func GetK8sVer() (string, error) {
+func SetK8sVer() {
 	config, err := k8sutil.GetConfigFromController()
 	if err != nil {
-		return "", fmt.Errorf("error getting config from the Controller Runtime: %v", err.Error())
+		K8sVersion, K8sVersionErr = "", fmt.Errorf("error getting config from the Controller Runtime: %v", err.Error())
 	}
 
 	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return "", fmt.Errorf("error getting a clientset for the given config %v", err.Error())
+		K8sVersion, K8sVersionErr = "", fmt.Errorf("error getting a clientset for the given config %v", err.Error())
 	}
 
 	versionInfo, err := client.ServerVersion()
 	if err != nil {
-		return "", fmt.Errorf("error getting kubernetes version %v", err.Error())
+		K8sVersion, K8sVersionErr = "", fmt.Errorf("error getting kubernetes version %v", err.Error())
 	}
 
-	return versionInfo.String(), nil
+	K8sVersion, K8sVersionErr = versionInfo.String(), nil
 }
 
 // SetVzVer set verrazzano version
-func SetVzVer(client client.Client) error {
-	vz, err := FindVerrazzanoResource(client)
-	if err != nil {
-		return err
-	}
-	vzVer = vz.Status.Version
-	return nil
+func SetVzVer(client client.Client) {
+	vz, vzErr := FindVerrazzanoResource(client)
+	VzVersion, VzVersionErr = vz.Status.Version, vzErr
 }
 
-// GetVzVer returns verrazzano version
-func GetVzVer() string {
-	return vzVer
+func GetVersionOut() string {
+	versionOut := ""
+	if VzVersionErr == nil {
+		versionOut += fmt.Sprintf("\nVerrazzano Version: %s", VzVersion)
+	}
+	if K8sVersionErr == nil {
+		versionOut += fmt.Sprintf("\nKubernetes Version: %s\n", K8sVersion)
+	}
+	return versionOut
 }

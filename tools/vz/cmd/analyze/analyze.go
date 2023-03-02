@@ -28,18 +28,13 @@ vz analyze
 `
 )
 
-var (
-	VzVersion, K8sVersion string
-	K8sVersionErr         error
-)
-
 func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		return validateReportFormat(cmd)
 	}
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return runCmdAnalyze(cmd, args, vzHelper)
+		return runCmdAnalyze(cmd, vzHelper)
 	}
 
 	cmd.Example = helpExample
@@ -50,13 +45,15 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 	return cmd
 }
 
-func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	VzVersion = fmt.Sprintf("\nVerrazzano Version: %s", helpers.GetVzVer())
-	K8sVersion, K8sVersionErr = helpers.GetK8sVer()
-	if K8sVersionErr == nil {
-		fmt.Sprintf("\nKubernetes Version: %s\n", analyze.K8sVersion)
+func runCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+	client, err := vzHelper.GetClient(cmd)
+	if err != nil {
+		return err
 	}
-	fmt.Fprintf(vzHelper.GetOutputStream(), VzVersion+K8sVersion)
+	helpers.SetVzVer(client)
+	helpers.SetK8sVer()
+	fmt.Fprintf(vzHelper.GetOutputStream(), helpers.GetVersionOut())
+
 	reportFileName, err := cmd.PersistentFlags().GetString(constants.ReportFileFlagName)
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
@@ -86,11 +83,6 @@ func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 
 		// Get the dynamic client to retrieve OAM resources
 		dynamicClient, err := vzHelper.GetDynamicClient(cmd)
-		if err != nil {
-			return err
-		}
-
-		client, err := vzHelper.GetClient(cmd)
 		if err != nil {
 			return err
 		}
@@ -125,9 +117,7 @@ func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		if err != nil {
 			return fmt.Errorf(err.Error())
 		}
-		if helpers.SetVzVer(client) != nil {
-			return fmt.Errorf("an error occurred while fetching the verrazzano version: %s", err.Error())
-		}
+
 	} else {
 		directory, err = cmd.PersistentFlags().GetString(constants.DirectoryFlagName)
 		if err != nil {
