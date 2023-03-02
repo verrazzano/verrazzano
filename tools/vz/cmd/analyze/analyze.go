@@ -28,6 +28,11 @@ vz analyze
 `
 )
 
+var (
+	VzVersion, K8sVersion string
+	K8sVersionErr         error
+)
+
 func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
@@ -46,6 +51,12 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+	VzVersion = fmt.Sprintf("\nVerrazzano Version: %s", helpers.GetVzVer())
+	K8sVersion, K8sVersionErr = helpers.GetK8sVer()
+	if K8sVersionErr == nil {
+		fmt.Sprintf("\nKubernetes Version: %s\n", analyze.K8sVersion)
+	}
+	fmt.Fprintf(vzHelper.GetOutputStream(), VzVersion+K8sVersion)
 	reportFileName, err := cmd.PersistentFlags().GetString(constants.ReportFileFlagName)
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())

@@ -7,6 +7,7 @@ package report
 import (
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"go.uber.org/zap"
@@ -102,11 +103,10 @@ func ContributeIssue(log *zap.SugaredLogger, issue Issue) (err error) {
 func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat string, includeSupportData bool, includeInfo bool, includeActions bool, minConfidence int, minImpact int, vzHelper helpers.VZHelper) (err error) {
 	// Default to stdout if no reportfile is supplied
 	//TODO: Eventually add support other reportFormat type (json)
-	writeOut, writeSummaryOut := "", ""
-	versionOut := fmt.Sprintf("\nVerrazzano Version: %s", helpers.GetVzVer())
-	k8sVer, err := helpers.GetK8sVer()
-	if err == nil {
-		versionOut += fmt.Sprintf("\nKubernetes Version: %s\n", k8sVer)
+	writeOut, writeSummaryOut, sepOut := "", "", ""
+	versionOut := analyze.VzVersion
+	if analyze.K8sVersionErr == nil {
+		versionOut += analyze.K8sVersion
 	}
 
 	// Lock the report data while generating the report itself
@@ -130,8 +130,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 		} else {
 			issuesDetected = fmt.Sprintf("Detected %d issues for %s:", len(actuallyReported), source)
 		}
-		sep := strings.Repeat(constants.LineSeparator, len(issuesDetected))
-		versionOut += "\n" + issuesDetected + "\n" + sep + "\n"
+		sepOut = "\n" + issuesDetected + "\n" + strings.Repeat(constants.LineSeparator, len(issuesDetected)) + "\n"
 		for _, issue := range actuallyReported {
 			// Display only summary and action when the report-format is set to summary
 			if reportFormat == constants.SummaryReport {
@@ -199,8 +198,6 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 	}
 
 	if len(writeOut) > 0 {
-		writeOut = versionOut + writeOut
-		writeSummaryOut = versionOut + writeSummaryOut
 		var fileOut *os.File
 		if reportFile == "" {
 			reportFile = constants.VzAnalysisReportTmpFile
@@ -216,23 +213,23 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 			log.Errorf("Failed to create report file : %s, error found : %s", reportFile, err.Error())
 			return err
 		}
-		defer func() {
-			if reportFormat == constants.DetailedReport {
-				fmt.Fprintf(vzHelper.GetOutputStream(), writeOut)
-			}
-			if reportFormat == constants.SummaryReport {
-				fmt.Fprintf(vzHelper.GetOutputStream(), writeSummaryOut)
-			}
-			fmt.Fprintf(os.Stdout, "\nDetailed report available in %s\n", fileOut.Name())
-			fileOut.Close()
-		}()
 		_, err = fileOut.Write([]byte(writeOut))
+		writeOut = versionOut + writeOut
+		writeSummaryOut = versionOut + writeSummaryOut
+		if reportFormat == constants.DetailedReport {
+			fmt.Fprintf(vzHelper.GetOutputStream(), sepOut+writeOut)
+		} else if reportFormat == constants.SummaryReport {
+			fmt.Fprintf(vzHelper.GetOutputStream(), sepOut+writeSummaryOut)
+		}
 		if err != nil {
 			log.Errorf("Failed to write to report file %s, error found : %s", reportFile, err.Error())
 			return err
 		}
+		defer func() {
+			fmt.Fprintf(os.Stdout, "\nDetailed report available in %s\n", fileOut.Name())
+			fileOut.Close()
+		}()
 	} else {
-		writeOut = versionOut + writeOut
 		if includeInfo {
 			if len(sourcesWithoutIssues) > 0 {
 				writeOut += "\n\n"
