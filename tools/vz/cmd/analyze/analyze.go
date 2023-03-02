@@ -29,6 +29,8 @@ vz analyze
 `
 )
 
+var directory string
+
 func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
@@ -44,6 +46,54 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().String(constants.ReportFormatFlagName, constants.SummaryReport, constants.ReportFormatFlagUsage)
 	cmd.PersistentFlags().BoolP(constants.VerboseFlag, constants.VerboseFlagShorthand, constants.VerboseFlagDefault, constants.VerboseFlagUsage)
 	return cmd
+}
+
+// analyzeLiveCluster Analyzes live cluster by capturing the snapshot, when capture-dir is not set
+func analyzeLiveCluster(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+	// Get the kubernetes clientset, which will validate that the kubeconfig and context are valid.
+	kubeClient, err := vzHelper.GetKubeClient(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Get the dynamic client to retrieve OAM resources
+	dynamicClient, err := vzHelper.GetDynamicClient(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Get the controller runtime client
+	client, err := vzHelper.GetClient(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Create a temporary directory to place the generated files, which will also be the input for analyze command
+	directory, err = os.MkdirTemp("", constants.BugReportDir)
+	if err != nil {
+		return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
+	}
+	defer os.RemoveAll(directory)
+
+	// Create a directory for the analyze command
+	reportDirectory := filepath.Join(directory, constants.BugReportRoot)
+	err = os.MkdirAll(reportDirectory, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("an error occurred while creating the directory %s: %s", reportDirectory, err.Error())
+	}
+
+	// Get the list of namespaces with label verrazzano-managed=true, where the applications are deployed
+	moreNS := helpers.GetVZManagedNamespaces(kubeClient)
+
+	// Instruct the helper to display the message for analyzing the live cluster
+	helpers.SetIsLiveCluster()
+
+	// Capture cluster snapshot
+	podLogs := vzbugreport.PodLogs{
+		IsPodLog: true,
+		Duration: int64(0),
+	}
+	return vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, reportDirectory, moreNS, vzHelper, podLogs)
 }
 
 func runCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
@@ -63,58 +113,8 @@ func runCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return fmt.Errorf("an error occurred while reading value for the flag %s: %s", constants.VerboseFlag, err.Error())
 	}
 	helpers.SetVerboseOutput(isVerbose)
-	directory := ""
 	if directoryFlag == nil || directoryFlag.Value.String() == "" {
-		// Analyze live cluster by capturing the snapshot, when capture-dir is not set
-
-		// Get the kubernetes clientset, which will validate that the kubeconfig and context are valid.
-		kubeClient, err := vzHelper.GetKubeClient(cmd)
-		if err != nil {
-			return err
-		}
-
-		// Get the dynamic client to retrieve OAM resources
-		dynamicClient, err := vzHelper.GetDynamicClient(cmd)
-		if err != nil {
-			return err
-		}
-
-		// Get the controller runtime client
-		client, err := vzHelper.GetClient(cmd)
-		if err != nil {
-			return err
-		}
-
-		// Create a temporary directory to place the generated files, which will also be the input for analyze command
-		directory, err = os.MkdirTemp("", constants.BugReportDir)
-		if err != nil {
-			return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
-		}
-		defer os.RemoveAll(directory)
-
-		// Create a directory for the analyze command
-		reportDirectory := filepath.Join(directory, constants.BugReportRoot)
-		err = os.MkdirAll(reportDirectory, os.ModePerm)
-		if err != nil {
-			return fmt.Errorf("an error occurred while creating the directory %s: %s", reportDirectory, err.Error())
-		}
-
-		// Get the list of namespaces with label verrazzano-managed=true, where the applications are deployed
-		moreNS := helpers.GetVZManagedNamespaces(kubeClient)
-
-		// Instruct the helper to display the message for analyzing the live cluster
-		helpers.SetIsLiveCluster()
-
-		// Capture cluster snapshot
-		podLogs := vzbugreport.PodLogs{
-			IsPodLog: true,
-			Duration: int64(0),
-		}
-		err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, reportDirectory, moreNS, vzHelper, podLogs)
-		if err != nil {
-			return fmt.Errorf(err.Error())
-		}
-
+		return analyzeLiveCluster(cmd, vzHelper)
 	} else {
 		directory, err = cmd.PersistentFlags().GetString(constants.DirectoryFlagName)
 		if err != nil {
