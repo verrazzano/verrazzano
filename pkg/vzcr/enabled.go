@@ -447,7 +447,7 @@ func IsArgoCDEnabled(cr runtime.Object) bool {
 	return false
 }
 
-// IsThanosEnabled returns false only if Thanos is explicitly disabled in the CR
+// IsThanosEnabled returns true only if Thanos is explicitly enabled in the CR
 func IsThanosEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.Thanos != nil && vzv1alpha1.Spec.Components.Thanos.Enabled != nil {
@@ -458,5 +458,5 @@ func IsThanosEnabled(cr runtime.Object) bool {
 			return *vzv1beta1.Spec.Components.Thanos.Enabled
 		}
 	}
-	return true
+	return false
 }
