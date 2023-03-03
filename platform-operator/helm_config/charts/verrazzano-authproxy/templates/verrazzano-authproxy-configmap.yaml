@@ -514,7 +514,7 @@ data:
             serverUrl = me.makeVmiBackendUrl(backend, '3000')
         elseif backend == 'prometheus' then
             serverUrl = me.makeMonitoringComponentBackendUrl('prometheus-operator-kube-p-prometheus', '9090')
-        elseif backend == 'thanos' then
+        elseif backend == 'thanos-sidecar' then
             serverUrl = me.makeMonitoringComponentBackendUrl('prometheus-operator-kube-p-prometheus', '10901')
         elseif backend == 'kibana' then
             serverUrl = me.makeVmiBackendUrl('osd', '5601')
@@ -1203,7 +1203,7 @@ data:
             allowedOrigins = os.getenv("VZ_GRAFANA_ALLOWED_ORIGINS")
         elseif backend == 'prometheus' then
             allowedOrigins = os.getenv("VZ_PROMETHEUS_ALLOWED_ORIGINS")
-        elseif backend == 'thanos' then
+        elseif backend == 'thanos-sidecar' then
             allowedOrigins = os.getenv("VZ_THANOS_ALLOWED_ORIGINS")
         elseif backend == 'kibana' then
             allowedOrigins = os.getenv("VZ_KIBANA_ALLOWED_ORIGINS")
