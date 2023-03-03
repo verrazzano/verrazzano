@@ -134,10 +134,18 @@ func forkPostUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProce
 	return ctrlerrors.RetryableError{Source: ComponentName}
 }
 
+var finalizersDeleted = false
+
 // invokeRancherSystemToolAndCleanup - responsible for the actual deletion of resources
 // This calls the rancher-cleanup tool.
 func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	var err error
+
+	// Delete finalizers not handled by the cleanup job
+	if !finalizersDeleted {
+		deleteRancherFinalizers(ctx)
+		finalizersDeleted = true
+	}
 
 	// Run the rancher-cleanup job
 	if err := runCleanupJob(ctx); err != nil {
@@ -179,9 +187,6 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	}
 
 	crds := getCRDList(ctx)
-
-	// Delete finalizers not handled by the cleanup job
-	deleteRancherFinalizers(ctx)
 
 	// Remove any Rancher custom resources that remain
 	removeCRs(ctx, crds)
