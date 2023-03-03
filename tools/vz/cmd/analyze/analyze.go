@@ -30,8 +30,6 @@ vz analyze
 `
 )
 
-var directory string
-
 func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
@@ -50,7 +48,7 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 // analyzeLiveCluster Analyzes live cluster by capturing the snapshot, when capture-dir is not set
-func analyzeLiveCluster(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+func analyzeLiveCluster(cmd *cobra.Command, vzHelper helpers.VZHelper, directory string) error {
 	// Get the kubernetes clientset, which will validate that the kubeconfig and context are valid.
 	kubeClient, err := vzHelper.GetKubeClient(cmd)
 	if err != nil {
@@ -67,12 +65,6 @@ func analyzeLiveCluster(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	client, err := vzHelper.GetClient(cmd)
 	if err != nil {
 		return err
-	}
-
-	// Create a temporary directory to place the generated files, which will also be the input for analyze command
-	directory, err = os.MkdirTemp("", constants.BugReportDir)
-	if err != nil {
-		return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
 	}
 
 	// Create a directory for the analyze command
@@ -113,9 +105,15 @@ func runCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return fmt.Errorf("an error occurred while reading value for the flag %s: %s", constants.VerboseFlag, err.Error())
 	}
 	helpers.SetVerboseOutput(isVerbose)
+	directory := ""
 	if directoryFlag == nil || directoryFlag.Value.String() == "" {
+		// Create a temporary directory to place the generated files, which will also be the input for analyze command
+		directory, err = os.MkdirTemp("", constants.BugReportDir)
+		if err != nil {
+			return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
+		}
 		defer os.RemoveAll(directory)
-		if err := analyzeLiveCluster(cmd, vzHelper); err != nil {
+		if err := analyzeLiveCluster(cmd, vzHelper, directory); err != nil {
 			return err
 		}
 	} else {
