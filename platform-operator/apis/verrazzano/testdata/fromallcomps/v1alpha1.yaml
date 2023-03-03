@@ -330,3 +330,12 @@ spec:
       overrides:
         - values:
             frobber: frob
+    opensearchOperator:
+      enabled: true
+      opensearchCluster:
+        enabled: true
+        ingressOSPrefix: "test-os"
+        ingressOSDPrefix: "test-osd"
+        overrides:
+          - values:
+              frobber: frob
