@@ -1,3 +1,8 @@
+### v1.5.2
+Component version updates:
+
+- Rancher 2.7.1
+
 ### v1.5.1
 Component version updates:
 
