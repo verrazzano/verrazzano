@@ -20,7 +20,6 @@ import (
 
 type IngressProperties struct {
 	IngressName      string
-	IngressNamespace string
 	HostName         string
 	TLSSecretName    string
 	ExtraAnnotations map[string]string
@@ -38,11 +37,11 @@ func SameSiteCookieAnnotations(cookieName string) map[string]string {
 	}
 }
 
-// CreateOrUpdateComponentIngress creates or updates an ingress for a component
-func CreateOrUpdateComponentIngress(ctx spi.ComponentContext, props IngressProperties) error {
+// CreateOrUpdateSystemComponentIngress creates or updates an ingress for a Verrazzano system component
+func CreateOrUpdateSystemComponentIngress(ctx spi.ComponentContext, props IngressProperties) error {
 	// create the ingress in the same namespace as Auth Proxy, note that we cannot use authproxy.ComponentNamespace here because it creates an import cycle
 	ingress := netv1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{Name: props.IngressName, Namespace: props.IngressNamespace},
+		ObjectMeta: metav1.ObjectMeta{Name: props.IngressName, Namespace: constants.VerrazzanoSystemNamespace},
 	}
 
 	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &ingress, func() error {

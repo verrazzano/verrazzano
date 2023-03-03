@@ -43,8 +43,8 @@ const (
 	prometheusHostName        = "prometheus.vmi.system"
 	prometheusCertificateName = "system-tls-prometheus"
 
-	thanosHostName        = "thanos"
-	thanosCertificateName = "monitoring-tls-thanos"
+	thanosHostName        = "thanos-sidecar"
+	thanosCertificateName = "system-tls-thanos-sidecar"
 
 	istioPrometheus = "prometheus-server"
 )

@@ -716,26 +716,24 @@ func createOrUpdateIngresses(ctx spi.ComponentContext) error {
 		return nil
 	}
 	promProps := common.IngressProperties{
-		IngressName:      constants.PrometheusIngress,
-		IngressNamespace: constants.VerrazzanoSystemNamespace,
-		HostName:         prometheusHostName,
-		TLSSecretName:    prometheusCertificateName,
+		IngressName:   constants.PrometheusIngress,
+		HostName:      prometheusHostName,
+		TLSSecretName: prometheusCertificateName,
 		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
 		ExtraAnnotations: common.SameSiteCookieAnnotations(prometheusName),
 	}
-	if err := common.CreateOrUpdateComponentIngress(ctx, promProps); err != nil {
+	if err := common.CreateOrUpdateSystemComponentIngress(ctx, promProps); err != nil {
 		return err
 	}
 
 	thanosProps := common.IngressProperties{
-		IngressName:      constants.ThanosIngress,
-		IngressNamespace: constants.VerrazzanoMonitoringNamespace,
-		HostName:         thanosHostName,
-		TLSSecretName:    thanosCertificateName,
+		IngressName:   constants.ThanosIngress,
+		HostName:      thanosHostName,
+		TLSSecretName: thanosCertificateName,
 		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
 		ExtraAnnotations: common.SameSiteCookieAnnotations(thanosHostName),
 	}
-	return common.CreateOrUpdateComponentIngress(ctx, thanosProps)
+	return common.CreateOrUpdateSystemComponentIngress(ctx, thanosProps)
 }
 
 // newNetworkPolicy returns a populated NetworkPolicySpec with ingress rules for Prometheus
