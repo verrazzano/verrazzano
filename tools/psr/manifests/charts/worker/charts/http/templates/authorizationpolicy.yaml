@@ -15,4 +15,4 @@ spec:
             principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ template "worker.fullName" .}}"]
       to:
         - operation:
-            ports: ["8001"]
+            ports: ["{{ .Values.global.envVars.SERVICE_PORT }}"]
