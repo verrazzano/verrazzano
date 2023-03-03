@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package fake
@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFakeMonitorType_CheckResult(t *testing.T) {
+func TestFakeMonitorTypeCheckResult(t *testing.T) {
 	a := assert.New(t)
 
 	f := &BackgroundProcessMonitorType{Result: true, Err: nil}
@@ -24,7 +24,7 @@ func TestFakeMonitorType_CheckResult(t *testing.T) {
 	a.Error(err)
 }
 
-func TestFakeMonitorType_IsRunning(t *testing.T) {
+func TestFakeMonitorTypeIsRunning(t *testing.T) {
 	a := assert.New(t)
 
 	f := &BackgroundProcessMonitorType{Running: true}
@@ -32,4 +32,14 @@ func TestFakeMonitorType_IsRunning(t *testing.T) {
 
 	f = &BackgroundProcessMonitorType{Running: false}
 	a.False(f.IsRunning())
+}
+
+func TestFakeMonitorTypeIsCompleted(t *testing.T) {
+	a := assert.New(t)
+
+	f := &BackgroundProcessMonitorType{Completed: false}
+	a.False(f.IsCompleted())
+
+	f.SetCompleted()
+	a.True(f.IsCompleted())
 }
