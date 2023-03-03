@@ -28,3 +28,6 @@ opensearch:
 
 prometheus:
   enabled: false
+
+http:
+  enabled: false

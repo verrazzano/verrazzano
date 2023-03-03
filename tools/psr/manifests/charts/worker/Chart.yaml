@@ -14,3 +14,7 @@ dependencies:
     repository: file://../prometheus
     version: 0.1.0
     condition: prometheus.enabled
+  - name: http
+    repository: file://../http
+    version: 0.1.0
+    condition: http.enabled

@@ -5,11 +5,11 @@ apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
   name: {{ template "worker.fullName" .}}-{{ .Release.Namespace }}-master
-  namespace: verrazzano-system
+  namespace: {{ .Values.global.envVars.SERVICE_NAMESPACE }}
 spec:
   selector:
     matchLabels:
-      app: system-es-master
+      app: hello-domain
   action: ALLOW
   rules:
     - from:
@@ -18,24 +18,4 @@ spec:
             principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ template "worker.fullName" .}}"]
       to:
         - operation:
-            ports: ["9200"]
-
----
-apiVersion: security.istio.io/v1beta1
-kind: AuthorizationPolicy
-metadata:
-  name: {{ template "worker.fullName" .}}-{{ .Release.Namespace }}-ingest
-  namespace: verrazzano-system
-spec:
-  selector:
-    matchLabels:
-      app: system-es-ingest
-  action: ALLOW
-  rules:
-    - from:
-        - source:
-            namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ template "worker.fullName" . }}"]
-      to:
-        - operation:
-            ports: ["9200"]
+            ports: ["8001"]
