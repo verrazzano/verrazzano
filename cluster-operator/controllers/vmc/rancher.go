@@ -352,7 +352,7 @@ func getRegistrationYAMLFromRancher(rc *rancherutil.RancherConfig, rancherCluste
 	var token string
 	token, err := getRegistrationTokenFromRancher(rc, rancherClusterID, log)
 	if err != nil {
-		log.Oncef("Problem fetching existing clusterRegistrationToken for cluster: %s with reason: %s, continuing to create a new one", rancherClusterID, err.Error())
+		log.Oncef("Unable to fetch existing cluster registration token for cluster: %s with reason: %v, continuing to create a new token", rancherClusterID, err)
 	}
 
 	if token == "" {
