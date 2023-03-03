@@ -43,6 +43,9 @@ const (
 	prometheusHostName        = "prometheus.vmi.system"
 	prometheusCertificateName = "system-tls-prometheus"
 
+	thanosHostName        = "thanos"
+	thanosCertificateName = "monitoring-tls-thanos"
+
 	istioPrometheus = "prometheus-server"
 )
 
@@ -186,22 +189,22 @@ func (c prometheusComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzan
 // getIngressNames - gets the names of the ingresses associated with this component
 func (c prometheusComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var ingressNames []types.NamespacedName
-
-	if vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) {
-		ns := ComponentNamespace
-		if !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
-			return ingressNames
-		}
-		if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
-			ns = authproxy.ComponentNamespace
-		}
-		ingressNames = append(ingressNames, types.NamespacedName{
-			Namespace: ns,
-			Name:      constants.PrometheusIngress,
-		})
+	if !vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) || !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
+		return ingressNames
 	}
 
-	return ingressNames
+	ns := ComponentNamespace
+	if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
+		ns = authproxy.ComponentNamespace
+	}
+	ingressNames = append(ingressNames, types.NamespacedName{
+		Namespace: ns,
+		Name:      constants.PrometheusIngress,
+	})
+	return append(ingressNames, types.NamespacedName{
+		Namespace: ns,
+		Name:      constants.ThanosIngress,
+	})
 }
 
 // getCertificateNames - gets the names of the TLS ingress certificates associated with this component
@@ -216,6 +219,10 @@ func (c prometheusComponent) GetCertificateNames(ctx spi.ComponentContext) []typ
 		certificateNames = append(certificateNames, types.NamespacedName{
 			Namespace: ns,
 			Name:      prometheusCertificateName,
+		})
+		certificateNames = append(certificateNames, types.NamespacedName{
+			Namespace: ns,
+			Name:      thanosCertificateName,
 		})
 	}
 

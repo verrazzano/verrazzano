@@ -128,18 +128,8 @@ func postInstallUpgrade(ctx spi.ComponentContext) error {
 	if err := updateApplicationAuthorizationPolicies(ctx); err != nil {
 		return err
 	}
-	props := common.IngressProperties{
-		IngressName:   constants.PrometheusIngress,
-		HostName:      prometheusHostName,
-		TLSSecretName: prometheusCertificateName,
-		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
-		ExtraAnnotations: common.SameSiteCookieAnnotations(prometheusName),
-	}
-
-	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
-		if err := common.CreateOrUpdateSystemComponentIngress(ctx, props); err != nil {
-			return err
-		}
+	if err := createOrUpdateIngresses(ctx); err != nil {
+		return err
 	}
 	if err := createOrUpdatePrometheusAuthPolicy(ctx); err != nil {
 		return err
@@ -717,6 +707,35 @@ func createOrUpdateNetworkPolicies(ctx spi.ComponentContext) error {
 	})
 
 	return err
+}
+
+// create or update ingresses creates ingresses for each of the Prometheus endpoints
+func createOrUpdateIngresses(ctx spi.ComponentContext) error {
+	// If NGINX is not enabled, skip the ingress creation
+	if !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
+		return nil
+	}
+	promProps := common.IngressProperties{
+		IngressName:      constants.PrometheusIngress,
+		IngressNamespace: constants.VerrazzanoSystemNamespace,
+		HostName:         prometheusHostName,
+		TLSSecretName:    prometheusCertificateName,
+		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
+		ExtraAnnotations: common.SameSiteCookieAnnotations(prometheusName),
+	}
+	if err := common.CreateOrUpdateComponentIngress(ctx, promProps); err != nil {
+		return err
+	}
+
+	thanosProps := common.IngressProperties{
+		IngressName:      constants.ThanosIngress,
+		IngressNamespace: constants.VerrazzanoMonitoringNamespace,
+		HostName:         thanosHostName,
+		TLSSecretName:    thanosCertificateName,
+		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
+		ExtraAnnotations: common.SameSiteCookieAnnotations(thanosHostName),
+	}
+	return common.CreateOrUpdateComponentIngress(ctx, thanosProps)
 }
 
 // newNetworkPolicy returns a populated NetworkPolicySpec with ingress rules for Prometheus
