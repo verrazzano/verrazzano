@@ -133,6 +133,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		Keycloak:               keycloakComponent,
 		MySQLOperator:          convertMySQLOperatorToV1Beta1(src.MySQLOperator),
 		OpenSearchDashboards:   convertOSDToV1Beta1(src.Kibana),
+		OpenSearchOperator:     convertOpenSearchOperatorToV1Beta1(src.OpenSearchOperator),
 		KubeStateMetrics:       convertKubeStateMetricsToV1Beta1(src.KubeStateMetrics),
 		Prometheus:             convertPrometheusToV1Beta1(src.Prometheus),
 		PrometheusAdapter:      convertPrometheusAdapterToV1Beta1(src.PrometheusAdapter),
@@ -146,6 +147,28 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		Velero:                 convertVeleroToV1Beta1(src.Velero),
 		Verrazzano:             verrazzanoComponent,
 	}, nil
+}
+
+func convertOpenSearchOperatorToV1Beta1(src *OpenSearchOperatorComponent) *v1beta1.OpenSearchOperatorComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.OpenSearchOperatorComponent{
+		Enabled:           src.Enabled,
+		OpenSearchCluster: convertOpenSearchClusterToV1Beta1(src.OpenSearchCluster),
+	}
+}
+
+func convertOpenSearchClusterToV1Beta1(src *OpenSearchCluster) *v1beta1.OpenSearchCluster {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.OpenSearchCluster{
+		Enabled:          src.Enabled,
+		IngressOSPrefix:  src.IngressOSPrefix,
+		IngressOSDPrefix: src.IngressOSDPrefix,
+		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
+	}
 }
 
 func ConvertCertManagerToV1Beta1(src *CertManagerComponent) *v1beta1.CertManagerComponent {

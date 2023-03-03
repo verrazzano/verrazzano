@@ -389,6 +389,10 @@ type ComponentSpec struct {
 	// +optional
 	OAM *OAMComponent `json:"oam,omitempty"`
 
+	// The OpenSearchOperator component configuration
+	// +optional
+	OpenSearchOperator *OpenSearchOperatorComponent `json:"opensearchOperator,omitempty"`
+
 	// The Prometheus component configuration.
 	// +optional
 	Prometheus *PrometheusComponent `json:"prometheus,omitempty"`
@@ -432,6 +436,36 @@ type ComponentSpec struct {
 	// The WebLogic Kubernetes Operator component configuration.
 	// +optional
 	WebLogicOperator *WebLogicOperatorComponent `json:"weblogicOperator,omitempty"`
+}
+
+// OpenSearchOperatorComponent specifies the OpenSearchOperator configuration
+type OpenSearchOperatorComponent struct {
+	// If true, then OpenSearchOperator will be installed
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// The OpenSearchCluster configuration
+	// +optional
+	OpenSearchCluster *OpenSearchCluster `json:"opensearchCluster,omitempty"`
+}
+
+// OpenSearchCluster specifies the OpenSearchCluster configuration
+type OpenSearchCluster struct {
+	// If true, then OpenSearch cluster will be created
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// The prefix for OpenSearch ingress
+	// +optional
+	IngressOSPrefix string `json:"ingressOSPrefix,omitempty"`
+	// The prefix for OpenSearchDashboard ingress
+	// +optional
+	IngressOSDPrefix string `json:"ingressOSDPrefix,omitempty"`
+	// List of Overrides for the default `values.yaml` file for the OpenSearchCluster Helm chart. Overrides are merged together,
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// TODO: Add a link to the charts/values.yaml
+	// and invalid values will be ignored.
+	// +optional
+	InstallOverrides `json:",inline"`
 }
 
 // ElasticsearchComponent specifies the Elasticsearch configuration.

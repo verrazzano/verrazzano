@@ -148,6 +148,29 @@ func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 		Velero:                 convertVeleroFromV1Beta1(in.Velero),
 		Verrazzano:             convertVerrazzanoFromV1Beta1(in.Verrazzano),
 		ArgoCD:                 convertArgoCDFromV1Beta1(in.ArgoCD),
+		OpenSearchOperator:     convertOpenSearchOperatorFromV1Beta1(in.OpenSearchOperator),
+	}
+}
+
+func convertOpenSearchOperatorFromV1Beta1(in *v1beta1.OpenSearchOperatorComponent) *OpenSearchOperatorComponent {
+	if in == nil {
+		return nil
+	}
+	return &OpenSearchOperatorComponent{
+		Enabled:           in.Enabled,
+		OpenSearchCluster: convertOpenSearchClusterFromV1Beta1(in.OpenSearchCluster),
+	}
+}
+
+func convertOpenSearchClusterFromV1Beta1(in *v1beta1.OpenSearchCluster) *OpenSearchCluster {
+	if in == nil {
+		return nil
+	}
+	return &OpenSearchCluster{
+		Enabled:          in.Enabled,
+		IngressOSPrefix:  in.IngressOSPrefix,
+		IngressOSDPrefix: in.IngressOSDPrefix,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
 	}
 }
 
