@@ -51,6 +51,8 @@ const (
 	VerboseFlagShorthand = "v"
 	VerboseFlagDefault   = false
 	VerboseFlagUsage     = "Enable verbose output."
+
+	VzAnalysisReportTmpFile = "details-*.out"
 )
 
 // VerrazzanoReleaseList - API for getting the list of Verrazzano releases

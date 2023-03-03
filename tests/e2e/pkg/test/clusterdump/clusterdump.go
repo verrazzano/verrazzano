@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusterdump
@@ -136,7 +136,7 @@ func executeBugReport(vzCommand string, kubeConfig string, bugReportDirectory st
 
 	if len(ns) > 0 {
 		includeNS := strings.Join(ns[:], ",")
-		cmd = exec.Command(vzCommand, "bug-report", "--report-file", filename, "--include-namespaces", includeNS)
+		cmd = exec.Command(vzCommand, "bug-report", "--report-file", filename, "--include-namespaces", includeNS, "--include-logs")
 	} else {
 		cmd = exec.Command(vzCommand, "bug-report", "--report-file", filename)
 	}
