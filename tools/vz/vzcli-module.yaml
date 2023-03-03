@@ -1,0 +1,37 @@
+document: modulemd
+version: 2
+data:
+  name: verrazzano-cli
+  stream: <MODULE_STREAM_VERSION>
+  version: <MODULE_VERSION>
+  summary: Verrazzano command-line utility
+  description: >-
+    The Verrazzano CLI is a command-line utility that allows Verrazzano
+    operators to query and manage a Verrazzano environment.
+  license:
+    module:
+      - UPL 1.0
+    content:
+      - MIT
+      - ISC
+      - MPL 2.0
+      - UPL 1.0
+      - BSD
+      - Apache 2.0
+  dependencies:
+    - buildrequires:
+        platform: [el<OS_VERSION>.<OS_UPDATE>.0]
+      requires:
+        platform: [el<OS_VERSION>]
+  profiles:
+    default:
+      rpms:
+        - verrazzano-cli
+  references:
+    documentation: https://verrazzano.io/docs
+  components:
+    rpms:
+      verrazzano-cli:
+        rationale: Verrazzano command-line utility
+        repository: file://<RPM_SPEC_REPO>
+        arches: [aarch64, x86_64]

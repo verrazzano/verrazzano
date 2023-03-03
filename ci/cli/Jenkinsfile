@@ -78,27 +78,13 @@ pipeline {
             }
         }
 
-
-        stage('Create Verrazzano CLI source tar file') {
+        stage('Build module stream') {
             steps {
-                createCliRPMSource("${env.GO_REPO_PATH}")
-            }
-        }
-
-        stage('Prepare CLI RPM environment') {
-            steps {
-                sh """
-                    ${WORKSPACE}/ci/scripts/prepare_vz_cli_rpm_pipeline.sh
-                """
-            }
-        }
-
-        stage('Build RPM') {
-            steps {
+                buildModuleStream("${env.GO_REPO_PATH}")
                 script {
                     env.MODULE_STREAM_VERSION = sh(returnStdout: true, script: "cat \"${GO_REPO_PATH}/verrazzano/tools/vz/out/verrazzano-cli-stream.yaml\"|grep \"stream:\"|cut -d ' ' -f 4").trim()
+                    env.MODULE_VERSION = sh(returnStdout: true, script: "cat \"${GO_REPO_PATH}/verrazzano/tools/vz/out/verrazzano-cli-stream.yaml\"|grep \"version:\"|cut -d ' ' -f 4").trim()
                 }
-                invokeMBS()
             }
             post {
                 always {
@@ -112,7 +98,7 @@ pipeline {
             }
         }
 
-        stage('Test RPM') {
+        stage('Test module stream') {
             environment {
                 BUILD_OS = "${params.BUILD_OS}"
             }
@@ -151,10 +137,10 @@ def moveContentToGoRepoPath() {
     """
 }
 
-def createCliRPMSource(GO_REPO_PATH) {
+def buildModuleStream(GO_REPO_PATH) {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/tools/vz
-        make cli-rpm-source 
+        make build-module-stream 
     """
 }
 
@@ -165,12 +151,4 @@ def archiveMBSLogs() {
         sudo chown -R opc:opc ${WORKSPACE}/modulerepo
     """
     archiveArtifacts artifacts: '**/module-verrazzano-cli*/**', allowEmptyArchive: true
-}
-
-def invokeMBS() {
-    sh """
-        ## Invoke MBS to build RPM
-        cat "${GO_REPO_PATH}/verrazzano/tools/vz/out/verrazzano-cli-stream.yaml"
-        sudo mbs-manager build_module_locally --offline --stream "${MODULE_STREAM_VERSION}" --file "${GO_REPO_PATH}/verrazzano/tools/vz/out/verrazzano-cli-stream.yaml"
-    """
 }
