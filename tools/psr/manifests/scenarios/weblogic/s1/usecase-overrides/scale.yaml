@@ -3,5 +3,5 @@
 
 global:
   envVars:
-    DOMAIN_UID: bobbys-front-end
-    DOMAIN_NAMESPACE: bobs-books
+    DOMAIN_UID: hello-domain
+    DOMAIN_NAMESPACE: hello-wls
