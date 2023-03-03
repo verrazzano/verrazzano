@@ -7,9 +7,6 @@ metadata:
   name: {{ template "worker.fullName" .}}-{{ .Release.Namespace }}-master
   namespace: {{ .Values.global.envVars.SERVICE_NAMESPACE }}
 spec:
-  selector:
-    matchLabels:
-      app: hello-domain
   action: ALLOW
   rules:
     - from:
