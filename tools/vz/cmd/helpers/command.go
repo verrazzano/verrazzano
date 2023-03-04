@@ -5,6 +5,7 @@ package helpers
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -73,6 +74,13 @@ func GetVersion(cmd *cobra.Command, vzHelper helpers.VZHelper) (string, error) {
 		if err != nil {
 			return version, err
 		}
+	} else {
+		// Validate the version string
+		installVersion, err := semver.NewSemVersion(version)
+		if err != nil {
+			return "", err
+		}
+		version = fmt.Sprintf("v%s", installVersion.ToString())
 	}
 	return version, nil
 }
