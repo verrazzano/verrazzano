@@ -24,7 +24,7 @@ func CheckExternalIPsArgs(installArgs []vzapi.InstallArgs, overrides []vzapi.Ove
 
 	c, err := getControllerRuntimeClient(runtime.NewScheme())
 	if err != nil {
-		return nil
+		return err
 	}
 	overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(c, v1beta1Overrides, namespace)
 	for _, o := range overrideYAMLs {
@@ -95,13 +95,17 @@ func CheckExternalIPsOverridesArgsWithPaths(overrides []v1beta1.Overrides, jsonB
 		}
 		valueMap := value.(map[string]interface{})
 		extractedIP := valueMap[externalIPPath]
-		arrayOfExtractedIPs := castValuesToString(extractedIP)
 		extractedType := valueMap[serviceTypePath]
+
+		extractedIPsArray := castValuesToString(extractedIP)
 
 		externalIPPathFull := jsonBasePath + "." + externalIPPath
 		if extractedType != nil && extractedType == serviceTypeValue {
-			if arrayOfExtractedIPs != nil {
-				validateExternalIP(arrayOfExtractedIPs, externalIPPathFull, compName)
+			if extractedIPsArray != nil {
+				err := validateExternalIP(extractedIPsArray, externalIPPathFull, compName)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -114,7 +118,7 @@ func validateExternalIP(addresses []string, key, compName string) error {
 	}
 	for _, address := range addresses {
 		if net.ParseIP(address) == nil {
-			return fmt.Errorf("Controller external service key \"%v\" with IP \"%v\" is of invalid format for %s. Must be a proper IP address format", key, addresses[0], compName)
+			return fmt.Errorf("Controller external service key \"%v\" with IP \"%v\" is of invalid format for %s. Must be a proper IP address format", key, address, compName)
 		}
 	}
 	return nil

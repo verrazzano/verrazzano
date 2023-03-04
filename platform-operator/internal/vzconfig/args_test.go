@@ -35,6 +35,9 @@ const (
 	validIP                     = "0.0.0.0"
 	invalidIP                   = "0.0.0"
 	formatError                 = "Must be a proper IP address format"
+	configMap                   = "configMap"
+	secret                      = "secret"
+	value                       = ""
 )
 
 // TestCheckExternalIPsArgs tests CheckExternalIPsArgs
@@ -43,14 +46,12 @@ const (
 // THEN return an error, nil otherwise
 func TestCheckExternalIPsArgs(t *testing.T) {
 	asserts := assert.New(t)
-	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
-		return fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), nil
-	}
+	createFakeTestClient()
 	defer func() { getControllerRuntimeClient = validators.GetClient }()
-
 	vz := getVZWithIstioOverride(validIP)
 	err := CheckExternalIPsArgs(vz.Spec.Components.Istio.IstioInstallArgs, vz.Spec.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPathAt0, compName, vz.Namespace)
 	asserts.NoError(err)
+
 	vz = getVZWithIstioOverride(invalidIP)
 	err = CheckExternalIPsArgs(vz.Spec.Components.Istio.IstioInstallArgs, vz.Spec.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPathAt0, compName, vz.Namespace)
 	asserts.Error(err)
@@ -68,9 +69,7 @@ func TestCheckExternalIPsArgs(t *testing.T) {
 // THEN return an error, nil otherwise
 func TestCheckExternalIPsOverridesArgs(t *testing.T) {
 	asserts := assert.New(t)
-	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
-		return fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), nil
-	}
+	createFakeTestClient()
 	defer func() { getControllerRuntimeClient = validators.GetClient }()
 
 	vz := getv1beta1VZWithIstioOverride(validIP)
@@ -89,9 +88,7 @@ func TestCheckExternalIPsOverridesArgs(t *testing.T) {
 // THEN return an error, nil otherwise
 func TestCheckExternalIPsOverridesArgsWithPaths(t *testing.T) {
 	asserts := assert.New(t)
-	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
-		return fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), nil
-	}
+	createFakeTestClient()
 	defer func() { getControllerRuntimeClient = validators.GetClient }()
 
 	vz := getv1beta1VZWithIstioOverride(validIP)
@@ -104,36 +101,63 @@ func TestCheckExternalIPsOverridesArgsWithPaths(t *testing.T) {
 	asserts.Contains(err.Error(), formatError)
 }
 
-func TestIfConfigMap(t *testing.T) {
+func TestWithConfigMapOverride(t *testing.T) {
 	asserts := assert.New(t)
-	var validIp = "1.1.1.1"
-	var invalidIp = "1.1."
 
-	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
-		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(createTestConfigMap(validIp)).Build(), nil
-	}
+	/* ##################### LOOOK HERE ############################## */
+	// Testing a VALID IP
+	createFakeTestClientWithConfigMapAndSecret(createTestConfigMap(validIP), createTestSecret(validIP))
 	defer func() { getControllerRuntimeClient = validators.GetClient }()
-	vz := getVZWithConfigMapOverride()
+	vz := createvz1beta1Overrides(getv1beta1VZ(), configMap, secret, "")
 	err := CheckExternalIPsOverridesArgs(vz.Spec.Components.Istio.ValueOverrides, externalIPJsonPath, compName, vz.Namespace)
 	asserts.NoError(err)
+	/* ################################################### */
 
-	// Passes an invalid IP
-	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
-		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(createTestConfigMap(invalidIp)).Build(), nil
-	}
-	defer func() { getControllerRuntimeClient = validators.GetClient }()
-	vz = getVZWithConfigMapOverride()
+	err = CheckExternalIPsOverridesArgsWithPaths(vz.Spec.Components.Istio.ValueOverrides, specServiceJSONPath, typeJSONPathSuffix, string(nodePort), externalIPJsonPathSuffix, compName, vz.Namespace)
+	asserts.NoError(err)
+	////////////////////////////////////////////////////////////////////////////////////////////////
+
+	// Testing an INVALID IP
+	createFakeTestClientWithConfigMap(createTestConfigMap(invalidIP))
 	err = CheckExternalIPsOverridesArgs(vz.Spec.Components.Istio.ValueOverrides, externalIPJsonPath, compName, vz.Namespace)
 	asserts.Error(err)
+	err = CheckExternalIPsOverridesArgsWithPaths(vz.Spec.Components.Istio.ValueOverrides, specServiceJSONPath, typeJSONPathSuffix, string(nodePort), externalIPJsonPathSuffix, compName, vz.Namespace)
+	asserts.Error(err)
+	////////////////////////////////////////////////////////////////////////////////////////////////
 
-	//Test CheckExternalIPsArgs with ConfigMap
-	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
-		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(createTestConfigMap(invalidIP)).Build(), nil
-	}
-	defer func() { getControllerRuntimeClient = validators.GetClient }()
-	v1alpha1VZ := getv1alpha1VZWithConfigMapOverride()
+	//Test CheckExternalIPsArgs with ConfigMap using v1alpha1 vz
+	createFakeTestClientWithConfigMap(createTestConfigMap(validIP))
+	v1alpha1VZ := getVZWithConfigMapOverride()
+	err = CheckExternalIPsArgs(v1alpha1VZ.Spec.Components.Istio.IstioInstallArgs, v1alpha1VZ.Spec.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, compName, vz.Namespace)
+	asserts.NoError(err)
+
+	createFakeTestClientWithConfigMap(createTestConfigMap(invalidIP))
 	err = CheckExternalIPsArgs(v1alpha1VZ.Spec.Components.Istio.IstioInstallArgs, v1alpha1VZ.Spec.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, compName, vz.Namespace)
 	asserts.Error(err)
+
+}
+
+func TestWithSecretOverride(t *testing.T) {
+	asserts := assert.New(t)
+
+	// Passing a VALID IP
+	createFakeTestClientWithSecret(createTestSecret(validIP))
+	defer func() { getControllerRuntimeClient = validators.GetClient }()
+	vz := getv1beta1VZWithConfigMapOverride()
+	err := CheckExternalIPsOverridesArgs(vz.Spec.Components.Istio.ValueOverrides, externalIPJsonPath, compName, vz.Namespace)
+	asserts.NoError(err)
+	err = CheckExternalIPsOverridesArgsWithPaths(vz.Spec.Components.Istio.ValueOverrides, specServiceJSONPath, typeJSONPathSuffix, string(nodePort), externalIPJsonPathSuffix, compName, vz.Namespace)
+	asserts.NoError(err)
+
+	// THIS METHOD TAKES V1ALPHA1 BUT THE VZ RESOURCE DEFINED IS A V1BETA1, NEED TO CREATE A NEW VZ RESOURCE TO TEST IT
+	//err = CheckExternalIPsArgs(vz.Spec.Components.Istio.ValueOverrides, externalIPJsonPath, compName, vz.Namespace)
+	//asserts.NoError(err)
+
+	createFakeTestClientWithConfigMapAndSecret(createTestConfigMap(validIP), createTestSecret(validIP))
+	vz = getVZWithConfigMapAndSecret()
+	err = CheckExternalIPsOverridesArgs(vz.Spec.Components.Istio.ValueOverrides, externalIPJsonPath, compName, vz.Namespace)
+	asserts.NoError(err)
+	//vz.Spec.Components.Istio.ValueOverrides[0].ConfigMapRef.LocalObjectReference.Name
 }
 
 // getIstioOverride returns an Istio override in json format
@@ -205,8 +229,72 @@ func getv1beta1VZWithIstioOverride(externalIP string) installv1beta1.Verrazzano 
 	return vz
 }
 
+// getv1alpha1VZ returns v1beta1 vz CR with Empty ValueOverirides
+func getv1alpha1VZ() vzapi.Verrazzano {
+	vz := vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "default"},
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Istio: &vzapi.IstioComponent{
+					InstallOverrides: vzapi.InstallOverrides{
+						ValueOverrides: []vzapi.Overrides{
+							{}, {}, {},
+						},
+					},
+				},
+			},
+		},
+	}
+	return vz
+}
+
+// getv1beta1VZ returns v1beta1 vz CR with Empty ValueOverirides
+func getv1beta1VZ() installv1beta1.Verrazzano {
+	vz := installv1beta1.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "default"},
+		Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Istio: &installv1beta1.IstioComponent{
+					InstallOverrides: installv1beta1.InstallOverrides{
+						ValueOverrides: []installv1beta1.Overrides{
+							{}, {}, {},
+						},
+					},
+				},
+			},
+		},
+	}
+	return vz
+}
+
+func createvz1beta1Overrides(vz installv1beta1.Verrazzano, configMap, secret, values string) installv1beta1.Verrazzano {
+	if configMap != "" {
+		vz.Spec.Components.Istio.InstallOverrides.ValueOverrides[0].ConfigMapRef = createTestConfigMapKeySelector()
+	}
+	if secret != "" {
+		vz.Spec.Components.Istio.InstallOverrides.ValueOverrides[1].SecretRef = createTestSecretKeySelector()
+	}
+	//if values != "" {
+	//	vz.Spec.Components.Istio.InstallOverrides.ValueOverrides[2].Values = createTestVales()
+	//}
+	return vz
+}
+
+func createvz1alpha1Overrides(vz vzapi.Verrazzano, configMap, secret, values string) vzapi.Verrazzano {
+	if configMap != "" {
+		vz.Spec.Components.Istio.InstallOverrides.ValueOverrides[0].ConfigMapRef = createTestConfigMapKeySelector()
+	}
+	if secret != "" {
+		vz.Spec.Components.Istio.InstallOverrides.ValueOverrides[1].SecretRef = createTestSecretKeySelector()
+	}
+	//if values != "" {
+	//	vz.Spec.Components.Istio.InstallOverrides.ValueOverrides[2].Values = createTestVales()
+	//}
+	return vz
+}
+
 // getv1alpha1VZWithConfigMapOverride returns v1alpha1 vz with istio component using a configmap override
-func getv1alpha1VZWithConfigMapOverride() vzapi.Verrazzano {
+func getVZWithConfigMapOverride() vzapi.Verrazzano {
 	vz := vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "default"},
 		Spec: vzapi.VerrazzanoSpec{
@@ -232,7 +320,7 @@ func getv1alpha1VZWithConfigMapOverride() vzapi.Verrazzano {
 }
 
 // getVZWithConfigMapOverride returns vz CR with istio component using a configMap override
-func getVZWithConfigMapOverride() installv1beta1.Verrazzano {
+func getv1beta1VZWithConfigMapOverride() installv1beta1.Verrazzano {
 	vz := installv1beta1.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "default"},
 		Spec: installv1beta1.VerrazzanoSpec{
@@ -257,9 +345,94 @@ func getVZWithConfigMapOverride() installv1beta1.Verrazzano {
 	return vz
 }
 
+func getVZWithSecretOverride() installv1beta1.Verrazzano {
+	vz := installv1beta1.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "default"},
+		Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Istio: &installv1beta1.IstioComponent{
+					InstallOverrides: installv1beta1.InstallOverrides{
+						ValueOverrides: []installv1beta1.Overrides{
+							{
+								SecretRef: &corev1.SecretKeySelector{
+									Key: "secretKey",
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "testSecretName",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	return vz
+}
+
+func getVZWithConfigMapAndSecret() installv1beta1.Verrazzano {
+	vz := installv1beta1.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "default"},
+		Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Istio: &installv1beta1.IstioComponent{
+					InstallOverrides: installv1beta1.InstallOverrides{
+						ValueOverrides: []installv1beta1.Overrides{
+							{
+								ConfigMapRef: &corev1.ConfigMapKeySelector{
+									Key: "configMapKey",
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "testCMName",
+									},
+								},
+							},
+							{
+								SecretRef: &corev1.SecretKeySelector{
+									Key: "secretKey",
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "testSecretName",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	return vz
+}
+
+func createTestConfigMapKeySelector() *corev1.ConfigMapKeySelector {
+	return &corev1.ConfigMapKeySelector{
+		Key: "configMapKey",
+		LocalObjectReference: corev1.LocalObjectReference{
+			Name: "testCMName",
+		},
+	}
+}
+
+func createTestSecretKeySelector() *corev1.SecretKeySelector {
+	return &corev1.SecretKeySelector{
+		Key: "secretKey",
+		LocalObjectReference: corev1.LocalObjectReference{
+			Name: "testSecretName",
+		},
+	}
+}
+
+//func createTestValues() *corev1.Va {
+//	return &corev1.SecretKeySelector{
+//		Key: "secretKey",
+//		LocalObjectReference: corev1.LocalObjectReference{
+//			Name: "testSecretName",
+//		},
+//	}
+//}
+
 func createTestConfigMap(testIP string) *corev1.ConfigMap {
 	data := make(map[string]string)
-	data["configMapKey"] = createConfigMapData(testIP)
+	data["configMapKey"] = createOverrideData(testIP)
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
@@ -269,7 +442,19 @@ func createTestConfigMap(testIP string) *corev1.ConfigMap {
 	}
 }
 
-func createConfigMapData(testIP string) string {
+func createTestSecret(testIP string) *corev1.Secret {
+	data := make(map[string][]byte)
+	data["secretKey"] = []byte(createOverrideData(testIP))
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testSecretName",
+			Namespace: "default",
+		},
+		Data: data,
+	}
+}
+
+func createOverrideData(testIP string) string {
 	data := fmt.Sprintf(`spec:
   components:
     ingressGateways:
@@ -287,4 +472,28 @@ func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	clientgoscheme.AddToScheme(scheme)
 	return scheme
+}
+
+func createFakeTestClient() {
+	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects().Build(), nil
+	}
+}
+
+func createFakeTestClientWithConfigMap(testConfigMap *corev1.ConfigMap) {
+	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(testConfigMap).Build(), nil
+	}
+}
+
+func createFakeTestClientWithSecret(testSecret *corev1.Secret) {
+	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(testSecret).Build(), nil
+	}
+}
+
+func createFakeTestClientWithConfigMapAndSecret(testConfigMap *corev1.ConfigMap, testSecret *corev1.Secret) {
+	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(testConfigMap, testSecret).Build(), nil
+	}
 }
