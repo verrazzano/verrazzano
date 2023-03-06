@@ -309,7 +309,7 @@ spec:
 {{- if .Values.prometheus.prometheusSpec.priorityClassName }}
   priorityClassName: {{ .Values.prometheus.prometheusSpec.priorityClassName }}
 {{- end }}
-{{- if .Values.prometheus.prometheusSpec.thanos }}
+{{- if and (.Values.prometheus.prometheusSpec.thanos) (eq .Values.prometheus.thanos.integration "sidecar") }}
   thanos:
 {{ toYaml .Values.prometheus.prometheusSpec.thanos | indent 4 }}
 {{- end }}
