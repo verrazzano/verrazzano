@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package reconcile
@@ -42,11 +42,6 @@ const (
 	compStateUpgradeEnd componentUpgradeState = "compStateEnd"
 )
 
-// componentUpgradeContext has the upgrade context for a Verrazzano component upgrade
-type componentUpgradeContext struct {
-	state componentUpgradeState
-}
-
 // upgradeComponents will upgrade the components as required
 func (r *Reconciler) upgradeComponents(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, tracker *upgradeTracker) (ctrl.Result, error) {
 	spiCtx, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
@@ -69,13 +64,13 @@ func (r *Reconciler) upgradeComponents(log vzlog.VerrazzanoLogger, cr *installv1
 }
 
 // upgradeSingleComponent upgrades a single component
-func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgradeContext *componentUpgradeContext, comp spi.Component) (ctrl.Result, error) {
+func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgradeContext *componentTrackerContext, comp spi.Component) (ctrl.Result, error) {
 	compName := comp.Name()
 	compContext := spiCtx.Init(compName).Operation(vzconst.UpgradeOperation)
 	compLog := compContext.Log()
 
-	for upgradeContext.state != compStateUpgradeEnd {
-		switch upgradeContext.state {
+	for upgradeContext.upgradeState != compStateUpgradeEnd {
+		switch upgradeContext.upgradeState {
 		case compStateUpgradeInit:
 			// Check if component is installed, if not continue
 			installed, err := comp.IsInstalled(compContext)
@@ -88,10 +83,10 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 				if err := r.updateComponentStatus(compContext, "Upgrade started", installv1alpha1.CondUpgradeStarted); err != nil {
 					return ctrl.Result{Requeue: true}, err
 				}
-				upgradeContext.state = compStatePreUpgrade
+				upgradeContext.upgradeState = compStatePreUpgrade
 			} else {
 				compLog.Oncef("Component %s is not installed; upgrade being skipped", compName)
-				upgradeContext.state = compStateUpgradeEnd
+				upgradeContext.upgradeState = compStateUpgradeEnd
 			}
 
 		case compStatePreUpgrade:
@@ -100,7 +95,7 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 				compLog.Errorf("Failed pre-upgrade for component %s: %v", compName, err)
 				return ctrl.Result{}, err
 			}
-			upgradeContext.state = compStateUpgrade
+			upgradeContext.upgradeState = compStateUpgrade
 
 		case compStateUpgrade:
 			compLog.Progressf("Component %s upgrade running", compName)
@@ -111,7 +106,7 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 				// requeue for 30 to 60 seconds later
 				return controller.NewRequeueWithDelay(30, 60, time.Second), nil
 			}
-			upgradeContext.state = compStateUpgradeWaitReady
+			upgradeContext.upgradeState = compStateUpgradeWaitReady
 
 		case compStateUpgradeWaitReady:
 			if !comp.IsReady(compContext) {
@@ -119,7 +114,7 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 				return newRequeueWithDelay(), nil
 			}
 			compLog.Progressf("Component %s is ready after being upgraded", compName)
-			upgradeContext.state = compStatePostUpgrade
+			upgradeContext.upgradeState = compStatePostUpgrade
 
 		case compStatePostUpgrade:
 			compLog.Oncef("Component %s post-upgrade running", compName)
@@ -127,14 +122,14 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 				compLog.Errorf("Failed post-upgrade for component %s: %v", compName, err)
 				return ctrl.Result{}, err
 			}
-			upgradeContext.state = compStateUpgradeDone
+			upgradeContext.upgradeState = compStateUpgradeDone
 
 		case compStateUpgradeDone:
 			compLog.Oncef("Component %s has successfully upgraded", compName)
 			if err := r.updateComponentStatus(compContext, "Upgrade complete", installv1alpha1.CondUpgradeComplete); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
-			upgradeContext.state = compStateUpgradeEnd
+			upgradeContext.upgradeState = compStateUpgradeEnd
 		}
 	}
 	// Component has been upgraded
@@ -142,11 +137,11 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 }
 
 // getComponentUpgradeContext gets the upgrade context for the component
-func (vuc *upgradeTracker) getComponentUpgradeContext(compName string) *componentUpgradeContext {
+func (vuc *upgradeTracker) getComponentUpgradeContext(compName string) *componentTrackerContext {
 	context, ok := vuc.compMap[compName]
 	if !ok {
-		context = &componentUpgradeContext{
-			state: compStateUpgradeInit,
+		context = &componentTrackerContext{
+			upgradeState: compStateUpgradeInit,
 		}
 		vuc.compMap[compName] = context
 	}
