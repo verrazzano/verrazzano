@@ -4,6 +4,8 @@
 package thanos
 
 import (
+	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -55,11 +57,16 @@ func NewComponent() spi.Component {
 }
 
 // IsReady component check for Thanos
-func (c thanosComponent) IsReady(context spi.ComponentContext) bool {
-	return c.HelmComponent.IsReady(context)
+func (t thanosComponent) IsReady(context spi.ComponentContext) bool {
+	return t.isThanosReady(context) && t.HelmComponent.IsReady(context)
+}
+
+func (t thanosComponent) isThanosReady(ctx spi.ComponentContext) bool {
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), t.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
 // IsEnabled Thanos enabled check for installation
-func (c thanosComponent) IsEnabled(effectiveCR runtime.Object) bool {
+func (t thanosComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzcr.IsThanosEnabled(effectiveCR)
 }
