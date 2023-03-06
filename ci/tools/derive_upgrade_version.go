@@ -130,6 +130,7 @@ func getLatestReleaseForCurrentBranch(releaseTags []string) string {
 	majorVersionValue := parseInt(developmentVersionSplit[0])
 	minorVersionValue := parseInt(developmentVersionSplit[1]) - 1
 
+	// Iterate over all releases to configure the latest patch release
 	latestPatch := 0
 	var latestRelease string
 	for _, version := range releaseTags {
