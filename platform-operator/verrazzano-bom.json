@@ -790,7 +790,7 @@
               "image": "thanos",
               "tag": "init",
               "helmRegKey": "image.registry",
-              "helmRepoKey": "image.repository",
+              "helmRepoAndNameKey": "image.repository",
               "helmTagKey": "image.tag"
             }
           ]
