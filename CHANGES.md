@@ -3,6 +3,10 @@ Component version updates:
 
 - Rancher 2.7.1
 
+Fixed:
+
+- Fixed vz CLI to allow specified version numbers to start without a leading "v".
+
 ### v1.5.1
 Component version updates:
 
