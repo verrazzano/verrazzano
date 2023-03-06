@@ -780,7 +780,7 @@
     },
     {
       "name": "thanos",
-      "version": "0.30.2",
+      "version": "0.28.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
