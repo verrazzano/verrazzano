@@ -777,6 +777,25 @@
           ]
         }
       ]
+    },
+    {
+      "name": "thanos",
+      "version": "0.30.2",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "thanos",
+          "images": [
+            {
+              "image": "thanos",
+              "tag": "v0.30.2",
+              "helmRegKey": "image.registry",
+              "helmRepoKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
     }
   ],
   "supportedKubernetesVersions": [

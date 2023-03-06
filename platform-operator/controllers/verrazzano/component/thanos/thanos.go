@@ -4,8 +4,11 @@
 package thanos
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -23,4 +26,16 @@ func GetOverrides(object runtime.Object) interface{} {
 		return []v1beta1.Overrides{}
 	}
 	return []vzapi.Overrides{}
+}
+
+func AppendOverrides(_ spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return kvs, err
+	}
+	image, err := bomFile.BuildImageOverrides(ComponentName)
+	if err != nil {
+		return kvs, err
+	}
+	return append(kvs, image...), nil
 }
