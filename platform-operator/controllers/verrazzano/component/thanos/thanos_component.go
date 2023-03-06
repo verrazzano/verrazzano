@@ -58,7 +58,7 @@ func NewComponent() spi.Component {
 
 // IsReady component check for Thanos
 func (t thanosComponent) IsReady(context spi.ComponentContext) bool {
-	return t.isThanosReady(context) && t.HelmComponent.IsReady(context)
+	return t.HelmComponent.IsReady(context) && t.isThanosReady(context)
 }
 
 func (t thanosComponent) isThanosReady(ctx spi.ComponentContext) bool {
