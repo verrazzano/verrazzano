@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
@@ -115,12 +115,47 @@ func TestGetVersion(t *testing.T) {
 
 	// GIVEN a command with a default values provided for version flags,
 	// WHEN we get the version value,
-	// THEN an error is returned.
+	// THEN no error is returned.
 	cmdWithDefaultVZVersion := getCommandWithoutFlags()
 	cmdWithDefaultVZVersion.PersistentFlags().String(constants.VersionFlag, constants.VersionFlagDefault, "")
 	version, err = GetVersion(cmdWithDefaultVZVersion, rc)
 	assert.NoError(t, err)
 	assert.NotNil(t, version)
+
+	// GIVEN a command with a valid version provided for version flags,
+	// WHEN we get the version value,
+	// THEN no error is returned.
+	cmdWithDefaultVZVersion = getCommandWithoutFlags()
+	cmdWithDefaultVZVersion.PersistentFlags().String(constants.VersionFlag, "v9.9.9", "")
+	version, err = GetVersion(cmdWithDefaultVZVersion, rc)
+	assert.NoError(t, err)
+	assert.Equal(t, "v9.9.9", version)
+
+	// GIVEN a command with a valid version provided for version flags,
+	// WHEN we get the version value,
+	// THEN no error is returned.
+	cmdWithDefaultVZVersion = getCommandWithoutFlags()
+	cmdWithDefaultVZVersion.PersistentFlags().String(constants.VersionFlag, "V9.9.9", "")
+	version, err = GetVersion(cmdWithDefaultVZVersion, rc)
+	assert.NoError(t, err)
+	assert.Equal(t, "v9.9.9", version)
+
+	// GIVEN a command with a valid version provided for version flags,
+	// WHEN we get the version value,
+	// THEN no error is returned.
+	cmdWithDefaultVZVersion = getCommandWithoutFlags()
+	cmdWithDefaultVZVersion.PersistentFlags().String(constants.VersionFlag, "9.9.9", "")
+	version, err = GetVersion(cmdWithDefaultVZVersion, rc)
+	assert.NoError(t, err)
+	assert.Equal(t, "v9.9.9", version)
+
+	// GIVEN a command with an invalid version provided for version flags,
+	// WHEN we get the version value,
+	// THEN an error is returned.
+	cmdWithDefaultVZVersion = getCommandWithoutFlags()
+	cmdWithDefaultVZVersion.PersistentFlags().String(constants.VersionFlag, "invalid", "")
+	_, err = GetVersion(cmdWithDefaultVZVersion, rc)
+	assert.EqualError(t, err, "Invalid version string: invalid (valid format is vn.n.n or n.n.n)")
 }
 
 // TestGetOperatorFile tests the functionality to return the right operator file.
