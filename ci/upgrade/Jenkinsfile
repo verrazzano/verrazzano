@@ -544,7 +544,7 @@ pipeline {
                     try {
                         sh """
                             echo "Uninstalling Verrazzano"
-                            ${GO_REPO_PATH}/vz uninstall
+                            ${GO_REPO_PATH}/vz uninstall --timeout 45m
                         """
                     } catch (err) {
                         currentBuild.result = "FAILURE"

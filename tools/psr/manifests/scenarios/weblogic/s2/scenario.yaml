@@ -1,0 +1,14 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+name: weblogic-s2
+ID: wls-s2
+description: |
+  This is a scenario that scales the WebLogic domain and accesses the application parallelly.
+usecases:
+  - usecasePath: weblogic/scale.yaml
+    overrideFile: scale.yaml
+    description: scales WebLogic domain
+  - usecasePath: http/get.yaml
+    overrideFile: get.yaml
+    description: access the application deployed to the cluster

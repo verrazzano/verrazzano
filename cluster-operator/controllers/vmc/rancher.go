@@ -352,7 +352,7 @@ func getRegistrationYAMLFromRancher(rc *rancherutil.RancherConfig, rancherCluste
 	var token string
 	token, err := getRegistrationTokenFromRancher(rc, rancherClusterID, log)
 	if err != nil {
-		log.Error(err.Error())
+		log.Oncef("Unable to fetch existing cluster registration token for cluster: %s with reason: %v, continuing to create a new token", rancherClusterID, err)
 	}
 
 	if token == "" {
@@ -432,7 +432,8 @@ func getRegistrationTokenFromRancher(rc *rancherutil.RancherConfig, rancherClust
 		}
 	}
 
-	return "", log.ErrorfNewErr("No active cluster registration token found for cluster %s", rancherClusterID)
+	log.Oncef("No existing ClusterRegistrationToken found for cluster %s", rancherClusterID)
+	return "", nil
 }
 
 // createOrUpdateSecretRancherProxy simulates the controllerutil create or update function through the Rancher Proxy API for secrets
