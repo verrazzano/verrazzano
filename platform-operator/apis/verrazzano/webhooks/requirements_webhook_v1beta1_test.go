@@ -7,6 +7,7 @@ import (
 	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	admissionv1 "k8s.io/api/admission/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -34,6 +35,10 @@ func TestPrerequisiteValidationWarningForV1beta1(t *testing.T) {
 	m := newRequirementsValidatorV1beta1(nodes)
 	vz := &v1beta1.Verrazzano{Spec: v1beta1.VerrazzanoSpec{Profile: v1beta1.Prod}}
 	req := newAdmissionRequest(admissionv1.Update, vz, vz)
+	config.Set(config.OperatorConfig{ResourceRequirementsValidation: true})
+	defer func() {
+		config.Set(config.OperatorConfig{ResourceRequirementsValidation: false})
+	}()
 	res := m.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, allowedFailureMessage)
 	asrt.Len(res.Warnings, 3, expectedWarningFailureMessage)

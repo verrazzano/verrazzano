@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	admissionv1 "k8s.io/api/admission/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -38,6 +39,10 @@ func TestPrerequisiteValidationWarningForV1alpha1(t *testing.T) {
 	m := newRequirementsValidatorV1alpha1(nodes)
 	vz := &v1alpha1.Verrazzano{Spec: v1alpha1.VerrazzanoSpec{Profile: v1alpha1.Dev}}
 	req := newAdmissionRequest(admissionv1.Update, vz, vz)
+	config.Set(config.OperatorConfig{ResourceRequirementsValidation: true})
+	defer func() {
+		config.Set(config.OperatorConfig{ResourceRequirementsValidation: false})
+	}()
 	res := m.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, allowedFailureMessage)
 	asrt.Len(res.Warnings, 2, expectedWarningFailureMessage)
@@ -86,6 +91,10 @@ func node(name string, cpu string, memory string, ephemeralStorage string) *v1.N
 // THEN the admission request should be allowed with a warning.
 func TestValidateInstallOS(t *testing.T) {
 	asrt := assert.New(t)
+	config.Set(config.OperatorConfig{ResourceRequirementsValidation: true})
+	defer func() {
+		config.Set(config.OperatorConfig{ResourceRequirementsValidation: false})
+	}()
 	trueVal := true
 	tests := []struct {
 		name    string
@@ -153,6 +162,10 @@ func TestValidateInstallOS(t *testing.T) {
 // THEN the admission request should be allowed with a warning.
 func TestValidateUpdateOS(t *testing.T) {
 	asrt := assert.New(t)
+	config.Set(config.OperatorConfig{ResourceRequirementsValidation: true})
+	defer func() {
+		config.Set(config.OperatorConfig{ResourceRequirementsValidation: false})
+	}()
 	trueVal := true
 	tests := []struct {
 		name    string
