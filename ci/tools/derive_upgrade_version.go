@@ -70,7 +70,6 @@ func parseCliArgs(args []string) {
 
 	if len(args) > 2 {
 		for index, arg := range args {
-			fmt.Println(index, "  "+arg)
 			if index > 1 {
 				if versionType == LatestVersionForCurrentBranch {
 					developmentVersion = arg
@@ -126,7 +125,6 @@ func getLatestReleaseForCurrentBranch(releaseTags []string) string {
 
 	developmentVersionSplit := strings.Split(developmentVersion, ".")
 	//Split the string into major and minor version values
-	fmt.Println(developmentVersionSplit)
 	majorVersionValue := parseInt(developmentVersionSplit[0])
 	minorVersionValue := parseInt(developmentVersionSplit[1]) - 1
 
