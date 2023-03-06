@@ -137,7 +137,7 @@ func getLatestReleaseForCurrentBranch(releaseTags []string) string {
 			if parseInt(versionSplit[2]) > latestPatch {
 				latestPatch = parseInt(versionSplit[2])
 			}
-			latestRelease = fmt.Sprintf("%s.%d.%d", versionSplit[0], minorVersionValue, latestPatch)
+			latestRelease = fmt.Sprintf("v%s.%d.%d", versionSplit[0], minorVersionValue, latestPatch)
 		}
 	}
 
