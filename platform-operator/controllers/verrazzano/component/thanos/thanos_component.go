@@ -6,6 +6,7 @@ package thanos
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -51,7 +52,18 @@ func NewComponent() spi.Component {
 			Dependencies:              []string{promoperator.ComponentName},
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
-			AvailabilityObjects:       getAvailabilityObjects(),
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      frontendDeployment,
+						Namespace: ComponentNamespace,
+					},
+					{
+						Name:      queryDeployment,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
