@@ -5,6 +5,8 @@ package thanos
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
@@ -12,6 +14,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
+
+const bomFilePathOverride = "../../../../verrazzano-bom.json"
 
 // TestGetOverrides tests if Thanos overrides are properly collected
 // GIVEN a call to GetOverrides
@@ -77,5 +81,29 @@ func TestGetOverrides(t *testing.T) {
 			asserts.Equal(t, tt.expA1Overrides, NewComponent().GetOverrides(tt.verrazzanoA1))
 			asserts.Equal(t, tt.expB1Overrides, NewComponent().GetOverrides(tt.verrazzanoB1))
 		})
+	}
+}
+
+// TestAppendOverrides tests if Thanos overrides are appendded
+// GIVEN a call to AppendOverrides
+// WHEN the bom is populated with the Thanos image
+// THEN the overrides are returned from this function
+func TestAppendOverrides(t *testing.T) {
+	config.SetDefaultBomFilePath(bomFilePathOverride)
+	kvs, err := AppendOverrides(nil, "", "", "", []bom.KeyValue{})
+	asserts.NoError(t, err)
+
+	expectedKVS := map[string]string{
+		"image.registry":   "ghcr.io",
+		"image.repository": "verrazzano/thanos",
+	}
+	for _, kv := range kvs {
+		if kv.Key == "image.tag" {
+			asserts.NotEmpty(t, kv.Value)
+			continue
+		}
+		val, ok := expectedKVS[kv.Key]
+		asserts.True(t, ok)
+		asserts.Equal(t, val, kv.Value)
 	}
 }

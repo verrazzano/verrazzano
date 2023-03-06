@@ -120,7 +120,7 @@ type BomImage struct {
 	// HelmRepoAndNameKey is a helm Key which stores the repo and name of the image path.  For example,
 	// if the full image name is myreg.io/foo/bar/myimage:v1.0 the value of this key will be "foo/bar/myimage".
 	// See `image.repository` in the thanos component
-	HelmRepoAndNameKey string `json:"helmRepoAndName"`
+	HelmRepoAndNameKey string `json:"helmRepoAndNameKey"`
 }
 
 // keyVal defines the Key, Value pair used to override a single helm Value
@@ -307,7 +307,7 @@ func (b *Bom) BuildImageStrings(subComponentName string) ([]KeyValue, []string, 
 
 		// If the Repo/Name key is defined then set it
 		if imageBom.HelmRepoAndNameKey != "" {
-			repoAndName := repo + imageBom.ImageName
+			repoAndName := repo + slash + imageBom.ImageName
 			kvs = append(kvs, KeyValue{
 				Key:   imageBom.HelmRepoAndNameKey,
 				Value: repoAndName,
