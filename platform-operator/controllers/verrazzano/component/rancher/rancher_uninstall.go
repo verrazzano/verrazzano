@@ -42,6 +42,7 @@ const (
 	defaultRancherCleanupJobYaml = "/verrazzano/platform-operator/thirdparty/manifests/rancher-cleanup/rancher-cleanup.yaml"
 	rancherCleanupJobName        = "cleanup-job"
 	rancherCleanupJobNamespace   = constants.VerrazzanoInstallNamespace
+	finalizerSubString           = ".cattle.io"
 )
 
 var rancherSystemNS = []string{
@@ -178,6 +179,9 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	}
 
 	crds := getCRDList(ctx)
+
+	// Delete finalizers not handled by the cleanup job
+	deleteRancherFinalizers(ctx)
 
 	// Remove any Rancher custom resources that remain
 	removeCRs(ctx, crds)
@@ -360,7 +364,7 @@ func getCRDList(ctx spi.ComponentContext) *v1.CustomResourceDefinitionList {
 func removeCRs(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) {
 	ctx.Log().Oncef("Removing Rancher custom resources")
 	for _, crd := range crds.Items {
-		if strings.HasSuffix(crd.Name, ".cattle.io") {
+		if strings.HasSuffix(crd.Name, finalizerSubString) {
 			for _, version := range crd.Spec.Versions {
 				rancherCRs := unstructured.UnstructuredList{}
 				rancherCRs.SetAPIVersion(fmt.Sprintf("%s/%s", crd.Spec.Group, version.Name))
@@ -390,7 +394,7 @@ func removeCRs(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) 
 func removeCRDFinalizers(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) {
 	var rancherDeletedCRDs []v1.CustomResourceDefinition
 	for _, crd := range crds.Items {
-		if strings.HasSuffix(crd.Name, ".cattle.io") && crd.DeletionTimestamp != nil && !crd.DeletionTimestamp.IsZero() {
+		if strings.Contains(crd.Name, finalizerSubString) && crd.DeletionTimestamp != nil && !crd.DeletionTimestamp.IsZero() {
 			rancherDeletedCRDs = append(rancherDeletedCRDs, crd)
 		}
 	}
@@ -514,4 +518,80 @@ func isRancherNamespace(ns *corev1.Namespace) bool {
 		return true
 	}
 	return false
+}
+
+// deleteRancherFinalizers - delete Rancher finalizers on resources that the cleanup job
+// didn't catch
+func deleteRancherFinalizers(ctx spi.ComponentContext) {
+
+	// Check the finalizers of all ClusterRoles
+	crList := rbacv1.ClusterRoleList{}
+	if err := ctx.Client().List(context.TODO(), &crList); err != nil {
+		ctx.Log().Errorf("Component %s failed to list ClusterRoles: %v", ComponentName, err)
+	}
+	for i, clusterRole := range crList.Items {
+		removeFinalizer(ctx, &crList.Items[i], clusterRole.Finalizers)
+	}
+
+	// Check the finalizers of all ClusterRoleBindings
+	crbList := rbacv1.ClusterRoleBindingList{}
+	if err := ctx.Client().List(context.TODO(), &crbList); err != nil {
+		ctx.Log().Errorf("Component %s failed to list ClusterRoleBindings: %v", ComponentName, err)
+	}
+	for i, clusterRoleBinding := range crbList.Items {
+		removeFinalizer(ctx, &crbList.Items[i], clusterRoleBinding.Finalizers)
+	}
+
+	// Check the finalizers of Roles and RoleBindings of all namespaces.  Rancher adds a finalizer
+	// to every one of them.
+	nsList := corev1.NamespaceList{}
+	if err := ctx.Client().List(context.TODO(), &nsList); err != nil {
+		ctx.Log().Errorf("Component %s failed to list Namespaces: %v", ComponentName, err)
+	}
+
+	for _, ns := range nsList.Items {
+		// Skip system namespace
+		if strings.HasPrefix(ns.Name, "kube-") {
+			continue
+		}
+		listOptions := client.ListOptions{Namespace: ns.Name}
+
+		// Check the finalizers of all RoleBindings
+		rbList := rbacv1.RoleBindingList{}
+		if err := ctx.Client().List(context.TODO(), &rbList, &listOptions); err != nil {
+			return
+		}
+		for i, roleBinding := range rbList.Items {
+			removeFinalizer(ctx, &rbList.Items[i], roleBinding.Finalizers)
+		}
+
+		// Check the finalizers of all Roles
+		roleList := rbacv1.RoleList{}
+		if err := ctx.Client().List(context.TODO(), &roleList, &listOptions); err != nil {
+			ctx.Log().Errorf("Component %s failed to list Roles: %v", ComponentName, err)
+		}
+		for i, role := range roleList.Items {
+			removeFinalizer(ctx, &roleList.Items[i], role.Finalizers)
+		}
+	}
+}
+
+// removeFinalizer - remove finalizers from an object if one is owned by Rancher
+func removeFinalizer(ctx spi.ComponentContext, object client.Object, finalizers []string) {
+	// If any of the finalizers contains a rancher one, remove them all
+	for _, finalizer := range finalizers {
+		if strings.Contains(finalizer, finalizerSubString) {
+			err := resource.Resource{
+				Name:      object.GetName(),
+				Namespace: object.GetNamespace(),
+				Client:    ctx.Client(),
+				Object:    object,
+				Log:       ctx.Log(),
+			}.RemoveFinalizers()
+			if err != nil {
+				ctx.Log().Errorf("Component %s failed to remove finalizers from %s/%s: %v", ComponentName, object.GetNamespace(), object.GetName(), err)
+			}
+			return
+		}
+	}
 }
