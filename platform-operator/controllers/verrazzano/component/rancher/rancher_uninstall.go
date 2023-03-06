@@ -78,6 +78,8 @@ var postUninstallFunc postUninstallFuncSig = invokeRancherSystemToolAndCleanup
 
 var rancherCleanupJobYamlPath = defaultRancherCleanupJobYaml
 
+var rancherFinalizersDeleted = false
+
 // getCleanupJobYamlPath - get the path to the yaml to create the cleanup job
 func getCleanupJobYamlPath() string {
 	return rancherCleanupJobYamlPath
@@ -134,17 +136,15 @@ func forkPostUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProce
 	return ctrlerrors.RetryableError{Source: ComponentName}
 }
 
-var finalizersDeleted = false
-
 // invokeRancherSystemToolAndCleanup - responsible for the actual deletion of resources
 // This calls the rancher-cleanup tool.
 func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	var err error
 
-	// Delete finalizers not handled by the cleanup job
-	if !finalizersDeleted {
+	// Delete Rancher finalizers before running the rancher-cleanup job (to speed up the uninstall)
+	if !rancherFinalizersDeleted {
 		deleteRancherFinalizers(ctx)
-		finalizersDeleted = true
+		rancherFinalizersDeleted = true
 	}
 
 	// Run the rancher-cleanup job
