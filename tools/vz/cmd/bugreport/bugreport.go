@@ -258,7 +258,7 @@ func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) e
 	if errFlag != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
 	}
-	// if waitForUpgradeToComplete() returned an err and auto-bug-report is set to true
+	// if vz cli command returned an err and auto-bug-report is set to true
 	if autoBugReportFlag {
 		cmd2 := NewCmdBugReport(vzHelper)
 		kubeconfigFlag, errFlag := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
@@ -278,5 +278,6 @@ func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) e
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Error calling vz bug-report %s \n", bugReportErr.Error())
 		}
 	}
+	// return original error from running vz command that was passed in
 	return err
 }

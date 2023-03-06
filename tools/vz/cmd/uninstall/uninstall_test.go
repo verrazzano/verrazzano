@@ -6,9 +6,8 @@ package uninstall
 import (
 	"bytes"
 	pkgContext "context"
-	"os"
-	"testing"
-
+	"fmt"
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -24,8 +23,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"os"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"testing"
 )
 
 // TestUninstallCmd
@@ -129,6 +130,11 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
+	uninstallFunc := func(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+		return fmt.Errorf("Timeout 2ms exceeded waiting for uninstall to complete")
+	}
+	OverrideUninstallVerrazzanoFn(uninstallFunc)
+	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
 	_ = cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
@@ -139,7 +145,49 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	// This must be less than the 1 second polling delay to pass
 	// since the Verrazzano resource gets deleted almost instantaneously
 	assert.Equal(t, "Error: Failed to uninstall Verrazzano: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
-	assert.Contains(t, buf.String(), "Uninstalling Verrazzano")
+	assert.FileExists(t, "bug-report.tar.gz")
+	os.Remove("bug-report.tar.gz")
+
+	ensureResourcesNotDeleted(t, c)
+}
+
+// TestUninstallCmdDefaultTimeoutNoBugReport
+// GIVEN a CLI uninstall command with all defaults, --timeout=2ms, and auto-bug-report=false
+//
+//	WHEN I call cmd.Execute for uninstall
+//	THEN the CLI uninstall command times out and no bug-report is generated
+func TestUninstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
+	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
+	vpo := createVpoPod()
+	namespace := createNamespace()
+	vz := createVz()
+	webhook := createWebhook()
+	cr := createClusterRole()
+	crb := createClusterRoleBinding()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vpo, vz, namespace, webhook, cr, crb).Build()
+
+	// Send stdout stderr to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	uninstallFunc := func(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+		return fmt.Errorf("Timeout 2ms exceeded waiting for uninstall to complete")
+	}
+	OverrideUninstallVerrazzanoFn(uninstallFunc)
+	defer ResetUninstallVerrazzanoFn()
+	cmd := NewCmdUninstall(rc)
+	assert.NotNil(t, cmd)
+	_ = cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
+	_ = cmd.PersistentFlags().Set(constants.AutoBugReportFlag, "false")
+
+	// Run upgrade command
+	err := cmd.Execute()
+	assert.Error(t, err)
+	// This must be less than the 1 second polling delay to pass
+	// since the Verrazzano resource gets deleted almost instantaneously
+	assert.Equal(t, "Error: Failed to uninstall Verrazzano: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
+	assert.NoFileExists(t, "bug-report.tar.gz")
 
 	ensureResourcesNotDeleted(t, c)
 }
@@ -218,6 +266,11 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
+	uninstallFunc := func(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+		return fmt.Errorf("Failed to find the Verrazzano platform operator in namespace verrazzano-install")
+	}
+	OverrideUninstallVerrazzanoFn(uninstallFunc)
+	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
 
@@ -226,6 +279,8 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Failed to find the Verrazzano platform operator in namespace verrazzano-install")
 	assert.Contains(t, errBuf.String(), "Failed to find the Verrazzano platform operator in namespace verrazzano-install")
+	assert.FileExists(t, "bug-report.tar.gz")
+	os.Remove("bug-report.tar.gz")
 }
 
 // TestUninstallCmdDefaultNoUninstallJob
@@ -243,6 +298,11 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
+	uninstallFunc := func(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+		return fmt.Errorf("Waiting for verrazzano-uninstall-verrazzano, verrazzano-uninstall-verrazzano pod not found in namespace verrazzano-install")
+	}
+	OverrideUninstallVerrazzanoFn(uninstallFunc)
+	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "simple")
@@ -255,6 +315,8 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-uninstall-verrazzano, verrazzano-uninstall-verrazzano pod not found in namespace verrazzano-install")
 	assert.Contains(t, errBuf.String(), "Waiting for verrazzano-uninstall-verrazzano, verrazzano-uninstall-verrazzano pod not found in namespace verrazzano-install")
+	assert.FileExists(t, "bug-report.tar.gz")
+	os.Remove("bug-report.tar.gz")
 }
 
 // TestUninstallCmdDefaultNoVzResource
@@ -277,7 +339,7 @@ func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Verrazzano is not installed: Failed to find any Verrazzano resources")
-	assert.Contains(t, errBuf.String(), "Error: Verrazzano is not installed: Failed to find any Verrazzano resources")
+	assert.Contains(t, errBuf.String(), "Verrazzano is not installed: Failed to find any Verrazzano resources")
 }
 
 func createNamespace() *corev1.Namespace {
