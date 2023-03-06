@@ -5,7 +5,9 @@ package analyze
 
 import (
 	"fmt"
+	"github.com/go-errors/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis"
 	vzbugreport "github.com/verrazzano/verrazzano/tools/vz/pkg/bugreport"
@@ -34,7 +36,7 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 		return validateReportFormat(cmd)
 	}
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return runCmdAnalyze(cmd, args, vzHelper)
+		return runCmdAnalyze(cmd, vzHelper)
 	}
 
 	cmd.Example = helpExample
@@ -45,7 +47,52 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 	return cmd
 }
 
-func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+// analyzeLiveCluster Analyzes live cluster by capturing the snapshot, when capture-dir is not set
+func analyzeLiveCluster(cmd *cobra.Command, vzHelper helpers.VZHelper, directory string) error {
+	// Get the kubernetes clientset, which will validate that the kubeconfig and context are valid.
+	kubeClient, err := vzHelper.GetKubeClient(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Get the dynamic client to retrieve OAM resources
+	dynamicClient, err := vzHelper.GetDynamicClient(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Get the controller runtime client
+	client, err := vzHelper.GetClient(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Create a directory for the analyze command
+	reportDirectory := filepath.Join(directory, constants.BugReportRoot)
+	err = os.MkdirAll(reportDirectory, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("an error occurred while creating the directory %s: %s", reportDirectory, err.Error())
+	}
+
+	// Get the list of namespaces with label verrazzano-managed=true, where the applications are deployed
+	moreNS := helpers.GetVZManagedNamespaces(kubeClient)
+
+	// Instruct the helper to display the message for analyzing the live cluster
+	helpers.SetIsLiveCluster()
+
+	// Capture cluster snapshot
+	podLogs := vzbugreport.PodLogs{
+		IsPodLog: true,
+		Duration: int64(0),
+	}
+	return vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, reportDirectory, moreNS, vzHelper, podLogs)
+}
+
+func runCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+	directoryFlag := cmd.PersistentFlags().Lookup(constants.DirectoryFlagName)
+	if err := setVzK8sVersion(directoryFlag, vzHelper, cmd); err == nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), helpers.GetVersionOut())
+	}
 	reportFileName, err := cmd.PersistentFlags().GetString(constants.ReportFileFlagName)
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
@@ -58,60 +105,16 @@ func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		return fmt.Errorf("an error occurred while reading value for the flag %s: %s", constants.VerboseFlag, err.Error())
 	}
 	helpers.SetVerboseOutput(isVerbose)
-
-	directoryFlag := cmd.PersistentFlags().Lookup(constants.DirectoryFlagName)
-
 	directory := ""
 	if directoryFlag == nil || directoryFlag.Value.String() == "" {
-		// Analyze live cluster by capturing the snapshot, when capture-dir is not set
-
-		// Get the kubernetes clientset, which will validate that the kubeconfig and context are valid.
-		kubeClient, err := vzHelper.GetKubeClient(cmd)
-		if err != nil {
-			return err
-		}
-
-		// Get the controller runtime client
-		client, err := vzHelper.GetClient(cmd)
-		if err != nil {
-			return err
-		}
-
-		// Get the dynamic client to retrieve OAM resources
-		dynamicClient, err := vzHelper.GetDynamicClient(cmd)
-		if err != nil {
-			return err
-		}
-
 		// Create a temporary directory to place the generated files, which will also be the input for analyze command
 		directory, err = os.MkdirTemp("", constants.BugReportDir)
 		if err != nil {
 			return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
 		}
 		defer os.RemoveAll(directory)
-
-		// Create a directory for the analyze command
-		reportDirectory := filepath.Join(directory, constants.BugReportRoot)
-		err = os.MkdirAll(reportDirectory, os.ModePerm)
-		if err != nil {
-			return fmt.Errorf("an error occurred while creating the directory %s: %s", reportDirectory, err.Error())
-		}
-
-		// Get the list of namespaces with label verrazzano-managed=true, where the applications are deployed
-		moreNS := helpers.GetVZManagedNamespaces(kubeClient)
-
-		// Instruct the helper to display the message for analyzing the live cluster
-		helpers.SetIsLiveCluster()
-
-		// Capture cluster snapshot
-		podLogs := vzbugreport.PodLogs{
-			IsPodLog: true,
-			Duration: int64(0),
-		}
-		err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, reportDirectory, moreNS, vzHelper, podLogs)
-
-		if err != nil {
-			return fmt.Errorf(err.Error())
+		if err := analyzeLiveCluster(cmd, vzHelper, directory); err != nil {
+			return err
 		}
 	} else {
 		directory, err = cmd.PersistentFlags().GetString(constants.DirectoryFlagName)
@@ -120,6 +123,28 @@ func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		}
 	}
 	return analysis.AnalysisMain(vzHelper, directory, reportFileName, reportFormat)
+}
+
+// setVzK8sVersion sets vz and k8s version
+func setVzK8sVersion(directoryFlag *pflag.Flag, vzHelper helpers.VZHelper, cmd *cobra.Command) error {
+	if directoryFlag == nil || directoryFlag.Value.String() == "" {
+		// Get the controller runtime client
+		client, err := vzHelper.GetClient(cmd)
+		if err != nil {
+			return err
+		}
+		// set vz version
+		if err := helpers.SetVzVer(&client); err != nil {
+			return err
+		}
+		// set cluster k8s version
+		if err := helpers.SetK8sVer(); err != nil {
+			return err
+		}
+		// print k8s and vz version on console stdout
+		return nil
+	}
+	return errors.New("cannot set vz and k8s version")
 }
 
 // validateReportFormat validates the value specified for flag report-format

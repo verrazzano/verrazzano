@@ -8,6 +8,7 @@ import (
 	"fmt"
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	v1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -52,6 +53,10 @@ metadata:
   namespace: default`
 
 const v1beta1MinVersion = "1.4.0"
+
+var (
+	vzVer, k8sVer string
+)
 
 func NewVerrazzanoForVZVersion(version string) (schema.GroupVersion, client.Object, error) {
 	if version == "" {
@@ -270,4 +275,47 @@ func GetOperatorYaml(version string) (string, error) {
 		url = fmt.Sprintf(vzconstants.VerrazzanoOperatorURL, version)
 	}
 	return url, nil
+}
+
+// SetK8sVer returns cluster Kubernetes version
+func SetK8sVer() error {
+	config, err := k8sutil.GetConfigFromController()
+	if err != nil {
+		return fmt.Errorf("error getting config from the Controller Runtime: %v", err.Error())
+	}
+
+	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return fmt.Errorf("error getting a clientset for the given config %v", err.Error())
+	}
+
+	versionInfo, err := client.ServerVersion()
+	if err != nil {
+		return fmt.Errorf("error getting kubernetes version %v", err.Error())
+	}
+
+	k8sVer = versionInfo.String()
+	return nil
+}
+
+// SetVzVer set verrazzano version
+func SetVzVer(client *client.Client) error {
+	vz, vzErr := FindVerrazzanoResource(*client)
+	if vzErr != nil {
+		return vzErr
+	}
+	vzVer = vz.Status.Version
+	return nil
+}
+
+// GetVersionOut returns the customised k8s and vz version string
+func GetVersionOut() string {
+	verOut := ""
+	if vzVer != "" {
+		verOut += fmt.Sprintf("\nVerrazzano Version: %s", vzVer)
+	}
+	if k8sVer != "" {
+		verOut += fmt.Sprintf("\nKubernetes Version: %s\n", k8sVer)
+	}
+	return verOut
 }
