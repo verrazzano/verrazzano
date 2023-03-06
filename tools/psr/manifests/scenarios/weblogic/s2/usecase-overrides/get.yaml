@@ -3,5 +3,7 @@
 
 global:
   envVars:
-    DOMAIN_UID: hello-domain
-    DOMAIN_NAMESPACE: hello-wls
+    SERVICE_NAME: hellodomain-cluster-cluster1
+    SERVICE_NAMESPACE: hello-wls
+    SERVICE_PORT: 8001
+    PATH: hello/weblogic/greetings/message
