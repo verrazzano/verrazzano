@@ -154,7 +154,7 @@ func TestGetVersion(t *testing.T) {
 	// THEN an error is returned.
 	cmdWithDefaultVZVersion = getCommandWithoutFlags()
 	cmdWithDefaultVZVersion.PersistentFlags().String(constants.VersionFlag, "invalid", "")
-	version, err = GetVersion(cmdWithDefaultVZVersion, rc)
+	_, err = GetVersion(cmdWithDefaultVZVersion, rc)
 	assert.EqualError(t, err, "Invalid version string: invalid (valid format is vn.n.n or n.n.n)")
 }
 
