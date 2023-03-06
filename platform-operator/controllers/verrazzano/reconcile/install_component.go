@@ -213,12 +213,15 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compTra
 
 	// The component previously finished installing, but check for any mid-installation updates
 	if checkConfigUpdated(compContext, componentStatus) && comp.IsEnabled(compContext.EffectiveCR()) {
-		compLog.Infof("MARCO:       %s config update detected", compName)
-		compTracker.installState = compStateInstallInitDetermineComponentState
-		if err := r.updateComponentStatus(compContext, "PreInstall started", vzapi.CondPreInstall); err != nil {
-			compLog.ErrorfThrottled("Error writing component PreInstall state to the status: %v", err)
+		if !comp.MonitorOverrides(compContext) && comp.IsEnabled(spiCtx.EffectiveCR()) {
+			compContext.Log().Oncef("Skipping update for component %s, monitorChanges set to false", comp.Name())
+		} else {
+			compTracker.installState = compStateInstallInitDetermineComponentState
+			if err := r.updateComponentStatus(compContext, "PreInstall started", vzapi.CondPreInstall); err != nil {
+				compLog.ErrorfThrottled("Error writing component PreInstall state to the status: %v", err)
+			}
+			return ctrl.Result{Requeue: true}
 		}
-		return ctrl.Result{Requeue: true}
 	}
 
 	// Component has been installed
