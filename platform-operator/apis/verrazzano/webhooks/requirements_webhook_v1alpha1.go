@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/vzchecks"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
 	k8sadmission "k8s.io/api/admission/v1"
 	"net/http"
@@ -39,6 +40,9 @@ func (v *RequirementsValidatorV1alpha1) InjectDecoder(d *admission.Decoder) erro
 func (v *RequirementsValidatorV1alpha1) Handle(ctx context.Context, req admission.Request) admission.Response {
 	var log = zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, RequirementsWebhook)
 	log.Infof("Processing requirements validator webhook")
+	if !config.Get().ResourceRequirementsValidation {
+		return admission.Allowed("Resource requirements validation not enabled")
+	}
 	vz := &v1alpha1.Verrazzano{}
 	err := v.decoder.Decode(req, vz)
 	if err != nil {
