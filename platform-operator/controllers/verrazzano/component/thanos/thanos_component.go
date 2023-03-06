@@ -24,6 +24,12 @@ const ComponentNamespace = constants.VerrazzanoMonitoringNamespace
 // ComponentJSONName is the JSON name of the Thanos component in CRD
 const ComponentJSONName = "thanos"
 
+// Availability Object Names
+const (
+	queryDeployment    = "thanos-query"
+	frontendDeployment = "thanos-query-frontend"
+)
+
 type thanosComponent struct {
 	helm.HelmComponent
 }
@@ -43,6 +49,7 @@ func NewComponent() spi.Component {
 			Dependencies:              []string{promoperator.ComponentName},
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects:       getAvailabilityObjects(),
 		},
 	}
 }
