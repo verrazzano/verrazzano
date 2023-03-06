@@ -126,6 +126,7 @@ func getLatestReleaseForCurrentBranch(releaseTags []string) string {
 
 	developmentVersionSplit := strings.Split(developmentVersion, ".")
 	//Split the string excluding prefix 'v' into major and minor version values
+	fmt.Println(developmentVersionSplit)
 	majorVersionValue := parseInt(developmentVersionSplit[0])
 	minorVersionValue := parseInt(developmentVersionSplit[1]) - 1
 
