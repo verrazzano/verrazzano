@@ -28,14 +28,21 @@ func CheckExternalIPsArgs(installArgs []vzapi.InstallArgs, overrides []vzapi.Ove
 	}
 	overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(c, v1beta1Overrides, namespace)
 	for _, o := range overrideYAMLs {
+		keyPresent = false
 		value, err := override.ExtractValueFromOverrideString(o, jsonPath)
 		if err != nil {
 			return err
 		}
+
+		/* This check that the casted value is valid is needed before setting keyPresent to true or t
+		trying to call validateExternalIP
+		*/
 		v := castValuesToString(value)
-		keyPresent = true
-		if err := validateExternalIP(v, jsonPath, compName); err != nil {
-			return err
+		if v != nil {
+			keyPresent = true
+			if err := validateExternalIP(v, jsonPath, compName); err != nil {
+				return err
+			}
 		}
 	}
 	if keyPresent {
@@ -71,8 +78,10 @@ func CheckExternalIPsOverridesArgs(overrides []v1beta1.Overrides, jsonPath, comp
 			return err
 		}
 		v := castValuesToString(value)
-		if err := validateExternalIP(v, jsonPath, compName); err != nil {
-			return err
+		if v != nil {
+			if err := validateExternalIP(v, jsonPath, compName); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -93,18 +102,18 @@ func CheckExternalIPsOverridesArgsWithPaths(overrides []v1beta1.Overrides, jsonB
 		if err != nil {
 			return err
 		}
-		valueMap := value.(map[string]interface{})
-		extractedIP := valueMap[externalIPPath]
-		extractedType := valueMap[serviceTypePath]
-
-		extractedIPsArray := castValuesToString(extractedIP)
-
-		externalIPPathFull := jsonBasePath + "." + externalIPPath
-		if extractedType != nil && extractedType == serviceTypeValue {
-			if extractedIPsArray != nil {
-				err := validateExternalIP(extractedIPsArray, externalIPPathFull, compName)
-				if err != nil {
-					return err
+		if value != nil {
+			valueMap := value.(map[string]interface{})
+			extractedIP := valueMap[externalIPPath]
+			extractedType := valueMap[serviceTypePath]
+			extractedIPsArray := castValuesToString(extractedIP)
+			externalIPPathFull := jsonBasePath + "." + externalIPPath
+			if extractedType != nil && extractedType == serviceTypeValue {
+				if extractedIPsArray != nil {
+					err := validateExternalIP(extractedIPsArray, externalIPPathFull, compName)
+					if err != nil {
+						return err
+					}
 				}
 			}
 		}
@@ -126,14 +135,19 @@ func validateExternalIP(addresses []string, key, compName string) error {
 
 func castValuesToString(value interface{}) []string {
 	var values []string
-
 	switch value.(type) {
+	case nil:
+		return nil
 	case string:
-		values = append(values, value.(string))
+		if value != nil {
+			values = append(values, value.(string))
+		}
 	case []interface{}:
 		valueArray := value.([]interface{})
 		for _, v := range valueArray {
-			values = append(values, v.(string))
+			if v != nil {
+				values = append(values, v.(string))
+			}
 		}
 	}
 	return values
