@@ -59,18 +59,18 @@ var propagationPolicy = metav1.DeletePropagationBackground
 var deleteOptions = &client.DeleteOptions{PropagationPolicy: &propagationPolicy}
 
 var logsEnum = cmdhelpers.LogFormatSimple
-var uninstallVerrazzanoFn = uninstallVerrazzanoInternal
+var uninstallVerrazzanoFn = uninstallVerrazzano
 
 type UninstallVerrazzanoFnType = func(cmd *cobra.Command, vzHelper helpers.VZHelper) error
 
-// OverrideUninstallVerrazzanoFn Allows overriding the uninstallVerrazzanoFn for testing purposes
-func OverrideUninstallVerrazzanoFn(fnType UninstallVerrazzanoFnType) {
+// SetUninstallVerrazzanoFn Allows overriding the uninstallVerrazzanoFn for testing purposes
+func SetUninstallVerrazzanoFn(fnType UninstallVerrazzanoFnType) {
 	uninstallVerrazzanoFn = fnType
 }
 
 // ResetUninstallVerrazzanoFn Restores the uninstallVerrazzanoFn implementation to the default if it's been overridden for testing
 func ResetUninstallVerrazzanoFn() {
-	uninstallVerrazzanoFn = uninstallVerrazzanoInternal
+	uninstallVerrazzanoFn = uninstallVerrazzano
 }
 
 func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
@@ -101,7 +101,7 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	err := uninstallVerrazzano(cmd, vzHelper)
+	err := uninstallVerrazzanoFn(cmd, vzHelper)
 	if err != nil {
 		err = bugreport.CallVzBugReport(cmd, vzHelper, err)
 		return fmt.Errorf("Failed to uninstall Verrazzano: %s", err.Error())
@@ -110,11 +110,6 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 }
 
 func uninstallVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-	return uninstallVerrazzanoFn(cmd, vzHelper)
-}
-
-// uninstallVerrazzanoInternal is the internal impl function for uninstallVerrazzano, to allow overriding it for testing purposes
-func uninstallVerrazzanoInternal(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	// Get the controller runtime client.
 	client, err := vzHelper.GetClient(cmd)
 	if err != nil {

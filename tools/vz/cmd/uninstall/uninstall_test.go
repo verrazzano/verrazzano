@@ -133,7 +133,7 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	uninstallFunc := func(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return fmt.Errorf("Timeout 2ms exceeded waiting for uninstall to complete")
 	}
-	OverrideUninstallVerrazzanoFn(uninstallFunc)
+	SetUninstallVerrazzanoFn(uninstallFunc)
 	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
@@ -174,7 +174,7 @@ func TestUninstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	uninstallFunc := func(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return fmt.Errorf("Timeout 2ms exceeded waiting for uninstall to complete")
 	}
-	OverrideUninstallVerrazzanoFn(uninstallFunc)
+	SetUninstallVerrazzanoFn(uninstallFunc)
 	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
@@ -269,7 +269,7 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	uninstallFunc := func(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return fmt.Errorf("Failed to find the Verrazzano platform operator in namespace verrazzano-install")
 	}
-	OverrideUninstallVerrazzanoFn(uninstallFunc)
+	SetUninstallVerrazzanoFn(uninstallFunc)
 	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
@@ -301,7 +301,7 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	uninstallFunc := func(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return fmt.Errorf("Waiting for verrazzano-uninstall-verrazzano, verrazzano-uninstall-verrazzano pod not found in namespace verrazzano-install")
 	}
-	OverrideUninstallVerrazzanoFn(uninstallFunc)
+	SetUninstallVerrazzanoFn(uninstallFunc)
 	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
