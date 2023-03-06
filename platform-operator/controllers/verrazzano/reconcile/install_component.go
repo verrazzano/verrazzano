@@ -212,7 +212,9 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compTra
 	}
 
 	// The component previously finished installing, but check for any mid-installation updates
-	if checkConfigUpdated(compContext, componentStatus) && comp.IsEnabled(compContext.EffectiveCR()) {
+	if spiCtx.ActualCR().Status.State != vzapi.VzStateUpgrading && spiCtx.ActualCR().Status.State != vzapi.VzStatePaused &&
+		checkConfigUpdated(compContext, componentStatus) && comp.IsEnabled(compContext.EffectiveCR()) {
+
 		if !comp.MonitorOverrides(compContext) && comp.IsEnabled(spiCtx.EffectiveCR()) {
 			compContext.Log().Oncef("Skipping update for component %s, monitorChanges set to false", comp.Name())
 		} else {
