@@ -12,8 +12,14 @@ import (
 )
 
 const (
-	VersionForInstall        = "install-version"
-	InterimVersionForUpgrade = "interim-version"
+	VersionForInstall             = "install-version"
+	InterimVersionForUpgrade      = "interim-version"
+	LatestVersionForCurrentBranch = "latest-version-for-branch"
+)
+
+var (
+	workspace, versionType, developmentVersion string
+	excludeReleaseTags                         []string
 )
 
 func main() {
@@ -26,7 +32,7 @@ func main() {
 		printUsage()
 		os.Exit(0)
 	}
-	workspace, versionType, excludeReleaseTags := parseCliArgs(flag.Args())
+	parseCliArgs(flag.Args())
 
 	//Extract release tags from git tag command.
 	releaseTags := getReleaseTags(workspace, excludeReleaseTags)
@@ -36,14 +42,15 @@ func main() {
 	} else if versionType == VersionForInstall {
 		installRelease := getInstallRelease(releaseTags)
 		fmt.Print(installRelease)
+	} else if versionType == LatestVersionForCurrentBranch {
+		latestRelease := getLatestReleaseForCurrentBranch(releaseTags)
+		fmt.Println(latestRelease)
 	} else {
 		fmt.Printf("invalid command line argument for derive version type \n")
 	}
 }
 
-func parseCliArgs(args []string) (string, string, []string) {
-	var workspace, versionType string
-	var excludeReleaseTags []string
+func parseCliArgs(args []string) {
 
 	if len(args) < 1 {
 		fmt.Printf("\nno command line arguments were specified\n")
@@ -64,11 +71,14 @@ func parseCliArgs(args []string) (string, string, []string) {
 	if len(args) > 2 {
 		for index, arg := range args {
 			if index > 1 {
+				if versionType == LatestVersionForCurrentBranch {
+					developmentVersion = arg
+					return
+				}
 				excludeReleaseTags = append(excludeReleaseTags, arg)
 			}
 		}
 	}
-	return workspace, versionType, excludeReleaseTags
 }
 
 func getReleaseTags(workspace string, excludeReleaseTags []string) []string {
@@ -109,6 +119,29 @@ func DoesTagExistsInExcludeList(releaseTag string, excludeReleaseTags []string) 
 		}
 	}
 	return false
+}
+
+func getLatestReleaseForCurrentBranch(releaseTags []string) string {
+
+	developmentVersionSplit := strings.Split(developmentVersion, ".")
+	//Split the string into major and minor version values
+	majorVersionValue := parseInt(developmentVersionSplit[0])
+	minorVersionValue := parseInt(developmentVersionSplit[1]) - 1
+
+	// Iterate over all releases to configure the latest patch release
+	latestPatch := 0
+	var latestRelease string
+	for _, version := range releaseTags {
+		versionSplit := strings.Split(strings.TrimPrefix(version, "v"), ".")
+		if parseInt(versionSplit[0]) == majorVersionValue && parseInt(versionSplit[1]) == minorVersionValue {
+			if parseInt(versionSplit[2]) > latestPatch {
+				latestPatch = parseInt(versionSplit[2])
+			}
+			latestRelease = fmt.Sprintf("v%s.%d.%d", versionSplit[0], minorVersionValue, latestPatch)
+		}
+	}
+
+	return latestRelease
 }
 
 func getInterimRelease(releaseTags []string) string {
