@@ -193,7 +193,7 @@ func (c prometheusComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 		return ingressNames
 	}
 
-	ns := ComponentNamespace
+	ns := constants.VerrazzanoSystemNamespace
 	if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
 		ns = authproxy.ComponentNamespace
 	}
@@ -203,7 +203,7 @@ func (c prometheusComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 	})
 	return append(ingressNames, types.NamespacedName{
 		Namespace: ns,
-		Name:      constants.ThanosIngress,
+		Name:      constants.ThanosSidecarIngress,
 	})
 }
 
