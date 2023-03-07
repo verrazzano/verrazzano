@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package v1alpha1
+package v1beta2
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -9,6 +9,7 @@ import (
 )
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:path=operatordefinitions
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 // +kubebuilder:resource:shortName=opdef;opdefs
@@ -51,6 +52,7 @@ type OperatorDefinitionStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:path=moduledefinitions
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 // +kubebuilder:resource:shortName=moddef;moddefs
