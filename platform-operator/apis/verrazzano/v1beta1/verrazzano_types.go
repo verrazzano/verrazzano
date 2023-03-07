@@ -960,7 +960,7 @@ type ThanosComponent struct {
 	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/velero/values.yaml %}} )
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/thanos/values.yaml %}} )
 	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
