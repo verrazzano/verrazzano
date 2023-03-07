@@ -220,3 +220,15 @@ rm -rf prometheus-community/prometheus-node-exporter
 helm fetch prometheus-community/prometheus-node-exporter --untar=true --version=${PROMETHEUS_NODE_EXPORTER_CHART_VERSION}
 ```
 
+### Opensearch Operator
+
+The `opensearch-operator` folder was created by running the following commands:
+
+```
+export OPENSEARCH_OPERATOR_CHART_VERSION=2.2.1
+helm repo add opensearch-operator https://opster.github.io/opensearch-k8s-operator/
+helm repo update
+rm -rf opensearch-operator
+helm fetch opensearch-operator/opensearch-operator --untar=true --version=${OPENSEARCH_OPERATOR_CHART_VERSION}
+```
+

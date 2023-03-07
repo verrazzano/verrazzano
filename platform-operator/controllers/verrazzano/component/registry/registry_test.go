@@ -5,6 +5,7 @@ package registry
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"testing"
 
@@ -89,7 +90,7 @@ func TestGetComponents(t *testing.T) {
 	comps := GetComponents()
 
 	var i int
-	a.Len(comps, 34, "Wrong number of components")
+	a.Len(comps, 35, "Wrong number of components")
 	a.Equal(comps[i].Name(), networkpolicies.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), oam.ComponentName)
@@ -109,6 +110,8 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[i].Name(), rancher.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), verrazzano.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), opensearchoperator.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), vmo.ComponentName)
 	i++

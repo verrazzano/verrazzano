@@ -14,6 +14,9 @@ const VerrazzanoInstallNamespace = "verrazzano-install"
 // VerrazzanoMonitoringNamespace is the namespace for monitoring components
 const VerrazzanoMonitoringNamespace = "verrazzano-monitoring"
 
+// VerrazzanoLoggingNamespace is the namespace for logging components
+const VerrazzanoLoggingNamespace = "verrazzano-logging"
+
 // Verrazzano is the name of the Verrazzano secret in the Verrazzano system namespace
 const Verrazzano = "verrazzano"
 
