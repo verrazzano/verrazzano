@@ -726,6 +726,10 @@ func createOrUpdateIngresses(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	// Only create the Thanos Ingress if it is enabled in the Prometheus Spec
+	if thanosEnabled, err := isThanosEnabled(ctx); !thanosEnabled || err != nil {
+		return err
+	}
 	thanosProps := common.IngressProperties{
 		IngressName:   constants.ThanosIngress,
 		HostName:      thanosHostName,
@@ -734,6 +738,21 @@ func createOrUpdateIngresses(ctx spi.ComponentContext) error {
 		ExtraAnnotations: common.SameSiteCookieAnnotations(thanosHostName),
 	}
 	return common.CreateOrUpdateSystemComponentIngress(ctx, thanosProps)
+}
+
+// isThanosEnabled checks to see if the Thanos section of the Prometheus spec is populated
+func isThanosEnabled(ctx spi.ComponentContext) (bool, error) {
+	prometheusList := promoperapi.PrometheusList{}
+	err := ctx.Client().List(context.TODO(), &prometheusList, &client.ListOptions{Namespace: constants.VerrazzanoMonitoringNamespace})
+	if err != nil {
+		return false, ctx.Log().ErrorfNewErr("Failed to list Prometheus objects in the %s namespace: %v", constants.VerrazzanoMonitoringNamespace, err)
+	}
+	for _, prometheus := range prometheusList.Items {
+		if prometheus.Spec.Thanos != nil {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // newNetworkPolicy returns a populated NetworkPolicySpec with ingress rules for Prometheus
