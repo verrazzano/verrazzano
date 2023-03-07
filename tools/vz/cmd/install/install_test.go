@@ -56,7 +56,7 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 }
 
 // TestInstallCmdDefaultTimeoutBugReport
-// GIVEN a CLI install command with all defaults and --timeout=2s
+// GIVEN a CLI install command with all defaults and --timeout=2ms
 //
 //	WHEN I call cmd.Execute for install
 //	THEN the CLI install command times out and a bug report is generated
@@ -66,28 +66,28 @@ func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/v1beta1.yaml")
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
-	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2s")
+	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run install command
 	err := cmd.Execute()
 	assert.Error(t, err)
-	assert.Equal(t, "Error: Timeout 2s exceeded waiting for install to complete\n", errBuf.String())
+	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for install to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
 	assert.FileExists(t, "bug-report.tar.gz")
 	os.Remove("bug-report.tar.gz")
 }
 
 // TestInstallCmdDefaultTimeoutNoBugReport
-// GIVEN a CLI install command with --timeout=2s and auto-bug-report=false
+// GIVEN a CLI install command with --timeout=2ms and auto-bug-report=false
 //
 //	WHEN I call cmd.Execute for install
 //	THEN the CLI install command times out and a bug report is not generated
 func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
-	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2s")
+	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/v1beta1.yaml")
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
@@ -98,7 +98,7 @@ func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	// Run install command
 	err := cmd.Execute()
 	assert.Error(t, err)
-	assert.Equal(t, "Error: Timeout 2s exceeded waiting for install to complete\n", errBuf.String())
+	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for install to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
 	assert.NoFileExists(t, "bug-report.tar.gz")
 }

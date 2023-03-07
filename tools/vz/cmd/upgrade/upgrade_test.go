@@ -55,7 +55,7 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 }
 
 // TestUpgradeCmdDefaultTimeoutBugReport
-// GIVEN a CLI upgrade command with all defaults and --timeout=2s
+// GIVEN a CLI upgrade command with all defaults and --timeout=2ms
 //
 //	WHEN I call cmd.Execute for upgrade
 //	THEN the CLI upgrade command times out and a bug report is generated
@@ -70,7 +70,7 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
-	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2s")
+	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
@@ -80,14 +80,14 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.Error(t, err)
-	assert.Equal(t, "Error: Timeout 2s exceeded waiting for upgrade to complete\n", errBuf.String())
+	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
 	assert.FileExists(t, "bug-report.tar.gz")
 	os.Remove("bug-report.tar.gz")
 }
 
 // TestUpgradeCmdDefaultTimeoutNoBugReport
-// GIVEN a CLI upgrade command with all --timeout=2s and auto-bug-report=false
+// GIVEN a CLI upgrade command with all --timeout=2ms and auto-bug-report=false
 //
 //	WHEN I call cmd.Execute for upgrade
 //	THEN the CLI upgrade command times out and a bug report is not generated
@@ -102,7 +102,7 @@ func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
-	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2s")
+	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 	cmd.PersistentFlags().Set(constants.AutoBugReportFlag, "false")
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
@@ -113,7 +113,7 @@ func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.Error(t, err)
-	assert.Equal(t, "Error: Timeout 2s exceeded waiting for upgrade to complete\n", errBuf.String())
+	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
 	assert.NoFileExists(t, "bug-report.tar.gz")
 }

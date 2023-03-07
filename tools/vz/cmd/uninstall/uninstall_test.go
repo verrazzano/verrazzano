@@ -155,7 +155,7 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 // GIVEN a CLI uninstall command with all defaults, --timeout=2ms, and auto-bug-report=false
 //
 //	WHEN I call cmd.Execute for uninstall
-//	THEN the CLI uninstall command times out and no bug-report is generated
+//	THEN the CLI uninstall command times out and bug-report is not generated
 func TestUninstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
 	vpo := createVpoPod()

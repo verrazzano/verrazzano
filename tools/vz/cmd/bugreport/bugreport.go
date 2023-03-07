@@ -52,11 +52,12 @@ const minLineLength = 100
 var kubeconfigFlagValPointer string
 var contextFlagValPointer string
 
+// NewCmdBugReport - creates cobra command for bug-report
 func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return RunCmdBugReport(cmd, vzHelper)
+		return runCmdBugReport(cmd, vzHelper)
 	}
 
 	cmd.Example = helpExample
@@ -68,7 +69,7 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	return cmd
 }
 
-func RunCmdBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+func runCmdBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	start := time.Now()
 	bugReportFile, err := getBugReportFile(cmd, vzHelper)
 	if err != nil {
@@ -253,6 +254,8 @@ func isDirEmpty(directory string, ignoreFilesCount int) bool {
 	return len(entries) == ignoreFilesCount
 }
 
+// creates a new bug-report cobra command, initailizes and sets the required flags, and runs the new command.
+// Returns the original error that's passed in as a parameter to preserve the error recieved from previous cli command failure.
 func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) error {
 	autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
 	if errFlag != nil {
@@ -273,11 +276,11 @@ func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) e
 		cmd2.Flags().StringVar(&contextFlagValPointer, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
 		cmd2.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
 		cmd2.Flags().Set(constants.GlobalFlagContext, contextFlag)
-		bugReportErr := RunCmdBugReport(cmd2, vzHelper)
+		bugReportErr := runCmdBugReport(cmd2, vzHelper)
 		if bugReportErr != nil {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "Error calling vz bug-report %s \n", bugReportErr.Error())
+			fmt.Fprintf(vzHelper.GetErrorStream(), "Error calling vz bug-report %s \n", bugReportErr.Error())
 		}
 	}
-	// return original error from running vz command that was passed in
+	// return original error from running vz command which was passed into CallVzBugReport as a parameter
 	return err
 }
