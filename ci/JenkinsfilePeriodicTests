@@ -681,6 +681,8 @@ def preliminaryChecks() {
     }
     if (periodicsUpToDateFailed) {
         currentBuild.displayName = "${currentBuild.displayName} : UP-TO-DATE-FAILED"
+        currentBuild.result = 'FAILURE'
+        error('Failing the build since the current commit matches the commit of previously failing periodic build')
     }
     if (params.FORCE) {
         currentBuild.displayName = "${currentBuild.displayName} : FORCE"
