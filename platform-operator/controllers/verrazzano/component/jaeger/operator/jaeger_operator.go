@@ -485,8 +485,8 @@ func getOverrideVal(ctx spi.ComponentContext, field string) (interface{}, error)
 	if err != nil {
 		return nil, err
 	}
-	for _, override := range overrides {
-		fieldVal, err := override.ExtractValueFromOverrideString(override, field)
+	for _, o := range overrides {
+		fieldVal, err := override.ExtractValueFromOverrideString(o, field)
 		if err != nil {
 			return nil, err
 		}

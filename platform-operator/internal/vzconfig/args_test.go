@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vzconfig
@@ -112,7 +112,8 @@ func TestValidIPWithConfigMapOverride(t *testing.T) {
 	createFakeTestClientWithConfigMap(createTestConfigMap(true, validIP, validIP))
 	defer func() { getControllerRuntimeClient = validators.GetClient }()
 
-	vz := createv1beta1VZOverrides(getv1beta1VZ(), configMap, "", "", validIP)
+	vz := getv1beta1VZ()
+	createv1beta1VZOverrides(vz, configMap, "", "", validIP)
 	err := CheckExternalIPsOverridesArgs(vz.Spec.Components.Istio.ValueOverrides, externalIPJsonPath, compName, vz.Namespace)
 	asserts.NoError(err)
 	err = CheckExternalIPsOverridesArgsWithPaths(vz.Spec.Components.Istio.ValueOverrides, specServiceJSONPath, typeJSONPathSuffix, string(nodePort), externalIPJsonPathSuffix, compName, vz.Namespace)
@@ -311,9 +312,9 @@ func createTestValueJSON(testIP string) *apiextensionsv1.JSON {
 	}
 }
 
-func createTestConfigMap(isArrayOfIPs bool, testIP_a, testIP_b string) *corev1.ConfigMap {
+func createTestConfigMap(isArrayOfIPs bool, testIPA, testIPB string) *corev1.ConfigMap {
 	data := make(map[string]string)
-	data["configMapKey"] = createOverrideData(isArrayOfIPs, testIP_a, testIP_b)
+	data["configMapKey"] = createOverrideData(isArrayOfIPs, testIPA, testIPB)
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
@@ -323,9 +324,9 @@ func createTestConfigMap(isArrayOfIPs bool, testIP_a, testIP_b string) *corev1.C
 	}
 }
 
-func createTestSecret(isArrayOfIPs bool, testIP_a, testIP_b string) *corev1.Secret {
+func createTestSecret(isArrayOfIPs bool, testIPA, testIPB string) *corev1.Secret {
 	data := make(map[string][]byte)
-	data["secretKey"] = []byte(createOverrideData(isArrayOfIPs, testIP_a, testIP_b))
+	data["secretKey"] = []byte(createOverrideData(isArrayOfIPs, testIPA, testIPB))
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testSecretName",
@@ -352,7 +353,7 @@ func createValueOverrideData(externalIP string) []byte {
 }
 
 // createOverrideData returns an Istio override with either 1 or 2 externalIPs in string format
-func createOverrideData(isArrayOfIPs bool, testIP_a, testIP_b string) string {
+func createOverrideData(isArrayOfIPs bool, testIPA, testIPB string) string {
 	var data string
 	if !isArrayOfIPs {
 		data = fmt.Sprintf(`spec:
@@ -361,7 +362,7 @@ func createOverrideData(isArrayOfIPs bool, testIP_a, testIP_b string) string {
     - k8s:
         service:
           externalIPs:
-          - ` + testIP_a + `
+          - ` + testIPA + `
           type: NodePort
       name: istio-ingressgateway`)
 	} else {
@@ -371,8 +372,8 @@ func createOverrideData(isArrayOfIPs bool, testIP_a, testIP_b string) string {
     - k8s:
         service:
           externalIPs:
-          - ` + testIP_a + `
-          - ` + testIP_b + `
+          - ` + testIPA + `
+          - ` + testIPB + `
           type: NodePort
       name: istio-ingressgateway`)
 	}

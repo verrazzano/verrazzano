@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vzconfig
@@ -26,7 +26,7 @@ func CheckExternalIPsArgs(installArgs []vzapi.InstallArgs, overrides []vzapi.Ove
 	if err != nil {
 		return err
 	}
-	overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(c, v1beta1Overrides, namespace)
+	overrideYAMLs, _ := override.GetInstallOverridesYAMLUsingClient(c, v1beta1Overrides, namespace)
 	for _, o := range overrideYAMLs {
 		keyPresent = false
 		value, err := override.ExtractValueFromOverrideString(o, jsonPath)
@@ -71,7 +71,7 @@ func CheckExternalIPsOverridesArgs(overrides []v1beta1.Overrides, jsonPath, comp
 	if err != nil {
 		return nil
 	}
-	overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(c, overrides, namespace)
+	overrideYAMLs, _ := override.GetInstallOverridesYAMLUsingClient(c, overrides, namespace)
 	for _, o := range overrideYAMLs {
 		value, err := override.ExtractValueFromOverrideString(o, jsonPath)
 		if err != nil {
@@ -96,7 +96,7 @@ func CheckExternalIPsOverridesArgsWithPaths(overrides []v1beta1.Overrides, jsonB
 	if err != nil {
 		return nil
 	}
-	overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(c, overrides, namespace)
+	overrideYAMLs, _ := override.GetInstallOverridesYAMLUsingClient(c, overrides, namespace)
 	for _, o := range overrideYAMLs {
 		value, err := override.ExtractValueFromOverrideString(o, jsonBasePath)
 		if err != nil {
@@ -135,12 +135,13 @@ func validateExternalIP(addresses []string, key, compName string) error {
 
 func castValuesToString(value interface{}) []string {
 	var values []string
-	switch value.(type) {
+	switch val := value.(type) {
 	case nil:
 		return nil
 	case string:
 		if value != nil {
 			values = append(values, value.(string))
+			fmt.Println(val)
 		}
 	case []interface{}:
 		valueArray := value.([]interface{})
