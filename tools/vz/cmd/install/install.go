@@ -4,7 +4,7 @@
 package install
 
 import (
-	pkgContext "context"
+	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	"os"
@@ -90,6 +90,16 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+	err := installVerrazzano(cmd, vzHelper)
+	if err != nil {
+		//err returned from CallVzBugReport is the one from installVerrazzano(), the same error that's passed in
+		err = bugreport.CallVzBugReport(cmd, vzHelper, err)
+		return err
+	}
+	return nil
+}
+
+func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	// Validate the command options
 	err := validateCmd(cmd)
 	if err != nil {
@@ -198,7 +208,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		// Sometimes we see intermittent webhook errors due to timeouts.
 		retry := 0
 		for {
-			err = client.Create(pkgContext.TODO(), vz)
+			err = client.Create(context.TODO(), vz)
 			if err != nil {
 				if retry == 5 {
 					return fmt.Errorf("Failed to create the verrazzano install resource: %s", err.Error())
@@ -216,11 +226,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Wait for the Verrazzano install to complete
-	err = waitForInstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vzNamespace, Name: vzName}, timeout, vpoTimeout, logFormat)
-	if err == nil {
-		return nil
-	}
-	return bugreport.CallVzBugReport(cmd, vzHelper, err)
+	return waitForInstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vzNamespace, Name: vzName}, timeout, vpoTimeout, logFormat)
 }
 
 // getVerrazzanoYAML returns the verrazzano install resource to be created

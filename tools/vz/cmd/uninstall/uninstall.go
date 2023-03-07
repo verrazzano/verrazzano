@@ -5,7 +5,7 @@ package uninstall
 
 import (
 	"bufio"
-	pkgContext "context"
+	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	"io"
@@ -103,6 +103,7 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
 	err := uninstallVerrazzanoFn(cmd, vzHelper)
 	if err != nil {
+		//err returned from CallVzBugReport is the one from uninstallVerrazzanoFn(), the same error that's passed in
 		err = bugreport.CallVzBugReport(cmd, vzHelper, err)
 		return fmt.Errorf("Failed to uninstall Verrazzano: %s", err.Error())
 	}
@@ -159,7 +160,7 @@ func uninstallVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return err
 	}
 	// Delete the Verrazzano custom resource.
-	err = client.Delete(pkgContext.TODO(), vz)
+	err = client.Delete(context.TODO(), vz)
 	if err != nil {
 		// Try to delete the resource as v1alpha1 if the v1beta1 API version did not match
 		if meta.IsNoMatchError(err) {
@@ -168,7 +169,7 @@ func uninstallVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 			if err != nil {
 				return failedToUninstallErr(err)
 			}
-			if err := client.Delete(pkgContext.TODO(), vzV1Alpha1); err != nil {
+			if err := client.Delete(context.TODO(), vzV1Alpha1); err != nil {
 				return failedToUninstallErr(err)
 			}
 		} else {
@@ -260,7 +261,7 @@ func getUninstallJobPodName(c client.Client, vzHelper helpers.VZHelper, jobName 
 		seconds += verrazzanoUninstallJobDetectWait
 
 		err := c.List(
-			pkgContext.TODO(),
+			context.TODO(),
 			&podList,
 			&client.ListOptions{
 				Namespace:     vzconstants.VerrazzanoInstallNamespace,
@@ -286,7 +287,7 @@ func getUninstallJobPodName(c client.Client, vzHelper helpers.VZHelper, jobName 
 		time.Sleep(verrazzanoUninstallJobDetectWait * time.Second)
 		seconds += verrazzanoUninstallJobDetectWait
 
-		err := c.Get(pkgContext.TODO(), types.NamespacedName{Namespace: podList.Items[0].Namespace, Name: podList.Items[0].Name}, pod)
+		err := c.Get(context.TODO(), types.NamespacedName{Namespace: podList.Items[0].Namespace, Name: podList.Items[0].Name}, pod)
 		if err != nil {
 			return "", err
 		}
@@ -438,7 +439,7 @@ func getUninstallJobLogStream(kubeClient kubernetes.Interface, uninstallPodName 
 		Container: "uninstall",
 		Follow:    true,
 		SinceTime: &sinceTime,
-	}).Stream(pkgContext.TODO())
+	}).Stream(context.TODO())
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read the %s log file: %s", uninstallPodName, err.Error())
 	}
@@ -453,7 +454,7 @@ func deleteNamespace(client client.Client, name string) error {
 		},
 	}
 
-	err := client.Delete(pkgContext.TODO(), ns, deleteOptions)
+	err := client.Delete(context.TODO(), ns, deleteOptions)
 	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("Failed to delete Namespace resource %s: %s", name, err.Error())
 	}
@@ -468,7 +469,7 @@ func deleteWebhookConfiguration(client client.Client, name string) error {
 		},
 	}
 
-	err := client.Delete(pkgContext.TODO(), vwc, deleteOptions)
+	err := client.Delete(context.TODO(), vwc, deleteOptions)
 	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("Failed to delete ValidatingWebhookConfiguration resource %s: %s", name, err.Error())
 	}
@@ -483,7 +484,7 @@ func deleteMutatingWebhookConfiguration(client client.Client, name string) error
 		},
 	}
 
-	err := client.Delete(pkgContext.TODO(), mwc, deleteOptions)
+	err := client.Delete(context.TODO(), mwc, deleteOptions)
 	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("Failed to delete MutatingWebhookConfiguration resource %s: %s", name, err.Error())
 	}
@@ -498,7 +499,7 @@ func deleteClusterRoleBinding(client client.Client, name string) error {
 		},
 	}
 
-	err := client.Delete(pkgContext.TODO(), crb, deleteOptions)
+	err := client.Delete(context.TODO(), crb, deleteOptions)
 	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("Failed to delete ClusterRoleBinding resource %s: %s", name, err.Error())
 	}
@@ -513,7 +514,7 @@ func deleteClusterRole(client client.Client, name string) error {
 		},
 	}
 
-	err := client.Delete(pkgContext.TODO(), cr, deleteOptions)
+	err := client.Delete(context.TODO(), cr, deleteOptions)
 	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("Failed to delete ClusterRole resource %s: %s", name, err.Error())
 	}

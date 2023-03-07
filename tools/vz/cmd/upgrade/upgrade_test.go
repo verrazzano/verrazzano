@@ -5,7 +5,7 @@ package upgrade
 
 import (
 	"bytes"
-	pkgContext "context"
+	"context"
 	"os"
 	"testing"
 
@@ -229,19 +229,19 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 
 	// Verify the objects in the operator-file got added
 	sa := corev1.ServiceAccount{}
-	err = c.Get(pkgContext.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &sa)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &sa)
 	assert.NoError(t, err)
 
 	ns := corev1.Namespace{}
-	err = c.Get(pkgContext.TODO(), types.NamespacedName{Name: "verrazzano-install"}, &ns)
+	err = c.Get(context.TODO(), types.NamespacedName{Name: "verrazzano-install"}, &ns)
 	assert.NoError(t, err)
 
 	svc := corev1.Service{}
-	err = c.Get(pkgContext.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &svc)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &svc)
 	assert.NoError(t, err)
 
 	// Verify the version got updated
-	err = c.Get(pkgContext.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, vz)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, vz)
 	assert.NoError(t, err)
 	assert.Equal(t, "v1.4.0", vz.Spec.Version)
 }

@@ -5,7 +5,7 @@ package install
 
 import (
 	"bytes"
-	pkgContext "context"
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -51,7 +51,7 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 
 	// Verify the vz resource is as expected
 	vz := v1alpha1.Verrazzano{}
-	err = c.Get(pkgContext.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 }
 
@@ -161,7 +161,7 @@ func TestInstallCmdJsonLogFormat(t *testing.T) {
 
 	// Verify the vz resource is as expected
 	vz := v1alpha1.Verrazzano{}
-	err = c.Get(pkgContext.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 }
 
@@ -198,7 +198,7 @@ func TestInstallCmdFilenamesV1Beta1(t *testing.T) {
 
 	// Verify the vz resource is as expected
 	vz := v1beta1.Verrazzano{}
-	err = c.Get(pkgContext.TODO(), types.NamespacedName{Namespace: "default", Name: "my-verrazzano"}, &vz)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "my-verrazzano"}, &vz)
 	assert.NoError(t, err)
 	assert.Equal(t, v1beta1.Dev, vz.Spec.Profile)
 	assert.NotNil(t, vz.Spec.Components.IngressNGINX)
@@ -227,7 +227,7 @@ func TestInstallCmdFilenames(t *testing.T) {
 
 	// Verify the vz resource is as expected
 	vz := v1alpha1.Verrazzano{}
-	err = c.Get(pkgContext.TODO(), types.NamespacedName{Namespace: "default", Name: "my-verrazzano"}, &vz)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "my-verrazzano"}, &vz)
 	assert.NoError(t, err)
 	assert.Equal(t, v1alpha1.Dev, vz.Spec.Profile)
 }
@@ -252,7 +252,7 @@ func TestInstallCmdFilenamesCsv(t *testing.T) {
 
 	// Verify the vz resource is as expected
 	vz := v1alpha1.Verrazzano{}
-	err = c.Get(pkgContext.TODO(), types.NamespacedName{Namespace: "default", Name: "my-verrazzano"}, &vz)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "my-verrazzano"}, &vz)
 	assert.NoError(t, err)
 	assert.Equal(t, v1alpha1.Dev, vz.Spec.Profile)
 	assert.False(t, *vz.Spec.Components.Rancher.Enabled)
@@ -279,7 +279,7 @@ func TestInstallCmdSets(t *testing.T) {
 
 	// Verify the vz resource is as expected
 	vz := v1alpha1.Verrazzano{}
-	err = c.Get(pkgContext.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 	assert.Equal(t, v1alpha1.Dev, vz.Spec.Profile)
 	assert.Equal(t, "test", vz.Spec.EnvironmentName)
@@ -310,7 +310,7 @@ func TestInstallCmdFilenamesAndSets(t *testing.T) {
 
 	// Verify the vz resource is as expected
 	vz := v1alpha1.Verrazzano{}
-	err = c.Get(pkgContext.TODO(), types.NamespacedName{Namespace: "default", Name: "my-verrazzano"}, &vz)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "my-verrazzano"}, &vz)
 	assert.NoError(t, err)
 	assert.Equal(t, v1alpha1.Prod, vz.Spec.Profile)
 	assert.Equal(t, "test", vz.Spec.EnvironmentName)
@@ -348,20 +348,20 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 
 	// Verify the objects in the operator-file got added
 	sa := corev1.ServiceAccount{}
-	err = c.Get(pkgContext.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &sa)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &sa)
 	assert.NoError(t, err)
 
 	ns := corev1.Namespace{}
-	err = c.Get(pkgContext.TODO(), types.NamespacedName{Name: "verrazzano-install"}, &ns)
+	err = c.Get(context.TODO(), types.NamespacedName{Name: "verrazzano-install"}, &ns)
 	assert.NoError(t, err)
 
 	svc := corev1.Service{}
-	err = c.Get(pkgContext.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &svc)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &svc)
 	assert.NoError(t, err)
 
 	// Verify the vz resource is as expected
 	vz := v1beta1.Verrazzano{}
-	err = c.Get(pkgContext.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 }
 
@@ -371,7 +371,8 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 //	WHEN invalid command options exist
 //	THEN expect an error
 func TestInstallValidations(t *testing.T) {
-	cmd, _, _, _ := createNewTestCommandAndBuffers(t, nil)
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
+	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.OperatorFileFlag, "test")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "test")
 	err := cmd.Execute()
@@ -559,6 +560,8 @@ func TestInstallCmdAlreadyInstalled(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Only one install of Verrazzano is allowed")
+	assert.FileExists(t, "bug-report.tar.gz")
+	os.Remove("bug-report.tar.gz")
 }
 
 // TestInstallCmdDifferentVersion
@@ -588,6 +591,8 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Unable to install version v1.3.1, install of version v1.3.2 is in progress")
+	assert.FileExists(t, "bug-report.tar.gz")
+	os.Remove("bug-report.tar.gz")
 }
 
 func createNewTestCommandAndBuffers(t *testing.T, c client.Client) (*cobra.Command, *bytes.Buffer, *bytes.Buffer, *testhelpers.FakeRootCmdContext) {

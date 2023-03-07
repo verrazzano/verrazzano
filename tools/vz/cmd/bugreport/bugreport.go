@@ -49,8 +49,8 @@ vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2 --include
 
 const minLineLength = 100
 
-var kubeconfig string
-var context string
+var kubeconfigFlagValPointer string
+var contextFlagValPointer string
 
 func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -75,7 +75,7 @@ func RunCmdBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return fmt.Errorf("error fetching flag: %s", err.Error())
 	}
 
-	// Get the kubernetes clientset, which will validate that the kubeconfig and context are valid.
+	// Get the kubernetes clientset, which will validate that the kubeconfigFlagValPointer and contextFlagValPointer are valid.
 	kubeClient, err := vzHelper.GetKubeClient(cmd)
 	if err != nil {
 		return err
@@ -269,8 +269,8 @@ func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) e
 		if errFlag2 != nil {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag2.Error())
 		}
-		cmd2.Flags().StringVar(&kubeconfig, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
-		cmd2.Flags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
+		cmd2.Flags().StringVar(&kubeconfigFlagValPointer, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
+		cmd2.Flags().StringVar(&contextFlagValPointer, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
 		cmd2.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
 		cmd2.Flags().Set(constants.GlobalFlagContext, contextFlag)
 		bugReportErr := RunCmdBugReport(cmd2, vzHelper)
