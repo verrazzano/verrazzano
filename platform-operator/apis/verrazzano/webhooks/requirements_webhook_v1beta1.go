@@ -41,6 +41,7 @@ func (v *RequirementsValidatorV1beta1) Handle(ctx context.Context, req admission
 	var log = zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, RequirementsWebhook)
 	log.Infof("Processing Requirements validator webhook")
 	if !config.Get().ResourceRequirementsValidation {
+		log.Infof("Processing Requirements validator webhook is disabled")
 		return admission.Allowed("Resource requirements validation not enabled")
 	}
 	vz := &v1beta1.Verrazzano{}
