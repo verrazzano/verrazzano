@@ -38,7 +38,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	gofake "k8s.io/client-go/kubernetes/fake"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -1335,6 +1334,6 @@ func TestValidateInstallWithExistingIstio(t *testing.T) {
 
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	clientgoscheme.AddToScheme(scheme)
+	k8scheme.AddToScheme(scheme)
 	return scheme
 }

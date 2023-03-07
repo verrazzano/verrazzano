@@ -21,7 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -577,6 +576,6 @@ func TestPostUninstall(t *testing.T) {
 }
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	clientgoscheme.AddToScheme(scheme)
+	k8scheme.AddToScheme(scheme)
 	return scheme
 }
