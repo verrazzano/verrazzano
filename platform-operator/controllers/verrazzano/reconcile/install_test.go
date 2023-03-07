@@ -58,7 +58,7 @@ var (
 )
 
 // TestStartUpdate tests the reconcile func with updated generation
-// GIVEN a request to reconcile an verrazzano resource after install is completed
+// GIVEN a request to reconcile a verrazzano resource after install is completed
 // WHEN all components have the smaller LastReconciledGeneration than verrazzano CR in the request
 // THEN ensure a Reconciling State
 func TestStartUpdate(t *testing.T) {
@@ -94,7 +94,7 @@ func TestStartUpdate(t *testing.T) {
 }
 
 // TestCompleteUpdateReadyComponent tests the reconcile func with updated generation
-// GIVEN a request to reconcile an verrazzano resource after install has been started
+// GIVEN a request to reconcile a verrazzano resource after install has been started
 // WHEN all components have the smaller LastReconciledGeneration than verrazzano CR in the request
 // THEN ensure a Ready State
 func TestCompleteUpdateReadyComponent(t *testing.T) {
@@ -134,7 +134,7 @@ func TestCompleteUpdateReadyComponent(t *testing.T) {
 }
 
 // TestCompleteUpdateDisabledComponent tests the reconcile func with updated generation
-// GIVEN a request to reconcile an verrazzano resource after install has been started
+// GIVEN a request to reconcile a verrazzano resource after install has been started
 // WHEN all components have the smaller LastReconciledGeneration than verrazzano CR in the request
 // THEN ensure a Ready State
 func TestCompleteUpdateDisabledComponent(t *testing.T) {
@@ -174,7 +174,7 @@ func TestCompleteUpdateDisabledComponent(t *testing.T) {
 }
 
 // TestNoUpdateSameGeneration tests the reconcile func with same generation
-// GIVEN a request to reconcile an verrazzano resource after install is completed
+// GIVEN a request to reconcile a verrazzano resource after install is completed
 // WHEN all components have the same LastReconciledGeneration as verrazzano CR
 // THEN ensure a Ready State
 func TestNoUpdateSameGeneration(t *testing.T) {
@@ -207,7 +207,7 @@ func TestNoUpdateSameGeneration(t *testing.T) {
 }
 
 // TestUpdateWithUpgrade tests the reconcile func with updated generation
-// GIVEN a request to reconcile an verrazzano resource after install is completed
+// GIVEN a request to reconcile a verrazzano resource after install is completed
 // WHEN all components have the smaller LastReconciledGeneration than verrazzano CR in the request
 // THEN ensure an Upgrading State
 func TestUpdateWithUpgrade(t *testing.T) {
@@ -241,7 +241,7 @@ func TestUpdateWithUpgrade(t *testing.T) {
 }
 
 // TestUpdateOnUpdate tests the reconcile func with updated generation
-// GIVEN a request to reconcile an verrazzano resource after install is completed
+// GIVEN a request to reconcile a verrazzano resource after install is completed
 // WHEN all components have the smaller LastReconciledGeneration than verrazzano CR in the request
 // THEN ensure a Reconciling State
 func TestUpdateOnUpdate(t *testing.T) {
@@ -279,7 +279,7 @@ func TestUpdateOnUpdate(t *testing.T) {
 }
 
 // TestUpdateFalseMonitorChanges tests the reconcile func with updated generation
-// GIVEN a request to reconcile an verrazzano resource after install is completed
+// GIVEN a request to reconcile a verrazzano resource after install is completed
 // WHEN all components have the smaller LastReconciledGeneration but MonitorOverrides returns false
 // THEN ensure a Ready State
 func TestUpdateFalseMonitorChanges(t *testing.T) {
