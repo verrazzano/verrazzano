@@ -51,6 +51,7 @@ const (
 
 	prometheusName     = "prometheus"
 	alertmanagerName   = "alertmanager"
+	thanosName         = "thanos"
 	configReloaderName = "prometheus-config-reloader"
 
 	pvcName                  = "prometheus-prometheus-operator-kube-p-prometheus-db-prometheus-prometheus-operator-kube-p-prometheus-0"
@@ -285,11 +286,12 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		return kvs, err
 	}
 
-	// Replace default images for subcomponents Alertmanager and Prometheus
+	// Replace default images for subcomponents Alertmanager, Prometheus, and Thanos
 	defaultImages := map[string]string{
 		// format "subcomponentName": "helmDefaultKey"
 		alertmanagerName: "prometheusOperator.alertmanagerDefaultBaseImage",
 		prometheusName:   "prometheusOperator.prometheusDefaultBaseImage",
+		thanosName:       "prometheusOperator.prometheusSpec.thanos.image",
 	}
 	kvs, err = appendDefaultImageOverrides(ctx, kvs, defaultImages)
 	if err != nil {
