@@ -91,6 +91,12 @@ func setCleanupJobYamlPath(path string) {
 	rancherCleanupJobYamlPath = path
 }
 
+// preUninstall - prepare for Rancher uninstall
+func preUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
+	rancherFinalizersDeleted = false
+	return nil
+}
+
 // postUninstall - Rancher component post-uninstall
 //
 // This uses the rancher-cleanup tool for uninstall. Launch the uninstall operation in a goroutine and requeue to check back later.
@@ -196,9 +202,6 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 
 	// Delete the rancher-cleanup job
 	deleteCleanupJob(ctx)
-
-	// The uninstall of Rancher is completed, reset the finalizer deleted flag to handle the next uninstall
-	rancherFinalizersDeleted = false
 
 	return nil
 }
