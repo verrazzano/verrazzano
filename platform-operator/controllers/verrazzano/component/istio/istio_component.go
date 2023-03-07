@@ -83,7 +83,7 @@ const (
 	// Put external IPs into the IstioOperator YAML, which does support it
 	ExternalIPArg            = "gateways.istio-ingressgateway.externalIPs"
 	specServiceJSONPath      = "spec.components.ingressGateways.0.k8s.service"
-	externalIPJsonPathSuffix = "externalIPs.0"
+	externalIPJsonPathSuffix = "externalIPs"
 	typeJSONPathSuffix       = "type"
 	externalIPJsonPath       = specServiceJSONPath + "." + externalIPJsonPathSuffix
 	meshConfigTracingPath    = "spec.meshConfig.defaultConfig.tracing"

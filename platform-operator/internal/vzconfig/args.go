@@ -13,7 +13,7 @@ import (
 	"net"
 )
 
-var getControllerRuntimeClient = validators.GetClient
+var GetControllerRuntimeClient = validators.GetClient
 
 // CheckExternalIPsArgs method goes through the key-value pair to detect the presence of the
 // specific key for the corresponding component that holds the external IP address
@@ -22,7 +22,7 @@ func CheckExternalIPsArgs(installArgs []vzapi.InstallArgs, overrides []vzapi.Ove
 	var keyPresent bool
 	var v1beta1Overrides = vzapi.ConvertValueOverridesToV1Beta1(overrides)
 
-	c, err := getControllerRuntimeClient(runtime.NewScheme())
+	c, err := GetControllerRuntimeClient(runtime.NewScheme())
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func CheckExternalIPsArgs(installArgs []vzapi.InstallArgs, overrides []vzapi.Ove
 // specific key for the corresponding component that holds the external IP address
 // It also checks whether IP addresses are valid and provided in a List format
 func CheckExternalIPsOverridesArgs(overrides []v1beta1.Overrides, jsonPath, compName string, namespace string) error {
-	c, err := getControllerRuntimeClient(runtime.NewScheme())
+	c, err := GetControllerRuntimeClient(runtime.NewScheme())
 	if err != nil {
 		return nil
 	}
@@ -92,7 +92,7 @@ func CheckExternalIPsOverridesArgs(overrides []v1beta1.Overrides, jsonPath, comp
 // It checks whether the service is of a specific type.
 // It also checks whether IP addresses are valid and provided in a List format
 func CheckExternalIPsOverridesArgsWithPaths(overrides []v1beta1.Overrides, jsonBasePath, serviceTypePath, serviceTypeValue, externalIPPath, compName, namespace string) error {
-	c, err := getControllerRuntimeClient(runtime.NewScheme())
+	c, err := GetControllerRuntimeClient(runtime.NewScheme())
 	if err != nil {
 		return nil
 	}
@@ -109,11 +109,9 @@ func CheckExternalIPsOverridesArgsWithPaths(overrides []v1beta1.Overrides, jsonB
 			extractedIPsArray := castValuesToString(extractedIP)
 			externalIPPathFull := jsonBasePath + "." + externalIPPath
 			if extractedType != nil && extractedType == serviceTypeValue {
-				if extractedIPsArray != nil {
-					err := validateExternalIP(extractedIPsArray, externalIPPathFull, compName)
-					if err != nil {
-						return err
-					}
+				err := validateExternalIP(extractedIPsArray, externalIPPathFull, compName)
+				if err != nil {
+					return err
 				}
 			}
 		}

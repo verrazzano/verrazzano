@@ -45,7 +45,7 @@ const (
 func TestCheckExternalIPsArgs(t *testing.T) {
 	asserts := assert.New(t)
 	createFakeTestClient()
-	defer func() { getControllerRuntimeClient = validators.GetClient }()
+	defer func() { GetControllerRuntimeClient = validators.GetClient }()
 
 	vz := getv1alpha1VZ()
 	createv1alpha1VZOverrides(vz, "", "", values, validIP)
@@ -72,7 +72,7 @@ func TestCheckExternalIPsArgs(t *testing.T) {
 func TestCheckExternalIPsOverridesArgs(t *testing.T) {
 	asserts := assert.New(t)
 	createFakeTestClient()
-	defer func() { getControllerRuntimeClient = validators.GetClient }()
+	defer func() { GetControllerRuntimeClient = validators.GetClient }()
 
 	vz := getv1beta1VZ()
 	createv1beta1VZOverrides(vz, "", "", values, validIP)
@@ -93,7 +93,7 @@ func TestCheckExternalIPsOverridesArgs(t *testing.T) {
 func TestCheckExternalIPsOverridesArgsWithPaths(t *testing.T) {
 	asserts := assert.New(t)
 	createFakeTestClient()
-	defer func() { getControllerRuntimeClient = validators.GetClient }()
+	defer func() { GetControllerRuntimeClient = validators.GetClient }()
 
 	vz := getv1beta1VZ()
 	createv1beta1VZOverrides(vz, "", "", values, validIP)
@@ -110,7 +110,7 @@ func TestCheckExternalIPsOverridesArgsWithPaths(t *testing.T) {
 func TestValidIPWithConfigMapOverride(t *testing.T) {
 	asserts := assert.New(t)
 	createFakeTestClientWithConfigMap(createTestConfigMap(true, validIP, validIP))
-	defer func() { getControllerRuntimeClient = validators.GetClient }()
+	defer func() { GetControllerRuntimeClient = validators.GetClient }()
 
 	vz := getv1beta1VZ()
 	createv1beta1VZOverrides(vz, configMap, "", "", validIP)
@@ -128,7 +128,7 @@ func TestValidIPWithConfigMapOverride(t *testing.T) {
 func TestInvalidIPWithConfigMapOverride(t *testing.T) {
 	asserts := assert.New(t)
 	createFakeTestClientWithConfigMap(createTestConfigMap(true, invalidIP, invalidIP))
-	defer func() { getControllerRuntimeClient = validators.GetClient }()
+	defer func() { GetControllerRuntimeClient = validators.GetClient }()
 
 	vz := getv1beta1VZ()
 	createv1beta1VZOverrides(vz, configMap, "", "", "")
@@ -147,7 +147,7 @@ func TestInvalidIPWithConfigMapOverride(t *testing.T) {
 func TestValidIPWithSecretOverride(t *testing.T) {
 	asserts := assert.New(t)
 	createFakeTestClientWithSecret(createTestSecret(true, validIP, validIP))
-	defer func() { getControllerRuntimeClient = validators.GetClient }()
+	defer func() { GetControllerRuntimeClient = validators.GetClient }()
 
 	vz := getv1beta1VZ()
 	createv1beta1VZOverrides(vz, "", secret, "", "")
@@ -166,7 +166,7 @@ func TestValidIPWithSecretOverride(t *testing.T) {
 func TestInvalidIPWithSecretOverride(t *testing.T) {
 	asserts := assert.New(t)
 	createFakeTestClientWithSecret(createTestSecret(true, invalidIP, invalidIP))
-	defer func() { getControllerRuntimeClient = validators.GetClient }()
+	defer func() { GetControllerRuntimeClient = validators.GetClient }()
 
 	vz := getv1beta1VZ()
 	createv1beta1VZOverrides(vz, "", secret, "", "")
@@ -187,7 +187,7 @@ func TestValidIPWithConfigMapSecretOverride(t *testing.T) {
 	createFakeTestClientWithConfigMapAndSecret(
 		createTestConfigMap(false, validIP, ""),
 		createTestSecret(false, validIP, ""))
-	defer func() { getControllerRuntimeClient = validators.GetClient }()
+	defer func() { GetControllerRuntimeClient = validators.GetClient }()
 
 	vz := getv1beta1VZ()
 	createv1beta1VZOverrides(vz, configMap, secret, "", "")
@@ -208,7 +208,7 @@ func TestInvalidIPWithConfigMapSecretOverride(t *testing.T) {
 	createFakeTestClientWithConfigMapAndSecret(
 		createTestConfigMap(false, invalidIP, ""),
 		createTestSecret(false, invalidIP, ""))
-	defer func() { getControllerRuntimeClient = validators.GetClient }()
+	defer func() { GetControllerRuntimeClient = validators.GetClient }()
 
 	vz := getv1beta1VZ()
 	createv1beta1VZOverrides(vz, configMap, secret, "", "")
@@ -222,6 +222,26 @@ func TestInvalidIPWithConfigMapSecretOverride(t *testing.T) {
 	createv1alpha1VZOverrides(v1alpha1VZ, configMap, secret, "", "")
 	err = CheckExternalIPsArgs(v1alpha1VZ.Spec.Components.Istio.IstioInstallArgs, v1alpha1VZ.Spec.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, compName, vz.Namespace)
 	asserts.Error(err)
+}
+
+func TestValidIPWithConfigMapValue(t *testing.T) {
+	asserts := assert.New(t)
+	createFakeTestClientWithConfigMap(createTestConfigMap(false, validIP, ""))
+	defer func() { GetControllerRuntimeClient = validators.GetClient }()
+
+	vz := getv1beta1VZ()
+	createv1beta1VZOverrides(vz, configMap, "", values, validIP)
+	err := CheckExternalIPsOverridesArgs(vz.Spec.Components.Istio.ValueOverrides, externalIPJsonPath, compName, vz.Namespace)
+	asserts.NoError(err)
+	err = CheckExternalIPsOverridesArgsWithPaths(vz.Spec.Components.Istio.ValueOverrides, specServiceJSONPath, typeJSONPathSuffix, string(nodePort), externalIPJsonPathSuffix, compName, vz.Namespace)
+	asserts.NoError(err)
+
+	// Test CheckExternalIPsArgs uses a v1alpha1 vz resource
+	v1alpha1VZ := getv1alpha1VZ()
+	createv1alpha1VZOverrides(v1alpha1VZ, configMap, "", values, validIP)
+	err = CheckExternalIPsArgs(v1alpha1VZ.Spec.Components.Istio.IstioInstallArgs, v1alpha1VZ.Spec.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, compName, vz.Namespace)
+	asserts.NoError(err)
+
 }
 
 // getv1alpha1VZ returns v1beta1 vz CR with Empty ValueOverirides
@@ -387,25 +407,25 @@ func newScheme() *runtime.Scheme {
 }
 
 func createFakeTestClient() {
-	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+	GetControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
 		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects().Build(), nil
 	}
 }
 
 func createFakeTestClientWithConfigMap(testConfigMap *corev1.ConfigMap) {
-	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+	GetControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
 		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(testConfigMap).Build(), nil
 	}
 }
 
 func createFakeTestClientWithSecret(testSecret *corev1.Secret) {
-	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+	GetControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
 		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(testSecret).Build(), nil
 	}
 }
 
 func createFakeTestClientWithConfigMapAndSecret(testConfigMap *corev1.ConfigMap, testSecret *corev1.Secret) {
-	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+	GetControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
 		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(testConfigMap, testSecret).Build(), nil
 	}
 }
