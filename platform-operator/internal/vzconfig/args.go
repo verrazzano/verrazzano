@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"net"
 )
@@ -21,8 +22,9 @@ var GetControllerRuntimeClient = validators.GetClient
 func CheckExternalIPsArgs(installArgs []vzapi.InstallArgs, overrides []vzapi.Overrides, argsKeyName, jsonPath, compName, namespace string) error {
 	var keyPresent bool
 	var v1beta1Overrides = vzapi.ConvertValueOverridesToV1Beta1(overrides)
-
-	c, err := GetControllerRuntimeClient(runtime.NewScheme())
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	c, err := GetControllerRuntimeClient(scheme)
 	if err != nil {
 		return err
 	}
@@ -70,7 +72,9 @@ func CheckExternalIPsArgs(installArgs []vzapi.InstallArgs, overrides []vzapi.Ove
 // specific key for the corresponding component that holds the external IP address
 // It also checks whether IP addresses are valid and provided in a List format
 func CheckExternalIPsOverridesArgs(overrides []v1beta1.Overrides, jsonPath, compName string, namespace string) error {
-	c, err := GetControllerRuntimeClient(runtime.NewScheme())
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	c, err := GetControllerRuntimeClient(scheme)
 	if err != nil {
 		return nil
 	}
@@ -98,7 +102,9 @@ func CheckExternalIPsOverridesArgs(overrides []v1beta1.Overrides, jsonPath, comp
 // It checks whether the service is of a specific type.
 // It also checks whether IP addresses are valid and provided in a List format
 func CheckExternalIPsOverridesArgsWithPaths(overrides []v1beta1.Overrides, jsonBasePath, serviceTypePath, serviceTypeValue, externalIPPath, compName, namespace string) error {
-	c, err := GetControllerRuntimeClient(runtime.NewScheme())
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	c, err := GetControllerRuntimeClient(scheme)
 	if err != nil {
 		return nil
 	}
