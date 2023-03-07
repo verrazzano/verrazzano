@@ -212,18 +212,13 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compTra
 	}
 
 	// The component previously finished installing, but check for any mid-installation updates
-	if spiCtx.ActualCR().Status.State != vzapi.VzStateUpgrading && spiCtx.ActualCR().Status.State != vzapi.VzStatePaused &&
-		checkConfigUpdated(compContext, componentStatus) && comp.IsEnabled(compContext.EffectiveCR()) {
-
-		if !comp.MonitorOverrides(compContext) && comp.IsEnabled(spiCtx.EffectiveCR()) {
-			compContext.Log().Oncef("Skipping update for component %s, monitorChanges set to false", comp.Name())
-		} else {
-			compTracker.installState = compStateInstallInitDetermineComponentState
-			if err := r.updateComponentStatus(compContext, "PreInstall started", vzapi.CondPreInstall); err != nil {
-				compLog.ErrorfThrottled("Error writing component PreInstall state to the status: %v", err)
-			}
-			return ctrl.Result{Requeue: true}
+	// which may require restarting the component's installation from the beginning
+	if restartComponentInstallFromEndState(compContext, spiCtx, comp, componentStatus, compTracker) {
+		compTracker.installState = compStateInstallInitDetermineComponentState
+		if err := r.updateComponentStatus(compContext, "PreInstall started", vzapi.CondPreInstall); err != nil {
+			compLog.ErrorfThrottled("Error writing component PreInstall state to the status: %v", err)
 		}
+		return ctrl.Result{Requeue: true}
 	}
 
 	// Component has been installed
@@ -290,6 +285,24 @@ func chooseCompState(componentStatus *vzapi.ComponentStatusDetails) componentIns
 	default:
 		return compStateInstallInitReady
 	}
+}
+
+// restartComponentInstallFromEndState contains the logic about whether to restart this component's installation from compStateInstallEnd
+func restartComponentInstallFromEndState(compContext, spiCtx spi.ComponentContext, comp spi.Component, componentStatus *vzapi.ComponentStatusDetails,
+	compTracker *componentTrackerContext) bool {
+	// Do not interrupt the upgrade flow
+	if spiCtx.ActualCR().Status.State == vzapi.VzStateUpgrading || spiCtx.ActualCR().Status.State == vzapi.VzStatePaused {
+		return false
+	}
+	// Only restart the component install if the config has been updated and the component is enabled
+	if !checkConfigUpdated(compContext, componentStatus) || !comp.IsEnabled(compContext.EffectiveCR()) {
+		return false
+	}
+	if !comp.MonitorOverrides(compContext) && comp.IsEnabled(spiCtx.EffectiveCR()) {
+		compContext.Log().Oncef("Skipping update for component %s, monitorChanges set to false", comp.Name())
+		return false
+	}
+	return true
 }
 
 // skipComponentFromDetermineComponentState contains the logic about whether to go straight to the component terminal state from compStateInstallInitDetermineComponentState
