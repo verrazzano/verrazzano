@@ -201,6 +201,10 @@ func (c prometheusComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 		Namespace: ns,
 		Name:      constants.PrometheusIngress,
 	})
+
+	if thanosEnabled, err := isThanosEnabled(ctx); !thanosEnabled || err != nil {
+		return ingressNames
+	}
 	return append(ingressNames, types.NamespacedName{
 		Namespace: ns,
 		Name:      constants.ThanosSidecarIngress,
@@ -211,22 +215,25 @@ func (c prometheusComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 func (c prometheusComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var certificateNames []types.NamespacedName
 
-	if vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) {
-		ns := ComponentNamespace
-		if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
-			ns = authproxy.ComponentNamespace
-		}
-		certificateNames = append(certificateNames, types.NamespacedName{
-			Namespace: ns,
-			Name:      prometheusCertificateName,
-		})
-		certificateNames = append(certificateNames, types.NamespacedName{
-			Namespace: ns,
-			Name:      thanosCertificateName,
-		})
+	if !vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) || !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
+		return certificateNames
 	}
+	ns := constants.VerrazzanoSystemNamespace
+	if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
+		ns = authproxy.ComponentNamespace
+	}
+	certificateNames = append(certificateNames, types.NamespacedName{
+		Namespace: ns,
+		Name:      prometheusCertificateName,
+	})
 
-	return certificateNames
+	if thanosEnabled, err := isThanosEnabled(ctx); !thanosEnabled || err != nil {
+		return certificateNames
+	}
+	return append(certificateNames, types.NamespacedName{
+		Namespace: ns,
+		Name:      thanosCertificateName,
+	})
 }
 
 // checkExistingCNEPrometheus checks if Prometheus is already installed
