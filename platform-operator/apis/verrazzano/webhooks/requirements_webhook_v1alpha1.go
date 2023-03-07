@@ -38,12 +38,11 @@ func (v *RequirementsValidatorV1alpha1) InjectDecoder(d *admission.Decoder) erro
 
 // Handle performs validation of the Verrazzano prerequisites based on the profiled used.
 func (v *RequirementsValidatorV1alpha1) Handle(ctx context.Context, req admission.Request) admission.Response {
-	var log = zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, RequirementsWebhook)
-	log.Infof("Processing requirements validator webhook")
 	if !config.Get().ResourceRequirementsValidation {
-		log.Infof("Processing Requirements validator webhook is disabled")
 		return admission.Allowed("Resource requirements validation not enabled")
 	}
+	var log = zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, RequirementsWebhook)
+	log.Infof("Processing requirements validator webhook")
 	vz := &v1alpha1.Verrazzano{}
 	err := v.decoder.Decode(req, vz)
 	if err != nil {
