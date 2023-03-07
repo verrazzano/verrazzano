@@ -298,7 +298,7 @@ func restartComponentInstallFromEndState(compContext spi.ComponentContext, comp 
 	if !checkConfigUpdated(compContext, componentStatus) || !comp.IsEnabled(compContext.EffectiveCR()) {
 		return false
 	}
-	if !comp.MonitorOverrides(compContext) && comp.IsEnabled(compContext.EffectiveCR()) {
+	if !comp.MonitorOverrides(compContext) {
 		compContext.Log().Oncef("Skipping update for component %s, monitorChanges set to false", comp.Name())
 		return false
 	}
