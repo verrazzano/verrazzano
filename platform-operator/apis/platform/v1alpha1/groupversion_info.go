@@ -3,8 +3,8 @@
 
 // Package v1beta2 contains API Schema definitions for the platform v1beta2 API group
 // +kubebuilder:object:generate=true
-// +groupName=install.verrazzano.io
-package v1beta2
+// +groupName=platform.verrazzano.io
+package v1alpha1
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -13,7 +13,7 @@ import (
 
 var (
 	// SchemeGroupVersion is group version used to register these objects
-	SchemeGroupVersion = schema.GroupVersion{Group: "install.verrazzano.io", Version: "v1beta2"}
+	SchemeGroupVersion = schema.GroupVersion{Group: "platform.verrazzano.io", Version: "v1beta2"}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
