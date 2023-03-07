@@ -26,7 +26,10 @@ func CheckExternalIPsArgs(installArgs []vzapi.InstallArgs, overrides []vzapi.Ove
 	if err != nil {
 		return err
 	}
-	overrideYAMLs, _ := override.GetInstallOverridesYAMLUsingClient(c, v1beta1Overrides, namespace)
+	overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(c, v1beta1Overrides, namespace)
+	if err != nil {
+		return err
+	}
 	for _, o := range overrideYAMLs {
 		keyPresent = false
 		value, err := override.ExtractValueFromOverrideString(o, jsonPath)
@@ -71,7 +74,10 @@ func CheckExternalIPsOverridesArgs(overrides []v1beta1.Overrides, jsonPath, comp
 	if err != nil {
 		return nil
 	}
-	overrideYAMLs, _ := override.GetInstallOverridesYAMLUsingClient(c, overrides, namespace)
+	overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(c, overrides, namespace)
+	if err != nil {
+		return err
+	}
 	for _, o := range overrideYAMLs {
 		value, err := override.ExtractValueFromOverrideString(o, jsonPath)
 		if err != nil {
@@ -96,7 +102,10 @@ func CheckExternalIPsOverridesArgsWithPaths(overrides []v1beta1.Overrides, jsonB
 	if err != nil {
 		return nil
 	}
-	overrideYAMLs, _ := override.GetInstallOverridesYAMLUsingClient(c, overrides, namespace)
+	overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(c, overrides, namespace)
+	if err != nil {
+		return err
+	}
 	for _, o := range overrideYAMLs {
 		value, err := override.ExtractValueFromOverrideString(o, jsonBasePath)
 		if err != nil {
