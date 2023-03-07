@@ -197,6 +197,9 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	// Delete the rancher-cleanup job
 	deleteCleanupJob(ctx)
 
+	// The uninstall of Rancher is completed, reset the finalizer deleted flag to handle the next uninstall
+	rancherFinalizersDeleted = false
+
 	return nil
 }
 
