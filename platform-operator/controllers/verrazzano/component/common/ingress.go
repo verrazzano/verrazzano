@@ -6,6 +6,7 @@ package common
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -104,4 +105,15 @@ func CreateOrUpdateSystemComponentIngress(ctx spi.ComponentContext, props Ingres
 		return ctx.Log().ErrorfNewErr("Failed creating/updating ingress %s: %v", props.IngressName, err)
 	}
 	return err
+}
+
+// DeleteSystemComponentIngress deletes an ingress for a Verrazzano system component
+func DeleteSystemComponentIngress(ctx spi.ComponentContext, name string) error {
+	ingress := netv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: constants.VerrazzanoSystemNamespace},
+	}
+	if err := client.IgnoreNotFound(ctx.Client().Delete(context.TODO(), &ingress)); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to delete Ingress %s/%s: %v", constants.VerrazzanoSystemNamespace, name, err)
+	}
+	return nil
 }

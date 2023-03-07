@@ -729,11 +729,17 @@ func createOrUpdateIngresses(ctx spi.ComponentContext) error {
 	}
 
 	// Only create the Thanos Ingress if it is enabled in the Prometheus Spec
-	if thanosEnabled, err := isThanosEnabled(ctx); !thanosEnabled || err != nil {
+	thanosEnabled, err := isThanosEnabled(ctx)
+	if err != nil {
 		return err
 	}
+	// Delete the existing ingress if the sidecar becomes disabled
+	if !thanosEnabled {
+		return common.DeleteSystemComponentIngress(ctx, constants.ThanosSidecarIngress)
+	}
+
 	thanosProps := common.IngressProperties{
-		IngressName:   constants.ThanosIngress,
+		IngressName:   constants.ThanosSidecarIngress,
 		HostName:      thanosHostName,
 		TLSSecretName: thanosCertificateName,
 		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
