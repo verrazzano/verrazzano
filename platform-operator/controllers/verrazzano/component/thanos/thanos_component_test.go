@@ -51,12 +51,12 @@ func TestThanosEnabled(t *testing.T) {
 		{
 			name:         "test v1alpha1 component nil",
 			verrazzanoA1: crA1NilComp,
-			assertion:    assert.True,
+			assertion:    assert.False,
 		},
 		{
 			name:         "test v1alpha1 enabled nil",
 			verrazzanoA1: crA1NilEnabled,
-			assertion:    assert.True,
+			assertion:    assert.False,
 		},
 		{
 			name:         "test v1alpha1 enabled",
@@ -71,12 +71,12 @@ func TestThanosEnabled(t *testing.T) {
 		{
 			name:         "test v1beta1 component nil",
 			verrazzanoB1: crB1NilComp,
-			assertion:    assert.True,
+			assertion:    assert.False,
 		},
 		{
 			name:         "test v1beta1 enabled nil",
 			verrazzanoB1: crB1NilEnabled,
-			assertion:    assert.True,
+			assertion:    assert.False,
 		},
 		{
 			name:         "test v1beta1 enabled",

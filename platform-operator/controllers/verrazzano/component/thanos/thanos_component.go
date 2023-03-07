@@ -5,10 +5,9 @@ package thanos
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -16,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // ComponentName is the name of the component
@@ -73,6 +73,7 @@ func (t thanosComponent) IsReady(context spi.ComponentContext) bool {
 	return t.HelmComponent.IsReady(context) && t.isThanosReady(context)
 }
 
+// isThanosReady returns true if the availability objects have the minimum number of expected replicas
 func (t thanosComponent) isThanosReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), t.AvailabilityObjects.DeploymentNames, 1, prefix)
