@@ -291,7 +291,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		// format "subcomponentName": "helmDefaultKey"
 		alertmanagerName: "prometheusOperator.alertmanagerDefaultBaseImage",
 		prometheusName:   "prometheusOperator.prometheusDefaultBaseImage",
-		thanosName:       "prometheus.thanos.image",
+		thanosName:       "prometheus.prometheusOperator.thanos.image",
 	}
 	kvs, err = appendDefaultImageOverrides(ctx, kvs, defaultImages)
 	if err != nil {
