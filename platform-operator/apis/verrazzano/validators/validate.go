@@ -102,7 +102,7 @@ func ValidateVersion(requestedVersion string) error {
 		return err
 	}
 	if !requestedSemVer.IsEqualTo(bomSemVer) {
-		return fmt.Errorf("Requested version %s does not match BOM version %s", requestedSemVer.ToString(), bomSemVer.ToString())
+		return fmt.Errorf("invalid version %s: Please use Verrazzano version %s", requestedSemVer.ToString(), bomSemVer.ToString())
 	}
 	return nil
 }
@@ -133,7 +133,7 @@ func ValidateNewVersion(currStatusVerString string, currSpecVerString string, ne
 	}
 	if !newSpecVer.IsEqualTo(bomVersion) {
 		// A newer version is available, the user must opt-in to an upgrade before we allow any edits
-		return fmt.Errorf("Requested version %s does not match BOM version v%s, please upgrade to the current BOM version",
+		return fmt.Errorf("invalid version %s: Please upgrade the Verrazzano version to v%s",
 			newSpecVer.ToString(), bomVersion.ToString())
 	}
 
