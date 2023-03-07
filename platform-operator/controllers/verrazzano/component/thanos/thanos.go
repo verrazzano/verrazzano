@@ -28,6 +28,7 @@ func GetOverrides(object runtime.Object) interface{} {
 	return []vzapi.Overrides{}
 }
 
+// AppendOverrides appends the default overrides for the Thanos component
 func AppendOverrides(_ spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
