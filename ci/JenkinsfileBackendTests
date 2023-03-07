@@ -60,7 +60,7 @@ pipeline {
 
     triggers {
         URLTrigger(
-            cronTabSpec: '*/2 * * * *',
+            cronTabSpec: branchSpecificSchedule,
             entries: [
                 URLTriggerEntry(
                     url: "https://objectstorage.${ociOsRegion}.oraclecloud.com/n/${OS_NAMESPACE_URL_TRIGGER}/b/${ociOsBucket}/o/${urlTriggerBranchName}/${lastStableCommitFile}",
