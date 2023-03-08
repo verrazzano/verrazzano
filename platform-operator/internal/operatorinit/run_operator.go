@@ -9,6 +9,7 @@ import (
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/module"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/platform"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
@@ -78,7 +79,7 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoConfigMaps")
+		log.Error(err, "Failed to setup controller", vzlog.FieldController, "ModulesController")
 		os.Exit(1)
 	}
 
@@ -88,6 +89,15 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 		return errors.Wrap(err, "Failed starting MySQLChecker")
 	}
 	mysqlCheck.Start()
+
+	// v1beta2 Platform controller
+	if err = (&platform.PlatformReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		log.Error(err, "Failed to setup controller", vzlog.FieldController, "PlatformController")
+		os.Exit(1)
+	}
 
 	// +kubebuilder:scaffold:builder
 	log.Info("Starting controller-runtime manager")
