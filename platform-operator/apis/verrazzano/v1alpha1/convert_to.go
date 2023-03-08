@@ -141,6 +141,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		PrometheusPushgateway:  convertPrometheusPushGatewayToV1Beta1(src.PrometheusPushgateway),
 		Rancher:                convertRancherToV1Beta1(src.Rancher),
 		RancherBackup:          convertRancherBackupToV1Beta1(src.RancherBackup),
+		Thanos:                 convertThanosToV1Beta1(src.Thanos),
 		WebLogicOperator:       convertWeblogicOperatorToV1Beta1(src.WebLogicOperator),
 		Velero:                 convertVeleroToV1Beta1(src.Velero),
 		Verrazzano:             verrazzanoComponent,
@@ -758,6 +759,16 @@ func convertClusterOperatorToV1Beta1(src *ClusterOperatorComponent) *v1beta1.Clu
 		return nil
 	}
 	return &v1beta1.ClusterOperatorComponent{
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
+	}
+}
+
+func convertThanosToV1Beta1(src *ThanosComponent) *v1beta1.ThanosComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.ThanosComponent{
 		Enabled:          src.Enabled,
 		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
 	}

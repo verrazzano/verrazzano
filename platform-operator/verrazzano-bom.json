@@ -167,7 +167,7 @@
             },
             {
               "image": "rancher-cleanup",
-              "tag": "v1.0.0-20230303133652-2566713"
+              "tag": "v1.0.0-20230307143440-ced0b90"
             }
           ]
         }
@@ -771,6 +771,25 @@
             {
               "image": "redis",
               "tag": "v6.2.7-20230124164724-26c8b963",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "thanos",
+      "version": "v0.28.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "thanos",
+          "images": [
+            {
+              "image": "thanos",
+              "tag": "v0.28.0-20230307214739-f86032ae",
+              "helmRegKey": "image.registry",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
