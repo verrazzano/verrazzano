@@ -560,7 +560,8 @@ const pkceClientUrisTemplate = `
       "https://thanos-sidecar.{{.DNSSubDomain}}/*"
       "https://thanos-sidecar.{{.DNSSubDomain}}/_authentication_callback"
       "https://thanos-query-frontend.{{.DNSSubDomain}}/*"
-      "https://thanos-query-frontend.{{.DNSSubDomain}}/_authentication_callback"{{end}}
+      "https://thanos-query-frontend.{{.DNSSubDomain}}/_authentication_callback"
+  {{end}}
 	],
 	"webOrigins": [
 	  "https://verrazzano.{{.DNSSubDomain}}",

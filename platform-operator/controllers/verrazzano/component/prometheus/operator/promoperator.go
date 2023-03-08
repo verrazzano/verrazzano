@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"path"
 	"strconv"
 
@@ -752,6 +753,9 @@ func createOrUpdateIngresses(ctx spi.ComponentContext) error {
 func isThanosEnabled(ctx spi.ComponentContext) (bool, error) {
 	prometheusList := promoperapi.PrometheusList{}
 	err := ctx.Client().List(context.TODO(), &prometheusList, &client.ListOptions{Namespace: constants.VerrazzanoMonitoringNamespace})
+	if meta.IsNoMatchError(err) {
+		return false, nil
+	}
 	if err != nil {
 		return false, ctx.Log().ErrorfNewErr("Failed to list Prometheus objects in the %s namespace: %v", constants.VerrazzanoMonitoringNamespace, err)
 	}

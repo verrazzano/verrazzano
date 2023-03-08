@@ -144,7 +144,7 @@ func (t thanosComponent) GetIngressNames(ctx spi.ComponentContext) []types.Names
 func (t thanosComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var certificateNames []types.NamespacedName
 
-	if !vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) || !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
+	if !vzcr.IsThanosEnabled(ctx.EffectiveCR()) || !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
 		return certificateNames
 	}
 	ns := constants.VerrazzanoSystemNamespace
