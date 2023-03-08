@@ -86,6 +86,24 @@ func (t thanosComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzcr.IsThanosEnabled(effectiveCR)
 }
 
+// PreInstall handles the pre-install operations for the Thanos component
+func (t thanosComponent) PreInstall(ctx spi.ComponentContext) error {
+	if err := preInstallUpgrade(ctx); err != nil {
+		return err
+	}
+
+	return t.HelmComponent.PreInstall(ctx)
+}
+
+// PreUpgrade handles the pre-upgrade operations for the Thanos component
+func (t thanosComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	if err := preInstallUpgrade(ctx); err != nil {
+		return err
+	}
+
+	return t.HelmComponent.PreUpgrade(ctx)
+}
+
 // PostInstall handles the post-install operations for the Thanos component
 func (t thanosComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := postInstallUpgrade(ctx); err != nil {

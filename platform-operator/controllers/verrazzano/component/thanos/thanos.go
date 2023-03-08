@@ -50,7 +50,27 @@ func AppendOverrides(_ spi.ComponentContext, _ string, _ string, _ string, kvs [
 	return append(kvs, image...), nil
 }
 
+// preInstallUpgrade handles pre-install and pre-upgrade processing for the Thanos Component
+func preInstallUpgrade(ctx spi.ComponentContext) error {
+	// Do nothing if dry run
+	if ctx.IsDryRun() {
+		ctx.Log().Debug("Thanos preInstallUpgrade dry run")
+		return nil
+	}
+
+	// Create the verrazzano-monitoring namespace if not already created
+	ctx.Log().Debugf("Creating namespace %s for Thanos", constants.VerrazzanoMonitoringNamespace)
+	return common.EnsureVerrazzanoMonitoringNamespace(ctx)
+}
+
+// preInstallUpgrade handles post-install and post-upgrade processing for the Thanos Component
 func postInstallUpgrade(ctx spi.ComponentContext) error {
+	// Do nothing if dry run
+	if ctx.IsDryRun() {
+		ctx.Log().Debug("Thanos postInstallUpgrade dry run")
+		return nil
+	}
+
 	// If NGINX is not enabled, skip the ingress creation
 	if !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
 		return nil
