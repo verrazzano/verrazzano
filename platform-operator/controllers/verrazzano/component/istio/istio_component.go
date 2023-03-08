@@ -6,7 +6,6 @@ package istio
 import (
 	"context"
 	"fmt"
-	"go.uber.org/zap"
 	"path/filepath"
 	"strings"
 
@@ -363,9 +362,6 @@ func (i istioComponent) validateForExternalIPSWithNodePort(vz *vzapi.Verrazzano)
 
 // validateForExternalIPSWithNodePortV1Beta1 checks that externalIPs are set when Type=NodePort
 func (i istioComponent) validateForExternalIPSWithNodePortV1Beta1(vz *installv1beta1.Verrazzano) error {
-	logger := zap.S()
-	logger.Debug()
-	fmt.Println("This is the vz_namespace: ", vz.Namespace)
 	// good if istio is not set
 	if vz.Spec.Components.Istio == nil {
 		return nil
