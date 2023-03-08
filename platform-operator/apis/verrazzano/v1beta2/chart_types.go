@@ -106,7 +106,48 @@ type ModuleDefinitionCondition struct {
 	Type PlatformConditionType `json:"type"`
 }
 
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=platformdefinitions
+// +kubebuilder:subresource:status
+// +kubebuilder:storageversion
+// +kubebuilder:resource:shortName=pd;pds
+// +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="The current version of the Verrazzano Platform definition ."
+// +genclient
+
+// Platform specifies a Verrazzano Platform instance.
+type PlatformDefinition struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   PlatformDefinitionSpec  `json:"spec,omitempty"`
+	Status PlatformDefintionStatus `json:"status,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+// PlatformDefinitionList contains a list of PlatformDefinition resources.
+type PlatformDefinitionList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []PlatformDefinition `json:"items"`
+}
+
+// PlatformDefinitionConditionType identifies the condition of the PlatformDefinition resource, which can be checked with `kubectl wait`.
+type PlatformDefinitionConditionType string
+
+type PlatformDefinitionSpec struct {
+	Version          string         `json:"version"`
+	CRDVersions      []ChartVersion `json:"crds,omitempty"`
+	OperatorVersions []ChartVersion `json:"operators,omitempty"`
+	ModuleVersions   []ChartVersion `json:"modules,omitempty"`
+}
+
+type PlatformDefintionStatus struct {
+	Version string `json:"version,omitempty"`
+}
+
 func init() {
 	SchemeBuilder.Register(&OperatorDefinition{}, &OperatorDefinitionList{})
 	SchemeBuilder.Register(&ModuleDefinition{}, &ModuleDefinitionList{})
+	SchemeBuilder.Register(&PlatformDefinition{}, &PlatformDefinitionList{})
 }

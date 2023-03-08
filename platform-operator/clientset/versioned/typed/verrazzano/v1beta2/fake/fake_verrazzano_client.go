@@ -27,6 +27,10 @@ func (c *FakeVerrazzanoV1beta2) Platforms(namespace string) v1beta2.PlatformInte
 	return &FakePlatforms{c, namespace}
 }
 
+func (c *FakeVerrazzanoV1beta2) PlatformDefinitions(namespace string) v1beta2.PlatformDefinitionInterface {
+	return &FakePlatformDefinitions{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeVerrazzanoV1beta2) RESTClient() rest.Interface {

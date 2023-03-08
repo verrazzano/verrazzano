@@ -38,12 +38,25 @@ type ChartVersion struct {
 	VersionRange string `json:"versions"`
 }
 
+type SourceType struct {
+	Name              *string `json:"name,omitempty"`
+	URL               *string `json:"name,omitempty"`
+	CredentialsSecret *string `json:"credentialsSecret,omitempty"`
+}
+
+type UpgradeType string
+
+const (
+	ManualUpgradeType    = "manual"
+	AutomaticUpgradeType = "automatic"
+)
+
 // PlatformSpec defines valid versions for a Verrazzano Platform instance
 type PlatformSpec struct {
-	Version          string         `json:"version"`
-	CRDVersions      []ChartVersion `json:"crds,omitempty"`
-	OperatorVersions []ChartVersion `json:"operators,omitempty"`
-	ModuleVersions   []ChartVersion `json:"modules,omitempty"`
+	Version   string       `json:"version"`
+	Sources   []SourceType `json:"sources,omitempty"`
+	Upgrade   UpgradeType  `json:"upgrade,omitempty"`
+	Reconcile *bool        `json:"reconcile,omitempty"`
 }
 
 // PlatformStatus defines the observed state of a Verrazzano resource.

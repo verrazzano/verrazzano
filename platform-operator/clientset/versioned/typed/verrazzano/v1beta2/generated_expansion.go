@@ -10,3 +10,5 @@ type ModuleDefinitionExpansion interface{}
 type OperatorDefinitionExpansion interface{}
 
 type PlatformExpansion interface{}
+
+type PlatformDefinitionExpansion interface{}

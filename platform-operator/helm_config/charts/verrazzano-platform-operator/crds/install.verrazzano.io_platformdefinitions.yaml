@@ -1,5 +1,7 @@
 # Copyright (c) 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+# Copyright (c) 2023, , Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -7,21 +9,21 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.9.2
   creationTimestamp: null
-  name: platforms.install.verrazzano.io
+  name: platformdefinitions.install.verrazzano.io
 spec:
   group: install.verrazzano.io
   names:
-    kind: Platform
-    listKind: PlatformList
-    plural: platforms
+    kind: PlatformDefinition
+    listKind: PlatformDefinitionList
+    plural: platformdefinitions
     shortNames:
-    - pf
-    - pfs
-    singular: platform
+    - pd
+    - pds
+    singular: platformdefinition
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - description: The current version of the Verrazzano platform.
+    - description: The current version of the Verrazzano Platform definition .
       jsonPath: .status.version
       name: Version
       type: string
@@ -37,19 +39,42 @@ spec:
             type: object
           spec:
             properties:
-              reconcile:
-                type: boolean
-              sources:
+              crds:
                 items:
                   properties:
-                    credentialsSecret:
-                      type: string
                     name:
                       type: string
+                    versions:
+                      type: string
+                  required:
+                  - name
+                  - versions
                   type: object
                 type: array
-              upgrade:
-                type: string
+              modules:
+                items:
+                  properties:
+                    name:
+                      type: string
+                    versions:
+                      type: string
+                  required:
+                  - name
+                  - versions
+                  type: object
+                type: array
+              operators:
+                items:
+                  properties:
+                    name:
+                      type: string
+                    versions:
+                      type: string
+                  required:
+                  - name
+                  - versions
+                  type: object
+                type: array
               version:
                 type: string
             required:
