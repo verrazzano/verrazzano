@@ -8,6 +8,7 @@ package stacks
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
@@ -24,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 /*var delegates = map[string]func(*modulesv1alpha1.Module) modules2.DelegateReconciler{
@@ -36,6 +38,7 @@ type Reconciler struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	Controller controller.Controller
+	DryRun     bool
 }
 
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -121,12 +124,31 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if !found {
 		log.Errorf("Failed not find stack component with name %s", stackName)
 	}
-	// Keep retrying to reconcile components until it completes
-	if err := stackComponent.ReconcileStack(ctx); err != nil {
-		return newRequeueWithDelay(), err
+	vz := &vzapi.Verrazzano{}
+	if err := r.Get(ctx, req.NamespacedName, vz); err != nil {
+		// If the resource is not found, that means all of the finalizers have been removed,
+		// and the Verrazzano resource has been deleted, so there is nothing left to do.
+		if k8serrors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+		zap.S().Errorf("Failed to fetch Verrazzano resource: %v", err)
+		return newRequeueWithDelay(), nil
+	}
+	var t StackComponent
+	if reflect.TypeOf(stackComponent).AssignableTo(reflect.TypeOf(t)) {
+		// Keep retrying to reconcile components until it completes
+		// vzctx, err := vzcontext.NewVerrazzanoContext(log, r.Client, vz, r.DryRun)
+		stackCtx, err := NewStackContext(log, r.Client, vz, nil, stackConfig, r.DryRun)
+		if err != nil {
+			zap.S().Errorf("Failed to create Stack Context: %v", err)
+			return newRequeueWithDelay(), err
+		}
+		if err := stackComponent.(StackComponent).ReconcileStack(stackCtx); err != nil {
+			return newRequeueWithDelay(), err
+		}
 	}
 
-	return ctrl.Result{}, nil
+	// return ctrl.Result{}, nil
 	/*if stackConfig.Generation == stackConfig.Status.ObservedGeneration {
 		log.Debugf("Skipping stack %s reconcile, observed generation has not changed for ConfigMap %s/%s",
 			stackName, stackConfig.Namespace, stackConfig.Name)

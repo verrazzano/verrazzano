@@ -65,6 +65,7 @@ func NewStackComponent() stacks.StackComponent {
 }
 
 func (m monitoringStack) ReconcileStack(ctx stacks.StackContext) error {
+	ctx.Log().Infof("Reconciling Monitoring stack with configmap %s", ctx.GetStackConfigMap())
 	return nil
 }
 

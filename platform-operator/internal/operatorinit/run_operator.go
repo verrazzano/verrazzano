@@ -84,6 +84,7 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 	if err = (&stacks.Reconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		DryRun: config.DryRun,
 	}).SetupWithManager(mgr); err != nil {
 		return errors.Wrap(err, "Failed to setup controller for Verrazzano Stacks")
 	}

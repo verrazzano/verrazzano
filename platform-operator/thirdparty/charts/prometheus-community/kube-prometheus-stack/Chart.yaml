@@ -37,3 +37,24 @@ annotations:
       url: https://github.com/prometheus-community/helm-charts
     - name: Upstream Project
       url: https://github.com/prometheus-operator/kube-prometheus
+dependencies:
+  - name: kube-state-metrics
+    version: "4.20.*"
+    repository: file://../kube-state-metrics
+    condition: kubeStateMetrics.enabled
+  - name: prometheus-node-exporter
+    version: "3.1.0"
+    repository: file://../prometheus-node-exporter
+    condition: nodeExporter.enabled
+  - name: prometheus-pushgateway
+    version: "1.16.1"
+    repository: file://../prometheus-pushgateway
+    condition: pushgateway.enabled
+  - name: prometheus-adapter
+    version: "1.16.1"
+    repository: file://../prometheus-adapter
+    condition: adapter.enabled
+  - name: grafana
+    version: "6.38.*"
+    repository: https://grafana.github.io/helm-charts
+    condition: grafana.enabled
