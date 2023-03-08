@@ -87,6 +87,8 @@ func (h helmComponentAdapter) Install(context spi.ComponentContext) error {
 		return err
 	}
 
+	// TODO: utilize overrides hooks
+
 	// vz-specific chart overrides file
 	//overrides, err := h.buildCustomHelmOverrides(context, h.ChartNamespace, kvs...)
 	//defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), `helm-overrides.*\.yaml`)
@@ -99,6 +101,11 @@ func (h helmComponentAdapter) Install(context spi.ComponentContext) error {
 	return err
 }
 
+func (h helmComponentAdapter) Upgrade(context spi.ComponentContext) error {
+	// TODO: examine HelmComponent.Upgrade() to see what kind of hooks are missing/required
+	return h.Install(context)
+}
+
 // IsReady Indicates whether a component is available and ready
 func (h helmComponentAdapter) IsReady(context spi.ComponentContext) bool {
 	if context.IsDryRun() {
@@ -106,6 +113,7 @@ func (h helmComponentAdapter) IsReady(context spi.ComponentContext) bool {
 		return true
 	}
 
+	// TODO: see if we need any of this nonsense below
 	//releaseAppVersion, err := helm.GetReleaseAppVersion(h.ReleaseName, h.ChartNamespace)
 	//if err != nil {
 	//	return false
