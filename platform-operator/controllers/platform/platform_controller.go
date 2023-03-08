@@ -50,7 +50,7 @@ func (r *PlatformReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}
-		zap.S().Errorf("Failed to fetch PlatformDefinition resource: %v", err)
+		zap.S().Errorf("Failed to fetch Platform resource: %v", err)
 		return newRequeueWithDelay(), nil
 	}
 
@@ -64,7 +64,7 @@ func (r *PlatformReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	})
 	if err != nil {
 		// TODO: errorCounterMetricObject.Inc()
-		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
+		zap.S().Errorf("Failed to create controller logger for Platform controller: %v", err)
 	}
 
 	// Check if resource is being deleted

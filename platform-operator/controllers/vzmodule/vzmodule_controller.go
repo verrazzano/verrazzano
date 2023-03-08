@@ -54,7 +54,7 @@ func (r *VerrazzanoModuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}
-		zap.S().Errorf("Failed to fetch PlatformDefinition resource: %v", err)
+		zap.S().Errorf("Failed to fetch VerrazzanoModule resource: %v", err)
 		return newRequeueWithDelay(), nil
 	}
 
@@ -64,11 +64,11 @@ func (r *VerrazzanoModuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		Namespace:      moduleInstance.Namespace,
 		ID:             string(moduleInstance.UID),
 		Generation:     moduleInstance.Generation,
-		ControllerName: "platform",
+		ControllerName: "vzmodule",
 	})
 	if err != nil {
 		// TODO: errorCounterMetricObject.Inc()
-		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
+		zap.S().Errorf("Failed to create controller logger for VerrazzanoModule controller: %v", err)
 	}
 
 	// Check if resource is being deleted
@@ -89,7 +89,7 @@ func (r *VerrazzanoModuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 	}
 
-	log.Infof("Reconciling platform instance %s/%s", moduleInstance.Namespace, moduleInstance.Name)
+	log.Infof("Reconciling Verrazzano module instance %s/%s", moduleInstance.Namespace, moduleInstance.Name)
 	return ctrl.Result{}, nil
 }
 
