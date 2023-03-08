@@ -139,15 +139,16 @@ func GetValuesMap(log vzlog.VerrazzanoLogger, releaseName string, namespace stri
 	return valuesMap, nil
 }
 
+// Upgrade Upgrade or install a local chart
 func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []HelmOverrides) (stdout []byte, stderr []byte, err error) {
-	return Upgrade2(log, "", releaseName, namespace, chartDir, "", wait, dryRun, overrides)
+	return UpgradeRelease(log, "", releaseName, namespace, chartDir, "", wait, dryRun, overrides)
 }
 
-// Upgrade will upgrade a Helm release with the specified charts.  The override files array
+// UpgradeRelease will upgrade a Helm release with the specified charts.  The override files array
 // are in order with the first files in the array have lower precedence than latter files.
-func Upgrade2(log vzlog.VerrazzanoLogger, repoURL string, releaseName string, namespace string, chartDirOrName string, chartVersion string, wait bool, dryRun bool, overrides []HelmOverrides) (stdout []byte, stderr []byte, err error) {
+func UpgradeRelease(log vzlog.VerrazzanoLogger, repoURL string, releaseName string, namespace string, chartDirOrName string, chartVersion string, wait bool, dryRun bool, overrides []HelmOverrides) (stdout []byte, stderr []byte, err error) {
 	// Helm upgrade command will apply the new chart, but use all the existing
-	// overrides that we used during the install.
+	// overrides that we used during the installation.
 	args := []string{"--install"}
 
 	if len(repoURL) > 0 {

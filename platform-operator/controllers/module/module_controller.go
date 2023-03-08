@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	controller2 "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -22,6 +23,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"time"
 )
 
 var delegates = map[string]func(*modulesv1alpha1.Module) modules2.DelegateReconciler{
@@ -91,16 +93,30 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if delegate == nil {
 		return ctrl.Result{}, fmt.Errorf("No delegate found for module %s/%s", module.Namespace, module.Name)
 	}
-	moduleCtx, err := spi.NewModuleContext(log, r.Client, &verrazzanos.Items[0], module, false)
+	moduleCtx, err := r.createComponentContext(log, verrazzanos, module)
 	if err != nil {
-		log.Errorf("Failed to create module context: %v", err)
-		return clusters.NewRequeueWithDelay(), err
+		return controller2.NewRequeueWithDelay(2, 5, time.Second), err
 	}
+
 	delegate.SetStatusWriter(r.Status())
 	if err := delegate.ReconcileModule(moduleCtx); err != nil {
 		return handleError(moduleCtx, err)
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *Reconciler) createComponentContext(log vzlog.VerrazzanoLogger, verrazzanos *vzapi.VerrazzanoList, module *modulesv1alpha1.Module) (spi.ComponentContext, error) {
+	var moduleCtx spi.ComponentContext
+	var err error
+	if len(verrazzanos.Items) > 0 {
+		moduleCtx, err = spi.NewModuleContext(log, r.Client, &verrazzanos.Items[0], module, false)
+	} else {
+		moduleCtx, err = spi.NewMinimalModuleContext(r.Client, log, module, false)
+	}
+	if err != nil {
+		log.Errorf("Failed to create module context: %v", err)
+	}
+	return moduleCtx, err
 }
 
 func getDelegateController(module *modulesv1alpha1.Module) modules2.DelegateReconciler {

@@ -49,6 +49,18 @@ func NewMinimalContext(c clipkg.Client, log vzlog.VerrazzanoLogger) (ComponentCo
 	}, nil
 }
 
+// NewMinimalModuleContext creates a ComponentContext for a v1alpha1.Module instance limited to kubernetes client interactions and logging
+func NewMinimalModuleContext(c clipkg.Client, log vzlog.VerrazzanoLogger, module *modulesv1alpha1.Module, dryRun bool) (ComponentContext, error) {
+	// Generate the effective CR based ond the declared profile and any overrides in the user-supplied one
+	return componentContext{
+		log:       log,
+		client:    c,
+		module:    module,
+		dryRun:    dryRun,
+		component: module.Name,
+	}, nil
+}
+
 func NewModuleContext(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *v1alpha1.Verrazzano, module *modulesv1alpha1.Module, dryRun bool) (ComponentContext, error) {
 	// Generate the effective CR based ond the declared profile and any overrides in the user-supplied one
 	effectiveCR, err := transform.GetEffectiveCR(actualCR)

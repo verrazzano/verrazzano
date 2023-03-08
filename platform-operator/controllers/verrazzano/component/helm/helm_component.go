@@ -41,14 +41,14 @@ type HelmComponent struct {
 	// JSONName is the josn name of the verrazzano component in CRD
 	JSONName string
 
-	// ChartDir is the helm chart directory
+	// ChartDir is the helm chart directory, or the name of the chart if RepositoryURL is used
 	ChartDir string
 
 	// ChartVersion is the version of the helm chart
 	ChartVersion string
 
-	// Repository The name or URL of the repository
-	Repository string
+	// RepositoryURL The name or URL of the repository, e.g., http://myrepo/vz/stable
+	RepositoryURL string
 
 	// ChartNamespace is the namespace passed to the helm command
 	ChartNamespace string
@@ -139,17 +139,17 @@ type getInstallOverridesSig func(object runtime.Object) interface{}
 type resolveNamespaceSig func(ns string) string
 
 // upgradeFuncSig is a function needed for unit test override
-type upgradeFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (stdout []byte, stderr []byte, err error)
+type upgradeFuncSig func(log vzlog.VerrazzanoLogger, repoURL string, releaseName string, namespace string, chartDirOrName string, chartVersion string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (stdout []byte, stderr []byte, err error)
 
 // upgradeFunc is the default upgrade function
-var upgradeFunc upgradeFuncSig = helm.Upgrade
+var upgradeFunc upgradeFuncSig = helm.UpgradeRelease
 
 func SetUpgradeFunc(f upgradeFuncSig) {
 	upgradeFunc = f
 }
 
 func SetDefaultUpgradeFunc() {
-	upgradeFunc = helm.Upgrade
+	upgradeFunc = helm.UpgradeRelease
 }
 
 // UpgradePrehooksEnabled is needed so that higher level units tests can disable as needed
@@ -342,7 +342,7 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 	}
 
 	// Perform an install using the helm upgrade --install command
-	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, h.WaitForInstall, context.IsDryRun(), overrides)
+	_, _, err = upgradeFunc(context.Log(), h.RepositoryURL, h.ReleaseName, resolvedNamespace, h.ChartDir, h.ChartVersion, h.WaitForInstall, context.IsDryRun(), overrides)
 	return err
 }
 
@@ -513,7 +513,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	// Generate a list of override files making helm get values overrides first
 	overrides = append([]helm.HelmOverrides{{FileOverride: tmpFile.Name()}}, overrides...)
 
-	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, true, context.IsDryRun(), overrides)
+	_, _, err = upgradeFunc(context.Log(), h.RepositoryURL, h.ReleaseName, resolvedNamespace, h.ChartDir, h.ChartVersion, true, context.IsDryRun(), overrides)
 	return err
 }
 
@@ -666,12 +666,16 @@ func (h HelmComponent) organizeHelmOverrides(kvs []bom.KeyValue) []helm.HelmOver
 // The need for this stems from an issue with the Verrazzano component and the fact
 // that component charts underneath VZ component need to have the ns overridden
 func (h HelmComponent) resolveNamespace(ctx spi.ComponentContext) string {
-	namespace := ctx.EffectiveCR().Namespace
+	namespace := h.ChartNamespace
+	if h.IgnoreNamespaceOverride {
+		return namespace
+	}
+	if ctx.EffectiveCR() == nil {
+		return namespace
+	}
+	namespace = ctx.EffectiveCR().Namespace
 	if h.ResolveNamespaceFunc != nil {
 		namespace = h.ResolveNamespaceFunc(namespace)
-	}
-	if h.IgnoreNamespaceOverride {
-		namespace = h.ChartNamespace
 	}
 	return namespace
 }

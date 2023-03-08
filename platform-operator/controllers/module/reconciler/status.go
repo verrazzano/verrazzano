@@ -93,6 +93,11 @@ func needsConditionUpdate(last, new *modulesv1alpha1.Condition) bool {
 
 // updateComponentStatus updates the component status in the VZ CR
 func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, message string, conditionType installv1alpha1.ConditionType) error {
+	cr := compContext.ActualCR()
+	if cr == nil {
+		return nil
+	}
+
 	t := time.Now().UTC()
 	condition := installv1alpha1.Condition{
 		Type:    conditionType,
@@ -104,7 +109,6 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 	}
 
 	componentName := compContext.GetComponent()
-	cr := compContext.ActualCR()
 	log := compContext.Log()
 
 	if cr.Status.Components == nil {
