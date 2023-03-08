@@ -298,7 +298,7 @@ func restartComponentInstallFromEndState(compContext spi.ComponentContext, comp 
 	if !checkConfigUpdated(compContext, componentStatus) || !comp.IsEnabled(compContext.EffectiveCR()) {
 		return false
 	}
-	// Do not restart the component install if monitoring of install overrides is disabled
+	// if monitoring overrides is disabled, updates are prevented for override changes and the install process should be bypassed
 	if !comp.MonitorOverrides(compContext) {
 		compContext.Log().Oncef("Skipping update for component %s, monitorChanges set to false", comp.Name())
 		return false
