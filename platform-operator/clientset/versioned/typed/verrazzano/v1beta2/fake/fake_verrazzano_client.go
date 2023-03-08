@@ -31,6 +31,10 @@ func (c *FakeVerrazzanoV1beta2) PlatformDefinitions(namespace string) v1beta2.Pl
 	return &FakePlatformDefinitions{c, namespace}
 }
 
+func (c *FakeVerrazzanoV1beta2) VerrazzanoModules(namespace string) v1beta2.VerrazzanoModuleInterface {
+	return &FakeVerrazzanoModules{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeVerrazzanoV1beta2) RESTClient() rest.Interface {

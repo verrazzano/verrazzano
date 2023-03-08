@@ -7,17 +7,17 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.9.2
   creationTimestamp: null
-  name: platforms.install.verrazzano.io
+  name: vzmodules.install.verrazzano.io
 spec:
   group: install.verrazzano.io
   names:
-    kind: Platform
-    listKind: PlatformList
-    plural: platforms
+    kind: VerrazzanoModule
+    listKind: VerrazzanoModuleList
+    plural: vzmodules
     shortNames:
-    - vzpf
-    - vzpfs
-    singular: platform
+    - vzmod
+    - vzmods
+    singular: verrazzanomodule
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
@@ -37,26 +37,52 @@ spec:
             type: object
           spec:
             properties:
+              chart:
+                properties:
+                  name:
+                    type: string
+                  uri:
+                    type: string
+                required:
+                - name
+                - uri
+                type: object
+              enabled:
+                type: boolean
+              platformRef:
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                type: object
               reconcile:
                 type: boolean
-              sources:
-                items:
-                  properties:
-                    credentialsSecret:
-                      type: string
-                    name:
-                      type: string
-                  type: object
-                type: array
-              upgrade:
+              targetNamespace:
                 type: string
               version:
                 type: string
-            required:
-            - version
             type: object
           status:
             properties:
+              conditions:
+                items:
+                  properties:
+                    lastTransitionTime:
+                      type: string
+                    message:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              state:
+                type: string
               version:
                 type: string
             type: object

@@ -17,7 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-// Reconciler reconciles a Verrazzano object
+// PlatformReconciler reconciles a Verrazzano Platform object
 type PlatformReconciler struct {
 	client.Client
 	Scheme     *runtime.Scheme

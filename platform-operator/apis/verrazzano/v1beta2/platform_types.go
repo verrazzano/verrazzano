@@ -11,7 +11,7 @@ import (
 // +kubebuilder:resource:path=platforms
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
-// +kubebuilder:resource:shortName=pf;pfs
+// +kubebuilder:resource:shortName=vzpf;vzpfs
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="The current version of the Verrazzano platform."
 // +genclient
 

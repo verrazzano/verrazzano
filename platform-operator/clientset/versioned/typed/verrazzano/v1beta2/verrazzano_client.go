@@ -19,6 +19,7 @@ type VerrazzanoV1beta2Interface interface {
 	OperatorDefinitionsGetter
 	PlatformsGetter
 	PlatformDefinitionsGetter
+	VerrazzanoModulesGetter
 }
 
 // VerrazzanoV1beta2Client is used to interact with features provided by the verrazzano group.
@@ -40,6 +41,10 @@ func (c *VerrazzanoV1beta2Client) Platforms(namespace string) PlatformInterface 
 
 func (c *VerrazzanoV1beta2Client) PlatformDefinitions(namespace string) PlatformDefinitionInterface {
 	return newPlatformDefinitions(c, namespace)
+}
+
+func (c *VerrazzanoV1beta2Client) VerrazzanoModules(namespace string) VerrazzanoModuleInterface {
+	return newVerrazzanoModules(c, namespace)
 }
 
 // NewForConfig creates a new VerrazzanoV1beta2Client for the given config.

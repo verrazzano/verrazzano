@@ -12,3 +12,5 @@ type OperatorDefinitionExpansion interface{}
 type PlatformExpansion interface{}
 
 type PlatformDefinitionExpansion interface{}
+
+type VerrazzanoModuleExpansion interface{}
