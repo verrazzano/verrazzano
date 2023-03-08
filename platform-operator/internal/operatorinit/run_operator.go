@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/vzmodule"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
@@ -96,6 +97,15 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "PlatformController")
+		os.Exit(1)
+	}
+
+	// v1beta2 VerrazzanoModule controller
+	if err = (&vzmodule.VerrazzanoModuleReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoModuleController")
 		os.Exit(1)
 	}
 

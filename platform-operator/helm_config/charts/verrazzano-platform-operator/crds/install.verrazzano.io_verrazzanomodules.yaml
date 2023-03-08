@@ -7,13 +7,13 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.9.2
   creationTimestamp: null
-  name: vzmodules.install.verrazzano.io
+  name: verrazzanomodules.install.verrazzano.io
 spec:
   group: install.verrazzano.io
   names:
     kind: VerrazzanoModule
     listKind: VerrazzanoModuleList
-    plural: vzmodules
+    plural: verrazzanomodules
     shortNames:
     - vzmod
     - vzmods

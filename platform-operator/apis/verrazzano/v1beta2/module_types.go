@@ -8,14 +8,14 @@ import (
 )
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=vzmodules
+// +kubebuilder:resource:path=verrazzanomodules
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 // +kubebuilder:resource:shortName=vzmod;vzmods
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="The current version of the Verrazzano platform."
 // +genclient
 
-// Module specifies a Verrazzano VerrazzanoModule instance
+// VerrazzanoModule specifies a Verrazzano VerrazzanoModule instance
 type VerrazzanoModule struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
