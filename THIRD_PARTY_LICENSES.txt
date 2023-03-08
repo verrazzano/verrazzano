@@ -4152,7 +4152,3 @@ This license is subject to the following condition:
 The above copyright notice and either this complete permission notice or at a minimum a reference to the UPL must be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-=== ATTRIBUTION-HELPER-GENERATED:
-=== Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-102-gd9a1a0a1 GitCommit:d9a1a0a141aea4c18363434b6aef258211712951 GitTreeState:clean BuildDate:2023-02-27T06:14:42Z GoVersion:go1.19.1 Compiler:gc Platform:linux/amd64}
-=== License file based on go.mod with md5 sum:  168932ccc9132780161034c07556735c
