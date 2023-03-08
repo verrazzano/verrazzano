@@ -14,6 +14,9 @@ const VerrazzanoInstallNamespace = "verrazzano-install"
 // VerrazzanoMonitoringNamespace is the namespace for monitoring components
 const VerrazzanoMonitoringNamespace = "verrazzano-monitoring"
 
+// VerrazzanoMonitoringStackNamespace is the namespace for the monitoring stack
+const VerrazzanoMonitoringStackNamespace = "verrazzano-monitoring-stack"
+
 // Verrazzano is the name of the Verrazzano secret in the Verrazzano system namespace
 const Verrazzano = "verrazzano"
 
@@ -152,11 +155,19 @@ const VerrazzanoVersion1_4_0 = "1.4.0"
 // VerrazzanoVersion1_5_0 is the Verrazzano version string for 1.5.0
 const VerrazzanoVersion1_5_0 = "1.5.0"
 
+// VerrazzanoVersion1_6_0 is the Verrazzano version string for 1.6.0
+const VerrazzanoVersion1_6_0 = "1.6.0"
+
 // UpgradeRetryVersion is the restart version annotation field
 const UpgradeRetryVersion = "verrazzano.io/upgrade-retry-version"
 
 // ObservedUpgradeRetryVersion is the previous restart version annotation field
 const ObservedUpgradeRetryVersion = "verrazzano.io/observed-upgrade-retry-version"
+
+// VerrazzanoStackAnnotationName is the name of the annotation to be used on a ConfigMap,
+// which indicates that the ConfigMap is a VZ stack configuration. The value of the annotation is
+// the VZ stack name e.g. "monitoring"
+const VerrazzanoStackAnnotationName = "verrazzano.io/stack"
 
 // NGINXControllerServiceName is the nginx ingress controller name
 const NGINXControllerServiceName = "ingress-controller-ingress-nginx-controller"
