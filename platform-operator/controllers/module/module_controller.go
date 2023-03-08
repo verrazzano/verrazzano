@@ -5,11 +5,13 @@ package module
 
 import (
 	"context"
+	"fmt"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	modules2 "github.com/verrazzano/verrazzano/platform-operator/controllers/module/modules"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/reconciler"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -87,7 +89,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// Unknown module controller cannot be handled
 	delegate := getDelegateController(module)
 	if delegate == nil {
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, fmt.Errorf("No delegate found for module %s/%s", module.Namespace, module.Name)
 	}
 	moduleCtx, err := spi.NewModuleContext(log, r.Client, &verrazzanos.Items[0], module, false)
 	if err != nil {
@@ -104,7 +106,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 func getDelegateController(module *modulesv1alpha1.Module) modules2.DelegateReconciler {
 	newDelegate := delegates[module.ObjectMeta.Labels[modules2.ControllerLabel]]
 	if newDelegate == nil {
-		return nil
+		// If an existing delegate does not exist, wrap it in a Helm adapter to just do helm stuff
+		return reconciler.NewHelmAdapter(module)
 	}
 	return newDelegate(module)
 }

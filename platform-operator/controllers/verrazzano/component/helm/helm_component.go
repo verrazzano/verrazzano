@@ -44,6 +44,12 @@ type HelmComponent struct {
 	// ChartDir is the helm chart directory
 	ChartDir string
 
+	// ChartVersion is the version of the helm chart
+	ChartVersion string
+
+	// Repository The name or URL of the repository
+	Repository string
+
 	// ChartNamespace is the namespace passed to the helm command
 	ChartNamespace string
 

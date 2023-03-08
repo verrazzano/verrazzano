@@ -6,6 +6,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -44,7 +45,7 @@ func CheckCondtitionType(currentCondition installv1alpha1.ConditionType) install
 func VzContainsResource(ctx spi.ComponentContext, objectName string, objectKind string) (string, bool) {
 	for _, component := range registry.GetComponents() {
 		if component.MonitorOverrides(ctx) {
-			if found := componentContainsResource(component.GetOverrides(ctx.EffectiveCR()).([]installv1alpha1.Overrides), objectName, objectKind); found {
+			if found := componentContainsResource(component.GetOverrides(ctx.EffectiveCRV1Beta1()).([]v1beta1.Overrides), objectName, objectKind); found {
 				return component.Name(), found
 			}
 		}
@@ -69,7 +70,7 @@ func ModuleContainsResource(ctx spi.ComponentContext, objectName string, objectK
 }
 
 // componentContainsResource looks through the component override list see if the resource is listed
-func componentContainsResource(Overrides []installv1alpha1.Overrides, objectName string, objectKind string) bool {
+func componentContainsResource(Overrides []v1beta1.Overrides, objectName string, objectKind string) bool {
 	for _, override := range Overrides {
 		if objectKind == constants.ConfigMapKind && override.ConfigMapRef != nil {
 			if objectName == override.ConfigMapRef.Name {

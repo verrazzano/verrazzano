@@ -34,8 +34,8 @@ type VerrazzanoModuleList struct {
 }
 
 type PlatformRefence struct {
-	Name      string  `json:"name,omitempty"`
-	Namespace *string `json:"namespace,omitempty"`
+	Name      string `json:"name,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
 }
 
 // ModuleSpec defines the attributes for a Verrazzano Module instance

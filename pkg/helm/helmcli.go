@@ -139,12 +139,24 @@ func GetValuesMap(log vzlog.VerrazzanoLogger, releaseName string, namespace stri
 	return valuesMap, nil
 }
 
+func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []HelmOverrides) (stdout []byte, stderr []byte, err error) {
+	return Upgrade2(log, "", releaseName, namespace, chartDir, "", wait, dryRun, overrides)
+}
+
 // Upgrade will upgrade a Helm release with the specified charts.  The override files array
 // are in order with the first files in the array have lower precedence than latter files.
-func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []HelmOverrides) (stdout []byte, stderr []byte, err error) {
+func Upgrade2(log vzlog.VerrazzanoLogger, repoURL string, releaseName string, namespace string, chartDirOrName string, chartVersion string, wait bool, dryRun bool, overrides []HelmOverrides) (stdout []byte, stderr []byte, err error) {
 	// Helm upgrade command will apply the new chart, but use all the existing
 	// overrides that we used during the install.
 	args := []string{"--install"}
+
+	if len(repoURL) > 0 {
+		args = append(args, fmt.Sprintf("%s=%s", "--repo", repoURL))
+	}
+
+	if len(chartVersion) > 0 {
+		args = append(args, fmt.Sprintf("%s=%s", "--version", chartVersion))
+	}
 
 	// Do not pass the --reuse-values arg to 'helm upgrade'.  Instead, pass the
 	// values retrieved from 'helm get values' with the -f arg to 'helm upgrade'. This is a workaround to avoid
@@ -173,7 +185,7 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 		}
 	}
 
-	stdout, stderr, err = runHelm(log, releaseName, namespace, chartDir, "upgrade", wait, args, dryRun)
+	stdout, stderr, err = runHelm(log, releaseName, namespace, chartDirOrName, "upgrade", wait, args, dryRun)
 	if err != nil {
 		return stdout, stderr, err
 	}

@@ -90,7 +90,7 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compTra
 	compLog := compContext.Log()
 
 	if !comp.IsOperatorInstallSupported() {
-		if err := adapter.ApplyComponentAsModule(spiCtx.Client(), spiCtx.EffectiveCR(), compName); err != nil {
+		if err := adapter.ApplyComponentAsModule(spiCtx.Client(), spiCtx.EffectiveCRV1Beta1(), compName); err != nil {
 			return newRequeueWithDelay()
 		}
 		return ctrl.Result{}

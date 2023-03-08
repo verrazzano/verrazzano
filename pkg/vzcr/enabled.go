@@ -150,7 +150,7 @@ func IsConsoleEnabled(cr runtime.Object) bool {
 	return true
 }
 
-func IsWeblogicOperatorEnabled(vz *vzapi.Verrazzano) bool {
+func IsWeblogicOperatorEnabled(vz *installv1beta1.Verrazzano) bool {
 	comp := vz.Spec.Components.WebLogicOperator
 	if comp == nil || comp.Enabled == nil {
 		return true
