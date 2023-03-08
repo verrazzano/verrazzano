@@ -180,7 +180,7 @@ func TestAppendOverrides(t *testing.T) {
 	var err error
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 26)
+	assert.Len(t, kvs, 27)
 
 	assert.Equal(t, "ghcr.io/verrazzano/prometheus-config-reloader", bom.FindKV(kvs, "prometheusOperator.prometheusConfigReloader.image.repository"))
 	assert.NotEmpty(t, bom.FindKV(kvs, "prometheusOperator.prometheusConfigReloader.image.tag"))
@@ -190,6 +190,7 @@ func TestAppendOverrides(t *testing.T) {
 
 	assert.True(t, strings.HasPrefix(bom.FindKV(kvs, "prometheusOperator.alertmanagerDefaultBaseImage"), "ghcr.io/verrazzano/alertmanager:"))
 	assert.True(t, strings.HasPrefix(bom.FindKV(kvs, "prometheusOperator.prometheusDefaultBaseImage"), "ghcr.io/verrazzano/prometheus:"))
+	assert.True(t, strings.HasPrefix(bom.FindKV(kvs, "prometheus.prometheusSpec.thanos.image"), "ghcr.io/verrazzano/thanos:"))
 
 	assert.Equal(t, "true", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"))
 
@@ -215,7 +216,7 @@ func TestAppendOverrides(t *testing.T) {
 
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 26)
+	assert.Len(t, kvs, 27)
 
 	assert.Equal(t, "false", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"))
 
@@ -237,7 +238,7 @@ func TestAppendOverrides(t *testing.T) {
 
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 12)
+	assert.Len(t, kvs, 13)
 
 	assert.Equal(t, "false", bom.FindKV(kvs, "prometheus.enabled"))
 }
