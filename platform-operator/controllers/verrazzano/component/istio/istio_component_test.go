@@ -7,13 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
-	"os"
-	"os/exec"
-	"strings"
-	"testing"
-	"text/template"
-
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -23,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/ip"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -39,8 +33,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	gofake "k8s.io/client-go/kubernetes/fake"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"os"
+	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"strings"
+	"testing"
+	"text/template"
 )
 
 // fakeRunner is used to test istio without actually running an OS exec command

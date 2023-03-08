@@ -6,12 +6,6 @@ package istio
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
-	"os"
-	"path/filepath"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
-
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/istio"
@@ -20,7 +14,9 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -31,6 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"os"
+	"path/filepath"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

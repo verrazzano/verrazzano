@@ -7,11 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
-	"io/fs"
-	"os"
-	"text/template"
-
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -23,10 +18,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"io/fs"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -37,8 +34,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"text/template"
 )
 
 var (

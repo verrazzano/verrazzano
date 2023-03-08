@@ -367,7 +367,6 @@ func createValueOverrideData(externalIP string) []byte {
             type: NodePort
             externalIPs:    
             - %s`, externalIP)
-
 	json, _ := yaml.ToJSON([]byte(override))
 	return json
 }

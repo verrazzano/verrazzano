@@ -6,16 +6,15 @@ package istio
 import (
 	"bytes"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
-	"text/template"
-
 	"github.com/Jeffail/gabs/v2"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"sigs.k8s.io/yaml"
+	"text/template"
 )
 
 const collectorZipkinPort = 9411
