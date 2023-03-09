@@ -543,7 +543,9 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) error {
 		ctx.Log().Errorf("Component %s failed to list ClusterRoles: %v", ComponentName, err)
 	}
 	for i, clusterRole := range crList.Items {
-		removeFinalizer(ctx, &crList.Items[i], clusterRole.Finalizers)
+		if err := removeFinalizer(ctx, &crList.Items[i], clusterRole.Finalizers); err != nil {
+			return err
+		}
 	}
 
 	// Check the finalizers of all ClusterRoleBindings
@@ -552,7 +554,9 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) error {
 		ctx.Log().Errorf("Component %s failed to list ClusterRoleBindings: %v", ComponentName, err)
 	}
 	for i, clusterRoleBinding := range crbList.Items {
-		removeFinalizer(ctx, &crbList.Items[i], clusterRoleBinding.Finalizers)
+		if err := removeFinalizer(ctx, &crbList.Items[i], clusterRoleBinding.Finalizers); err != nil {
+			return err
+		}
 	}
 
 	// Check the finalizers of Roles and RoleBindings of all namespaces.  Rancher adds a finalizer
@@ -575,7 +579,9 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) error {
 			return err
 		}
 		for i, roleBinding := range rbList.Items {
-			removeFinalizer(ctx, &rbList.Items[i], roleBinding.Finalizers)
+			if err := removeFinalizer(ctx, &rbList.Items[i], roleBinding.Finalizers); err != nil {
+				return err
+			}
 		}
 
 		// Check the finalizers of all Roles
