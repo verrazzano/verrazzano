@@ -4,7 +4,14 @@
 package thanos
 
 import (
+	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
+	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/types"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
@@ -106,4 +113,73 @@ func TestAppendOverrides(t *testing.T) {
 		asserts.True(t, ok)
 		asserts.Equal(t, val, kv.Value)
 	}
+}
+
+// TestCreateOrUpdateNetworkPolicies tests the createOrUpdateNetworkPolicies function
+// GIVEN a Thanos component
+// WHEN  the createOrUpdateNetworkPolicies function is called
+// THEN  no error is returned and the expected network policies have been created
+func TestCreateOrUpdateNetworkPolicies(t *testing.T) {
+
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false)
+
+	err := createOrUpdateNetworkPolicies(ctx)
+	asserts.NoError(t, err)
+
+	netPolicy := &netv1.NetworkPolicy{}
+	err = client.Get(context.TODO(), types.NamespacedName{Name: thanosNetPolicyName, Namespace: ComponentNamespace}, netPolicy)
+	asserts.NoError(t, err)
+	asserts.Len(t, netPolicy.Spec.Ingress, 1)
+	asserts.Equal(t, []netv1.PolicyType{netv1.PolicyTypeIngress}, netPolicy.Spec.PolicyTypes)
+	asserts.Equal(t, int32(9090), netPolicy.Spec.Ingress[0].Ports[0].Port.IntVal)
+	asserts.Contains(t, netPolicy.Spec.Ingress[0].From[0].PodSelector.MatchExpressions[0].Values, "verrazzano-authproxy")
+}
+
+// TestCreateOrUpdatePrometheusAuthPolicy tests the createOrUpdatePrometheusAuthPolicy function
+func TestCreateOrUpdatePrometheusAuthPolicy(t *testing.T) {
+	assertions := asserts.New(t)
+	falseValue := false
+
+	// GIVEN Thanos is being installed or upgraded
+	// WHEN  we call the createOrUpdateComponentAuthPolicy function
+	// THEN  the expected Istio authorization policy is created
+	scheme := k8scheme.Scheme
+	err := istioclisec.AddToScheme(scheme)
+	assertions.NoError(err)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+	ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false)
+
+	err = createOrUpdateComponentAuthPolicy(ctx)
+	assertions.NoError(err)
+
+	authPolicy := &istioclisec.AuthorizationPolicy{}
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: thanosAuthPolicyName}, authPolicy)
+	assertions.NoError(err)
+
+	assertions.Len(authPolicy.Spec.Rules, 1)
+	assertions.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy")
+
+	// GIVEN Prometheus Operator is being installed or upgraded
+	// AND   Istio is disabled
+	// WHEN  we call the createOrUpdatePrometheusAuthPolicy function
+	// THEN  no Istio authorization policy is created
+	client = fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	vz := &v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				Istio: &v1alpha1.IstioComponent{
+					Enabled: &falseValue,
+				},
+			},
+		},
+	}
+	ctx = spi.NewFakeContext(client, vz, nil, false)
+
+	err = createOrUpdateComponentAuthPolicy(ctx)
+	assertions.NoError(err)
+
+	authPolicy = &istioclisec.AuthorizationPolicy{}
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: thanosAuthPolicyName}, authPolicy)
+	assertions.ErrorContains(err, "not found")
 }

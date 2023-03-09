@@ -917,6 +917,7 @@ func TestCreateOrUpdateNetworkPolicies(t *testing.T) {
 	assert.Len(t, netPolicy.Spec.Ingress, 2)
 	assert.Equal(t, []netv1.PolicyType{netv1.PolicyTypeIngress}, netPolicy.Spec.PolicyTypes)
 	assert.Equal(t, int32(9090), netPolicy.Spec.Ingress[0].Ports[0].Port.IntVal)
+	assert.Equal(t, int32(10901), netPolicy.Spec.Ingress[0].Ports[1].Port.IntVal)
 	assert.Equal(t, int32(9090), netPolicy.Spec.Ingress[1].Ports[0].Port.IntVal)
 	assert.Contains(t, netPolicy.Spec.Ingress[0].From[0].PodSelector.MatchExpressions[0].Values, "verrazzano-authproxy")
 	assert.Contains(t, netPolicy.Spec.Ingress[0].From[0].PodSelector.MatchExpressions[0].Values, "system-grafana")
