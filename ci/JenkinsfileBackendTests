@@ -35,6 +35,11 @@ def branchSpecificSchedule = getCronSchedule()
 @Field
 def verrazzanoDistributionsFile = "verrazzano_distributions.html"
 
+def ociOsRegion = "us-phoenix-1"
+def ociOsBucket = "verrazzano-builds"
+def urlTriggerBranchName = env.BRANCH_NAME.replace('/', '%2F')
+def lastStableCommitFile = "last-stable-commit.txt"
+
 pipeline {
     options {
         timeout(time: 12, unit: 'HOURS')
@@ -54,7 +59,25 @@ pipeline {
     }
 
     triggers {
-        cron(branchSpecificSchedule)
+        URLTrigger(
+            cronTabSpec: branchSpecificSchedule,
+            entries: [
+                URLTriggerEntry(
+                    url: "https://objectstorage.${ociOsRegion}.oraclecloud.com/n/${OS_NAMESPACE_URL_TRIGGER}/b/${ociOsBucket}/o/${urlTriggerBranchName}/${lastStableCommitFile}",
+                    checkETag: false,
+                    checkStatus: true,
+                    statusCode: 403,
+                    checkLastModificationDate: true,
+                    timeout: 200,
+                    requestHeaders: [
+                        RequestHeader( headerName: "Accept" , headerValue: "application/json" )
+                    ],
+                    contentTypes: [
+                        MD5Sum()
+                    ]
+                )
+            ]
+        )
     }
 
     parameters {
@@ -260,6 +283,8 @@ def preliminaryChecks() {
     }
     if (backendTestsUpToDateFailed) {
         currentBuild.displayName = "${currentBuild.displayName} : UP-TO-DATE-FAILED"
+        currentBuild.result = 'FAILURE'
+        error('Failing the build since the current commit matches the commit of previously failing backend build')
     }
     if (params.FORCE) {
         currentBuild.displayName = "${currentBuild.displayName} : FORCE"
