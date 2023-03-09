@@ -14,7 +14,7 @@ i=0
 resName=$(kubectl get vz -o jsonpath='{.items[*].metadata.name}')
 echo "waiting for install of resource ${resName} to complete"
 
-while [[ $retval_success -ne 0 ]] && [[ $retval_failed -ne 0 ]]  && [[ $i -lt 30 ]]  ; do
+while [[ $retval_success -ne 0 ]] && [[ $retval_failed -ne 0 ]]  && [[ $i -lt 45 ]]  ; do
   sleep 60
   output=$(kubectl wait --for=condition=InstallFailed verrazzano/${resName} --timeout=0 2>&1)
   retval_failed=$?
@@ -23,7 +23,7 @@ while [[ $retval_success -ne 0 ]] && [[ $retval_failed -ne 0 ]]  && [[ $i -lt 30
   i=$((i+1))
 done
 
-if [[ $retval_failed -eq 0 ]] || [[ $i -eq 30 ]] ; then
+if [[ $retval_failed -eq 0 ]] || [[ $i -eq 45 ]] ; then
     echo "Installation Failed"
     kubectl get vz ${resName} -o yaml
     exit 1
