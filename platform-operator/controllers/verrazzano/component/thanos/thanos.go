@@ -177,7 +177,7 @@ func newAuthPolicySpec() securityv1beta1.AuthorizationPolicy {
 // newNetworkPolicy returns a populated NetworkPolicySpec with ingress rules for Thanos
 func newNetworkPolicySpec() netv1.NetworkPolicySpec {
 	tcpProtocol := corev1.ProtocolTCP
-	port := intstr.FromInt(9090)
+	port := intstr.FromInt(10902)
 
 	return netv1.NetworkPolicySpec{
 		PodSelector: metav1.LabelSelector{
