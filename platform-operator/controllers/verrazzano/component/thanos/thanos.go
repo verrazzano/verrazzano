@@ -166,7 +166,7 @@ func newAuthPolicySpec() securityv1beta1.AuthorizationPolicy {
 				}},
 				To: []*securityv1beta1.Rule_To{{
 					Operation: &securityv1beta1.Operation{
-						Ports: []string{"9090"},
+						Ports: []string{"10902"},
 					},
 				}},
 			},
