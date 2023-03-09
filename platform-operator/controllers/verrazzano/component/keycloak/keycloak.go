@@ -573,7 +573,7 @@ const pkceClientUrisTemplate = `
 	  "https://thanos-query-frontend.{{.DNSSubDomain}}",
 	  "https://jaeger.{{.DNSSubDomain}}"{{ if .OSHostExists}},
       "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
-      "https://kibana.vmi.system.{{.DNSSubDomain}}",
+      "https://kibana.vmi.system.{{.DNSSubDomain}}"
  {{end}} 
 	]
 `

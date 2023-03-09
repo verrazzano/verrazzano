@@ -6,20 +6,20 @@ package thanos
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
-	netv1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/types"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
+	netv1 "k8s.io/api/networking/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/types"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const bomFilePathOverride = "../../../../verrazzano-bom.json"
@@ -160,9 +160,9 @@ func TestCreateOrUpdatePrometheusAuthPolicy(t *testing.T) {
 	assertions.Len(authPolicy.Spec.Rules, 1)
 	assertions.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy")
 
-	// GIVEN Prometheus Operator is being installed or upgraded
+	// GIVEN Thanos is being installed or upgraded
 	// AND   Istio is disabled
-	// WHEN  we call the createOrUpdatePrometheusAuthPolicy function
+	// WHEN  we call the createOrUpdateComponentAuthPolicy function
 	// THEN  no Istio authorization policy is created
 	client = fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	vz := &v1alpha1.Verrazzano{
