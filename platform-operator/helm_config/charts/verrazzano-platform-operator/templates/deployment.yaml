@@ -24,9 +24,6 @@ spec:
       terminationGracePeriodSeconds: 0
       initContainers:
         - name: webhookswait
-          env:
-            - name: ENABLE_RESOURCE_VALIDATION
-              value: "{{ .Values.webhooks.resourceValidation }}"
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           image: {{ .Values.image }}
           command: [ 'sh', '-c', "/verrazzano/platform-operator/scripts/wait4webhook.sh" ]

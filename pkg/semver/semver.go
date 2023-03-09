@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package semver
@@ -43,8 +43,13 @@ func NewSemVersion(version string) (*SemVersion, error) {
 	if len(version) == 0 {
 		return nil, errors.New("SemVersion string cannot be empty")
 	}
+	savedVersion := version
 	if !strings.HasPrefix(version, "v") && !strings.HasPrefix(version, "V") {
-		version = "v" + version
+		if version[0] >= '0' && version[0] <= '9' {
+			version = "v" + version
+		} else {
+			return nil, invalidVersionError(savedVersion)
+		}
 	}
 	regex, err := getRegex()
 	if err != nil {
@@ -54,14 +59,14 @@ func NewSemVersion(version string) (*SemVersion, error) {
 	allMatches := regex.FindAllStringSubmatch(version, -1)
 	zap.S().Debugf("allMatches: %v", allMatches)
 	if len(allMatches) == 0 {
-		return nil, fmt.Errorf("Invalid version string %s", version)
+		return nil, invalidVersionError(savedVersion)
 	}
 
 	versionComponents := allMatches[0]
 	zap.S().Debugf("components: %v", versionComponents)
 	numComponents := len(versionComponents)
 	if numComponents < 3 {
-		return nil, fmt.Errorf("Invalid version string %s", version)
+		return nil, invalidVersionError(savedVersion)
 	}
 	majorVer, err := strconv.ParseInt(versionComponents[1], 10, 64)
 	if err != nil {
@@ -143,6 +148,11 @@ func (v *SemVersion) ToString() string {
 	} else {
 		return fmt.Sprintf("%v.%v.%v", v.Major, v.Minor, v.Patch)
 	}
+}
+
+// invalidVersionError returns an invalid version error message
+func invalidVersionError(version string) error {
+	return fmt.Errorf("Invalid version string: %s (valid format is vn.n.n or n.n.n)", version)
 }
 
 // Returns

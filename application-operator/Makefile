@@ -98,8 +98,8 @@ uninstall-crds: manifests
 # Generate mocks
 .PHONY: mock-gen
 mock-gen:
-	mockgen -destination=mocks/controller_client_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
-	mockgen -destination=mocks/controller_manager_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime Manager
+	mockgen --build_flags=--mod=mod -destination=mocks/controller_client_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
+	mockgen --build_flags=--mod=mod -destination=mocks/controller_manager_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime Manager
 
 .PHONY: manifests
 manifests: application-manifests

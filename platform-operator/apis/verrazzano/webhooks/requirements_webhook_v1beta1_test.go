@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -7,7 +7,9 @@ import (
 	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	admissionv1 "k8s.io/api/admission/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -34,6 +36,10 @@ func TestPrerequisiteValidationWarningForV1beta1(t *testing.T) {
 	m := newRequirementsValidatorV1beta1(nodes)
 	vz := &v1beta1.Verrazzano{Spec: v1beta1.VerrazzanoSpec{Profile: v1beta1.Prod}}
 	req := newAdmissionRequest(admissionv1.Update, vz, vz)
+	config.Set(config.OperatorConfig{ResourceRequirementsValidation: true})
+	defer func() {
+		config.Set(config.OperatorConfig{ResourceRequirementsValidation: false})
+	}()
 	res := m.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, allowedFailureMessage)
 	asrt.Len(res.Warnings, 3, expectedWarningFailureMessage)
@@ -53,7 +59,29 @@ func TestPrerequisiteValidationNoWarningForV1beta1(t *testing.T) {
 	m := newRequirementsValidatorV1beta1(nodes)
 	vz := &v1beta1.Verrazzano{Spec: v1beta1.VerrazzanoSpec{Profile: v1beta1.Dev}}
 	req := newAdmissionRequest(admissionv1.Update, vz, vz)
+	config.Set(config.OperatorConfig{ResourceRequirementsValidation: true})
+	defer func() {
+		config.Set(config.OperatorConfig{ResourceRequirementsValidation: false})
+	}()
 	res := m.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, allowedFailureMessage)
+	asrt.Len(res.Warnings, 0, noWarningsFailureMessage)
+}
+
+// TestPrerequisiteValidationDisabledForV1beta1 tests that the validation checks are disabled.
+// GIVEN a call to validate a Verrazzano resource
+// WHEN the validation checks are disabled
+// THEN the admission request should be allowed without a warning.
+func TestPrerequisiteValidationDisabledForV1beta1(t *testing.T) {
+	asrt := assert.New(t)
+	var nodes []client.Object
+	nodes = append(nodes, node("node1", "3", "16G", "100G"), node("node2", "5", "32G", "140G"))
+	m := newRequirementsValidatorV1beta1(nodes)
+	vz := &v1beta1.Verrazzano{Spec: v1beta1.VerrazzanoSpec{Profile: v1beta1.Dev}}
+	req := newAdmissionRequest(admissionv1.Update, vz, vz)
+	config.Set(config.OperatorConfig{ResourceRequirementsValidation: false})
+	res := m.Handle(context.TODO(), req)
+	asrt.True(res.Allowed, allowedFailureMessage)
+	asrt.Equal(v1.StatusReason("Resource requirements validation not enabled"), res.Result.Reason)
 	asrt.Len(res.Warnings, 0, noWarningsFailureMessage)
 }

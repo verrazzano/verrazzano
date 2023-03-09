@@ -51,6 +51,7 @@ const (
 
 	prometheusName     = "prometheus"
 	alertmanagerName   = "alertmanager"
+	thanosName         = "thanos"
 	configReloaderName = "prometheus-config-reloader"
 
 	pvcName                  = "prometheus-prometheus-operator-kube-p-prometheus-db-prometheus-prometheus-operator-kube-p-prometheus-0"
@@ -128,18 +129,8 @@ func postInstallUpgrade(ctx spi.ComponentContext) error {
 	if err := updateApplicationAuthorizationPolicies(ctx); err != nil {
 		return err
 	}
-	props := common.IngressProperties{
-		IngressName:   constants.PrometheusIngress,
-		HostName:      prometheusHostName,
-		TLSSecretName: prometheusCertificateName,
-		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
-		ExtraAnnotations: common.SameSiteCookieAnnotations(prometheusName),
-	}
-
-	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
-		if err := common.CreateOrUpdateSystemComponentIngress(ctx, props); err != nil {
-			return err
-		}
+	if err := createOrUpdateIngresses(ctx); err != nil {
+		return err
 	}
 	if err := createOrUpdatePrometheusAuthPolicy(ctx); err != nil {
 		return err
@@ -295,11 +286,12 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		return kvs, err
 	}
 
-	// Replace default images for subcomponents Alertmanager and Prometheus
+	// Replace default images for subcomponents Alertmanager, Prometheus, and Thanos
 	defaultImages := map[string]string{
 		// format "subcomponentName": "helmDefaultKey"
 		alertmanagerName: "prometheusOperator.alertmanagerDefaultBaseImage",
 		prometheusName:   "prometheusOperator.prometheusDefaultBaseImage",
+		thanosName:       "prometheus.prometheusSpec.thanos.image",
 	}
 	kvs, err = appendDefaultImageOverrides(ctx, kvs, defaultImages)
 	if err != nil {
@@ -717,6 +709,58 @@ func createOrUpdateNetworkPolicies(ctx spi.ComponentContext) error {
 	})
 
 	return err
+}
+
+// create or update ingresses creates ingresses for each of the Prometheus endpoints
+func createOrUpdateIngresses(ctx spi.ComponentContext) error {
+	// If NGINX is not enabled, skip the ingress creation
+	if !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
+		return nil
+	}
+	promProps := common.IngressProperties{
+		IngressName:   constants.PrometheusIngress,
+		HostName:      prometheusHostName,
+		TLSSecretName: prometheusCertificateName,
+		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
+		ExtraAnnotations: common.SameSiteCookieAnnotations(prometheusName),
+	}
+	if err := common.CreateOrUpdateSystemComponentIngress(ctx, promProps); err != nil {
+		return err
+	}
+
+	// Only create the Thanos Ingress if it is enabled in the Prometheus Spec
+	thanosEnabled, err := isThanosEnabled(ctx)
+	if err != nil {
+		return err
+	}
+	// Delete the existing ingress if the sidecar becomes disabled
+	if !thanosEnabled {
+		return common.DeleteSystemComponentIngress(ctx, constants.ThanosSidecarIngress)
+	}
+
+	thanosProps := common.IngressProperties{
+		IngressName:   constants.ThanosSidecarIngress,
+		HostName:      thanosHostName,
+		TLSSecretName: thanosCertificateName,
+		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
+		ExtraAnnotations: common.SameSiteCookieAnnotations(thanosHostName),
+	}
+	return common.CreateOrUpdateSystemComponentIngress(ctx, thanosProps)
+}
+
+// isThanosEnabled checks to see if the Thanos section of the Prometheus spec is populated
+func isThanosEnabled(ctx spi.ComponentContext) (bool, error) {
+	prometheusList := promoperapi.PrometheusList{}
+	err := ctx.Client().List(context.TODO(), &prometheusList, &client.ListOptions{Namespace: constants.VerrazzanoMonitoringNamespace})
+	if err != nil {
+		return false, ctx.Log().ErrorfNewErr("Failed to list Prometheus objects in the %s namespace: %v", constants.VerrazzanoMonitoringNamespace, err)
+	}
+	for _, prometheus := range prometheusList.Items {
+		if prometheus.Spec.Thanos != nil {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // newNetworkPolicy returns a populated NetworkPolicySpec with ingress rules for Prometheus
