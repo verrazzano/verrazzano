@@ -146,6 +146,7 @@ func createOrUpdateNetworkPolicies(ctx spi.ComponentContext) error {
 	return err
 }
 
+// newAuthPolicySpec returns an Authorization Policy spec for the Thanos component ingress
 func newAuthPolicySpec() securityv1beta1.AuthorizationPolicy {
 	return securityv1beta1.AuthorizationPolicy{
 		Selector: &istiov1beta1.WorkloadSelector{
