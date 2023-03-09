@@ -260,6 +260,7 @@ func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) e
 	autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
 	if errFlag != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
+		return err
 	}
 	// if vz cli command returned an err and auto-bug-report is set to true
 	if autoBugReportFlag {
@@ -267,10 +268,12 @@ func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) e
 		kubeconfigFlag, errFlag := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
 		if errFlag != nil {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
+			return err
 		}
 		contextFlag, errFlag2 := cmd.Flags().GetString(constants.GlobalFlagContext)
 		if errFlag2 != nil {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag2.Error())
+			return err
 		}
 		cmd2.Flags().StringVar(&kubeconfigFlagValPointer, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
 		cmd2.Flags().StringVar(&contextFlagValPointer, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)

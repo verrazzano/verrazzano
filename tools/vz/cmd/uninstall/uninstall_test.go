@@ -29,6 +29,11 @@ import (
 	"testing"
 )
 
+const (
+	testKubeConfig = "/tmp/kubeconfig"
+	testK8sContext = "testcontext"
+)
+
 // TestUninstallCmd
 // GIVEN a CLI uninstall command with all defaults
 //
@@ -137,6 +142,8 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	_ = cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 
 	// Run upgrade command
@@ -273,6 +280,8 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 
 	// Run uninstall command
 	err := cmd.Execute()
@@ -306,6 +315,8 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "simple")
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 
 	setWaitRetries(1)
 	defer resetWaitRetries()

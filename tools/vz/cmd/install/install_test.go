@@ -560,8 +560,6 @@ func TestInstallCmdAlreadyInstalled(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Only one install of Verrazzano is allowed")
-	assert.FileExists(t, "bug-report.tar.gz")
-	os.Remove("bug-report.tar.gz")
 }
 
 // TestInstallCmdDifferentVersion
@@ -591,8 +589,6 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Unable to install version v1.3.1, install of version v1.3.2 is in progress")
-	assert.FileExists(t, "bug-report.tar.gz")
-	os.Remove("bug-report.tar.gz")
 }
 
 func createNewTestCommandAndBuffers(t *testing.T, c client.Client) (*cobra.Command, *bytes.Buffer, *bytes.Buffer, *testhelpers.FakeRootCmdContext) {
