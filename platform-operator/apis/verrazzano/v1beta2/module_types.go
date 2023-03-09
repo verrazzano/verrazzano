@@ -33,19 +33,21 @@ type VerrazzanoModuleList struct {
 	Items           []VerrazzanoModule `json:"items"`
 }
 
-type PlatformRefence struct {
-	Name      string `json:"name,omitempty"`
-	Namespace string `json:"namespace,omitempty"`
+// PlatformSource Identifies the source to use for finding modules
+type PlatformSource struct {
+	Name      string  `json:"name,omitempty"`
+	Namespace string  `json:"namespace,omitempty"`
+	Source    *string `json:"source,omitempty"`
 }
 
 // ModuleSpec defines the attributes for a Verrazzano Module instance
 type ModuleSpec struct {
-	Enabled         *bool            `json:"enabled,omitempty"`
-	Version         *string          `json:"version,omitempty"`
-	Chart           *ChartRef        `json:"chart,omitempty"`
-	PlatformRef     *PlatformRefence `json:"platformRef,omitempty"`
-	TargetNamespace *string          `json:"targetNamespace,omitempty"`
-	Reconcile       *bool            `json:"reconcile,omitempty"`
+	ChartName       *string         `json:"chartName,omitempty"`
+	Source          *PlatformSource `json:"source,omitempty"`
+	Enabled         *bool           `json:"enabled,omitempty"`
+	Version         *string         `json:"version,omitempty"`
+	TargetNamespace *string         `json:"targetNamespace,omitempty"`
+	Reconcile       *bool           `json:"reconcile,omitempty"`
 }
 
 type ModuleStateType string

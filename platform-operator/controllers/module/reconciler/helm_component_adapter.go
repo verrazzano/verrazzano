@@ -88,7 +88,6 @@ func (h helmComponentAdapter) Install(context spi.ComponentContext) error {
 	}
 
 	// TODO: utilize overrides hooks
-
 	// vz-specific chart overrides file
 	//overrides, err := h.buildCustomHelmOverrides(context, h.ChartNamespace, kvs...)
 	//defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), `helm-overrides.*\.yaml`)

@@ -39,9 +39,9 @@ type ChartVersion struct {
 }
 
 type SourceType struct {
-	Name              *string `json:"name,omitempty"`
-	URL               *string `json:"name,omitempty"`
-	CredentialsSecret *string `json:"credentialsSecret,omitempty"`
+	Name              string `json:"name,omitempty"`
+	URL               string `json:"name,omitempty"`
+	CredentialsSecret string `json:"credentialsSecret,omitempty"`
 }
 
 type UpgradeType string

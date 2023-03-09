@@ -37,11 +37,10 @@ spec:
                   properties:
                     name:
                       type: string
-                    uri:
+                    supportedVersions:
                       type: string
                   required:
                   - name
-                  - uri
                   type: object
                 type: array
               crds:
@@ -49,11 +48,10 @@ spec:
                   properties:
                     name:
                       type: string
-                    uri:
+                    supportedVersions:
                       type: string
                   required:
                   - name
-                  - uri
                   type: object
                 type: array
               lifecycleClass:

@@ -37,27 +37,21 @@ spec:
             type: object
           spec:
             properties:
-              chart:
-                properties:
-                  name:
-                    type: string
-                  uri:
-                    type: string
-                required:
-                - name
-                - uri
-                type: object
+              chartName:
+                type: string
               enabled:
                 type: boolean
-              platformRef:
+              reconcile:
+                type: boolean
+              source:
                 properties:
                   name:
                     type: string
                   namespace:
                     type: string
+                  source:
+                    type: string
                 type: object
-              reconcile:
-                type: boolean
               targetNamespace:
                 type: string
               version:

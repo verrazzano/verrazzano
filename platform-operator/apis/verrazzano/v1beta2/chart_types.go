@@ -34,8 +34,8 @@ type OperatorDefinitionList struct {
 }
 
 type ChartRef struct {
-	Name string `json:"name"`
-	URI  string `json:"uri"`
+	Name              string `json:"name"`
+	SupportedVersions string `json:"supportedVersions,omitempty"`
 }
 
 // OperatorDefinitionSpec defines a Verrazzano Platform instance
