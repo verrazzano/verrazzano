@@ -15,16 +15,20 @@ import (
 
 type PlatformV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	ModulesGetter
 	ModuleDefinitionsGetter
 	OperatorDefinitionsGetter
 	PlatformsGetter
 	PlatformDefinitionsGetter
-	VerrazzanoModulesGetter
 }
 
 // PlatformV1alpha1Client is used to interact with features provided by the platform group.
 type PlatformV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *PlatformV1alpha1Client) Modules(namespace string) ModuleInterface {
+	return newModules(c, namespace)
 }
 
 func (c *PlatformV1alpha1Client) ModuleDefinitions(namespace string) ModuleDefinitionInterface {
@@ -41,10 +45,6 @@ func (c *PlatformV1alpha1Client) Platforms(namespace string) PlatformInterface {
 
 func (c *PlatformV1alpha1Client) PlatformDefinitions(namespace string) PlatformDefinitionInterface {
 	return newPlatformDefinitions(c, namespace)
-}
-
-func (c *PlatformV1alpha1Client) VerrazzanoModules(namespace string) VerrazzanoModuleInterface {
-	return newVerrazzanoModules(c, namespace)
 }
 
 // NewForConfig creates a new PlatformV1alpha1Client for the given config.

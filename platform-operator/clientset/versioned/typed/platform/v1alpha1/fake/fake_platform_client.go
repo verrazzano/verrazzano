@@ -15,6 +15,10 @@ type FakePlatformV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakePlatformV1alpha1) Modules(namespace string) v1alpha1.ModuleInterface {
+	return &FakeModules{c, namespace}
+}
+
 func (c *FakePlatformV1alpha1) ModuleDefinitions(namespace string) v1alpha1.ModuleDefinitionInterface {
 	return &FakeModuleDefinitions{c, namespace}
 }
@@ -29,10 +33,6 @@ func (c *FakePlatformV1alpha1) Platforms(namespace string) v1alpha1.PlatformInte
 
 func (c *FakePlatformV1alpha1) PlatformDefinitions(namespace string) v1alpha1.PlatformDefinitionInterface {
 	return &FakePlatformDefinitions{c, namespace}
-}
-
-func (c *FakePlatformV1alpha1) VerrazzanoModules(namespace string) v1alpha1.VerrazzanoModuleInterface {
-	return &FakeVerrazzanoModules{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

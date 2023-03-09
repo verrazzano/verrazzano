@@ -5,6 +5,8 @@
 
 package v1alpha1
 
+type ModuleExpansion interface{}
+
 type ModuleDefinitionExpansion interface{}
 
 type OperatorDefinitionExpansion interface{}
@@ -12,5 +14,3 @@ type OperatorDefinitionExpansion interface{}
 type PlatformExpansion interface{}
 
 type PlatformDefinitionExpansion interface{}
-
-type VerrazzanoModuleExpansion interface{}

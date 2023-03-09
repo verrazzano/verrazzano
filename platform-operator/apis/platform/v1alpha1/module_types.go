@@ -8,15 +8,15 @@ import (
 )
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=verrazzanomodules
+// +kubebuilder:resource:path=modules
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 // +kubebuilder:resource:shortName=vzmod;vzmods
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="The current version of the Verrazzano platform."
 // +genclient
 
-// VerrazzanoModule specifies a Verrazzano VerrazzanoModule instance
-type VerrazzanoModule struct {
+// Module specifies a Verrazzano Module instance
+type Module struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -26,11 +26,11 @@ type VerrazzanoModule struct {
 
 // +kubebuilder:object:root=true
 
-// VerrazzanoModuleList contains a list of Verrazzano Module instance resources.
-type VerrazzanoModuleList struct {
+// ModuleList contains a list of Verrazzano Module instance resources.
+type ModuleList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []VerrazzanoModule `json:"items"`
+	Items           []Module `json:"items"`
 }
 
 // PlatformSource Identifies the source to use for finding modules
@@ -77,5 +77,5 @@ type ModuleCondition struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&VerrazzanoModule{}, &VerrazzanoModuleList{})
+	SchemeBuilder.Register(&Module{}, &ModuleList{})
 }

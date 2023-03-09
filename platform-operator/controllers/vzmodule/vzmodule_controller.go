@@ -2,7 +2,7 @@ package vzmodule
 
 import (
 	"context"
-	
+
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
 	platformapi "github.com/verrazzano/verrazzano/platform-operator/apis/platform/v1alpha1"
@@ -45,7 +45,7 @@ var (
 func (r *VerrazzanoModuleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	var err error
 	r.Controller, err = ctrl.NewControllerManagedBy(mgr).
-		For(&platformapi.VerrazzanoModule{}).
+		For(&platformapi.Module{}).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 10,
 		}).
@@ -53,14 +53,14 @@ func (r *VerrazzanoModuleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return err
 }
 
-// Reconcile the VerrazzanoModule CR
+// Reconcile the Module CR
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanomodules,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanomodules/status,verbs=get;update;patch
 func (r *VerrazzanoModuleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	// TODO: Metrics setup
 
-	moduleInstance := &platformapi.VerrazzanoModule{}
+	moduleInstance := &platformapi.Module{}
 	if err := r.Get(ctx, req.NamespacedName, moduleInstance); err != nil {
 		// TODO: errorCounterMetricObject.Inc()
 		// If the resource is not found, that means all the finalizers have been removed,
@@ -68,7 +68,7 @@ func (r *VerrazzanoModuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}
-		zap.S().Errorf("Failed to fetch VerrazzanoModule resource: %v", err)
+		zap.S().Errorf("Failed to fetch Module resource: %v", err)
 		return newRequeueWithDelay(), nil
 	}
 
@@ -82,7 +82,7 @@ func (r *VerrazzanoModuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	})
 	if err != nil {
 		// TODO: errorCounterMetricObject.Inc()
-		zap.S().Errorf("Failed to create controller logger for VerrazzanoModule controller: %v", err)
+		zap.S().Errorf("Failed to create controller logger for Module controller: %v", err)
 	}
 
 	// Check if resource is being deleted
@@ -106,7 +106,7 @@ func (r *VerrazzanoModuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	return r.doReconcile(log, moduleInstance)
 }
 
-func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, moduleInstance *platformapi.VerrazzanoModule) (ctrl.Result, error) {
+func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, moduleInstance *platformapi.Module) (ctrl.Result, error) {
 	log.Infof("Reconciling Verrazzano module instance %s/%s", moduleInstance.Namespace, moduleInstance.Name)
 
 	platformSource := moduleInstance.Spec.Source
@@ -175,7 +175,7 @@ func (r *VerrazzanoModuleReconciler) lookupModuleSourceURI(platform *platformapi
 	return defaultSourceURI
 }
 
-func (r *VerrazzanoModuleReconciler) lookupChartNamespace(moduleInstance *platformapi.VerrazzanoModule, platformSource *platformapi.PlatformSource) string {
+func (r *VerrazzanoModuleReconciler) lookupChartNamespace(moduleInstance *platformapi.Module, platformSource *platformapi.PlatformSource) string {
 	namespace := moduleInstance.Namespace
 	if platformSource != nil && len(platformSource.Namespace) > 0 {
 		namespace = platformSource.Namespace
@@ -188,7 +188,7 @@ func (r *VerrazzanoModuleReconciler) lookupChartNamespace(moduleInstance *platfo
 	return namespace
 }
 
-func (r *VerrazzanoModuleReconciler) lookupChartName(moduleInstance *platformapi.VerrazzanoModule) string {
+func (r *VerrazzanoModuleReconciler) lookupChartName(moduleInstance *platformapi.Module) string {
 	chartName := moduleInstance.Name
 	if moduleInstance.Spec.ChartName != nil && len(*moduleInstance.Spec.ChartName) > 0 {
 		chartName = *moduleInstance.Spec.ChartName
@@ -196,7 +196,7 @@ func (r *VerrazzanoModuleReconciler) lookupChartName(moduleInstance *platformapi
 	return chartName
 }
 
-func (r *VerrazzanoModuleReconciler) lookupModuleVersion(moduleInstance *platformapi.VerrazzanoModule) string {
+func (r *VerrazzanoModuleReconciler) lookupModuleVersion(moduleInstance *platformapi.Module) string {
 	// TODO: Look up module default version based on PlatformDefinition
 	if moduleInstance.Spec.Version != nil && len(*moduleInstance.Spec.Version) > 0 {
 		return *moduleInstance.Spec.Version
@@ -205,7 +205,7 @@ func (r *VerrazzanoModuleReconciler) lookupModuleVersion(moduleInstance *platfor
 	return ""
 }
 
-func addOwnerRef(references []metav1.OwnerReference, owner *platformapi.VerrazzanoModule) []metav1.OwnerReference {
+func addOwnerRef(references []metav1.OwnerReference, owner *platformapi.Module) []metav1.OwnerReference {
 	return append(references, metav1.OwnerReference{
 		APIVersion:         owner.APIVersion,
 		Kind:               owner.Kind,
