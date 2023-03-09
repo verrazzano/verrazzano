@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package operator
@@ -315,12 +315,12 @@ func (c jaegerOperatorComponent) validateJaegerOperator(cr *v1beta1.Verrazzano) 
 	if err != nil {
 		return err
 	}
-	return validateInstallOverrides(cr.Spec.Components.JaegerOperator.ValueOverrides, client)
+	return validateInstallOverrides(cr, client)
 }
 
 // validateInstallOverrides validates that the overrides contain only values that are allowed for override
-func validateInstallOverrides(overrides []v1beta1.Overrides, client clipkg.Client) error {
-	overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(client, overrides, ComponentNamespace)
+func validateInstallOverrides(cr *v1beta1.Verrazzano, client clipkg.Client) error {
+	overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(client, cr.Spec.Components.JaegerOperator.ValueOverrides, cr.Namespace)
 	if err != nil {
 		return err
 	}
