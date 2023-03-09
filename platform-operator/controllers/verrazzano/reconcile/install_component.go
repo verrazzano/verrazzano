@@ -213,7 +213,7 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compTra
 
 	// The component previously finished installing, but check for any mid-installation updates
 	// which may require restarting the component's installation from the beginning
-	if restartComponentInstallFromEndState(compContext, comp, componentStatus, compTracker) {
+	if restartComponentInstallFromEndState(compContext, comp, componentStatus) {
 		compTracker.installState = compStateInstallInitDetermineComponentState
 		if err := r.updateComponentStatus(compContext, "PreInstall started", vzapi.CondPreInstall); err != nil {
 			compLog.ErrorfThrottled("Error writing component PreInstall state to the status: %v", err)
@@ -288,8 +288,7 @@ func chooseCompState(componentStatus *vzapi.ComponentStatusDetails) componentIns
 }
 
 // restartComponentInstallFromEndState contains the logic about whether to restart this component's installation from compStateInstallEnd
-func restartComponentInstallFromEndState(compContext spi.ComponentContext, comp spi.Component, componentStatus *vzapi.ComponentStatusDetails,
-	compTracker *componentTrackerContext) bool {
+func restartComponentInstallFromEndState(compContext spi.ComponentContext, comp spi.Component, componentStatus *vzapi.ComponentStatusDetails) bool {
 	// Do not interrupt the upgrade flow
 	if compContext.ActualCR().Status.State == vzapi.VzStateUpgrading || compContext.ActualCR().Status.State == vzapi.VzStatePaused {
 		return false
