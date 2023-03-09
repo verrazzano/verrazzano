@@ -32,17 +32,6 @@ spec:
             type: object
           spec:
             properties:
-              crdDependencies:
-                items:
-                  properties:
-                    name:
-                      type: string
-                    supportedVersions:
-                      type: string
-                  required:
-                  - name
-                  type: object
-                type: array
               crds:
                 items:
                   properties:
@@ -50,12 +39,31 @@ spec:
                       type: string
                     supportedVersions:
                       type: string
+                    wait:
+                      type: boolean
+                    waitTimeout:
+                      type: string
                   required:
                   - name
                   type: object
                 type: array
               lifecycleClass:
                 type: string
+              operators:
+                items:
+                  properties:
+                    name:
+                      type: string
+                    supportedVersions:
+                      type: string
+                    wait:
+                      type: boolean
+                    waitTimeout:
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
             type: object
           status:
             type: object

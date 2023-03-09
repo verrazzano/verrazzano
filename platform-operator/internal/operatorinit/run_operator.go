@@ -8,13 +8,13 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/module"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/platform"
+	modulepoc "github.com/verrazzano/verrazzano/platform-operator/controllers/module"
+	modulectrl "github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/module"
+	platformctrl "github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/platform"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/vzmodule"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
@@ -76,7 +76,7 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 		return errors.Wrap(err, "Failed to setup controller VerrazzanoConfigMaps")
 	}
 
-	if err = (&module.Reconciler{
+	if err = (&modulepoc.Reconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
@@ -92,7 +92,7 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 	mysqlCheck.Start()
 
 	// v1beta2 Platform controller
-	if err = (&platform.PlatformReconciler{
+	if err = (&platformctrl.PlatformReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
@@ -101,7 +101,7 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 	}
 
 	// v1beta2 VerrazzanoModule controller
-	if err = (&vzmodule.VerrazzanoModuleReconciler{
+	if err = (&modulectrl.VerrazzanoModuleReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {

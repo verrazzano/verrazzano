@@ -1,4 +1,4 @@
-package vzmodule
+package module
 
 import (
 	"context"

@@ -32,17 +32,19 @@ type OperatorDefinitionList struct {
 	Items           []Platform `json:"items"`
 }
 
-type ChartRef struct {
+type ChartDependency struct {
 	Name              string `json:"name"`
 	SupportedVersions string `json:"supportedVersions,omitempty"`
+	Wait              bool   `json:"wait,omitempty"`
+	WaitTimeout       string `json:"waitTimeout,omitempty"`
 }
 
 // OperatorDefinitionSpec defines a Verrazzano Platform instance
 type OperatorDefinitionSpec struct {
 	// Operator lifecycle type, defaults to "helm"
-	LifecycleClass  string     `json:"lifecycleClass,omitempty"`
-	CRDCharts       []ChartRef `json:"crds,omitempty"`
-	CRDDependencies []ChartRef `json:"crdDependencies,omitempty"`
+	LifecycleClass       string            `json:"lifecycleClass,omitempty"`
+	CRDDependencies      []ChartDependency `json:"crds,omitempty"`
+	OperatorDependencies []ChartDependency `json:"operators,omitempty"`
 }
 
 type OperatorDefinitionStatus struct {
@@ -78,8 +80,8 @@ type ModuleDefinitionList struct {
 // ModuleDefinitionSpec defines properties of a Module chart type
 type ModuleDefinitionSpec struct {
 	OperatorDefinition `json:",inline"`
-	OperatorCharts     []ChartRef `json:"operators,omitempty"`
-	ModuleCharts       []ChartRef `json:"modules,omitempty"`
+	// Module
+	ModuleDependencies []ChartDependency `json:"modules,omitempty"`
 }
 
 // ModuleDefinitionStatus defines the observed state of a Verrazzano resource.
