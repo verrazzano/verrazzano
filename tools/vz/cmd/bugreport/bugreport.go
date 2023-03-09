@@ -57,7 +57,7 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return runCmdBugReport(cmd, vzHelper)
+		return runCmdBugReport(cmd, args, vzHelper)
 	}
 
 	cmd.Example = helpExample
@@ -69,7 +69,7 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	return cmd
 }
 
-func runCmdBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
 	start := time.Now()
 	bugReportFile, err := getBugReportFile(cmd, vzHelper)
 	if err != nil {
@@ -276,7 +276,7 @@ func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) e
 		cmd2.Flags().StringVar(&contextFlagValPointer, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
 		cmd2.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
 		cmd2.Flags().Set(constants.GlobalFlagContext, contextFlag)
-		bugReportErr := runCmdBugReport(cmd2, vzHelper)
+		bugReportErr := runCmdBugReport(cmd2, []string{}, vzHelper)
 		if bugReportErr != nil {
 			fmt.Fprintf(vzHelper.GetErrorStream(), "Error calling vz bug-report %s \n", bugReportErr.Error())
 		}
