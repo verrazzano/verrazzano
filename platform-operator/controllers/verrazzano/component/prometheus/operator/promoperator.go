@@ -615,7 +615,7 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 					}},
 					To: []*securityv1beta1.Rule_To{{
 						Operation: &securityv1beta1.Operation{
-							Ports: []string{"9090"},
+							Ports: []string{"9090", "10901"},
 						},
 					}},
 				},
@@ -770,7 +770,8 @@ func isThanosEnabled(ctx spi.ComponentContext) (bool, error) {
 // newNetworkPolicy returns a populated NetworkPolicySpec with ingress rules for Prometheus
 func newNetworkPolicySpec() netv1.NetworkPolicySpec {
 	tcpProtocol := corev1.ProtocolTCP
-	port := intstr.FromInt(9090)
+	promPort := intstr.FromInt(9090)
+	sidecarPort := intstr.FromInt(10901)
 
 	return netv1.NetworkPolicySpec{
 		PodSelector: metav1.LabelSelector{
@@ -783,7 +784,7 @@ func newNetworkPolicySpec() netv1.NetworkPolicySpec {
 		},
 		Ingress: []netv1.NetworkPolicyIngressRule{
 			{
-				// allow ingress to port 9090 from Auth Proxy, Grafana, and Kiali
+				// allow ingress to port 9090 and 10901 from Auth Proxy, Grafana, and Kiali
 				From: []netv1.NetworkPolicyPeer{
 					{
 						NamespaceSelector: &metav1.LabelSelector{
@@ -809,7 +810,11 @@ func newNetworkPolicySpec() netv1.NetworkPolicySpec {
 				Ports: []netv1.NetworkPolicyPort{
 					{
 						Protocol: &tcpProtocol,
-						Port:     &port,
+						Port:     &promPort,
+					},
+					{
+						Protocol: &tcpProtocol,
+						Port:     &sidecarPort,
 					},
 				},
 			},
@@ -838,7 +843,7 @@ func newNetworkPolicySpec() netv1.NetworkPolicySpec {
 				Ports: []netv1.NetworkPolicyPort{
 					{
 						Protocol: &tcpProtocol,
-						Port:     &port,
+						Port:     &promPort,
 					},
 				},
 			},
