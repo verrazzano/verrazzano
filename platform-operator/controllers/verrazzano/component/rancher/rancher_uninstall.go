@@ -149,7 +149,9 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 
 	// Delete Rancher finalizers before running the rancher-cleanup job (to speed up the uninstall)
 	if !rancherFinalizersDeleted {
-		deleteRancherFinalizers(ctx)
+		if err := deleteRancherFinalizers(ctx); err != nil {
+			return err
+		}
 		rancherFinalizersDeleted = true
 	}
 
@@ -533,7 +535,7 @@ func isRancherNamespace(ns *corev1.Namespace) bool {
 
 // deleteRancherFinalizers - delete Rancher finalizers on resources that the cleanup job
 // didn't catch
-func deleteRancherFinalizers(ctx spi.ComponentContext) {
+func deleteRancherFinalizers(ctx spi.ComponentContext) error {
 
 	// Check the finalizers of all ClusterRoles
 	crList := rbacv1.ClusterRoleList{}
@@ -570,7 +572,7 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) {
 		// Check the finalizers of all RoleBindings
 		rbList := rbacv1.RoleBindingList{}
 		if err := ctx.Client().List(context.TODO(), &rbList, &listOptions); err != nil {
-			return
+			return err
 		}
 		for i, roleBinding := range rbList.Items {
 			removeFinalizer(ctx, &rbList.Items[i], roleBinding.Finalizers)
@@ -582,13 +584,16 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) {
 			ctx.Log().Errorf("Component %s failed to list Roles: %v", ComponentName, err)
 		}
 		for i, role := range roleList.Items {
-			removeFinalizer(ctx, &roleList.Items[i], role.Finalizers)
+			if err := removeFinalizer(ctx, &roleList.Items[i], role.Finalizers); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
 // removeFinalizer - remove finalizers from an object if one is owned by Rancher
-func removeFinalizer(ctx spi.ComponentContext, object client.Object, finalizers []string) {
+func removeFinalizer(ctx spi.ComponentContext, object client.Object, finalizers []string) error {
 	// If any of the finalizers contains a rancher one, remove them all
 	for _, finalizer := range finalizers {
 		if strings.Contains(finalizer, finalizerSubString) {
@@ -600,9 +605,9 @@ func removeFinalizer(ctx spi.ComponentContext, object client.Object, finalizers 
 				Log:       ctx.Log(),
 			}.RemoveFinalizers()
 			if err != nil {
-				ctx.Log().Errorf("Component %s failed to remove finalizers from %s/%s: %v", ComponentName, object.GetNamespace(), object.GetName(), err)
+				return ctx.Log().ErrorfNewErr("Component %s failed to remove finalizers from %s/%s: %v", ComponentName, object.GetNamespace(), object.GetName(), err)
 			}
-			return
 		}
 	}
+	return nil
 }
