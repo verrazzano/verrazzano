@@ -4197,6 +4197,10 @@ spec:
                     type: string
                   rancherUrl:
                     type: string
+                  thanosQueryFrontendURL:
+                    type: string
+                  thanosSidecarURL:
+                    type: string
                 type: object
               state:
                 type: string
@@ -7133,6 +7137,10 @@ spec:
                   prometheusUrl:
                     type: string
                   rancherUrl:
+                    type: string
+                  thanosQueryFrontendURL:
+                    type: string
+                  thanosSidecarURL:
                     type: string
                 type: object
               state:
