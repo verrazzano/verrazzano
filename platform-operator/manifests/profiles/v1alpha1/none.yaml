@@ -8,11 +8,13 @@ spec:
       enabled: false
     certManager:
       enabled: false
-    coherenceOperator:
-      enabled: false
     clusterOperator:
       enabled: false
+    coherenceOperator:
+      enabled: false
     console:
+      enabled: false
+    elasticsearch:
       enabled: false
     fluentd:
       enabled: false
@@ -26,35 +28,23 @@ spec:
       enabled: false
     keycloak:
       enabled: false
+    kubeStateMetrics:
+      enabled: false
     mySQLOperator:
-      enabled: false
-    elasticsearch:
-      enabled: false
-    jaegerOperator:
       enabled: false
     kibana:
       enabled: false
     oam:
       enabled: false
-    kubeStateMetrics:
-      enabled: false
     prometheus:
       enabled: false
     prometheusOperator:
       enabled: false
-    prometheusAdapter:
-      enabled: false
-    prometheusNodeExporter:
-      enabled: false
-    prometheusPushgateway:
-      enabled: false
     rancher:
       enabled: false
-    rancherBackup:
-      enabled: false
-    velero:
+    verrazzano:
       enabled: false
     weblogicOperator:
       enabled: false
-    verrazzano:
+    argoCD:
       enabled: false

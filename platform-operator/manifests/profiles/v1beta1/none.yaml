@@ -10,41 +10,39 @@ spec:
       enabled: false
     coherenceOperator:
       enabled: false
-    clusterOperator:
-      enabled: false
     console:
       enabled: false
     fluentd:
       enabled: false
     grafana:
       enabled: false
-    ingress:
+    ingressNGINX:
       enabled: false
     istio:
       enabled: false
-    kiali:
+    jaegerOperator:
       enabled: false
     keycloak:
       enabled: false
-    mySQLOperator:
-      enabled: false
-    elasticsearch:
-      enabled: false
-    jaegerOperator:
-      enabled: false
-    kibana:
-      enabled: false
-    oam:
+    kiali:
       enabled: false
     kubeStateMetrics:
       enabled: false
-    prometheus:
+    mySQLOperator:
       enabled: false
-    prometheusOperator:
+    oam:
+      enabled: false
+    opensearch:
+      enabled: false
+    opensearchDashboards:
+      enabled: false
+    prometheus:
       enabled: false
     prometheusAdapter:
       enabled: false
     prometheusNodeExporter:
+      enabled: false
+    prometheusOperator:
       enabled: false
     prometheusPushgateway:
       enabled: false
@@ -54,7 +52,9 @@ spec:
       enabled: false
     velero:
       enabled: false
+    verrazzano:
+      enabled: false
     weblogicOperator:
       enabled: false
-    verrazzano:
+    argoCD:
       enabled: false
