@@ -5,8 +5,6 @@ package main
 
 import (
 	"flag"
-	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
 	"os"
 
 	cmapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -18,6 +16,8 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
+	platformapi "github.com/verrazzano/verrazzano/platform-operator/apis/platform/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
@@ -46,8 +46,8 @@ func init() {
 	_ = modulesv1alpha1.AddToScheme(scheme)
 	_ = clustersv1alpha1.AddToScheme(scheme)
 
-	// v1beta2
-	_ = v1beta2.AddToScheme(scheme)
+	// v2
+	_ = platformapi.AddToScheme(scheme)
 
 	_ = istioclinet.AddToScheme(scheme)
 	_ = istioclisec.AddToScheme(scheme)

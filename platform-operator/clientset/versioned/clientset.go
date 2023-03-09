@@ -13,7 +13,6 @@ import (
 	platformv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/platform/v1alpha1"
 	verrazzanov1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/verrazzano/v1alpha1"
 	verrazzanov1beta1 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/verrazzano/v1beta1"
-	verrazzanov1beta2 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/verrazzano/v1beta2"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -23,7 +22,6 @@ type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	ModulesV1alpha1() modulesv1alpha1.ModulesV1alpha1Interface
 	PlatformV1alpha1() platformv1alpha1.PlatformV1alpha1Interface
-	VerrazzanoV1beta2() verrazzanov1beta2.VerrazzanoV1beta2Interface
 	VerrazzanoV1beta1() verrazzanov1beta1.VerrazzanoV1beta1Interface
 	VerrazzanoV1alpha1() verrazzanov1alpha1.VerrazzanoV1alpha1Interface
 }
@@ -34,7 +32,6 @@ type Clientset struct {
 	*discovery.DiscoveryClient
 	modulesV1alpha1    *modulesv1alpha1.ModulesV1alpha1Client
 	platformV1alpha1   *platformv1alpha1.PlatformV1alpha1Client
-	verrazzanoV1beta2  *verrazzanov1beta2.VerrazzanoV1beta2Client
 	verrazzanoV1beta1  *verrazzanov1beta1.VerrazzanoV1beta1Client
 	verrazzanoV1alpha1 *verrazzanov1alpha1.VerrazzanoV1alpha1Client
 }
@@ -47,11 +44,6 @@ func (c *Clientset) ModulesV1alpha1() modulesv1alpha1.ModulesV1alpha1Interface {
 // PlatformV1alpha1 retrieves the PlatformV1alpha1Client
 func (c *Clientset) PlatformV1alpha1() platformv1alpha1.PlatformV1alpha1Interface {
 	return c.platformV1alpha1
-}
-
-// VerrazzanoV1beta2 retrieves the VerrazzanoV1beta2Client
-func (c *Clientset) VerrazzanoV1beta2() verrazzanov1beta2.VerrazzanoV1beta2Interface {
-	return c.verrazzanoV1beta2
 }
 
 // VerrazzanoV1beta1 retrieves the VerrazzanoV1beta1Client
@@ -116,10 +108,6 @@ func NewForConfigAndClient(c *rest.Config, httpClient *http.Client) (*Clientset,
 	if err != nil {
 		return nil, err
 	}
-	cs.verrazzanoV1beta2, err = verrazzanov1beta2.NewForConfigAndClient(&configShallowCopy, httpClient)
-	if err != nil {
-		return nil, err
-	}
 	cs.verrazzanoV1beta1, err = verrazzanov1beta1.NewForConfigAndClient(&configShallowCopy, httpClient)
 	if err != nil {
 		return nil, err
@@ -151,7 +139,6 @@ func New(c rest.Interface) *Clientset {
 	var cs Clientset
 	cs.modulesV1alpha1 = modulesv1alpha1.New(c)
 	cs.platformV1alpha1 = platformv1alpha1.New(c)
-	cs.verrazzanoV1beta2 = verrazzanov1beta2.New(c)
 	cs.verrazzanoV1beta1 = verrazzanov1beta1.New(c)
 	cs.verrazzanoV1alpha1 = verrazzanov1alpha1.New(c)
 

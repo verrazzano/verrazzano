@@ -3,7 +3,7 @@
 
 // Package v1beta2 contains API Schema definitions for the platform v1beta2 API group
 // +kubebuilder:object:generate=true
-// +groupName=install.verrazzano.io
+// +groupName=platform.verrazzano.io
 package v1alpha1
 
 import (
