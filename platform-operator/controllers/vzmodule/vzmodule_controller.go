@@ -2,10 +2,11 @@ package vzmodule
 
 import (
 	"context"
+	
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
+	platformapi "github.com/verrazzano/verrazzano/platform-operator/apis/platform/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -44,7 +45,7 @@ var (
 func (r *VerrazzanoModuleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	var err error
 	r.Controller, err = ctrl.NewControllerManagedBy(mgr).
-		For(&v1beta2.VerrazzanoModule{}).
+		For(&platformapi.VerrazzanoModule{}).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 10,
 		}).
@@ -59,7 +60,7 @@ func (r *VerrazzanoModuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	// TODO: Metrics setup
 
-	moduleInstance := &v1beta2.VerrazzanoModule{}
+	moduleInstance := &platformapi.VerrazzanoModule{}
 	if err := r.Get(ctx, req.NamespacedName, moduleInstance); err != nil {
 		// TODO: errorCounterMetricObject.Inc()
 		// If the resource is not found, that means all the finalizers have been removed,
@@ -105,7 +106,7 @@ func (r *VerrazzanoModuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	return r.doReconcile(log, moduleInstance)
 }
 
-func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, moduleInstance *v1beta2.VerrazzanoModule) (ctrl.Result, error) {
+func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, moduleInstance *platformapi.VerrazzanoModule) (ctrl.Result, error) {
 	log.Infof("Reconciling Verrazzano module instance %s/%s", moduleInstance.Namespace, moduleInstance.Name)
 
 	platformSource := moduleInstance.Spec.Source
@@ -149,11 +150,11 @@ func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, mod
 	return ctrl.Result{}, nil
 }
 
-func (r *VerrazzanoModuleReconciler) getPlatormInstance(log vzlog.VerrazzanoLogger, platformSource *v1beta2.PlatformSource) (*v1beta2.Platform, error) {
+func (r *VerrazzanoModuleReconciler) getPlatormInstance(log vzlog.VerrazzanoLogger, platformSource *platformapi.PlatformSource) (*platformapi.Platform, error) {
 	if platformSource == nil {
 		return nil, nil
 	}
-	platformInstance := v1beta2.Platform{}
+	platformInstance := platformapi.Platform{}
 	err := r.Get(context.TODO(), types.NamespacedName{Namespace: platformSource.Namespace, Name: platformSource.Name}, &platformInstance)
 	if err != nil {
 		log.ErrorfThrottledNewErr("Platform instance %s not found for module")
@@ -162,7 +163,7 @@ func (r *VerrazzanoModuleReconciler) getPlatormInstance(log vzlog.VerrazzanoLogg
 	return &platformInstance, nil
 }
 
-func (r *VerrazzanoModuleReconciler) lookupModuleSourceURI(platform *v1beta2.Platform, declaredSource *v1beta2.PlatformSource) string {
+func (r *VerrazzanoModuleReconciler) lookupModuleSourceURI(platform *platformapi.Platform, declaredSource *platformapi.PlatformSource) string {
 	if platform == nil || declaredSource == nil {
 		return defaultSourceURI
 	}
@@ -174,7 +175,7 @@ func (r *VerrazzanoModuleReconciler) lookupModuleSourceURI(platform *v1beta2.Pla
 	return defaultSourceURI
 }
 
-func (r *VerrazzanoModuleReconciler) lookupChartNamespace(moduleInstance *v1beta2.VerrazzanoModule, platformSource *v1beta2.PlatformSource) string {
+func (r *VerrazzanoModuleReconciler) lookupChartNamespace(moduleInstance *platformapi.VerrazzanoModule, platformSource *platformapi.PlatformSource) string {
 	namespace := moduleInstance.Namespace
 	if platformSource != nil && len(platformSource.Namespace) > 0 {
 		namespace = platformSource.Namespace
@@ -187,7 +188,7 @@ func (r *VerrazzanoModuleReconciler) lookupChartNamespace(moduleInstance *v1beta
 	return namespace
 }
 
-func (r *VerrazzanoModuleReconciler) lookupChartName(moduleInstance *v1beta2.VerrazzanoModule) string {
+func (r *VerrazzanoModuleReconciler) lookupChartName(moduleInstance *platformapi.VerrazzanoModule) string {
 	chartName := moduleInstance.Name
 	if moduleInstance.Spec.ChartName != nil && len(*moduleInstance.Spec.ChartName) > 0 {
 		chartName = *moduleInstance.Spec.ChartName
@@ -195,7 +196,7 @@ func (r *VerrazzanoModuleReconciler) lookupChartName(moduleInstance *v1beta2.Ver
 	return chartName
 }
 
-func (r *VerrazzanoModuleReconciler) lookupModuleVersion(moduleInstance *v1beta2.VerrazzanoModule) string {
+func (r *VerrazzanoModuleReconciler) lookupModuleVersion(moduleInstance *platformapi.VerrazzanoModule) string {
 	// TODO: Look up module default version based on PlatformDefinition
 	if moduleInstance.Spec.Version != nil && len(*moduleInstance.Spec.Version) > 0 {
 		return *moduleInstance.Spec.Version
@@ -204,7 +205,7 @@ func (r *VerrazzanoModuleReconciler) lookupModuleVersion(moduleInstance *v1beta2
 	return ""
 }
 
-func addOwnerRef(references []metav1.OwnerReference, owner *v1beta2.VerrazzanoModule) []metav1.OwnerReference {
+func addOwnerRef(references []metav1.OwnerReference, owner *platformapi.VerrazzanoModule) []metav1.OwnerReference {
 	return append(references, metav1.OwnerReference{
 		APIVersion:         owner.APIVersion,
 		Kind:               owner.Kind,

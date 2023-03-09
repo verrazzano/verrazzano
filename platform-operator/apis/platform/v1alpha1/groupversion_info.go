@@ -13,7 +13,7 @@ import (
 
 var (
 	// SchemeGroupVersion is group version used to register these objects
-	SchemeGroupVersion = schema.GroupVersion{Group: "install.verrazzano.io", Version: "v1beta2"}
+	SchemeGroupVersion = schema.GroupVersion{Group: "platform.verrazzano.io", Version: "v1alpha1"}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}

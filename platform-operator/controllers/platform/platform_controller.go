@@ -2,12 +2,12 @@ package platform
 
 import (
 	"context"
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
 	"time"
 
 	vzcontroller "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	platformapi "github.com/verrazzano/verrazzano/platform-operator/apis/platform/v1alpha1"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,7 +31,7 @@ const finalizerName = "platform.verrazzano.io"
 func (r *PlatformReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	var err error
 	r.Controller, err = ctrl.NewControllerManagedBy(mgr).
-		For(&v1beta2.Platform{}).Build(r)
+		For(&platformapi.Platform{}).Build(r)
 	return err
 }
 
@@ -42,7 +42,7 @@ func (r *PlatformReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	// TODO: Metrics setup
 
-	platformInstance := &v1beta2.Platform{}
+	platformInstance := &platformapi.Platform{}
 	if err := r.Get(ctx, req.NamespacedName, platformInstance); err != nil {
 		// TODO: errorCounterMetricObject.Inc()
 		// If the resource is not found, that means all the finalizers have been removed,
