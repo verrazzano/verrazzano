@@ -21,7 +21,7 @@ while [[ $retval_success -ne 0 ]] && [[ $retval_failed -ne 0 ]]  && [[ $i -lt 30
   i=$((i+1))
 done
 
-if [[ $retval_failed -eq 0 ]] || [[ $i -eq 30 ]] ; then
+if [[ $retval_failed -eq 0 ]] || [[ $i -eq 45 ]] ; then
     echo "Installation Failed"
     kubectl get vz my-verrazzano -o yaml
     exit 1
