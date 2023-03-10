@@ -861,6 +861,29 @@ func newNetworkPolicySpec() netv1.NetworkPolicySpec {
 					},
 				},
 			},
+			{
+				// allow ingress to Thanos sidecar on port 10901 from Thanos Query
+				From: []netv1.NetworkPolicyPeer{
+					{
+						NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								vzconst.LabelVerrazzanoNamespace: constants.VerrazzanoMonitoringNamespace,
+							},
+						},
+						PodSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								"app.kubernetes.io/component": "query",
+							},
+						},
+					},
+				},
+				Ports: []netv1.NetworkPolicyPort{
+					{
+						Protocol: &tcpProtocol,
+						Port:     &sidecarPort,
+					},
+				},
+			},
 		},
 	}
 }
