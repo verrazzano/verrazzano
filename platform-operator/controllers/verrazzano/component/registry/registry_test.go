@@ -42,6 +42,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancherbackup"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/thanos"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
@@ -73,7 +74,7 @@ func TestGetComponents(t *testing.T) {
 	comps := GetComponents()
 
 	var i int
-	a.Len(comps, 33, "Wrong number of components")
+	a.Len(comps, 34, "Wrong number of components")
 	a.Equal(comps[i].Name(), networkpolicies.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), oam.ComponentName)
@@ -139,6 +140,8 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[i].Name(), clusteroperator.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), argocd.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), thanos.ComponentName)
 }
 
 // TestFindComponent tests FindComponent

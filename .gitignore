@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 .verrazzano/
 platform-operator/scripts/install/build/
@@ -48,3 +48,4 @@ ATTRIBUTION-HELPER-DEPS
 **/.terraform
 tools/vz/cmd/bugreport/bug-report.tar.gz
 tools/vz/pkg/analysis/internal/util/report/report
+tools/vz/cmd/analyze/details-*.out

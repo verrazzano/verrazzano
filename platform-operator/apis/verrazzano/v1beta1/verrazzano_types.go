@@ -137,6 +137,8 @@ type InstanceInfo struct {
 	PrometheusURL *string `json:"prometheusUrl,omitempty"`
 	// The Rancher URL for this Verrazzano installation.
 	RancherURL *string `json:"rancherUrl,omitempty"`
+	// The Thanos Query Frontend URL for this Verrazzano installation.
+	ThanosQueryFrontendURL *string `json:"thanosQueryFrontendURL,omitempty"`
 }
 
 // VerrazzanoStatus defines the observed state of a Verrazzano resource.
@@ -401,6 +403,10 @@ type ComponentSpec struct {
 	// The rancherBackup component configuration.
 	// +optional
 	RancherBackup *RancherBackupComponent `json:"rancherBackup,omitempty"`
+
+	// The Thanos component configuration.
+	// +optional
+	Thanos *ThanosComponent `json:"thanos,omitempty"`
 
 	// The Velero component configuration.
 	// +optional
@@ -943,6 +949,20 @@ type VeleroComponent struct {
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
 	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/velero/values.yaml %}} )
+	// and invalid values will be ignored.
+	// +optional
+	InstallOverrides `json:",inline"`
+}
+
+// ThanosComponent specifies the Thanos configuration.
+type ThanosComponent struct {
+	// If true, then Thanos will be installed.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/thanos/values.yaml %}} )
 	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`

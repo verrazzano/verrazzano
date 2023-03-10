@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package reconcile
@@ -59,7 +59,7 @@ type VerrazzanoUpgradeState string
 type upgradeTracker struct {
 	vzState VerrazzanoUpgradeState
 	gen     int64
-	compMap map[string]*componentUpgradeContext
+	compMap map[string]*componentTrackerContext
 }
 
 // upgradeTrackerMap has a map of upgradeTrackers, one entry per Verrazzano CR resource generation
@@ -245,7 +245,7 @@ func getUpgradeTracker(cr *installv1alpha1.Verrazzano) *upgradeTracker {
 		vuc = &upgradeTracker{
 			vzState: vzStateStart,
 			gen:     cr.Generation,
-			compMap: make(map[string]*componentUpgradeContext),
+			compMap: make(map[string]*componentTrackerContext),
 		}
 		upgradeTrackerMap[key] = vuc
 	}

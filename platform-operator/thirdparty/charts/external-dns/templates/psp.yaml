@@ -1,4 +1,5 @@
 {{- if .Values.rbac.pspEnabled }}
+{{- if .Capabilities.APIVersions.Has "policy/v1beta1/PodSecurityPolicy" }}
 apiVersion: {{ template "podSecurityPolicy.apiVersion" . }}
 kind: PodSecurityPolicy
 metadata:
@@ -35,4 +36,5 @@ spec:
     ranges:
     - min: 1001
       max: 1001
+{{- end }}
 {{- end }}

@@ -29,6 +29,7 @@ func TestConfigDefaults(t *testing.T) {
 	asserts.Equal(int64(120), conf.MySQLRepairTimeoutSeconds, "Default MySQL repair timeout is correct")
 	asserts.True(conf.VersionCheckEnabled, "VersionCheckEnabled is incorrect")
 	asserts.False(conf.RunWebhooks, "RunWebhooks is incorrect")
+	asserts.False(conf.ResourceRequirementsValidation, "ResourceRequirementsValidation default value is incorrect")
 	asserts.True(conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
 	asserts.Equal(conf.VerrazzanoRootDir, "/verrazzano", "VerrazzanoRootDir is incorrect")
 	asserts.Equal("/verrazzano/platform-operator/helm_config", GetHelmConfigDir(), "GetHelmConfigDir() is incorrect")
@@ -65,17 +66,18 @@ func TestSetConfig(t *testing.T) {
 		Version: "1.0",
 	}
 	Set(OperatorConfig{
-		CertDir:                  "/test/certs",
-		RunWebhookInit:           true,
-		MetricsAddr:              "1111",
-		LeaderElectionEnabled:    true,
-		VersionCheckEnabled:      false,
-		RunWebhooks:              true,
-		WebhookValidationEnabled: false,
-		VerrazzanoRootDir:        "/root",
-		HealthCheckPeriodSeconds: int64(0),
-		MySQLCheckPeriodSeconds:  int64(0),
-		DryRun:                   true,
+		CertDir:                        "/test/certs",
+		RunWebhookInit:                 true,
+		MetricsAddr:                    "1111",
+		LeaderElectionEnabled:          true,
+		VersionCheckEnabled:            false,
+		RunWebhooks:                    true,
+		ResourceRequirementsValidation: true,
+		WebhookValidationEnabled:       false,
+		VerrazzanoRootDir:              "/root",
+		HealthCheckPeriodSeconds:       int64(0),
+		MySQLCheckPeriodSeconds:        int64(0),
+		DryRun:                         true,
 	})
 
 	conf := Get()
@@ -87,6 +89,7 @@ func TestSetConfig(t *testing.T) {
 	asserts.Equal("1111", conf.MetricsAddr, "MetricsAddr is incorrect")
 	asserts.False(conf.VersionCheckEnabled, "VersionCheckEnabled is incorrect")
 	asserts.True(conf.RunWebhooks, "RunWebhooks is incorrect")
+	asserts.True(conf.ResourceRequirementsValidation, "ResourceRequirementsValidation default value is incorrect")
 	asserts.False(conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
 	asserts.Equal(conf.DryRun, true, "Default dry run is true")
 	asserts.Equal("/root", conf.VerrazzanoRootDir, "VerrazzanoRootDir is incorrect")

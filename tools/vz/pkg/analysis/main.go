@@ -1,5 +1,6 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package analysis
 
 import (
@@ -48,7 +49,7 @@ func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, 
 	err = report.GenerateHumanReport(logger, reportFile, reportFormat, includeSupport, includeInfo, includeActions, minConfidence, minImpact, vzHelper)
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "\nReport generation failed, exiting.\n")
-		return fmt.Errorf("\nreport generation failed, exiting")
+		return fmt.Errorf("%s", err.Error())
 	}
 	return nil
 }

@@ -39,3 +39,5 @@ webhookAffinity:
                   - verrazzano-platform-operator-webhook
           topologyKey: kubernetes.io/hostname
         weight: 100
+webhooks:
+  resourceValidation: false
