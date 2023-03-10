@@ -12,6 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"net"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var GetControllerRuntimeClient = validators.GetClient
@@ -22,16 +23,11 @@ var GetControllerRuntimeClient = validators.GetClient
 func CheckExternalIPsArgs(installArgs []vzapi.InstallArgs, overrides []vzapi.Overrides, argsKeyName, jsonPath, compName, namespace string) error {
 	var keyPresent bool
 	var v1beta1Overrides = vzapi.ConvertValueOverridesToV1Beta1(overrides)
-	scheme := runtime.NewScheme()
-	_ = corev1.AddToScheme(scheme)
-	c, err := GetControllerRuntimeClient(scheme)
+	overrideYAMLs, err := getOverrideYAMLs(v1beta1Overrides, namespace)
 	if err != nil {
 		return err
 	}
-	overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(c, v1beta1Overrides, namespace)
-	if err != nil {
-		return err
-	}
+
 	for _, o := range overrideYAMLs {
 		keyPresent = false
 		value, err := override.ExtractValueFromOverrideString(o, jsonPath)
@@ -42,7 +38,10 @@ func CheckExternalIPsArgs(installArgs []vzapi.InstallArgs, overrides []vzapi.Ove
 		/* This check that the casted value is valid is needed before setting keyPresent to true or t
 		trying to call validateExternalIP
 		*/
-		v := castValuesToString(value)
+		v, err := castValuesToString(value)
+		if err != nil {
+			return err
+		}
 		if v != nil {
 			keyPresent = true
 			if err := validateExternalIP(v, jsonPath, compName); err != nil {
@@ -72,13 +71,7 @@ func CheckExternalIPsArgs(installArgs []vzapi.InstallArgs, overrides []vzapi.Ove
 // specific key for the corresponding component that holds the external IP address
 // It also checks whether IP addresses are valid and provided in a List format
 func CheckExternalIPsOverridesArgs(overrides []v1beta1.Overrides, jsonPath, compName string, namespace string) error {
-	scheme := runtime.NewScheme()
-	_ = corev1.AddToScheme(scheme)
-	c, err := GetControllerRuntimeClient(scheme)
-	if err != nil {
-		return nil
-	}
-	overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(c, overrides, namespace)
+	overrideYAMLs, err := getOverrideYAMLs(overrides, namespace)
 	if err != nil {
 		return err
 	}
@@ -87,7 +80,10 @@ func CheckExternalIPsOverridesArgs(overrides []v1beta1.Overrides, jsonPath, comp
 		if err != nil {
 			return err
 		}
-		v := castValuesToString(value)
+		v, err := castValuesToString(value)
+		if err != nil {
+			return err
+		}
 		if v != nil {
 			if err := validateExternalIP(v, jsonPath, compName); err != nil {
 				return err
@@ -102,16 +98,11 @@ func CheckExternalIPsOverridesArgs(overrides []v1beta1.Overrides, jsonPath, comp
 // It checks whether the service is of a specific type.
 // It also checks whether IP addresses are valid and provided in a List format
 func CheckExternalIPsOverridesArgsWithPaths(overrides []v1beta1.Overrides, jsonBasePath, serviceTypePath, serviceTypeValue, externalIPPath, compName, namespace string) error {
-	scheme := runtime.NewScheme()
-	_ = corev1.AddToScheme(scheme)
-	c, err := GetControllerRuntimeClient(scheme)
-	if err != nil {
-		return nil
-	}
-	overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(c, overrides, namespace)
+	overrideYAMLs, err := getOverrideYAMLs(overrides, namespace)
 	if err != nil {
 		return err
 	}
+
 	for _, o := range overrideYAMLs {
 		value, err := override.ExtractValueFromOverrideString(o, jsonBasePath)
 		if err != nil {
@@ -121,8 +112,11 @@ func CheckExternalIPsOverridesArgsWithPaths(overrides []v1beta1.Overrides, jsonB
 			valueMap := value.(map[string]interface{})
 			extractedIP := valueMap[externalIPPath]
 			extractedType := valueMap[serviceTypePath]
-			extractedIPsArray := castValuesToString(extractedIP)
 			externalIPPathFull := jsonBasePath + "." + externalIPPath
+			extractedIPsArray, err := castValuesToString(extractedIP)
+			if err != nil {
+				return err
+			}
 			if extractedType != nil && extractedType == serviceTypeValue {
 				err := validateExternalIP(extractedIPsArray, externalIPPathFull, compName)
 				if err != nil {
@@ -146,23 +140,45 @@ func validateExternalIP(addresses []string, key, compName string) error {
 	return nil
 }
 
-func castValuesToString(value interface{}) []string {
+func castValuesToString(value interface{}) ([]string, error) {
 	var values []string
 	switch val := value.(type) {
 	case nil:
-		return nil
+		return nil, fmt.Errorf("Type \"%v\" is invalid data type", val)
 	case string:
 		if value != nil {
 			values = append(values, value.(string))
-			fmt.Println(val)
+		} else {
+			return nil, fmt.Errorf("Type \"%v\" is invalid data type", val)
 		}
 	case []interface{}:
 		valueArray := value.([]interface{})
 		for _, v := range valueArray {
 			if v != nil {
 				values = append(values, v.(string))
+			} else {
+				return nil, fmt.Errorf("Type \"%v\" is invalid data type", val)
 			}
 		}
 	}
-	return values
+	return values, nil
+}
+
+func getOverrideYAMLs(overrides []v1beta1.Overrides, namespace string) ([]string, error) {
+	client, err := getRunTimeClient()
+	overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(client, overrides, namespace)
+	if err != nil {
+		return nil, err
+	}
+	return overrideYAMLs, err
+}
+
+func getRunTimeClient() (client.Client, error) {
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	client, err := GetControllerRuntimeClient(scheme)
+	if err != nil {
+		return nil, err
+	}
+	return client, err
 }
