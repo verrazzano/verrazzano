@@ -26,7 +26,9 @@ var t = framework.NewTestFramework("uninstall verify Rancher CRs")
 var _ = t.Describe("Rancher install-uninstall loop tests", Label("f:platform-lcm.rancher"), func() {
 
 	for i := 1; i < 5; i++ {
-		t.It(fmt.Sprintf("Starting Rancher Install: loop %s/n", i+1), func() {
+		t.It(fmt.Sprintf("Installing Rancher: loop %s/n", i+1), func() {
+		})
+		t.It(fmt.Sprintf("Waiting for Install to complete"), func() {
 		})
 	}
 
