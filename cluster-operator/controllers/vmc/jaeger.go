@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vmc
@@ -109,7 +109,7 @@ func (r *VerrazzanoManagedClusterReconciler) getJaegerSpecConfig(vzList *vzapi.V
 			jsc.storageType = "opensearch"
 		}
 		overrides := vz.Spec.Components.JaegerOperator.ValueOverrides
-		overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(r.Client, overrides, jaegerNamespace)
+		overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(r.Client, overrides, vz.Namespace)
 		if err != nil {
 			return jsc, err
 		}
