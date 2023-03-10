@@ -87,6 +87,14 @@ spec:
         domain: "nip.io"
     elasticsearch:
       enabled: false
+      nodes:
+        - name: es-master
+          replicas: 1
+          resources:
+            requests:
+              memory: 1G
+          roles:
+            - master
     fluentd:
       enabled: false
       elasticsearchURL: "http://verrazzano-authproxy-opensearch:8775"
