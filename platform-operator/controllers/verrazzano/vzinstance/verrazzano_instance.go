@@ -61,7 +61,6 @@ func GetInstanceInfo(ctx spi.ComponentContext) *v1alpha1.InstanceInfo {
 		JaegerURL:              getComponentIngressURL(ingressList.Items, ctx, jaegeroperator.ComponentName, constants.JaegerIngress),
 		ArgoCDURL:              getComponentIngressURL(ingressList.Items, ctx, argocd.ComponentName, constants.ArgoCDIngress),
 		ThanosQueryFrontendURL: getComponentIngressURL(ingressList.Items, ctx, thanos.ComponentName, constants.ThanosQueryFrontendIngress),
-		ThanosSidecarURL:       getComponentIngressURL(ingressList.Items, ctx, promoperator.ComponentName, constants.ThanosSidecarIngress),
 	}
 	return instanceInfo
 }

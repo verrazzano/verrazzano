@@ -105,7 +105,6 @@ func convertVerrazzanoInstanceFromV1Beta1(instance *v1beta1.InstanceInfo) *Insta
 		KialiURL:               instance.KialiURL,
 		JaegerURL:              instance.JaegerURL,
 		ThanosQueryFrontendURL: instance.ThanosQueryFrontendURL,
-		ThanosSidecarURL:       instance.ThanosSidecarURL,
 	}
 }
 

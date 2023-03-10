@@ -832,7 +832,6 @@ func convertVerrazzanoInstanceTo(instance *InstanceInfo) *v1beta1.InstanceInfo {
 		KialiURL:                instance.KialiURL,
 		JaegerURL:               instance.JaegerURL,
 		ThanosQueryFrontendURL:  instance.ThanosQueryFrontendURL,
-		ThanosSidecarURL:        instance.ThanosSidecarURL,
 	}
 }
 
