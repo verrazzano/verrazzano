@@ -34,8 +34,9 @@ type PlatformList struct {
 }
 
 type ChartVersion struct {
-	Name         string `json:"name"`
-	VersionRange string `json:"versions"`
+	Name           string `json:"name"`
+	CurrentVersion string `json:"currentVersion,omitempty"`
+	VersionRange   string `json:"versions,omitempty"`
 }
 
 type SourceType struct {

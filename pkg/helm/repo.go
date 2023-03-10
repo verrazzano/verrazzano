@@ -4,6 +4,7 @@ package helm
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	platformv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/platform/v1alpha1"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/repo"
@@ -35,4 +36,15 @@ func ListCharts(log vzlog.VerrazzanoLogger, repoName string, repoURL string) err
 		}
 	}
 	return nil
+}
+
+func LookupChartType(log vzlog.VerrazzanoLogger, repoName, repoURL, chartName string) platformv1alpha1.ChartType {
+	// TODO: Hard-coded for now, implement lookup via Chart annotations in repo index
+	switch chartName {
+	case "mysql-operator":
+		return platformv1alpha1.OperatorChartType
+	default:
+		return platformv1alpha1.ModuleChartType
+	}
+	return platformv1alpha1.UnclassifiedChartType
 }

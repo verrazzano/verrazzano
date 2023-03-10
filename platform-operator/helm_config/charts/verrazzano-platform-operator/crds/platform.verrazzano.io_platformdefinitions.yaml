@@ -40,37 +40,40 @@ spec:
               crds:
                 items:
                   properties:
+                    currentVersion:
+                      type: string
                     name:
                       type: string
                     versions:
                       type: string
                   required:
                   - name
-                  - versions
                   type: object
                 type: array
               modules:
                 items:
                   properties:
+                    currentVersion:
+                      type: string
                     name:
                       type: string
                     versions:
                       type: string
                   required:
                   - name
-                  - versions
                   type: object
                 type: array
               operators:
                 items:
                   properties:
+                    currentVersion:
+                      type: string
                     name:
                       type: string
                     versions:
                       type: string
                   required:
                   - name
-                  - versions
                   type: object
                 type: array
               version:

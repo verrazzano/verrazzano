@@ -32,18 +32,14 @@ spec:
             type: object
           spec:
             properties:
-              apiVersion:
-                type: string
-              kind:
-                type: string
-              metadata:
-                type: object
-              modules:
+              crds:
                 items:
                   properties:
                     name:
                       type: string
                     supportedVersions:
+                      type: string
+                    version:
                       type: string
                     wait:
                       type: boolean
@@ -53,43 +49,42 @@ spec:
                   - name
                   type: object
                 type: array
-              spec:
-                properties:
-                  crds:
-                    items:
-                      properties:
-                        name:
-                          type: string
-                        supportedVersions:
-                          type: string
-                        wait:
-                          type: boolean
-                        waitTimeout:
-                          type: string
-                      required:
-                      - name
-                      type: object
-                    type: array
-                  lifecycleClass:
-                    type: string
-                  operators:
-                    items:
-                      properties:
-                        name:
-                          type: string
-                        supportedVersions:
-                          type: string
-                        wait:
-                          type: boolean
-                        waitTimeout:
-                          type: string
-                      required:
-                      - name
-                      type: object
-                    type: array
-                type: object
-              status:
-                type: object
+              lifecycleClass:
+                type: string
+              modules:
+                items:
+                  properties:
+                    name:
+                      type: string
+                    supportedVersions:
+                      type: string
+                    version:
+                      type: string
+                    wait:
+                      type: boolean
+                    waitTimeout:
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
+              operators:
+                items:
+                  properties:
+                    name:
+                      type: string
+                    supportedVersions:
+                      type: string
+                    version:
+                      type: string
+                    wait:
+                      type: boolean
+                    waitTimeout:
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
             type: object
           status:
             type: object

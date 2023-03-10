@@ -7,6 +7,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type ChartType string
+
+const (
+	UnclassifiedChartType ChartType = "unclassified"
+	OperatorChartType     ChartType = "operator"
+	ModuleChartType       ChartType = "module"
+	CRDChartType          ChartType = "crd"
+)
+
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=operatordefinitions
 // +kubebuilder:subresource:status
@@ -34,6 +43,7 @@ type OperatorDefinitionList struct {
 
 type ChartDependency struct {
 	Name              string `json:"name"`
+	Version           string `json:"version,omitempty"`
 	SupportedVersions string `json:"supportedVersions,omitempty"`
 	Wait              bool   `json:"wait,omitempty"`
 	WaitTimeout       string `json:"waitTimeout,omitempty"`
@@ -79,7 +89,7 @@ type ModuleDefinitionList struct {
 
 // ModuleDefinitionSpec defines properties of a Module chart type
 type ModuleDefinitionSpec struct {
-	OperatorDefinition `json:",inline"`
+	OperatorDefinitionSpec `json:",inline"`
 	// Module
 	ModuleDependencies []ChartDependency `json:"modules,omitempty"`
 }
@@ -99,7 +109,7 @@ type ModuleDefinitionConditionType string
 type ModuleDefinitionCondition struct {
 	// Last time the condition transitioned from one status to another.
 	LastTransitionTime string `json:"lastTransitionTime,omitempty"`
-	// Human readable message indicating details about the last transition.
+	// Human-readable message indicating details about the last transition.
 	Message string `json:"message,omitempty"`
 	// Status of the condition: one of `True`, `False`, or `Unknown`.
 	Status corev1.ConditionStatus `json:"status"`
