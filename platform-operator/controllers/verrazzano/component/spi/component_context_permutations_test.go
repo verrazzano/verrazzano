@@ -13,6 +13,7 @@ import (
 
 const (
 	basicDevMerged                   = "testdata/basicDevMerged.yaml"
+	basicNoneMerged                  = "testdata/basicNoneMerged.yaml"
 	basicProdMerged                  = "testdata/basicProdMerged.yaml"
 	basicManagedClusterMerged        = "testdata/basicManagedClusterMerged.yaml"
 	devAllDisabledMerged             = "testdata/devAllDisabledMerged.yaml"
@@ -68,6 +69,19 @@ var basicMgdClusterWithStatus = v1alpha1.Verrazzano{
 	},
 	Spec: v1alpha1.VerrazzanoSpec{
 		Profile: "managed-cluster",
+	},
+	Status: v1alpha1.VerrazzanoStatus{
+		Version:            "v1.0.1",
+		VerrazzanoInstance: &v1alpha1.InstanceInfo{},
+	},
+}
+
+var basicNoneClusterWithStatus = v1alpha1.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "default-none",
+	},
+	Spec: v1alpha1.VerrazzanoSpec{
+		Profile: "none",
 	},
 	Status: v1alpha1.VerrazzanoStatus{
 		Version:            "v1.0.1",

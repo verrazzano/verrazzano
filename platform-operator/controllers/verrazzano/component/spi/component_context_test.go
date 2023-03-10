@@ -3,6 +3,7 @@
 package spi
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"os"
 	"path/filepath"
 	"testing"
@@ -39,6 +40,12 @@ var tests = []struct {
 		description:  "Tests basic dev profile overrides",
 		actualCR:     basicDevWithStatus,
 		expectedYAML: basicDevMerged,
+	},
+	{
+		name:         "TestBasicNoneProfileWithStatus",
+		description:  "Tests basic None profile overrides",
+		actualCR:     basicNoneClusterWithStatus,
+		expectedYAML: basicNoneMerged,
 	},
 	{
 		name:         "TestBasicProdProfileWithStatus",
@@ -324,4 +331,29 @@ func TestActualCRV1Beta1(t *testing.T) {
 		a.NoError(err)
 	}
 	a.Equal(context.ActualCRV1Beta1(), v1beta1api, "The returned actualv1beta1CR doesn't match the actual one")
+}
+
+// TestNoneProfileInstalledAllComponentsDisabled Tests the effectiveCR
+// GIVEN when a verrazzano instance with NONE profile
+// WHEN Newcontext is called
+// THEN all components are disabled
+func TestNoneProfileInstalledAllComponentsDisabled(t *testing.T) {
+	config.TestProfilesDir = profileDir
+	defer func() { config.TestProfilesDir = "" }()
+	t.Run("TestNoneProfileInstalledAllComponentsDisabled", func(t *testing.T) {
+		a := assert.New(t)
+		log := vzlog.DefaultLogger()
+
+		context, err := NewContext(log, fake.NewClientBuilder().WithScheme(testScheme).Build(), &basicNoneClusterWithStatus, nil, false)
+		assert.NoError(t, err)
+		a.NotNil(context, "Context was nil")
+		a.NotNil(context.ActualCR(), "Actual CR was nil")
+		a.Equal(&basicNoneClusterWithStatus, *context.ActualCR(), "Actual CR unexpectedly modified")
+		a.NotNil(context.EffectiveCR(), "Effective CR was nil")
+		a.Equal(v1alpha1.VerrazzanoStatus{}, context.EffectiveCR().Status, "Effective CR status not empty")
+
+		for _, comp := range registry.GetComponents() {
+			assert.False(t, comp.IsEnabled(context.EffectiveCR()))
+		}
+	})
 }
