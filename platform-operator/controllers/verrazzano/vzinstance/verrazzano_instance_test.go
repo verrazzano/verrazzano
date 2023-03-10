@@ -111,7 +111,7 @@ func TestGetInstanceInfo(t *testing.T) {
 		List(gomock.Any(), gomock.AssignableToTypeOf(&promoperapi.PrometheusList{}), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, promList *promoperapi.PrometheusList, opts ...client.ListOption) error {
 			return nil
-		}).Times(2)
+		})
 
 	enabled := true
 	vz := &v1alpha1.Verrazzano{
@@ -199,7 +199,7 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 		List(gomock.Any(), gomock.AssignableToTypeOf(&promoperapi.PrometheusList{}), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, promList *promoperapi.PrometheusList, opts ...client.ListOption) error {
 			return nil
-		}).Times(2)
+		})
 
 	instanceInfo := GetInstanceInfo(spi.NewFakeContext(mock, &v1alpha1.Verrazzano{}, nil, false))
 	mocker.Finish()
