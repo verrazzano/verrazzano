@@ -647,6 +647,22 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 						},
 					}},
 				},
+				{
+					// allow Thanos Query to access the Prometheus Thanos sidecar
+					From: []*securityv1beta1.Rule_From{{
+						Source: &securityv1beta1.Source{
+							Principals: []string{
+								fmt.Sprintf("cluster.local/ns/%s/sa/thanos-query", constants.VerrazzanoMonitoringNamespace),
+							},
+							Namespaces: []string{constants.VerrazzanoMonitoringNamespace},
+						},
+					}},
+					To: []*securityv1beta1.Rule_To{{
+						Operation: &securityv1beta1.Operation{
+							Ports: []string{"10901"},
+						},
+					}},
+				},
 			},
 		}
 		return nil
