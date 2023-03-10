@@ -74,7 +74,7 @@ type uninstallState string
 type UninstallTracker struct {
 	vzState uninstallState
 	gen     int64
-	compMap map[string]*componentUninstallContext
+	compMap map[string]*componentTrackerContext
 }
 
 // UninstallTrackerMap has a map of UninstallTrackers, one entry per Verrazzano CR resource generation
@@ -142,6 +142,7 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			tracker.vzState = vzStateUninstallCleanup
 
 		case vzStateUninstallCleanup:
+			log.Once("Performing system-wide post-uninstall cleanup")
 			spiCtx, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
 			if err != nil {
 				return ctrl.Result{}, err
@@ -172,7 +173,7 @@ func getUninstallTracker(cr *installv1alpha1.Verrazzano) *UninstallTracker {
 		vuc = &UninstallTracker{
 			vzState: vzStateUninstallStart,
 			gen:     cr.Generation,
-			compMap: make(map[string]*componentUninstallContext),
+			compMap: make(map[string]*componentTrackerContext),
 		}
 		UninstallTrackerMap[key] = vuc
 	}
@@ -312,10 +313,14 @@ func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext, rancherProvision
 }
 
 func (r *Reconciler) runRancherPostInstall(ctx spi.ComponentContext) error {
-	// Look up the Rancher component and call PostUninstall expliclity, without checking if it's installed;
+	// Look up the Rancher component and call PostUninstall explicitly, without checking if it's installed;
 	// this is to catch any lingering managed cluster resources
 	if found, comp := registry.FindComponent(rancher.ComponentName); found {
-		return comp.PostUninstall(ctx.Init(rancher.ComponentName).Operation(vzconst.UninstallOperation))
+		err := comp.PostUninstall(ctx.Init(rancher.ComponentName).Operation(vzconst.UninstallOperation))
+		if err != nil {
+			ctx.Log().Progress("Waiting for Rancher post-uninstall cleanup to be done")
+			return err
+		}
 	}
 	return nil
 }

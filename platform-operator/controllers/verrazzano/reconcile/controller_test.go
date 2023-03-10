@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/client-go/dynamic"
 	"reflect"
 	"sync"
@@ -186,6 +187,9 @@ func TestInstall(t *testing.T) {
 
 			// Expect a call to get the status writer and return a mock.
 			mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+			// Expect a call to get the ingressList
+			expectGetIngressListExists(mock)
 
 			// Expect a call to update the finalizers - return success
 			if test.finalizer != finalizerName {
@@ -460,6 +464,9 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 
 	// Expect local registration calls
 	expectSyncLocalRegistration(t, mock, name)
+
+	// Expect a call to get the ingressList
+	expectGetIngressListExists(mock)
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -1204,6 +1211,16 @@ func expectGetVerrazzanoExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Ver
 			verrazzano.ObjectMeta = verrazzanoToUse.ObjectMeta
 			verrazzano.Spec.Components.DNS = verrazzanoToUse.Spec.Components.DNS
 			verrazzano.Status = verrazzanoToUse.Status
+			return nil
+		}).AnyTimes()
+}
+
+// expectGetIngressListExists expects a call to get the ingressList
+func expectGetIngressListExists(mock *mocks.MockClient) {
+	// Expect a call to get the ServiceAccount - return that it exists
+	mock.EXPECT().
+		List(gomock.Any(), &networkingv1.IngressList{}, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList, options ...*client.ListOptions) error {
 			return nil
 		}).AnyTimes()
 }

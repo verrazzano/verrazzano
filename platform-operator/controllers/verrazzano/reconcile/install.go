@@ -45,7 +45,7 @@ type reconcileState string
 type installTracker struct {
 	vzState reconcileState
 	gen     int64
-	compMap map[string]*componentInstallContext
+	compMap map[string]*componentTrackerContext
 }
 
 // installTrackerMap has a map of InstallTrackers with key from VZ name, namespace, and UID
@@ -65,7 +65,7 @@ func getInstallTracker(cr *vzapi.Verrazzano) *installTracker {
 		vuc = &installTracker{
 			vzState: vzStateReconcileWatchedComponents,
 			gen:     cr.Generation,
-			compMap: make(map[string]*componentInstallContext),
+			compMap: make(map[string]*componentTrackerContext),
 		}
 		installTrackerMap[key] = vuc
 	}

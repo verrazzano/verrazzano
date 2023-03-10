@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package operator
@@ -180,7 +180,7 @@ func TestAppendOverrides(t *testing.T) {
 	var err error
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 26)
+	assert.Len(t, kvs, 27)
 
 	assert.Equal(t, "ghcr.io/verrazzano/prometheus-config-reloader", bom.FindKV(kvs, "prometheusOperator.prometheusConfigReloader.image.repository"))
 	assert.NotEmpty(t, bom.FindKV(kvs, "prometheusOperator.prometheusConfigReloader.image.tag"))
@@ -190,6 +190,7 @@ func TestAppendOverrides(t *testing.T) {
 
 	assert.True(t, strings.HasPrefix(bom.FindKV(kvs, "prometheusOperator.alertmanagerDefaultBaseImage"), "ghcr.io/verrazzano/alertmanager:"))
 	assert.True(t, strings.HasPrefix(bom.FindKV(kvs, "prometheusOperator.prometheusDefaultBaseImage"), "ghcr.io/verrazzano/prometheus:"))
+	assert.True(t, strings.HasPrefix(bom.FindKV(kvs, "prometheus.prometheusSpec.thanos.image"), "ghcr.io/verrazzano/thanos:"))
 
 	assert.Equal(t, "true", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"))
 
@@ -215,7 +216,7 @@ func TestAppendOverrides(t *testing.T) {
 
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 26)
+	assert.Len(t, kvs, 27)
 
 	assert.Equal(t, "false", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"))
 
@@ -237,7 +238,7 @@ func TestAppendOverrides(t *testing.T) {
 
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 12)
+	assert.Len(t, kvs, 13)
 
 	assert.Equal(t, "false", bom.FindKV(kvs, "prometheus.enabled"))
 }
@@ -264,43 +265,130 @@ func TestPostInstallUpgrade(t *testing.T) {
 	// GIVEN the Prometheus Operator is being installed or upgraded
 	// WHEN the postInstallUpgrade function is called
 	// THEN the function does not return an error
+
 	oldConfig := config.Get()
 	defer config.Set(oldConfig)
 	config.Set(config.OperatorConfig{
 		VerrazzanoRootDir: "../../../../../..",
 	})
 
-	vz := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
+	enabled := true
+	disabled := false
+	time := metav1.Now()
+
+	var tests = []struct {
+		name    string
+		vz      vzapi.Verrazzano
+		ingress netv1.Ingress
+		cert    certapiv1.Certificate
+	}{
+		{
+			name: "TestPostInstallUpgrade When everything is disabled",
+			vz: vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{
+				AuthProxy:          &vzapi.AuthProxyComponent{Enabled: &disabled},
+				Ingress:            &vzapi.IngressNginxComponent{Enabled: &disabled},
+				Prometheus:         &vzapi.PrometheusComponent{Enabled: &disabled},
+				PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &disabled},
 				DNS: &vzapi.DNSComponent{
 					OCI: &vzapi.OCI{
 						DNSZoneName: "mydomain.com",
+					},
+				},
+			}}},
+			ingress: netv1.Ingress{
+				ObjectMeta: metav1.ObjectMeta{Name: constants.PrometheusIngress, Namespace: authproxy.ComponentNamespace},
+			},
+			cert: certapiv1.Certificate{
+				ObjectMeta: metav1.ObjectMeta{Name: prometheusCertificateName, Namespace: authproxy.ComponentNamespace},
+				Status: certapiv1.CertificateStatus{
+					Conditions: []certapiv1.CertificateCondition{
+						{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+					},
+				},
+			},
+		},
+		{
+			name: "TestPostInstallUpgrade When authproxy, nginx, prometheus, and prometheus operator enabled",
+			vz: vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{
+				AuthProxy:          &vzapi.AuthProxyComponent{Enabled: &enabled},
+				Ingress:            &vzapi.IngressNginxComponent{Enabled: &enabled},
+				Prometheus:         &vzapi.PrometheusComponent{Enabled: &enabled},
+				PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &enabled},
+				DNS: &vzapi.DNSComponent{
+					OCI: &vzapi.OCI{
+						DNSZoneName: "mydomain.com",
+					},
+				},
+			}}},
+			ingress: netv1.Ingress{
+				ObjectMeta: metav1.ObjectMeta{Name: constants.PrometheusIngress, Namespace: authproxy.ComponentNamespace},
+			},
+			cert: certapiv1.Certificate{
+				ObjectMeta: metav1.ObjectMeta{Name: prometheusCertificateName, Namespace: authproxy.ComponentNamespace},
+				Status: certapiv1.CertificateStatus{
+					Conditions: []certapiv1.CertificateCondition{
+						{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+					},
+				},
+			},
+		},
+		{
+			name: "TestPostInstallUpgrade When nginx, prometheus, and prometheus operator enabled",
+			vz: vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{
+				AuthProxy:          &vzapi.AuthProxyComponent{Enabled: &disabled},
+				Ingress:            &vzapi.IngressNginxComponent{Enabled: &enabled},
+				Prometheus:         &vzapi.PrometheusComponent{Enabled: &enabled},
+				PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &enabled},
+				DNS: &vzapi.DNSComponent{
+					OCI: &vzapi.OCI{
+						DNSZoneName: "mydomain.com",
+					},
+				},
+			}}},
+			ingress: netv1.Ingress{
+				ObjectMeta: metav1.ObjectMeta{Name: constants.PrometheusIngress, Namespace: vzconst.PrometheusOperatorNamespace},
+			},
+			cert: certapiv1.Certificate{
+				ObjectMeta: metav1.ObjectMeta{Name: prometheusCertificateName, Namespace: vzconst.PrometheusOperatorNamespace},
+				Status: certapiv1.CertificateStatus{
+					Conditions: []certapiv1.CertificateCondition{
+						{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+					},
+				},
+			},
+		},
+		{
+			name: "TestPostInstallUpgrade When only prometheus, and prometheus operator enabled",
+			vz: vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{
+				AuthProxy:          &vzapi.AuthProxyComponent{Enabled: &disabled},
+				Ingress:            &vzapi.IngressNginxComponent{Enabled: &disabled},
+				Prometheus:         &vzapi.PrometheusComponent{Enabled: &enabled},
+				PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &enabled},
+				DNS: &vzapi.DNSComponent{
+					OCI: &vzapi.OCI{
+						DNSZoneName: "mydomain.com",
+					},
+				},
+			}}},
+			cert: certapiv1.Certificate{
+				ObjectMeta: metav1.ObjectMeta{Name: prometheusCertificateName, Namespace: vzconst.PrometheusOperatorNamespace},
+				Status: certapiv1.CertificateStatus{
+					Conditions: []certapiv1.CertificateCondition{
+						{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
 					},
 				},
 			},
 		},
 	}
 
-	ingress := &netv1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{Name: constants.PrometheusIngress, Namespace: authproxy.ComponentNamespace},
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&test.ingress, &test.cert).Build()
+			ctx := spi.NewFakeContext(client, &test.vz, nil, false)
+			err := postInstallUpgrade(ctx)
+			assert.NoError(t, err)
+		})
 	}
-
-	time := metav1.Now()
-	cert := &certapiv1.Certificate{
-		ObjectMeta: metav1.ObjectMeta{Name: prometheusCertificateName, Namespace: authproxy.ComponentNamespace},
-		Status: certapiv1.CertificateStatus{
-			Conditions: []certapiv1.CertificateCondition{
-				{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
-			},
-		},
-	}
-
-	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(ingress, cert).Build()
-	ctx := spi.NewFakeContext(client, vz, nil, false)
-
-	err := postInstallUpgrade(ctx)
-	assert.NoError(t, err)
 }
 
 // TestAppendIstioOverrides tests that the Istio overrides get applied
@@ -829,6 +917,7 @@ func TestCreateOrUpdateNetworkPolicies(t *testing.T) {
 	assert.Len(t, netPolicy.Spec.Ingress, 2)
 	assert.Equal(t, []netv1.PolicyType{netv1.PolicyTypeIngress}, netPolicy.Spec.PolicyTypes)
 	assert.Equal(t, int32(9090), netPolicy.Spec.Ingress[0].Ports[0].Port.IntVal)
+	assert.Equal(t, int32(10901), netPolicy.Spec.Ingress[0].Ports[1].Port.IntVal)
 	assert.Equal(t, int32(9090), netPolicy.Spec.Ingress[1].Ports[0].Port.IntVal)
 	assert.Contains(t, netPolicy.Spec.Ingress[0].From[0].PodSelector.MatchExpressions[0].Values, "verrazzano-authproxy")
 	assert.Contains(t, netPolicy.Spec.Ingress[0].From[0].PodSelector.MatchExpressions[0].Values, "system-grafana")

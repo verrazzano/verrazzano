@@ -383,8 +383,8 @@ func CaptureOAMResources(dynamicClient dynamic.Interface, nsList []string, captu
 	return nil
 }
 
-// CaptureMultiClusterResources captures resources useful to debug issues in multi-cluster environment
-func CaptureMultiClusterResources(dynamicClient dynamic.Interface, nsList []string, captureDir string, vzHelper VZHelper) error {
+// CaptureMultiClusterOAMResources captures OAM resources in multi-cluster environment
+func CaptureMultiClusterOAMResources(dynamicClient dynamic.Interface, nsList []string, captureDir string, vzHelper VZHelper) error {
 	for _, ns := range nsList {
 		// Capture multi-cluster components and application configurations
 		if err := captureMCComponents(dynamicClient, ns, captureDir, vzHelper); err != nil {
@@ -394,16 +394,6 @@ func CaptureMultiClusterResources(dynamicClient dynamic.Interface, nsList []stri
 		if err := captureMCAppConfigurations(dynamicClient, ns, captureDir, vzHelper); err != nil {
 			return err
 		}
-	}
-
-	// Capture Verrazzano projects in verrazzano-mc namespace
-	if err := captureVerrazzanoProjects(dynamicClient, captureDir, vzHelper); err != nil {
-		return err
-	}
-
-	// Capture Verrazzano projects in verrazzano-mc namespace
-	if err := captureVerrazzanoManagedCluster(dynamicClient, captureDir, vzHelper); err != nil {
-		return err
 	}
 	return nil
 }
@@ -569,8 +559,8 @@ func captureMCAppConfigurations(dynamicClient dynamic.Interface, namespace, capt
 	return nil
 }
 
-// captureAppConfigurations captures the Verrazzano projects in the verrazzano-mc namespace, as a JSON file
-func captureVerrazzanoProjects(dynamicClient dynamic.Interface, captureDir string, vzHelper VZHelper) error {
+// CaptureVerrazzanoProjects captures the Verrazzano projects in the verrazzano-mc namespace, as a JSON file
+func CaptureVerrazzanoProjects(dynamicClient dynamic.Interface, captureDir string, vzHelper VZHelper) error {
 	vzProjectConfigs, err := dynamicClient.Resource(GetVzProjectsConfigScheme()).Namespace(vzconstants.VerrazzanoMultiClusterNamespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && errors.IsNotFound(err) {
 		return nil
@@ -588,8 +578,8 @@ func captureVerrazzanoProjects(dynamicClient dynamic.Interface, captureDir strin
 	return nil
 }
 
-// captureVerrazzanoManagedCluster captures VerrazzanoManagedCluster in verrazzano-mc namespace, as a JSON file
-func captureVerrazzanoManagedCluster(dynamicClient dynamic.Interface, captureDir string, vzHelper VZHelper) error {
+// CaptureVerrazzanoManagedCluster captures VerrazzanoManagedCluster in verrazzano-mc namespace, as a JSON file
+func CaptureVerrazzanoManagedCluster(dynamicClient dynamic.Interface, captureDir string, vzHelper VZHelper) error {
 	vmcConfigs, err := dynamicClient.Resource(GetManagedClusterConfigScheme()).Namespace(vzconstants.VerrazzanoMultiClusterNamespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && errors.IsNotFound(err) {
 		return nil

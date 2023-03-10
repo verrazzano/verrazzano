@@ -1,4 +1,4 @@
-// Copyright (c) 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -28,11 +28,11 @@ pipeline {
                 // 1st choice is the default value
                 choices: ["1.21", "1.22", "1.23", "1.24" ])
         string (name: 'VERSION_FOR_INSTALL',
-                defaultValue: 'v1.2.2',
+                defaultValue: 'v1.4.3',
                 description: 'This is the Verrazzano version for install.  By default, the latest Master release will be installed',
                 trim: true)
         string (name: 'INTERIM_UPGRADE_VERSION',
-                defaultValue: 'v1.3.4',
+                defaultValue: 'v1.5.0',
                 description: 'This is the Verrazzano version for interim upgrade.',
                 trim: true)
         string (name: 'GIT_COMMIT_FOR_UPGRADE',
@@ -310,16 +310,15 @@ pipeline {
                     cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/upgrade-test-operator.yaml
 
                     echo "Upgrading the Verrazzano platform operator"
-                    if [[ "upgrade.failed.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
-                    then
-                        echo "Upgrading VPO to version 1.2.0"
-                        kubectl apply -f https://github.com/verrazzano/verrazzano/releases/download/v1.2.0/operator.yaml
-
-                    elif [[ "upgrade.failing.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
+                    if [[ "upgrade.failed.upgrade" == ${params.CHAOS_TEST_TYPE} || "upgrade.failing.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
                     then
                         echo "Upgrading VPO to interim version ${params.INTERIM_UPGRADE_VERSION}"
-                        kubectl apply -f https://github.com/verrazzano/verrazzano/releases/download/${params.INTERIM_UPGRADE_VERSION}/operator.yaml
-
+                        if [[ ${params.INTERIM_UPGRADE_VERSION} == "v1.3."* ]]
+                        then
+                            kubectl apply -f https://github.com/verrazzano/verrazzano/releases/download/${params.INTERIM_UPGRADE_VERSION}/operator.yaml
+                        else
+                            kubectl apply -f https://github.com/verrazzano/verrazzano/releases/download/${params.INTERIM_UPGRADE_VERSION}/verrazzano-platform-operator.yaml
+                        fi
                     else
                         echo "Upgrading VPO to this commit version"
                         ${GO_REPO_PATH}/vz upgrade --operator-file ${WORKSPACE}/upgrade-test-operator.yaml --version ${VERRAZZANO_DEV_VERSION}
@@ -361,7 +360,7 @@ pipeline {
                     // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
                     VERRAZZANO_INTERIM_VERSION = "NONE"
                     if ("upgrade.failed.upgrade".equals(params.CHAOS_TEST_TYPE)) {
-                        VERRAZZANO_INTERIM_VERSION = "1.2.0"
+                        VERRAZZANO_INTERIM_VERSION = params.INTERIM_UPGRADE_VERSION
                     } else if ("upgrade.failing.upgrade".equals(params.CHAOS_TEST_TYPE)) {
                         VERRAZZANO_INTERIM_VERSION = params.INTERIM_UPGRADE_VERSION
                     }
@@ -448,8 +447,12 @@ pipeline {
                         kubectl -n verrazzano-install exec \$POD -- /bin/bash -c "mv /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml.bak"
                         # Initiate upgrade
                         kubectl apply -f ${WORKSPACE}/verrazzano-interim-cr.yaml
-                        # wait for the expected error
-                        kubectl wait --timeout=15m --for=condition=UpgradeFailed verrazzano/my-verrazzano
+                        # The upgrade will indefinitely remain in the upgrading state.  Wait for indication that the Verrazzano component is failing to upgrade
+                        until [ `kubectl logs -l app=verrazzano-platform-operator -n verrazzano-install --tail -1 | grep "Failed upgrading component verrazzano" | wc -l` -gt 0 ]
+                        do
+                            echo "Waiting for Verrazzano to fail upgrade ..."
+                            sleep 30
+                        done                        
                         mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
                         kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-before-final-upgrade-pod.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
                         # Upgrade to the latest VPO
@@ -516,7 +519,7 @@ pipeline {
                         # Make sure the upgrade is still in progress
                         vz_status=\$(kubectl get vz -o jsonpath='{.items[0].status.conditions[?(@.type=="UpgradeStarted")].type}')
                         if [[ \${vz_status} == "UpgradeStarted" ]]; then
-                            ${GO_REPO_PATH}/vz uninstall
+                            ${GO_REPO_PATH}/vz uninstall --timeout 45m
 
                             ## dump out uninstall logs
                             mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs

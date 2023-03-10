@@ -1902,7 +1902,7 @@ func initStates(cr *vzapi.Verrazzano, vzState VerrazzanoUpgradeState, compName s
 	tracker := getUpgradeTracker(cr)
 	tracker.vzState = vzState
 	upgradeContext := tracker.getComponentUpgradeContext(compName)
-	upgradeContext.state = compState
+	upgradeContext.upgradeState = compState
 }
 
 // reconcileUpgradeLoop

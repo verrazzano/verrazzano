@@ -1,4 +1,4 @@
-# Copyright (C) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (C) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: apps/v1
 kind: Deployment
@@ -141,6 +141,7 @@ spec:
           args:
             - --zap-log-level=info
             - --run-webhooks=true
+            - --resource-validation={{ .Values.webhooks.resourceValidation }}
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
