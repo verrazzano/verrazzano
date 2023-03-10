@@ -26,3 +26,31 @@ spec:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}
   policyTypes:
     - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "common.names.fullname" . }}-query
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  ingress:
+    # allow query-frontend to forward requests to query
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - thanos
+      ports:
+        # web ui port
+        - port: 10902
+          protocol: TCP
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "common.names.fullname" . }}
+  policyTypes:
+    - Ingress
