@@ -565,8 +565,8 @@ github.com/verrazzano/crossplane-runtime v0.17.0-1 h1:juTCAYMWDWITX9vFTdNnF97+Sl
 github.com/verrazzano/crossplane-runtime v0.17.0-1/go.mod h1:fA8Dp1vT5JjpBCE3KlellJ0Z/Xo1aekngOXmuDsryz0=
 github.com/verrazzano/kind v0.0.0-20221129215948-885481909133 h1:B4UOVPaicKuN8xUnNNGVTHzKck6EMLZ0jvvsfa6LYpA=
 github.com/verrazzano/kind v0.0.0-20221129215948-885481909133/go.mod h1:t5GndzzvtTW702bHZ/6dpkbd/eC4SaTenEmivLVnBKA=
-github.com/verrazzano/oam-kubernetes-runtime v0.3.3-1 h1:6sURbQneJCChBHXlG3NgYDaI0zQBG92n8ag40cIHgSQ=
-github.com/verrazzano/oam-kubernetes-runtime v0.3.3-1/go.mod h1:MQ3NlVhLaFG4REMliTtTa+arOnPzqFEkl3+Mqfiy0ro=
+github.com/verrazzano/oam-kubernetes-runtime v0.3.3-3 h1:bxHzLJ7CtPOQ8RKVEGbxb3q1Zoq7wMH60AF6vSEXdEo=
+github.com/verrazzano/oam-kubernetes-runtime v0.3.3-3/go.mod h1:yw2g1lpW2qcQPPVI/0pcgmnRQL2KU9CucT06laPlG24=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.31-0.20230201202534-ac5ebe880e95 h1:+kHIXVr+itVlN7lT0166/LgcaoupkE8tEq/VbXxZio4=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.31-0.20230201202534-ac5ebe880e95/go.mod h1:UIDEHkYPJt9SzdobI1z/p4oGfeW8cpPimDcqZu1YBlk=
 github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f/go.mod h1:N2zxlSyiKSe5eX1tZViRH5QA0qijqEDrYZiPEAiq3wU=
