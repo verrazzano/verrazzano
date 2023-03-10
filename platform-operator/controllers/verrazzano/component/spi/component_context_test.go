@@ -3,7 +3,6 @@
 package spi
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"os"
 	"path/filepath"
 	"testing"
@@ -36,16 +35,16 @@ var tests = []struct {
 	expectedErr  bool
 }{
 	{
-		name:         "TestBasicDevProfileWithStatus",
-		description:  "Tests basic dev profile overrides",
-		actualCR:     basicDevWithStatus,
-		expectedYAML: basicDevMerged,
-	},
-	{
 		name:         "TestBasicNoneProfileWithStatus",
 		description:  "Tests basic None profile overrides",
 		actualCR:     basicNoneClusterWithStatus,
 		expectedYAML: basicNoneMerged,
+	},
+	{
+		name:         "TestBasicDevProfileWithStatus",
+		description:  "Tests basic dev profile overrides",
+		actualCR:     basicDevWithStatus,
+		expectedYAML: basicDevMerged,
 	},
 	{
 		name:         "TestBasicProdProfileWithStatus",
@@ -64,6 +63,30 @@ var tests = []struct {
 		description:  "Tests dev profile with all components disabled",
 		actualCR:     devAllDisabledOverride,
 		expectedYAML: devAllDisabledMerged,
+	},
+	{
+		name:         "TestNoneProfileOCIDNSOverride",
+		description:  "Tests None profile with OCI DNS overrides",
+		actualCR:     noneOCIDNSOverride,
+		expectedYAML: noneOCIDNSOverrideMerged,
+	},
+	{
+		name:         "TestNoneProfileCertManagerOverride",
+		description:  "Tests None profile with Cert-Manager overrides",
+		actualCR:     noneCertManagerOverride,
+		expectedYAML: noneCertManagerOverrideMerged,
+	},
+	{
+		name:         "TestNoneProfileElasticsearchOverrides",
+		description:  "Tests None profile with Elasticsearch installArg and persistence overrides",
+		actualCR:     noneElasticSearchOverrides,
+		expectedYAML: noneElasticSearchOveridesMerged,
+	},
+	{
+		name:         "TestNoneProfileKeycloakOverrides",
+		description:  "Tests None profile with Keycloak/MySQL installArg and persistence overrides",
+		actualCR:     noneKeycloakOverrides,
+		expectedYAML: noneKeycloakOveridesMerged,
 	},
 	{
 		name:         "TestDevProfileOCIDNSOverride",
@@ -331,29 +354,4 @@ func TestActualCRV1Beta1(t *testing.T) {
 		a.NoError(err)
 	}
 	a.Equal(context.ActualCRV1Beta1(), v1beta1api, "The returned actualv1beta1CR doesn't match the actual one")
-}
-
-// TestNoneProfileInstalledAllComponentsDisabled Tests the effectiveCR
-// GIVEN when a verrazzano instance with NONE profile
-// WHEN Newcontext is called
-// THEN all components are disabled
-func TestNoneProfileInstalledAllComponentsDisabled(t *testing.T) {
-	config.TestProfilesDir = profileDir
-	defer func() { config.TestProfilesDir = "" }()
-	t.Run("TestNoneProfileInstalledAllComponentsDisabled", func(t *testing.T) {
-		a := assert.New(t)
-		log := vzlog.DefaultLogger()
-
-		context, err := NewContext(log, fake.NewClientBuilder().WithScheme(testScheme).Build(), &basicNoneClusterWithStatus, nil, false)
-		assert.NoError(t, err)
-		a.NotNil(context, "Context was nil")
-		a.NotNil(context.ActualCR(), "Actual CR was nil")
-		a.Equal(&basicNoneClusterWithStatus, *context.ActualCR(), "Actual CR unexpectedly modified")
-		a.NotNil(context.EffectiveCR(), "Effective CR was nil")
-		a.Equal(v1alpha1.VerrazzanoStatus{}, context.EffectiveCR().Status, "Effective CR status not empty")
-
-		for _, comp := range registry.GetComponents() {
-			assert.False(t, comp.IsEnabled(context.EffectiveCR()))
-		}
-	})
 }
