@@ -19,9 +19,6 @@ const (
 	// Thanos Query Frontend ingress constants
 	frontendHostName        = "thanos-query-frontend"
 	frontendCertificateName = "system-tls-thanos-query-frontend"
-
-	thanosAuthPolicyName = "thanos-query-authzpol"
-	thanosNetPolicyName  = "thanos-query"
 )
 
 // GetOverrides gets the install overrides for the Thanos component
