@@ -13,6 +13,7 @@ import (
 // +kubebuilder:storageversion
 // +kubebuilder:resource:shortName=vzmod;vzmods
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="The current version of the Verrazzano platform."
+//+kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.state",description="State of Module reconciliation"
 // +genclient
 
 // Module specifies a Verrazzano Module instance
@@ -55,7 +56,6 @@ type ModuleStateType string
 const (
 	ModuleStateUnknown     = "Unknown"
 	ModuleStateReconciling = "Reconciling"
-	ModuleStateError       = "Error"
 	ModuleStateReady       = "Ready"
 )
 

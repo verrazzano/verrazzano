@@ -191,6 +191,12 @@ func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, mod
 	if _, err := r.reconcileModule(log, moduleInstance, namespace, sourceURI, moduleChartType, platformDefinition); err != nil {
 		return newRequeueWithDelay(), err
 	}
+	if moduleInstance.Status.State != platformapi.ModuleStateReady {
+		// Not in a ready state yet, requeue and re-check
+		log.Progressf("Module %s/%s reconciling, requeue", moduleInstance.Namespace, moduleInstance.Name)
+		return newRequeueWithDelay(), nil
+	}
+	log.Infof("Module %s/%s reconcile complete", moduleInstance.Namespace, moduleInstance.Name)
 	return ctrl.Result{}, nil
 }
 
@@ -208,12 +214,15 @@ func getVPOClientset() (*vpoclient.Clientset, error) {
 
 func (r *VerrazzanoModuleReconciler) reconcileModule(log vzlog.VerrazzanoLogger, moduleInstance *platformapi.Module, namespace string, sourceURI string, modType platformapi.ChartType, pd *platformapi.PlatformDefinition) (*modulesv1alpha1.Module, error) {
 	moduleVersion, err := r.lookupModuleVersion(log, moduleInstance, modType, pd)
-	resource, err := r.createLifecycleResource(sourceURI, moduleInstance.Name, namespace, moduleVersion,
+	lifecycleResource, err := r.createLifecycleResource(sourceURI, moduleInstance.Name, namespace, moduleVersion,
 		vzapi.InstallOverrides{}, createOwnerRef(moduleInstance))
 	if err != nil {
 		return nil, err
 	}
-	return resource, err
+	if err := r.updateModuleInstanceState(moduleInstance, lifecycleResource); err != nil {
+		return nil, err
+	}
+	return lifecycleResource, err
 }
 
 func (r *VerrazzanoModuleReconciler) applyDependencies(log vzlog.VerrazzanoLogger, moduleInstance *platformapi.Module, opDeps []platformapi.ChartDependency, moduleNamespace string) (ctrl.Result, error) {
@@ -227,7 +236,7 @@ func (r *VerrazzanoModuleReconciler) applyDependencies(log vzlog.VerrazzanoLogge
 		}
 		installers = append(installers, dependentModule)
 	}
-	// FIXME: this is probably too simplistic, but what the hell, good enough for a POC
+	// FIXME: this is probably too simplistic?
 	// Watch for completion
 	allDependenciesMet := r.checkInstallerDependencies(log, installers)
 	if !allDependenciesMet {
@@ -413,6 +422,24 @@ func (r *VerrazzanoModuleReconciler) getPlatformDefinition(log vzlog.VerrazzanoL
 		return nil, err
 	}
 	return pd, nil
+}
+
+func (r *VerrazzanoModuleReconciler) updateModuleInstanceState(instance *platformapi.Module, lifecycleResource *modulesv1alpha1.Module) error {
+	instance.Status.State = platformapi.ModuleStateUnknown
+	if lifecycleResource != nil && lifecycleResource.Status.State != nil {
+		installerState := *lifecycleResource.Status.State
+		switch installerState {
+		case modulesv1alpha1.StateReady:
+			instance.Status.State = platformapi.ModuleStateReady
+			installerChart := lifecycleResource.Spec.Installer.HelmChart
+			if installerChart != nil {
+				instance.Status.Version = installerChart.Version
+			}
+		default:
+			instance.Status.State = platformapi.ModuleStateReconciling
+		}
+	}
+	return r.Status().Update(context.TODO(), instance)
 }
 
 func createOwnerRef(owner *platformapi.Module) *metav1.OwnerReference {

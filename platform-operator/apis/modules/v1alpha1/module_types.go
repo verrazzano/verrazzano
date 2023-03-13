@@ -60,8 +60,8 @@ type Condition struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.state",description="State of Module reconciliation"
-// +genclient
+//+kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.state",description="State of Module reconciliation"
+//+genclient
 
 // Module is the Schema for the modules API
 type Module struct {

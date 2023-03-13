@@ -25,6 +25,10 @@ spec:
       jsonPath: .status.version
       name: Version
       type: string
+    - description: State of Module reconciliation
+      jsonPath: .status.state
+      name: Status
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
