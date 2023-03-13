@@ -347,8 +347,6 @@ spec:
       enabled: true
       opensearchCluster:
         enabled: true
-        ingressOSPrefix: "test-os"
-        ingressOSDPrefix: "test-osd"
         overrides:
           - values:
               frobber: frob

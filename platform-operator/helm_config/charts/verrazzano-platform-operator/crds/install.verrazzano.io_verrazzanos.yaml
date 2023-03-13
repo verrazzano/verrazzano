@@ -2897,10 +2897,6 @@ spec:
                         properties:
                           enabled:
                             type: boolean
-                          ingressOSDPrefix:
-                            type: string
-                          ingressOSPrefix:
-                            type: string
                           monitorChanges:
                             type: boolean
                           overrides:
@@ -5900,10 +5896,6 @@ spec:
                         properties:
                           enabled:
                             type: boolean
-                          ingressOSDPrefix:
-                            type: string
-                          ingressOSPrefix:
-                            type: string
                           monitorChanges:
                             type: boolean
                           overrides:
