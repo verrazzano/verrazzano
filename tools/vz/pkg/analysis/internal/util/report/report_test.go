@@ -76,6 +76,8 @@ func TestInvalidIssues(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := help.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	assert.NoError(t, GenerateHumanReport(logger, "report", constants.SummaryReport, true, true, true, 8, 8, rc))
+	assert.FileExists(t, "report")
+	os.Remove("report")
 }
 
 // We start with a custom issue which is created without being populated. This is

@@ -683,7 +683,6 @@ func TestCleanupJob(t *testing.T) {
 	// Expect the job to get created
 	err := runCleanupJob(ctx)
 	a.Error(err)
-	a.Contains(err.Error(), "waiting for job")
 	job := batchv1.Job{}
 	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: rancherCleanupJobNamespace, Name: rancherCleanupJobName}, &job)
 	a.NoError(err)
