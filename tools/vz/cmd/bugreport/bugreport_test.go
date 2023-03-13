@@ -4,7 +4,6 @@
 package bugreport
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -26,7 +25,8 @@ import (
 )
 
 const (
-// captureVerrazzanoErrMsg = "Capturing Verrazzano resource"
+	captureVerrazzanoErrMsg = "Capturing Verrazzano resource"
+
 // captureResourceErrMsg   = "Capturing resources from the cluster"
 // sensitiveDataErrMsg     = "WARNING: Please examine the contents of the bug report for any sensitive data"
 // captureLogErrMsg        = "Capturing log from pod verrazzano-platform-operator in verrazzano-install namespace"
@@ -38,16 +38,21 @@ const (
 // WHEN I call cmd.Help for bug-report
 // THEN expect the help for the command in the standard output
 func TestBugReportHelp(t *testing.T) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer os.Remove(stdoutFile.Name())
+	defer os.Remove(stderrFile.Name())
+
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 	err := cmd.Help()
 	if err != nil {
 		assert.Error(t, err)
 	}
-	assert.Contains(t, buf.String(), "Verrazzano command line utility to collect data from the cluster, to report an issue")
+
+	buf, err := os.ReadFile(stdoutFile.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(buf), "Verrazzano command line utility to collect data from the cluster, to report an issue")
 }
 
 // TestBugReportExistingReportFile
@@ -55,9 +60,11 @@ func TestBugReportHelp(t *testing.T) {
 // WHEN I call cmd.Execute for bug-report
 // THEN expect an error
 func TestBugReportExistingReportFile(t *testing.T) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer os.Remove(stdoutFile.Name())
+	defer os.Remove(stderrFile.Name())
+
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
@@ -84,9 +91,11 @@ func TestBugReportExistingReportFile(t *testing.T) {
 // WHEN I call cmd.Execute for bug-report
 // THEN expect an error
 func TestBugReportExistingDir(t *testing.T) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer os.Remove(stdoutFile.Name())
+	defer os.Remove(stderrFile.Name())
+
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
@@ -110,9 +119,11 @@ func TestBugReportExistingDir(t *testing.T) {
 // WHEN I call cmd.Execute for bug-report
 // THEN expect an error
 func TestBugReportNonExistingFileDir(t *testing.T) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer os.Remove(stdoutFile.Name())
+	defer os.Remove(stderrFile.Name())
+
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
@@ -134,9 +145,11 @@ func TestBugReportNonExistingFileDir(t *testing.T) {
 // WHEN I call cmd.Execute for bug-report
 // THEN expect an error
 func TestBugReportFileNoPermission(t *testing.T) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer os.Remove(stdoutFile.Name())
+	defer os.Remove(stderrFile.Name())
+
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
@@ -168,9 +181,11 @@ func TestBugReportSuccess(t *testing.T) {
 	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer os.Remove(stdoutFile.Name())
+	defer os.Remove(stderrFile.Name())
+
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
@@ -242,9 +257,15 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	stdoutFile, err := os.CreateTemp("", "tmpstdout")
+	assert.NoError(t, err)
+	defer os.Remove(stdoutFile.Name())
+
+	stderrFile, err := os.CreateTemp("", "tmpstderr")
+	assert.NoError(t, err)
+	defer os.Remove(stderrFile.Name())
+
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	err = cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
@@ -253,7 +274,10 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 	err = cmd.Execute()
 	assert.NoError(t, err)
 
-	// assert.Contains(t, buf.String(), captureVerrazzanoErrMsg)
+	buf, err := os.ReadFile(stdoutFile.Name())
+	assert.NoError(t, err)
+
+	assert.Contains(t, string(buf), captureVerrazzanoErrMsg)
 	// Commenting the assertions due to intermittent failures
 	// assert.Contains(t, buf.String(), captureLogErrMsg)
 	// assert.Contains(t, buf.String(), "Created bug report")
@@ -266,9 +290,11 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 // THEN expect the command to display a message indicating Verrazzano is not installed
 func TestBugReportNoVerrazzano(t *testing.T) {
 	c := getClientWithWatch()
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer os.Remove(stdoutFile.Name())
+	defer os.Remove(stderrFile.Name())
+
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
@@ -285,7 +311,10 @@ func TestBugReportNoVerrazzano(t *testing.T) {
 	if err != nil {
 		assert.Error(t, err)
 	}
-	assert.Contains(t, errBuf.String(), "Verrazzano is not installed")
+
+	errBuf, err := os.ReadFile(stderrFile.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(errBuf), "Verrazzano is not installed")
 }
 
 // TestBugReportFailureUsingInvalidClient
@@ -294,9 +323,11 @@ func TestBugReportNoVerrazzano(t *testing.T) {
 // THEN expect the command to fail with a message indicating Verrazzano is not installed and no resource captured
 func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 	c := getInvalidClient()
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer os.Remove(stdoutFile.Name())
+	defer os.Remove(stderrFile.Name())
+
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
@@ -314,7 +345,9 @@ func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 		assert.Error(t, err)
 	}
 
-	assert.Contains(t, errBuf.String(), "Verrazzano is not installed")
+	errBuf, err := os.ReadFile(stderrFile.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(errBuf), "Verrazzano is not installed")
 	assert.NoFileExists(t, bugRepFile)
 }
 
@@ -419,6 +452,17 @@ func cleanupFile(t *testing.T, file *os.File) {
 	}
 }
 
+// createStdTempFiles creates temporary files for stdout and stderr.
+func createStdTempFiles(t *testing.T) (*os.File, *os.File) {
+	stdoutFile, err := os.CreateTemp("", "tmpstdout")
+	assert.NoError(t, err)
+
+	stderrFile, err := os.CreateTemp("", "tmpstderr")
+	assert.NoError(t, err)
+
+	return stdoutFile, stderrFile
+}
+
 // TestBugReportSuccess
 // GIVEN a CLI bug-report command
 // WHEN I call cmd.Execute with include logs of  additional namespace and duration
@@ -431,9 +475,11 @@ func TestBugReportSuccessWithDuration(t *testing.T) {
 	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer os.Remove(stdoutFile.Name())
+	defer os.Remove(stderrFile.Name())
+
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
