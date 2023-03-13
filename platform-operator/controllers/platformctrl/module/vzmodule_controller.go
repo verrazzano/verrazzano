@@ -2,6 +2,7 @@ package module
 
 import (
 	"context"
+	"github.com/Masterminds/semver/v3"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
@@ -383,34 +384,58 @@ func (r *VerrazzanoModuleReconciler) lookupChartName(moduleInstance *platformapi
 }
 
 func (r *VerrazzanoModuleReconciler) lookupModuleVersion(log vzlog.VerrazzanoLogger, moduleInstance *platformapi.Module, modType platformapi.ChartType, pd *platformapi.PlatformDefinition) (string, error) {
+	defaultVersion, supportedVersions := r.getModuleVersionInfo(modType, pd, moduleInstance)
+	modVersion := defaultVersion
 	// Look up the explicitly declared module version
 	if len(moduleInstance.Spec.Version) > 0 {
-		// TODO: validate that the declare module version is in the supported range in the platform definition
-		return moduleInstance.Spec.Version, nil
+		modVersion = defaultVersion
 	}
-	// FIXME: probably better to just have the modules listed as a flat list with a discriminator field declaring the module type,
-	//   so we can treat the list uniformly
+	if len(modVersion) == 0 {
+		return "", log.ErrorfThrottledNewErr("Error determining module version: %s/%s", moduleInstance.Namespace, moduleInstance.Name)
+	}
+	version, err := semver.NewVersion(modVersion)
+	if err != nil {
+		return "", err
+	}
+	constraint, err := semver.NewConstraint(supportedVersions)
+	if err != nil {
+		return "", err
+	}
+	if !constraint.Check(version) {
+		return "", log.ErrorfThrottledNewErr("Module %s/%s version %s failed to meet ModuleDefinition constraints: %s",
+			moduleInstance.Namespace, moduleInstance.Name, modVersion, supportedVersions)
+	}
+	// TODO: validate that the declare module version is in the supported range in the platform definition
+	return moduleInstance.Spec.Version, nil
+}
+
+// getModuleVersionInfo Obtains the module version information declared in the Module/Operator definition
+func (r *VerrazzanoModuleReconciler) getModuleVersionInfo(modType platformapi.ChartType, pd *platformapi.PlatformDefinition, moduleInstance *platformapi.Module) (string, string) {
+	var defaultVersion, supportedVersions string
 	switch modType {
 	case platformapi.OperatorChartType:
 		for _, modDef := range pd.Spec.OperatorVersions {
 			if modDef.Name == moduleInstance.Name {
-				return modDef.DefaultVersion, nil
+				defaultVersion = modDef.DefaultVersion
+				supportedVersions = modDef.SupportedVersions
 			}
 		}
 	case platformapi.ModuleChartType:
 		for _, modDef := range pd.Spec.ModuleVersions {
 			if modDef.Name == moduleInstance.Name {
-				return modDef.DefaultVersion, nil
+				defaultVersion = modDef.DefaultVersion
+				supportedVersions = modDef.SupportedVersions
 			}
 		}
 	case platformapi.CRDChartType:
 		for _, modDef := range pd.Spec.CRDVersions {
 			if modDef.Name == moduleInstance.Name {
-				return modDef.DefaultVersion, nil
+				defaultVersion = modDef.DefaultVersion
+				supportedVersions = modDef.SupportedVersions
 			}
 		}
 	}
-	return "", log.ErrorfThrottledNewErr("Error looking up module version: %s/%s", moduleInstance.Namespace, moduleInstance.Name)
+	return defaultVersion, supportedVersions
 }
 
 func (r *VerrazzanoModuleReconciler) getPlatformDefinition(log vzlog.VerrazzanoLogger, instance *platformapi.Platform) (*platformapi.PlatformDefinition, error) {
