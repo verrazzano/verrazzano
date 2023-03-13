@@ -12,10 +12,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"net"
+	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var GetControllerRuntimeClient = validators.GetClient
+
+const invalidDataType = "value of externalIP is of type \"%v\", is invalid data type, expected properly formatted IP"
 
 // CheckExternalIPsArgs method goes through the key-value pair to detect the presence of the
 // specific key for the corresponding component that holds the external IP address
@@ -29,15 +32,13 @@ func CheckExternalIPsArgs(installArgs []vzapi.InstallArgs, overrides []vzapi.Ove
 	}
 
 	for _, o := range overrideYAMLs {
-		keyPresent = false
 		value, err := override.ExtractValueFromOverrideString(o, jsonPath)
 		if err != nil {
 			return err
 		}
-
-		/* This check that the casted value is valid is needed before setting keyPresent to true or t
-		trying to call validateExternalIP
-		*/
+		if value == nil {
+			continue
+		}
 		v, err := castValuesToString(value)
 		if err != nil {
 			return err
@@ -80,6 +81,9 @@ func CheckExternalIPsOverridesArgs(overrides []v1beta1.Overrides, jsonPath, comp
 		if err != nil {
 			return err
 		}
+		if value == nil {
+			continue
+		}
 		v, err := castValuesToString(value)
 		if err != nil {
 			return err
@@ -108,6 +112,7 @@ func CheckExternalIPsOverridesArgsWithPaths(overrides []v1beta1.Overrides, jsonB
 		if err != nil {
 			return err
 		}
+
 		if value != nil {
 			valueMap := value.(map[string]interface{})
 			extractedIP := valueMap[externalIPPath]
@@ -143,29 +148,29 @@ func validateExternalIP(addresses []string, key, compName string) error {
 func castValuesToString(value interface{}) ([]string, error) {
 	var values []string
 	switch val := value.(type) {
-	case nil:
-		return nil, fmt.Errorf("Type \"%v\" is invalid data type", val)
 	case string:
-		if value != nil {
-			values = append(values, value.(string))
-		} else {
-			return nil, fmt.Errorf("Type \"%v\" is invalid data type", val)
-		}
+		values = append(values, value.(string))
 	case []interface{}:
 		valueArray := value.([]interface{})
 		for _, v := range valueArray {
-			if v != nil {
+			if v != nil && reflect.TypeOf(v).String() == "string" {
 				values = append(values, v.(string))
 			} else {
-				return nil, fmt.Errorf("Type \"%v\" is invalid data type", val)
+				return nil, fmt.Errorf(invalidDataType, reflect.TypeOf(v))
 			}
 		}
+	default:
+		return nil, fmt.Errorf(invalidDataType, val)
 	}
+
 	return values, nil
 }
 
 func getOverrideYAMLs(overrides []v1beta1.Overrides, namespace string) ([]string, error) {
 	client, err := getRunTimeClient()
+	if err != nil {
+		return nil, err
+	}
 	overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(client, overrides, namespace)
 	if err != nil {
 		return nil, err

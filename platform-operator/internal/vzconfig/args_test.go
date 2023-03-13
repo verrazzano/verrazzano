@@ -49,18 +49,13 @@ func TestCheckExternalIPsArgs(t *testing.T) {
 	createv1alpha1VZOverrides(vz, "", "", values, validIP)
 	err := CheckExternalIPsArgs(vz.Spec.Components.Istio.IstioInstallArgs, vz.Spec.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, compName, vz.Namespace)
 	asserts.NoError(err)
-
-	vz = getv1alpha1VZ()
 	createv1alpha1VZOverrides(vz, "", "", values, invalidIP)
 	err = CheckExternalIPsArgs(vz.Spec.Components.Istio.IstioInstallArgs, vz.Spec.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, compName, vz.Namespace)
 	asserts.Error(err)
 	asserts.Contains(err.Error(), formatError)
-
-	vz = getv1alpha1VZ()
 	createv1alpha1VZOverrides(vz, "", "", values, "")
 	err = CheckExternalIPsArgs(vz.Spec.Components.Istio.IstioInstallArgs, vz.Spec.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, compName, vz.Namespace)
 	asserts.Error(err)
-	//asserts.Contains(err.Error(), "not found for component")
 	asserts.Contains(err.Error(), "invalid data type")
 }
 
@@ -77,12 +72,14 @@ func TestCheckExternalIPsOverridesArgs(t *testing.T) {
 	createv1beta1VZOverrides(vz, "", "", values, validIP)
 	err := CheckExternalIPsOverridesArgs(vz.Spec.Components.Istio.ValueOverrides, externalIPJsonPath, compName, vz.Namespace)
 	asserts.NoError(err)
-
-	vz = getv1beta1VZ()
 	createv1beta1VZOverrides(vz, "", "", values, invalidIP)
 	err = CheckExternalIPsOverridesArgs(vz.Spec.Components.Istio.ValueOverrides, externalIPJsonPath, compName, vz.Namespace)
 	asserts.Error(err)
 	asserts.Contains(err.Error(), formatError)
+	createv1beta1VZOverrides(vz, "", "", values, "")
+	err = CheckExternalIPsOverridesArgs(vz.Spec.Components.Istio.ValueOverrides, externalIPJsonPath, compName, vz.Namespace)
+	asserts.Error(err)
+	asserts.Contains(err.Error(), "invalid data type")
 }
 
 // TestCheckExternalIPsOverridesArgsWithPaths tests CheckExternalIPsOverridesArgsWithPaths
@@ -98,12 +95,14 @@ func TestCheckExternalIPsOverridesArgsWithPaths(t *testing.T) {
 	createv1beta1VZOverrides(vz, "", "", values, validIP)
 	err := CheckExternalIPsOverridesArgsWithPaths(vz.Spec.Components.Istio.ValueOverrides, specServiceJSONPath, typeJSONPathSuffix, string(nodePort), externalIPJsonPathSuffix, compName, vz.Namespace)
 	asserts.NoError(err)
-
-	vz = getv1beta1VZ()
 	createv1beta1VZOverrides(vz, "", "", values, invalidIP)
 	err = CheckExternalIPsOverridesArgsWithPaths(vz.Spec.Components.Istio.ValueOverrides, specServiceJSONPath, typeJSONPathSuffix, string(nodePort), externalIPJsonPathSuffix, compName, vz.Namespace)
 	asserts.Error(err)
 	asserts.Contains(err.Error(), formatError)
+	createv1beta1VZOverrides(vz, "", "", values, "")
+	err = CheckExternalIPsOverridesArgsWithPaths(vz.Spec.Components.Istio.ValueOverrides, specServiceJSONPath, typeJSONPathSuffix, string(nodePort), externalIPJsonPathSuffix, compName, vz.Namespace)
+	asserts.Error(err)
+	asserts.Contains(err.Error(), "invalid data type")
 }
 
 func TestValidIPWithConfigMapOverride(t *testing.T) {
@@ -164,11 +163,11 @@ func TestValidIPWithSecretOverride(t *testing.T) {
 
 func TestInvalidIPWithSecretOverride(t *testing.T) {
 	asserts := assert.New(t)
-	createFakeTestClientWithSecret(createTestSecret(true, invalidIP, invalidIP))
+	createFakeTestClientWithSecret(createTestSecret(true, "", ""))
 	defer func() { GetControllerRuntimeClient = validators.GetClient }()
 
 	vz := getv1beta1VZ()
-	createv1beta1VZOverrides(vz, "", secret, "", "")
+	createv1beta1VZOverrides(vz, "", secret, invalidIP, invalidIP)
 	err := CheckExternalIPsOverridesArgs(vz.Spec.Components.Istio.ValueOverrides, externalIPJsonPath, compName, vz.Namespace)
 	asserts.Error(err)
 	err = CheckExternalIPsOverridesArgsWithPaths(vz.Spec.Components.Istio.ValueOverrides, specServiceJSONPath, typeJSONPathSuffix, string(nodePort), externalIPJsonPathSuffix, compName, vz.Namespace)
@@ -240,6 +239,26 @@ func TestValidIPWithConfigMapValue(t *testing.T) {
 	createv1alpha1VZOverrides(v1alpha1VZ, configMap, "", values, validIP)
 	err = CheckExternalIPsArgs(v1alpha1VZ.Spec.Components.Istio.IstioInstallArgs, v1alpha1VZ.Spec.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, compName, vz.Namespace)
 	asserts.NoError(err)
+
+}
+
+func TestInvalidIPWithConfigMapValue(t *testing.T) {
+	asserts := assert.New(t)
+	createFakeTestClientWithConfigMap(createTestConfigMap(false, invalidIP, ""))
+	defer func() { GetControllerRuntimeClient = validators.GetClient }()
+
+	vz := getv1beta1VZ()
+	createv1beta1VZOverrides(vz, configMap, "", values, invalidIP)
+	err := CheckExternalIPsOverridesArgs(vz.Spec.Components.Istio.ValueOverrides, externalIPJsonPath, compName, vz.Namespace)
+	asserts.Error(err)
+	err = CheckExternalIPsOverridesArgsWithPaths(vz.Spec.Components.Istio.ValueOverrides, specServiceJSONPath, typeJSONPathSuffix, string(nodePort), externalIPJsonPathSuffix, compName, vz.Namespace)
+	asserts.Error(err)
+
+	// Test CheckExternalIPsArgs uses a v1alpha1 vz resource
+	v1alpha1VZ := getv1alpha1VZ()
+	createv1alpha1VZOverrides(v1alpha1VZ, configMap, "", values, invalidIP)
+	err = CheckExternalIPsArgs(v1alpha1VZ.Spec.Components.Istio.IstioInstallArgs, v1alpha1VZ.Spec.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, compName, vz.Namespace)
+	asserts.Error(err)
 
 }
 
