@@ -7,6 +7,7 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
 spec:
   ingress:
+    # allow auth proxy to forward requests to thanos-query-frontend
     - from:
         - namespaceSelector:
             matchLabels:
@@ -18,8 +19,36 @@ spec:
                 values:
                   - verrazzano-authproxy
       ports:
-        # port value is retrieved from the port definition on the service
-        - port: {{ if .Values.queryFrontend.service.http }}{{ coalesce .Values.queryFrontend.service.ports.http .Values.queryFrontend.service.http.port }}{{ else }}{{ .Values.queryFrontend.service.ports.http }}{{ end }}
+        # web ui port
+        - port: 10902
+          protocol: TCP
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "common.names.fullname" . }}
+  policyTypes:
+    - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "common.names.fullname" . }}-query
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  ingress:
+    # allow thanos-query-frontend to forward requests to thanos-query
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - thanos
+      ports:
+        # web ui port
+        - port: 10902
           protocol: TCP
   podSelector:
     matchLabels:
