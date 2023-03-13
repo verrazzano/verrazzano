@@ -168,8 +168,6 @@ func convertOpenSearchClusterFromV1Beta1(in *v1beta1.OpenSearchCluster) *OpenSea
 	}
 	return &OpenSearchCluster{
 		Enabled:          in.Enabled,
-		IngressOSPrefix:  in.IngressOSPrefix,
-		IngressOSDPrefix: in.IngressOSDPrefix,
 		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
 	}
 }
