@@ -28,8 +28,10 @@ import (
 )
 
 const (
-	testKubeConfig = "/tmp/kubeconfig"
-	testK8sContext = "testcontext"
+	testKubeConfig    = "/tmp/kubeconfig"
+	testK8sContext    = "testcontext"
+	testFilenamePath  = "../../test/testdata/v1beta1.yaml"
+	bugReportFilePath = "bug-report.tar.gz"
 )
 
 // TestInstallCmdDefaultNoWait
@@ -63,7 +65,7 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
-	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/v1beta1.yaml")
+	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
@@ -75,8 +77,8 @@ func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for install to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
-	assert.FileExists(t, "bug-report.tar.gz")
-	os.Remove("bug-report.tar.gz")
+	assert.FileExists(t, bugReportFilePath)
+	os.Remove(bugReportFilePath)
 }
 
 // TestInstallCmdDefaultTimeoutNoBugReport
@@ -88,7 +90,7 @@ func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
-	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/v1beta1.yaml")
+	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmd.PersistentFlags().Set(constants.AutoBugReportFlag, "false")
@@ -100,7 +102,7 @@ func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for install to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
-	assert.NoFileExists(t, "bug-report.tar.gz")
+	assert.NoFileExists(t, bugReportFilePath)
 }
 
 // TestInstallCmdDefaultNoVPO
@@ -174,7 +176,7 @@ func TestInstallCmdMultipleGroupVersions(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml")
-	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/v1beta1.yaml")
+	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 
 	// Run install command
@@ -186,7 +188,7 @@ func TestInstallCmdMultipleGroupVersions(t *testing.T) {
 func TestInstallCmdFilenamesV1Beta1(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
-	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/v1beta1.yaml")
+	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()

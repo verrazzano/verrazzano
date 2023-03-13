@@ -23,8 +23,9 @@ import (
 )
 
 const (
-	testKubeConfig = "/tmp/kubeconfig"
-	testK8sContext = "testcontext"
+	testKubeConfig    = "/tmp/kubeconfig"
+	testK8sContext    = "testcontext"
+	bugReportFilePath = "bug-report.tar.gz"
 )
 
 // TestUpgradeCmdDefaultNoWait
@@ -82,8 +83,8 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
-	assert.FileExists(t, "bug-report.tar.gz")
-	os.Remove("bug-report.tar.gz")
+	assert.FileExists(t, bugReportFilePath)
+	os.Remove(bugReportFilePath)
 }
 
 // TestUpgradeCmdDefaultTimeoutNoBugReport
@@ -115,7 +116,7 @@ func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
-	assert.NoFileExists(t, "bug-report.tar.gz")
+	assert.NoFileExists(t, bugReportFilePath)
 }
 
 // TestUpgradeCmdDefaultNoVPO
