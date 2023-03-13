@@ -2164,6 +2164,40 @@ func TestCreateHostsFromIngressTraitRuleWildcards(t *testing.T) {
 	assert.Equal("myapp.myns.my.host.com", hosts[0])
 }
 
+func TestHostRules(t *testing.T) {
+	assert := asserts.New(t)
+	tests := []struct {
+		name          string
+		rules         []vzapi.IngressRule
+		expectedHosts []string
+	}{
+		{name: "test1",
+			expectedHosts: []string{"host1"},
+			rules: []vzapi.IngressRule{
+				{
+					Hosts: []string{"host1"},
+					Paths: nil,
+				},
+				{
+					Destination: vzapi.IngressDestination{},
+					Hosts:       nil,
+					Paths:       nil,
+				},
+			}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			createHostsFromIngressTraitRule
+			hosts, err := coallateAllHostsForTrait(nil, rule, nil)
+			assert.NoError(err)
+			assert.Len(hosts, 2)
+			assert.Equal("host-1", hosts[0])
+			assert.Equal("host-2", hosts[1])
+		})
+	}
+}
+
 // TestCreateHostsFromIngressTraitRule tests various use cases of createHostsFromIngressTraitRule
 func TestCreateHostsFromIngressTraitRule(t *testing.T) {
 
