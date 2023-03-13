@@ -7,10 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/fs"
-	"os"
-	"text/template"
-
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -22,10 +18,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"io/fs"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -36,8 +34,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"text/template"
 )
 
 var (
@@ -310,7 +310,7 @@ func (c jaegerOperatorComponent) validateJaegerOperator(cr *v1beta1.Verrazzano) 
 
 // validateInstallOverrides validates that the overrides contain only values that are allowed for override
 func validateInstallOverrides(cr *v1beta1.Verrazzano, client clipkg.Client) error {
-	overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(client, cr.Spec.Components.JaegerOperator.ValueOverrides, cr.Namespace)
+	overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(client, cr.Spec.Components.JaegerOperator.ValueOverrides, cr.Namespace)
 	if err != nil {
 		return err
 	}
@@ -322,7 +322,7 @@ func validateOverrideYamls(yamlOverrides []string) error {
 	for _, overrideYAML := range yamlOverrides {
 		// Check if there are any Helm chart values that are not allowed to be overridden by the user
 		for _, disallowedOverride := range disallowedOverrides {
-			value, err := common.ExtractValueFromOverrideString(overrideYAML, disallowedOverride)
+			value, err := override.ExtractValueFromOverrideString(overrideYAML, disallowedOverride)
 			if err != nil {
 				return err
 			}
@@ -480,12 +480,12 @@ func canUseVZOpenSearchStorage(ctx spi.ComponentContext) bool {
 
 // getOverrideVal gets the Helm value specified in the VZ CR for the specified override field
 func getOverrideVal(ctx spi.ComponentContext, field string) (interface{}, error) {
-	overrides, err := common.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()).([]v1alpha1.Overrides))
+	overrides, err := override.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()).([]v1alpha1.Overrides))
 	if err != nil {
 		return nil, err
 	}
-	for _, override := range overrides {
-		fieldVal, err := common.ExtractValueFromOverrideString(override, field)
+	for _, o := range overrides {
+		fieldVal, err := override.ExtractValueFromOverrideString(o, field)
 		if err != nil {
 			return nil, err
 		}
