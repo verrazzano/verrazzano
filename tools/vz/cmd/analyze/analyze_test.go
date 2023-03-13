@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package analyze
@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"os"
+	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
@@ -51,8 +52,35 @@ func TestAnalyzeCommandDefault(t *testing.T) {
 	assert.NotNil(t, cmd)
 	err = cmd.Execute()
 	assert.Nil(t, err)
-	// This should generate a report from the live cluster
+	// This should generate a stdout from the live cluster
 	assert.Contains(t, buf.String(), "Verrazzano analysis CLI did not detect any issue in the cluster")
+	// Clean analysis should not generate a report file
+	fileMatched, _ := filepath.Glob(constants.VzAnalysisReportTmpFile)
+	assert.Len(t, fileMatched, 0)
+}
+
+// TestAnalyzeDefaultFromReadOnlyDir
+// GIVEN a CLI analyze command
+// WHEN I call cmd.Execute from read only dir with a valid capture-dir and report-format set to "summary"
+// THEN expect the command to do the analysis and generate report file into tmp dir
+func TestAnalyzeDefaultFromReadOnlyDir(t *testing.T) {
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	cmd := NewCmdAnalyze(rc)
+	assert.NotNil(t, cmd)
+	pwd, err := os.Getwd()
+	assert.Nil(t, err)
+	cmd.PersistentFlags().Set(constants.DirectoryFlagName, pwd+"/"+ingressIPNotFound)
+	cmd.PersistentFlags().Set(constants.ReportFormatFlagName, constants.SummaryReport)
+	assert.Nil(t, os.Chdir("/"))
+	defer os.Chdir(pwd)
+	err = cmd.Execute()
+	assert.Nil(t, err)
+	if fileMatched, _ := filepath.Glob(os.TempDir() + "/" + constants.VzAnalysisReportTmpFile); len(fileMatched) == 1 {
+		os.Remove(fileMatched[0])
+		assert.NoFileExists(t, fileMatched[0])
+	}
 }
 
 // TestAnalyzeCommandDetailedReport
@@ -71,6 +99,11 @@ func TestAnalyzeCommandDetailedReport(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Contains(t, buf.String(), "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer",
 		"Error syncing load balancer: failed to ensure load balancer: awaiting load balancer: context deadline exceeded")
+	// Failures must be reported underreport file details-XXXXXX.out
+	if fileMatched, _ := filepath.Glob(constants.VzAnalysisReportTmpFile); len(fileMatched) == 1 {
+		os.Remove(fileMatched[0])
+		assert.NoFileExists(t, fileMatched[0])
+	}
 }
 
 // TestAnalyzeCommandSummaryReport
@@ -89,6 +122,11 @@ func TestAnalyzeCommandSummaryReport(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotContains(t, buf.String(), "Error syncing load balancer: failed to ensure load balancer: awaiting load balancer: context deadline exceeded")
 	assert.Contains(t, buf.String(), "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer")
+	// Failures must be reported underreport file details-XXXXXX.out
+	if fileMatched, _ := filepath.Glob(constants.VzAnalysisReportTmpFile); len(fileMatched) == 1 {
+		os.Remove(fileMatched[0])
+		assert.NoFileExists(t, fileMatched[0])
+	}
 }
 
 // TestAnalyzeCommandInvalidReportFormat
@@ -108,11 +146,11 @@ func TestAnalyzeCommandInvalidReportFormat(t *testing.T) {
 	assert.Contains(t, err.Error(), "\"invalid-report-format\" is not valid for flag report-format, only \"summary\" and \"detailed\" are valid")
 }
 
-// TestAnalyzeCommandDefaultReportFormat
+// TestAnalyzeWithDefaultReportFormat
 // GIVEN a CLI analyze command
 // WHEN I call cmd.Execute without report-format
 // THEN expect the command to take the default value of summary for report-format and perform the analysis
-func TestAnalyzeCommandDefaultReportFormat(t *testing.T) {
+func TestAnalyzeWithDefaultReportFormat(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
@@ -123,6 +161,31 @@ func TestAnalyzeCommandDefaultReportFormat(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotContains(t, buf.String(), "Error syncing load balancer: failed to ensure load balancer: awaiting load balancer: context deadline exceeded")
 	assert.Contains(t, buf.String(), "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer")
+	// Failures must be reported underreport file details-XXXXXX.out
+	if fileMatched, _ := filepath.Glob(constants.VzAnalysisReportTmpFile); len(fileMatched) == 1 {
+		os.Remove(fileMatched[0])
+		assert.NoFileExists(t, fileMatched[0])
+	}
+}
+
+// TestAnalyzeWithNonPermissiveReportFile
+// GIVEN a CLI analyze command
+// WHEN I call cmd.Execute with report-file in read only file location
+// THEN expect the command to fail the analysis and do not create report file
+func TestAnalyzeWithNonPermissiveReportFile(t *testing.T) {
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	cmd := NewCmdAnalyze(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.DirectoryFlagName, imagePullCase1)
+	cmd.PersistentFlags().Set(constants.ReportFormatFlagName, constants.DetailedReport)
+	cmd.PersistentFlags().Set(constants.ReportFileFlagName, "/TestAnalyzeCommandReportFileOutput")
+	err := cmd.Execute()
+	// Failures must not be reported as report file only has read permissions
+	assert.NotNil(t, err)
+	assert.NoFileExists(t, "/TestAnalyzeCommandReportFileOutput")
+	assert.Contains(t, err.Error(), constants.ReadOnly)
 }
 
 // TestAnalyzeCommandWithReportFile

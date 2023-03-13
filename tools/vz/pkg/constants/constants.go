@@ -53,6 +53,8 @@ const (
 	VerboseFlagUsage     = "Enable verbose output."
 
 	VzAnalysisReportTmpFile = "details-*.out"
+
+	ReadOnly = "read-only file system"
 )
 
 // VerrazzanoReleaseList - API for getting the list of Verrazzano releases
