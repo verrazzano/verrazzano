@@ -1217,6 +1217,7 @@ func (in *OpenSearchOperatorComponent) DeepCopyInto(out *OpenSearchOperatorCompo
 		*out = new(bool)
 		**out = **in
 	}
+	in.InstallOverrides.DeepCopyInto(&out.InstallOverrides)
 	if in.OpenSearchCluster != nil {
 		in, out := &in.OpenSearchCluster, &out.OpenSearchCluster
 		*out = new(OpenSearchCluster)

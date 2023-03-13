@@ -339,6 +339,9 @@ spec:
             frobber: frob
     opensearchOperator:
       enabled: true
+      overrides:
+        - values:
+            frobber: frob
       opensearchCluster:
         enabled: true
         overrides:
