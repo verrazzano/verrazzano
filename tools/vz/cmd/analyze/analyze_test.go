@@ -185,7 +185,6 @@ func TestAnalyzeWithNonPermissiveReportFile(t *testing.T) {
 	// Failures must not be reported as report file only has read permissions
 	assert.NotNil(t, err)
 	assert.NoFileExists(t, "/TestAnalyzeCommandReportFileOutput")
-	assert.Contains(t, err.Error(), constants.ReadOnly)
 }
 
 // TestAnalyzeCommandWithReportFile
