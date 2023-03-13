@@ -35,22 +35,29 @@ type ModuleList struct {
 
 // PlatformSource Identifies the source to use for finding modules
 type PlatformSource struct {
-	Name      string  `json:"name,omitempty"`
-	Namespace string  `json:"namespace,omitempty"`
-	Source    *string `json:"source,omitempty"`
+	Name      string `json:"name,omitempty"`
+	Namespace string `json:"namespace,omitempty"` // TODO: Should platform instance be locked into installer namespace?
+	Source    string `json:"source,omitempty"`
 }
 
 // ModuleSpec defines the attributes for a Verrazzano Module instance
 type ModuleSpec struct {
-	ChartName       *string         `json:"chartName,omitempty"`
+	ChartName       string          `json:"chartName,omitempty"`
 	Source          *PlatformSource `json:"source,omitempty"`
-	Enabled         *bool           `json:"enabled,omitempty"`
-	Version         *string         `json:"version,omitempty"`
-	TargetNamespace *string         `json:"targetNamespace,omitempty"`
-	Reconcile       *bool           `json:"reconcile,omitempty"`
+	Enabled         bool            `json:"enabled,omitempty"`
+	Version         string          `json:"version,omitempty"`
+	TargetNamespace string          `json:"targetNamespace,omitempty"`
+	Reconcile       bool            `json:"reconcile,omitempty"`
 }
 
 type ModuleStateType string
+
+const (
+	ModuleStateUnknown     = "Unknown"
+	ModuleStateReconciling = "Reconciling"
+	ModuleStateError       = "Error"
+	ModuleStateReady       = "Ready"
+)
 
 // ModuleStatus defines the observed state of a Verrazzano Module resource.
 type ModuleStatus struct {

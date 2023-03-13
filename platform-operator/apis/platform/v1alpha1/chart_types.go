@@ -17,11 +17,11 @@ const (
 )
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=operatordefinitions
+// +kubebuilder:resource:path=operatordefinitions,scope=Cluster,shortName=opdef;opdefs
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
-// +kubebuilder:resource:shortName=opdef;opdefs
 // +genclient
+// +genclient:nonNamespaced
 
 // OperatorDefinition specifies a metadata about an operator chart type.
 type OperatorDefinition struct {
@@ -63,11 +63,11 @@ type OperatorDefinitionStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=moduledefinitions
+// +kubebuilder:resource:path=moduledefinitions,scope=Cluster,shortName=moddef;moddefs
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
-// +kubebuilder:resource:shortName=moddef;moddefs
 // +genclient
+// +genclient:nonNamespaced
 
 // ModuleDefinition specifies a metadata about a module chart type.
 type ModuleDefinition struct {
@@ -118,14 +118,13 @@ type ModuleDefinitionCondition struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=platformdefinitions
+// +kubebuilder:resource:path=platformdefinitions,scope=Namespaced,shortName=pd;pds
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
-// +kubebuilder:resource:shortName=pd;pds
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="The current version of the Verrazzano Platform definition ."
 // +genclient
 
-// Platform specifies a Verrazzano Platform instance.
+// PlatformDefinition describes the components and defaults for a version of the Verrazzano platform.
 type PlatformDefinition struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

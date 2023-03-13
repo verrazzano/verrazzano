@@ -31,12 +31,12 @@ func (c *PlatformV1alpha1Client) Modules(namespace string) ModuleInterface {
 	return newModules(c, namespace)
 }
 
-func (c *PlatformV1alpha1Client) ModuleDefinitions(namespace string) ModuleDefinitionInterface {
-	return newModuleDefinitions(c, namespace)
+func (c *PlatformV1alpha1Client) ModuleDefinitions() ModuleDefinitionInterface {
+	return newModuleDefinitions(c)
 }
 
-func (c *PlatformV1alpha1Client) OperatorDefinitions(namespace string) OperatorDefinitionInterface {
-	return newOperatorDefinitions(c, namespace)
+func (c *PlatformV1alpha1Client) OperatorDefinitions() OperatorDefinitionInterface {
+	return newOperatorDefinitions(c)
 }
 
 func (c *PlatformV1alpha1Client) Platforms(namespace string) PlatformInterface {

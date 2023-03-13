@@ -20,7 +20,7 @@ import (
 // ModuleDefinitionsGetter has a method to return a ModuleDefinitionInterface.
 // A group's client should implement this interface.
 type ModuleDefinitionsGetter interface {
-	ModuleDefinitions(namespace string) ModuleDefinitionInterface
+	ModuleDefinitions() ModuleDefinitionInterface
 }
 
 // ModuleDefinitionInterface has methods to work with ModuleDefinition resources.
@@ -40,14 +40,12 @@ type ModuleDefinitionInterface interface {
 // moduleDefinitions implements ModuleDefinitionInterface
 type moduleDefinitions struct {
 	client rest.Interface
-	ns     string
 }
 
 // newModuleDefinitions returns a ModuleDefinitions
-func newModuleDefinitions(c *PlatformV1alpha1Client, namespace string) *moduleDefinitions {
+func newModuleDefinitions(c *PlatformV1alpha1Client) *moduleDefinitions {
 	return &moduleDefinitions{
 		client: c.RESTClient(),
-		ns:     namespace,
 	}
 }
 
@@ -55,7 +53,6 @@ func newModuleDefinitions(c *PlatformV1alpha1Client, namespace string) *moduleDe
 func (c *moduleDefinitions) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.ModuleDefinition, err error) {
 	result = &v1alpha1.ModuleDefinition{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("moduledefinitions").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -72,7 +69,6 @@ func (c *moduleDefinitions) List(ctx context.Context, opts v1.ListOptions) (resu
 	}
 	result = &v1alpha1.ModuleDefinitionList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("moduledefinitions").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -89,7 +85,6 @@ func (c *moduleDefinitions) Watch(ctx context.Context, opts v1.ListOptions) (wat
 	}
 	opts.Watch = true
 	return c.client.Get().
-		Namespace(c.ns).
 		Resource("moduledefinitions").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -100,7 +95,6 @@ func (c *moduleDefinitions) Watch(ctx context.Context, opts v1.ListOptions) (wat
 func (c *moduleDefinitions) Create(ctx context.Context, moduleDefinition *v1alpha1.ModuleDefinition, opts v1.CreateOptions) (result *v1alpha1.ModuleDefinition, err error) {
 	result = &v1alpha1.ModuleDefinition{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("moduledefinitions").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(moduleDefinition).
@@ -113,7 +107,6 @@ func (c *moduleDefinitions) Create(ctx context.Context, moduleDefinition *v1alph
 func (c *moduleDefinitions) Update(ctx context.Context, moduleDefinition *v1alpha1.ModuleDefinition, opts v1.UpdateOptions) (result *v1alpha1.ModuleDefinition, err error) {
 	result = &v1alpha1.ModuleDefinition{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("moduledefinitions").
 		Name(moduleDefinition.Name).
 		VersionedParams(&opts, scheme.ParameterCodec).
@@ -128,7 +121,6 @@ func (c *moduleDefinitions) Update(ctx context.Context, moduleDefinition *v1alph
 func (c *moduleDefinitions) UpdateStatus(ctx context.Context, moduleDefinition *v1alpha1.ModuleDefinition, opts v1.UpdateOptions) (result *v1alpha1.ModuleDefinition, err error) {
 	result = &v1alpha1.ModuleDefinition{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("moduledefinitions").
 		Name(moduleDefinition.Name).
 		SubResource("status").
@@ -142,7 +134,6 @@ func (c *moduleDefinitions) UpdateStatus(ctx context.Context, moduleDefinition *
 // Delete takes name of the moduleDefinition and deletes it. Returns an error if one occurs.
 func (c *moduleDefinitions) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("moduledefinitions").
 		Name(name).
 		Body(&opts).
@@ -157,7 +148,6 @@ func (c *moduleDefinitions) DeleteCollection(ctx context.Context, opts v1.Delete
 		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("moduledefinitions").
 		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -170,7 +160,6 @@ func (c *moduleDefinitions) DeleteCollection(ctx context.Context, opts v1.Delete
 func (c *moduleDefinitions) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.ModuleDefinition, err error) {
 	result = &v1alpha1.ModuleDefinition{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("moduledefinitions").
 		Name(name).
 		SubResource(subresources...).

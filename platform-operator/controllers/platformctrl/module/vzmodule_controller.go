@@ -113,6 +113,10 @@ func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, mod
 
 	platformSource := moduleInstance.Spec.Source
 	platformInstance, _ := r.getPlatormInstance(log, platformSource)
+	platformDefinition, err := r.getPlatformDefinition(log, platformInstance)
+	if err != nil {
+		return newRequeueWithDelay(), err
+	}
 	sourceURI := r.lookupModuleSourceURI(platformInstance, moduleInstance.Spec.Source)
 
 	namespace := r.lookupChartNamespace(moduleInstance, platformSource)
@@ -130,18 +134,19 @@ func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, mod
 	switch moduleChartType {
 	case platformapi.ModuleChartType:
 		// Look up definition in cluster
-		moduleDef, err := clientset.PlatformV1alpha1().ModuleDefinitions(namespace).Get(context.TODO(), moduleInstance.Name, metav1.GetOptions{})
+		moduleDef, err := clientset.PlatformV1alpha1().ModuleDefinitions().Get(context.TODO(), moduleInstance.Name, metav1.GetOptions{})
 		if err != nil {
 			return ctrl.Result{}, err
 		}
+		// FIXME: controllerruntime cache is interfering with these lookups
 		//moduleDef := &platformapi.ModuleDefinition{}
-		//if err := r.Get(context.TODO(), types.NamespacedName{Name: moduleInstance.Name, Namespace: namespace}, moduleDef); err != nil {
+		//if err := r.Get(context.TODO(), types.NamespacedName{Name: moduleInstance.Name}, moduleDef); err != nil {
 		//	return ctrl.Result{}, err
 		//}
 		crdDeps = moduleDef.Spec.CRDDependencies
 		opDeps = moduleDef.Spec.OperatorDependencies
 	case platformapi.OperatorChartType:
-		operatorDef, err := clientset.PlatformV1alpha1().OperatorDefinitions(namespace).Get(context.TODO(), moduleInstance.Name, metav1.GetOptions{})
+		operatorDef, err := clientset.PlatformV1alpha1().OperatorDefinitions().Get(context.TODO(), moduleInstance.Name, metav1.GetOptions{})
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -153,30 +158,37 @@ func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, mod
 		opDeps = operatorDef.Spec.OperatorDependencies
 	}
 
-	// Apply CRD depedencies
+	// FIXME: There's a list of concerns below, but generally what is the cardinality of the Module/Operator dependencies?  Who owns what?
+	//   - We can assume that an operator/module gets scoped to a namespace, but not necessarily a "CRD" chart
+	//   - We can make scope a property of a dependency, and require more install parameters (e.g., namespace), and assume the same namespace by default
+	//   - CRD charts might be problematic; API resources are cluster scoped, so we may have to make assumptions about those module types (e.g., always install in a system namespace)
+	// FIXME: how do we determine if the CRD dependency is already installed?
+
 	// FIXME: CRDs are cluster-scoped, but charts are namespace-scoped; we need to figure out how to
 	//    manage that, either likely by guarding the CRD resources in the charts or ignoring errors
 	//    - Do we list APIs in the operator definition, and detect their presence?
 	//    - CRDDefinition may be in order, i.e., allow charts to list published APIs
 	//    - and, we may want to distinguish Module instances by their type (operator, crd), or collapse the notions
 	//      and just have general ModuleDefinitions that support publishing APIs with module dependencies
-	if result, err := r.applyCRDDependencies(log, moduleInstance, crdDeps, sourceURI, namespace); err != nil || !result.IsZero() {
+	if result, err := r.applyDependencies(log, moduleInstance, crdDeps, namespace); err != nil || !result.IsZero() {
 		return result, err
 	}
+
 	// Apply Operator dependencies
 	// FIXME: Need to indicate if an operator is global or scoped to the namespace of the referencing Module
 	//   also, what if the user wants to leverage an existing operator that they installed?
 	//   - might have to break up the definition between
-	if result, err := r.applyOperatorDependencies(log, moduleInstance, opDeps, sourceURI, namespace); err != nil || !result.IsZero() {
+	if result, err := r.applyDependencies(log, moduleInstance, opDeps, namespace); err != nil || !result.IsZero() {
 		return result, err
 	}
+
 	// Apply Module dependencies
 	// FIXME: Are module dependencies owned by the module being resolved?  Seems like it might lead to complicated nesting
-	//if result, err := r.applyModuleDependencies(log, moduleInstance, crdDeps, opDeps, sourceURI, namespace); err != nil || !result.IsZero() {
-	//	return result, err
-	//}
+	if result, err := r.applyDependencies(log, moduleInstance, opDeps, namespace); err != nil || !result.IsZero() {
+		return result, err
+	}
 
-	if _, err := r.reconcileModule(moduleInstance, namespace, sourceURI); err != nil {
+	if _, err := r.reconcileModule(log, moduleInstance, namespace, sourceURI, moduleChartType, platformDefinition); err != nil {
 		return newRequeueWithDelay(), err
 	}
 	return ctrl.Result{}, nil
@@ -194,8 +206,9 @@ func getVPOClientset() (*vpoclient.Clientset, error) {
 	return vpoclientset, nil
 }
 
-func (r *VerrazzanoModuleReconciler) reconcileModule(moduleInstance *platformapi.Module, namespace string, sourceURI string) (*modulesv1alpha1.Module, error) {
-	resource, err := r.createLifecycleResource(sourceURI, moduleInstance.Name, namespace, r.lookupModuleVersion(moduleInstance),
+func (r *VerrazzanoModuleReconciler) reconcileModule(log vzlog.VerrazzanoLogger, moduleInstance *platformapi.Module, namespace string, sourceURI string, modType platformapi.ChartType, pd *platformapi.PlatformDefinition) (*modulesv1alpha1.Module, error) {
+	moduleVersion, err := r.lookupModuleVersion(log, moduleInstance, modType, pd)
+	resource, err := r.createLifecycleResource(sourceURI, moduleInstance.Name, namespace, moduleVersion,
 		vzapi.InstallOverrides{}, createOwnerRef(moduleInstance))
 	if err != nil {
 		return nil, err
@@ -203,18 +216,16 @@ func (r *VerrazzanoModuleReconciler) reconcileModule(moduleInstance *platformapi
 	return resource, err
 }
 
-func (r *VerrazzanoModuleReconciler) applyCRDDependencies(log vzlog.VerrazzanoLogger, moduleInstance *platformapi.Module, crdDeps []platformapi.ChartDependency, sourceURI string, moduleNamespace string) (ctrl.Result, error) {
+func (r *VerrazzanoModuleReconciler) applyDependencies(log vzlog.VerrazzanoLogger, moduleInstance *platformapi.Module, opDeps []platformapi.ChartDependency, moduleNamespace string) (ctrl.Result, error) {
 	// FIXME: should probably fan-out to create other V2 modules that will be independently reconciled?
 	//   - can roll up their status via the installers
-	// FIXME: how do we determine if the CRD dependency is already installed?
-	var installers []*modulesv1alpha1.Module
-	for _, crdChartDependency := range crdDeps {
-		// Create or update the dependency resources
-		installer, err := r.createLifecycleResource(sourceURI, crdChartDependency.Name, moduleNamespace, crdChartDependency.Version, vzapi.InstallOverrides{}, createOwnerRef(moduleInstance))
+	var installers []*platformapi.Module
+	for _, operatorDependency := range opDeps {
+		dependentModule, err := r.createDependentModule(operatorDependency, moduleNamespace, moduleInstance)
 		if err != nil {
 			return newRequeueWithDelay(), err
 		}
-		installers = append(installers, installer)
+		installers = append(installers, dependentModule)
 	}
 	// FIXME: this is probably too simplistic, but what the hell, good enough for a POC
 	// Watch for completion
@@ -225,37 +236,47 @@ func (r *VerrazzanoModuleReconciler) applyCRDDependencies(log vzlog.VerrazzanoLo
 	return ctrl.Result{}, nil
 }
 
-func (r *VerrazzanoModuleReconciler) applyOperatorDependencies(log vzlog.VerrazzanoLogger, moduleInstance *platformapi.Module, opDeps []platformapi.ChartDependency, sourceURI string, moduleNamespace string) (ctrl.Result, error) {
-	// FIXME: should probably fan-out to create other V2 modules that will be independently reconciled?
-	//   - can roll up their status via the installers
-	var installers []*modulesv1alpha1.Module
-	for _, operatorDependency := range opDeps {
-		// Create or update the dependency resources
-		installer, err := r.createLifecycleResource(sourceURI, operatorDependency.Name, moduleNamespace, operatorDependency.Version, vzapi.InstallOverrides{}, createOwnerRef(moduleInstance))
-		if err != nil {
-			return newRequeueWithDelay(), err
+func (r *VerrazzanoModuleReconciler) createDependentModule(operatorDependency platformapi.ChartDependency, moduleNamespace string, moduleInstance *platformapi.Module) (*platformapi.Module, error) {
+	// Create or update the dependency resources
+	modDep := &platformapi.Module{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      operatorDependency.Name,
+			Namespace: moduleNamespace,
+			OwnerReferences: []metav1.OwnerReference{
+				*createOwnerRef(moduleInstance),
+			},
+		},
+	}
+	depVersion := operatorDependency.Version
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, modDep, func() error {
+		modDep.Spec.ChartName = operatorDependency.Name
+		modDep.Spec.Version = depVersion
+		modDep.Spec = platformapi.ModuleSpec{
+			ChartName:       operatorDependency.Name,
+			Source:          moduleInstance.Spec.Source,
+			Enabled:         moduleInstance.Spec.Enabled,
+			Version:         operatorDependency.Version,
+			TargetNamespace: moduleInstance.Spec.TargetNamespace,
+			Reconcile:       moduleInstance.Spec.Reconcile,
 		}
-		installers = append(installers, installer)
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
-	// FIXME: this is probably too simplistic, but what the hell, good enough for a POC
-	// Watch for completion
-	allDependenciesMet := r.checkInstallerDependencies(log, installers)
-	if !allDependenciesMet {
-		return newRequeueWithDelay(), nil
-	}
-	return ctrl.Result{}, nil
+	return modDep, nil
 }
 
 func (r *VerrazzanoModuleReconciler) applyModuleDependencies(log vzlog.VerrazzanoLogger, moduleInstance *platformapi.Module, def *platformapi.ModuleDefinition, sourceURI string, moduleNamespace string) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
-func (r *VerrazzanoModuleReconciler) checkInstallerDependencies(log vzlog.VerrazzanoLogger, installers []*modulesv1alpha1.Module) bool {
+func (r *VerrazzanoModuleReconciler) checkInstallerDependencies(log vzlog.VerrazzanoLogger, installers []*platformapi.Module) bool {
 	allDependenciesMet := true
 	for _, installer := range installers {
 		installerState := installer.Status.State
-		if installerState != nil && *installerState != modulesv1alpha1.StateReady {
-			log.Progressf("CRD dependency %s/%s not ready, state: %s", installer.Namespace, installer.Name, *installerState)
+		if installerState != platformapi.ModuleStateReady {
+			log.Progressf("CRD dependency %s/%s not ready, state: %s", installer.Namespace, installer.Name, installerState)
 			allDependenciesMet = false
 		}
 	}
@@ -288,11 +309,22 @@ func (r *VerrazzanoModuleReconciler) createLifecycleResource(sourceURI string, c
 			},
 		}
 		if ownerRef != nil {
-			moduleInstaller.OwnerReferences = append(moduleInstaller.OwnerReferences, *ownerRef)
+			if !ownerRefExists(moduleInstaller, ownerRef) {
+				moduleInstaller.OwnerReferences = append(moduleInstaller.OwnerReferences, *ownerRef)
+			}
 		}
 		return nil
 	})
 	return moduleInstaller, err
+}
+
+func ownerRefExists(moduleInstaller *modulesv1alpha1.Module, ownerRef *metav1.OwnerReference) bool {
+	for _, ref := range moduleInstaller.OwnerReferences {
+		if ref.UID == ownerRef.UID {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *VerrazzanoModuleReconciler) getPlatormInstance(log vzlog.VerrazzanoLogger, platformSource *platformapi.PlatformSource) (*platformapi.Platform, error) {
@@ -322,7 +354,7 @@ func (r *VerrazzanoModuleReconciler) lookupModuleSourceURI(platform *platformapi
 
 func (r *VerrazzanoModuleReconciler) lookupChartNamespace(moduleInstance *platformapi.Module, platformSource *platformapi.PlatformSource) string {
 	namespace := moduleInstance.Namespace
-	if platformSource != nil && len(platformSource.Namespace) > 0 {
+	if len(namespace) == 0 && platformSource != nil && len(platformSource.Namespace) > 0 {
 		namespace = platformSource.Namespace
 	}
 	// TODO: target namespaces mess up owner references, unless we use CrossNamespaceObjectReferences, so disable honoring
@@ -335,19 +367,52 @@ func (r *VerrazzanoModuleReconciler) lookupChartNamespace(moduleInstance *platfo
 
 func (r *VerrazzanoModuleReconciler) lookupChartName(moduleInstance *platformapi.Module) string {
 	chartName := moduleInstance.Name
-	if moduleInstance.Spec.ChartName != nil && len(*moduleInstance.Spec.ChartName) > 0 {
-		chartName = *moduleInstance.Spec.ChartName
+	if len(moduleInstance.Spec.ChartName) > 0 {
+		chartName = moduleInstance.Spec.ChartName
 	}
 	return chartName
 }
 
-func (r *VerrazzanoModuleReconciler) lookupModuleVersion(moduleInstance *platformapi.Module) string {
-	// TODO: Look up module default version based on PlatformDefinition
-	if moduleInstance.Spec.Version != nil && len(*moduleInstance.Spec.Version) > 0 {
-		return *moduleInstance.Spec.Version
+func (r *VerrazzanoModuleReconciler) lookupModuleVersion(log vzlog.VerrazzanoLogger, moduleInstance *platformapi.Module, modType platformapi.ChartType, pd *platformapi.PlatformDefinition) (string, error) {
+	// Look up the explicitly declared module version
+	if len(moduleInstance.Spec.Version) > 0 {
+		// TODO: validate that the declare module version is in the supported range in the platform definition
+		return moduleInstance.Spec.Version, nil
 	}
-	// TODO: Lookup default version in platform definition
-	return ""
+	// FIXME: probably better to just have the modules listed as a flat list with a discriminator field declaring the module type,
+	//   so we can treat the list uniformly
+	switch modType {
+	case platformapi.OperatorChartType:
+		for _, modDef := range pd.Spec.OperatorVersions {
+			if modDef.Name == moduleInstance.Name {
+				return modDef.DefaultVersion, nil
+			}
+		}
+	case platformapi.ModuleChartType:
+		for _, modDef := range pd.Spec.ModuleVersions {
+			if modDef.Name == moduleInstance.Name {
+				return modDef.DefaultVersion, nil
+			}
+		}
+	case platformapi.CRDChartType:
+		for _, modDef := range pd.Spec.CRDVersions {
+			if modDef.Name == moduleInstance.Name {
+				return modDef.DefaultVersion, nil
+			}
+		}
+	}
+	return "", log.ErrorfThrottledNewErr("Error looking up module version: %s/%s", moduleInstance.Namespace, moduleInstance.Name)
+}
+
+func (r *VerrazzanoModuleReconciler) getPlatformDefinition(log vzlog.VerrazzanoLogger, instance *platformapi.Platform) (*platformapi.PlatformDefinition, error) {
+	pd := &platformapi.PlatformDefinition{}
+	// TODO: Need to figure out relationship between PD and platform instance; might need to be a configmap
+	//   - perhaps the focus of the platform controller is downloading/creating the platform definition based on the Platform instance version?
+	err := r.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: "verrazzano-install"}, pd)
+	if err != nil {
+		return nil, err
+	}
+	return pd, nil
 }
 
 func createOwnerRef(owner *platformapi.Module) *metav1.OwnerReference {

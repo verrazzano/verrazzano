@@ -20,7 +20,7 @@ import (
 // OperatorDefinitionsGetter has a method to return a OperatorDefinitionInterface.
 // A group's client should implement this interface.
 type OperatorDefinitionsGetter interface {
-	OperatorDefinitions(namespace string) OperatorDefinitionInterface
+	OperatorDefinitions() OperatorDefinitionInterface
 }
 
 // OperatorDefinitionInterface has methods to work with OperatorDefinition resources.
@@ -40,14 +40,12 @@ type OperatorDefinitionInterface interface {
 // operatorDefinitions implements OperatorDefinitionInterface
 type operatorDefinitions struct {
 	client rest.Interface
-	ns     string
 }
 
 // newOperatorDefinitions returns a OperatorDefinitions
-func newOperatorDefinitions(c *PlatformV1alpha1Client, namespace string) *operatorDefinitions {
+func newOperatorDefinitions(c *PlatformV1alpha1Client) *operatorDefinitions {
 	return &operatorDefinitions{
 		client: c.RESTClient(),
-		ns:     namespace,
 	}
 }
 
@@ -55,7 +53,6 @@ func newOperatorDefinitions(c *PlatformV1alpha1Client, namespace string) *operat
 func (c *operatorDefinitions) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.OperatorDefinition, err error) {
 	result = &v1alpha1.OperatorDefinition{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("operatordefinitions").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -72,7 +69,6 @@ func (c *operatorDefinitions) List(ctx context.Context, opts v1.ListOptions) (re
 	}
 	result = &v1alpha1.OperatorDefinitionList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("operatordefinitions").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -89,7 +85,6 @@ func (c *operatorDefinitions) Watch(ctx context.Context, opts v1.ListOptions) (w
 	}
 	opts.Watch = true
 	return c.client.Get().
-		Namespace(c.ns).
 		Resource("operatordefinitions").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -100,7 +95,6 @@ func (c *operatorDefinitions) Watch(ctx context.Context, opts v1.ListOptions) (w
 func (c *operatorDefinitions) Create(ctx context.Context, operatorDefinition *v1alpha1.OperatorDefinition, opts v1.CreateOptions) (result *v1alpha1.OperatorDefinition, err error) {
 	result = &v1alpha1.OperatorDefinition{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("operatordefinitions").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(operatorDefinition).
@@ -113,7 +107,6 @@ func (c *operatorDefinitions) Create(ctx context.Context, operatorDefinition *v1
 func (c *operatorDefinitions) Update(ctx context.Context, operatorDefinition *v1alpha1.OperatorDefinition, opts v1.UpdateOptions) (result *v1alpha1.OperatorDefinition, err error) {
 	result = &v1alpha1.OperatorDefinition{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("operatordefinitions").
 		Name(operatorDefinition.Name).
 		VersionedParams(&opts, scheme.ParameterCodec).
@@ -128,7 +121,6 @@ func (c *operatorDefinitions) Update(ctx context.Context, operatorDefinition *v1
 func (c *operatorDefinitions) UpdateStatus(ctx context.Context, operatorDefinition *v1alpha1.OperatorDefinition, opts v1.UpdateOptions) (result *v1alpha1.OperatorDefinition, err error) {
 	result = &v1alpha1.OperatorDefinition{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("operatordefinitions").
 		Name(operatorDefinition.Name).
 		SubResource("status").
@@ -142,7 +134,6 @@ func (c *operatorDefinitions) UpdateStatus(ctx context.Context, operatorDefiniti
 // Delete takes name of the operatorDefinition and deletes it. Returns an error if one occurs.
 func (c *operatorDefinitions) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("operatordefinitions").
 		Name(name).
 		Body(&opts).
@@ -157,7 +148,6 @@ func (c *operatorDefinitions) DeleteCollection(ctx context.Context, opts v1.Dele
 		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("operatordefinitions").
 		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -170,7 +160,6 @@ func (c *operatorDefinitions) DeleteCollection(ctx context.Context, opts v1.Dele
 func (c *operatorDefinitions) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.OperatorDefinition, err error) {
 	result = &v1alpha1.OperatorDefinition{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("operatordefinitions").
 		Name(name).
 		SubResource(subresources...).

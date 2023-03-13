@@ -34,14 +34,14 @@ type PlatformList struct {
 }
 
 type ChartVersion struct {
-	Name           string `json:"name"`
-	CurrentVersion string `json:"currentVersion,omitempty"`
-	VersionRange   string `json:"versions,omitempty"`
+	Name              string `json:"name"`
+	DefaultVersion    string `json:"defaultVersion,omitempty"`
+	SupportedVersions string `json:"supportedVersions,omitempty"`
 }
 
 type SourceType struct {
 	Name              string `json:"name,omitempty"`
-	URL               string `json:"name,omitempty"`
+	URL               string `json:"url,omitempty"`
 	CredentialsSecret string `json:"credentialsSecret,omitempty"`
 }
 
@@ -57,7 +57,7 @@ type PlatformSpec struct {
 	Version   string       `json:"version"`
 	Sources   []SourceType `json:"sources,omitempty"`
 	Upgrade   UpgradeType  `json:"upgrade,omitempty"`
-	Reconcile *bool        `json:"reconcile,omitempty"`
+	Reconcile bool         `json:"reconcile,omitempty"`
 }
 
 // PlatformStatus defines the observed state of a Verrazzano resource.

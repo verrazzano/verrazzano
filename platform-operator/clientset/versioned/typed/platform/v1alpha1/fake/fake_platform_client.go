@@ -19,12 +19,12 @@ func (c *FakePlatformV1alpha1) Modules(namespace string) v1alpha1.ModuleInterfac
 	return &FakeModules{c, namespace}
 }
 
-func (c *FakePlatformV1alpha1) ModuleDefinitions(namespace string) v1alpha1.ModuleDefinitionInterface {
-	return &FakeModuleDefinitions{c, namespace}
+func (c *FakePlatformV1alpha1) ModuleDefinitions() v1alpha1.ModuleDefinitionInterface {
+	return &FakeModuleDefinitions{c}
 }
 
-func (c *FakePlatformV1alpha1) OperatorDefinitions(namespace string) v1alpha1.OperatorDefinitionInterface {
-	return &FakeOperatorDefinitions{c, namespace}
+func (c *FakePlatformV1alpha1) OperatorDefinitions() v1alpha1.OperatorDefinitionInterface {
+	return &FakeOperatorDefinitions{c}
 }
 
 func (c *FakePlatformV1alpha1) Platforms(namespace string) v1alpha1.PlatformInterface {

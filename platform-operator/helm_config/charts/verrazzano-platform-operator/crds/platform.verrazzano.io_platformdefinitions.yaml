@@ -40,11 +40,11 @@ spec:
               crds:
                 items:
                   properties:
-                    currentVersion:
+                    defaultVersion:
                       type: string
                     name:
                       type: string
-                    versions:
+                    supportedVersions:
                       type: string
                   required:
                   - name
@@ -53,11 +53,11 @@ spec:
               modules:
                 items:
                   properties:
-                    currentVersion:
+                    defaultVersion:
                       type: string
                     name:
                       type: string
-                    versions:
+                    supportedVersions:
                       type: string
                   required:
                   - name
@@ -66,11 +66,11 @@ spec:
               operators:
                 items:
                   properties:
-                    currentVersion:
+                    defaultVersion:
                       type: string
                     name:
                       type: string
-                    versions:
+                    supportedVersions:
                       type: string
                   required:
                   - name
