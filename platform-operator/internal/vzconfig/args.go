@@ -116,6 +116,9 @@ func CheckExternalIPsOverridesArgsWithPaths(overrides []v1beta1.Overrides, jsonB
 		if value != nil {
 			valueMap := value.(map[string]interface{})
 			extractedIP := valueMap[externalIPPath]
+			if extractedIP == nil {
+				continue
+			}
 			extractedType := valueMap[serviceTypePath]
 			externalIPPathFull := jsonBasePath + "." + externalIPPath
 			extractedIPsArray, err := castValuesToString(extractedIP)
