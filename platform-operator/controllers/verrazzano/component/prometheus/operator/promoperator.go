@@ -9,19 +9,16 @@ import (
 	"path"
 	"strconv"
 
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
-
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -31,9 +28,11 @@ import (
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -614,7 +613,7 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 					}},
 					To: []*securityv1beta1.Rule_To{{
 						Operation: &securityv1beta1.Operation{
-							Ports: []string{"9090"},
+							Ports: []string{"9090", "10901"},
 						},
 					}},
 				},
@@ -752,6 +751,9 @@ func createOrUpdateIngresses(ctx spi.ComponentContext) error {
 func isThanosEnabled(ctx spi.ComponentContext) (bool, error) {
 	prometheusList := promoperapi.PrometheusList{}
 	err := ctx.Client().List(context.TODO(), &prometheusList, &client.ListOptions{Namespace: constants.VerrazzanoMonitoringNamespace})
+	if meta.IsNoMatchError(err) {
+		return false, nil
+	}
 	if err != nil {
 		return false, ctx.Log().ErrorfNewErr("Failed to list Prometheus objects in the %s namespace: %v", constants.VerrazzanoMonitoringNamespace, err)
 	}
@@ -766,7 +768,8 @@ func isThanosEnabled(ctx spi.ComponentContext) (bool, error) {
 // newNetworkPolicy returns a populated NetworkPolicySpec with ingress rules for Prometheus
 func newNetworkPolicySpec() netv1.NetworkPolicySpec {
 	tcpProtocol := corev1.ProtocolTCP
-	port := intstr.FromInt(9090)
+	promPort := intstr.FromInt(9090)
+	sidecarPort := intstr.FromInt(10901)
 
 	return netv1.NetworkPolicySpec{
 		PodSelector: metav1.LabelSelector{
@@ -779,7 +782,7 @@ func newNetworkPolicySpec() netv1.NetworkPolicySpec {
 		},
 		Ingress: []netv1.NetworkPolicyIngressRule{
 			{
-				// allow ingress to port 9090 from Auth Proxy, Grafana, and Kiali
+				// allow ingress to port 9090 and 10901 from Auth Proxy, Grafana, and Kiali
 				From: []netv1.NetworkPolicyPeer{
 					{
 						NamespaceSelector: &metav1.LabelSelector{
@@ -805,7 +808,11 @@ func newNetworkPolicySpec() netv1.NetworkPolicySpec {
 				Ports: []netv1.NetworkPolicyPort{
 					{
 						Protocol: &tcpProtocol,
-						Port:     &port,
+						Port:     &promPort,
+					},
+					{
+						Protocol: &tcpProtocol,
+						Port:     &sidecarPort,
 					},
 				},
 			},
@@ -834,7 +841,7 @@ func newNetworkPolicySpec() netv1.NetworkPolicySpec {
 				Ports: []netv1.NetworkPolicyPort{
 					{
 						Protocol: &tcpProtocol,
-						Port:     &port,
+						Port:     &promPort,
 					},
 				},
 			},
