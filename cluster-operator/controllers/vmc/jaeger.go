@@ -4,14 +4,13 @@
 package vmc
 
 import (
-	"path/filepath"
-
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
+	"path/filepath"
 )
 
 const (
@@ -109,7 +108,7 @@ func (r *VerrazzanoManagedClusterReconciler) getJaegerSpecConfig(vzList *vzapi.V
 			jsc.storageType = "opensearch"
 		}
 		overrides := vz.Spec.Components.JaegerOperator.ValueOverrides
-		overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(r.Client, overrides, jaegerNamespace)
+		overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(r.Client, overrides, vz.Namespace)
 		if err != nil {
 			return jsc, err
 		}
