@@ -103,8 +103,15 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
 	err := uninstallVerrazzanoFn(cmd, vzHelper)
 	if err != nil {
-		//err returned from CallVzBugReport is the one from uninstallVerrazzanoFn(), the same error that's passed in
-		err = bugreport.CallVzBugReport(cmd, vzHelper, err)
+		autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
+		if errFlag != nil {
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
+			return err
+		}
+		if autoBugReportFlag {
+			//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from uninstallVerrazzanoFn
+			err = bugreport.CallVzBugReport(cmd, vzHelper, err)
+		}
 		return fmt.Errorf("Failed to uninstall Verrazzano: %s", err.Error())
 	}
 	return nil

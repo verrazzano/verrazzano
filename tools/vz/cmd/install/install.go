@@ -92,8 +92,15 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
 	err := installVerrazzano(cmd, vzHelper)
 	if err != nil {
-		//err returned from CallVzBugReport is the one from installVerrazzano(), the same error that's passed in
-		err = bugreport.CallVzBugReport(cmd, vzHelper, err)
+		autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
+		if errFlag != nil {
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
+			return err
+		}
+		if autoBugReportFlag {
+			//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from installVerrazzano
+			err = bugreport.CallVzBugReport(cmd, vzHelper, err)
+		}
 		return err
 	}
 	return nil

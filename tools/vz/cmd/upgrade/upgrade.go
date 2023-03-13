@@ -187,7 +187,16 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		// Wait for the Verrazzano upgrade to complete
 		err = waitForUpgradeToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat)
 		if err != nil {
-			return bugreport.CallVzBugReport(cmd, vzHelper, err)
+			autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
+			if errFlag != nil {
+				fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
+				return err
+			}
+			if autoBugReportFlag {
+				//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from waitForUpgradeToComplete
+				return bugreport.CallVzBugReport(cmd, vzHelper, err)
+			}
+			return err
 		}
 		return nil
 	}
@@ -198,7 +207,16 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	if !vzStatusVersion.IsEqualTo(vzSpecVersion) {
 		err = waitForUpgradeToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat)
 		if err != nil {
-			return bugreport.CallVzBugReport(cmd, vzHelper, err)
+			autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
+			if errFlag != nil {
+				fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
+				return err
+			}
+			if autoBugReportFlag {
+				//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from waitForUpgradeToComplete
+				return bugreport.CallVzBugReport(cmd, vzHelper, err)
+			}
+			return err
 		}
 		return nil
 	}
