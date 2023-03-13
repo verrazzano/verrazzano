@@ -901,33 +901,6 @@ func TestCreateOrUpdatePrometheusAuthPolicy(t *testing.T) {
 	assertions.ErrorContains(err, "not found")
 }
 
-// TestCreateOrUpdateNetworkPolicies tests the createOrUpdateNetworkPolicies function
-func TestCreateOrUpdateNetworkPolicies(t *testing.T) {
-	// GIVEN a Prometheus Operator component
-	// WHEN  the createOrUpdateNetworkPolicies function is called
-	// THEN  no error is returned and the expected network policies have been created
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
-
-	err := createOrUpdateNetworkPolicies(ctx)
-	assert.NoError(t, err)
-
-	netPolicy := &netv1.NetworkPolicy{}
-	err = client.Get(context.TODO(), types.NamespacedName{Name: networkPolicyName, Namespace: ComponentNamespace}, netPolicy)
-	assert.NoError(t, err)
-	assert.Len(t, netPolicy.Spec.Ingress, 3)
-	assert.Equal(t, []netv1.PolicyType{netv1.PolicyTypeIngress}, netPolicy.Spec.PolicyTypes)
-	assert.Equal(t, int32(9090), netPolicy.Spec.Ingress[0].Ports[0].Port.IntVal)
-	assert.Equal(t, int32(10901), netPolicy.Spec.Ingress[0].Ports[1].Port.IntVal)
-	assert.Equal(t, int32(9090), netPolicy.Spec.Ingress[1].Ports[0].Port.IntVal)
-	assert.Equal(t, int32(10901), netPolicy.Spec.Ingress[2].Ports[0].Port.IntVal)
-	assert.Contains(t, netPolicy.Spec.Ingress[0].From[0].PodSelector.MatchExpressions[0].Values, "verrazzano-authproxy")
-	assert.Contains(t, netPolicy.Spec.Ingress[0].From[0].PodSelector.MatchExpressions[0].Values, "system-grafana")
-	assert.Contains(t, netPolicy.Spec.Ingress[0].From[0].PodSelector.MatchExpressions[0].Values, "kiali")
-	assert.Contains(t, netPolicy.Spec.Ingress[1].From[0].PodSelector.MatchExpressions[0].Values, "jaeger")
-	assert.Equal(t, netPolicy.Spec.Ingress[2].From[0].PodSelector.MatchLabels["app.kubernetes.io/component"], "query")
-}
-
 // erroringFakeClient wraps a k8s client and returns an error when Update is called
 type erroringFakeClient struct {
 	client.Client

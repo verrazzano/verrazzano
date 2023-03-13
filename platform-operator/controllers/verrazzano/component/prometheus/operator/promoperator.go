@@ -27,13 +27,11 @@ import (
 	istiov1beta1 "istio.io/api/type/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	corev1 "k8s.io/api/core/v1"
-	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -132,9 +130,6 @@ func postInstallUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	if err := createOrUpdatePrometheusAuthPolicy(ctx); err != nil {
-		return err
-	}
-	if err := createOrUpdateNetworkPolicies(ctx); err != nil {
 		return err
 	}
 	if err := createOrUpdateServiceMonitors(ctx); err != nil {
@@ -714,18 +709,6 @@ func createOrUpdateServiceMonitors(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// createOrUpdateNetworkPolicies creates or updates network policies for this component
-func createOrUpdateNetworkPolicies(ctx spi.ComponentContext) error {
-	netPolicy := &netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: networkPolicyName, Namespace: ComponentNamespace}}
-
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), netPolicy, func() error {
-		netPolicy.Spec = newNetworkPolicySpec()
-		return nil
-	})
-
-	return err
-}
-
 // create or update ingresses creates ingresses for each of the Prometheus endpoints
 func createOrUpdateIngresses(ctx spi.ComponentContext) error {
 	// If NGINX is not enabled, skip the ingress creation
@@ -779,111 +762,4 @@ func isThanosEnabled(ctx spi.ComponentContext) (bool, error) {
 		}
 	}
 	return false, nil
-}
-
-// newNetworkPolicy returns a populated NetworkPolicySpec with ingress rules for Prometheus
-func newNetworkPolicySpec() netv1.NetworkPolicySpec {
-	tcpProtocol := corev1.ProtocolTCP
-	promPort := intstr.FromInt(9090)
-	sidecarPort := intstr.FromInt(10901)
-
-	return netv1.NetworkPolicySpec{
-		PodSelector: metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"app.kubernetes.io/name": prometheusName,
-			},
-		},
-		PolicyTypes: []netv1.PolicyType{
-			netv1.PolicyTypeIngress,
-		},
-		Ingress: []netv1.NetworkPolicyIngressRule{
-			{
-				// allow ingress to port 9090 and 10901 from Auth Proxy, Grafana, and Kiali
-				From: []netv1.NetworkPolicyPeer{
-					{
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								vzconst.LabelVerrazzanoNamespace: constants.VerrazzanoSystemNamespace,
-							},
-						},
-						PodSelector: &metav1.LabelSelector{
-							MatchExpressions: []metav1.LabelSelectorRequirement{
-								{
-									Key:      "app",
-									Operator: metav1.LabelSelectorOpIn,
-									Values: []string{
-										"verrazzano-authproxy",
-										"system-grafana",
-										"kiali",
-									},
-								},
-							},
-						},
-					},
-				},
-				Ports: []netv1.NetworkPolicyPort{
-					{
-						Protocol: &tcpProtocol,
-						Port:     &promPort,
-					},
-					{
-						Protocol: &tcpProtocol,
-						Port:     &sidecarPort,
-					},
-				},
-			},
-			{
-				// allow ingress to port 9090 from Jaeger
-				From: []netv1.NetworkPolicyPeer{
-					{
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								vzconst.LabelVerrazzanoNamespace: constants.VerrazzanoMonitoringNamespace,
-							},
-						},
-						PodSelector: &metav1.LabelSelector{
-							MatchExpressions: []metav1.LabelSelectorRequirement{
-								{
-									Key:      "app",
-									Operator: metav1.LabelSelectorOpIn,
-									Values: []string{
-										"jaeger",
-									},
-								},
-							},
-						},
-					},
-				},
-				Ports: []netv1.NetworkPolicyPort{
-					{
-						Protocol: &tcpProtocol,
-						Port:     &promPort,
-					},
-				},
-			},
-			{
-				// allow ingress to Thanos sidecar on port 10901 from Thanos Query
-				From: []netv1.NetworkPolicyPeer{
-					{
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								vzconst.LabelVerrazzanoNamespace: constants.VerrazzanoMonitoringNamespace,
-							},
-						},
-						PodSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								"app.kubernetes.io/component": "query",
-							},
-						},
-					},
-				},
-				Ports: []netv1.NetworkPolicyPort{
-					{
-						Protocol: &tcpProtocol,
-						Port:     &sidecarPort,
-					},
-				},
-			},
-		},
-	}
 }
