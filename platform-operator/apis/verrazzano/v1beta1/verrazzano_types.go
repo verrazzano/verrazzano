@@ -914,7 +914,7 @@ type FluentdComponent struct {
 	// +optional
 	OpenSearchSecret string `json:"opensearchSecret,omitempty"`
 	// The target OpenSearch URLs.
-	// Specify this option in this <a href="https://docs.fluentd.org/output/elasticsearch#hosts-optional">format</a>.
+	// Specify this option in this <a href="https://docs.fluentd.org/output/opensearch#hosts-optional">format</a>.
 	// The default `http://vmi-system-es-ingest-oidc:8775` is the VMI OpenSearch URL.
 	// +optional
 	OpenSearchURL string `json:"opensearchURL,omitempty"`
