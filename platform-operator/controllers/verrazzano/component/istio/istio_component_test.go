@@ -1296,6 +1296,10 @@ func TestGetOverrides(t *testing.T) {
 }
 
 func TestValidateInstallWithExistingIstio(t *testing.T) {
+	vzconfig.GetControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects().Build(), nil
+	}
+	defer func() { vzconfig.GetControllerRuntimeClient = validators.GetClient }()
 	vz := &v1alpha1.Verrazzano{
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
