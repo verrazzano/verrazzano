@@ -45,6 +45,9 @@ prometheus:
       - name: config-reloader
         securityContext:
           privileged: false
+      - name: thanos-sidecar
+        securityContext:
+          privileged: false
     initContainers:
       - name: init-config-reloader
         securityContext:
