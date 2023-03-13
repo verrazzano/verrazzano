@@ -7,6 +7,7 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
 spec:
   ingress:
+    # allow auth proxy to forward requests to thanos-query-frontend
     - from:
         - namespaceSelector:
             matchLabels:
@@ -18,8 +19,8 @@ spec:
                 values:
                   - verrazzano-authproxy
       ports:
-        # port value is retrieved from the port definition on the service
-        - port: {{ if .Values.queryFrontend.service.http }}{{ coalesce .Values.queryFrontend.service.ports.http .Values.queryFrontend.service.http.port }}{{ else }}{{ .Values.queryFrontend.service.ports.http }}{{ end }}
+        # web ui port
+        - port: 10902
           protocol: TCP
   podSelector:
     matchLabels:
@@ -34,7 +35,7 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
 spec:
   ingress:
-    # allow query-frontend to forward requests to query
+    # allow thanos-query-frontend to forward requests to thanos-query
     - from:
         - namespaceSelector:
             matchLabels:
