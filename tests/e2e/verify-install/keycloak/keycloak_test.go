@@ -464,11 +464,11 @@ func verifyVerrazzanoPKCEClientURIs(keycloakClient *Client, env string) bool {
 
 	// Verify Correct number of WebOrigins
 	if isMinVersion150 {
-		if !(len(keycloakClient.WebOrigins) == 9 || len(keycloakClient.WebOrigins) == 7) {
+		if !(len(keycloakClient.WebOrigins) == 11 || len(keycloakClient.WebOrigins) == 9) {
 			t.Logs.Error(fmt.Printf("Incorrect Number of WebOrigins returned for client %+v\n", keycloakClient.WebOrigins))
 			return false
 		}
-	} else if !isMinVersion150 && len(keycloakClient.WebOrigins) != 7 {
+	} else if !isMinVersion150 && len(keycloakClient.WebOrigins) != 9 {
 		t.Logs.Error(fmt.Printf("Incorrect Number of WebOrigins returned for client %+v\n", keycloakClient.WebOrigins))
 		return false
 	}
