@@ -450,14 +450,14 @@ func getKeycloakClientByClientID(keycloakClients KeycloakClients, clientID strin
 
 func verifyVerrazzanoPKCEClientURIs(keycloakClient *Client, env string) bool {
 	// Verify Correct number of RedirectURIs
-	// 13 redirect Uris for new installation
+	// 17 redirect Uris for new installation
 	// 21 redirect Uris for upgrade from older versions. The urls are deprecated ingress hosts.
 	if isMinVersion150 {
-		if !(len(keycloakClient.RedirectUris) == 21 || len(keycloakClient.RedirectUris) == 13) {
+		if !(len(keycloakClient.RedirectUris) == 21 || len(keycloakClient.RedirectUris) == 17) {
 			t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
 			return false
 		}
-	} else if !isMinVersion150 && len(keycloakClient.RedirectUris) != 13 {
+	} else if !isMinVersion150 && len(keycloakClient.RedirectUris) != 17 {
 		t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
