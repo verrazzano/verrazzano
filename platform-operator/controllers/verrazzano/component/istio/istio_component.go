@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package istio
@@ -83,7 +83,7 @@ const (
 	// Put external IPs into the IstioOperator YAML, which does support it
 	ExternalIPArg            = "gateways.istio-ingressgateway.externalIPs"
 	specServiceJSONPath      = "spec.components.ingressGateways.0.k8s.service"
-	externalIPJsonPathSuffix = "externalIPs"
+	externalIPJsonPathSuffix = "externalIPs.0"
 	typeJSONPathSuffix       = "type"
 	externalIPJsonPath       = specServiceJSONPath + "." + externalIPJsonPathSuffix
 	meshConfigTracingPath    = "spec.meshConfig.defaultConfig.tracing"
@@ -295,7 +295,7 @@ func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 		}
 	}
 
-	return i.validateForExternalIPSWithNodePort(vz)
+	return i.validateForExternalIPSWithNodePort(&vz.Spec)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -309,7 +309,7 @@ func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 			return err
 		}
 	}
-	return i.validateForExternalIPSWithNodePort(new)
+	return i.validateForExternalIPSWithNodePort(&new.Spec)
 }
 
 // ValidateUpdateV1Beta1 checks if the specified Verrazzano CR is valid for this component to be installed
@@ -324,7 +324,7 @@ func (i istioComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, ne
 		}
 	}
 
-	return i.validateForExternalIPSWithNodePortV1Beta1(new)
+	return i.validateForExternalIPSWithNodePortV1Beta1(&new.Spec)
 }
 
 // ValidateInstallV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -337,39 +337,39 @@ func (i istioComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) er
 			return err
 		}
 	}
-	return i.validateForExternalIPSWithNodePortV1Beta1(vz)
+	return i.validateForExternalIPSWithNodePortV1Beta1(&vz.Spec)
 }
 
 // validateForExternalIPSWithNodePort checks that externalIPs are set when Type=NodePort
-func (i istioComponent) validateForExternalIPSWithNodePort(vz *vzapi.Verrazzano) error {
+func (i istioComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoSpec) error {
 	// good if istio or istio.ingress is not set
-	if vz.Spec.Components.Istio == nil || vz.Spec.Components.Istio.Ingress == nil {
+	if vz.Components.Istio == nil || vz.Components.Istio.Ingress == nil {
 		return nil
 	}
 
 	// good if type is not NodePort
-	if vz.Spec.Components.Istio.Ingress.Type != vzapi.NodePort {
+	if vz.Components.Istio.Ingress.Type != vzapi.NodePort {
 		return nil
 	}
 
 	// look for externalIPs if NodePort
-	if vz.Spec.Components.Istio.Ingress.Type == vzapi.NodePort {
-		return vzconfig.CheckExternalIPsArgs(vz.Spec.Components.Istio.IstioInstallArgs, vz.Spec.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, i.Name(), vz.Namespace)
+	if vz.Components.Istio.Ingress.Type == vzapi.NodePort {
+		return vzconfig.CheckExternalIPsArgs(vz.Components.Istio.IstioInstallArgs, vz.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, i.Name())
 	}
 
 	return nil
 }
 
 // validateForExternalIPSWithNodePortV1Beta1 checks that externalIPs are set when Type=NodePort
-func (i istioComponent) validateForExternalIPSWithNodePortV1Beta1(vz *installv1beta1.Verrazzano) error {
+func (i istioComponent) validateForExternalIPSWithNodePortV1Beta1(vz *installv1beta1.VerrazzanoSpec) error {
 	// good if istio is not set
-	if vz.Spec.Components.Istio == nil {
+	if vz.Components.Istio == nil {
 		return nil
 	}
 
 	nodePort := string(installv1beta1.NodePort)
 	// look for externalIPs if NodePort
-	err := vzconfig.CheckExternalIPsOverridesArgsWithPaths(vz.Spec.Components.Istio.ValueOverrides, specServiceJSONPath, typeJSONPathSuffix, nodePort, externalIPJsonPathSuffix, i.Name(), vz.Namespace)
+	err := vzconfig.CheckExternalIPsOverridesArgsWithPaths(vz.Components.Istio.ValueOverrides, specServiceJSONPath, typeJSONPathSuffix, nodePort, externalIPJsonPathSuffix, i.Name())
 	if err != nil {
 		return err
 	}

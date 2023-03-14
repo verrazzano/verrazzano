@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package nginx
@@ -103,7 +103,7 @@ func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	if err := c.HelmComponent.ValidateUpdate(old, new); err != nil {
 		return err
 	}
-	return c.validateForExternalIPSWithNodePort(new)
+	return c.validateForExternalIPSWithNodePort(&new.Spec)
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
@@ -111,7 +111,7 @@ func (c nginxComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	if err := c.HelmComponent.ValidateInstall(vz); err != nil {
 		return err
 	}
-	return c.validateForExternalIPSWithNodePort(vz)
+	return c.validateForExternalIPSWithNodePort(&vz.Spec)
 }
 
 // ValidateInstallV1Beta1 checks if the specified Verrazzano CR is valid for this component to be installed
@@ -119,7 +119,7 @@ func (c nginxComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
 	if err := c.HelmComponent.ValidateInstallV1Beta1(vz); err != nil {
 		return err
 	}
-	return c.validateForExternalIPSWithNodePortV1Beta1(vz)
+	return c.validateForExternalIPSWithNodePortV1Beta1(&vz.Spec)
 }
 
 // ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -130,44 +130,44 @@ func (c nginxComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1be
 	if err := c.HelmComponent.ValidateUpdateV1Beta1(old, new); err != nil {
 		return err
 	}
-	return c.validateForExternalIPSWithNodePortV1Beta1(new)
+	return c.validateForExternalIPSWithNodePortV1Beta1(&new.Spec)
 }
 
 // validateForExternalIPSWithNodePort checks that externalIPs are set when Type=NodePort
-func (c nginxComponent) validateForExternalIPSWithNodePort(vz *vzapi.Verrazzano) error {
+func (c nginxComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoSpec) error {
 	// good if ingress is not set
-	if vz.Spec.Components.Ingress == nil {
+	if vz.Components.Ingress == nil {
 		return nil
 	}
 
 	// good if type is not NodePort
-	if vz.Spec.Components.Ingress.Type != vzapi.NodePort {
+	if vz.Components.Ingress.Type != vzapi.NodePort {
 		return nil
 	}
 
 	// look for externalIPs if NodePort
-	if vz.Spec.Components.Ingress.Type == vzapi.NodePort {
-		return vzconfig.CheckExternalIPsArgs(vz.Spec.Components.Ingress.NGINXInstallArgs, vz.Spec.Components.Ingress.ValueOverrides, nginxExternalIPKey, nginxExternalIPJsonPath, c.Name(), vz.Namespace)
+	if vz.Components.Ingress.Type == vzapi.NodePort {
+		return vzconfig.CheckExternalIPsArgs(vz.Components.Ingress.NGINXInstallArgs, vz.Components.Ingress.ValueOverrides, nginxExternalIPKey, nginxExternalIPJsonPath, c.Name())
 	}
 
 	return nil
 }
 
 // validateForExternalIPSWithNodePort checks that externalIPs are set when Type=NodePort
-func (c nginxComponent) validateForExternalIPSWithNodePortV1Beta1(vz *v1beta1.Verrazzano) error {
+func (c nginxComponent) validateForExternalIPSWithNodePortV1Beta1(vz *v1beta1.VerrazzanoSpec) error {
 	// good if ingress is not set
-	if vz.Spec.Components.IngressNGINX == nil {
+	if vz.Components.IngressNGINX == nil {
 		return nil
 	}
 
 	// good if type is not NodePort
-	if vz.Spec.Components.IngressNGINX.Type != v1beta1.NodePort {
+	if vz.Components.IngressNGINX.Type != v1beta1.NodePort {
 		return nil
 	}
 
 	// look for externalIPs if NodePort
-	if vz.Spec.Components.IngressNGINX.Type == v1beta1.NodePort {
-		return vzconfig.CheckExternalIPsOverridesArgs(vz.Spec.Components.IngressNGINX.ValueOverrides, nginxExternalIPJsonPath, c.Name(), vz.Namespace)
+	if vz.Components.IngressNGINX.Type == v1beta1.NodePort {
+		return vzconfig.CheckExternalIPsOverridesArgs(vz.Components.IngressNGINX.ValueOverrides, nginxExternalIPJsonPath, c.Name())
 	}
 
 	return nil

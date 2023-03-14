@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package istio
@@ -6,15 +6,16 @@ package istio
 import (
 	"bytes"
 	"fmt"
+	"text/template"
+
 	"github.com/Jeffail/gabs/v2"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"sigs.k8s.io/yaml"
-	"text/template"
 )
 
 const collectorZipkinPort = 9411
@@ -47,7 +48,7 @@ func buildJaegerTracingYaml(ctx spi.ComponentContext, comp *v1beta1.IstioCompone
 		return "", err
 	}
 	expandedYamls := []string{jaegerTracingYaml}
-	installOverrideYamls, err := override.GetInstallOverridesYAMLUsingClient(ctx.Client(), comp.ValueOverrides, namespace)
+	installOverrideYamls, err := common.GetInstallOverridesYAMLUsingClient(ctx.Client(), comp.ValueOverrides, namespace)
 	if err != nil {
 		return "", err
 	}
