@@ -17,7 +17,7 @@ import (
 func ValidateProfile(requestedProfile ProfileType) error {
 	if len(requestedProfile) != 0 {
 		switch requestedProfile {
-		case Prod, Dev, ManagedCluster:
+		case Prod, Dev, ManagedCluster, None:
 			return nil
 		default:
 			return fmt.Errorf("Requested profile %s is invalid, valid options are dev, prod, or managed-cluster",
