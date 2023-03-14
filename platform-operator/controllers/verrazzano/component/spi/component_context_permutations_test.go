@@ -13,8 +13,13 @@ import (
 
 const (
 	basicDevMerged                   = "testdata/basicDevMerged.yaml"
+	basicNoneMerged                  = "testdata/basicNoneMerged.yaml"
 	basicProdMerged                  = "testdata/basicProdMerged.yaml"
 	basicManagedClusterMerged        = "testdata/basicManagedClusterMerged.yaml"
+	noneOCIDNSOverrideMerged         = "testdata/noneOCIOverrideMerged.yaml"
+	noneCertManagerOverrideMerged    = "testdata/noneCertManagerOverrideMerged.yaml"
+	noneElasticSearchOveridesMerged  = "testdata/noneESArgsStorageOverride.yaml"
+	noneKeycloakOveridesMerged       = "testdata/noneKeycloakInstallArgsStorageOverride.yaml"
 	devAllDisabledMerged             = "testdata/devAllDisabledMerged.yaml"
 	devOCIDNSOverrideMerged          = "testdata/devOCIOverrideMerged.yaml"
 	devCertManagerOverrideMerged     = "testdata/devCertManagerOverrideMerged.yaml"
@@ -72,6 +77,140 @@ var basicMgdClusterWithStatus = v1alpha1.Verrazzano{
 	Status: v1alpha1.VerrazzanoStatus{
 		Version:            "v1.0.1",
 		VerrazzanoInstance: &v1alpha1.InstanceInfo{},
+	},
+}
+
+var basicNoneClusterWithStatus = v1alpha1.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "default-none",
+	},
+	Spec: v1alpha1.VerrazzanoSpec{
+		Profile: "none",
+	},
+	Status: v1alpha1.VerrazzanoStatus{
+		Version:            "v1.0.1",
+		VerrazzanoInstance: &v1alpha1.InstanceInfo{},
+	},
+}
+
+var noneOCIDNSOverride = v1alpha1.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "none-dns-override",
+	},
+	Spec: v1alpha1.VerrazzanoSpec{
+		Profile: "none",
+		Components: v1alpha1.ComponentSpec{
+			DNS: &v1alpha1.DNSComponent{
+				OCI: &v1alpha1.OCI{
+					OCIConfigSecret:        "mysecret",
+					DNSZoneCompartmentOCID: "compartment-ocid",
+					DNSZoneOCID:            "zone-ocid",
+					DNSZoneName:            "myzone.com",
+				},
+			},
+		},
+	},
+}
+
+var noneCertManagerOverride = v1alpha1.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "none-cm-override",
+	},
+	Spec: v1alpha1.VerrazzanoSpec{
+		Profile: "none",
+		Components: v1alpha1.ComponentSpec{
+			CertManager: &v1alpha1.CertManagerComponent{
+				Certificate: v1alpha1.Certificate{
+					Acme: v1alpha1.Acme{
+						Provider:     "letsencrypt",
+						EmailAddress: "myemail",
+						Environment:  "production",
+					},
+				},
+				Enabled: &trueValue,
+			},
+		},
+	},
+}
+
+var noneElasticSearchOverrides = v1alpha1.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "none-es-override",
+	},
+	Spec: v1alpha1.VerrazzanoSpec{
+		Profile: "none",
+		DefaultVolumeSource: &corev1.VolumeSource{
+			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+				ClaimName: "vmi",
+			},
+		},
+		VolumeClaimSpecTemplates: []v1alpha1.VolumeClaimSpecTemplate{
+			{
+				ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							"storage": pvc100Gi,
+						},
+					},
+				},
+			},
+		},
+		Components: v1alpha1.ComponentSpec{
+			Elasticsearch: &v1alpha1.ElasticsearchComponent{
+				Nodes: []v1alpha1.OpenSearchNode{
+					{
+						Name:     "es-master",
+						Replicas: 3,
+						Resources: &corev1.ResourceRequirements{
+							Requests: map[corev1.ResourceName]resource.Quantity{
+								corev1.ResourceMemory: resource.MustParse("3G"),
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+}
+
+var noneKeycloakOverrides = v1alpha1.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "none-keycloak-override",
+	},
+	Spec: v1alpha1.VerrazzanoSpec{
+		Profile: "none",
+		VolumeClaimSpecTemplates: []v1alpha1.VolumeClaimSpecTemplate{
+			{
+				ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							"storage": pvc100Gi,
+						},
+					},
+				},
+			},
+		},
+		Components: v1alpha1.ComponentSpec{
+			Keycloak: &v1alpha1.KeycloakComponent{
+				KeycloakInstallArgs: []v1alpha1.InstallArgs{
+					{Name: "some.keycloak.arg1", Value: "val1"},
+					{Name: "some.keycloak.arg2", Value: "val2"},
+				},
+				MySQL: v1alpha1.MySQLComponent{
+					MySQLInstallArgs: []v1alpha1.InstallArgs{
+						{Name: "some.mysql.arg1", Value: "val1"},
+						{Name: "some.mysql.arg2", Value: "val2"},
+					},
+					VolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+							ClaimName: "vmi",
+						},
+					},
+				},
+			},
+		},
 	},
 }
 

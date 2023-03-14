@@ -6,6 +6,7 @@ package install
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	"os"
 	"strings"
 	"time"
@@ -71,6 +72,7 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().StringSliceP(constants.FilenameFlag, constants.FilenameFlagShorthand, []string{}, constants.FilenameFlagHelp)
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
 	cmd.PersistentFlags().StringArrayP(constants.SetFlag, constants.SetFlagShorthand, []string{}, constants.SetFlagHelp)
+	cmd.PersistentFlags().Bool(constants.AutoBugReportFlag, constants.AutoBugReportFlagDefault, constants.AutoBugReportFlagHelp)
 
 	// Initially the operator-file flag may be for internal use, hide from help until
 	// a decision is made on supporting this option.
@@ -88,6 +90,23 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+	err := installVerrazzano(cmd, vzHelper)
+	if err != nil {
+		autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
+		if errFlag != nil {
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
+			return err
+		}
+		if autoBugReportFlag {
+			//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from installVerrazzano
+			err = bugreport.CallVzBugReport(cmd, vzHelper, err)
+		}
+		return err
+	}
+	return nil
+}
+
+func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	// Validate the command options
 	err := validateCmd(cmd)
 	if err != nil {
