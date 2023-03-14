@@ -296,7 +296,10 @@ function analyze_dump() {
           if [[ -x $GOPATH/bin/vz ]]; then
             $GOPATH/vz analyze --capture-dir $FULL_PATH_CAPTURE_DIR || true
           else
+            # cleaning the cache
+            go clean -n -modcache -cache -testcache
             GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go analyze --capture-dir $FULL_PATH_CAPTURE_DIR || true
+            go clean -n -modcache -cache -testcache
           fi
       else
           # Since we have to change the current working directory to run go, we need to take into account if the reportFile specified was relative to the original
@@ -305,7 +308,10 @@ function analyze_dump() {
               if [[ -x $GOPATH/bin/vz ]]; then
                   $GOPATH/vz analyze --capture-dir $FULL_PATH_CAPTURE_DIR --report-format detailed --report-file $REPORT_FILE || true
                 else
+                  # cleaning the cache
+                  go clean -n -modcache -cache -testcache
                   GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go analyze --capture-dir $FULL_PATH_CAPTURE_DIR --report-format detailed --report-file $REPORT_FILE || true
+                  go clean -n -modcache -cache -testcache
               fi
             else
               if [[ -x $GOPATH/bin/vz ]]; then
