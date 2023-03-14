@@ -180,10 +180,10 @@ func TestPostInstallUpgrade(t *testing.T) {
 				},
 			},
 			ingress: netv1.Ingress{
-				ObjectMeta: metav1.ObjectMeta{Name: constants.ThanosQueryFrontendIngress, Namespace: constants.VerrazzanoSystemNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: constants.ThanosQueryIngress, Namespace: constants.VerrazzanoSystemNamespace},
 			},
 			cert: certapiv1.Certificate{
-				ObjectMeta: metav1.ObjectMeta{Name: frontendCertificateName, Namespace: constants.VerrazzanoSystemNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: queryCertificateName, Namespace: constants.VerrazzanoSystemNamespace},
 				Status: certapiv1.CertificateStatus{
 					Conditions: []certapiv1.CertificateCondition{
 						{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
@@ -210,10 +210,10 @@ func TestPostInstallUpgrade(t *testing.T) {
 				},
 			},
 			ingress: netv1.Ingress{
-				ObjectMeta: metav1.ObjectMeta{Name: constants.ThanosQueryFrontendIngress, Namespace: constants.VerrazzanoSystemNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: constants.ThanosQueryIngress, Namespace: constants.VerrazzanoSystemNamespace},
 			},
 			cert: certapiv1.Certificate{
-				ObjectMeta: metav1.ObjectMeta{Name: frontendCertificateName, Namespace: constants.VerrazzanoSystemNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: queryCertificateName, Namespace: constants.VerrazzanoSystemNamespace},
 				Status: certapiv1.CertificateStatus{
 					Conditions: []certapiv1.CertificateCondition{
 						{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
@@ -240,10 +240,10 @@ func TestPostInstallUpgrade(t *testing.T) {
 				},
 			},
 			ingress: netv1.Ingress{
-				ObjectMeta: metav1.ObjectMeta{Name: constants.ThanosQueryFrontendIngress, Namespace: constants.VerrazzanoSystemNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: constants.ThanosQueryIngress, Namespace: constants.VerrazzanoSystemNamespace},
 			},
 			cert: certapiv1.Certificate{
-				ObjectMeta: metav1.ObjectMeta{Name: frontendCertificateName, Namespace: constants.VerrazzanoSystemNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: queryCertificateName, Namespace: constants.VerrazzanoSystemNamespace},
 				Status: certapiv1.CertificateStatus{
 					Conditions: []certapiv1.CertificateCondition{
 						{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
@@ -270,10 +270,10 @@ func TestPostInstallUpgrade(t *testing.T) {
 				},
 			},
 			ingress: netv1.Ingress{
-				ObjectMeta: metav1.ObjectMeta{Name: constants.ThanosQueryFrontendIngress, Namespace: constants.VerrazzanoSystemNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: constants.ThanosQueryIngress, Namespace: constants.VerrazzanoSystemNamespace},
 			},
 			cert: certapiv1.Certificate{
-				ObjectMeta: metav1.ObjectMeta{Name: frontendCertificateName, Namespace: constants.VerrazzanoSystemNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: queryCertificateName, Namespace: constants.VerrazzanoSystemNamespace},
 				Status: certapiv1.CertificateStatus{
 					Conditions: []certapiv1.CertificateCondition{
 						{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
