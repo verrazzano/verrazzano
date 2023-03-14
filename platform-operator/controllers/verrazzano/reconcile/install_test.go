@@ -344,7 +344,6 @@ func TestUpdateBeforeInstallComplete(t *testing.T) {
 	vz := vzapi.Verrazzano{}
 	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &vz)
 	asserts.NoError(err)
-	fmt.Println(vz.Status.Components[fakeCompReleaseName].Conditions)
 
 	asserts.Equal(vzapi.VzStateReconciling, vz.Status.State)
 	asserts.False(*fakeCompUpdated)

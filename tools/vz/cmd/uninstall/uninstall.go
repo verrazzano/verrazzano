@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package uninstall
@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	"io"
 	"regexp"
 	"time"
@@ -58,6 +59,19 @@ var propagationPolicy = metav1.DeletePropagationBackground
 var deleteOptions = &client.DeleteOptions{PropagationPolicy: &propagationPolicy}
 
 var logsEnum = cmdhelpers.LogFormatSimple
+var uninstallVerrazzanoFn = uninstallVerrazzano
+
+type UninstallVerrazzanoFnType = func(cmd *cobra.Command, vzHelper helpers.VZHelper) error
+
+// SetUninstallVerrazzanoFn Allows overriding the uninstallVerrazzanoFn for testing purposes
+func SetUninstallVerrazzanoFn(fnType UninstallVerrazzanoFnType) {
+	uninstallVerrazzanoFn = fnType
+}
+
+// ResetUninstallVerrazzanoFn Restores the uninstallVerrazzanoFn implementation to the default if it's been overridden for testing
+func ResetUninstallVerrazzanoFn() {
+	uninstallVerrazzanoFn = uninstallVerrazzano
+}
 
 func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -70,6 +84,7 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*30, constants.TimeoutFlagHelp)
 	cmd.PersistentFlags().Duration(constants.VPOTimeoutFlag, time.Minute*5, constants.VPOTimeoutFlagHelp)
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
+	cmd.PersistentFlags().Bool(constants.AutoBugReportFlag, constants.AutoBugReportFlagDefault, constants.AutoBugReportFlagHelp)
 
 	// Remove CRD's flag is still being discussed - keep hidden for now
 	cmd.PersistentFlags().Bool(crdsFlag, false, crdsFlagHelp)
@@ -86,6 +101,23 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+	err := uninstallVerrazzanoFn(cmd, vzHelper)
+	if err != nil {
+		autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
+		if errFlag != nil {
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
+			return err
+		}
+		if autoBugReportFlag {
+			//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from uninstallVerrazzanoFn
+			err = bugreport.CallVzBugReport(cmd, vzHelper, err)
+		}
+		return fmt.Errorf("Failed to uninstall Verrazzano: %s", err.Error())
+	}
+	return nil
+}
+
+func uninstallVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	// Get the controller runtime client.
 	client, err := vzHelper.GetClient(cmd)
 	if err != nil {
@@ -123,18 +155,17 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return err
 	}
 
-	// Get the log format value
-	logFormat, err := cmdhelpers.GetLogFormat(cmd)
-	if err != nil {
-		return err
-	}
-
 	// Get the VPO timeout
 	vpoTimeout, err := cmdhelpers.GetWaitTimeout(cmd, constants.VPOTimeoutFlag)
 	if err != nil {
 		return err
 	}
 
+	// Get the log format value
+	logFormat, err := cmdhelpers.GetLogFormat(cmd)
+	if err != nil {
+		return err
+	}
 	// Delete the Verrazzano custom resource.
 	err = client.Delete(context.TODO(), vz)
 	if err != nil {
@@ -155,12 +186,7 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "Uninstalling Verrazzano\n")
 
 	// Wait for the Verrazzano uninstall to complete.
-	err = waitForUninstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat, useUninstallJob)
-	if err != nil {
-		return fmt.Errorf("Failed to uninstall Verrazzano: %s", err.Error())
-	}
-
-	return nil
+	return waitForUninstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat, useUninstallJob)
 }
 
 // cleanupResources deletes remaining resources that remain after the Verrazzano resource in uninstalled

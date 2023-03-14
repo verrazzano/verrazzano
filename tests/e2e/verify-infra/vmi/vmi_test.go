@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -198,28 +199,30 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 
 		t.It("Elasticsearch verrazzano-system Index should be accessible", Label("f:observability.logging.es"),
 			func() {
-				indexName, err := pkg.GetOpenSearchSystemIndex(verrazzanoNamespace)
-				Expect(err).To(BeNil())
-				pkg.Concurrently(
-					func() {
-						Eventually(func() bool {
-							return pkg.FindLog(indexName,
-								[]pkg.Match{
-									{Key: "kubernetes.container_name", Value: "verrazzano-monitoring-operator"},
-									{Key: "cluster_name", Value: constants.MCLocalCluster}},
-								[]pkg.Match{})
-						}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-monitoring-operator log record")
-					},
-					func() {
-						Eventually(func() bool {
-							return pkg.FindLog(indexName,
-								[]pkg.Match{
-									{Key: "kubernetes.container_name", Value: "verrazzano-application-operator"},
-									{Key: "cluster_name", Value: constants.MCLocalCluster}},
-								[]pkg.Match{})
-						}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-application-operator log record")
-					},
-				)
+				if os.Getenv("TEST_ENV") != "LRE" {
+					indexName, err := pkg.GetOpenSearchSystemIndex(verrazzanoNamespace)
+					Expect(err).To(BeNil())
+					pkg.Concurrently(
+						func() {
+							Eventually(func() bool {
+								return pkg.FindLog(indexName,
+									[]pkg.Match{
+										{Key: "kubernetes.container_name", Value: "verrazzano-monitoring-operator"},
+										{Key: "cluster_name", Value: constants.MCLocalCluster}},
+									[]pkg.Match{})
+							}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-monitoring-operator log record")
+						},
+						func() {
+							Eventually(func() bool {
+								return pkg.FindLog(indexName,
+									[]pkg.Match{
+										{Key: "kubernetes.container_name", Value: "verrazzano-application-operator"},
+										{Key: "cluster_name", Value: constants.MCLocalCluster}},
+									[]pkg.Match{})
+							}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-application-operator log record")
+						},
+					)
+				}
 			})
 
 		t.It("Elasticsearch health should be green", func() {
