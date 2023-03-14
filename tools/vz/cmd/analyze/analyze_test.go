@@ -30,7 +30,7 @@ const imagePullCase1 = "../../pkg/analysis/test/cluster/image-pull-case1/"
 const ingressIPNotFound = "../../pkg/analysis/test/cluster/ingress-ip-not-found"
 
 const loadBalancerErr = "Error syncing load balancer: failed to ensure load balancer: awaiting load balancer: context deadline exceeded"
-const noIpFoundErr = "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer"
+const noIPFoundErr = "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer"
 
 // TestAnalyzeCommandDefault
 // GIVEN a CLI analyze command
@@ -111,7 +111,7 @@ func TestAnalyzeCommandDetailedReport(t *testing.T) {
 	assert.Nil(t, err)
 	buf, err := os.ReadFile(stdoutFile.Name())
 	assert.NoError(t, err)
-	assert.Contains(t, string(buf), noIpFoundErr,
+	assert.Contains(t, string(buf), noIPFoundErr,
 		loadBalancerErr)
 	// Failures must be reported underreport file details-XXXXXX.out
 	if fileMatched, _ := filepath.Glob(constants.VzAnalysisReportTmpFile); len(fileMatched) == 1 {
@@ -140,7 +140,7 @@ func TestAnalyzeCommandSummaryReport(t *testing.T) {
 	buf, err := os.ReadFile(stdoutFile.Name())
 	assert.NoError(t, err)
 	assert.NotContains(t, string(buf), loadBalancerErr)
-	assert.Contains(t, string(buf), noIpFoundErr)
+	assert.Contains(t, string(buf), noIPFoundErr)
 	// Failures must be reported underreport file details-XXXXXX.out
 	if fileMatched, _ := filepath.Glob(constants.VzAnalysisReportTmpFile); len(fileMatched) == 1 {
 		os.Remove(fileMatched[0])
@@ -193,7 +193,7 @@ func TestAnalyzeWithDefaultReportFormat(t *testing.T) {
 	buf, err := os.ReadFile(stdoutFile.Name())
 	assert.NoError(t, err)
 	assert.NotContains(t, string(buf), loadBalancerErr)
-	assert.Contains(t, string(buf), noIpFoundErr)
+	assert.Contains(t, string(buf), noIPFoundErr)
 }
 
 // TestAnalyzeWithNonPermissiveReportFile
