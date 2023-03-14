@@ -70,14 +70,15 @@ func ApplyModuleDefinitions(log vzlog.VerrazzanoLogger, client client.Client, ch
 	}
 
 	// Download chart and apply resources in moduleDefs dir
-	downloadDir := fmt.Sprintf("%s/%s-%s", "/tmp/", selectedVersion.Name, selectedVersion.Version)
-	if err := os.Mkdir(downloadDir, 0777); err != nil {
+	downloadDir := fmt.Sprintf("%s-%s-*", selectedVersion.Name, selectedVersion.Version)
+	chartTempDir, err := os.MkdirTemp("", downloadDir)
+	if err != nil {
 		return err
 	}
-	if err := Pull(log, repoURI, selectedVersion.Name, selectedVersion.Version, downloadDir, true); err != nil {
+	if err := Pull(log, repoURI, selectedVersion.Name, selectedVersion.Version, chartTempDir, true); err != nil {
 		return err
 	}
-	return ApplyModuleDefsYaml(log, client, fmt.Sprintf("%s/%s", downloadDir, chartName))
+	return ApplyModuleDefsYaml(log, client, fmt.Sprintf("%s/%s", chartTempDir, chartName))
 }
 
 // FIXME: This should be with the same set of utils under the VPO, but that or this code would need to be refactored accordingly

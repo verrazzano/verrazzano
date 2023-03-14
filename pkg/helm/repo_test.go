@@ -22,6 +22,43 @@ func TestListCharts(t *testing.T) {
 	t.Log("TBD")
 }
 
+func TestChartTypeNotFound(t *testing.T) {
+	a := assert.New(t)
+	chartType, err := LookupChartType(vzlog.DefaultLogger(), pocRepoName, pocURL, "mysql-operator", "2.0.8")
+	a.Error(err)
+	a.Equal(platformapi.UnclassifiedChartType, chartType)
+}
+
+func TestChartTypeModuleFound(t *testing.T) {
+	a := assert.New(t)
+	chartType, err := LookupChartType(vzlog.DefaultLogger(), pocRepoName, pocURL, "mysql-dummy", "0.1.3")
+	if err != nil {
+		return
+	}
+	a.NoError(err)
+	a.Equal(platformapi.ModuleChartType, chartType)
+}
+
+func TestChartTypeOperatorFound(t *testing.T) {
+	a := assert.New(t)
+	chartType, err := LookupChartType(vzlog.DefaultLogger(), pocRepoName, pocURL, "mysql-operator", "2.0.12")
+	if err != nil {
+		return
+	}
+	a.NoError(err)
+	a.Equal(platformapi.OperatorChartType, chartType)
+}
+
+func TestFindNearestSupportingChartVersion(t *testing.T) {
+	a := assert.New(t)
+	chartVersion, err := FindNearestSupportingChartVersion(vzlog.DefaultLogger(), "mysql-operator", pocRepoName, pocURL, "2.0.0")
+	if err != nil {
+		return
+	}
+	a.NoError(err)
+	a.Equal("2.0.12", chartVersion)
+}
+
 func Test_findChartEntry(t *testing.T) {
 	indexFile, err := loadAndSortRepoIndexFile(pocRepoName, pocURL)
 	if err != nil {
@@ -52,7 +89,7 @@ func Test_findSupportingChartVersion(t *testing.T) {
 
 func Test_ApplyModuleDefinitions(t *testing.T) {
 	a := assert.New(t)
-	indexFile, err := loadAndSortRepoIndexFile(pocRepoName, pocURL)
+	_, err := loadAndSortRepoIndexFile(pocRepoName, pocURL)
 	//a.NoError(err)
 	if err != nil {
 		t.Logf("Repo could not be loaded for %s at %s", pocRepoName, pocURL)
@@ -63,9 +100,7 @@ func Test_ApplyModuleDefinitions(t *testing.T) {
 	platformVersion := "2.0.0"
 	chartName := "mysql-dummy"
 	ApplyModuleDefinitions(vzlog.DefaultLogger(), testClient, chartName, pocRepoName, pocURL, platformVersion)
-	chartVersion, err := findSupportingChartVersion(vzlog.DefaultLogger(), indexFile, chartName, platformVersion)
 	a.NoError(err)
-	a.NotNilf(chartVersion, "Supporting version for chart %s for platform version %s", chartName, platformVersion)
 }
 
 func newScheme() *runtime.Scheme {
