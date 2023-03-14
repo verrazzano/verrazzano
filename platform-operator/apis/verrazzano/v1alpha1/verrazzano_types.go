@@ -19,6 +19,8 @@ const (
 	Dev ProfileType = "dev"
 	// Prod identifies the production install profile
 	Prod ProfileType = "prod"
+	// None identifies a profile with all components disabled
+	None ProfileType = "none"
 	// ManagedCluster identifies the production managed-cluster install profile
 	ManagedCluster ProfileType = "managed-cluster"
 )
@@ -147,6 +149,8 @@ type InstanceInfo struct {
 	PrometheusURL *string `json:"prometheusUrl,omitempty"`
 	// The Rancher URL for this Verrazzano installation.
 	RancherURL *string `json:"rancherUrl,omitempty"`
+	// The Thanos Query Frontend URL for this Verrazzano installation.
+	ThanosQueryFrontendURL *string `json:"thanosQueryFrontendUrl,omitempty"`
 }
 
 // VerrazzanoStatus defines the observed state of a Verrazzano resource.
