@@ -1,10 +1,11 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package upgrade
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -46,6 +47,7 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Duration(constants.VPOTimeoutFlag, time.Minute*5, constants.VPOTimeoutFlagHelp)
 	cmd.PersistentFlags().String(constants.VersionFlag, constants.VersionFlagDefault, constants.VersionFlagUpgradeHelp)
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
+	cmd.PersistentFlags().Bool(constants.AutoBugReportFlag, constants.AutoBugReportFlagDefault, constants.AutoBugReportFlagHelp)
 
 	// Initially the operator-file flag may be for internal use, hide from help until
 	// a decision is made on supporting this option.
@@ -183,18 +185,42 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		}
 
 		// Wait for the Verrazzano upgrade to complete
-		return waitForUpgradeToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat)
+		err = waitForUpgradeToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat)
+		if err != nil {
+			autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
+			if errFlag != nil {
+				fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
+				return err
+			}
+			if autoBugReportFlag {
+				//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from waitForUpgradeToComplete
+				return bugreport.CallVzBugReport(cmd, vzHelper, err)
+			}
+			return err
+		}
+		return nil
 	}
 
 	// If we already started the upgrade no need to apply the operator.yaml, wait for VPO, and update the verrazzano
 	// install resource. This could happen if the upgrade command was aborted and the rerun. We anly wait for the upgrade
 	// to complete.
 	if !vzStatusVersion.IsEqualTo(vzSpecVersion) {
-		return waitForUpgradeToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat)
+		err = waitForUpgradeToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat)
+		if err != nil {
+			autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
+			if errFlag != nil {
+				fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
+				return err
+			}
+			if autoBugReportFlag {
+				//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from waitForUpgradeToComplete
+				return bugreport.CallVzBugReport(cmd, vzHelper, err)
+			}
+			return err
+		}
+		return nil
 	}
-
 	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Verrazzano has already been upgraded to version %s\n", vz.Status.Version))
-
 	return nil
 }
 
