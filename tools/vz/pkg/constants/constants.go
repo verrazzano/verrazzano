@@ -52,6 +52,8 @@ const (
 	VerboseFlagDefault   = false
 	VerboseFlagUsage     = "Enable verbose output."
 
+	ReadOnly = "read-only file system"
+
 	AutoBugReportFlag        = "auto-bug-report"
 	AutoBugReportFlagDefault = true
 	AutoBugReportFlagHelp    = "Automatically call vz bug-report if command fails"
