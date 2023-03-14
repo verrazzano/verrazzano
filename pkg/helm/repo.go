@@ -75,6 +75,9 @@ func ApplyModuleDefinitions(log vzlog.VerrazzanoLogger, client client.Client, ch
 	if err != nil {
 		return err
 	}
+	// FIXME: uncomment to allow cleanup
+	//defer vzos.RemoveTempFiles(log.GetRootZapLogger(), chartTempDir)
+	log.Progressf("Pulling chart %s:%s to tempdir %s", selectedVersion.Name, selectedVersion.Version, chartTempDir)
 	if err := Pull(log, repoURI, selectedVersion.Name, selectedVersion.Version, chartTempDir, true); err != nil {
 		return err
 	}
