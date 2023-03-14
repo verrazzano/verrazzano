@@ -135,7 +135,7 @@ func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, mod
 	}
 
 	// Load the ModuleDefinitions if necessary
-	if err := r.loadModuleDefinitions(log, moduleInstance, sourceName, sourceURI, platformInstance.Spec.Version); err != nil {
+	if err := helm.ApplyModuleDefinitions(log, r.Client, moduleInstance.Name, targetModuleVersion, sourceURI); err != nil {
 		return newRequeueWithDelay(), err
 	}
 
@@ -416,7 +416,6 @@ func (r *VerrazzanoModuleReconciler) lookupModuleVersion(log vzlog.VerrazzanoLog
 	if found {
 		if len(modVersion) == 0 {
 			modVersion = defaultVersion
-			return "", log.ErrorfThrottledNewErr("Error determining module version: %s/%s", moduleInstance.Namespace, moduleInstance.Name)
 		}
 		matches, err := semver.MatchesConstraint(modVersion, vzVersionConstraints)
 		if err != nil {
@@ -482,11 +481,11 @@ func (r *VerrazzanoModuleReconciler) updateModuleInstanceState(instance *platfor
 	return r.Status().Update(context.TODO(), instance)
 }
 
-func (r *VerrazzanoModuleReconciler) loadModuleDefinitions(log vzlog.VerrazzanoLogger, instance *platformapi.Module, sourceName string, sourceURI string, platformVersion string) error {
-	return helm.ApplyModuleDefinitions(
-		log, r.Client, instance.Spec.ChartName, sourceName, sourceURI, platformVersion,
-	)
-}
+//func (r *VerrazzanoModuleReconciler) loadModuleDefinitions(log vzlog.VerrazzanoLogger, instance *platformapi.Module, modVersion string, sourceName string, sourceURI string, platformVersion string) error {
+//	return helm.ApplyModuleDefinitions(
+//		log, r.Client, instance.Spec.ChartName, modVersion, sourceURI, platformVersion,
+//	)
+//}
 
 func createOwnerRef(owner *platformapi.Module) *metav1.OwnerReference {
 	return &metav1.OwnerReference{

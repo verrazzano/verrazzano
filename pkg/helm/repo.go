@@ -54,31 +54,38 @@ func LookupChartType(log vzlog.VerrazzanoLogger, repoName, repoURI, chartName, c
 	return platformv1alpha1.UnclassifiedChartType, log.ErrorfThrottledNewErr("Unable to load module type for chart %s-v%s in repo %s", chartName, chartVersion, repoURI)
 }
 
-func ApplyModuleDefinitions(log vzlog.VerrazzanoLogger, client client.Client, chartName, repoName, repoURI, platformVersion string) error {
-	indexFile, err := loadAndSortRepoIndexFile(repoName, repoURI)
-	if err != nil {
-		return err
-	}
+func ApplyModuleDefinitions(log vzlog.VerrazzanoLogger, client client.Client, chartName, chartVersion, repoURI string) error {
+	//indexFile, err := loadAndSortRepoIndexFile(repoName, repoURI)
+	//if err != nil {
+	//	return err
+	//}
 
 	// Find module selectedVersion in Helm repo that matches
-	selectedVersion, err := findSupportingChartVersion(log, indexFile, chartName, platformVersion)
-	if err != nil {
-		return err
+	//selectedVersion, err := findSupportingChartVersion(log, indexFile, chartName, platformVersion)
+	//if err != nil {
+	//	return err
+	//}
+	//if selectedVersion == nil {
+	//	return nil
+	//}
+
+	if len(chartName) == 0 {
+		return log.ErrorfThrottledNewErr("Chart name can not be empty")
 	}
-	if selectedVersion == nil {
-		return nil
+	if len(chartVersion) == 0 {
+		return log.ErrorfThrottledNewErr("Chart version can not be empty")
 	}
 
 	// Download chart and apply resources in moduleDefs dir
-	downloadDir := fmt.Sprintf("%s-%s-*", selectedVersion.Name, selectedVersion.Version)
+	downloadDir := fmt.Sprintf("%s-%s-*", chartName, chartVersion)
 	chartTempDir, err := os.MkdirTemp("", downloadDir)
 	if err != nil {
 		return err
 	}
 	// FIXME: uncomment to allow cleanup
 	//defer vzos.RemoveTempFiles(log.GetRootZapLogger(), chartTempDir)
-	log.Progressf("Pulling chart %s:%s to tempdir %s", selectedVersion.Name, selectedVersion.Version, chartTempDir)
-	if err := Pull(log, repoURI, selectedVersion.Name, selectedVersion.Version, chartTempDir, true); err != nil {
+	log.Progressf("Pulling chart %s:%s to tempdir %s", chartName, chartVersion, chartTempDir)
+	if err := Pull(log, repoURI, chartName, chartVersion, chartTempDir, true); err != nil {
 		return err
 	}
 	return ApplyModuleDefsYaml(log, client, fmt.Sprintf("%s/%s", chartTempDir, chartName))

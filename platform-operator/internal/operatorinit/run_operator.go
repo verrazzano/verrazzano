@@ -11,6 +11,7 @@ import (
 	modulepoc "github.com/verrazzano/verrazzano/platform-operator/controllers/module"
 	modulectrl "github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/module"
 	platformctrl "github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/platform"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/platformdef"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
@@ -90,6 +91,15 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 		return errors.Wrap(err, "Failed starting MySQLChecker")
 	}
 	mysqlCheck.Start()
+
+	// v1beta2 PlatformDefinition controller
+	if err = (&platformdef.PlatformDefinitionReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		log.Error(err, "Failed to setup controller", vzlog.FieldController, "PlatformDefinitionController")
+		os.Exit(1)
+	}
 
 	// v1beta2 Platform controller
 	if err = (&platformctrl.PlatformReconciler{

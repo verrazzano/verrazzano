@@ -1,4 +1,4 @@
-package platform
+package platformdef
 
 import (
 	"context"
@@ -17,33 +17,33 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-// PlatformReconciler reconciles a Verrazzano Platform object
-type PlatformReconciler struct {
+// PlatformDefinitionReconciler reconciles a Verrazzano PlatformDefinition object
+type PlatformDefinitionReconciler struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	Controller controller.Controller
 }
 
 // Name of finalizer
-const finalizerName = "platform.verrazzano.io"
+const finalizerName = "platformdef.verrazzano.io"
 
 // SetupWithManager creates a new controller and adds it to the manager
-func (r *PlatformReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *PlatformDefinitionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	var err error
 	r.Controller, err = ctrl.NewControllerManagedBy(mgr).
-		For(&platformapi.Platform{}).Build(r)
+		For(&platformapi.PlatformDefinition{}).Build(r)
 	return err
 }
 
 // Reconcile the Verrazzano CR
-// +kubebuilder:rbac:groups=platform.verrazzano.io,resources=platforms,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=platform.verrazzano.io,resources=platforms/status,verbs=get;update;patch
-func (r *PlatformReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+// +kubebuilder:rbac:groups=platform.verrazzano.io,resources=platformdefinitions,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=platform.verrazzano.io,resources=platformdefinitions/status,verbs=get;update;patch
+func (r *PlatformDefinitionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	// TODO: Metrics setup
 
-	platformInstance := &platformapi.Platform{}
-	if err := r.Get(ctx, req.NamespacedName, platformInstance); err != nil {
+	platformDef := &platformapi.PlatformDefinition{}
+	if err := r.Get(ctx, req.NamespacedName, platformDef); err != nil {
 		// TODO: errorCounterMetricObject.Inc()
 		// If the resource is not found, that means all the finalizers have been removed,
 		// and the Verrazzano resource has been deleted, so there is nothing left to do.
@@ -56,44 +56,44 @@ func (r *PlatformReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	// Get the resource logger
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
-		Name:           platformInstance.Name,
-		Namespace:      platformInstance.Namespace,
-		ID:             string(platformInstance.UID),
-		Generation:     platformInstance.Generation,
+		Name:           platformDef.Name,
+		Namespace:      platformDef.Namespace,
+		ID:             string(platformDef.UID),
+		Generation:     platformDef.Generation,
 		ControllerName: "platform",
 	})
 	if err != nil {
 		// TODO: errorCounterMetricObject.Inc()
-		zap.S().Errorf("Failed to create controller logger for Platform controller: %v", err)
+		zap.S().Errorf("Failed to create controller logger for PlatformDefinition controller: %v", err)
 	}
 
-	log.Infof("Reconciling platform instance %s/%s", platformInstance.Namespace, platformInstance.Name)
+	log.Infof("Reconciling platform definition %s/%s", platformDef.Namespace, platformDef.Name)
 
 	// Check if resource is being deleted
-	if !platformInstance.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !platformDef.ObjectMeta.DeletionTimestamp.IsZero() {
 		log.Oncef("Removing finalizer %s", finalizerName)
-		platformInstance.ObjectMeta.Finalizers = vzstring.RemoveStringFromSlice(platformInstance.ObjectMeta.Finalizers, finalizerName)
-		if err := r.Update(ctx, platformInstance); err != nil {
+		platformDef.ObjectMeta.Finalizers = vzstring.RemoveStringFromSlice(platformDef.ObjectMeta.Finalizers, finalizerName)
+		if err := r.Update(ctx, platformDef); err != nil {
 			return newRequeueWithDelay(), err
 		}
 		return ctrl.Result{}, nil
 	}
 
-	if !vzstring.SliceContainsString(platformInstance.ObjectMeta.Finalizers, finalizerName) {
+	if !vzstring.SliceContainsString(platformDef.ObjectMeta.Finalizers, finalizerName) {
 		log.Debugf("Adding finalizer %s", finalizerName)
-		platformInstance.ObjectMeta.Finalizers = append(platformInstance.ObjectMeta.Finalizers, finalizerName)
-		if err := r.Update(context.TODO(), platformInstance); err != nil {
+		platformDef.ObjectMeta.Finalizers = append(platformDef.ObjectMeta.Finalizers, finalizerName)
+		if err := r.Update(context.TODO(), platformDef); err != nil {
 			return newRequeueWithDelay(), err
 		}
 	}
 
 	// Update the platform status
-	platformInstance.Status.Version = platformInstance.Spec.Version
-	if err := r.Status().Update(context.TODO(), platformInstance); err != nil {
+	platformDef.Status.Version = platformDef.Spec.Version
+	if err := r.Status().Update(context.TODO(), platformDef); err != nil {
 		return newRequeueWithDelay(), err
 	}
 
-	log.Infof("Reconcile of platform instance %s/%s complete", platformInstance.Namespace, platformInstance.Name)
+	log.Infof("Reconcile of platform definition %s/%s complete", platformDef.Namespace, platformDef.Name)
 	return ctrl.Result{}, nil
 }
 

@@ -97,9 +97,8 @@ func Test_ApplyModuleDefinitions(t *testing.T) {
 	}
 
 	testClient := fake.NewClientBuilder().WithScheme(newScheme()).Build()
-	platformVersion := "2.0.0"
 	chartName := "mysql-dummy"
-	ApplyModuleDefinitions(vzlog.DefaultLogger(), testClient, chartName, pocRepoName, pocURL, platformVersion)
+	ApplyModuleDefinitions(vzlog.DefaultLogger(), testClient, chartName, "0.1.2", pocURL)
 	a.NoError(err)
 }
 
