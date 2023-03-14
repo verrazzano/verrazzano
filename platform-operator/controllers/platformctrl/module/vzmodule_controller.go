@@ -122,48 +122,27 @@ func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, mod
 	}
 	sourceName, sourceURI := r.lookupModuleSource(platformInstance, moduleInstance.Spec.Source)
 
+	// Find the desired module version
+	targetModuleVersion, err := r.lookupModuleVersion(log, moduleInstance, platformDefinition, sourceName, sourceURI)
+	if err != nil {
+		return vzcontroller.NewRequeueWithDelay(10, 30, time.Second), err
+	}
+	// FIXME: we only need the chart type if we can't assume the module we're reconciling is not a CRD or operator chart
+	// Pull module type from chart
+	moduleChartType, err := helm.LookupChartType(log, sourceName, sourceURI, moduleInstance.Name, targetModuleVersion)
+	if err != nil {
+		return vzcontroller.NewRequeueWithDelay(30, 300, time.Second), err
+	}
+
+	// Load the ModuleDefinitions if necessary
 	if err := r.loadModuleDefinitions(log, moduleInstance, sourceName, sourceURI, platformInstance.Spec.Version); err != nil {
 		return newRequeueWithDelay(), err
 	}
 
 	namespace := r.lookupChartNamespace(moduleInstance, platformSource)
 
-	// Pull module type from chart
-	// FIXME: we only need the chart type if we can't assume the module we're reconciling is not a CRD or operator chart
-	var crdDeps []platformapi.ChartDependency
-	var opDeps []platformapi.ChartDependency
-	moduleChartType := helm.LookupChartType(log, "vz-stable", sourceURI, moduleInstance.Name)
-	// Look up definition in cluster
-	clientset, err := getVPOClientset()
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	switch moduleChartType {
-	case platformapi.ModuleChartType:
-		// Look up definition in cluster
-		moduleDef, err := clientset.PlatformV1alpha1().ModuleDefinitions().Get(context.TODO(), moduleInstance.Name, metav1.GetOptions{})
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		// FIXME: controllerruntime cache is interfering with these lookups
-		//moduleDef := &platformapi.ModuleDefinition{}
-		//if err := r.Get(context.TODO(), types.NamespacedName{Name: moduleInstance.Name}, moduleDef); err != nil {
-		//	return ctrl.Result{}, err
-		//}
-		crdDeps = moduleDef.Spec.CRDDependencies
-		opDeps = moduleDef.Spec.OperatorDependencies
-	case platformapi.OperatorChartType:
-		operatorDef, err := clientset.PlatformV1alpha1().OperatorDefinitions().Get(context.TODO(), moduleInstance.Name, metav1.GetOptions{})
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		//operatorDef := &platformapi.OperatorDefinition{}
-		//if err := r.Get(context.TODO(), types.NamespacedName{Name: moduleInstance.Name, Namespace: namespace}, operatorDef); err != nil {
-		//	return ctrl.Result{}, err
-		//}
-		crdDeps = operatorDef.Spec.CRDDependencies
-		opDeps = operatorDef.Spec.OperatorDependencies
-	}
+	// Load the module dependencies
+	crdDeps, opDeps := r.getModuleDependencies(log, moduleInstance, moduleChartType, sourceURI, err)
 
 	// FIXME: There's a list of concerns below, but generally what is the cardinality of the Module/Operator dependencies?  Who owns what?
 	//   - We can assume that an operator/module gets scoped to a namespace, but not necessarily a "CRD" chart
@@ -195,7 +174,7 @@ func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, mod
 		return result, err
 	}
 
-	if _, err := r.reconcileModule(log, moduleInstance, namespace, sourceURI, moduleChartType, platformDefinition); err != nil {
+	if _, err := r.reconcileModule(log, moduleInstance, targetModuleVersion, namespace, sourceURI); err != nil {
 		return newRequeueWithDelay(), err
 	}
 	if moduleInstance.Status.State != platformapi.ModuleStateReady {
@@ -205,6 +184,43 @@ func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, mod
 	}
 	log.Infof("Module %s/%s reconcile complete", moduleInstance.Namespace, moduleInstance.Name)
 	return ctrl.Result{}, nil
+}
+
+func (r *VerrazzanoModuleReconciler) getModuleDependencies(log vzlog.VerrazzanoLogger, moduleInstance *platformapi.Module, moduleChartType platformapi.ChartType, sourceURI string, err error) ([]platformapi.ChartDependency, []platformapi.ChartDependency) {
+	var crdDeps []platformapi.ChartDependency
+	var opDeps []platformapi.ChartDependency
+	// Look up definition in cluster
+	clientset, err := getVPOClientset()
+	if err != nil {
+		return nil, nil
+	}
+	switch moduleChartType {
+	case platformapi.ModuleChartType:
+		// Look up definition in cluster
+		moduleDef, err := clientset.PlatformV1alpha1().ModuleDefinitions().Get(context.TODO(), moduleInstance.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, nil
+		}
+		// FIXME: controllerruntime cache is interfering with these lookups
+		//moduleDef := &platformapi.ModuleDefinition{}
+		//if err := r.Get(context.TODO(), types.NamespacedName{Name: moduleInstance.Name}, moduleDef); err != nil {
+		//	return ctrl.Result{}, err
+		//}
+		crdDeps = moduleDef.Spec.CRDDependencies
+		opDeps = moduleDef.Spec.OperatorDependencies
+	case platformapi.OperatorChartType:
+		operatorDef, err := clientset.PlatformV1alpha1().OperatorDefinitions().Get(context.TODO(), moduleInstance.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, nil
+		}
+		//operatorDef := &platformapi.OperatorDefinition{}
+		//if err := r.Get(context.TODO(), types.NamespacedName{Name: moduleInstance.Name, Namespace: namespace}, operatorDef); err != nil {
+		//	return ctrl.Result{}, err
+		//}
+		crdDeps = operatorDef.Spec.CRDDependencies
+		opDeps = operatorDef.Spec.OperatorDependencies
+	}
+	return crdDeps, opDeps
 }
 
 func getVPOClientset() (*vpoclient.Clientset, error) {
@@ -219,9 +235,8 @@ func getVPOClientset() (*vpoclient.Clientset, error) {
 	return vpoclientset, nil
 }
 
-func (r *VerrazzanoModuleReconciler) reconcileModule(log vzlog.VerrazzanoLogger, moduleInstance *platformapi.Module, namespace string, sourceURI string, modType platformapi.ChartType, pd *platformapi.PlatformDefinition) (*modulesv1alpha1.Module, error) {
-	moduleVersion, err := r.lookupModuleVersion(log, moduleInstance, modType, pd)
-	lifecycleResource, err := r.createLifecycleResource(sourceURI, moduleInstance.Name, namespace, moduleVersion,
+func (r *VerrazzanoModuleReconciler) reconcileModule(log vzlog.VerrazzanoLogger, moduleInstance *platformapi.Module, desiredModuleVersion string, namespace string, sourceURI string) (*modulesv1alpha1.Module, error) {
+	lifecycleResource, err := r.createLifecycleResource(sourceURI, moduleInstance.Name, namespace, desiredModuleVersion,
 		vzapi.InstallOverrides{}, createOwnerRef(moduleInstance))
 	if err != nil {
 		return nil, err
@@ -233,8 +248,8 @@ func (r *VerrazzanoModuleReconciler) reconcileModule(log vzlog.VerrazzanoLogger,
 }
 
 func (r *VerrazzanoModuleReconciler) applyDependencies(log vzlog.VerrazzanoLogger, moduleInstance *platformapi.Module, opDeps []platformapi.ChartDependency, moduleNamespace string) (ctrl.Result, error) {
-	// FIXME: should probably fan-out to create other V2 modules that will be independently reconciled?
-	//   - can roll up their status via the installers
+	// Fan-out to V2 modules that will be independently reconciled to apply dependencies,
+	// and roll up their status via the installers
 	var installers []*platformapi.Module
 	for _, operatorDependency := range opDeps {
 		dependentModule, err := r.createDependentModule(operatorDependency, moduleNamespace, moduleInstance)
@@ -243,7 +258,6 @@ func (r *VerrazzanoModuleReconciler) applyDependencies(log vzlog.VerrazzanoLogge
 		}
 		installers = append(installers, dependentModule)
 	}
-	// FIXME: this is probably too simplistic?
 	// Watch for completion
 	allDependenciesMet := r.checkInstallerDependencies(log, installers)
 	if !allDependenciesMet {
@@ -389,55 +403,54 @@ func (r *VerrazzanoModuleReconciler) lookupChartName(moduleInstance *platformapi
 	return chartName
 }
 
-func (r *VerrazzanoModuleReconciler) lookupModuleVersion(log vzlog.VerrazzanoLogger, moduleInstance *platformapi.Module, modType platformapi.ChartType, pd *platformapi.PlatformDefinition) (string, error) {
-	defaultVersion, supportedVersions := r.getModuleVersionInfo(modType, pd, moduleInstance)
-	modVersion := defaultVersion
+func (r *VerrazzanoModuleReconciler) lookupModuleVersion(log vzlog.VerrazzanoLogger, moduleInstance *platformapi.Module, pd *platformapi.PlatformDefinition, repoName string, repoURI string) (string, error) {
+	// Find target module version
+	// - declared in the Module instance
+	var modVersion string
 	// Look up the explicitly declared module version
 	if len(moduleInstance.Spec.Version) > 0 {
-		modVersion = defaultVersion
+		modVersion = moduleInstance.Spec.Version
 	}
-	if len(modVersion) == 0 {
-		return "", log.ErrorfThrottledNewErr("Error determining module version: %s/%s", moduleInstance.Namespace, moduleInstance.Name)
+	// - default version in the Platform definition, if it exists there
+	defaultVersion, vzVersionConstraints, found := r.getModuleVersionInfoFromPlatform(pd, moduleInstance)
+	if found {
+		if len(modVersion) == 0 {
+			modVersion = defaultVersion
+			return "", log.ErrorfThrottledNewErr("Error determining module version: %s/%s", moduleInstance.Namespace, moduleInstance.Name)
+		}
+		matches, err := semver.MatchesConstraint(modVersion, vzVersionConstraints)
+		if err != nil {
+			return "", log.ErrorfThrottledNewErr("Module %s/%s version %s failed to meet ModuleDefinition constraints: %s",
+				moduleInstance.Namespace, moduleInstance.Name, modVersion, vzVersionConstraints)
+		}
+		if matches {
+			return modVersion, nil
+		}
 	}
-	matches, err := semver.MatchesConstraint(modVersion, supportedVersions)
-	if err != nil {
-		return "", log.ErrorfThrottledNewErr("Module %s/%s version %s failed to meet ModuleDefinition constraints: %s",
-			moduleInstance.Namespace, moduleInstance.Name, modVersion, supportedVersions)
-	}
-	if matches {
-		return modVersion, nil
-	}
+	// - find the most recent version in the repo compatible based on the Chart annotations
+	helm.FindNearestSupportingChartVersion(log, moduleInstance.Name, repoName, repoURI, pd.Spec.Version)
 	// TODO: validate that the declare module version is in the supported range in the platform definition
-	return moduleInstance.Spec.Version, nil
+	return modVersion, nil
 }
 
-// getModuleVersionInfo Obtains the module version information declared in the Module/Operator definition
-func (r *VerrazzanoModuleReconciler) getModuleVersionInfo(modType platformapi.ChartType, pd *platformapi.PlatformDefinition, moduleInstance *platformapi.Module) (string, string) {
-	var defaultVersion, supportedVersions string
-	switch modType {
-	case platformapi.OperatorChartType:
-		for _, modDef := range pd.Spec.OperatorVersions {
-			if modDef.Name == moduleInstance.Name {
-				defaultVersion = modDef.DefaultVersion
-				supportedVersions = modDef.SupportedVersions
-			}
-		}
-	case platformapi.ModuleChartType:
-		for _, modDef := range pd.Spec.ModuleVersions {
-			if modDef.Name == moduleInstance.Name {
-				defaultVersion = modDef.DefaultVersion
-				supportedVersions = modDef.SupportedVersions
-			}
-		}
-	case platformapi.CRDChartType:
-		for _, modDef := range pd.Spec.CRDVersions {
-			if modDef.Name == moduleInstance.Name {
-				defaultVersion = modDef.DefaultVersion
-				supportedVersions = modDef.SupportedVersions
-			}
+// getModuleVersionInfoFromPlatform Obtains the module version information declared in the Platform definition
+func (r *VerrazzanoModuleReconciler) getModuleVersionInfoFromPlatform(pd *platformapi.PlatformDefinition, moduleInstance *platformapi.Module) (defaultModuleVersion, vzVersionConstraints string, found bool) {
+	for _, modDef := range pd.Spec.OperatorVersions {
+		if modDef.Name == moduleInstance.Name {
+			return modDef.DefaultVersion, modDef.SupportedVersions, true
 		}
 	}
-	return defaultVersion, supportedVersions
+	for _, modDef := range pd.Spec.ModuleVersions {
+		if modDef.Name == moduleInstance.Name {
+			return modDef.DefaultVersion, modDef.SupportedVersions, true
+		}
+	}
+	for _, modDef := range pd.Spec.CRDVersions {
+		if modDef.Name == moduleInstance.Name {
+			return modDef.DefaultVersion, modDef.SupportedVersions, true
+		}
+	}
+	return "", "", false
 }
 
 func (r *VerrazzanoModuleReconciler) getPlatformDefinition(log vzlog.VerrazzanoLogger, instance *platformapi.Platform) (*platformapi.PlatformDefinition, error) {
@@ -470,7 +483,7 @@ func (r *VerrazzanoModuleReconciler) updateModuleInstanceState(instance *platfor
 }
 
 func (r *VerrazzanoModuleReconciler) loadModuleDefinitions(log vzlog.VerrazzanoLogger, instance *platformapi.Module, sourceName string, sourceURI string, platformVersion string) error {
-	return helm.LoadModuleDefinitions(
+	return helm.ApplyModuleDefinitions(
 		log, r.Client, instance.Spec.ChartName, sourceName, sourceURI, platformVersion,
 	)
 }
