@@ -145,13 +145,10 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	ctx.Log().Progress("Component Rancher background post-uninstall goroutine is running")
 
 	// Delete Rancher finalizers before running the rancher-cleanup job (to speed up the uninstall)
-	if err := deleteRancherFinalizers(ctx); err != nil {
-		return err
-	}
-
-	// Delete Rancher finalizers before running the rancher-cleanup job (to speed up the uninstall)
 	if !rancherFinalizersDeleted {
-		deleteRancherFinalizers(ctx)
+		if err := deleteRancherFinalizers(ctx); err != nil {
+			return err
+		}
 		rancherFinalizersDeleted = true
 	}
 
