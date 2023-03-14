@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
 	"os"
 	"strings"
 	"testing"
@@ -2166,6 +2167,9 @@ func TestCreateHostsFromIngressTraitRuleWildcards(t *testing.T) {
 
 func TestHostRules(t *testing.T) {
 	assert := asserts.New(t)
+	const externalDNSKey = "external-dns.alpha.kubernetes.io/target"
+	const wildcardDomainKey = "verrazzano.io/dns.wildcard.domain"
+
 	tests := []struct {
 		name          string
 		rules         []vzapi.IngressRule
@@ -2187,10 +2191,29 @@ func TestHostRules(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			trait := vzapi.IngressTrait{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "hello",
+					Namespace: "default",
+					Labels:    map[string]string{oam.LabelAppName: "hello"},
+				},
+				Spec:   vzapi.IngressTraitSpec{},
+				Status: vzapi.IngressTraitStatus{},
+			}
+			trait.Spec.Rules = test.rules
+			ingress := k8net.Ingress{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      constants.VzConsoleIngress,
+					Namespace: constants.VerrazzanoSystemNamespace,
+					Annotations: map[string]string{
+						externalDNSKey:    "verrazzano-ingress-myhost",
+						wildcardDomainKey: "1.2.3.4.nip.io"},
+				},
+			}
+			results := reconcileresults.ReconcileResults{}
+			r := createReconcilerWithFake(&ingress)
 
-			createHostsFromIngressTraitRule
-			hosts, err := coallateAllHostsForTrait(nil, rule, nil)
-			assert.NoError(err)
+			hosts := r.coallateAllHostsForTrait(&trait, results)
 			assert.Len(hosts, 2)
 			assert.Equal("host-1", hosts[0])
 			assert.Equal("host-2", hosts[1])
