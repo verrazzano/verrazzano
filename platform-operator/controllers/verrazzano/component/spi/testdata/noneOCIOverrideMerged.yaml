@@ -281,3 +281,5 @@ spec:
       enabled: false
     argoCD:
       enabled: false
+    thanos:
+      enabled: false
