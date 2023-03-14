@@ -23,7 +23,7 @@ function poll-webhook {
       fi
   done
   echo "timeout waiting for VPO webhook"
-  exit 2
+  exit 1
 }
 
 poll-webhook "https://verrazzano-platform-operator-webhook:443/validate-install-verrazzano-io-v1beta1-verrazzano"
