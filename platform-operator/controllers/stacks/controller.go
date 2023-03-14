@@ -15,7 +15,8 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/stacks/monitoring"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/stacks/stackspi"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -34,6 +35,8 @@ import (
 	weblogic.ComponentName:  weblogic.NewComponent,
 }*/
 
+var stackComponents = map[string]stackspi.StackComponent{}
+
 type Reconciler struct {
 	client.Client
 	Scheme     *runtime.Scheme
@@ -42,6 +45,7 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+	initStackComponentList()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1.ConfigMap{}).
 		WithEventFilter(r.createStackConfigMapPredicate()).
@@ -49,6 +53,10 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 			MaxConcurrentReconciles: 10,
 		}).
 		Complete(r)
+}
+
+func initStackComponentList() {
+	stackComponents[monitoring.StackName] = monitoring.NewStackComponent()
 }
 
 func (r *Reconciler) createStackConfigMapPredicate() predicate.Predicate {
@@ -118,32 +126,43 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		zap.S().Errorf("Failed to create controller logger for Stack controller: %v", err)
 		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
 	}
+	zap.S().Infof("DEVA Created logger for stack %s - here's a message", stackName)
+	log.Infof("DEVA msg from stack logger")
 
 	// TODO kick off install of stack component indicated by the ConfigMap
-	found, stackComponent := registry.FindComponent(stackName)
+	stackComponent, found := stackComponents[stackName]
 	if !found {
-		log.Errorf("Failed not find stack component with name %s", stackName)
+		log.Errorf("Failed to find stack component with name %s", stackName)
+		return newRequeueWithDelay(), nil
 	}
-	vz := &vzapi.Verrazzano{}
-	if err := r.Get(ctx, req.NamespacedName, vz); err != nil {
-		// If the resource is not found, that means all of the finalizers have been removed,
+	log.Infof("DEVA found stack component %v", stackComponent)
+	vzlist := &vzapi.VerrazzanoList{}
+	var vz vzapi.Verrazzano
+	if err := r.List(ctx, vzlist); err != nil {
+		// If the resource is not found or the list is empty, that means all of the finalizers have been removed,
 		// and the Verrazzano resource has been deleted, so there is nothing left to do.
 		if k8serrors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}
-		zap.S().Errorf("Failed to fetch Verrazzano resource: %v", err)
+		log.Errorf("Failed to list Verrazzano resources: %v", err)
 		return newRequeueWithDelay(), nil
 	}
-	var t StackComponent
-	if reflect.TypeOf(stackComponent).AssignableTo(reflect.TypeOf(t)) {
+	if len(vzlist.Items) > 0 {
+		vz = vzlist.Items[0]
+	} else {
+		log.Errorf("No Verrazzano resource found. Nothing to do.")
+		return reconcile.Result{}, nil
+	}
+	log.Infof("DEVA fetched Verrazzano")
+	if reflect.TypeOf(stackComponent).AssignableTo(reflect.TypeOf((*stackspi.StackComponent)(nil)).Elem()) {
 		// Keep retrying to reconcile components until it completes
 		// vzctx, err := vzcontext.NewVerrazzanoContext(log, r.Client, vz, r.DryRun)
-		stackCtx, err := NewStackContext(log, r.Client, vz, nil, stackConfig, r.DryRun)
+		stackCtx, err := stackspi.NewStackContext(log, r.Client, &vz, nil, stackConfig, r.DryRun)
 		if err != nil {
 			zap.S().Errorf("Failed to create Stack Context: %v", err)
 			return newRequeueWithDelay(), err
 		}
-		if err := stackComponent.(StackComponent).ReconcileStack(stackCtx); err != nil {
+		if err := stackComponent.(stackspi.StackComponent).ReconcileStack(stackCtx); err != nil {
 			return newRequeueWithDelay(), err
 		}
 	}

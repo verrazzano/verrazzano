@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package stacks
+package stackspi
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -39,15 +39,29 @@ type stackContext struct {
 	stackConfig v1.ConfigMap
 }
 
-// GetConfigMapOverrides returns the list of install overrides for a ConfigMap based component configuration
+// GetConfigMapInstallOverrides returns the list of install overrides for a ConfigMap based component configuration
 func (h HelmStackComponent) GetConfigMapInstallOverrides(cm v1.ConfigMap, cr runtime.Object) interface{} {
 	if h.GetConfigMapInstallOverridesFunc != nil {
 		return h.GetConfigMapInstallOverridesFunc(cm, cr)
 	}
-	if _, ok := cr.(*v1beta1.Verrazzano); ok {
-		return []v1beta1.Overrides{}
+	values := make(map[string]interface{})
+	for key, value := range cm.Data {
+		values[key] = value
 	}
-	return []v1alpha1.Overrides{}
+	if _, ok := cr.(*v1beta1.Verrazzano); ok {
+		overrides := []v1beta1.Overrides{}
+		for key, _ := range cm.Data {
+			keyref := v1.ConfigMapKeySelector{Key: key, LocalObjectReference: v1.LocalObjectReference{Name: cm.Name}}
+			overrides = append(overrides, v1beta1.Overrides{ConfigMapRef: &keyref})
+		}
+		return overrides
+	}
+	overrides := []v1alpha1.Overrides{}
+	for key, _ := range cm.Data {
+		keyref := v1.ConfigMapKeySelector{Key: key, LocalObjectReference: v1.LocalObjectReference{Name: cm.Name}}
+		overrides = append(overrides, v1alpha1.Overrides{ConfigMapRef: &keyref})
+	}
+	return overrides
 
 }
 
