@@ -148,7 +148,7 @@ type InstanceInfo struct {
 	// The Rancher URL for this Verrazzano installation.
 	RancherURL *string `json:"rancherUrl,omitempty"`
 	// The Thanos Query Frontend URL for this Verrazzano installation.
-	ThanosQueryFrontendURL *string `json:"thanosQueryFrontendURL,omitempty"`
+	ThanosQueryFrontendURL *string `json:"thanosQueryFrontendUrl,omitempty"`
 }
 
 // VerrazzanoStatus defines the observed state of a Verrazzano resource.
