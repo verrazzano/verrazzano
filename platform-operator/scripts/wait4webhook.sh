@@ -10,7 +10,7 @@
 
 function poll-webhook {
   SECONDS=0
-  MAX_SECONDS=30
+  MAX_SECONDS=60
   while [ $SECONDS -lt $MAX_SECONDS ]; do
       status_code=$(curl --insecure --silent --output /tmp/out --write-out '%{http_code}' -H 'Content-Type: application/json' $1)
       echo "$1 returned HTTP $status_code."
@@ -22,6 +22,8 @@ function poll-webhook {
           exit 0
       fi
   done
+  echo "timeout waiting for VPO webhook"
+  exit 2
 }
 
 poll-webhook "https://verrazzano-platform-operator-webhook:443/validate-install-verrazzano-io-v1beta1-verrazzano"
