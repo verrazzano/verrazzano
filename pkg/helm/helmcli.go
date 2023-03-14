@@ -208,6 +208,39 @@ func Uninstall(log vzlog.VerrazzanoLogger, releaseName string, namespace string,
 	return stdout, stderr, nil
 }
 
+// UpgradeRelease will upgrade a Helm release with the specified charts.  The override files array
+// are in order with the first files in the array have lower precedence than latter files.
+func Pull(log vzlog.VerrazzanoLogger, repoURL string, chartName string, chartVersion string, downloadDir string, untar bool) error {
+	// Helm upgrade command will apply the new chart, but use all the existing
+	// overrides that we used during the installation.
+	args := []string{"pull", chartName}
+	if len(repoURL) > 0 {
+		args = append(args, fmt.Sprintf("%s=%s", "--repo", repoURL))
+	}
+
+	if len(chartVersion) > 0 {
+		args = append(args, fmt.Sprintf("%s=%s", "--version", chartVersion))
+	}
+
+	if len(downloadDir) > 0 {
+		args = append(args, fmt.Sprintf("--untardir=%s", downloadDir))
+	}
+
+	if untar {
+		args = append(args, fmt.Sprintf("--untar"))
+	}
+
+	cmd := exec.Command("helm", args...)
+	_, stderr, err := runner.Run(cmd)
+	if err != nil {
+		if strings.Contains(string(stderr), "not found") {
+			return nil
+		}
+		return fmt.Errorf("helm pull for chart %s:%s failed with stderr: %s", chartName, chartVersion, string(stderr))
+	}
+	return nil
+}
+
 // runHelm is a helper function to execute the helm CLI and return a result
 func runHelm(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, operation string, wait bool, args []string, dryRun bool) (stdout []byte, stderr []byte, err error) {
 	cmdArgs := []string{operation, releaseName}

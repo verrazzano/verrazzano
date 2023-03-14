@@ -2,7 +2,9 @@ package module
 
 import (
 	"context"
-	"github.com/Masterminds/semver/v3"
+	"github.com/verrazzano/verrazzano/pkg/semver"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
@@ -13,7 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"time"
 
 	vzcontroller "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -37,7 +38,8 @@ type VerrazzanoModuleReconciler struct {
 const (
 	finalizerName = "vzmodule.verrazzano.io"
 
-	defaultSourceURI = "http://localhost:9080/vz/stable"
+	defaultSourceURI  = "http://localhost:9080/vz/stable"
+	defaultSourceName = "vz-stable"
 )
 
 var (
@@ -118,7 +120,11 @@ func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, mod
 	if err != nil {
 		return newRequeueWithDelay(), err
 	}
-	sourceURI := r.lookupModuleSourceURI(platformInstance, moduleInstance.Spec.Source)
+	sourceName, sourceURI := r.lookupModuleSource(platformInstance, moduleInstance.Spec.Source)
+
+	if err := r.loadModuleDefinitions(log, moduleInstance, sourceName, sourceURI, platformInstance.Spec.Version); err != nil {
+		return newRequeueWithDelay(), err
+	}
 
 	namespace := r.lookupChartNamespace(moduleInstance, platformSource)
 
@@ -350,16 +356,16 @@ func (r *VerrazzanoModuleReconciler) getPlatormInstance(log vzlog.VerrazzanoLogg
 	return &platformInstance, nil
 }
 
-func (r *VerrazzanoModuleReconciler) lookupModuleSourceURI(platform *platformapi.Platform, declaredSource *platformapi.PlatformSource) string {
+func (r *VerrazzanoModuleReconciler) lookupModuleSource(platform *platformapi.Platform, declaredSource *platformapi.PlatformSource) (sourceName, sourceURI string) {
 	if platform == nil || declaredSource == nil {
-		return defaultSourceURI
+		return defaultSourceName, defaultSourceURI
 	}
 	for _, source := range platform.Spec.Sources {
 		if source.Name == declaredSource.Name {
-			return source.URL
+			return source.Name, source.URL
 		}
 	}
-	return defaultSourceURI
+	return defaultSourceName, defaultSourceURI
 }
 
 func (r *VerrazzanoModuleReconciler) lookupChartNamespace(moduleInstance *platformapi.Module, platformSource *platformapi.PlatformSource) string {
@@ -393,17 +399,13 @@ func (r *VerrazzanoModuleReconciler) lookupModuleVersion(log vzlog.VerrazzanoLog
 	if len(modVersion) == 0 {
 		return "", log.ErrorfThrottledNewErr("Error determining module version: %s/%s", moduleInstance.Namespace, moduleInstance.Name)
 	}
-	version, err := semver.NewVersion(modVersion)
+	matches, err := semver.MatchesConstraint(modVersion, supportedVersions)
 	if err != nil {
-		return "", err
-	}
-	constraint, err := semver.NewConstraint(supportedVersions)
-	if err != nil {
-		return "", err
-	}
-	if !constraint.Check(version) {
 		return "", log.ErrorfThrottledNewErr("Module %s/%s version %s failed to meet ModuleDefinition constraints: %s",
 			moduleInstance.Namespace, moduleInstance.Name, modVersion, supportedVersions)
+	}
+	if matches {
+		return modVersion, nil
 	}
 	// TODO: validate that the declare module version is in the supported range in the platform definition
 	return moduleInstance.Spec.Version, nil
@@ -465,6 +467,12 @@ func (r *VerrazzanoModuleReconciler) updateModuleInstanceState(instance *platfor
 		}
 	}
 	return r.Status().Update(context.TODO(), instance)
+}
+
+func (r *VerrazzanoModuleReconciler) loadModuleDefinitions(log vzlog.VerrazzanoLogger, instance *platformapi.Module, sourceName string, sourceURI string, platformVersion string) error {
+	return helm.LoadModuleDefinitions(
+		log, r.Client, instance.Spec.ChartName, sourceName, sourceURI, platformVersion,
+	)
 }
 
 func createOwnerRef(owner *platformapi.Module) *metav1.OwnerReference {
