@@ -4,7 +4,6 @@
 package analyze
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"github.com/stretchr/testify/assert"
@@ -43,17 +42,21 @@ func TestAnalyzeCommandDefault(t *testing.T) {
 	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	rc.SetClient(c)
 	cmd := NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
 	err = cmd.Execute()
 	assert.Nil(t, err)
+	buf, err := os.ReadFile(stdoutFile.Name())
+	assert.NoError(t, err)
 	// This should generate a stdout from the live cluster
-	assert.Contains(t, buf.String(), "Verrazzano analysis CLI did not detect any issue in the cluster")
+	assert.Contains(t, string(buf), "Verrazzano analysis CLI did not detect any issue in the cluster")
 	// Clean analysis should not generate a report file
 	fileMatched, _ := filepath.Glob(constants.VzAnalysisReportTmpFile)
 	assert.Len(t, fileMatched, 0)
@@ -64,9 +67,12 @@ func TestAnalyzeCommandDefault(t *testing.T) {
 // WHEN I call cmd.Execute from read only dir with a valid capture-dir and report-format set to "summary"
 // THEN expect the command to do the analysis and generate report file into tmp dir
 func TestAnalyzeDefaultFromReadOnlyDir(t *testing.T) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
 	pwd, err := os.Getwd()
@@ -88,16 +94,21 @@ func TestAnalyzeDefaultFromReadOnlyDir(t *testing.T) {
 // WHEN I call cmd.Execute with a valid capture-dir and report-format set to "detailed"
 // THEN expect the command to provide the report containing all the details for one or more issues reported
 func TestAnalyzeCommandDetailedReport(t *testing.T) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.DirectoryFlagName, ingressIPNotFound)
 	cmd.PersistentFlags().Set(constants.ReportFormatFlagName, constants.DetailedReport)
 	err := cmd.Execute()
 	assert.Nil(t, err)
-	assert.Contains(t, buf.String(), "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer",
+	buf, err := os.ReadFile(stdoutFile.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(buf), "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer",
 		"Error syncing load balancer: failed to ensure load balancer: awaiting load balancer: context deadline exceeded")
 	// Failures must be reported underreport file details-XXXXXX.out
 	if fileMatched, _ := filepath.Glob(constants.VzAnalysisReportTmpFile); len(fileMatched) == 1 {
@@ -111,17 +122,22 @@ func TestAnalyzeCommandDetailedReport(t *testing.T) {
 // WHEN I call cmd.Execute with a valid capture-dir and report-format set to "summary"
 // THEN expect the command to provide the report containing only summary for one or more issues reported
 func TestAnalyzeCommandSummaryReport(t *testing.T) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.DirectoryFlagName, ingressIPNotFound)
 	cmd.PersistentFlags().Set(constants.ReportFormatFlagName, constants.SummaryReport)
 	err := cmd.Execute()
 	assert.Nil(t, err)
-	assert.NotContains(t, buf.String(), "Error syncing load balancer: failed to ensure load balancer: awaiting load balancer: context deadline exceeded")
-	assert.Contains(t, buf.String(), "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer")
+	buf, err := os.ReadFile(stdoutFile.Name())
+	assert.NoError(t, err)
+	assert.NotContains(t, string(buf), "Error syncing load balancer: failed to ensure load balancer: awaiting load balancer: context deadline exceeded")
+	assert.Contains(t, string(buf), "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer")
 	// Failures must be reported underreport file details-XXXXXX.out
 	if fileMatched, _ := filepath.Glob(constants.VzAnalysisReportTmpFile); len(fileMatched) == 1 {
 		os.Remove(fileMatched[0])
@@ -134,16 +150,21 @@ func TestAnalyzeCommandSummaryReport(t *testing.T) {
 // WHEN I call cmd.Execute with an invalid value for report-format
 // THEN expect the command to fail with an appropriate error message to indicate the issue
 func TestAnalyzeCommandInvalidReportFormat(t *testing.T) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.DirectoryFlagName, imagePullCase1)
 	cmd.PersistentFlags().Set(constants.ReportFormatFlagName, "invalid-report-format")
 	err := cmd.Execute()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "\"invalid-report-format\" is not valid for flag report-format, only \"summary\" and \"detailed\" are valid")
+	buf, err := os.ReadFile(stderrFile.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(buf), "\"invalid-report-format\" is not valid for flag report-format, only \"summary\" and \"detailed\" are valid")
 }
 
 // TestAnalyzeWithDefaultReportFormat
@@ -151,21 +172,25 @@ func TestAnalyzeCommandInvalidReportFormat(t *testing.T) {
 // WHEN I call cmd.Execute without report-format
 // THEN expect the command to take the default value of summary for report-format and perform the analysis
 func TestAnalyzeWithDefaultReportFormat(t *testing.T) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+		if fileMatched, _ := filepath.Glob(constants.VzAnalysisReportTmpFile); len(fileMatched) == 1 {
+			os.Remove(fileMatched[0])
+			assert.NoFileExists(t, fileMatched[0])
+		}
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.DirectoryFlagName, ingressIPNotFound)
 	err := cmd.Execute()
 	assert.Nil(t, err)
-	assert.NotContains(t, buf.String(), "Error syncing load balancer: failed to ensure load balancer: awaiting load balancer: context deadline exceeded")
-	assert.Contains(t, buf.String(), "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer")
-	// Failures must be reported underreport file details-XXXXXX.out
-	if fileMatched, _ := filepath.Glob(constants.VzAnalysisReportTmpFile); len(fileMatched) == 1 {
-		os.Remove(fileMatched[0])
-		assert.NoFileExists(t, fileMatched[0])
-	}
+	buf, err := os.ReadFile(stdoutFile.Name())
+	assert.NoError(t, err)
+	assert.NotContains(t, string(buf), "Error syncing load balancer: failed to ensure load balancer: awaiting load balancer: context deadline exceeded")
+	assert.Contains(t, string(buf), "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer")
 }
 
 // TestAnalyzeWithNonPermissiveReportFile
@@ -173,9 +198,12 @@ func TestAnalyzeWithDefaultReportFormat(t *testing.T) {
 // WHEN I call cmd.Execute with report-file in read only file location
 // THEN expect the command to fail the analysis and do not create report file
 func TestAnalyzeWithNonPermissiveReportFile(t *testing.T) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.DirectoryFlagName, imagePullCase1)
@@ -192,9 +220,13 @@ func TestAnalyzeWithNonPermissiveReportFile(t *testing.T) {
 // WHEN I call cmd.Execute with a valid report-file
 // THEN expect the command to create the report file, containing the analysis report
 func TestAnalyzeCommandWithReportFile(t *testing.T) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+		os.Remove("TestAnalyzeCommandReportFileOutput")
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.DirectoryFlagName, imagePullCase1)
@@ -203,8 +235,6 @@ func TestAnalyzeCommandWithReportFile(t *testing.T) {
 	err := cmd.Execute()
 	assert.Nil(t, err)
 	assert.FileExists(t, "TestAnalyzeCommandReportFileOutput")
-	os.Remove("TestAnalyzeCommandReportFileOutput")
-	assert.NoFileExists(t, "TestAnalyzeCommandReportFileOutput")
 }
 
 // TestAnalyzeCommandInvalidCapturedDir
@@ -212,15 +242,20 @@ func TestAnalyzeCommandWithReportFile(t *testing.T) {
 // WHEN I call cmd.Execute with capture-dir not containing the cluster snapshot
 // THEN expect the command to fail with an appropriate error message
 func TestAnalyzeCommandInvalidCapturedDir(t *testing.T) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.DirectoryFlagName, "../")
 	err := cmd.Execute()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Cluster Analyzer runAnalysis didn't find any clusters")
+	buf, err := os.ReadFile(stderrFile.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(buf), "Cluster Analyzer runAnalysis didn't find any clusters")
 }
 
 // getClientWithWatch returns a client for installing Verrazzano
@@ -265,9 +300,12 @@ func getClientWithWatch() client.WithWatch {
 
 // installVZ installs Verrazzano using the given client
 func installVZ(t *testing.T, c client.WithWatch) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	rc.SetClient(c)
 	cmd := installcmd.NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
@@ -279,5 +317,18 @@ func installVZ(t *testing.T, c client.WithWatch) {
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	buf, err := os.ReadFile(stderrFile.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "", string(buf))
+}
+
+// createStdTempFiles creates temporary files for stdout and stderr.
+func createStdTempFiles(t *testing.T) (*os.File, *os.File) {
+	stdoutFile, err := os.CreateTemp("", "tmpstdout")
+	assert.NoError(t, err)
+
+	stderrFile, err := os.CreateTemp("", "tmpstderr")
+	assert.NoError(t, err)
+
+	return stdoutFile, stderrFile
 }
