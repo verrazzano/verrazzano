@@ -7,7 +7,7 @@ EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 pipeline {
     options {
-        timeout(time: 150, unit: 'MINUTES')
+        timeout(time: 200, unit: 'MINUTES')
         skipDefaultCheckout true
         timestamps ()
     }
@@ -468,7 +468,7 @@ def uninstallVerrazzano(vpoLogsDir) {
         // Delete VZ in the background
         while (true) {
             echo "Deleting the Verrazzano resource..."
-            result = sh(returnStatus: true, script: "${VZ_COMMAND} uninstall --timeout=45m")
+            result = sh(returnStatus: true, script: "${VZ_COMMAND} uninstall --timeout=60m")
             if (result == 0) {
                 break
             }

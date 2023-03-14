@@ -35,6 +35,12 @@ var tests = []struct {
 	expectedErr  bool
 }{
 	{
+		name:         "TestBasicNoneProfileWithStatus",
+		description:  "Tests basic None profile overrides",
+		actualCR:     basicNoneClusterWithStatus,
+		expectedYAML: basicNoneMerged,
+	},
+	{
 		name:         "TestBasicDevProfileWithStatus",
 		description:  "Tests basic dev profile overrides",
 		actualCR:     basicDevWithStatus,
@@ -57,6 +63,30 @@ var tests = []struct {
 		description:  "Tests dev profile with all components disabled",
 		actualCR:     devAllDisabledOverride,
 		expectedYAML: devAllDisabledMerged,
+	},
+	{
+		name:         "TestNoneProfileOCIDNSOverride",
+		description:  "Tests None profile with OCI DNS overrides",
+		actualCR:     noneOCIDNSOverride,
+		expectedYAML: noneOCIDNSOverrideMerged,
+	},
+	{
+		name:         "TestNoneProfileCertManagerOverride",
+		description:  "Tests None profile with Cert-Manager overrides",
+		actualCR:     noneCertManagerOverride,
+		expectedYAML: noneCertManagerOverrideMerged,
+	},
+	{
+		name:         "TestNoneProfileElasticsearchOverrides",
+		description:  "Tests None profile with Elasticsearch installArg and persistence overrides",
+		actualCR:     noneElasticSearchOverrides,
+		expectedYAML: noneElasticSearchOveridesMerged,
+	},
+	{
+		name:         "TestNoneProfileKeycloakOverrides",
+		description:  "Tests None profile with Keycloak/MySQL installArg and persistence overrides",
+		actualCR:     noneKeycloakOverrides,
+		expectedYAML: noneKeycloakOveridesMerged,
 	},
 	{
 		name:         "TestDevProfileOCIDNSOverride",
