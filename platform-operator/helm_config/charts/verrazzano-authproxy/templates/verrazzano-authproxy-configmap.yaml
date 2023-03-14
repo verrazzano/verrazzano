@@ -18,11 +18,11 @@ data:
   export VZ_GRAFANA_BACKEND_URL="http://vmi-system-grafana.verrazzano-system.svc.cluster.local:3000"
   export VZ_PROMETHEUS_HOST=prometheus.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
   export VZ_PROMETHEUS_BACKEND_URL="http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local:9090"
-  export VZ_THANOS_SIDECAR_HOST=
-  export VZ_THANOS_SIDECAR_BACKEND_URL=
-  export VZ_THANOS_QUERY_FRONTEND_HOST=
-  export VZ_THANOS_QUERY_FRONTEND_BACKEND_URL=
-  export VZ_KIBANA_HOST= kibana.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
+  export VZ_THANOS_SIDECAR_HOST=thanos-sidecar.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
+  export VZ_THANOS_SIDECAR_BACKEND_URL="http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local:10901"
+  export VZ_THANOS_QUERY_FRONTEND_HOST=thanos-query-frontend.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
+  export VZ_THANOS_QUERY_FRONTEND_BACKEND_URL="http://thanos-query-frontend.verrazzano-monitoring.svc.cluster.local:9090"
+  export VZ_KIBANA_HOST=kibana.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
   export VZ_KIBANA_BACKEND_URL="http://vmi-system-osd.verrazzano-system.svc.cluster.local:5601"
   export VZ_ELASTICSEARCH_HOST=elasticsearch.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
   export VZ_ELASTICSEARCH_BACKEND_URL="http://vmi-system-os-ingest.verrazzano-system.svc.cluster.local:9200"
@@ -59,7 +59,6 @@ data:
 
     -- determine backend and set backend parameters
     local backend, can_redirect = auth.getBackendNameFromIngressHost(ingressHost)
-    -- local backendUrl = auth.getBackendServerUrlFromName(backend)
     local backendUrl = auth.getBackedServerURLFromIngressHost(ingressHost)
     -- CORS handling
     local h, _ = ngx.req.get_headers()["origin"]
@@ -517,18 +516,6 @@ data:
         return backend_name, able_to_redirect
     end
 
-    function me.makeConsoleBackendUrl(port)
-        return 'http://verrazzano-console.verrazzano-system.svc.cluster.local'..':'..port
-    end
-
-    function me.makeVmiBackendUrl(backend, port)
-        return 'http://vmi-system-'..backend..'.verrazzano-system.svc.cluster.local'..':'..port
-    end
-
-    function me.makeMonitoringComponentBackendUrl(serviceName, port)
-        return 'http://'..serviceName..'.verrazzano-monitoring.svc.cluster.local'..':'..port
-    end
-
     function me.getBackedServerURLFromIngressHost(ingressHost)
         local backendServerUrl = nil
         local ingressServiceMap = {
@@ -553,40 +540,6 @@ data:
         return backendServerUrl
     end
 
-    function me.getBackendServerUrlFromName(backend)
-        local serverUrl = nil
-        if backend == 'verrazzano' then
-            -- assume we're going to the local server; if not, we'll fix up the url when we handle the remote call
-            -- Route request to k8s API
-            serverUrl = me.getLocalKubernetesApiUrl()
-        elseif backend == 'console' then
-            -- Route request to console
-            serverUrl = me.makeConsoleBackendUrl('8000')
-        elseif backend == 'grafana' then
-            serverUrl = me.makeVmiBackendUrl(backend, '3000')
-        elseif backend == 'prometheus' then
-            serverUrl = me.makeMonitoringComponentBackendUrl('prometheus-operator-kube-p-prometheus', '9090')
-        elseif backend == 'thanos-sidecar' then
-            serverUrl = me.makeMonitoringComponentBackendUrl('prometheus-operator-kube-p-prometheus', '10901')
-        elseif backend == 'thanos-query-frontend' then
-            serverUrl = me.makeMonitoringComponentBackendUrl('thanos-query-frontend', '9090')
-        elseif backend == 'kibana' then
-            serverUrl = me.makeVmiBackendUrl('osd', '5601')
-        elseif backend == 'osd' then
-            serverUrl = me.makeVmiBackendUrl('osd', '5601')    
-        elseif backend == 'elasticsearch' then
-            serverUrl = me.makeVmiBackendUrl('os-ingest', '9200')
-        elseif backend == 'opensearch' then
-            serverUrl = me.makeVmiBackendUrl('os-ingest', '9200')    
-        elseif backend == 'kiali' then
-            serverUrl = me.makeVmiBackendUrl(backend, '20001')
-        elseif backend == 'jaeger' then
-            serverUrl = me.makeMonitoringComponentBackendUrl('jaeger-operator-jaeger-query', '16686')
-        else
-            me.not_found("Invalid backend name '"..backend.."'")
-        end
-        return serverUrl
-    end
 
     -- console originally sent access token by itself, as bearer token (originally obtained via pkce client)
     -- with combined proxy, console no longer handles tokens, but tests may be sending ID tokens.
