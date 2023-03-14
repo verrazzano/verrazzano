@@ -19,8 +19,6 @@ const (
 	Dev ProfileType = "dev"
 	// Prod identifies the production install profile
 	Prod ProfileType = "prod"
-	// None identifies a profile with all components disabled
-	None ProfileType = "none"
 	// ManagedCluster identifies the production managed-cluster install profile
 	ManagedCluster ProfileType = "managed-cluster"
 )
