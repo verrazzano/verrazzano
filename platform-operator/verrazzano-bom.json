@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.7.1-20230302173605-9771f453e",
-              "dashboard": "v2.6.8-20230213174539-1e3c4622",
+              "tag": "v2.7.1-20230313193212-9771f453e",
+              "dashboard": "v2.7.1-20230313192124-afde9c090",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.1-20230302173605-9771f453e"
+              "tag": "v2.7.1-20230313193212-9771f453e"
             }
           ]
         },
@@ -788,7 +788,7 @@
           "images": [
             {
               "image": "thanos",
-              "tag": "v0.28.0-20230306212904-40834118",
+              "tag": "v0.28.0-20230307214739-f86032ae",
               "helmRegKey": "image.registry",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"

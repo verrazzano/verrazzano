@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package istio
@@ -7,12 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os"
-	"os/exec"
-	"strings"
-	"testing"
-	"text/template"
-
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -22,10 +16,12 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/ip"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -37,8 +33,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	gofake "k8s.io/client-go/kubernetes/fake"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"os"
+	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"strings"
+	"testing"
+	"text/template"
 )
 
 // fakeRunner is used to test istio without actually running an OS exec command
@@ -579,6 +580,11 @@ func getBoolPtr(b bool) *bool {
 }
 
 func Test_istioComponent_ValidateUpdate(t *testing.T) {
+	vzconfig.GetControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects().Build(), nil
+	}
+	defer func() { vzconfig.GetControllerRuntimeClient = validators.GetClient }()
+
 	disabled := false
 	affinityChange := &v1.Affinity{
 		NodeAffinity: &v1.NodeAffinity{
@@ -815,6 +821,10 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 }
 
 func Test_istioComponent_ValidateUpdateV1Beta1(t *testing.T) {
+	vzconfig.GetControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects().Build(), nil
+	}
+	defer func() { vzconfig.GetControllerRuntimeClient = validators.GetClient }()
 	disabled := false
 	nodePortWithoutIPAddressJSON := createIPOverrideJSON(t, externalIPOverrideJSONTemplate, v1beta1.NodePort, "")
 	loadBalancerWithoutIPAddressJSON := createIPOverrideJSON(t, externalIPOverrideJSONTemplate, v1beta1.LoadBalancer, "")
@@ -875,6 +885,10 @@ func Test_istioComponent_ValidateUpdateV1Beta1(t *testing.T) {
 }
 
 func Test_istioComponent_ValidateInstall(t *testing.T) {
+	vzconfig.GetControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects().Build(), nil
+	}
+	defer func() { vzconfig.GetControllerRuntimeClient = validators.GetClient }()
 	tests := []struct {
 		name        string
 		vz          *v1alpha1.Verrazzano
@@ -1014,6 +1028,10 @@ func Test_istioComponent_ValidateInstall(t *testing.T) {
 }
 
 func Test_istioComponent_ValidateInstallV1Beta1(t *testing.T) {
+	vzconfig.GetControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects().Build(), nil
+	}
+	defer func() { vzconfig.GetControllerRuntimeClient = validators.GetClient }()
 	ipAddressInvalid := "1.2.3.we"
 	nodePortIPAddressValidJSON := createIPOverrideJSON(t, externalIPOverrideJSONTemplate, v1beta1.NodePort, testExternalIP)
 	nodePortIPAddressInvalidJSON := createIPOverrideJSON(t, externalIPOverrideJSONTemplate, v1beta1.NodePort, ipAddressInvalid)
@@ -1278,6 +1296,10 @@ func TestGetOverrides(t *testing.T) {
 }
 
 func TestValidateInstallWithExistingIstio(t *testing.T) {
+	vzconfig.GetControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects().Build(), nil
+	}
+	defer func() { vzconfig.GetControllerRuntimeClient = validators.GetClient }()
 	vz := &v1alpha1.Verrazzano{
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
@@ -1311,4 +1333,10 @@ func TestValidateInstallWithExistingIstio(t *testing.T) {
 		},
 	}
 	common.RunValidateInstallTest(t, NewComponent, tests...)
+}
+
+func newScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	k8scheme.AddToScheme(scheme)
+	return scheme
 }
