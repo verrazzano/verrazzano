@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package upgrade
@@ -20,6 +20,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+)
+
+const (
+	testKubeConfig    = "/tmp/kubeconfig"
+	testK8sContext    = "testcontext"
+	bugReportFilePath = "bug-report.tar.gz"
 )
 
 // TestUpgradeCmdDefaultNoWait
@@ -49,12 +55,12 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 	assert.Equal(t, "", errBuf.String())
 }
 
-// TestUpgradeCmdDefaultTimeout
-// GIVEN a CLI upgrade command with all defaults and --timeout=2s
+// TestUpgradeCmdDefaultTimeoutBugReport
+// GIVEN a CLI upgrade command with all defaults and --timeout=2ms
 //
 //	WHEN I call cmd.Execute for upgrade
-//	THEN the CLI upgrade command times out
-func TestUpgradeCmdDefaultTimeout(t *testing.T) {
+//	THEN the CLI upgrade command times out and a bug report is generated
+func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 
@@ -65,16 +71,52 @@ func TestUpgradeCmdDefaultTimeout(t *testing.T) {
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
-	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2s")
+	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.Error(t, err)
-	assert.Equal(t, "Error: Timeout 2s exceeded waiting for upgrade to complete\n", errBuf.String())
+	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
+	assert.FileExists(t, bugReportFilePath)
+	os.Remove(bugReportFilePath)
+}
+
+// TestUpgradeCmdDefaultTimeoutNoBugReport
+// GIVEN a CLI upgrade command with all --timeout=2ms and auto-bug-report=false
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command times out and a bug report is not generated
+func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
+	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
+
+	// Send stdout stderr to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	cmd := NewCmdUpgrade(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
+	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
+	cmd.PersistentFlags().Set(constants.AutoBugReportFlag, "false")
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	// Run upgrade command
+	err := cmd.Execute()
+	assert.Error(t, err)
+	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
+	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
+	assert.NoFileExists(t, bugReportFilePath)
 }
 
 // TestUpgradeCmdDefaultNoVPO
