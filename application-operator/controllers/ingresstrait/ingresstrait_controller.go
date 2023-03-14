@@ -1237,11 +1237,12 @@ func createVirtualServiceMatchURIFromIngressTraitPath(path vzapi.IngressPath) *i
 // - A hostname can only appear once
 func createHostsFromIngressTraitRule(cli client.Reader, rule vzapi.IngressRule, trait *vzapi.IngressTrait, toList ...string) ([]string, error) {
 	validHosts := toList
-	var hostAdded bool
+	useDefaultHost := true
 	for _, h := range rule.Hosts {
 		h = strings.TrimSpace(h)
 		if _, hostAlreadyPresent := findHost(validHosts, h); hostAlreadyPresent {
 			// Avoid duplicates
+			useDefaultHost = false
 			continue
 		}
 		// Ignore empty or wildcard hostname
@@ -1250,10 +1251,10 @@ func createHostsFromIngressTraitRule(cli client.Reader, rule vzapi.IngressRule, 
 		}
 		h = strings.ToLower(strings.TrimSpace(h))
 		validHosts = append(validHosts, h)
-		hostAdded = true
+		useDefaultHost = false
 	}
 	// Add done if a host was added to the host list
-	if hostAdded {
+	if !useDefaultHost {
 		return validHosts, nil
 	}
 
