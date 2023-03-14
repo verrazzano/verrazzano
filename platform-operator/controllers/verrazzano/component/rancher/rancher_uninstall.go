@@ -78,6 +78,8 @@ var postUninstallFunc postUninstallFuncSig = invokeRancherSystemToolAndCleanup
 
 var rancherCleanupJobYamlPath = defaultRancherCleanupJobYaml
 
+var rancherFinalizersDeleted = false
+
 // getCleanupJobYamlPath - get the path to the yaml to create the cleanup job
 func getCleanupJobYamlPath() string {
 	return rancherCleanupJobYamlPath
@@ -87,6 +89,12 @@ func getCleanupJobYamlPath() string {
 // Required for by unit tests.
 func setCleanupJobYamlPath(path string) {
 	rancherCleanupJobYamlPath = path
+}
+
+// preUninstall - prepare for Rancher uninstall
+func preUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
+	rancherFinalizersDeleted = false
+	return nil
 }
 
 // postUninstall - Rancher component post-uninstall
@@ -137,8 +145,11 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	ctx.Log().Progress("Component Rancher background post-uninstall goroutine is running")
 
 	// Delete Rancher finalizers before running the rancher-cleanup job (to speed up the uninstall)
-	if err := deleteRancherFinalizers(ctx); err != nil {
-		return err
+	if !rancherFinalizersDeleted {
+		if err := deleteRancherFinalizers(ctx); err != nil {
+			return err
+		}
+		rancherFinalizersDeleted = true
 	}
 
 	// Run the rancher-cleanup job
