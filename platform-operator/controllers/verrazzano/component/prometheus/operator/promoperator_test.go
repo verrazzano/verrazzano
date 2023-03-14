@@ -391,6 +391,38 @@ func TestPostInstallUpgrade(t *testing.T) {
 	}
 }
 
+// TestDeleteNetworkPolicy tests the deleteNetworkPolicy function.
+func TestDeleteNetworkPolicy(t *testing.T) {
+	// GIVEN the vmi-system-prometheus NetworkPolicy does not exist in the cluster
+	//  WHEN the deleteNetworkPolicy function is called
+	//  THEN no error is returned
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
+
+	err := deleteNetworkPolicy(ctx)
+	assert.NoError(t, err)
+
+	// GIVEN the vmi-system-prometheus NetworkPolicy does exist in the cluster
+	//  WHEN the deleteNetworkPolicy function is called
+	//  THEN no error is returned and the NetworkPolicy is deleted from the cluster
+	client = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&netv1.NetworkPolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      networkPolicyName,
+				Namespace: ComponentNamespace,
+			},
+		},
+	).Build()
+	ctx = spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
+
+	err = deleteNetworkPolicy(ctx)
+	assert.NoError(t, err)
+
+	netpol := &netv1.NetworkPolicy{}
+	err = client.Get(context.TODO(), types.NamespacedName{Name: networkPolicyName, Namespace: ComponentNamespace}, netpol)
+	assert.True(t, errors.IsNotFound(err))
+}
+
 // TestAppendIstioOverrides tests that the Istio overrides get applied
 func TestAppendIstioOverrides(t *testing.T) {
 	annotationKey := "annKey"

@@ -27,6 +27,7 @@ import (
 	istiov1beta1 "istio.io/api/type/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -762,4 +763,17 @@ func isThanosEnabled(ctx spi.ComponentContext) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+// deleteNetworkPolicy deletes the existing NetworkPolicy. Since the NetworkPolicy is now part of the Helm chart,
+// upgrading from a previous installation fails if the NetworkPolicy already exists and is not owned by the Helm chart,
+// so we delete it before upgrading.
+func deleteNetworkPolicy(ctx spi.ComponentContext) error {
+	netpol := &netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: networkPolicyName, Namespace: ComponentNamespace}}
+	err := client.IgnoreNotFound(ctx.Client().Delete(context.TODO(), netpol))
+	if err != nil {
+		ctx.Log().Errorf("Error deleting existing NetworkPolicy %s/%s on upgrade: %v", networkPolicyName, ComponentNamespace, err)
+		return err
+	}
+	return nil
 }
