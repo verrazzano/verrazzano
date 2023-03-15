@@ -106,6 +106,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 
 	// Lock the report data while generating the report itself
 	reportMutex.Lock()
+	defer reportMutex.Unlock()
 	sourcesWithoutIssues := allSourcesAnalyzed
 	for source, reportIssues := range reports {
 		log.Debugf("Will report on %d issues that were reported for %s", len(reportIssues), source)
@@ -196,7 +197,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 	genTmpReport := func(reportFile *string) (*os.File, error) {
 		*reportFile = constants.VzAnalysisReportTmpFile
 		repFile, err := os.CreateTemp(".", *reportFile)
-		if err != nil && errors.Is(err, fs.ErrPermission) {
+		if err != nil && (errors.Is(err, fs.ErrPermission) || strings.Contains(err.Error(), constants.ReadOnly)) {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Warning: %s to open report file in current directory\n", fs.ErrPermission)
 			repFile, err = os.CreateTemp("", *reportFile)
 		}
@@ -219,6 +220,12 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 
 	if len(writeOut) > 0 {
 		var repFile *os.File
+		defer func() {
+			if repFile != nil {
+				fmt.Fprintf(os.Stdout, "\nDetailed report available in %s\n", repFile.Name())
+				repFile.Close()
+			}
+		}()
 		if reportFile == "" {
 			// flag --report-file is unset or empty
 			repFile, err = genTmpReport(&reportFile)
@@ -237,10 +244,6 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 			log.Errorf("Failed to write to report file %s, error found : %s", reportFile, err.Error())
 			return err
 		}
-		defer func() {
-			fmt.Fprintf(os.Stdout, "\nDetailed report available in %s\n", repFile.Name())
-			repFile.Close()
-		}()
 	} else {
 		if includeInfo {
 			if len(sourcesWithoutIssues) > 0 {
@@ -258,7 +261,6 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 			fmt.Fprintf(vzHelper.GetOutputStream(), writeOut)
 		}
 	}
-	reportMutex.Unlock()
 	return nil
 }
 
