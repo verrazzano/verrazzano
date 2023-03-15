@@ -319,7 +319,10 @@ function analyze_dump() {
               if [[ -x $GOPATH/bin/vz ]]; then
                   $GOPATH/vz analyze --capture-dir $FULL_PATH_CAPTURE_DIR --report-format detailed --report-file $SAVE_DIR/$REPORT_FILE || true
                 else
+                  echo "Cleaning the local go cache"
+                  go clean -modcache && go mod tidy
                   GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go analyze --capture-dir $FULL_PATH_CAPTURE_DIR --report-format detailed --report-file $SAVE_DIR/$REPORT_FILE || true
+                  go clean -modcache && go mod tidy
               fi
           fi
         fi
