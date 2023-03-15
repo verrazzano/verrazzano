@@ -556,7 +556,7 @@ func (h HelmComponent) filesFromVerrazzanoHelm(context spi.ComponentContext, nam
 
 	// Get image overrides if they are specified
 	if !h.IgnoreImageOverrides {
-		imageOverrides, err := getImageOverrides(h.ReleaseName)
+		imageOverrides, err := getComponentImageOverrides(h.ReleaseName)
 		if err != nil {
 			return newKvs, err
 		}
@@ -667,7 +667,26 @@ func (h HelmComponent) preInstallUpgrade(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// Get the image overrides from the BOM
+// Get the image overrides from the BOM for a component
+func getComponentImageOverrides(componentName string) ([]bom.KeyValue, error) {
+	// Create a Bom and get the Key Value overrides
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return nil, err
+	}
+	numImages := bomFile.GetComponentImageCount(componentName)
+	if numImages == 0 {
+		return []bom.KeyValue{}, nil
+	}
+
+	kvs, err := bomFile.BuildComponentImageOverrides(componentName)
+	if err != nil {
+		return nil, err
+	}
+	return kvs, nil
+}
+
+// Get the image overrides from the BOM for a subcomponent
 func getImageOverrides(subcomponentName string) ([]bom.KeyValue, error) {
 	// Create a Bom and get the Key Value overrides
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
