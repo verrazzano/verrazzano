@@ -131,6 +131,7 @@ func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, mod
 	}
 
 	chartName := r.lookupChartName(moduleInstance)
+
 	// FIXME: we only need the chart type if we can't assume the module we're reconciling is not a CRD or operator chart
 	// Pull module type from chart
 	moduleChartType, err := helm.LookupChartType(log, sourceName, sourceURI, chartName, targetModuleVersion)
@@ -148,32 +149,17 @@ func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, mod
 	// Load the module dependencies
 	crdDeps, opDeps := r.getModuleDependencies(log, moduleInstance, moduleChartType, sourceURI, err)
 
-	// FIXME: There's a list of concerns below, but generally what is the cardinality of the Module/Operator dependencies?  Who owns what?
-	//   - We can assume that an operator/module gets scoped to a namespace, but not necessarily a "CRD" chart
-	//   - We can make scope a property of a dependency, and require more install parameters (e.g., namespace), and assume the same namespace by default
-	//   - CRD charts might be problematic; API resources are cluster scoped, so we may have to make assumptions about those module types (e.g., always install in a system namespace)
-	// FIXME: how do we determine if the CRD dependency is already installed?
-
-	// FIXME: CRDs are cluster-scoped, but charts are namespace-scoped; we need to figure out how to
-	//    manage that, either likely by guarding the CRD resources in the charts or ignoring errors
-	//    - Do we list APIs in the operator definition, and detect their presence?
-	//    - CRDDefinition may be in order, i.e., allow charts to list published APIs
-	//    - and, we may want to distinguish Module instances by their type (operator, crd), or collapse the notions
-	//      and just have general ModuleDefinitions that support publishing APIs with module dependencies
+	// Apply CRD Dependencies
 	if result, err := r.applyDependencies(log, moduleInstance, crdDeps, namespace); err != nil || !result.IsZero() {
 		return result, err
 	}
 
 	// Apply Operator dependencies
-	// FIXME: Need to indicate if an operator is global or scoped to the namespace of the referencing Module
-	//   also, what if the user wants to leverage an existing operator that they installed?
-	//   - might have to break up the definition between
 	if result, err := r.applyDependencies(log, moduleInstance, opDeps, namespace); err != nil || !result.IsZero() {
 		return result, err
 	}
 
 	// Apply Module dependencies
-	// FIXME: Are module dependencies owned by the module being resolved?  Seems like it might lead to complicated nesting
 	if result, err := r.applyDependencies(log, moduleInstance, opDeps, namespace); err != nil || !result.IsZero() {
 		return result, err
 	}
@@ -435,7 +421,7 @@ func (r *VerrazzanoModuleReconciler) lookupModuleVersion(log vzlog.VerrazzanoLog
 	if err != nil {
 		return "", err
 	}
-	// TODO: validate that the declare module version is in the supported range in the platform definition
+
 	return modVersion, nil
 }
 
