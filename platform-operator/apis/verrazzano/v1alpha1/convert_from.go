@@ -94,17 +94,17 @@ func convertVerrazzanoInstanceFromV1Beta1(instance *v1beta1.InstanceInfo) *Insta
 		return nil
 	}
 	return &InstanceInfo{
-		ArgoCDURL:              instance.ArgoCDURL,
-		ConsoleURL:             instance.ConsoleURL,
-		KeyCloakURL:            instance.KeyCloakURL,
-		RancherURL:             instance.RancherURL,
-		ElasticURL:             instance.OpenSearchURL,
-		KibanaURL:              instance.OpenSearchDashboardsURL,
-		GrafanaURL:             instance.GrafanaURL,
-		PrometheusURL:          instance.PrometheusURL,
-		KialiURL:               instance.KialiURL,
-		JaegerURL:              instance.JaegerURL,
-		ThanosQueryFrontendURL: instance.ThanosQueryFrontendURL,
+		ArgoCDURL:      instance.ArgoCDURL,
+		ConsoleURL:     instance.ConsoleURL,
+		KeyCloakURL:    instance.KeyCloakURL,
+		RancherURL:     instance.RancherURL,
+		ElasticURL:     instance.OpenSearchURL,
+		KibanaURL:      instance.OpenSearchDashboardsURL,
+		GrafanaURL:     instance.GrafanaURL,
+		PrometheusURL:  instance.PrometheusURL,
+		KialiURL:       instance.KialiURL,
+		JaegerURL:      instance.JaegerURL,
+		ThanosQueryURL: instance.ThanosQueryURL,
 	}
 }
 

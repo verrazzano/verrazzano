@@ -430,7 +430,7 @@ data:
                 check_host = backend..me.hostSuffix
             elseif backend == 'thanos-sidecar' then
                 check_host = backend..me.hostSuffix
-            elseif backend == 'thanos-query-frontend' then
+            elseif backend == 'thanos-query' then
                 check_host = backend..me.hostSuffix
             else
                 check_host = backend..vmi_system..me.hostSuffix
@@ -520,7 +520,7 @@ data:
             serverUrl = me.makeMonitoringComponentBackendUrl('prometheus-operator-kube-p-prometheus', '9090')
         elseif backend == 'thanos-sidecar' then
             serverUrl = me.makeMonitoringComponentBackendUrl('prometheus-operator-kube-p-prometheus', '10901')
-        elseif backend == 'thanos-query-frontend' then
+        elseif backend == 'thanos-query' then
             serverUrl = me.makeMonitoringComponentBackendUrl('thanos-query-frontend', '9090')
         elseif backend == 'kibana' then
             serverUrl = me.makeVmiBackendUrl('osd', '5601')
@@ -1211,8 +1211,8 @@ data:
             allowedOrigins = os.getenv("VZ_PROMETHEUS_ALLOWED_ORIGINS")
         elseif backend == 'thanos-sidecar' then
             allowedOrigins = os.getenv("VZ_THANOS_SIDECAR_ALLOWED_ORIGINS")
-        elseif backend == 'thanos-query-frontend' then
-            allowedOrigins = os.getenv("VZ_THANOS_QUERY_FRONTEND_ALLOWED_ORIGINS")
+        elseif backend == 'thanos-query' then
+            allowedOrigins = os.getenv("VZ_THANOS_QUERY_ALLOWED_ORIGINS")
         elseif backend == 'kibana' then
             allowedOrigins = os.getenv("VZ_KIBANA_ALLOWED_ORIGINS")
         elseif backend == 'osd' then
@@ -1262,7 +1262,7 @@ data:
     env VZ_GRAFANA_ALLOWED_ORIGINS;
     env VZ_PROMETHEUS_ALLOWED_ORIGINS;
     env VZ_THANOS_SIDECAR_ALLOWED_ORIGINS;
-    env VZ_THANOS_QUERY_FRONTEND_ALLOWED_ORIGINS;
+    env VZ_THANOS_QUERY_ALLOWED_ORIGINS;
     env VZ_KIBANA_ALLOWED_ORIGINS;
     env VZ_ES_ALLOWED_ORIGINS;
     env VZ_KIALI_ALLOWED_ORIGINS;
