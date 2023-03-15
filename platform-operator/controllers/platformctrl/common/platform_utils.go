@@ -7,12 +7,12 @@ import (
 	platformapi "github.com/verrazzano/verrazzano/platform-operator/apis/platform/v1alpha1"
 )
 
-func FindPlatformModuleVersion(log vzlog.VerrazzanoLogger, module platformapi.Module, pd *platformapi.PlatformDefinition) (string, error) {
+func FindPlatformModuleVersion(log vzlog.VerrazzanoLogger, module platformapi.Module, pd *platformapi.PlatformDefinition) (string, bool) {
 	moduleInfo, ok := FindModuleInfo(module.Name, pd)
 	if ok {
-		return moduleInfo.DefaultVersion, nil
+		return moduleInfo.DefaultVersion, true
 	}
-	return "", log.ErrorfThrottledNewErr("Module info not found in platform definition for %s", module.Name)
+	return "", false
 }
 
 func FindModuleInfo(modName string, pd *platformapi.PlatformDefinition) (platformapi.ChartVersion, bool) {

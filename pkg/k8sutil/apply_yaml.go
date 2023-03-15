@@ -171,6 +171,9 @@ func (y *YAMLApplier) applyAction(obj *unstructured.Unstructured) error {
 		if err != nil {
 			return err
 		}
+		if fieldObj == nil {
+			continue
+		}
 		cf.typeOf = reflect.TypeOf(fieldObj).String()
 		clientFields = append(clientFields, cf)
 	}

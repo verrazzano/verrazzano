@@ -64,7 +64,7 @@ func (r *PlatformDefinitionReconciler) Reconcile(ctx context.Context, req ctrl.R
 		Namespace:      platformDef.Namespace,
 		ID:             string(platformDef.UID),
 		Generation:     platformDef.Generation,
-		ControllerName: "platform",
+		ControllerName: "platformcontroller",
 	})
 	if err != nil {
 		// TODO: errorCounterMetricObject.Inc()
@@ -117,9 +117,10 @@ func (r *PlatformDefinitionReconciler) doReconcile(log vzlog.VerrazzanoLogger, p
 		return err
 	}
 	for _, module := range moduleList.Items {
-		pdModuleVersion, err := common.FindPlatformModuleVersion(log, module, pd)
-		if err != nil {
-			return err
+		pdModuleVersion, found := common.FindPlatformModuleVersion(log, module, pd)
+		if !found {
+			log.Progressf("Module %s/%s not found in PlatformDefinition %s/%s, ignoring", module.Namespace, module.Name, pd.Namespace, pd.Name)
+			continue
 		}
 		if module.Spec.Source.Name != platformInstance.Name || module.Spec.Source.Namespace != platformInstance.Namespace {
 			continue

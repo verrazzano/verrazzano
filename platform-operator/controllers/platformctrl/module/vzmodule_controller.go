@@ -127,7 +127,7 @@ func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, mod
 	// Find the desired module version
 	targetModuleVersion, err := r.lookupModuleVersion(log, moduleInstance, platformDefinition, sourceName, sourceURI)
 	if err != nil {
-		return vzcontroller.NewRequeueWithDelay(10, 30, time.Second), err
+		return vzcontroller.NewRequeueWithDelay(5, 10, time.Second), err
 	}
 
 	chartName := r.lookupChartName(moduleInstance)
@@ -431,7 +431,10 @@ func (r *VerrazzanoModuleReconciler) lookupModuleVersion(log vzlog.VerrazzanoLog
 		}
 	}
 	// - find the most recent version in the repo compatible based on the Chart annotations
-	helm.FindNearestSupportingChartVersion(log, moduleInstance.Name, repoName, repoURI, pd.Spec.Version)
+	modVersion, err := helm.FindNearestSupportingChartVersion(log, moduleInstance.Name, repoName, repoURI, pd.Spec.Version)
+	if err != nil {
+		return "", err
+	}
 	// TODO: validate that the declare module version is in the supported range in the platform definition
 	return modVersion, nil
 }
