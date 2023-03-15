@@ -27,4 +27,4 @@ function poll-webhook {
     exit 1
 }
 
-poll-webhook "https://verrazzano-platform-operator-webhook:443/validate-install-verrazzano-io-v1beta1-verrazzano"
+poll-webhook "https://verrazzano-platform-operator-webhook.verrazzano-install.svc.cluster.local:443/validate-install-verrazzano-io-v1beta1-verrazzano"
