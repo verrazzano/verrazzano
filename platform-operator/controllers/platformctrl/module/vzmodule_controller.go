@@ -379,7 +379,7 @@ func (r *VerrazzanoModuleReconciler) lookupModuleSource(platform *platformapi.Pl
 		return defaultSourceName, defaultSourceURI
 	}
 	for _, source := range platform.Spec.Sources {
-		if source.Name == declaredSource.Name {
+		if source.Name == declaredSource.Source {
 			return source.Name, source.URL
 		}
 	}
