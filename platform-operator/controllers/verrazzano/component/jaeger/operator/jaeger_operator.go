@@ -7,13 +7,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/pkg/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -24,6 +22,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"io/fs"
+	"io/ioutil"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -33,6 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -42,7 +42,7 @@ import (
 
 var (
 	// For Unit test purposes
-	writeFileFunc              = os.WriteFile
+	writeFileFunc              = ioutil.WriteFile
 	getControllerRuntimeClient = getClient
 	disallowedOverrides        = []string{
 		"nameOverride",
@@ -54,7 +54,7 @@ var (
 )
 
 func resetWriteFileFunc() {
-	writeFileFunc = os.WriteFile
+	writeFileFunc = ioutil.WriteFile
 }
 
 const (
@@ -127,13 +127,22 @@ type jaegerData struct {
 	OpenSearchReplicaCount int32
 }
 
-func isJaegerReady(ctx spi.ComponentContext) bool {
-	deploys, err := getAllComponentDeployments(ctx)
-	if err != nil {
-		return false
+// isJaegerOperatorReady checks if the Jaeger Operator deployment is ready
+func isJaegerOperatorReady(ctx spi.ComponentContext) bool {
+	deployments := []types.NamespacedName{
+		{
+			Name:      deploymentName,
+			Namespace: ComponentNamespace,
+		},
 	}
 	prefix := fmt.Sprintf(componentPrefixFmt, ctx.GetComponent())
-	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deploys, 1, prefix)
+	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+}
+
+// isDefaultJaegerInstanceReady checks if the deployments of default Jaeger instance managed by VZ are in ready state
+func isDefaultJaegerInstanceReady(ctx spi.ComponentContext) bool {
+	prefix := fmt.Sprintf(componentPrefixFmt, ctx.GetComponent())
+	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), getJaegerComponentDeployments(), 1, prefix)
 }
 
 // PreInstall implementation for the Jaeger Operator Component
@@ -150,7 +159,15 @@ func preInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	return createJaegerSecrets(ctx)
+	createInstance, err := isCreateDefaultJaegerInstance(ctx)
+	if err != nil {
+		return err
+	}
+	if createInstance {
+		// Create Jaeger secret with the OpenSearch credentials
+		return createJaegerSecret(ctx)
+	}
+	return nil
 }
 
 // AppendOverrides appends Helm value overrides for the Jaeger Operator component's Helm chart
@@ -242,31 +259,24 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		return nil, err
 	}
 
-	registrationSecret, err := common.GetManagedClusterRegistrationSecret(compContext.Client())
+	createInstance, err := isCreateDefaultJaegerInstance(compContext)
 	if err != nil {
 		return nil, err
 	}
-	// Check to create a default Jaeger instance if the Verrazzano is a local cluster
-	if registrationSecret == nil {
-		createInstance, err := isCreateDefaultJaegerInstance(compContext)
+	if createInstance {
+		// use jaegerCRTemplate to populate Jaeger spec data
+		jaegerCRTemplate, err := template.New("jaeger").Parse(jaegerCreateTemplate)
 		if err != nil {
 			return nil, err
 		}
-		if createInstance {
-			// use jaegerCRTemplate to populate Jaeger spec data
-			jaegerCRTemplate, err := template.New("jaeger").Parse(jaegerCreateTemplate)
-			if err != nil {
-				return nil, err
-			}
-			var osReplicaCount int32 = 1
-			if opensearch.IsSingleDataNodeCluster(compContext) {
-				osReplicaCount = 0
-			}
-			data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName, OpenSearchReplicaCount: osReplicaCount}
-			err = jaegerCRTemplate.Execute(&b, data)
-			if err != nil {
-				return nil, err
-			}
+		var osReplicaCount int32 = 1
+		if opensearch.IsSingleDataNodeCluster(compContext) {
+			osReplicaCount = 0
+		}
+		data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName, OpenSearchReplicaCount: osReplicaCount}
+		err = jaegerCRTemplate.Execute(&b, data)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -280,7 +290,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 	kvs = append(kvs, bom.KeyValue{Value: overridesFileName, IsFile: true})
 
 	// If metricsStorage type is set to prometheus, set the prometheus server URL override
-	if vzcr.IsPrometheusEnabled(compContext.EffectiveCR()) {
+	if vzconfig.IsPrometheusEnabled(compContext.EffectiveCR()) {
 		metricsStorageVal, err := getOverrideVal(compContext, metricsStorageField)
 		if err != nil {
 			return kvs, err
@@ -416,7 +426,7 @@ func createJaegerSecret(ctx spi.ComponentContext) error {
 // getESInternalSecret checks whether verrazzano-es-internal secret exists. Return error if the secret does not exist.
 func getESInternalSecret(ctx spi.ComponentContext) (corev1.Secret, error) {
 	secret := corev1.Secret{}
-	if vzcr.IsKeycloakEnabled(ctx.EffectiveCR()) {
+	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		// Check verrazzano-es-internal Secret. return error which will cause requeue
 		err := ctx.Client().Get(context.TODO(), clipkg.ObjectKey{
 			Namespace: constants.VerrazzanoSystemNamespace,
@@ -427,7 +437,7 @@ func getESInternalSecret(ctx spi.ComponentContext) (corev1.Secret, error) {
 			if errors.IsNotFound(err) {
 				ctx.Log().Progressf("Component Jaeger Operator waiting for the secret %s/%s to exist",
 					constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal)
-				return secret, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+				return secret, ctrlerrors.RetryableError{Source: ComponentName}
 			}
 			ctx.Log().Errorf("Component Jaeger Operator failed to get the secret %s/%s: %v",
 				constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal, err)
@@ -472,7 +482,7 @@ func isJaegerCREnabled(ctx spi.ComponentContext) (bool, error) {
 // canUseVZOpenSearchStorage determines if Verrazzano's OpenSearch can be used as a storage for Jaeger instance.
 // As default Jaeger uses Authproxy to connect to OpenSearch storage, check if Keycloak component is also enabled.
 func canUseVZOpenSearchStorage(ctx spi.ComponentContext) bool {
-	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) && vzcr.IsKeycloakEnabled(ctx.EffectiveCR()) {
+	if vzconfig.IsOpenSearchEnabled(ctx.EffectiveCR()) && vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		return true
 	}
 	return false
@@ -535,16 +545,21 @@ func ReassociateResources(cli clipkg.Client) error {
 
 func doDefaultJaegerInstanceDeploymentsExists(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf(componentPrefixFmt, ctx.GetComponent())
-	return ready.DoDeploymentsExist(ctx.Log(), ctx.Client(), getJaegerComponentDeployments(), 1, prefix)
+	return status.DoDeploymentsExist(ctx.Log(), ctx.Client(), getJaegerComponentDeployments(), 1, prefix)
 }
 
 // removeMutatingWebhookConfig removes the  jaeger-operator-mutating-webhook-configuration resource during the pre-upgrade
 // The jaeger-operator-mutating-webhook-configuration injects the old cert and fails the webhook service handshake during the upgrade.
 // On deleting, the webhook will be created by the helm and thus injects a new cert which enables a successful handshake with the service.
 func removeMutatingWebhookConfig(ctx spi.ComponentContext) error {
-	kubeClient, err := k8sutil.GetGoClient(ctx.Log())
+	kubeConfig, err := controllerruntime.GetConfig()
 	if err != nil {
-		ctx.Log().Errorf("Failed to get kubernetes clientset with error: %v", err)
+		ctx.Log().Errorf("Failed to get kubeconfig with error: %v", err)
+		return err
+	}
+	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
+	if err != nil {
+		ctx.Log().Errorf("Failed to get kubeClient with error: %v", err)
 		return err
 	}
 	_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), ComponentMutatingWebhookConfigName, metav1.GetOptions{})
@@ -562,9 +577,14 @@ func removeMutatingWebhookConfig(ctx spi.ComponentContext) error {
 // The jaeger-operator-validating-webhook-configuration injects the old cert and fails the webhook service handshake during the upgrade.
 // On deleting, the webhook will be created by the helm and thus injects a new cert which enables a successful handshake with the service.
 func removeValidatingWebhookConfig(ctx spi.ComponentContext) error {
-	kubeClient, err := k8sutil.GetGoClient(ctx.Log())
+	kubeConfig, err := controllerruntime.GetConfig()
 	if err != nil {
-		ctx.Log().Errorf("Failed to get kubernetes clientset with error: %v", err)
+		ctx.Log().Errorf("Failed to get kubeconfig with error: %v", err)
+		return err
+	}
+	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
+	if err != nil {
+		ctx.Log().Errorf("Failed to get kubeClient with error: %v", err)
 		return err
 	}
 	_, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), ComponentValidatingWebhookConfigName, metav1.GetOptions{})
@@ -643,15 +663,6 @@ func removeOldCertAndSecret(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func getJaegerOperatorDeployments() []types.NamespacedName {
-	return []types.NamespacedName{
-		{
-			Name:      deploymentName,
-			Namespace: ComponentNamespace,
-		},
-	}
-}
-
 func getJaegerComponentDeployments() []types.NamespacedName {
 	return []types.NamespacedName{
 		{
@@ -663,18 +674,6 @@ func getJaegerComponentDeployments() []types.NamespacedName {
 			Namespace: ComponentNamespace,
 		},
 	}
-}
-
-func getAllComponentDeployments(ctx spi.ComponentContext) ([]types.NamespacedName, error) {
-	defaultJaegerEnabled, err := isJaegerCREnabled(ctx)
-	if err != nil {
-		return nil, err
-	}
-	deploys := getJaegerOperatorDeployments()
-	if defaultJaegerEnabled {
-		deploys = append(deploys, getJaegerComponentDeployments()...)
-	}
-	return deploys, nil
 }
 
 // GetHelmManagedResources returns a list of extra resource types and their namespaced names that are managed by the
@@ -765,7 +764,7 @@ func createOrUpdateJaegerIngress(ctx spi.ComponentContext, namespace string) err
 		ingress.Annotations["nginx.ingress.kubernetes.io/service-upstream"] = "true"
 		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
 		ingress.Annotations["cert-manager.io/common-name"] = jaegerHostName
-		if vzcr.IsExternalDNSEnabled(ctx.EffectiveCR()) {
+		if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
 			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
 			ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"
@@ -778,34 +777,13 @@ func createOrUpdateJaegerIngress(ctx spi.ComponentContext, namespace string) err
 	return err
 }
 
-// createJaegerSecrets create or update Jaeger resources depending on if running a managed cluster, or local cluster
-// with the default Jaeger instance.
-func createJaegerSecrets(ctx spi.ComponentContext) error {
-	registrationSecret, err := common.GetManagedClusterRegistrationSecret(ctx.Client())
-	if err != nil {
-		return err
-	}
-	if registrationSecret != nil {
-		return nil
-	}
-	createInstance, err := isCreateDefaultJaegerInstance(ctx)
-	if err != nil {
-		return err
-	}
-	if createInstance {
-		// Create Jaeger secret with the OpenSearch credentials
-		return createJaegerSecret(ctx)
-	}
-	return nil
-}
-
 func buildJaegerHostnameForDomain(dnsDomain string) string {
 	return fmt.Sprintf("%s.%s", jaegerHostName, dnsDomain)
 }
 
 // getClient returns a controller runtime client for the Verrazzano resource
 func getClient() (clipkg.Client, error) {
-	runtimeConfig, err := k8sutil.GetConfigFromController()
+	runtimeConfig, err := controllerruntime.GetConfig()
 	if err != nil {
 		return nil, err
 	}

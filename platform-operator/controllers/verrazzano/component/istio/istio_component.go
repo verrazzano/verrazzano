@@ -6,9 +6,6 @@ package istio
 import (
 	"context"
 	"fmt"
-	"path/filepath"
-	"strings"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -31,7 +28,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"path/filepath"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 )
 
 // ComponentName is the name of the component

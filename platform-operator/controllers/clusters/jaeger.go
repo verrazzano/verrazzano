@@ -1,15 +1,15 @@
 // Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package vmc
+package clusters
 
 import (
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"path/filepath"
 )
 
@@ -58,7 +58,7 @@ func (r *VerrazzanoManagedClusterReconciler) getJaegerOpenSearchConfig(vzList *v
 		return jc, nil
 	}
 	// If OpenSearch storage is not configured for the Jaeger instance, then just return
-	if jsc.storageType != "opensearch" {
+	if jsc.storageType != "elasticsearch" {
 		r.log.Once("A Jaeger instance with OpenSearch storage is not configured. Skipping multicluster Jaeger" +
 			" configuration.")
 		return jc, nil
@@ -105,10 +105,10 @@ func (r *VerrazzanoManagedClusterReconciler) getJaegerSpecConfig(vzList *vzapi.V
 			jsc.jaegerCreate = true
 			jsc.OSURL = vzconstants.DefaultJaegerOSURL
 			jsc.secName = vzconstants.DefaultJaegerSecretName
-			jsc.storageType = "opensearch"
+			jsc.storageType = "elasticsearch"
 		}
 		overrides := vz.Spec.Components.JaegerOperator.ValueOverrides
-		overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(r.Client, overrides, vz.Namespace)
+		overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(r.Client, vzapi.ConvertValueOverridesToV1Beta1(overrides), vz.Namespace)
 		if err != nil {
 			return jsc, err
 		}
@@ -171,12 +171,12 @@ func (r *VerrazzanoManagedClusterReconciler) getJaegerSpecConfig(vzList *vzapi.V
 // canUseVZOpenSearchStorage determines if Verrazzano's OpenSearch can be used as a storage for Jaeger instance.
 // As default Jaeger uses Authproxy to connect to OpenSearch storage, check if Keycloak component is also enabled.
 func canUseVZOpenSearchStorage(vz vzapi.Verrazzano) bool {
-	if vzcr.IsOpenSearchEnabled(&vz) && vzcr.IsKeycloakEnabled(&vz) {
+	if vzconfig.IsOpenSearchEnabled(&vz) && vzconfig.IsKeycloakEnabled(&vz) {
 		return true
 	}
 	return false
 }
 
 func isJaegerOperatorEnabled(vz vzapi.Verrazzano) bool {
-	return vzcr.IsJaegerOperatorEnabled(&vz)
+	return vzconfig.IsJaegerOperatorEnabled(&vz)
 }
