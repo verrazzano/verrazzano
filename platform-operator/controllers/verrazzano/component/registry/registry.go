@@ -143,7 +143,7 @@ func FindComponent(componentName string) (bool, spi.Component) {
 // allow components to individually make those decisions.
 func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) bool {
 	var notReadyDependencies []string
-	var endOfTrace bool = true
+	var endOfTrace = true
 	log := context.Log()
 	trace, err := checkDirectDependenciesReady(c, context, make(map[string]bool))
 	if err != nil {
