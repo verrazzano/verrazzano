@@ -797,8 +797,8 @@ func (in *InstanceInfo) DeepCopyInto(out *InstanceInfo) {
 		*out = new(string)
 		**out = **in
 	}
-	if in.ThanosQueryFrontendURL != nil {
-		in, out := &in.ThanosQueryFrontendURL, &out.ThanosQueryFrontendURL
+	if in.ThanosQueryURL != nil {
+		in, out := &in.ThanosQueryURL, &out.ThanosQueryURL
 		*out = new(string)
 		**out = **in
 	}
