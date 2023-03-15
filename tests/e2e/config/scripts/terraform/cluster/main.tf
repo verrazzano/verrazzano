@@ -1,9 +1,9 @@
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 module "oke" {
   source = "oracle-terraform-modules/oke/oci"
-  version = "4.3.0"
+  version = "4.4.2"
 
   tenancy_id = var.tenancy_id
   user_id = var.user_id
