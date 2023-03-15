@@ -4,8 +4,6 @@
 package registry
 
 import (
-	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
@@ -161,11 +159,10 @@ func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) boo
 	for compName, value := range trace {
 		if !value {
 			endOfTrace = false
-			//FLAG AT END OF TRACE
 			notReadyDependencies = append(notReadyDependencies, compName)
 		}
 	}
-	logNotReadyDependencies(notReadyDependencies, log)
+	log.Progressf("Component %s waiting for dependencies %v to be ready", notReadyDependencies)
 	return endOfTrace
 }
 
@@ -213,10 +210,4 @@ func isInReadyState(context spi.ComponentContext, comp spi.Component) bool {
 		}
 	}
 	return false
-}
-
-func logNotReadyDependencies(dependencies []string, log vzlog.VerrazzanoLogger) {
-	log.Progressf("Component %s waiting for dependencies %v to be ready", dependencies)
-	fmt.Printf("Component %s waiting for dependencies %v to be ready", dependencies)
-
 }
