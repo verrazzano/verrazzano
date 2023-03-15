@@ -284,6 +284,8 @@ function full_k8s_cluster_snapshot() {
 }
 
 function analyze_dump() {
+  echo "cleaning the cache"
+  GO111MODULE=on GOPRIVATE=github.com/verrazzano go clean -modcache && go mod tidy
   if [ $ANALYZE == "TRUE" ]; then
     if ! [ -x "$(command -v go)" ]; then
       echo "Analyze requires go which does not appear to be installed, skipping analyze"
@@ -306,6 +308,7 @@ function analyze_dump() {
                   $GOPATH/vz analyze --capture-dir $FULL_PATH_CAPTURE_DIR --report-format detailed --report-file $REPORT_FILE || true
                 else
                   GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go analyze --capture-dir $FULL_PATH_CAPTURE_DIR --report-format detailed --report-file $REPORT_FILE || true
+                  go clean -modcache && go mod tidy
               fi
             else
               if [[ -x $GOPATH/bin/vz ]]; then

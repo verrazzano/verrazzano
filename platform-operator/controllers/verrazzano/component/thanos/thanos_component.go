@@ -32,7 +32,7 @@ const ComponentJSONName = "thanos"
 // Availability Object Names
 const (
 	queryDeployment    = "thanos-query"
-	frontendDeployment = "thanos-query-frontend"
+	frontendDeployment = "thanos-query"
 )
 
 type thanosComponent struct {
@@ -136,7 +136,7 @@ func (t thanosComponent) GetIngressNames(ctx spi.ComponentContext) []types.Names
 	}
 	return append(ingressNames, types.NamespacedName{
 		Namespace: ns,
-		Name:      constants.ThanosQueryFrontendIngress,
+		Name:      constants.ThanosQueryIngress,
 	})
 }
 
@@ -153,6 +153,6 @@ func (t thanosComponent) GetCertificateNames(ctx spi.ComponentContext) []types.N
 	}
 	return append(certificateNames, types.NamespacedName{
 		Namespace: ns,
-		Name:      frontendCertificateName,
+		Name:      queryCertificateName,
 	})
 }
