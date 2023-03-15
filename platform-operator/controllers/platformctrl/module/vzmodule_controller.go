@@ -1,3 +1,5 @@
+// Copyright (c) 2023, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package module
 
 import (
@@ -116,7 +118,7 @@ func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, mod
 
 	platformSource := moduleInstance.Spec.Source
 	platformInstance, _ := r.getPlatormInstance(log, platformSource)
-	platformDefinition, err := r.getPlatformDefinition(log, platformInstance)
+	platformDefinition, err := r.getPlatformDefinition(log, platformInstance, platformSource)
 	if err != nil {
 		return newRequeueWithDelay(), err
 	}
@@ -127,15 +129,17 @@ func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, mod
 	if err != nil {
 		return vzcontroller.NewRequeueWithDelay(10, 30, time.Second), err
 	}
+
+	chartName := r.lookupChartName(moduleInstance)
 	// FIXME: we only need the chart type if we can't assume the module we're reconciling is not a CRD or operator chart
 	// Pull module type from chart
-	moduleChartType, err := helm.LookupChartType(log, sourceName, sourceURI, moduleInstance.Name, targetModuleVersion)
+	moduleChartType, err := helm.LookupChartType(log, sourceName, sourceURI, chartName, targetModuleVersion)
 	if err != nil {
 		return vzcontroller.NewRequeueWithDelay(30, 300, time.Second), err
 	}
 
 	// Load the ModuleDefinitions if necessary
-	if err := helm.ApplyModuleDefinitions(log, r.Client, moduleInstance.Name, targetModuleVersion, sourceURI); err != nil {
+	if err := helm.ApplyModuleDefinitions(log, r.Client, chartName, targetModuleVersion, sourceURI); err != nil {
 		return newRequeueWithDelay(), err
 	}
 
@@ -297,9 +301,9 @@ func (r *VerrazzanoModuleReconciler) createDependentModule(operatorDependency pl
 	return modDep, nil
 }
 
-func (r *VerrazzanoModuleReconciler) applyModuleDependencies(log vzlog.VerrazzanoLogger, moduleInstance *platformapi.Module, def *platformapi.ModuleDefinition, sourceURI string, moduleNamespace string) (ctrl.Result, error) {
-	return ctrl.Result{}, nil
-}
+//func (r *VerrazzanoModuleReconciler) applyModuleDependencies(log vzlog.VerrazzanoLogger, moduleInstance *platformapi.Module, def *platformapi.ModuleDefinition, sourceURI string, moduleNamespace string) (ctrl.Result, error) {
+//	return ctrl.Result{}, nil
+//}
 
 func (r *VerrazzanoModuleReconciler) checkInstallerDependencies(log vzlog.VerrazzanoLogger, installers []*platformapi.Module) bool {
 	allDependenciesMet := true
@@ -452,11 +456,14 @@ func (r *VerrazzanoModuleReconciler) getModuleVersionInfoFromPlatform(pd *platfo
 	return "", "", false
 }
 
-func (r *VerrazzanoModuleReconciler) getPlatformDefinition(log vzlog.VerrazzanoLogger, instance *platformapi.Platform) (*platformapi.PlatformDefinition, error) {
+func (r *VerrazzanoModuleReconciler) getPlatformDefinition(log vzlog.VerrazzanoLogger, instance *platformapi.Platform, source *platformapi.PlatformSource) (*platformapi.PlatformDefinition, error) {
+	if source == nil || len(source.Namespace) == 0 || len(source.Name) == 0 {
+		return nil, log.ErrorfThrottledNewErr("Source not defined for module %s/%s", instance.Namespace, instance.Name)
+	}
 	pd := &platformapi.PlatformDefinition{}
 	// TODO: Need to figure out relationship between PD and platform instance; might need to be a configmap
 	//   - perhaps the focus of the platform controller is downloading/creating the platform definition based on the Platform instance version?
-	err := r.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: "verrazzano-install"}, pd)
+	err := r.Get(context.TODO(), types.NamespacedName{Name: source.Name, Namespace: source.Namespace}, pd)
 	if err != nil {
 		return nil, err
 	}

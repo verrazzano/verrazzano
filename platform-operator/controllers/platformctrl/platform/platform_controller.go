@@ -1,3 +1,5 @@
+// Copyright (c) 2023, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package platform
 
 import (
@@ -93,8 +95,16 @@ func (r *PlatformReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return newRequeueWithDelay(), err
 	}
 
+	if err := r.doReconcile(log, platformInstance); err != nil {
+		return newRequeueWithDelay(), err
+	}
+
 	log.Infof("Reconcile of platform instance %s/%s complete", platformInstance.Namespace, platformInstance.Name)
 	return ctrl.Result{}, nil
+}
+
+func (r *PlatformReconciler) doReconcile(_ vzlog.VerrazzanoLogger, _ *platformapi.Platform) error {
+	return nil
 }
 
 func newRequeueWithDelay() ctrl.Result {

@@ -227,7 +227,7 @@ func Pull(log vzlog.VerrazzanoLogger, repoURL string, chartName string, chartVer
 	}
 
 	if untar {
-		args = append(args, fmt.Sprintf("--untar"))
+		args = append(args, "--untar")
 	}
 
 	cmd := exec.Command("helm", args...)
