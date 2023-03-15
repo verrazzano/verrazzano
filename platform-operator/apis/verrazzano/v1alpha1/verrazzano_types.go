@@ -450,23 +450,6 @@ type OpenSearchOperatorComponent struct {
 	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
-	// The OpenSearchCluster configuration
-	// +optional
-	OpenSearchCluster *OpenSearchCluster `json:"opensearchCluster,omitempty"`
-}
-
-// OpenSearchCluster specifies the OpenSearchCluster configuration
-type OpenSearchCluster struct {
-	// If true, then OpenSearch cluster will be created
-	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the OpenSearchCluster Helm chart. Overrides are merged together,
-	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
-	// find all possible values
-	// TODO: Add a link to the charts/values.yaml
-	// and invalid values will be ignored.
-	// +optional
-	InstallOverrides `json:",inline"`
 }
 
 // ElasticsearchComponent specifies the Elasticsearch configuration.
