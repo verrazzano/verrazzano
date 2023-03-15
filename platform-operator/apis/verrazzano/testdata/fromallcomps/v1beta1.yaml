@@ -342,8 +342,3 @@ spec:
       overrides:
         - values:
             frobber: frob
-      opensearchCluster:
-        enabled: true
-        overrides:
-          - values:
-              frobber: frob

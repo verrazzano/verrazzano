@@ -154,17 +154,6 @@ func convertOpenSearchOperatorToV1Beta1(src *OpenSearchOperatorComponent) *v1bet
 		return nil
 	}
 	return &v1beta1.OpenSearchOperatorComponent{
-		Enabled:           src.Enabled,
-		InstallOverrides:  convertInstallOverridesToV1Beta1(src.InstallOverrides),
-		OpenSearchCluster: convertOpenSearchClusterToV1Beta1(src.OpenSearchCluster),
-	}
-}
-
-func convertOpenSearchClusterToV1Beta1(src *OpenSearchCluster) *v1beta1.OpenSearchCluster {
-	if src == nil {
-		return nil
-	}
-	return &v1beta1.OpenSearchCluster{
 		Enabled:          src.Enabled,
 		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
 	}
