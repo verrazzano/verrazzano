@@ -342,7 +342,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-cluster"
                             }
                             steps {
-                                runGinkgo('tests/e2e/workloads/weblogic-cluster/')
+                                runGinkgo('workloads/weblogic-cluster/')
                             }
                         }
                     }
