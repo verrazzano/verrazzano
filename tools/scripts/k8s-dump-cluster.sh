@@ -285,9 +285,6 @@ function full_k8s_cluster_snapshot() {
 
 function analyze_dump() {
   echo "cleaning the cache"
-  echo "current working directory"
-  ls -ltr
-  du -h
   GO111MODULE=on GOPRIVATE=github.com/verrazzano go clean -modcache && go mod tidy
   if [ $ANALYZE == "TRUE" ]; then
     if ! [ -x "$(command -v go)" ]; then
