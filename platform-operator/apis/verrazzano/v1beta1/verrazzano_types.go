@@ -140,6 +140,7 @@ type InstanceInfo struct {
 	// The Rancher URL for this Verrazzano installation.
 	RancherURL *string `json:"rancherUrl,omitempty"`
 	// The Thanos Query URL for this Verrazzano installation.
+	// The Thanos Query ingress gets forwarded to the Thanos Query Frontend service.
 	ThanosQueryURL *string `json:"thanosQueryUrl,omitempty"`
 }
 
