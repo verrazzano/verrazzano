@@ -1188,9 +1188,9 @@ func TestIsArgoCDEnabled(t *testing.T) {
 
 func TestIsOpenSearchOperatorEnabled(t *testing.T) {
 	asserts := assert.New(t)
-	asserts.True(IsOpenSearchOperatorEnabled(nil))
-	asserts.True(IsOpenSearchOperatorEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
-	asserts.True(IsOpenSearchOperatorEnabled(
+	asserts.False(IsOpenSearchOperatorEnabled(nil))
+	asserts.False(IsOpenSearchOperatorEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.False(IsOpenSearchOperatorEnabled(
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				OpenSearchOperator: &vzapi.OpenSearchOperatorComponent{},

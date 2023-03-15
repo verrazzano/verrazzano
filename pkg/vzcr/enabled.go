@@ -461,7 +461,7 @@ func IsThanosEnabled(cr runtime.Object) bool {
 	return false
 }
 
-// IsOpenSearchOperatorEnabled returns false if OpenSearchOperator is explicitly disabled in the CR
+// IsOpenSearchOperatorEnabled returns false unless OpenSearchOperator is explicitly enabled in the CR
 func IsOpenSearchOperatorEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.OpenSearchOperator != nil && vzv1alpha1.Spec.Components.OpenSearchOperator.Enabled != nil {
@@ -472,5 +472,5 @@ func IsOpenSearchOperatorEnabled(cr runtime.Object) bool {
 			return *vzv1beta1.Spec.Components.OpenSearchOperator.Enabled
 		}
 	}
-	return true
+	return false
 }
