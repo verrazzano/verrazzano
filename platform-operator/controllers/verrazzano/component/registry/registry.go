@@ -144,6 +144,8 @@ func FindComponent(componentName string) (bool, spi.Component) {
 // to continue to deploy if it's not enabled.  In the long run, the dependency mechanism should likely go away and
 // allow components to individually make those decisions.
 func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) bool {
+	var notReadyDependencies []string
+	var endOfTrace bool = true
 	log := context.Log()
 	trace, err := checkDirectDependenciesReady(c, context, make(map[string]bool))
 	if err != nil {
@@ -155,14 +157,16 @@ func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) boo
 		return true
 	}
 	log.Debugf("Trace results for %s: %v", c.Name(), trace)
-	var notReadyDependencies []string
+
 	for compName, value := range trace {
 		if !value {
+			endOfTrace = false
+			//FLAG AT END OF TRACE
 			notReadyDependencies = append(notReadyDependencies, compName)
 		}
 	}
 	logNotReadyDependencies(notReadyDependencies, log)
-	return true
+	return endOfTrace
 }
 
 // checkDependencies Check the ready state of any dependencies and check for cycles
@@ -211,9 +215,8 @@ func isInReadyState(context spi.ComponentContext, comp spi.Component) bool {
 	return false
 }
 
-func logNotReadyDependencies(dependencies []string, vzlog.VerrazzanoLogger) {
-	log := vzlog.VerrazzanoLogger()
-	log.Progressf("Component %s waiting for dependencies %v to be ready", compName)
-	fmt.Printf("Component %s waiting for dependencies %v to be ready\n", compName, value)
+func logNotReadyDependencies(dependencies []string, log vzlog.VerrazzanoLogger) {
+	log.Progressf("Component %s waiting for dependencies %v to be ready", dependencies)
+	fmt.Printf("Component %s waiting for dependencies %v to be ready", dependencies)
 
 }
