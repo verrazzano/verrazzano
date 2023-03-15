@@ -1233,14 +1233,16 @@ func createVirtualServiceMatchURIFromIngressTraitPath(path vzapi.IngressPath) *i
 
 // createHostsFromIngressTraitRule creates an array of hosts from an ingress rule, appending to an optionally provided input list
 // - It filters out wildcard hosts or hosts that are empty.
-// - If there are no valid hosts provided, then a DNS host name is automatically generated and used.
+// - If there are no valid hosts provided for the rule, then a DNS host name is automatically generated and used.
 // - A hostname can only appear once
 func createHostsFromIngressTraitRule(cli client.Reader, rule vzapi.IngressRule, trait *vzapi.IngressTrait, toList ...string) ([]string, error) {
 	validHosts := toList
+	useDefaultHost := true
 	for _, h := range rule.Hosts {
 		h = strings.TrimSpace(h)
 		if _, hostAlreadyPresent := findHost(validHosts, h); hostAlreadyPresent {
 			// Avoid duplicates
+			useDefaultHost = false
 			continue
 		}
 		// Ignore empty or wildcard hostname
@@ -1249,14 +1251,21 @@ func createHostsFromIngressTraitRule(cli client.Reader, rule vzapi.IngressRule, 
 		}
 		h = strings.ToLower(strings.TrimSpace(h))
 		validHosts = append(validHosts, h)
+		useDefaultHost = false
 	}
-	// Use default hostname if none of the user specified hosts were valid
-	if len(validHosts) == 0 {
-		hostName, err := buildAppFullyQualifiedHostName(cli, trait)
-		if err != nil {
-			return nil, err
-		}
-		validHosts = []string{hostName}
+	// Add done if a host was added to the host list
+	if !useDefaultHost {
+		return validHosts, nil
+	}
+
+	// Generate a default hostname
+	hostName, err := buildAppFullyQualifiedHostName(cli, trait)
+	if err != nil {
+		return nil, err
+	}
+	// Only add the generated hostname if it doesn't exist in hte list
+	if _, hostAlreadyPresent := findHost(validHosts, hostName); !hostAlreadyPresent {
+		validHosts = append(validHosts, hostName)
 	}
 	return validHosts, nil
 }
