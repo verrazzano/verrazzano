@@ -989,3 +989,11 @@ func getDNSSuffix(effectiveCR runtime.Object) (string, bool) {
 	}
 	return dnsSuffix, wildcard
 }
+
+func GetClusterIssuer() (*certv1.ClusterIssuer, error) {
+	cmClient, err := getCMClientFunc()
+	if err != nil {
+		return nil, err
+	}
+	return cmClient.ClusterIssuers().Get(context.TODO(), verrazzanoClusterIssuerName, metav1.GetOptions{})
+}
