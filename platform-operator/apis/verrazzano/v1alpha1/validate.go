@@ -20,7 +20,7 @@ func ValidateProfile(requestedProfile ProfileType) error {
 		case Prod, Dev, ManagedCluster, None:
 			return nil
 		default:
-			return fmt.Errorf("Requested profile %s is invalid, valid options are dev, prod, or managed-cluster",
+			return fmt.Errorf("Requested profile %s is invalid, valid options are dev, prod, managed-cluster, or none",
 				requestedProfile)
 		}
 	}
