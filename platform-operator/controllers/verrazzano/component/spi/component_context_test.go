@@ -1,24 +1,23 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package spi
 
 import (
-	"io/ioutil"
-	"k8s.io/apimachinery/pkg/api/equality"
-	"path/filepath"
-	"testing"
-
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"io/ioutil"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
+	"testing"
 )
 
 var testScheme = runtime.NewScheme()

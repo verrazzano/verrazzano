@@ -1,15 +1,10 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helm
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
-	"os"
-
-	"k8s.io/apimachinery/pkg/runtime"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -20,11 +15,14 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
