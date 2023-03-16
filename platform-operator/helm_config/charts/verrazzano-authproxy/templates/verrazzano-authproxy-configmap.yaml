@@ -525,28 +525,27 @@ data:
         return backend_name, able_to_redirect
     end
 
+    function me.setTableValue(ingressServiceTable, key, value)
+        if key ~= nil then
+            ingressServiceTable[key] = value
+        end
+    end
     function me.getBackedServerURLFromIngressHost(ingressHost)
         local backendServerUrl = nil
-        local ingressServiceTable = {
-            set = function(self, key, value)
-            if key ~= nil then
-            self[key] = value
-            end
-          end
-        }
-        ingressServiceTable:set(os.getenv("VZ_VERRAZZANO_HOST"), me.getLocalKubernetesApiUrl())
-        ingressServiceTable:set(os.getenv("VZ_CONSOLE_HOST"), os.getenv("VZ_CONSOLE_BACKEND_URL"))
-        ingressServiceTable:set(os.getenv("VZ_GRAFANA_HOST"), os.getenv("VZ_GRAFANA_BACKEND_URL"))
-        ingressServiceTable:set(os.getenv("VZ_PROMETHEUS_HOST"), os.getenv("VZ_PROMETHEUS_BACKEND_URL"))
-        ingressServiceTable:set(os.getenv("VZ_THANOS_SIDECAR_HOST"), os.getenv("VZ_THANOS_SIDECAR_BACKEND_URL"))
-        ingressServiceTable:set(os.getenv("VZ_THANOS_QUERY_FRONTEND_HOST"), os.getenv("VZ_THANOS_QUERY_FRONTEND_BACKEND_URL"))
-        ingressServiceTable:set(os.getenv("VZ_KIBANA_HOST"), os.getenv("VZ_KIBANA_BACKEND_URL"))
-        ingressServiceTable:set(os.getenv("VZ_OSD_HOST"), os.getenv("VZ_OSD_BACKEND_URL"))
-        ingressServiceTable:set(os.getenv("VZ_ELASTICSEARCH_HOST"), os.getenv("VZ_ELASTICSEARCH_BACKEND_URL"))
-        ingressServiceTable:set(os.getenv("VZ_OPENSEARCH_HOST"), os.getenv("VZ_OPENSEARCH_BACKEND_URL"))
-        ingressServiceTable:set(os.getenv("VZ_AUTHPROXY_OPENSEARCH_HOST"), os.getenv("VZ_AUTHPROXY_OPENSEARCH_BACKEND_URL"))
-        ingressServiceTable:set(os.getenv("VZ_KIALI_HOST"), os.getenv("VZ_KIALI_BACKEND_URL"))
-        ingressServiceTable:set(os.getenv("VZ_JAEGER_HOST"), os.getenv("VZ_JAEGER_BACKEND_URL"))
+        local ingressServiceTable = {}
+        me.setTableValue(ingressServiceTable, os.getenv("VZ_VERRAZZANO_HOST"), me.getLocalKubernetesApiUrl())
+        me.setTableValue(ingressServiceTable, os.getenv("VZ_CONSOLE_HOST"), os.getenv("VZ_CONSOLE_BACKEND_URL"))
+        me.setTableValue(ingressServiceTable, os.getenv("VZ_GRAFANA_HOST"), os.getenv("VZ_GRAFANA_BACKEND_URL"))
+        me.setTableValue(ingressServiceTable, os.getenv("VZ_PROMETHEUS_HOST"), os.getenv("VZ_PROMETHEUS_BACKEND_URL"))
+        me.setTableValue(ingressServiceTable, os.getenv("VZ_THANOS_SIDECAR_HOST"), os.getenv("VZ_THANOS_SIDECAR_BACKEND_URL"))
+        me.setTableValue(ingressServiceTable, os.getenv("VZ_THANOS_QUERY_FRONTEND_HOST"), os.getenv("VZ_THANOS_QUERY_FRONTEND_BACKEND_URL"))
+        me.setTableValue(ingressServiceTable, os.getenv("VZ_KIBANA_HOST"), os.getenv("VZ_KIBANA_BACKEND_URL"))
+        me.setTableValue(ingressServiceTable, os.getenv("VZ_OSD_HOST"), os.getenv("VZ_OSD_BACKEND_URL"))
+        me.setTableValue(ingressServiceTable, os.getenv("VZ_ELASTICSEARCH_HOST"), os.getenv("VZ_ELASTICSEARCH_BACKEND_URL"))
+        me.setTableValue(ingressServiceTable, os.getenv("VZ_OPENSEARCH_HOST"), os.getenv("VZ_OPENSEARCH_BACKEND_URL"))
+        me.setTableValue(ingressServiceTable, os.getenv("VZ_AUTHPROXY_OPENSEARCH_HOST"), os.getenv("VZ_AUTHPROXY_OPENSEARCH_BACKEND_URL"))
+        me.setTableValue(ingressServiceTable, os.getenv("VZ_KIALI_HOST"), os.getenv("VZ_KIALI_BACKEND_URL"))
+        me.setTableValue(ingressServiceTable, os.getenv("VZ_JAEGER_HOST"), os.getenv("VZ_JAEGER_BACKEND_URL"))
         backendServerUrl = ingressServiceTable[ingressHost]
         if not backendServerUrl then
             me.not_found("Invalid backend '"..ingressHost.."'")
@@ -1392,9 +1391,6 @@ data:
                 allow 127.0.0.1;
                 deny all;
             }
-            configmap my-config-map {
-                env true;
-            }
         }
     }
   startup.sh: |
@@ -1404,7 +1400,6 @@ data:
     cp $startupDir/nginx.conf /etc/nginx/nginx.conf
     cp $startupDir/auth.lua /etc/nginx/auth.lua
     cp $startupDir/conf.lua /etc/nginx/conf.lua
-    source env-vars.sh
     nameserver=$(grep -i nameserver /etc/resolv.conf | awk '{split($0,line," "); print line[2]}')
     sed -i -e "s|_NAMESERVER_|${nameserver}|g" /etc/nginx/nginx.conf
 
@@ -1497,7 +1492,6 @@ data:
 
     while true
     do
-        source env-vars.sh
         trustedCertsFileSize=$(wc -c < $upstreamCACertFile)
         if [ $trustedCertsFileSize -ge $maxSizeTrustedCertsFileDefault ] ; then
             echo "$upstreamCACertFile file size greater than  $maxSizeTrustedCertsFileDefault, resetting.."
