@@ -746,6 +746,9 @@ prometheus-node-exporter:
   # release name). Instead override the full name of the daemonset to what we want.
   fullName: prometheus-node-exporter
 
+  ## POC change! 9100 clashes with existing node exporter!
+  service:
+    port: 9400
   # Prometheus ServiceMonitor settings
   prometheus:
     monitor:

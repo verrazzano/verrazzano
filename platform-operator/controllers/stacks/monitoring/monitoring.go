@@ -4,12 +4,10 @@
 package monitoring
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -19,7 +17,6 @@ import (
 	promadapter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/adapter"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/kubestatemetrics"
 	promnodeexporter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/nodeexporter"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/core/v1"
@@ -90,33 +87,6 @@ func AppendVZOverrides(context spi.ComponentContext, _ string, _ string, _ strin
 	}
 	return kvs, nil
 	// return appendComponentValuesFiles(kvs, context.Log())
-}
-
-// appendComponentValuesFiles - append all the overrides files of the individual components
-// in the stack, as file overrides to the monitoring stack
-// TODO maybe make this a field in HelmStackComponent and write an AppendOverridesFunc that calls it?
-func appendComponentValuesFiles(kvs []bom.KeyValue, log vzlog.VerrazzanoLogger) ([]bom.KeyValue, error) {
-	for _, compName := range dependencyComponentNames {
-		valuesFileFound := false
-		log.Infof("DEVA getting overrides for dependency component %s", compName)
-		if ok, comp := registry.FindComponent(compName); ok {
-			log.Infof("DEVA component %s values file is '%s'", compName, comp.GetHelmValuesFile())
-			if comp.GetHelmValuesFile() != "" {
-				kvs = append(kvs,
-					bom.KeyValue{
-						Key:     fmt.Sprintf("%s", compName),
-						Value:   comp.GetHelmValuesFile(),
-						SetFile: true})
-				valuesFileFound = true
-			}
-			if !valuesFileFound {
-				log.Infof("Component %s is not a Helm component or no values file override present", compName)
-			}
-		} else {
-			return kvs, log.ErrorfNewErr("Component %s not found in registry!", compName)
-		}
-	}
-	return kvs, nil
 }
 
 func appendNamespaceOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {

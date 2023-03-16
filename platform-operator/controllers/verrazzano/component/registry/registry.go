@@ -5,7 +5,6 @@ package registry
 
 import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/stacks/monitoring"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
@@ -99,7 +98,6 @@ func InitRegistry() {
 		clusteroperator.NewComponent(),
 		argocd.NewComponent(),
 		thanos.NewComponent(),
-		monitoring.NewStackComponent(),
 	}
 	getComponentsMap = make(map[string]spi.Component)
 }
