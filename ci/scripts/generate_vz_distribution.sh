@@ -256,6 +256,7 @@ includeProfiles() {
   go run ${VZ_REPO_ROOT}/tools/generate-profiles/generate.go --profile prod --output-dir ${distDir}
   go run ${VZ_REPO_ROOT}/tools/generate-profiles/generate.go --profile dev --output-dir ${distDir}
   go run ${VZ_REPO_ROOT}/tools/generate-profiles/generate.go --profile managed-cluster --output-dir ${distDir}
+  go run ${VZ_REPO_ROOT}/tools/generate-profiles/generate.go --profile none --output-dir ${distDir}
 }
 
 # Clean-up workspace after uploading the distribution bundles
