@@ -230,6 +230,11 @@ func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, trait *vzapi.In
 
 // createOrUpdateChildResources creates or updates the Gateway and VirtualService resources that
 // should be used to setup ingress to the service.
+// This is the cardinality:
+//
+//	1 Gateway per Application
+//	1 Gateway server per IngressTrait
+//	1 VirtualService per IngressTrait rule
 func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) (*reconcileresults.ReconcileResults, ctrl.Result, error) {
 	status := reconcileresults.ReconcileResults{}
 	rules := trait.Spec.Rules
@@ -247,7 +252,7 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 		if err != nil {
 			status.Errors = append(status.Errors, err)
 		} else {
-			// The Gateway is shared across all traits, update it with all known hosts for the trait
+			// The Gateway is shared across all ingress traits, update it with all known hosts for the trait
 			// - Must create GW before service so that external DNS sees the GW once the service is created
 			gateway := r.createOrUpdateGateway(ctx, trait, allHostsForTrait, gwName, secretName, &status, log)
 			for index, rule := range rules {
@@ -261,10 +266,18 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 					return &status, reconcile.Result{Requeue: true, RequeueAfter: clusters.GetRandomRequeueDelay()}, err
 				}
 
+				// Get the list of hosts for this rule.  A virtual service can have the same hosts as another virtual service
+				// using the same gateway.  Istio will combine the rules to figure out the routing.
+				// See https://istio.io/latest/docs/ops/best-practices/traffic-management/#split-virtual-services
+				vsHosts, err := createHostsFromIngressTraitRule(r, rule, trait)
+				if err != nil {
+					status.Errors = append(status.Errors, err)
+				}
+
 				vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
 				drName := fmt.Sprintf("%s-rule-%d-dr", trait.Name, index)
 				authzPolicyName := fmt.Sprintf("%s-rule-%d-authz", trait.Name, index)
-				r.createOrUpdateVirtualService(ctx, trait, rule, allHostsForTrait, vsName, services, gateway, &status, log)
+				r.createOrUpdateVirtualService(ctx, trait, rule, vsHosts, vsName, services, gateway, &status, log)
 				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log, services)
 				r.createOrUpdateAuthorizationPolicies(ctx, trait, rule, authzPolicyName, allHostsForTrait, &status, log)
 			}
@@ -607,7 +620,7 @@ func formatGatewaySeverPortName(traitName string) string {
 }
 
 // updateGatewayServersList Update/add the Server entry for the IngressTrait to the gateway servers list
-//   - There will be a 1:1 mapping of Server-to-VirtualService
+// Each gateway server entry has a TLS field for the certificate.  This corresponds to the IngressTrait TLS field.
 func (r *Reconciler) updateGatewayServersList(servers []*istionet.Server, server *istionet.Server) []*istionet.Server {
 	if len(servers) == 0 {
 		servers = append(servers, server)
