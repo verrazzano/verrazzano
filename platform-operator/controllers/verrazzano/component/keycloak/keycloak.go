@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"reflect"
 	"strings"
 	"text/template"
@@ -1349,7 +1350,7 @@ func upgradeStatefulSet(ctx spi.ComponentContext) error {
 	}
 
 	// Get the combine set of value overrides into a single array of string
-	overrides, err := common.GetInstallOverridesYAML(ctx, keycloakComp.ValueOverrides)
+	overrides, err := override.GetInstallOverridesYAML(ctx, keycloakComp.ValueOverrides)
 	if err != nil {
 		return err
 	}
@@ -1362,7 +1363,7 @@ func upgradeStatefulSet(ctx spi.ComponentContext) error {
 			found = true
 
 			// Convert the affinity override from yaml to a struct
-			affinityField, err := common.ExtractValueFromOverrideString(overrideYaml, "affinity")
+			affinityField, err := override.ExtractValueFromOverrideString(overrideYaml, "affinity")
 			if err != nil {
 				return err
 			}

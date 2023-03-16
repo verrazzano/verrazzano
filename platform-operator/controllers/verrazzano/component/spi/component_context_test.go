@@ -11,7 +11,6 @@ import (
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -26,10 +25,7 @@ var testScheme = runtime.NewScheme()
 
 func init() {
 	_ = clientgoscheme.AddToScheme(testScheme)
-
 	_ = v1alpha1.AddToScheme(testScheme)
-	_ = clustersv1alpha1.AddToScheme(testScheme)
-
 	_ = istioclinet.AddToScheme(testScheme)
 	_ = istioclisec.AddToScheme(testScheme)
 	_ = certv1.AddToScheme(testScheme)
