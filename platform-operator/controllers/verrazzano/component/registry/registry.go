@@ -163,7 +163,7 @@ func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) boo
 		}
 	}
 	if !dependenciesReady {
-		log.Progressf("Component %s waiting for dependencies %v to be ready", notReadyDependencies)
+		log.Progressf("Component %s waiting for dependencies %v to be ready", c.Name(), notReadyDependencies)
 	}
 	return dependenciesReady
 }
