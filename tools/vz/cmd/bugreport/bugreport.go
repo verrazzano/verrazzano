@@ -71,9 +71,13 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 
 func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
 	start := time.Now()
-	bugReportFile, err := getBugReportFile(cmd, vzHelper)
+	// determines the bug report file
+	bugReportFile, err := cmd.PersistentFlags().GetString(constants.BugReportFileFlagName)
 	if err != nil {
 		return fmt.Errorf("error fetching flag: %s", err.Error())
+	}
+	if bugReportFile == "" {
+		bugReportFile = constants.BugReportFileDefaultValue
 	}
 
 	// Get the kubernetes clientset, which will validate that the kubeconfigFlagValPointer and contextFlagValPointer are valid.
@@ -94,18 +98,20 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return err
 	}
 
-	// Check whether the file already exists
-	err = checkExistingFile(bugReportFile)
-	if err != nil {
-		return err
+	// Create the bug report file
+	var bugRepFile *os.File
+	if bugReportFile == constants.BugReportFileDefaultValue {
+		bugReportFile = strings.Replace(bugReportFile, "dt", start.Format(constants.DatetimeFormat), 1)
+		bugRepFile, err = os.CreateTemp(".", bugReportFile)
+		if err != nil && (errors.Is(err, fs.ErrPermission) || strings.Contains(err.Error(), constants.ReadOnly)) {
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Warning: %s to open report file in current directory\n", fs.ErrPermission)
+			bugRepFile, err = os.CreateTemp("", bugReportFile)
+		}
+	} else {
+		bugRepFile, err = os.OpenFile(bugReportFile, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
 	}
 
-	// Create the bug report file
-	bugRepFile, err := os.Create(bugReportFile)
 	if err != nil {
-		if errors.Is(err, fs.ErrPermission) {
-			return fmt.Errorf("permission denied to create the bug report: %s", bugReportFile)
-		}
 		return fmt.Errorf("an error occurred while creating %s: %s", bugReportFile, err.Error())
 	}
 	defer bugRepFile.Close()
@@ -151,7 +157,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	// Capture cluster snapshot
 	err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, bugReportDir, moreNS, vzHelper, vzbugreport.PodLogs{IsPodLog: isPodLog, Duration: durationValue})
 	if err != nil {
-		os.Remove(bugReportFile)
+		os.Remove(bugRepFile.Name())
 		return fmt.Errorf(err.Error())
 	}
 
@@ -168,9 +174,9 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return fmt.Errorf("there is an error in creating the bug report, %s", err.Error())
 	}
 
-	brf, _ := os.Stat(bugReportFile)
+	brf, _ := os.Stat(bugRepFile.Name())
 	if brf.Size() > 0 {
-		msg := fmt.Sprintf("Created bug report: %s in %s\n", bugReportFile, time.Since(start))
+		msg := fmt.Sprintf("Created bug report: %s in %s\n", bugRepFile.Name(), time.Since(start))
 		fmt.Fprintf(vzHelper.GetOutputStream(), msg)
 		// Display a message to check the standard error, if the command reported any error and continued
 		if helpers.IsErrorReported() {
@@ -179,25 +185,9 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		displayWarning(msg, vzHelper)
 	} else {
 		// Verrazzano is not installed, remove the empty bug report file
-		os.Remove(bugReportFile)
+		os.Remove(bugRepFile.Name())
 	}
 	return nil
-}
-
-// getBugReportFile determines the bug report file
-func getBugReportFile(cmd *cobra.Command, vzHelper helpers.VZHelper) (string, error) {
-	bugReport, err := cmd.PersistentFlags().GetString(constants.BugReportFileFlagName)
-	if err != nil {
-		return "", fmt.Errorf("error fetching flag: %s", err.Error())
-	}
-	if bugReport == "" {
-		currentDir, err := os.Getwd()
-		if err != nil {
-			return "", fmt.Errorf("error determining the current directory: %s", err.Error())
-		}
-		return filepath.Join(currentDir, constants.BugReportFileDefaultValue), nil
-	}
-	return bugReport, nil
 }
 
 // checkExistingFile determines whether a file / directory with the name bugReportFile already exists
