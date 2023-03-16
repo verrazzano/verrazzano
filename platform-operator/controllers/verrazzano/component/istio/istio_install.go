@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package istio
@@ -6,10 +6,6 @@ package istio
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/istio"
@@ -17,10 +13,11 @@ import (
 	os2 "github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"io/ioutil"
 	istiosec "istio.io/api/security/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -28,6 +25,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"os"
+	"path/filepath"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -83,7 +82,7 @@ type installRoutineParams struct {
 	log           vzlog.VerrazzanoLogger
 }
 
-//installMonitor - Represents a monitor object used by the component to monitor a background goroutine used for running
+// installMonitor - Represents a monitor object used by the component to monitor a background goroutine used for running
 // istioctl install operations asynchronously.
 type installMonitor interface {
 	// checkResult - Checks for a result from the install goroutine; returns either the result of the operation, or an error indicating
@@ -97,7 +96,7 @@ type installMonitor interface {
 	run(args installRoutineParams)
 }
 
-//checkResult - checks for a result from the goroutine
+// checkResult - checks for a result from the goroutine
 // - returns false and a retry error if it's still running, or the result from the channel and nil if an answer was received
 func (m *installMonitorType) checkResult() (bool, error) {
 	select {
@@ -108,19 +107,19 @@ func (m *installMonitorType) checkResult() (bool, error) {
 	}
 }
 
-//reset - reset the monitor and close the channel
+// reset - reset the monitor and close the channel
 func (m *installMonitorType) reset() {
 	m.running = false
 	close(m.resultCh)
 	close(m.inputCh)
 }
 
-//isRunning - returns true of the monitor/goroutine are active
+// isRunning - returns true of the monitor/goroutine are active
 func (m *installMonitorType) isRunning() bool {
 	return m.running
 }
 
-//run - Run the install in a goroutine
+// run - Run the install in a goroutine
 func (m *installMonitorType) run(args installRoutineParams) {
 	m.running = true
 	m.resultCh = make(chan bool, 2)
@@ -173,7 +172,7 @@ func (i istioComponent) IsInstalled(compContext spi.ComponentContext) (bool, err
 	return true, nil
 }
 
-//Install - istioComponent install
+// Install - istioComponent install
 //
 // This utilizes the istioctl utility for install, which blocks during the entire installation process.  This can
 // take up to several minutes and block the controller.  For now, we launch the install operation in a goroutine
@@ -218,7 +217,7 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 	return forkInstallFunc(compContext, i.monitor, overrideStrings, istioTempFiles)
 }
 
-//forkInstall - istioctl install blocks, fork it into the background
+// forkInstall - istioctl install blocks, fork it into the background
 func forkInstall(compContext spi.ComponentContext, monitor installMonitor, overrideStrings string, files []string) error {
 	log := compContext.Log()
 	log.Debugf("Creating background install goroutine for Istio")
@@ -300,7 +299,7 @@ func (i istioComponent) createIstioTempFiles(compContext spi.ComponentContext) (
 }
 
 func appendOverrideFilesInOrder(ctx spi.ComponentContext, cr *v1beta1.Verrazzano, files []string) ([]string, error) {
-	overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(ctx.Client(), cr.Spec.Components.Istio.ValueOverrides, cr.Namespace)
+	overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(ctx.Client(), cr.Spec.Components.Istio.ValueOverrides, cr.Namespace)
 	if err != nil {
 		return files, err
 	}
