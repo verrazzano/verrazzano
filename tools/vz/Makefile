@@ -26,6 +26,12 @@ CLI_GO_LDFLAGS=-X '${VERSION_DIR}.gitCommit=${GIT_COMMIT}' -X '${VERSION_DIR}.bu
 #
 # CLI
 #
+
+.DEFAULT_GOAL := help
+.PHONY: help
+help: ## Display this help.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-25s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
 .PHONY: run
 run:
 	$(GO) run ${GOPATH}/src/${VZ_DIR}/main.go
@@ -33,7 +39,7 @@ run:
 # Go build related tasks
 #
 .PHONY: go-build
-go-build:
+go-build: ## build the CLI for multiple architecture and platforms
 	GOOS=darwin GOARCH=amd64 $(GO) build \
 		-ldflags "${CLI_GO_LDFLAGS}" \
 		-o out/darwin_amd64/vz \
@@ -51,8 +57,12 @@ go-build:
 		-o out/linux_arm64/vz \
 		${GOPATH}/src/${VZ_DIR}/main.go
 
+.PHONY: build-cli
+build-cli: ## build the CLI for current system and architecture
+	$(GO) build -ldflags "${CLI_GO_LDFLAGS}" -o out/$(shell go env GOOS)-$(shell go env GOARCH)/vz ${GOPATH}/src/${VZ_DIR}/main.go
+
 .PHONY: cli
-cli: ## build the CLI
+cli: ## install the CLI
 	$(GO) install -ldflags "${CLI_GO_LDFLAGS}" ./...
 
 .PHONY: unit-test

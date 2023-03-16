@@ -391,6 +391,38 @@ func TestPostInstallUpgrade(t *testing.T) {
 	}
 }
 
+// TestDeleteNetworkPolicy tests the deleteNetworkPolicy function.
+func TestDeleteNetworkPolicy(t *testing.T) {
+	// GIVEN the vmi-system-prometheus NetworkPolicy does not exist in the cluster
+	//  WHEN the deleteNetworkPolicy function is called
+	//  THEN no error is returned
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
+
+	err := deleteNetworkPolicy(ctx)
+	assert.NoError(t, err)
+
+	// GIVEN the vmi-system-prometheus NetworkPolicy does exist in the cluster
+	//  WHEN the deleteNetworkPolicy function is called
+	//  THEN no error is returned and the NetworkPolicy is deleted from the cluster
+	client = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&netv1.NetworkPolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      networkPolicyName,
+				Namespace: ComponentNamespace,
+			},
+		},
+	).Build()
+	ctx = spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
+
+	err = deleteNetworkPolicy(ctx)
+	assert.NoError(t, err)
+
+	netpol := &netv1.NetworkPolicy{}
+	err = client.Get(context.TODO(), types.NamespacedName{Name: networkPolicyName, Namespace: ComponentNamespace}, netpol)
+	assert.True(t, errors.IsNotFound(err))
+}
+
 // TestAppendIstioOverrides tests that the Istio overrides get applied
 func TestAppendIstioOverrides(t *testing.T) {
 	annotationKey := "annKey"
@@ -899,33 +931,6 @@ func TestCreateOrUpdatePrometheusAuthPolicy(t *testing.T) {
 	authPolicy = &istioclisec.AuthorizationPolicy{}
 	err = client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: prometheusAuthPolicyName}, authPolicy)
 	assertions.ErrorContains(err, "not found")
-}
-
-// TestCreateOrUpdateNetworkPolicies tests the createOrUpdateNetworkPolicies function
-func TestCreateOrUpdateNetworkPolicies(t *testing.T) {
-	// GIVEN a Prometheus Operator component
-	// WHEN  the createOrUpdateNetworkPolicies function is called
-	// THEN  no error is returned and the expected network policies have been created
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
-
-	err := createOrUpdateNetworkPolicies(ctx)
-	assert.NoError(t, err)
-
-	netPolicy := &netv1.NetworkPolicy{}
-	err = client.Get(context.TODO(), types.NamespacedName{Name: networkPolicyName, Namespace: ComponentNamespace}, netPolicy)
-	assert.NoError(t, err)
-	assert.Len(t, netPolicy.Spec.Ingress, 3)
-	assert.Equal(t, []netv1.PolicyType{netv1.PolicyTypeIngress}, netPolicy.Spec.PolicyTypes)
-	assert.Equal(t, int32(9090), netPolicy.Spec.Ingress[0].Ports[0].Port.IntVal)
-	assert.Equal(t, int32(10901), netPolicy.Spec.Ingress[0].Ports[1].Port.IntVal)
-	assert.Equal(t, int32(9090), netPolicy.Spec.Ingress[1].Ports[0].Port.IntVal)
-	assert.Equal(t, int32(10901), netPolicy.Spec.Ingress[2].Ports[0].Port.IntVal)
-	assert.Contains(t, netPolicy.Spec.Ingress[0].From[0].PodSelector.MatchExpressions[0].Values, "verrazzano-authproxy")
-	assert.Contains(t, netPolicy.Spec.Ingress[0].From[0].PodSelector.MatchExpressions[0].Values, "system-grafana")
-	assert.Contains(t, netPolicy.Spec.Ingress[0].From[0].PodSelector.MatchExpressions[0].Values, "kiali")
-	assert.Contains(t, netPolicy.Spec.Ingress[1].From[0].PodSelector.MatchExpressions[0].Values, "jaeger")
-	assert.Equal(t, netPolicy.Spec.Ingress[2].From[0].PodSelector.MatchLabels["app.kubernetes.io/component"], "query")
 }
 
 // erroringFakeClient wraps a k8s client and returns an error when Update is called
