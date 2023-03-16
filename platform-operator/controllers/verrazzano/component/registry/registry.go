@@ -143,7 +143,7 @@ func FindComponent(componentName string) (bool, spi.Component) {
 // allow components to individually make those decisions.
 func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) bool {
 	var notReadyDependencies []string
-	var endOfTrace = true
+	var dependenciesReady = true
 	log := context.Log()
 	trace, err := checkDirectDependenciesReady(c, context, make(map[string]bool))
 	if err != nil {
@@ -158,12 +158,14 @@ func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) boo
 
 	for compName, value := range trace {
 		if !value {
-			endOfTrace = false
+			dependenciesReady = false
 			notReadyDependencies = append(notReadyDependencies, compName)
 		}
 	}
-	log.Progressf("Component %s waiting for dependencies %v to be ready", notReadyDependencies)
-	return endOfTrace
+	if !dependenciesReady {
+		log.Progressf("Component %s waiting for dependencies %v to be ready", notReadyDependencies)
+	}
+	return dependenciesReady
 }
 
 // checkDependencies Check the ready state of any dependencies and check for cycles
