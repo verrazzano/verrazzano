@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzclusters "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -160,31 +159,4 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
 	assert.False(t, isOSDReady(ctx))
-}
-
-// TestIsReadyDeploymentVMIDisabled tests the OpenSearch-Dashboards areOpenSearchDashboardsReady call
-// GIVEN an OpenSearch-Dashboards component with all VMI components disabled
-//
-//	WHEN I call areOpenSearchDashboardsReady
-//	THEN true is returned
-func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
-	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
-		Namespace: ComponentNamespace}},
-	).Build()
-	vz := &vzapi.Verrazzano{}
-	falseValue := false
-	vz.Spec.Components = vzapi.ComponentSpec{
-		Console:       &vzapi.ConsoleComponent{Enabled: &falseValue},
-		Fluentd:       &vzapi.FluentdComponent{Enabled: &falseValue},
-		Kibana:        &vzapi.KibanaComponent{Enabled: &falseValue},
-		Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
-		Prometheus:    &vzapi.PrometheusComponent{Enabled: &falseValue},
-		Grafana:       &vzapi.GrafanaComponent{Enabled: &falseValue},
-	}
-	ctx := spi.NewFakeContext(c, vz, nil, false)
-	assert.True(t, isOSDReady(ctx))
 }

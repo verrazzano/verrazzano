@@ -40,7 +40,7 @@ const (
 	PrivateKeyAlgorithm             certv1.PrivateKeyAlgorithm = "RSA"
 	PrivateKeyEncoding              certv1.PrivateKeyEncoding  = "PKCS8"
 	OpensearchCertCommonName                                   = "admin"
-	OpensearchClusterName                                      = "verrazanno"
+	OpensearchClusterName                                      = "my-opensearch-cluster-2"
 )
 
 var OpensearchAdminDNSNames = []string{"admin"}
@@ -188,7 +188,7 @@ func createOpsterNodeCertificate(issuer certv1.ClusterIssuer) certv1.Certificate
 		CommonName:     OpensearchCertCommonName, //decalare variable
 		Duration:       getHoursDuration(2160),
 		RenewBefore:    getHoursDuration(360),
-		DNSNames:       OpensearchAdminDNSNames,
+		DNSNames:       getNodeDnsNames(),
 		SecretName:     OpensearchNodeCertificateName,
 		SecretTemplate: nil,
 		IssuerRef: certmetav1.ObjectReference{
@@ -249,8 +249,10 @@ func getCertificateSubject() *certv1.X509Subject {
 	return &certificateSubject
 }
 
-//func getNodeDnsNames() []string {
-//	var dnsList []string
-//	dnsList[0] = OpensearchClusterName + "." + constants.VerrazzanoLoggingNamespace + ".svc.cluster.local"
-//	return dnsList
-//}
+func getNodeDnsNames() []string {
+	//my-first-cluster-2
+	var dnsList []string
+	//dnsList[0] = OpensearchClusterName + "." + constants.VerrazzanoLoggingNamespace + ".svc.cluster.local"
+	dnsList[0] = OpensearchClusterName
+	return dnsList
+}
