@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.7.1-20230302173605-9771f453e",
-              "dashboard": "v2.6.8-20230213174539-1e3c4622",
+              "tag": "v2.7.1-20230314213852-9771f453e",
+              "dashboard": "v2.7.1-20230314212735-270d0ef83",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.1-20230302173605-9771f453e"
+              "tag": "v2.7.1-20230314213852-9771f453e"
             }
           ]
         },
@@ -167,7 +167,7 @@
             },
             {
               "image": "rancher-cleanup",
-              "tag": "v1.0.0-20230307143440-ced0b90"
+              "tag": "v1.0.0-20230314141611-1802619"
             }
           ]
         }
@@ -193,7 +193,7 @@
             },
             {
               "image": "console",
-              "tag": "v1.6.0-20230216163155-b0f251b",
+              "tag": "v1.6.0-20230314210001-966ab58",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },

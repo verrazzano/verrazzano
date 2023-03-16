@@ -18,8 +18,8 @@ data:
   VZ_PROMETHEUS_BACKEND_URL: "http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local:9090"
   VZ_THANOS_SIDECAR_HOST: thanos-sidecar.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
   VZ_THANOS_SIDECAR_BACKEND_URL: "http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local:10901"
-  VZ_THANOS_QUERY_FRONTEND_HOST: thanos-query-frontend.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
-  VZ_THANOS_QUERY_FRONTEND_BACKEND_URL: "http://thanos-query-frontend.verrazzano-monitoring.svc.cluster.local:9090"
+  VZ_THANOS_QUERY_HOST: thanos-query.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
+  VZ_THANOS_QUERY_BACKEND_URL: "http://thanos-query-frontend.verrazzano-monitoring.svc.cluster.local:9090"
   VZ_KIBANA_HOST: kibana.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
   VZ_KIBANA_BACKEND_URL: "http://vmi-system-osd.verrazzano-system.svc.cluster.local:5601"
   VZ_ELASTICSEARCH_HOST: elasticsearch.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
@@ -462,7 +462,7 @@ data:
                 check_host = backend..me.hostSuffix
             elseif backend == 'thanos-sidecar' then
                 check_host = backend..me.hostSuffix
-            elseif backend == 'thanos-query-frontend' then
+            elseif backend == 'thanos-query' then
                 check_host = backend..me.hostSuffix
             else
                 check_host = backend..vmi_system..me.hostSuffix
@@ -538,7 +538,7 @@ data:
         me.setTableValue(ingressServiceTable, os.getenv("VZ_GRAFANA_HOST"), os.getenv("VZ_GRAFANA_BACKEND_URL"))
         me.setTableValue(ingressServiceTable, os.getenv("VZ_PROMETHEUS_HOST"), os.getenv("VZ_PROMETHEUS_BACKEND_URL"))
         me.setTableValue(ingressServiceTable, os.getenv("VZ_THANOS_SIDECAR_HOST"), os.getenv("VZ_THANOS_SIDECAR_BACKEND_URL"))
-        me.setTableValue(ingressServiceTable, os.getenv("VZ_THANOS_QUERY_FRONTEND_HOST"), os.getenv("VZ_THANOS_QUERY_FRONTEND_BACKEND_URL"))
+        me.setTableValue(ingressServiceTable, os.getenv("VZ_THANOS_QUERY_HOST"), os.getenv("VZ_THANOS_QUERY_BACKEND_URL"))
         me.setTableValue(ingressServiceTable, os.getenv("VZ_KIBANA_HOST"), os.getenv("VZ_KIBANA_BACKEND_URL"))
         me.setTableValue(ingressServiceTable, os.getenv("VZ_OSD_HOST"), os.getenv("VZ_OSD_BACKEND_URL"))
         me.setTableValue(ingressServiceTable, os.getenv("VZ_ELASTICSEARCH_HOST"), os.getenv("VZ_ELASTICSEARCH_BACKEND_URL"))
@@ -1225,8 +1225,8 @@ data:
             allowedOrigins = os.getenv("VZ_PROMETHEUS_ALLOWED_ORIGINS")
         elseif backend == 'thanos-sidecar' then
             allowedOrigins = os.getenv("VZ_THANOS_SIDECAR_ALLOWED_ORIGINS")
-        elseif backend == 'thanos-query-frontend' then
-            allowedOrigins = os.getenv("VZ_THANOS_QUERY_FRONTEND_ALLOWED_ORIGINS")
+        elseif backend == 'thanos-query' then
+            allowedOrigins = os.getenv("VZ_THANOS_QUERY_ALLOWED_ORIGINS")
         elseif backend == 'kibana' then
             allowedOrigins = os.getenv("VZ_KIBANA_ALLOWED_ORIGINS")
         elseif backend == 'osd' then
@@ -1276,7 +1276,7 @@ data:
     env VZ_GRAFANA_ALLOWED_ORIGINS;
     env VZ_PROMETHEUS_ALLOWED_ORIGINS;
     env VZ_THANOS_SIDECAR_ALLOWED_ORIGINS;
-    env VZ_THANOS_QUERY_FRONTEND_ALLOWED_ORIGINS;
+    env VZ_THANOS_QUERY_ALLOWED_ORIGINS;
     env VZ_KIBANA_ALLOWED_ORIGINS;
     env VZ_ES_ALLOWED_ORIGINS;
     env VZ_KIALI_ALLOWED_ORIGINS;
@@ -1291,8 +1291,8 @@ data:
     env VZ_PROMETHEUS_BACKEND_URL;
     env VZ_THANOS_SIDECAR_HOST;
     env VZ_THANOS_SIDECAR_BACKEND_URL;
-    env VZ_THANOS_QUERY_FRONTEND_HOST;
-    env VZ_THANOS_QUERY_FRONTEND_BACKEND_URL;
+    env VZ_THANOS_QUERY_HOST;
+    env VZ_THANOS_QUERY_BACKEND_URL;
     env VZ_KIBANA_HOST;
     env VZ_KIBANA_BACKEND_URL;
     env VZ_OSD_HOST;
