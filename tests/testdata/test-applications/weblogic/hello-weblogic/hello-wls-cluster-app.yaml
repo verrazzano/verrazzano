@@ -28,4 +28,4 @@ spec:
                       pathType: Prefix
                   destination:
                     host: hellodomain-cluster-cluster1
-                    port: 8001
+                    port: 8005
