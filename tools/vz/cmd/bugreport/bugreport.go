@@ -13,7 +13,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"io/fs"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -71,6 +70,10 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 
 func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
 	start := time.Now()
+	if err := setVzK8sVersion(vzHelper, cmd); err == nil {
+		// print k8s and vz version on console stdout
+		fmt.Fprintf(vzHelper.GetOutputStream(), helpers.GetVersionOut())
+	}
 	// determines the bug report file
 	bugReportFile, err := cmd.PersistentFlags().GetString(constants.BugReportFileFlagName)
 	if err != nil {
@@ -190,28 +193,20 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	return nil
 }
 
-// checkExistingFile determines whether a file / directory with the name bugReportFile already exists
-func checkExistingFile(bugReportFile string) error {
-	// Fail if the bugReportFile already exists or is a directory
-	fileInfo, err := os.Stat(bugReportFile)
-	if fileInfo != nil {
-		if fileInfo.IsDir() {
-			return fmt.Errorf("%s is an existing directory", bugReportFile)
-		}
-		return fmt.Errorf("file %s already exists", bugReportFile)
-	}
-
-	// check if the parent directory exists
+// setVzK8sVersion sets vz and k8s version
+func setVzK8sVersion(vzHelper helpers.VZHelper, cmd *cobra.Command) error {
+	// Get the controller runtime client
+	client, err := vzHelper.GetClient(cmd)
 	if err != nil {
-		fi, fe := os.Stat(filepath.Dir(bugReportFile))
-		if fi != nil {
-			if !fi.IsDir() {
-				return fmt.Errorf("%s is not a directory", filepath.Dir(bugReportFile))
-			}
-		}
-		if fe != nil {
-			return fmt.Errorf("an error occurred while creating %s: %s", bugReportFile, fe.Error())
-		}
+		return err
+	}
+	// set vz version
+	if err = helpers.SetVzVer(&client); err != nil {
+		return err
+	}
+	// set cluster k8s version
+	if err = helpers.SetK8sVer(); err != nil {
+		return err
 	}
 	return nil
 }
