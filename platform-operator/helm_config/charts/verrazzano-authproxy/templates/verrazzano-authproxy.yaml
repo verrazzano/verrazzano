@@ -112,6 +112,9 @@ spec:
           value: "verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}"
         - name: VZ_API_VERSION
           value: "20210501"
+        envFrom:
+          - configMapRef:
+              name: verrazzano-authproxy-env-config
         ports:
         - containerPort: {{ .Values.port }}
         livenessProbe:
