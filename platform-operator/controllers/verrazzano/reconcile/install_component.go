@@ -131,7 +131,6 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 
 		case compStatePreInstall:
 			if !registry.ComponentDependenciesMet(comp, compContext) {
-				compLog.Progressf("Component %s waiting for dependencies %v to be ready", comp.Name(), comp.GetDependencies())
 				return ctrl.Result{Requeue: true}
 			}
 			compLog.Progressf("Component %s pre-install is running ", compName)
