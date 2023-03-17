@@ -16,9 +16,9 @@ import (
 )
 
 const (
-	// Thanos Query Frontend ingress constants
-	frontendHostName        = "thanos-query-frontend"
-	frontendCertificateName = "system-tls-thanos-query-frontend"
+	// Thanos Query ingress constants
+	queryHostName        = "thanos-query"
+	queryCertificateName = "system-tls-thanos-query"
 )
 
 // GetOverrides gets the install overrides for the Thanos component
@@ -80,12 +80,12 @@ func createOrUpdateComponentIngress(ctx spi.ComponentContext) error {
 		return nil
 	}
 
-	// Create the Thanos Query Frontend Ingress
+	// Create the Thanos Query Ingress
 	thanosProps := common.IngressProperties{
-		IngressName:      constants.ThanosQueryFrontendIngress,
-		HostName:         frontendHostName,
-		TLSSecretName:    frontendCertificateName,
-		ExtraAnnotations: common.SameSiteCookieAnnotations(frontendHostName),
+		IngressName:      constants.ThanosQueryIngress,
+		HostName:         queryHostName,
+		TLSSecretName:    queryCertificateName,
+		ExtraAnnotations: common.SameSiteCookieAnnotations(queryHostName),
 	}
 	return common.CreateOrUpdateSystemComponentIngress(ctx, thanosProps)
 }

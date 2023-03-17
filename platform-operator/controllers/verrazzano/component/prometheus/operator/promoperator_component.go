@@ -118,6 +118,9 @@ func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
 
 // PreUpgrade updates resources necessary for the Prometheus Operator Component installation
 func (c prometheusComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	if err := deleteNetworkPolicy(ctx); err != nil {
+		return err
+	}
 	if err := preInstallUpgrade(ctx); err != nil {
 		return err
 	}

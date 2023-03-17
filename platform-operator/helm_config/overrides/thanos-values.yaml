@@ -2,6 +2,65 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 query:
+  podSecurityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    privileged: false
+    capabilities:
+      drop:
+        - ALL
+
   # Adds the Prometheus Thanos sidecar as a Store API endpoint to Query
   stores:
     - prometheus-operator-kube-p-prometheus:10901
+
+queryFrontend:
+  podSecurityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    privileged: false
+    capabilities:
+      drop:
+        - ALL
+
+compactor:
+  podSecurityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    privileged: false
+    capabilities:
+      drop:
+        - ALL
+
+storegateway:
+  podSecurityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    privileged: false
+    capabilities:
+      drop:
+        - ALL
+
+ruler:
+  podSecurityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    privileged: false
+    capabilities:
+      drop:
+        - ALL
+
+receive:
+  podSecurityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    privileged: false
+    capabilities:
+      drop:
+        - ALL

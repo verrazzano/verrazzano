@@ -301,6 +301,11 @@ spec:
 {{- if .Values.prometheus.prometheusSpec.containers }}
   containers:
 {{ toYaml .Values.prometheus.prometheusSpec.containers | indent 4 }}
+{{- if and (.Values.prometheus.prometheusSpec.thanos) (eq .Values.prometheus.thanos.integration "sidecar") }}
+    - name: thanos-sidecar
+      securityContext:
+        privileged: false
+{{- end }}
 {{- end }}
 {{- if .Values.prometheus.prometheusSpec.initContainers }}
   initContainers:

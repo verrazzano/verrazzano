@@ -6,7 +6,7 @@
             "kind": "Verrazzano",
             "metadata": {
                 "annotations": {
-                    "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"install.verrazzano.io/v1alpha1\",\"kind\":\"Verrazzano\",\"metadata\":{\"annotations\":{},\"name\":\"my-verrazzano\",\"namespace\":\"default\"},\"spec\":{\"components\":{\"dns\":{\"oci\":{\"dnsScope\":\"GLOBAL\",\"dnsZoneCompartmentOCID\":\"ocid1.compartment.oc1..aaaaaaaahyfirmf5si5nwycvdiqql77beqfbrd6tiielgutgfw65qnlnugja\",\"dnsZoneName\":\"z69d20a.v8o.io\",\"dnsZoneOCID\":\"ocid1.dns-zone.oc1..2201e62e428548e294c446d3142fe9fa\\n\",\"ociConfigSecret\":\"oci\"}},\"fluentd\":{\"extraVolumeMounts\":[{\"source\":\"/u01/data\"}]},\"ingress\":{\"nginxInstallArgs\":[{\"name\":\"controller.service.annotations.\\\"service\\\\.beta\\\\.kubernetes\\\\.io/oci-load-balancer-shape\\\"\",\"value\":\"8000Mbps\"},{\"name\":\"controller.service.annotations.\\\"service\\\\.beta\\\\.kubernetes\\\\.io/oci-load-balancer-security-list-management-mode\\\"\",\"value\":\"None\"}],\"type\":\"LoadBalancer\"},\"istio\":{\"istioInstallArgs\":[{\"name\":\"gateways.istio-ingressgateway.serviceAnnotations.\\\"service\\\\.beta\\\\.kubernetes\\\\.io/oci-load-balancer-shape\\\"\",\"value\":\"8000Mbps\"},{\"name\":\"gateways.istio-ingressgateway.serviceAnnotations.\\\"service\\\\.beta\\\\.kubernetes\\\\.io/oci-load-balancer-security-list-management-mode\\\"\",\"value\":\"None\"}]},\"keycloak\":{\"mysql\":{\"mysqlInstallArgs\":[{\"name\":\"persistence.enabled\",\"value\":\"false\"}]}},\"kubeStateMetrics\":{\"enabled\":true},\"prometheusAdapter\":{\"enabled\":true},\"prometheusNodeExporter\":{\"enabled\":true},\"prometheusOperator\":{\"enabled\":true},\"prometheusPushgateway\":{\"enabled\":true}},\"environmentName\":\"b2\",\"profile\":\"dev\"}}\n"
+                    "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"install.verrazzano.io/v1alpha1\",\"kind\":\"Verrazzano\",\"metadata\":{\"annotations\":{},\"name\":\"my-verrazzano\",\"namespace\":\"default\"},\"spec\":{\"components\":{\"dns\":{\"oci\":{\"dnsScope\":\"GLOBAL\",\"dnsZoneCompartmentOCID\":\"ocid1.compartment.oc1..aaaaaaaahyfirmf5si5nwycvdiqql77beqfbrd6tiielgutgfw65qnlnugja\",\"dnsZoneName\":\"z69d20a.v8o.io\",\"dnsZoneOCID\":\"ocid1.dns-zone.oc1..2201e62e428548e294c446d3142fe9fa\\n\",\"ociConfigSecret\":\"oci\"}},\"fluentd\":{\"extraVolumeMounts\":[{\"source\":\"/u01/data\"}]},\"ingress\":{\"nginxInstallArgs\":[{\"name\":\"controller.service.annotations.\\\"service\\\\.beta\\\\.kubernetes\\\\.io/oci-load-balancer-shape\\\"\",\"value\":\"flexible\"},{\"name\":\"controller.service.annotations.\\\"service\\\\.beta\\\\.kubernetes\\\\.io/oci-load-balancer-security-list-management-mode\\\"\",\"value\":\"None\"}],\"type\":\"LoadBalancer\"},\"istio\":{\"istioInstallArgs\":[{\"name\":\"gateways.istio-ingressgateway.serviceAnnotations.\\\"service\\\\.beta\\\\.kubernetes\\\\.io/oci-load-balancer-shape\\\"\",\"value\":\"flexible\"},{\"name\":\"gateways.istio-ingressgateway.serviceAnnotations.\\\"service\\\\.beta\\\\.kubernetes\\\\.io/oci-load-balancer-security-list-management-mode\\\"\",\"value\":\"None\"}]},\"keycloak\":{\"mysql\":{\"mysqlInstallArgs\":[{\"name\":\"persistence.enabled\",\"value\":\"false\"}]}},\"kubeStateMetrics\":{\"enabled\":true},\"prometheusAdapter\":{\"enabled\":true},\"prometheusNodeExporter\":{\"enabled\":true},\"prometheusOperator\":{\"enabled\":true},\"prometheusPushgateway\":{\"enabled\":true}},\"environmentName\":\"b2\",\"profile\":\"dev\"}}\n"
                 },
                 "creationTimestamp": "2022-06-16T10:18:45Z",
                 "finalizers": [
@@ -40,7 +40,7 @@
                         "nginxInstallArgs": [
                             {
                                 "name": "controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\"",
-                                "value": "8000Mbps"
+                                "value": "flexible"
                             },
                             {
                                 "name": "controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-security-list-management-mode\"",
@@ -53,7 +53,7 @@
                         "istioInstallArgs": [
                             {
                                 "name": "gateways.istio-ingressgateway.serviceAnnotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\"",
-                                "value": "8000Mbps"
+                                "value": "flexible"
                             },
                             {
                                 "name": "gateways.istio-ingressgateway.serviceAnnotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-security-list-management-mode\"",

@@ -98,8 +98,8 @@ const PrometheusIngress = "vmi-system-prometheus"
 // ThanosSidecarIngress is the name of the ingress for the Thanos sidecar
 const ThanosSidecarIngress = "thanos-sidecar"
 
-// ThanosQueryFrontendIngress is the name of the ingress for the Thanos Query Frontend
-const ThanosQueryFrontendIngress = "thanos-query-frontend"
+// ThanosQueryIngress is the name of the ingress for the Thanos Query
+const ThanosQueryIngress = "thanos-query"
 
 // GlobalImagePullSecName is the name of the global image pull secret
 const GlobalImagePullSecName = "verrazzano-container-registry"
