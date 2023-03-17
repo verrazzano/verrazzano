@@ -2173,81 +2173,6 @@ func TestCreateHostsFromIngressTraitRuleWildcards(t *testing.T) {
 	assert.Equal("myapp.myns.my.host.com", hosts[0])
 }
 
-// TestGatewayServersPerIngressTrait tests the servers in a Gateway
-// GIVEN a list of IngressTraits
-// WHEN createOrUpdateChildResources is called
-// THEN verify that the Gateway has the correct set servers with the correct host names
-func TestGatewayServersPerIngressTrait(t *testing.T) {
-	assert := asserts.New(t)
-	const appName = "hello"
-
-	appFakes := setupAppFakes(appName)
-
-	tests := []struct {
-		name            string
-		traits          []*vzapi.IngressTrait
-		expectedServers []istionet.Server
-	}{
-		{name: "1-server-1-host",
-			expectedServers: []istionet.Server{{
-				Hosts: []string{"host1"},
-			}},
-			traits: []*vzapi.IngressTrait{{
-				ObjectMeta: metav1.ObjectMeta{Name: "hello", Namespace: testNamespace,
-					Labels: map[string]string{oam.LabelAppName: appName},
-				},
-				Spec: vzapi.IngressTraitSpec{
-					Rules: []vzapi.IngressRule{
-						{Hosts: []string{"host1"}},
-					},
-				}},
-			}},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			// Create the fake reconciler up front with all traits
-			cli := fake.NewClientBuilder().WithScheme(newScheme())
-			cli = cli.WithObjects(getAppFakeResources(appFakes)...)
-
-			for _, trait := range test.traits {
-				trait.TypeMeta = metav1.TypeMeta{
-					APIVersion: apiVersion,
-					Kind:       "IngressTrait",
-				}
-				trait.Spec.WorkloadReference = oamrt.TypedReference{
-					APIVersion: "core.oam.dev/v1alpha2",
-					Kind:       "ContainerizedWorkload",
-					Name:       testWorkloadName}
-				cli = cli.WithObjects(trait)
-			}
-			r := newIngressTraitReconciler(cli.Build())
-			for i, trait := range test.traits {
-				_, _, err := r.createOrUpdateChildResources(context.TODO(), test.traits[i], vzlog.DefaultLogger())
-				assert.NoError(err)
-
-				// Every rule must have a VS with all the hosts.  This test must use explicit hosts
-				for i, rule := range trait.Spec.Rules {
-					// The VS and the rule must have the same set of hosts
-					vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, i)
-					vs := istioclient.VirtualService{}
-					err = r.Get(context.Background(), client.ObjectKey{Namespace: trait.Namespace, Name: vsName}, &vs)
-					assert.NoError(err)
-					hostSet := vzstring.SliceToSet(rule.Hosts)
-					for _, h := range vs.Spec.Hosts {
-						_, ok := hostSet[h]
-						if ok {
-							delete(hostSet, h)
-						} else {
-							assert.Fail(fmt.Sprintf("unexpected host %s in VS %s", h, vs.Name))
-						}
-					}
-					assert.Len(hostSet, 0)
-				}
-			}
-		})
-	}
-}
-
 // TestVirtualServerHostsPerIngressTrait tests the hosts in a VirtualServer
 // GIVEN a list of IngressTraits
 // WHEN createOrUpdateChildResources is called
@@ -2255,7 +2180,6 @@ func TestGatewayServersPerIngressTrait(t *testing.T) {
 func TestVirtualServerHostsPerIngressTrait(t *testing.T) {
 	assert := asserts.New(t)
 	const appName = "hello"
-
 	appFakes := setupAppFakes(appName)
 
 	tests := []struct {
@@ -2312,8 +2236,8 @@ func TestVirtualServerHostsPerIngressTrait(t *testing.T) {
 				},
 					Spec: vzapi.IngressTraitSpec{
 						Rules: []vzapi.IngressRule{
-							{Hosts: []string{"host1", "host2", "host3"}},
-							{Hosts: []string{"host2", "host4", "host5"}},
+							{Hosts: []string{"host1-a", "host2-a", "host3-a"}},
+							{Hosts: []string{"host2-a", "host4-a", "host5-a"}},
 						},
 					}},
 			}},
@@ -2358,9 +2282,46 @@ func TestVirtualServerHostsPerIngressTrait(t *testing.T) {
 					}
 					assert.Len(hostSet, 0)
 				}
+
+				// get the gateway
+				gwName, _ := buildGatewayName(trait)
+				gw := istioclient.Gateway{}
+				err = r.Get(context.Background(), client.ObjectKey{Namespace: trait.Namespace, Name: gwName}, &gw)
+				assert.NoError(err)
+
+				// There must be a gateway server for each trait.
+				assert.Equal(len(test.traits), len(gw.Spec.Servers))
+				for _, server := range gw.Spec.Servers {
+					if server.Name != trait.Name {
+						continue
+					}
+					// The hosts in the gateway server must match the hosts in the trait
+					traitHosts := getHostsInTrait(trait)
+					hostSet := vzstring.SliceToSet(traitHosts)
+					for _, h := range server.Hosts {
+						_, ok := hostSet[h]
+						if ok {
+							delete(hostSet, h)
+						} else {
+							assert.Fail(fmt.Sprintf("unexpected host %s in server %s", h, server.Name))
+						}
+					}
+					assert.Len(hostSet, 0)
+				}
+
 			}
 		})
 	}
+}
+
+func getHostsInTrait(trait *vzapi.IngressTrait) []string {
+	hosts := []string{}
+	for _, rule := range trait.Spec.Rules {
+		for _, host := range rule.Hosts {
+			hosts = append(hosts, host)
+		}
+	}
+	return hosts
 }
 
 // TestHostRules tests host name rules

@@ -252,7 +252,7 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 		if err != nil {
 			status.Errors = append(status.Errors, err)
 		} else {
-			// The Gateway is shared across all ingress traits, update it with all known hosts for the trait
+			// The Gateway is shared across all ingress traits for the app, update it with all known hosts for the trait
 			// - Must create GW before service so that external DNS sees the GW once the service is created
 			gateway, err := r.createOrUpdateGateway(ctx, trait, allHostsForTrait, gwName, secretName, &status, log)
 			if err != nil {
