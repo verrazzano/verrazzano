@@ -73,7 +73,7 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
-	tempKubeConfigPath, err := os.CreateTemp(os.TempDir(), testKubeConfig)
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -81,7 +81,7 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	defer os.RemoveAll(tempKubeConfigPath.Name())
 
 	// Run upgrade command
-	err = cmd.Execute()
+	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
@@ -108,7 +108,7 @@ func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 	cmd.PersistentFlags().Set(constants.AutoBugReportFlag, "false")
-	tempKubeConfigPath, err := os.CreateTemp(os.TempDir(), testKubeConfig)
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -116,7 +116,7 @@ func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	defer os.RemoveAll(tempKubeConfigPath.Name())
 
 	// Run upgrade command
-	err = cmd.Execute()
+	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")

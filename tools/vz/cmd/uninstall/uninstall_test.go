@@ -145,14 +145,14 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
-	tempKubeConfigPath, err := os.CreateTemp(os.TempDir(), testKubeConfig)
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	_ = cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	defer os.RemoveAll(tempKubeConfigPath.Name())
 
 	// Run upgrade command
-	err = cmd.Execute()
+	err := cmd.Execute()
 	assert.Error(t, err)
 	// This must be less than the 1 second polling delay to pass
 	// since the Verrazzano resource gets deleted almost instantaneously
@@ -285,13 +285,13 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
-	tempKubeConfigPath, err := os.CreateTemp(os.TempDir(), testKubeConfig)
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	defer os.RemoveAll(tempKubeConfigPath.Name())
 
 	// Run uninstall command
-	err = cmd.Execute()
+	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, VzVpoFailureError)
 	assert.Contains(t, errBuf.String(), VzVpoFailureError)
@@ -322,7 +322,7 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "simple")
-	tempKubeConfigPath, err := os.CreateTemp(os.TempDir(), testKubeConfig)
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 
@@ -331,7 +331,7 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	defer os.RemoveAll(tempKubeConfigPath.Name())
 
 	// Run uninstall command
-	err = cmd.Execute()
+	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, PodNotFoundError)
 	assert.Contains(t, errBuf.String(), PodNotFoundError)
