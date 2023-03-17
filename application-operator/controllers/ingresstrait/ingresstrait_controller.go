@@ -254,7 +254,10 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 		} else {
 			// The Gateway is shared across all ingress traits, update it with all known hosts for the trait
 			// - Must create GW before service so that external DNS sees the GW once the service is created
-			gateway := r.createOrUpdateGateway(ctx, trait, allHostsForTrait, gwName, secretName, &status, log)
+			gateway, err := r.createOrUpdateGateway(ctx, trait, allHostsForTrait, gwName, secretName, &status, log)
+			if err != nil {
+				return &status, ctrl.Result{}, err
+			}
 			for index, rule := range rules {
 				// Find the services associated with the trait in the application configuration.
 				var services []*corev1.Service
@@ -546,7 +549,7 @@ func (r *Reconciler) validateConfiguredSecret(trait *vzapi.IngressTrait, status 
 
 // createOrUpdateGateway creates or updates the Gateway child resource of the trait.
 // Results are added to the status object.
-func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.IngressTrait, hostsForTrait []string, gwName string, secretName string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) *istioclient.Gateway {
+func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.IngressTrait, hostsForTrait []string, gwName string, secretName string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) (*istioclient.Gateway, error) {
 	// Create a gateway populating only gwName metadata.
 	// This is used as default if the gateway needs to be created.
 	gateway := &istioclient.Gateway{
@@ -563,7 +566,7 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 
 	// Return if no changes
 	if err == nil && res == controllerutil.OperationResultNone {
-		return gateway
+		return gateway, nil
 	}
 
 	ref := vzapi.QualifiedResourceRelation{APIVersion: gatewayAPIVersion, Kind: gatewayKind, Name: gwName, Role: "gateway"}
@@ -573,9 +576,10 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 
 	if err != nil {
 		log.Errorf("Failed to create or update gateway: %v", err)
+		return nil, err
 	}
 
-	return gateway
+	return gateway, nil
 }
 
 // mutateGateway mutates the output Gateway child resource.

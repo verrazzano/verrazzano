@@ -58,6 +58,13 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+type appFakeResources struct {
+	appConfig       *v1alpha2.ApplicationConfiguration
+	workload        *v1alpha2.ContainerizedWorkload
+	workloadDef     *v1alpha2.WorkloadDefinition
+	workloadService *k8score.Service
+}
+
 const (
 	testTraitName                   = "test-trait"
 	testTraitPortName               = "https-test-trait"
@@ -2166,13 +2173,15 @@ func TestCreateHostsFromIngressTraitRuleWildcards(t *testing.T) {
 	assert.Equal("myapp.myns.my.host.com", hosts[0])
 }
 
-// TestGatewayServersSingleIngress tests the Gateway Servers
-// GIVEN a trait with a single IngressTrait
-// WHEN createOrUpdateGateway is called
-// THEN verify that the gateway has the correct set of servers and host names
-func TestGatewayServerHostsSingleIngressTrait(t *testing.T) {
+// TestVirtualServerHostsPerIngressTrait tests the hosts in a VirtualServer
+// GIVEN a list of IngressTraits
+// WHEN createOrUpdateChildResources is called
+// THEN verify that the virutal server has the correct set of host names
+func TestVirtualServerHostsPerIngressTrait(t *testing.T) {
 	assert := asserts.New(t)
-	const externalDNSKey = "external-dns.alpha.kubernetes.io/target"
+	const appName = "hello"
+
+	appFakes := setupAppFakes(appName)
 
 	tests := []struct {
 		name            string
@@ -2184,8 +2193,8 @@ func TestGatewayServerHostsSingleIngressTrait(t *testing.T) {
 				Hosts: []string{"host1"},
 			}},
 			traits: []*vzapi.IngressTrait{{
-				ObjectMeta: metav1.ObjectMeta{Name: "hello", Namespace: "default",
-					Labels: map[string]string{oam.LabelAppName: "hello"},
+				ObjectMeta: metav1.ObjectMeta{Name: "hello", Namespace: testNamespace,
+					Labels: map[string]string{oam.LabelAppName: appName},
 				},
 				Spec: vzapi.IngressTraitSpec{
 					Rules: []vzapi.IngressRule{
@@ -2200,8 +2209,21 @@ func TestGatewayServerHostsSingleIngressTrait(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			// Create the fake reconciler up front with all traits
 			cli := fake.NewClientBuilder().WithScheme(newScheme())
+			cli = cli.WithObjects(appFakes.appConfig)
+			cli = cli.WithObjects(appFakes.workload)
+			cli = cli.WithObjects(appFakes.workloadDef)
+			cli = cli.WithObjects(appFakes.workloadService)
+
 			for _, trait := range test.traits {
-				cli.WithObjects(trait)
+				trait.TypeMeta = metav1.TypeMeta{
+					APIVersion: apiVersion,
+					Kind:       "IngressTrait",
+				}
+				trait.Spec.WorkloadReference = oamrt.TypedReference{
+					APIVersion: "core.oam.dev/v1alpha2",
+					Kind:       "ContainerizedWorkload",
+					Name:       testWorkloadName}
+				cli = cli.WithObjects(trait)
 			}
 			r := newIngressTraitReconciler(cli.Build())
 			for i, trait := range test.traits {
@@ -4330,6 +4352,51 @@ func setupTraitTestFakes(appName string, gw *istioclient.Gateway) Reconciler {
 
 	reconciler := createReconcilerWithFake(appConfig, workload, workloadDef, workloadService, gw)
 	return reconciler
+}
+func setupAppFakes(appName string) appFakeResources {
+	appConfig := &v1alpha2.ApplicationConfiguration{
+		ObjectMeta: metav1.ObjectMeta{Name: appName, Namespace: testNamespace},
+	}
+
+	workload := &v1alpha2.ContainerizedWorkload{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testWorkloadName,
+			Namespace: testNamespace,
+			UID:       testWorkloadID,
+		},
+	}
+
+	workloadDef := &v1alpha2.WorkloadDefinition{
+		ObjectMeta: metav1.ObjectMeta{Name: "containerizedworkloads.core.oam.dev"},
+		Spec: v1alpha2.WorkloadDefinitionSpec{
+			ChildResourceKinds: []v1alpha2.ChildResourceKind{
+				{APIVersion: "apps/v1", Kind: "Deployment", Selector: nil},
+				{APIVersion: "v1", Kind: "Service", Selector: nil},
+			},
+		},
+	}
+
+	workloadService := &k8score.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testService",
+			Namespace: testNamespace,
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "core.oam.dev/v1alpha2",
+				Kind:       "ContainerizedWorkload",
+				Name:       testWorkloadName,
+				UID:        testWorkloadID,
+			}}},
+		Spec: k8score.ServiceSpec{
+			ClusterIP: testClusterIP,
+			Ports:     []k8score.ServicePort{{Port: 42}}},
+	}
+
+	return appFakeResources{
+		appConfig:       appConfig,
+		workload:        workload,
+		workloadDef:     workloadDef,
+		workloadService: workloadService,
+	}
 }
 
 func createGatewayServer(traitName string, traitHosts []string, secretName ...string) *istionet.Server {
