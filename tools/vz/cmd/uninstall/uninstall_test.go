@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	testKubeConfig    = "/tmp/kubeconfig"
+	testKubeConfig    = "kubeconfig"
 	testK8sContext    = "testcontext"
 	bugReportFilePath = "bug-report.tar.gz"
 	VzVpoFailureError = "Failed to find the Verrazzano platform operator in namespace verrazzano-install"
@@ -145,12 +145,14 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
-	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	tempKubeConfigPath, err := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	_ = cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
+	defer os.RemoveAll(tempKubeConfigPath.Name())
 
 	// Run upgrade command
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.Error(t, err)
 	// This must be less than the 1 second polling delay to pass
 	// since the Verrazzano resource gets deleted almost instantaneously
@@ -283,11 +285,13 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
-	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	tempKubeConfigPath, err := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
+	defer os.RemoveAll(tempKubeConfigPath.Name())
 
 	// Run uninstall command
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, VzVpoFailureError)
 	assert.Contains(t, errBuf.String(), VzVpoFailureError)
@@ -318,14 +322,16 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "simple")
-	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	tempKubeConfigPath, err := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 
 	setWaitRetries(1)
 	defer resetWaitRetries()
+	defer os.RemoveAll(tempKubeConfigPath.Name())
 
 	// Run uninstall command
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, PodNotFoundError)
 	assert.Contains(t, errBuf.String(), PodNotFoundError)

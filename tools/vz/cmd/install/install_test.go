@@ -72,7 +72,7 @@ func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
-	defer os.RemoveAll(temp.Name())
+	defer os.RemoveAll(tempKubeConfigPath.Name())
 
 	// Run install command
 	err = cmd.Execute()
@@ -98,6 +98,7 @@ func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmd.PersistentFlags().Set(constants.AutoBugReportFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer os.RemoveAll(tempKubeConfigPath.Name())
 	defer cmdHelpers.SetDefaultDeleteFunc()
 	os.Remove(bugReportFilePath)
 
