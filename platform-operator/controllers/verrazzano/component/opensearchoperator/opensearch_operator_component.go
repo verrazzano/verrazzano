@@ -40,7 +40,7 @@ const (
 	PrivateKeyAlgorithm             certv1.PrivateKeyAlgorithm = "RSA"
 	PrivateKeyEncoding              certv1.PrivateKeyEncoding  = "PKCS8"
 	OpensearchCertCommonName                                   = "admin"
-	OpensearchClusterName                                      = "my-opensearch-cluster-2"
+	OpensearchClusterName                                      = "my-opensearch-cluster"
 )
 
 var OpensearchAdminDNSNames = []string{"admin"}
@@ -185,7 +185,7 @@ func createOpsterAdminCertificate(issuer certv1.ClusterIssuer) certv1.Certificat
 func createOpsterNodeCertificate(issuer certv1.ClusterIssuer) certv1.CertificateSpec {
 	certSpec := certv1.CertificateSpec{
 		Subject:        getCertificateSubject(),
-		CommonName:     OpensearchCertCommonName, //decalare variable
+		CommonName:     OpensearchCertCommonName,
 		Duration:       getHoursDuration(2160),
 		RenewBefore:    getHoursDuration(360),
 		DNSNames:       getNodeDnsNames(),
@@ -193,7 +193,7 @@ func createOpsterNodeCertificate(issuer certv1.ClusterIssuer) certv1.Certificate
 		SecretTemplate: nil,
 		IssuerRef: certmetav1.ObjectReference{
 			Name:  issuer.Name,
-			Kind:  issuer.Kind,
+			Kind:  "ClusterIssuer",
 			Group: "cert-manager.io",
 		},
 		IsCA:   false,
@@ -214,12 +214,12 @@ func createOpsterClientCertificate(issuer certv1.ClusterIssuer) certv1.Certifica
 		CommonName:     OpensearchCertCommonName,
 		Duration:       getHoursDuration(2160),
 		RenewBefore:    getHoursDuration(360),
-		DNSNames:       OpensearchAdminDNSNames,
+		DNSNames:       getNodeDnsNames(),
 		SecretName:     OpensearchClientCertificateName,
 		SecretTemplate: nil,
 		IssuerRef: certmetav1.ObjectReference{
 			Name:  issuer.Name,
-			Kind:  issuer.Kind,
+			Kind:  "ClusterIssuer",
 			Group: "cert-manager.io",
 		},
 		IsCA:   false,
