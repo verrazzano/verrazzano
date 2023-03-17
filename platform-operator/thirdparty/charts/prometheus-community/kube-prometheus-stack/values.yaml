@@ -129,11 +129,6 @@ global:
   # or
   # - "image-pull-secret"
 
-## Configuration for Prometheus Adapter dependency Helm chart ../prometheus-adapter
-adapter:
-  ## Deploy Prometheus Adapter
-  enabled: true
-
 ## Configuration for alertmanager
 ## ref: https://prometheus.io/docs/alerting/alertmanager/
 ##
@@ -3016,11 +3011,6 @@ prometheus:
     ## https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#podmetricsendpoint
     ##
     # podMetricsEndpoints: []
-
-## Configuration for Prometheus Pushgateway dependency Helm chart at ../prometheus-pushgateway
-pushgateway:
-  ## Deploy Prometheus Pushgateway
-  enabled: true
 
 ## Configuration for thanosRuler
 ## ref: https://thanos.io/tip/components/rule.md/
