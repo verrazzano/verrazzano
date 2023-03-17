@@ -124,7 +124,7 @@ spec:
       type: LoadBalancer
       nginxInstallArgs:
         - name: controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"
-          value: "10Mbps"
+          value: "flexible"
         - name: controller.service.externalTrafficPolicy
           value: Local
         - name: controller.service.externalIPs
@@ -190,7 +190,7 @@ spec:
                             weight: 100
       istioInstallArgs:
         - name: gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"
-          value: "10Mbps"
+          value: "flexible"
         - name: gateways.istio-ingressgateway.replicaCount
           value: "3"
         - name: gateways.istio-ingressgateway.externalIPs
