@@ -2166,8 +2166,73 @@ func TestCreateHostsFromIngressTraitRuleWildcards(t *testing.T) {
 	assert.Equal("myapp.myns.my.host.com", hosts[0])
 }
 
+// TestGatewayServersSingleIngress tests the Gateway Servers
+// GIVEN a trait with a single IngressTrait
+// WHEN createOrUpdateGateway is called
+// THEN verify that the gateway has the correct set of servers and host names
+func TestGatewayServerHostsSingleIngressTrait(t *testing.T) {
+	assert := asserts.New(t)
+	const externalDNSKey = "external-dns.alpha.kubernetes.io/target"
+
+	tests := []struct {
+		name            string
+		traits          []*vzapi.IngressTrait
+		expectedServers []istionet.Server
+	}{
+		{name: "1-server-1-host",
+			expectedServers: []istionet.Server{{
+				Hosts: []string{"host1"},
+			}},
+			traits: []*vzapi.IngressTrait{{
+				ObjectMeta: metav1.ObjectMeta{Name: "hello", Namespace: "default",
+					Labels: map[string]string{oam.LabelAppName: "hello"},
+				},
+				Spec: vzapi.IngressTraitSpec{
+					Rules: []vzapi.IngressRule{
+						{
+							Hosts: []string{"host1"},
+						},
+					}},
+			},
+			}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// Create the fake reconciler up front with all traits
+			cli := fake.NewClientBuilder().WithScheme(newScheme())
+			for _, trait := range test.traits {
+				cli.WithObjects(trait)
+			}
+			r := newIngressTraitReconciler(cli.Build())
+			for i, trait := range test.traits {
+				_, _, err := r.createOrUpdateChildResources(context.TODO(), test.traits[i], vzlog.DefaultLogger())
+				assert.NoError(err)
+
+				// Every rule must have a VS with all the hosts.  This test must use explicit hosts
+				for i, rule := range trait.Spec.Rules {
+
+					// The VS and the rule must have the same set of hosts
+					vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, i)
+					vs := istioclient.VirtualService{}
+					err = r.Get(context.Background(), client.ObjectKey{Namespace: trait.Namespace, Name: vsName}, &vs)
+					assert.NoError(err)
+					hostSet := vzstring.SliceToSet(rule.Hosts)
+					for _, h := range vs.Spec.Hosts {
+						_, ok := hostSet[h]
+						if ok {
+							delete(hostSet, h)
+						} else {
+							assert.Fail(fmt.Sprintf("unexpected host %s in VS %s", h, vs.Name))
+						}
+					}
+				}
+			}
+		})
+	}
+}
+
 // TestHostRules tests host name rules
-// GIVEN a trait with a set of rules where each rule has a hostname
+// GIVEN a trait with a set of rules
 // WHEN coallateAllHostsForTrait is called
 // THEN verify that the correct set of host names are returned
 func TestHostRules(t *testing.T) {
