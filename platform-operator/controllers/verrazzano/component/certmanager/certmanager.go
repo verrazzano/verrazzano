@@ -193,6 +193,9 @@ type getCertManagerClientFuncType func() (certv1client.CertmanagerV1Interface, e
 
 var getCMClientFunc getCertManagerClientFuncType = GetCertManagerClientset
 
+// GetCMClientFunc is created so cert-manager client can be called outside the package.
+var GetCMClientFunc = getCMClientFunc
+
 // GetCertManagerClientset Get a CertManager clientset object
 func GetCertManagerClientset() (certv1client.CertmanagerV1Interface, error) {
 	cfg, err := k8sutil.GetConfigFromController()
@@ -988,12 +991,4 @@ func getDNSSuffix(effectiveCR runtime.Object) (string, bool) {
 		dnsSuffix = cr.Spec.Components.DNS.External.Suffix
 	}
 	return dnsSuffix, wildcard
-}
-
-func GetClusterIssuer() (*certv1.ClusterIssuer, error) {
-	cmClient, err := getCMClientFunc()
-	if err != nil {
-		return nil, err
-	}
-	return cmClient.ClusterIssuers().Get(context.TODO(), verrazzanoClusterIssuerName, metav1.GetOptions{})
 }

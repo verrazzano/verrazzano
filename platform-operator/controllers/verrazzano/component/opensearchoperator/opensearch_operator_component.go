@@ -31,16 +31,18 @@ const (
 
 	// ComponentJSONName is the json name of the opensearch-operator component in CRD
 	ComponentJSONName = "opensearchOperator"
-	// Opster resources
+	// Opster Operator resources
 	OpensearchAdminCertificateName                             = "opensearch-admin-cert"
+	OpensearchMasterCertificateName                            = "opensearch-master-cert"
 	OpensearchNodeCertificateName                              = "opensearch-node-cert"
 	OpensearchClientCertificateName                            = "opensearch-client-cert"
 	UsageServerAuth                 certv1.KeyUsage            = "server auth"
 	UsageClientAuth                 certv1.KeyUsage            = "client auth"
 	PrivateKeyAlgorithm             certv1.PrivateKeyAlgorithm = "RSA"
 	PrivateKeyEncoding              certv1.PrivateKeyEncoding  = "PKCS8"
-	OpensearchCertCommonName                                   = "admin"
-	OpensearchClusterName                                      = "my-opensearch-cluster"
+	//OpensearchCertCommonName                                   = "verrazzano"
+	OpensearchClusterName       = "verrazzano-opensearch-cluster"
+	verrazzanoClusterIssuerName = "verrazzano-cluster-issuer"
 )
 
 var OpensearchAdminDNSNames = []string{"admin"}
@@ -112,41 +114,52 @@ func (o opensearchOperatorComponent) Install(ctx spi.ComponentContext) error {
 func (o opensearchOperatorComponent) PostInstall(compContext spi.ComponentContext) error {
 	// If it is a dry-run, do nothing
 	if compContext.IsDryRun() {
-		compContext.Log().Debug("cert-manager PostInstall dry run")
+		compContext.Log().Debug("OpensearchOperatorComponent PostInstall dry run")
 		return nil
 	}
 	return o.createOrUpdateCertResources(compContext)
 }
 func (o opensearchOperatorComponent) createOrUpdateCertResources(compContext spi.ComponentContext) error {
 	var issuerErr error
+	if !vzcr.IsOpenSearchOperatorEnabled(compContext.EffectiveCR()) {
+		compContext.Log().Debug("Skipping Certificate for open search operator because disabled.")
+		return nil
+	}
 	compContext.Log().Debug("Applying Certificate for open search operator cert")
-	clusterIssuer, err := certmanager.GetClusterIssuer()
+	clusterIssuer, err := GetClusterIssuer()
 	if err != nil {
 		return err
 	}
 	adminCertObject := getCertObject(ComponentNamespace, OpensearchAdminCertificateName)
+	masterCertObject := getCertObject(ComponentNamespace, OpensearchMasterCertificateName)
 	nodeCertObject := getCertObject(ComponentNamespace, OpensearchNodeCertificateName)
 	clientCertObject := getCertObject(ComponentNamespace, OpensearchClientCertificateName)
 	if _, issuerErr = controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &adminCertObject, func() error {
 		adminCertObject.Spec = createOpsterAdminCertificate(*clusterIssuer)
 		return nil
 	}); issuerErr != nil {
-		return compContext.Log().ErrorfNewErr("Failed to create or update the Certificate: %v", issuerErr)
+		return compContext.Log().ErrorfNewErr("Failed to create or update the admin Certificate: %v", issuerErr)
 	}
+
+	if _, issuerErr = controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &masterCertObject, func() error {
+		masterCertObject.Spec = createOpsterMasterCertificate(*clusterIssuer)
+		return nil
+	}); issuerErr != nil {
+		return compContext.Log().ErrorfNewErr("Failed to create or update the master Certificate: %v", issuerErr)
+	}
+
 	if _, issuerErr = controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &nodeCertObject, func() error {
 		nodeCertObject.Spec = createOpsterNodeCertificate(*clusterIssuer)
 		return nil
 	}); issuerErr != nil {
-		return compContext.Log().ErrorfNewErr("Failed to create or update the Certificater: %v", issuerErr)
+		return compContext.Log().ErrorfNewErr("Failed to create or update the node Certificate: %v", issuerErr)
 	}
-
 	if _, issuerErr = controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &clientCertObject, func() error {
 		clientCertObject.Spec = createOpsterClientCertificate(*clusterIssuer)
 		return nil
 	}); issuerErr != nil {
-		return compContext.Log().ErrorfNewErr("Failed to create or update the Certificate: %v", issuerErr)
+		return compContext.Log().ErrorfNewErr("Failed to create or update the client Certificate: %v", issuerErr)
 	}
-
 	return nil
 }
 
@@ -160,11 +173,35 @@ func getHoursDuration(hours int) *metav1.Duration {
 func createOpsterAdminCertificate(issuer certv1.ClusterIssuer) certv1.CertificateSpec {
 	certCertificate := certv1.CertificateSpec{
 		Subject:        getCertificateSubject(),
-		CommonName:     OpensearchCertCommonName,
+		CommonName:     "admin",
 		Duration:       getHoursDuration(2160),
 		RenewBefore:    getHoursDuration(360),
-		DNSNames:       OpensearchAdminDNSNames,
 		SecretName:     OpensearchAdminCertificateName,
+		SecretTemplate: nil,
+		IssuerRef: certmetav1.ObjectReference{
+			Name:  issuer.Name,
+			Kind:  "ClusterIssuer",
+			Group: "cert-manager.io",
+		},
+		IsCA:   false,
+		Usages: []certv1.KeyUsage{UsageServerAuth, UsageClientAuth},
+		PrivateKey: &certv1.CertificatePrivateKey{
+			Encoding:  PrivateKeyEncoding,
+			Algorithm: PrivateKeyAlgorithm,
+			Size:      2048,
+		}}
+	return certCertificate
+}
+
+// createOpsterMasterCertificate Update the status field for each certificate generated by the Verrazzano ClusterIssuer
+func createOpsterMasterCertificate(issuer certv1.ClusterIssuer) certv1.CertificateSpec {
+	certCertificate := certv1.CertificateSpec{
+		Subject:        getCertificateSubject(),
+		CommonName:     OpensearchClusterName,
+		Duration:       getHoursDuration(2160),
+		RenewBefore:    getHoursDuration(360),
+		DNSNames:       getMasterDNSNames(),
+		SecretName:     OpensearchMasterCertificateName,
 		SecretTemplate: nil,
 		IssuerRef: certmetav1.ObjectReference{
 			Name:  issuer.Name,
@@ -185,10 +222,10 @@ func createOpsterAdminCertificate(issuer certv1.ClusterIssuer) certv1.Certificat
 func createOpsterNodeCertificate(issuer certv1.ClusterIssuer) certv1.CertificateSpec {
 	certSpec := certv1.CertificateSpec{
 		Subject:        getCertificateSubject(),
-		CommonName:     OpensearchCertCommonName,
+		CommonName:     OpensearchClusterName,
 		Duration:       getHoursDuration(2160),
 		RenewBefore:    getHoursDuration(360),
-		DNSNames:       getNodeDnsNames(),
+		DNSNames:       getNodeDNSNames(),
 		SecretName:     OpensearchNodeCertificateName,
 		SecretTemplate: nil,
 		IssuerRef: certmetav1.ObjectReference{
@@ -211,10 +248,10 @@ func createOpsterNodeCertificate(issuer certv1.ClusterIssuer) certv1.Certificate
 func createOpsterClientCertificate(issuer certv1.ClusterIssuer) certv1.CertificateSpec {
 	certSpec := certv1.CertificateSpec{
 		Subject:        getCertificateSubject(),
-		CommonName:     OpensearchCertCommonName,
+		CommonName:     OpensearchClusterName,
 		Duration:       getHoursDuration(2160),
 		RenewBefore:    getHoursDuration(360),
-		DNSNames:       getNodeDnsNames(),
+		DNSNames:       getNodeDNSNames(),
 		SecretName:     OpensearchClientCertificateName,
 		SecretTemplate: nil,
 		IssuerRef: certmetav1.ObjectReference{
@@ -249,10 +286,28 @@ func getCertificateSubject() *certv1.X509Subject {
 	return &certificateSubject
 }
 
-func getNodeDnsNames() []string {
-	//my-first-cluster-2
-	var dnsList []string
-	//dnsList[0] = OpensearchClusterName + "." + constants.VerrazzanoLoggingNamespace + ".svc.cluster.local"
+func getNodeDNSNames() []string {
+	dnsList := make([]string, 4)
 	dnsList[0] = OpensearchClusterName
+	dnsList[1] = dnsList[0] + "." + ComponentNamespace
+	dnsList[2] = dnsList[1] + ".svc"
+	dnsList[3] = dnsList[2] + ".cluster.local"
 	return dnsList
+}
+
+func getMasterDNSNames() []string {
+	dnsList := make([]string, 5)
+	dnsList[0] = OpensearchClusterName
+	dnsList[1] = dnsList[0] + "." + ComponentNamespace
+	dnsList[2] = dnsList[1] + ".svc"
+	dnsList[3] = dnsList[2] + ".cluster.local"
+	dnsList[4] = dnsList[0] + "-discovery"
+	return dnsList
+}
+func GetClusterIssuer() (*certv1.ClusterIssuer, error) {
+	cmClient, err := certmanager.GetCMClientFunc()
+	if err != nil {
+		return nil, err
+	}
+	return cmClient.ClusterIssuers().Get(context.TODO(), verrazzanoClusterIssuerName, metav1.GetOptions{})
 }
