@@ -49,11 +49,10 @@ spec:
         type: NodePort
       istioInstallArgs:
         - name: gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"
-          value: 10Mbps
+          value: flexible
         - name: global.defaultPodDisruptionBudget.enabled
           value: "false"
         - name: pilot.resources.requests.memory
           value: 128Mi
         - name: gateways.istio-ingressgateway.externalIPs
           value: 1.2.3.4
-

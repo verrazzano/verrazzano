@@ -19,7 +19,7 @@ platform:
   vendor: company1
   os:
     name: linux
-    patches: 
+    patches:
     - version: 0.5.0
       date: 01/01/2020
 `
@@ -45,7 +45,7 @@ platform:
   vendor: company1
   os:
     name: linux
-    patches: 
+    patches:
     - version: 0.6.0
       date: 02/02/2022
 `
@@ -78,7 +78,7 @@ spec:
       gateways:
         istio-ingressgateway:
           serviceAnnotations:
-            service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps
+            service.beta.kubernetes.io/oci-load-balancer-shape: flexible
 `
 
 // istiOverlay is the overlay of an IstioOperator YAML
@@ -122,7 +122,7 @@ spec:
       gateways:
         istio-ingressgateway:
           serviceAnnotations:
-            service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps
+            service.beta.kubernetes.io/oci-load-balancer-shape: flexible
 `
 
 const jaegerBase = `

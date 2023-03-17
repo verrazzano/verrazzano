@@ -39,7 +39,7 @@ spec:
                 minReplicas: 2
               service:
                 annotations:
-                  service.beta.kubernetes.io/oci-load-balancer-shape : "10Mbps"
+                  service.beta.kubernetes.io/oci-load-balancer-shape : "flexible"
                   service.beta.kubernetes.io/oci-load-balancer-internal: true
                   service.beta.kubernetes.io/oci-load-balancer-subnet1: <your-subnet-ocid>
             defaultBackend:
@@ -71,7 +71,7 @@ spec:
                 gateways:
                   istio-ingressgateway:
                     serviceAnnotations:
-                      service.beta.kubernetes.io/oci-load-balancer-shape: "10Mbps"
+                      service.beta.kubernetes.io/oci-load-balancer-shape: "flexible"
                       service.beta.kubernetes.io/oci-load-balancer-internal: true
                       service.beta.kubernetes.io/oci-load-balancer-subnet1: <your-subnet-ocid>
     keycloak:
