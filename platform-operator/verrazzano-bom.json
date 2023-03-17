@@ -233,8 +233,8 @@
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
-              "image": "grafana",
-              "tag": "v7.5.17-20230209071114-4d2e32e8",
+              "image": "grafana-jenkins",
+              "tag": "v7.5.17-20230313121501-39a69c69",
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
@@ -506,8 +506,8 @@
           "name": "alertmanager",
           "images": [
             {
-              "image": "alertmanager",
-              "tag": "v0.24.0-20230221214421-a20fd08d",
+              "image": "alertmanager-jenkins",
+              "tag": "v0.24.0-20230227112109-4a45f62f",
               "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
               "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
             }
@@ -518,8 +518,8 @@
           "name": "prometheus",
           "images": [
             {
-              "image": "prometheus",
-              "tag": "v2.38.0-20230221215349-cf7b5418",
+              "image": "prometheus-jenkins",
+              "tag": "v2.38.0-20230316123547-fade9373",
               "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
               "helmTagKey": "prometheus.prometheusSpec.image.tag"
             }
@@ -552,8 +552,8 @@
           "name": "kube-state-metrics",
           "images": [
             {
-              "image": "kube-state-metrics",
-              "tag": "v2.6.0-20230223191441-e3cc4e3d",
+              "image": "kube-state-metrics-jenkins",
+              "tag": "v2.6.0-20230310051048-36212f20",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -586,8 +586,8 @@
           "name": "prometheus-node-exporter",
           "images": [
             {
-              "image": "node-exporter",
-              "tag": "v1.3.1-20230209071824-2bb925b2",
+              "image": "node-exporter-jenkins",
+              "tag": "v1.3.1-20230313114029-c412597",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
