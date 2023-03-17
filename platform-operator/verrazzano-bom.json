@@ -587,7 +587,7 @@
           "images": [
             {
               "image": "node-exporter-jenkins",
-              "tag": "v1.3.1-20230313114029-c412597",
+              "tag": "v1.3.1-20230313114029-c412597c",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
