@@ -5,7 +5,7 @@ package main
 
 import (
 	"flag"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/stacks"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/component_configmaps"
 	"os"
 
 	cmapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -127,7 +127,7 @@ func main() {
 	}
 
 	registry.InitRegistry()
-	stacks.InitChartDirPath()
+	component_configmaps.InitThirdPartyDirPath()
 	// This allows separation of webhooks and operator
 	var exitErr error
 	if config.RunWebhookInit {

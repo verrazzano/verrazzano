@@ -1,7 +1,7 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package configmaps
+package overrides_configmaps
 
 import (
 	"context"
@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-// TestConfigMapReconciler tests Reconciler method for the following use case
+// TestConfigMapReconciler tests ComponentConfigMapReconciler method for the following use case
 // GIVEN a request to reconcile a ConfigMap
 // WHEN the ConfigMap is referenced in the Verrazzano CR under a component and is also present the CR namespace
 // THEN the ReconcilingGeneration of the target component is set to 1
@@ -179,7 +179,7 @@ func TestDeletion(t *testing.T) {
 	asserts.Equal(int64(1), vz.Status.Components["prometheus-operator"].ReconcilingGeneration)
 }
 
-// TestConfigMapRequeue the Reconciler method for the following use case
+// TestConfigMapRequeue the ComponentConfigMapReconciler method for the following use case
 // GIVEN a request to reconcile a ConfigMap that qualifies as an override
 // WHEN the status of the Verrazzano CR is found without the Component Status details
 // THEN a requeue request is returned with an error
@@ -282,10 +282,10 @@ func newRequest(namespace string, name string) ctrl.Request {
 }
 
 // newConfigMapReconciler creates a new reconciler for testing
-func newConfigMapReconciler(c client.Client) VerrazzanoConfigMapsReconciler {
+func newConfigMapReconciler(c client.Client) OverridesConfigMapsReconciler {
 	vzLog := vzlog.DefaultLogger()
 	scheme := newScheme()
-	reconciler := VerrazzanoConfigMapsReconciler{
+	reconciler := OverridesConfigMapsReconciler{
 		Client:        c,
 		Scheme:        scheme,
 		log:           vzLog,

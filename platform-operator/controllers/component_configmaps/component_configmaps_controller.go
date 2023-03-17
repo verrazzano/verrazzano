@@ -1,10 +1,8 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package stacks
+package component_configmaps
 
-// TODO COPIED FROM module-poc module controller https://raw.githubusercontent.com/verrazzano/verrazzano/mcico/module-poc/platform-operator/controllers/module/module_controller.go
-// TODO Adapt for stack purposes.
 import (
 	"context"
 	"fmt"
@@ -15,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -29,50 +28,51 @@ import (
 const (
 	componentNameKey      = "name"
 	componentNamespaceKey = "namespace"
-	chartURLKey           = "chartURL"
+	chartPathKey          = "chartURL"
 	overridesKey          = "overrides"
 )
 
-type Reconciler struct {
+type ComponentConfigMapReconciler struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	Controller controller.Controller
 	DryRun     bool
 }
 
-func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ComponentConfigMapReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1.ConfigMap{}).
-		WithEventFilter(r.createStackConfigMapPredicate()).
+		WithEventFilter(r.createComponentConfigMapPredicate()).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 10,
 		}).
 		Complete(r)
 }
 
-func (r *Reconciler) createStackConfigMapPredicate() predicate.Predicate {
+func (r *ComponentConfigMapReconciler) createComponentConfigMapPredicate() predicate.Predicate {
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			return r.isVerrazzanoStackConfigMap(e.Object)
+			return r.isComponentConfigMap(e.Object)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return r.isVerrazzanoStackConfigMap(e.Object)
+			return r.isComponentConfigMap(e.Object)
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return r.isVerrazzanoStackConfigMap(e.ObjectNew)
+			return r.isComponentConfigMap(e.ObjectNew)
 		},
 	}
 }
 
-func (r *Reconciler) isVerrazzanoStackConfigMap(o client.Object) bool {
+func (r *ComponentConfigMapReconciler) isComponentConfigMap(o client.Object) bool {
 	configMap := o.(*v1.ConfigMap)
-	if stackName := configMap.Annotations[vzconst.VerrazzanoStackAnnotationName]; stackName == "" {
+	if stackName := configMap.Annotations[vzconst.VerrazzanoDevComponentAnnotationName]; stackName == "" {
 		return false
 	}
 	return true
 }
 
-func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+// Reconcile fucntion for the ComponentConfigMapReconciler
+func (r *ComponentConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -85,46 +85,44 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		zap.S().Errorf("Failed to get Verrazzanos %s/%s", req.Namespace, req.Name)
 		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
 	}
-
 	vz := verrazzanos.Items[0]
 
-	zap.S().Infof("DEVA Reconciling Stack for configmap %s/%s", req.Namespace, req.Name)
+	zap.S().Infof("Reconciling component configmap %s/%s", req.Namespace, req.Name)
 	// Get the configmap for the request
 	cm := v1.ConfigMap{}
 	if err := r.Get(ctx, req.NamespacedName, &cm); err != nil {
 		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
-		zap.S().Errorf("Failed to get ConfigMap %s/%s", req.Namespace, req.Name)
+		zap.S().Errorf("Failed to get configmap %s/%s", req.Namespace, req.Name)
 		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
 	}
-	stackName := cm.Annotations[vzconst.VerrazzanoStackAnnotationName]
-	if stackName == "" {
-		err := fmt.Errorf("Stack ConfigMap reconcile called %s/%s, but does not have stack annotation %s",
-			req.Namespace, req.Name, vzconst.VerrazzanoStackAnnotationName)
+
+	componentName := cm.Annotations[vzconst.VerrazzanoDevComponentAnnotationName]
+	if componentName == "" {
+		err := fmt.Errorf("component configmap reconcile called %s/%s, but does not have dev component annotation %s",
+			req.Namespace, req.Name, vzconst.VerrazzanoDevComponentAnnotationName)
 		zap.S().Errorf(err.Error())
 		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
 	}
-	zap.S().Infof("DEVA Reconcile retrieved configmap for stack %s", stackName)
+	zap.S().Infof("Reconcile retrieved configmap for component %s", componentName)
 
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
-		Name:           stackName,
+		Name:           componentName,
 		Namespace:      cm.Namespace,
 		ID:             string(cm.UID),
 		Generation:     cm.Generation,
-		ControllerName: "verrazzanostack",
+		ControllerName: "verrazzanodevcomponent",
 	})
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for Stack controller: %v", err)
+		zap.S().Errorf("Failed to create controller logger for component configmap controller: %v", err)
 		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
 	}
-	zap.S().Infof("DEVA Created logger for stack %s - here's a message", stackName)
-	log.Infof("DEVA msg from stack logger")
 
 	comp, err := newDevComponent(log, cm)
 	if err != nil {
-		log.Errorf("Failed to read component %s data from configMap %s: %v", stackName, cm.GetName(), err)
+		log.Errorf("Failed to read component %s data from configmap %s: %v", componentName, cm.GetName(), err)
 		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
 	}
 
@@ -132,10 +130,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err != nil {
 		log.Errorf("Failed to create context: %v", err)
 	}
+
+	// install dev component
+	// TODO: turn this into a state machine
 	err = comp.Install(compCtx)
 	if err != nil {
 		log.Errorf("Failed to install component %s from configMap %s: ", comp.ReleaseName, cm.GetName(), err)
 		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
 	}
+	log.Infof("Successfully installed component %s", comp.ReleaseName)
 	return ctrl.Result{}, nil
 }

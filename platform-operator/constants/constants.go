@@ -164,10 +164,12 @@ const UpgradeRetryVersion = "verrazzano.io/upgrade-retry-version"
 // ObservedUpgradeRetryVersion is the previous restart version annotation field
 const ObservedUpgradeRetryVersion = "verrazzano.io/observed-upgrade-retry-version"
 
-// VerrazzanoStackAnnotationName is the name of the annotation to be used on a ConfigMap,
+// VerrazzanoDevComponentAnnotationName is the name of the annotation to be used on a ConfigMap,
 // which indicates that the ConfigMap is a VZ stack configuration. The value of the annotation is
 // the VZ stack name e.g. "monitoring"
-const VerrazzanoStackAnnotationName = "verrazzano.io/stack"
+const VerrazzanoDevComponentAnnotationName = "verrazzano.io/devComponent"
+
+const VerrazzanoDevComponentChartAnnotationName = "verrazzano.io/devComponentChart"
 
 // NGINXControllerServiceName is the nginx ingress controller name
 const NGINXControllerServiceName = "ingress-controller-ingress-nginx-controller"
