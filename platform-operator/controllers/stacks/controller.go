@@ -8,15 +8,13 @@ package stacks
 import (
 	"context"
 	"fmt"
-	"reflect"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"time"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/stacks/monitoring"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/stacks/stackspi"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -26,16 +24,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-/*var delegates = map[string]func(*modulesv1alpha1.Module) modules2.DelegateReconciler{
-	keycloak.ComponentName:  keycloak.NewComponent,
-	coherence.ComponentName: coherence.NewComponent,
-	weblogic.ComponentName:  weblogic.NewComponent,
-}*/
-
-var stackComponents = map[string]stackspi.StackComponent{}
+const (
+	componentNameKey      = "name"
+	componentNamespaceKey = "namespace"
+	chartURLKey           = "chartURL"
+	overridesKey          = "overrides"
+)
 
 type Reconciler struct {
 	client.Client
@@ -45,7 +41,6 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	initStackComponentList()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1.ConfigMap{}).
 		WithEventFilter(r.createStackConfigMapPredicate()).
@@ -53,10 +48,6 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 			MaxConcurrentReconciles: 10,
 		}).
 		Complete(r)
-}
-
-func initStackComponentList() {
-	stackComponents[monitoring.StackName] = monitoring.NewStackComponent()
 }
 
 func (r *Reconciler) createStackConfigMapPredicate() predicate.Predicate {
@@ -88,24 +79,26 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	verrazzanos := &vzapi.VerrazzanoList{}
 	if err := r.List(ctx, verrazzanos); err != nil {
-		if k8serrors.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) || len(verrazzanos.Items) == 0 {
 			return ctrl.Result{}, nil
 		}
 		zap.S().Errorf("Failed to get Verrazzanos %s/%s", req.Namespace, req.Name)
 		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
 	}
 
+	vz := verrazzanos.Items[0]
+
 	zap.S().Infof("DEVA Reconciling Stack for configmap %s/%s", req.Namespace, req.Name)
-	// Get the stack configmap for the request
-	stackConfig := v1.ConfigMap{}
-	if err := r.Get(ctx, req.NamespacedName, &stackConfig); err != nil {
+	// Get the configmap for the request
+	cm := v1.ConfigMap{}
+	if err := r.Get(ctx, req.NamespacedName, &cm); err != nil {
 		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
-		zap.S().Errorf("Failed to get Stack ConfigMap %s/%s", req.Namespace, req.Name)
+		zap.S().Errorf("Failed to get ConfigMap %s/%s", req.Namespace, req.Name)
 		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
 	}
-	stackName := stackConfig.Annotations[vzconst.VerrazzanoStackAnnotationName]
+	stackName := cm.Annotations[vzconst.VerrazzanoStackAnnotationName]
 	if stackName == "" {
 		err := fmt.Errorf("Stack ConfigMap reconcile called %s/%s, but does not have stack annotation %s",
 			req.Namespace, req.Name, vzconst.VerrazzanoStackAnnotationName)
@@ -117,9 +110,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
 		Name:           stackName,
-		Namespace:      stackConfig.Namespace,
-		ID:             string(stackConfig.UID),
-		Generation:     stackConfig.Generation,
+		Namespace:      cm.Namespace,
+		ID:             string(cm.UID),
+		Generation:     cm.Generation,
 		ControllerName: "verrazzanostack",
 	})
 	if err != nil {
@@ -129,91 +122,20 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	zap.S().Infof("DEVA Created logger for stack %s - here's a message", stackName)
 	log.Infof("DEVA msg from stack logger")
 
-	// TODO kick off install of stack component indicated by the ConfigMap
-	stackComponent, found := stackComponents[stackName]
-	if !found {
-		log.Errorf("Failed to find stack component with name %s", stackName)
-		return newRequeueWithDelay(), nil
-	}
-	log.Infof("DEVA found stack component %v", stackComponent)
-	vzlist := &vzapi.VerrazzanoList{}
-	var vz vzapi.Verrazzano
-	if err := r.List(ctx, vzlist); err != nil {
-		// If the resource is not found or the list is empty, that means all of the finalizers have been removed,
-		// and the Verrazzano resource has been deleted, so there is nothing left to do.
-		if k8serrors.IsNotFound(err) {
-			return reconcile.Result{}, nil
-		}
-		log.Errorf("Failed to list Verrazzano resources: %v", err)
-		return newRequeueWithDelay(), nil
-	}
-	if len(vzlist.Items) > 0 {
-		vz = vzlist.Items[0]
-	} else {
-		log.Errorf("No Verrazzano resource found. Nothing to do.")
-		return reconcile.Result{}, nil
-	}
-	log.Infof("DEVA fetched Verrazzano")
-	if reflect.TypeOf(stackComponent).AssignableTo(reflect.TypeOf((*stackspi.StackComponent)(nil)).Elem()) {
-		// Keep retrying to reconcile components until it completes
-		// vzctx, err := vzcontext.NewVerrazzanoContext(log, r.Client, vz, r.DryRun)
-		stackCtx, err := stackspi.NewStackContext(log, r.Client, &vz, nil, stackConfig, r.DryRun)
-		if err != nil {
-			zap.S().Errorf("Failed to create Stack Context: %v", err)
-			return newRequeueWithDelay(), err
-		}
-		if err := stackComponent.(stackspi.StackComponent).ReconcileStack(stackCtx); err != nil {
-			return newRequeueWithDelay(), err
-		}
-	}
-
-	// return ctrl.Result{}, nil
-	/*if stackConfig.Generation == stackConfig.Status.ObservedGeneration {
-		log.Debugf("Skipping stack %s reconcile, observed generation has not changed for ConfigMap %s/%s",
-			stackName, stackConfig.Namespace, stackConfig.Name)
-		return ctrl.Result{}, nil
-	}
-
-	// Unknown module controller cannot be handled
-	delegate := getDelegateController(module)
-	if delegate == nil {
-		return ctrl.Result{}, nil
-	}
-	moduleCtx, err := spi.NewModuleContext(log, r.Client, &verrazzanos.Items[0], module, false)
+	comp, err := newDevComponent(log, cm)
 	if err != nil {
-		log.Errorf("Failed to create module context: %v", err)
+		log.Errorf("Failed to read component %s data from configMap %s: %v", stackName, cm.GetName(), err)
 		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
 	}
-	delegate.SetStatusWriter(r.Status())
-	if err := delegate.ReconcileModule(moduleCtx); err != nil {
-		return handleError(moduleCtx, err)
-	}*/
+
+	compCtx, err := spi.NewContext(log, r.Client, &vz, nil, false)
+	if err != nil {
+		log.Errorf("Failed to create context: %v", err)
+	}
+	err = comp.Install(compCtx)
+	if err != nil {
+		log.Errorf("Failed to install component %s from configMap %s: ", comp.ReleaseName, cm.GetName(), err)
+		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
+	}
 	return ctrl.Result{}, nil
 }
-
-// Create a new Result that will cause a reconciliation requeue after a short delay
-func newRequeueWithDelay() ctrl.Result {
-	return vzctrl.NewRequeueWithDelay(2, 3, time.Second)
-}
-
-/*func getDelegateController(module *modulesv1alpha1.Module) modules2.DelegateReconciler {
-	newDelegate := delegates[module.ObjectMeta.Labels[modules2.ControllerLabel]]
-	if newDelegate == nil {
-		return nil
-	}
-	return newDelegate(module)
-}
-
-func handleError(ctx spi.ComponentContext, err error) (ctrl.Result, error) {
-	log := ctx.Log()
-	module := ctx.Module()
-	if k8serrors.IsConflict(err) {
-		log.Debugf("Conflict resolving module %s", module.Name)
-	} else if modules2.IsNotReadyError(err) {
-		log.Progressf("Module %s is not ready yet", module.Name)
-	} else {
-		log.Errorf("Failed to reconcile module %s/%s: %v", module.Name, module.Namespace, err)
-		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
-	}
-	return vzctrl.NewRequeueWithDelay(2, 3, time.Second), nil
-}*/
