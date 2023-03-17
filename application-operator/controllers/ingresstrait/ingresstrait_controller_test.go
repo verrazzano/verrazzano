@@ -2173,11 +2173,11 @@ func TestCreateHostsFromIngressTraitRuleWildcards(t *testing.T) {
 	assert.Equal("myapp.myns.my.host.com", hosts[0])
 }
 
-// TestVirtualServerHostsPerIngressTrait tests the hosts in a VirtualServer
+// TestGatewayServersPerIngressTrait tests the servers in a Gateway
 // GIVEN a list of IngressTraits
 // WHEN createOrUpdateChildResources is called
-// THEN verify that the virutal server has the correct set of host names
-func TestVirtualServerHostsPerIngressTrait(t *testing.T) {
+// THEN verify that the Gateway has the correct set servers with the correct host names
+func TestGatewayServersPerIngressTrait(t *testing.T) {
 	assert := asserts.New(t)
 	const appName = "hello"
 
@@ -2198,21 +2198,16 @@ func TestVirtualServerHostsPerIngressTrait(t *testing.T) {
 				},
 				Spec: vzapi.IngressTraitSpec{
 					Rules: []vzapi.IngressRule{
-						{
-							Hosts: []string{"host1"},
-						},
-					}},
-			},
+						{Hosts: []string{"host1"}},
+					},
+				}},
 			}},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			// Create the fake reconciler up front with all traits
 			cli := fake.NewClientBuilder().WithScheme(newScheme())
-			cli = cli.WithObjects(appFakes.appConfig)
-			cli = cli.WithObjects(appFakes.workload)
-			cli = cli.WithObjects(appFakes.workloadDef)
-			cli = cli.WithObjects(appFakes.workloadService)
+			cli = cli.WithObjects(getAppFakeResources(appFakes)...)
 
 			for _, trait := range test.traits {
 				trait.TypeMeta = metav1.TypeMeta{
@@ -2232,7 +2227,6 @@ func TestVirtualServerHostsPerIngressTrait(t *testing.T) {
 
 				// Every rule must have a VS with all the hosts.  This test must use explicit hosts
 				for i, rule := range trait.Spec.Rules {
-
 					// The VS and the rule must have the same set of hosts
 					vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, i)
 					vs := istioclient.VirtualService{}
@@ -2247,6 +2241,122 @@ func TestVirtualServerHostsPerIngressTrait(t *testing.T) {
 							assert.Fail(fmt.Sprintf("unexpected host %s in VS %s", h, vs.Name))
 						}
 					}
+					assert.Len(hostSet, 0)
+				}
+			}
+		})
+	}
+}
+
+// TestVirtualServerHostsPerIngressTrait tests the hosts in a VirtualServer
+// GIVEN a list of IngressTraits
+// WHEN createOrUpdateChildResources is called
+// THEN verify that the virtual server has the correct set of host names
+func TestVirtualServerHostsPerIngressTrait(t *testing.T) {
+	assert := asserts.New(t)
+	const appName = "hello"
+
+	appFakes := setupAppFakes(appName)
+
+	tests := []struct {
+		name   string
+		traits []*vzapi.IngressTrait
+	}{
+		{name: "1trait-1rule-1host",
+			traits: []*vzapi.IngressTrait{{
+				ObjectMeta: metav1.ObjectMeta{Name: "hello", Namespace: testNamespace,
+					Labels: map[string]string{oam.LabelAppName: appName},
+				},
+				Spec: vzapi.IngressTraitSpec{
+					Rules: []vzapi.IngressRule{
+						{Hosts: []string{"host1"}},
+					},
+				}},
+			}},
+		{name: "1trait-1rule-2host",
+			traits: []*vzapi.IngressTrait{{
+				ObjectMeta: metav1.ObjectMeta{Name: "hello", Namespace: testNamespace,
+					Labels: map[string]string{oam.LabelAppName: appName},
+				},
+				Spec: vzapi.IngressTraitSpec{
+					Rules: []vzapi.IngressRule{
+						{Hosts: []string{"host1"}},
+						{Hosts: []string{"host2"}},
+					},
+				}},
+			}},
+		{name: "1trait-2rule-3host-same-names",
+			traits: []*vzapi.IngressTrait{{
+				ObjectMeta: metav1.ObjectMeta{Name: "hello", Namespace: testNamespace,
+					Labels: map[string]string{oam.LabelAppName: appName},
+				},
+				Spec: vzapi.IngressTraitSpec{
+					Rules: []vzapi.IngressRule{
+						{Hosts: []string{"host1", "host2", "host3"}},
+						{Hosts: []string{"host1", "host2", "host3"}},
+					},
+				}},
+			}},
+		{name: "2trait-mixedrules-mixedhost",
+			traits: []*vzapi.IngressTrait{{
+				ObjectMeta: metav1.ObjectMeta{Name: "hello", Namespace: testNamespace,
+					Labels: map[string]string{oam.LabelAppName: appName},
+				},
+				Spec: vzapi.IngressTraitSpec{
+					Rules: []vzapi.IngressRule{
+						{Hosts: []string{"host1", "host2", "host3"}},
+					},
+				}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "hello-2", Namespace: testNamespace,
+					Labels: map[string]string{oam.LabelAppName: appName},
+				},
+					Spec: vzapi.IngressTraitSpec{
+						Rules: []vzapi.IngressRule{
+							{Hosts: []string{"host1", "host2", "host3"}},
+							{Hosts: []string{"host2", "host4", "host5"}},
+						},
+					}},
+			}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// Create the fake reconciler up front with all traits
+			cli := fake.NewClientBuilder().WithScheme(newScheme())
+			cli = cli.WithObjects(getAppFakeResources(appFakes)...)
+
+			for _, trait := range test.traits {
+				trait.TypeMeta = metav1.TypeMeta{
+					APIVersion: apiVersion,
+					Kind:       "IngressTrait",
+				}
+				trait.Spec.WorkloadReference = oamrt.TypedReference{
+					APIVersion: "core.oam.dev/v1alpha2",
+					Kind:       "ContainerizedWorkload",
+					Name:       testWorkloadName}
+				cli = cli.WithObjects(trait)
+			}
+			r := newIngressTraitReconciler(cli.Build())
+			for i, trait := range test.traits {
+				_, _, err := r.createOrUpdateChildResources(context.TODO(), test.traits[i], vzlog.DefaultLogger())
+				assert.NoError(err)
+
+				// Every rule must have a VS with all the hosts.  This test must use explicit hosts
+				for i, rule := range trait.Spec.Rules {
+					// The VS and the rule must have the same set of hosts
+					vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, i)
+					vs := istioclient.VirtualService{}
+					err = r.Get(context.Background(), client.ObjectKey{Namespace: trait.Namespace, Name: vsName}, &vs)
+					assert.NoError(err)
+					hostSet := vzstring.SliceToSet(rule.Hosts)
+					for _, h := range vs.Spec.Hosts {
+						_, ok := hostSet[h]
+						if ok {
+							delete(hostSet, h)
+						} else {
+							assert.Fail(fmt.Sprintf("unexpected host %s in VS %s", h, vs.Name))
+						}
+					}
+					assert.Len(hostSet, 0)
 				}
 			}
 		})
@@ -2436,6 +2546,7 @@ func TestHostRules(t *testing.T) {
 					assert.Fail(fmt.Sprintf("unexpected host %s returned from coallateAllHostsForTrait", h))
 				}
 			}
+			assert.Len(hostSet, 0)
 		})
 	}
 }
@@ -4397,6 +4508,15 @@ func setupAppFakes(appName string) appFakeResources {
 		workloadDef:     workloadDef,
 		workloadService: workloadService,
 	}
+}
+
+func getAppFakeResources(appFakes appFakeResources) []client.Object {
+	var objs []client.Object
+	objs = append(objs, appFakes.appConfig)
+	objs = append(objs, appFakes.workload)
+	objs = append(objs, appFakes.workloadDef)
+	objs = append(objs, appFakes.workloadService)
+	return objs
 }
 
 func createGatewayServer(traitName string, traitHosts []string, secretName ...string) *istionet.Server {
