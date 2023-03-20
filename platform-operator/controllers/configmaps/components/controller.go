@@ -57,10 +57,7 @@ func (r *ComponentConfigMapReconciler) createComponentConfigMapPredicate() predi
 
 func (r *ComponentConfigMapReconciler) isComponentConfigMap(o client.Object) bool {
 	configMap := o.(*v1.ConfigMap)
-	if configMap.Annotations[vzconst.VerrazzanoDevComponentAnnotationName] == "" {
-		return false
-	}
-	return true
+	return configMap.Annotations[vzconst.VerrazzanoDevComponentAnnotationName] == ""
 }
 
 // Reconcile function for the ComponentConfigMapReconciler
