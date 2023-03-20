@@ -2173,12 +2173,13 @@ func TestCreateHostsFromIngressTraitRuleWildcards(t *testing.T) {
 	assert.Equal("myapp.myns.my.host.com", hosts[0])
 }
 
-// TestIngressTraitHostsForVirtualServerAndGateway tests the host in a Gateways and VirtualServers
+// TestIngressTraitHostsForVirtualServiceAndGateway tests the host in a Gateways and VirtualServices
 // GIVEN a list of IngressTraits
 // WHEN createOrUpdateChildResources is called
-// THEN verify that the correct Gateways and VirtualServers are created
-//   AND that the Gateway and VirtualServer hosts are correct
-func TestIngressTraitHostsForVirtualServerAndGateway(t *testing.T) {
+// THEN verify that the correct Gateways and VirtualServices are created
+//
+//	AND that the Gateway and VirtualService hosts are correct
+func TestIngressTraitHostsForVirtualServiceAndGateway(t *testing.T) {
 	assert := asserts.New(t)
 	const appName = "hello"
 
