@@ -29,10 +29,7 @@ const (
 	testBomFilePath = "../../verrazzano/testdata/test_bom.json"
 )
 
-// TestConfigMapReconciler tests ComponentConfigMapReconciler method for the following use case
-// GIVEN a request to reconcile a ConfigMap
-// WHEN the ConfigMap is referenced in the Verrazzano CR under a component and is also present the CR namespace
-// THEN the ReconcilingGeneration of the target component is set to 1
+// TestConfigMapReconciler tests ComponentConfigMapReconciler method for a correct and incorrect configmap
 func TestConfigMapReconciler(t *testing.T) {
 	asserts := assert.New(t)
 
