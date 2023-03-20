@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package spi
@@ -55,15 +55,15 @@ func IsRetryableError(err error) bool {
 }
 
 // IsUpdateConflict returns true if the error is an update conflict error. This is occurs when the controller-runtime cache
-// is out of sync with the etc database
+// is out of sync with the etcd database
 func IsUpdateConflict(err error) bool {
 	return strings.Contains(err.Error(), "the object has been modified; please apply your changes to the latest version")
 }
 
-// ShouldLogKubenetesAPIError returns true if error should be logged.  This is used
+// ShouldLogKubernetesAPIError returns true if error should be logged.  This is used
 // when calling the Kubernetes API, so conflict and webhook
 // errors are not logged, the controller will just retry.
-func ShouldLogKubenetesAPIError(err error) bool {
+func ShouldLogKubernetesAPIError(err error) bool {
 	if err == nil {
 		return false
 	}

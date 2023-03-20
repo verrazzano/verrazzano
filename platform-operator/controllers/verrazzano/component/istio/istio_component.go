@@ -522,7 +522,7 @@ func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
 		if secret.Type == HelmScrtType && !strings.Contains(secretName, IstioCoreDNSReleaseName) {
 			err = client.Delete(context.TODO(), secret)
 			if err != nil {
-				if ctrlerrors.ShouldLogKubenetesAPIError(err) {
+				if ctrlerrors.ShouldLogKubernetesAPIError(err) {
 					compContext.Log().Errorf("Error deleting helm secret %s: %v", secretName, err)
 				}
 				return err
