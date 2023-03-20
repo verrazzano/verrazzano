@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package spi
 
@@ -32,7 +32,7 @@ var falseValue = false
 
 var trueValue = true
 
-//var defaultPVC50Gi, _ = resource.ParseQuantity("50Gi")
+// var defaultPVC50Gi, _ = resource.ParseQuantity("50Gi")
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 var pvc500Gi, _ = resource.ParseQuantity("2T")
 
