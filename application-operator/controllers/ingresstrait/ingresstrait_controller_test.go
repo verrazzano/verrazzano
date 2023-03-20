@@ -2180,7 +2180,6 @@ func TestCreateHostsFromIngressTraitRuleWildcards(t *testing.T) {
 func TestVirtualServerHostsPerIngressTrait(t *testing.T) {
 	assert := asserts.New(t)
 	const appName = "hello"
-	appFakes := setupAppFakes(appName)
 
 	tests := []struct {
 		name   string
@@ -2244,6 +2243,8 @@ func TestVirtualServerHostsPerIngressTrait(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			appFakes := setupAppFakes(appName)
+
 			// Create the fake reconciler up front with all traits
 			cli := fake.NewClientBuilder().WithScheme(newScheme())
 			cli = cli.WithObjects(getAppFakeResources(appFakes)...)
