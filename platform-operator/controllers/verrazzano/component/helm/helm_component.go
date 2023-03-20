@@ -606,13 +606,15 @@ func (h HelmComponent) filesFromVerrazzanoHelm(context spi.ComponentContext, nam
 	}
 
 	// Create the file from the string
-	file, err := vzos.CreateTempFile("helm-overrides-verrazzano-*.yaml", []byte(fileString))
-	if err != nil {
-		context.Log().Error(err.Error())
-		return newKvs, err
-	}
-	if file != nil {
-		newKvs = append(newKvs, bom.KeyValue{Value: file.Name(), IsFile: true})
+	if len(fileString) > 0 {
+		file, err := vzos.CreateTempFile("helm-overrides-verrazzano-*.yaml", []byte(fileString))
+		if err != nil {
+			context.Log().Error(err.Error())
+			return newKvs, err
+		}
+		if file != nil {
+			newKvs = append(newKvs, bom.KeyValue{Value: file.Name(), IsFile: true})
+		}
 	}
 	return newKvs, nil
 }

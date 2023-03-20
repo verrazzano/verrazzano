@@ -19,7 +19,12 @@ import (
 	"path/filepath"
 )
 
-var chartDirPath = ""
+const (
+	componentNameKey      = "name"
+	componentNamespaceKey = "namespace"
+	chartPathKey          = "chartPath"
+	overridesKey          = "overrides"
+)
 
 type devComponent struct {
 	helmcomp.HelmComponent
@@ -48,7 +53,7 @@ func newDevComponent(log vzlog.VerrazzanoLogger, cm v1.ConfigMap) (devComponent,
 	return devComponent{
 		helmcomp.HelmComponent{
 			ReleaseName:             componentName,
-			ChartDir:                filepath.Join(chartDirPath, chartPath),
+			ChartDir:                filepath.Join(config.GetThirdPartyDir(), chartPath),
 			ChartNamespace:          componentNamespace,
 			IgnoreNamespaceOverride: true,
 			GetInstallOverridesFunc: func(_ runtime.Object) interface{} {
@@ -77,9 +82,4 @@ func (h devComponent) IsReady(context spi.ComponentContext) bool {
 		return true
 	}
 	return false
-}
-
-// InitThirdPartyDirPath initializes the third party chart path from main.go
-func InitThirdPartyDirPath() {
-	chartDirPath = config.GetThirdPartyDir()
 }

@@ -25,18 +25,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
-const (
-	componentNameKey      = "name"
-	componentNamespaceKey = "namespace"
-	chartPathKey          = "chartURL"
-	overridesKey          = "overrides"
-)
-
 type ComponentConfigMapReconciler struct {
 	client.Client
-	Scheme     *runtime.Scheme
-	Controller controller.Controller
-	DryRun     bool
+	Scheme *runtime.Scheme
+	DryRun bool
 }
 
 func (r *ComponentConfigMapReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -85,14 +77,14 @@ func (r *ComponentConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 	if err != nil || len(verrazzanos.Items) == 0 {
 		zap.S().Debug("No Verrazzanos found in the cluster")
-		return ctrl.Result{}, nil
+		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
 	}
 	vz := verrazzanos.Items[0]
 
 	zap.S().Infof("Reconciling component configmap %s/%s", req.Namespace, req.Name)
 	// Get the configmap for the request
 	cm := v1.ConfigMap{}
-	if err := r.Get(ctx, req.NamespacedName, &cm); err != nil {
+	if err = r.Get(ctx, req.NamespacedName, &cm); err != nil {
 		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
@@ -108,7 +100,7 @@ func (r *ComponentConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	componentName := cm.Annotations[vzconst.VerrazzanoDevComponentAnnotationName]
 	if componentName == "" {
-		err := fmt.Errorf("component configmap reconcile called %s/%s, but does not have dev component annotation %s",
+		err = fmt.Errorf("component configmap reconcile called %s/%s, but does not have dev component annotation %s",
 			req.Namespace, req.Name, vzconst.VerrazzanoDevComponentAnnotationName)
 		zap.S().Errorf(err.Error())
 		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
@@ -131,12 +123,15 @@ func (r *ComponentConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.R
 	comp, err := newDevComponent(log, cm)
 	if err != nil {
 		log.Errorf("Failed to read component %s data from configmap %s: %v", componentName, cm.GetName(), err)
-		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
+		// don't requeue if the data is invalid
+		// once the data is updated to be correct it will trigger another reconcile
+		return ctrl.Result{}, err
 	}
 
 	compCtx, err := spi.NewContext(log, r.Client, &vz, nil, false)
 	if err != nil {
 		log.Errorf("Failed to create context: %v", err)
+		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
 	}
 
 	// install dev component
