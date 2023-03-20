@@ -32,7 +32,7 @@ const ComponentJSONName = "thanos"
 // Availability Object Names
 const (
 	queryDeployment    = "thanos-query"
-	frontendDeployment = "thanos-query"
+	frontendDeployment = "thanos-query-frontend"
 )
 
 type thanosComponent struct {
