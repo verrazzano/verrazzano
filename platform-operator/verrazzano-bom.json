@@ -175,7 +175,7 @@
     },
     {
       "name": "verrazzano",
-      "version": "1.5.2",
+      "version": "1.5.3",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -193,7 +193,7 @@
             },
             {
               "image": "console",
-              "tag": "v1.5.2-20230302162338-ccb88b5",
+              "tag": "v1.5.3-20230320145816-3d61ee4",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -215,7 +215,7 @@
     },
     {
       "name": "verrazzano-monitoring-operator",
-      "version": "1.5.2",
+      "version": "1.5.3",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -223,7 +223,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.5.2-20230302162126-e1b6f88",
+              "tag": "v1.5.3-20230320145557-f8a3f5d",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
