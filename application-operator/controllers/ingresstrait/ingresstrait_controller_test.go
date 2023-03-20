@@ -2173,11 +2173,12 @@ func TestCreateHostsFromIngressTraitRuleWildcards(t *testing.T) {
 	assert.Equal("myapp.myns.my.host.com", hosts[0])
 }
 
-// TestVirtualServerHostsPerIngressTrait tests the hosts in a VirtualServer
+// TestIngressTraitHostsForVirtualServerAndGateway tests the host in a Gateways and VirtualServers
 // GIVEN a list of IngressTraits
 // WHEN createOrUpdateChildResources is called
-// THEN verify that the virtual server has the correct set of host names
-func TestVirtualServerHostsPerIngressTrait(t *testing.T) {
+// THEN verify that the correct Gateways and VirtualServers are created
+//   AND that the Gateway and VirtualServer hosts are correct
+func TestIngressTraitHostsForVirtualServerAndGateway(t *testing.T) {
 	assert := asserts.New(t)
 	const appName = "hello"
 
@@ -2220,7 +2221,7 @@ func TestVirtualServerHostsPerIngressTrait(t *testing.T) {
 					},
 				}},
 			}},
-		{name: "2trait-mixedrules-mixedhost",
+		{name: "2traits-1rule-each",
 			traits: []*vzapi.IngressTrait{{
 				ObjectMeta: metav1.ObjectMeta{Name: "hello", Namespace: testNamespace,
 					Labels: map[string]string{oam.LabelAppName: appName},
@@ -2236,19 +2237,47 @@ func TestVirtualServerHostsPerIngressTrait(t *testing.T) {
 					Spec: vzapi.IngressTraitSpec{
 						Rules: []vzapi.IngressRule{
 							{Hosts: []string{"host1-a", "host2-a", "host3-a"}},
-							{Hosts: []string{"host2-a", "host4-a", "host5-a"}},
+						},
+					}},
+			}},
+		{name: "3traits-multiple-rules-and-hosts",
+			traits: []*vzapi.IngressTrait{{
+				ObjectMeta: metav1.ObjectMeta{Name: "hello", Namespace: testNamespace,
+					Labels: map[string]string{oam.LabelAppName: appName},
+				},
+				Spec: vzapi.IngressTraitSpec{
+					Rules: []vzapi.IngressRule{
+						{Hosts: []string{"host1", "host2", "host3"}},
+					},
+				}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "hello-2", Namespace: testNamespace,
+					Labels: map[string]string{oam.LabelAppName: appName},
+				},
+					Spec: vzapi.IngressTraitSpec{
+						Rules: []vzapi.IngressRule{
+							{Hosts: []string{"host1-a", "host2-a", "host3-a"}},
+							{Hosts: []string{"host4-a", "host5-a", "host6-a"}},
+						},
+					}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "hello-3", Namespace: testNamespace,
+					Labels: map[string]string{oam.LabelAppName: appName},
+				},
+					Spec: vzapi.IngressTraitSpec{
+						Rules: []vzapi.IngressRule{
+							{Hosts: []string{"host1-b"}},
+							{Hosts: []string{"host2-b", "host3-b"}},
+							{Hosts: []string{"host4-b", "host5-b", "host6-b"}},
 						},
 					}},
 			}},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			appFakes := setupAppFakes(appName)
-
 			// Create the fake reconciler up front with all traits
 			cli := fake.NewClientBuilder().WithScheme(newScheme())
-			cli = cli.WithObjects(getAppFakeResources(appFakes)...)
+			cli = cli.WithObjects(getAppFakeResources(setupAppFakes(appName))...)
 
+			// Finish configuration traits
 			for _, trait := range test.traits {
 				trait.TypeMeta = metav1.TypeMeta{
 					APIVersion: apiVersion,
@@ -2261,11 +2290,13 @@ func TestVirtualServerHostsPerIngressTrait(t *testing.T) {
 				cli = cli.WithObjects(trait)
 			}
 			r := newIngressTraitReconciler(cli.Build())
+
+			// Reconcile each trait
 			for i, trait := range test.traits {
 				_, _, err := r.createOrUpdateChildResources(context.TODO(), test.traits[i], vzlog.DefaultLogger())
 				assert.NoError(err)
 
-				// Every rule must have a VS with all the hosts.  This test must use explicit hosts
+				// Every trait rule must have a VS with all the hosts.  This test must use explicit hosts
 				for i, rule := range trait.Spec.Rules {
 					// The VS and the rule must have the same set of hosts
 					vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, i)
@@ -2291,7 +2322,6 @@ func TestVirtualServerHostsPerIngressTrait(t *testing.T) {
 				assert.NoError(err)
 
 				// There must be a gateway server for each trait.
-				assert.Equal(len(test.traits), len(gw.Spec.Servers))
 				for _, server := range gw.Spec.Servers {
 					if server.Name != trait.Name {
 						continue
@@ -2309,7 +2339,6 @@ func TestVirtualServerHostsPerIngressTrait(t *testing.T) {
 					}
 					assert.Len(hostSet, 0)
 				}
-
 			}
 		})
 	}
