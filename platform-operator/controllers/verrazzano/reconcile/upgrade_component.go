@@ -94,7 +94,7 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 			compLog.Oncef("Component %s pre-upgrade running", compName)
 			if err := comp.PreUpgrade(compContext); err != nil {
 				if !ctrlerrors.IsRetryableError(err) {
-					compLog.Errorf("Failed pre-upgrade for component %s: %v", compName, err)
+					compLog.ErrorfThrottled("Failed pre-upgrade for component %s: %v", compName, err)
 				}
 				return ctrl.Result{}, err
 			}
@@ -104,7 +104,7 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 			compLog.Progressf("Component %s upgrade running", compName)
 			if err := comp.Upgrade(compContext); err != nil {
 				if !ctrlerrors.IsRetryableError(err) {
-					compLog.Errorf("Failed upgrading component %s, will retry: %v", compName, err)
+					compLog.ErrorfThrottled("Failed upgrading component %s, will retry: %v", compName, err)
 				}
 				// check to see whether this is due to a pending upgrade
 				r.resolvePendingUpgrades(compName, compLog)
@@ -125,7 +125,7 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 			compLog.Oncef("Component %s post-upgrade running", compName)
 			if err := comp.PostUpgrade(compContext); err != nil {
 				if !ctrlerrors.IsRetryableError(err) {
-					compLog.Errorf("Failed post-upgrade for component %s: %v", compName, err)
+					compLog.ErrorfThrottled("Failed post-upgrade for component %s: %v", compName, err)
 				}
 				return ctrl.Result{}, err
 			}
