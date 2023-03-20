@@ -5,8 +5,12 @@ package fluentd
 
 import (
 	"context"
-	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
 	"testing"
 
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -19,7 +23,6 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -65,6 +68,44 @@ func init() {
 	_ = v1alpha1.AddToScheme(testScheme)
 	_ = clientgoscheme.AddToScheme(testScheme)
 	// +kubebuilder:scaffold:testScheme
+}
+
+func getChart() *chart.Chart {
+	return &chart.Chart{
+		Metadata: &chart.Metadata{
+			APIVersion: "v1",
+			Name:       "hello",
+			Version:    "0.1.0",
+			AppVersion: "1.0",
+		},
+		Templates: []*chart.File{
+			{Name: "templates/hello", Data: []byte("hello: world")},
+		},
+	}
+}
+
+func createRelease(name string, status release.Status) *release.Release {
+	now := time.Now()
+	return &release.Release{
+		Name:      name,
+		Namespace: "verrazzano-system",
+		Info: &release.Info{
+			FirstDeployed: now,
+			LastDeployed:  now,
+			Status:        status,
+			Description:   "Named Release Stub",
+		},
+		Chart:   getChart(),
+		Version: 1,
+	}
+}
+
+func testActionConfigWithInstalledFluentd(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return helmcli.CreateActionConfig(true, "fluentd", release.StatusDeployed, createRelease, vzlog.DefaultLogger())
+}
+
+func testActionConfigWithUninstalledFluentd(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return helmcli.CreateActionConfig(true, "fluentd", release.StatusUninstalled, createRelease, vzlog.DefaultLogger())
 }
 
 func TestValidateUpdate(t *testing.T) {
@@ -499,14 +540,8 @@ func TestUpgrade(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := getFakeComponentContext(c)
 	config.SetDefaultBomFilePath(testBomFilePath)
-	helmcli.SetCmdRunner(os.GenericTestRunner{})
-	defer helmcli.SetDefaultRunner()
-	helm.SetUpgradeFunc(fakeUpgrade)
-	defer helm.SetDefaultUpgradeFunc()
-	helmcli.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
-		return helmcli.ChartStatusDeployed, nil
-	})
-	defer helmcli.SetDefaultChartStateFunction()
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(testActionConfigWithInstalledFluentd)
 	err := NewComponent().Upgrade(ctx)
 	assert.NoError(t, err)
 }
@@ -557,12 +592,8 @@ func TestIsInstalled(t *testing.T) {
 //	WHEN I call Uninstall with the Fluentd helm chart installed
 //	THEN no error is returned
 func TestUninstallHelmChartInstalled(t *testing.T) {
-	helmcli.SetCmdRunner(os.GenericTestRunner{
-		StdOut: []byte(""),
-		StdErr: []byte{},
-		Err:    nil,
-	})
-	defer helmcli.SetDefaultRunner()
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(testActionConfigWithInstalledFluentd)
 
 	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &v1alpha1.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
@@ -574,12 +605,8 @@ func TestUninstallHelmChartInstalled(t *testing.T) {
 //	WHEN I call Uninstall with the Fluentd helm chart not installed
 //	THEN no error is returned
 func TestUninstallHelmChartNotInstalled(t *testing.T) {
-	helmcli.SetCmdRunner(os.GenericTestRunner{
-		StdOut: []byte(""),
-		StdErr: []byte{},
-		Err:    fmt.Errorf("Not installed"),
-	})
-	defer helmcli.SetDefaultRunner()
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(testActionConfigWithUninstalledFluentd)
 
 	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &v1alpha1.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
@@ -591,12 +618,8 @@ func TestUninstallHelmChartNotInstalled(t *testing.T) {
 //	WHEN I call Uninstall with the Fluentd helm chart not installed
 //	THEN ensure that all Fluentd resources are explicitly deleted
 func TestUninstallResources(t *testing.T) {
-	helmcli.SetCmdRunner(os.GenericTestRunner{
-		StdOut: []byte(""),
-		StdErr: []byte{},
-		Err:    fmt.Errorf("Not installed"),
-	})
-	defer helmcli.SetDefaultRunner()
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(testActionConfigWithUninstalledFluentd)
 
 	clusterRole := &rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: ComponentName}}
 	clusterRoleBinding := &rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: ComponentName}}

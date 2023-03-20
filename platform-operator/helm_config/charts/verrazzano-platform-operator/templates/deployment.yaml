@@ -53,6 +53,8 @@ spec:
           env:
             - name: VERRAZZANO_KUBECONFIG
               value: /home/verrazzano/kubeconfig
+            - name: KUBECONFIG
+              value: /home/verrazzano/kubeconfig
             {{- if .Values.global.registry }}
             - name: REGISTRY
               value: {{ .Values.global.registry }}

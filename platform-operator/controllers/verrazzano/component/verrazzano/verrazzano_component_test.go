@@ -3,7 +3,10 @@
 package verrazzano
 
 import (
-	"os/exec"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
 	"testing"
 
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -43,15 +46,6 @@ var crEnabled = vzapi.Verrazzano{
 }
 
 var getControllerRuntimeClient = getClient
-
-// genericTestRunner is used to run generic OS commands with expected results
-type genericTestRunner struct {
-}
-
-// Run genericTestRunner executor
-func (r genericTestRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
-	return nil, nil, nil
-}
 
 // fakeUpgrade override the upgrade function during unit tests
 func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
@@ -125,6 +119,25 @@ func TestPostInstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func createRelease(name string, status release.Status) *release.Release {
+	now := time.Now()
+	return &release.Release{
+		Name:      ComponentName,
+		Namespace: ComponentNamespace,
+		Info: &release.Info{
+			FirstDeployed: now,
+			LastDeployed:  now,
+			Status:        status,
+			Description:   "Named Release Stub",
+		},
+		Version: 1,
+	}
+}
+
+func testActionConfigWithInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return helmcli.CreateActionConfig(true, ComponentName, release.StatusDeployed, createRelease, vzlog.DefaultLogger())
+}
+
 // TestUpgrade tests the Verrazzano Upgrade call; simple wrapper exercise, more detailed testing is done elsewhere
 // GIVEN a Verrazzano component upgrading from 1.1.0 to 1.2.0
 //
@@ -140,14 +153,8 @@ func TestUpgrade(t *testing.T) {
 		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"},
 	}, nil, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
-	helmcli.SetCmdRunner(genericTestRunner{})
-	defer helmcli.SetDefaultRunner()
-	helm.SetUpgradeFunc(fakeUpgrade)
-	defer helm.SetDefaultUpgradeFunc()
-	helmcli.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
-		return helmcli.ChartStatusDeployed, nil
-	})
-	defer helmcli.SetDefaultChartStateFunction()
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(testActionConfigWithInstallation)
 	err := NewComponent().Upgrade(ctx)
 	assert.NoError(t, err)
 }

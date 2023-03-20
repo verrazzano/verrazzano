@@ -7,6 +7,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/helm"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
 	"os"
 	"os/exec"
 	"strings"
@@ -15,7 +20,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/istio"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -255,6 +259,25 @@ var crInstall = &v1alpha1.Verrazzano{
 
 var comp = istioComponent{}
 
+func createRelease(name string, status release.Status) *release.Release {
+	now := time.Now()
+	return &release.Release{
+		Name:      IstioCoreDNSReleaseName,
+		Namespace: IstioNamespace,
+		Info: &release.Info{
+			FirstDeployed: now,
+			LastDeployed:  now,
+			Status:        status,
+			Description:   "Named Release Stub",
+		},
+		Version: 1,
+	}
+}
+
+func testActionConfigWithInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return helm.CreateActionConfig(true, IstioCoreDNSReleaseName, release.StatusDeployed, createRelease, vzlog.DefaultLogger())
+}
+
 // TestGetName tests the component name
 // GIVEN a Verrazzano component
 //
@@ -318,8 +341,10 @@ func TestPostUpgrade(t *testing.T) {
 	k8sutil.SetFakeClient(clientSet)
 
 	config.SetDefaultBomFilePath(testBomFilePath)
-	helm.SetCmdRunner(fakeRunner{})
-	defer helm.SetDefaultRunner()
+	defer helm.SetDefaultActionConfigFunction()
+
+	helm.SetActionConfigFunction(testActionConfigWithInstallation)
+
 	SetHelmUninstallFunction(fakeHelmUninstall)
 	SetDefaultHelmUninstallFunction()
 	err := comp.PostUpgrade(spi.NewFakeContext(getMock(t), crInstall, nil, false))
