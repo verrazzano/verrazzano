@@ -39,7 +39,7 @@ func TestConfigMapReconciler(t *testing.T) {
 	cm.Finalizers = append(cm.Finalizers, constants.OverridesFinalizer)
 	cli := fake.NewClientBuilder().WithObjects(&testVZ, &cm).WithScheme(newScheme()).Build()
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = "../../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
 	request0 := newRequest(testNS, testCMName)
@@ -63,7 +63,7 @@ func TestAddFinalizer(t *testing.T) {
 	asserts := assert.New(t)
 	cli := fake.NewClientBuilder().WithObjects(&testVZ, &testConfigMap).WithScheme(newScheme()).Build()
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = "../../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
 	request0 := newRequest(testNS, testCMName)
@@ -90,7 +90,7 @@ func TestOtherFinalizers(t *testing.T) {
 	cm.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 	cli := fake.NewClientBuilder().WithObjects(&testVZ, &cm).WithScheme(newScheme()).Build()
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = "../../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
 	request0 := newRequest(testNS, testCMName)
@@ -126,7 +126,7 @@ func TestConfigMapNotFound(t *testing.T) {
 		asserts := assert.New(t)
 		cli := fake.NewClientBuilder().WithObjects(&testVZ).WithScheme(newScheme()).Build()
 
-		config.TestProfilesDir = "../../manifests/profiles"
+		config.TestProfilesDir = "../../../manifests/profiles"
 		defer func() { config.TestProfilesDir = "" }()
 
 		request0 := newRequest(tt.nsn.Namespace, tt.nsn.Name)
@@ -159,7 +159,7 @@ func TestDeletion(t *testing.T) {
 	cm.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 	cli := fake.NewClientBuilder().WithObjects(&testVZ, &cm).WithScheme(newScheme()).Build()
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = "../../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
 	request0 := newRequest(testNS, testCMName)
@@ -192,7 +192,7 @@ func TestConfigMapRequeue(t *testing.T) {
 	cm.Finalizers = append(cm.Finalizers, constants.OverridesFinalizer)
 	cli := fake.NewClientBuilder().WithObjects(&vz, &cm).WithScheme(newScheme()).Build()
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = "../../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
 	request0 := newRequest(testNS, testCMName)
@@ -215,7 +215,7 @@ func TestConfigMapCall(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = "../../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
 	expectGetConfigMapExists(mock, &testConfigMap, testNS, testCMName)
