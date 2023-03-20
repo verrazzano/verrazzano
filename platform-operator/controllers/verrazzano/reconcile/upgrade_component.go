@@ -4,6 +4,7 @@
 package reconcile
 
 import (
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/controller"
@@ -92,7 +93,9 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 		case compStatePreUpgrade:
 			compLog.Oncef("Component %s pre-upgrade running", compName)
 			if err := comp.PreUpgrade(compContext); err != nil {
-				compLog.Errorf("Failed pre-upgrade for component %s: %v", compName, err)
+				if !ctrlerrors.IsRetryableError(err) {
+					compLog.ErrorfThrottled("Failed pre-upgrade for component %s: %v", compName, err)
+				}
 				return ctrl.Result{}, err
 			}
 			upgradeContext.upgradeState = compStateUpgrade
@@ -100,7 +103,9 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 		case compStateUpgrade:
 			compLog.Progressf("Component %s upgrade running", compName)
 			if err := comp.Upgrade(compContext); err != nil {
-				compLog.Errorf("Failed upgrading component %s, will retry: %v", compName, err)
+				if !ctrlerrors.IsRetryableError(err) {
+					compLog.ErrorfThrottled("Failed upgrading component %s, will retry: %v", compName, err)
+				}
 				// check to see whether this is due to a pending upgrade
 				r.resolvePendingUpgrades(compName, compLog)
 				// requeue for 30 to 60 seconds later
@@ -119,7 +124,9 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 		case compStatePostUpgrade:
 			compLog.Oncef("Component %s post-upgrade running", compName)
 			if err := comp.PostUpgrade(compContext); err != nil {
-				compLog.Errorf("Failed post-upgrade for component %s: %v", compName, err)
+				if !ctrlerrors.IsRetryableError(err) {
+					compLog.ErrorfThrottled("Failed post-upgrade for component %s: %v", compName, err)
+				}
 				return ctrl.Result{}, err
 			}
 			upgradeContext.upgradeState = compStateUpgradeDone
