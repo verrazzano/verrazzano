@@ -39,7 +39,7 @@ spec:
         - operation:
             ports:
               - "10902"
-    # allow query to forward talk to store-gateway
+    # allow query to talk to store-gateway
     - from:
         - source:
             namespaces:
