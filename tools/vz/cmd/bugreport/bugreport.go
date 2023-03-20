@@ -107,7 +107,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		bugReportFile = strings.Replace(bugReportFile, "dt", start.Format(constants.DatetimeFormat), 1)
 		bugRepFile, err = os.CreateTemp(".", bugReportFile)
 		if err != nil && (errors.Is(err, fs.ErrPermission) || strings.Contains(err.Error(), constants.ReadOnly)) {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "Warning: %s to open report file in current directory\n", fs.ErrPermission)
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Warning: %s, creating report in current directory, using temp directory instead\n", err.Error())
 			bugRepFile, err = os.CreateTemp("", bugReportFile)
 		}
 	} else {
