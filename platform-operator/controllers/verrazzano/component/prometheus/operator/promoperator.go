@@ -9,19 +9,16 @@ import (
 	"path"
 	"strconv"
 
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
-
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -31,10 +28,11 @@ import (
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/runtime"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -51,6 +49,7 @@ const (
 
 	prometheusName     = "prometheus"
 	alertmanagerName   = "alertmanager"
+	thanosName         = "thanos"
 	configReloaderName = "prometheus-config-reloader"
 
 	pvcName                  = "prometheus-prometheus-operator-kube-p-prometheus-db-prometheus-prometheus-operator-kube-p-prometheus-0"
@@ -128,20 +127,10 @@ func postInstallUpgrade(ctx spi.ComponentContext) error {
 	if err := updateApplicationAuthorizationPolicies(ctx); err != nil {
 		return err
 	}
-	props := common.IngressProperties{
-		IngressName:   constants.PrometheusIngress,
-		HostName:      prometheusHostName,
-		TLSSecretName: prometheusCertificateName,
-		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
-		ExtraAnnotations: common.SameSiteCookieAnnotations(prometheusName),
-	}
-	if err := common.CreateOrUpdateSystemComponentIngress(ctx, props); err != nil {
+	if err := createOrUpdateIngresses(ctx); err != nil {
 		return err
 	}
 	if err := createOrUpdatePrometheusAuthPolicy(ctx); err != nil {
-		return err
-	}
-	if err := createOrUpdateNetworkPolicies(ctx); err != nil {
 		return err
 	}
 	if err := createOrUpdateServiceMonitors(ctx); err != nil {
@@ -292,11 +281,12 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		return kvs, err
 	}
 
-	// Replace default images for subcomponents Alertmanager and Prometheus
+	// Replace default images for subcomponents Alertmanager, Prometheus, and Thanos
 	defaultImages := map[string]string{
 		// format "subcomponentName": "helmDefaultKey"
 		alertmanagerName: "prometheusOperator.alertmanagerDefaultBaseImage",
 		prometheusName:   "prometheusOperator.prometheusDefaultBaseImage",
+		thanosName:       "prometheus.prometheusSpec.thanos.image",
 	}
 	kvs, err = appendDefaultImageOverrides(ctx, kvs, defaultImages)
 	if err != nil {
@@ -619,7 +609,7 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 					}},
 					To: []*securityv1beta1.Rule_To{{
 						Operation: &securityv1beta1.Operation{
-							Ports: []string{"9090"},
+							Ports: []string{"9090", "10901"},
 						},
 					}},
 				},
@@ -650,6 +640,22 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 					To: []*securityv1beta1.Rule_To{{
 						Operation: &securityv1beta1.Operation{
 							Ports: []string{"9090"},
+						},
+					}},
+				},
+				{
+					// allow Thanos Query to access the Prometheus Thanos sidecar
+					From: []*securityv1beta1.Rule_From{{
+						Source: &securityv1beta1.Source{
+							Principals: []string{
+								fmt.Sprintf("cluster.local/ns/%s/sa/thanos-query", constants.VerrazzanoMonitoringNamespace),
+							},
+							Namespaces: []string{constants.VerrazzanoMonitoringNamespace},
+						},
+					}},
+					To: []*securityv1beta1.Rule_To{{
+						Operation: &securityv1beta1.Operation{
+							Ports: []string{"10901"},
 						},
 					}},
 				},
@@ -704,93 +710,70 @@ func createOrUpdateServiceMonitors(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// createOrUpdateNetworkPolicies creates or updates network policies for this component
-func createOrUpdateNetworkPolicies(ctx spi.ComponentContext) error {
-	netPolicy := &netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: networkPolicyName, Namespace: ComponentNamespace}}
-
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), netPolicy, func() error {
-		netPolicy.Spec = newNetworkPolicySpec()
+// create or update ingresses creates ingresses for each of the Prometheus endpoints
+func createOrUpdateIngresses(ctx spi.ComponentContext) error {
+	// If NGINX is not enabled, skip the ingress creation
+	if !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
 		return nil
-	})
+	}
+	promProps := common.IngressProperties{
+		IngressName:   constants.PrometheusIngress,
+		HostName:      prometheusHostName,
+		TLSSecretName: prometheusCertificateName,
+		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
+		ExtraAnnotations: common.SameSiteCookieAnnotations(prometheusName),
+	}
+	if err := common.CreateOrUpdateSystemComponentIngress(ctx, promProps); err != nil {
+		return err
+	}
 
-	return err
+	// Only create the Thanos Ingress if it is enabled in the Prometheus Spec
+	thanosEnabled, err := isThanosEnabled(ctx)
+	if err != nil {
+		return err
+	}
+	// Delete the existing ingress if the sidecar becomes disabled
+	if !thanosEnabled {
+		return common.DeleteSystemComponentIngress(ctx, constants.ThanosSidecarIngress)
+	}
+
+	thanosProps := common.IngressProperties{
+		IngressName:   constants.ThanosSidecarIngress,
+		HostName:      thanosHostName,
+		TLSSecretName: thanosCertificateName,
+		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
+		ExtraAnnotations: common.SameSiteCookieAnnotations(thanosHostName),
+	}
+	return common.CreateOrUpdateSystemComponentIngress(ctx, thanosProps)
 }
 
-// newNetworkPolicy returns a populated NetworkPolicySpec with ingress rules for Prometheus
-func newNetworkPolicySpec() netv1.NetworkPolicySpec {
-	tcpProtocol := corev1.ProtocolTCP
-	port := intstr.FromInt(9090)
-
-	return netv1.NetworkPolicySpec{
-		PodSelector: metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"app.kubernetes.io/name": prometheusName,
-			},
-		},
-		PolicyTypes: []netv1.PolicyType{
-			netv1.PolicyTypeIngress,
-		},
-		Ingress: []netv1.NetworkPolicyIngressRule{
-			{
-				// allow ingress to port 9090 from Auth Proxy, Grafana, and Kiali
-				From: []netv1.NetworkPolicyPeer{
-					{
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								vzconst.LabelVerrazzanoNamespace: constants.VerrazzanoSystemNamespace,
-							},
-						},
-						PodSelector: &metav1.LabelSelector{
-							MatchExpressions: []metav1.LabelSelectorRequirement{
-								{
-									Key:      "app",
-									Operator: metav1.LabelSelectorOpIn,
-									Values: []string{
-										"verrazzano-authproxy",
-										"system-grafana",
-										"kiali",
-									},
-								},
-							},
-						},
-					},
-				},
-				Ports: []netv1.NetworkPolicyPort{
-					{
-						Protocol: &tcpProtocol,
-						Port:     &port,
-					},
-				},
-			},
-			{
-				// allow ingress to port 9090 from Jaeger
-				From: []netv1.NetworkPolicyPeer{
-					{
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								vzconst.LabelVerrazzanoNamespace: constants.VerrazzanoMonitoringNamespace,
-							},
-						},
-						PodSelector: &metav1.LabelSelector{
-							MatchExpressions: []metav1.LabelSelectorRequirement{
-								{
-									Key:      "app",
-									Operator: metav1.LabelSelectorOpIn,
-									Values: []string{
-										"jaeger",
-									},
-								},
-							},
-						},
-					},
-				},
-				Ports: []netv1.NetworkPolicyPort{
-					{
-						Protocol: &tcpProtocol,
-						Port:     &port,
-					},
-				},
-			},
-		},
+// isThanosEnabled checks to see if the Thanos section of the Prometheus spec is populated
+func isThanosEnabled(ctx spi.ComponentContext) (bool, error) {
+	prometheusList := promoperapi.PrometheusList{}
+	err := ctx.Client().List(context.TODO(), &prometheusList, &client.ListOptions{Namespace: constants.VerrazzanoMonitoringNamespace})
+	if meta.IsNoMatchError(err) {
+		return false, nil
 	}
+	if err != nil {
+		return false, ctx.Log().ErrorfNewErr("Failed to list Prometheus objects in the %s namespace: %v", constants.VerrazzanoMonitoringNamespace, err)
+	}
+	for _, prometheus := range prometheusList.Items {
+		if prometheus.Spec.Thanos != nil {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// deleteNetworkPolicy deletes the existing NetworkPolicy. Since the NetworkPolicy is now part of the Helm chart,
+// upgrading from a previous installation fails if the NetworkPolicy already exists and is not owned by the Helm chart,
+// so we delete it before upgrading.
+func deleteNetworkPolicy(ctx spi.ComponentContext) error {
+	netpol := &netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: networkPolicyName, Namespace: ComponentNamespace}}
+	err := client.IgnoreNotFound(ctx.Client().Delete(context.TODO(), netpol))
+	if err != nil {
+		ctx.Log().Errorf("Error deleting existing NetworkPolicy %s/%s on upgrade: %v", networkPolicyName, ComponentNamespace, err)
+		return err
+	}
+	return nil
 }

@@ -8,6 +8,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"os"
 	"strings"
 	"testing"
@@ -2162,6 +2164,193 @@ func TestCreateHostsFromIngressTraitRuleWildcards(t *testing.T) {
 	assert.NoError(err)
 	assert.Len(hosts, 1)
 	assert.Equal("myapp.myns.my.host.com", hosts[0])
+}
+
+// TestHostRules tests host name rules
+// GIVEN a trait with a set of rules where each rule has a hostname
+// WHEN coallateAllHostsForTrait is called
+// THEN verify that the correct set of host names are returned
+func TestHostRules(t *testing.T) {
+	assert := asserts.New(t)
+	const externalDNSKey = "external-dns.alpha.kubernetes.io/target"
+
+	tests := []struct {
+		name          string
+		rules         []vzapi.IngressRule
+		expectedHosts []string
+	}{
+		{name: "explicit-host-first",
+			expectedHosts: []string{"host1", "hello.default.myhost.com"},
+			rules: []vzapi.IngressRule{
+				{
+					Hosts: []string{"host1"},
+					Paths: nil,
+				},
+				{
+					Destination: vzapi.IngressDestination{},
+					Hosts:       nil,
+					Paths:       nil,
+				},
+			}},
+		{name: "default-host-first",
+			expectedHosts: []string{"host1", "hello.default.myhost.com"},
+			rules: []vzapi.IngressRule{
+				{
+					Destination: vzapi.IngressDestination{},
+					Hosts:       nil,
+					Paths:       nil,
+				},
+				{
+					Hosts: []string{"host1"},
+					Paths: nil,
+				},
+			}},
+		{name: "default-host-only",
+			expectedHosts: []string{"hello.default.myhost.com"},
+			rules: []vzapi.IngressRule{
+				{
+					Destination: vzapi.IngressDestination{},
+					Hosts:       nil,
+					Paths:       nil,
+				},
+			}},
+		{name: "two-default-hosts-only",
+			expectedHosts: []string{"hello.default.myhost.com"},
+			rules: []vzapi.IngressRule{
+				{
+					Destination: vzapi.IngressDestination{},
+					Hosts:       nil,
+					Paths:       nil,
+				},
+				{
+					Destination: vzapi.IngressDestination{},
+					Hosts:       nil,
+					Paths:       nil,
+				},
+			}},
+		{name: "explicit-host-only",
+			expectedHosts: []string{"host1"},
+			rules: []vzapi.IngressRule{
+				{
+					Hosts: []string{"host1"},
+					Paths: nil,
+				},
+			}},
+		{name: "two-explicit-hosts-only",
+			expectedHosts: []string{"host1", "host2"},
+			rules: []vzapi.IngressRule{
+				{
+					Hosts: []string{"host1"},
+					Paths: nil,
+				},
+				{
+					Hosts: []string{"host2"},
+					Paths: nil,
+				},
+			}},
+		{name: "dup-explicit-host-only",
+			expectedHosts: []string{"host1"},
+			rules: []vzapi.IngressRule{
+				{
+					Hosts: []string{"host1"},
+					Paths: nil,
+				},
+				{
+					Hosts: []string{"host1"},
+					Paths: nil,
+				},
+			}},
+		{name: "wildcard-use-default",
+			expectedHosts: []string{"hello.default.myhost.com"},
+			rules: []vzapi.IngressRule{
+				{
+					Hosts: []string{"*"},
+					Paths: nil,
+				},
+				{
+					Hosts: []string{"*/foo.com"},
+					Paths: nil,
+				},
+			}},
+		{name: "wildcard-use-explicit",
+			expectedHosts: []string{"host1", "hello.default.myhost.com"},
+			rules: []vzapi.IngressRule{
+				{
+					Hosts: []string{"*"},
+					Paths: nil,
+				},
+				{
+					Hosts: []string{"*/foo.com"},
+					Paths: nil,
+				},
+				{
+					Hosts: []string{"host1"},
+					Paths: nil,
+				},
+			}},
+		{name: "dup-explicit-and-default-hosts",
+			expectedHosts: []string{"host1", "host2", "hello.default.myhost.com"},
+			rules: []vzapi.IngressRule{
+				{
+					Hosts: []string{"host1"},
+					Paths: nil,
+				},
+				{
+					Destination: vzapi.IngressDestination{},
+					Hosts:       nil,
+					Paths:       nil,
+				},
+				{
+					Hosts: []string{"host2"},
+					Paths: nil,
+				},
+				{
+					Hosts: []string{"host1"},
+					Paths: nil,
+				},
+				{
+					Destination: vzapi.IngressDestination{},
+					Hosts:       nil,
+					Paths:       nil,
+				},
+			}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			trait := vzapi.IngressTrait{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "hello",
+					Namespace: "default",
+					Labels:    map[string]string{oam.LabelAppName: "hello"},
+				},
+				Spec:   vzapi.IngressTraitSpec{},
+				Status: vzapi.IngressTraitStatus{},
+			}
+			trait.Spec.Rules = test.rules
+			ingress := k8net.Ingress{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      constants.VzConsoleIngress,
+					Namespace: constants.VerrazzanoSystemNamespace,
+					Annotations: map[string]string{
+						externalDNSKey: "verrazzano-ingress-myhost.com"},
+				},
+			}
+			results := reconcileresults.ReconcileResults{}
+			r := createReconcilerWithFake(&ingress)
+
+			hosts := r.coallateAllHostsForTrait(&trait, results)
+			assert.Len(hosts, len(test.expectedHosts))
+			hostSet := vzstring.SliceToSet(hosts)
+			for _, h := range hosts {
+				_, ok := hostSet[h]
+				if ok {
+					delete(hostSet, h)
+				} else {
+					assert.Fail(fmt.Sprintf("unexpected host %s returned from coallateAllHostsForTrait", h))
+				}
+			}
+		})
+	}
 }
 
 // TestCreateHostsFromIngressTraitRule tests various use cases of createHostsFromIngressTraitRule

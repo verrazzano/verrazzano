@@ -49,6 +49,10 @@ vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2 --include
 
 const minLineLength = 100
 
+var kubeconfigFlagValPointer string
+var contextFlagValPointer string
+
+// NewCmdBugReport - creates cobra command for bug-report
 func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 
@@ -72,7 +76,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return fmt.Errorf("error fetching flag: %s", err.Error())
 	}
 
-	// Get the kubernetes clientset, which will validate that the kubeconfig and context are valid.
+	// Get the kubernetes clientset, which will validate that the kubeconfigFlagValPointer and contextFlagValPointer are valid.
 	kubeClient, err := vzHelper.GetKubeClient(cmd)
 	if err != nil {
 		return err
@@ -248,4 +252,30 @@ func isDirEmpty(directory string, ignoreFilesCount int) bool {
 		return false
 	}
 	return len(entries) == ignoreFilesCount
+}
+
+// creates a new bug-report cobra command, initailizes and sets the required flags, and runs the new command.
+// Returns the original error that's passed in as a parameter to preserve the error received from previous cli command failure.
+func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) error {
+	cmd2 := NewCmdBugReport(vzHelper)
+	kubeconfigFlag, errFlag := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
+	if errFlag != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
+		return err
+	}
+	contextFlag, errFlag2 := cmd.Flags().GetString(constants.GlobalFlagContext)
+	if errFlag2 != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag2.Error())
+		return err
+	}
+	cmd2.Flags().StringVar(&kubeconfigFlagValPointer, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
+	cmd2.Flags().StringVar(&contextFlagValPointer, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
+	cmd2.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
+	cmd2.Flags().Set(constants.GlobalFlagContext, contextFlag)
+	bugReportErr := runCmdBugReport(cmd2, []string{}, vzHelper)
+	if bugReportErr != nil {
+		fmt.Fprintf(vzHelper.GetErrorStream(), "Error calling vz bug-report %s \n", bugReportErr.Error())
+	}
+	// return original error from running vz command which was passed into CallVzBugReport as a parameter
+	return err
 }

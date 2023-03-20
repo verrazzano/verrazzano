@@ -1,0 +1,45 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+{{ if .Capabilities.APIVersions.Has "security.istio.io/v1beta1" -}}
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ include "common.names.fullname" . }}-query-frontend
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - verrazzano-system
+            principals:
+              - cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy
+      to:
+        - operation:
+            ports:
+              - "10902"
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "common.names.fullname" . }}
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ include "common.names.fullname" . }}-query
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  rules:
+    # allow query-frontend to forward requests to query
+    - from:
+        - source:
+            namespaces:
+              - verrazzano-monitoring
+            principals:
+              - cluster.local/ns/verrazzano-monitoring/sa/thanos-query-frontend
+      to:
+        - operation:
+            ports:
+              - "10902"
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "common.names.fullname" . }}
+{{end}}

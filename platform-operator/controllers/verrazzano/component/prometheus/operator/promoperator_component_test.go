@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package operator
@@ -141,36 +141,188 @@ func TestPostInstall(t *testing.T) {
 		VerrazzanoRootDir: "../../../../../..",
 	})
 
-	vz := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
+	enabled := true
+	disabled := false
+	time := metav1.Now()
+
+	var tests = []struct {
+		name        string
+		vz          vzapi.Verrazzano
+		ingressList []v1.Ingress
+		certList    []certapiv1.Certificate
+	}{
+		{
+			name: "TestPostInstall When everything is disabled",
+			vz: vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{
+				AuthProxy:          &vzapi.AuthProxyComponent{Enabled: &disabled},
+				Ingress:            &vzapi.IngressNginxComponent{Enabled: &disabled},
+				Prometheus:         &vzapi.PrometheusComponent{Enabled: &disabled},
+				PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &disabled},
 				DNS: &vzapi.DNSComponent{
 					OCI: &vzapi.OCI{
 						DNSZoneName: "mydomain.com",
+					},
+				},
+			}}},
+			ingressList: []v1.Ingress{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: constants.PrometheusIngress, Namespace: authproxy.ComponentNamespace},
+				},
+			},
+			certList: []certapiv1.Certificate{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: prometheusCertificateName, Namespace: authproxy.ComponentNamespace},
+					Status: certapiv1.CertificateStatus{
+						Conditions: []certapiv1.CertificateCondition{
+							{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "TestPostInstall When authproxy, nginx, prometheus, and prometheus operator enabled",
+			vz: vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{
+				AuthProxy:          &vzapi.AuthProxyComponent{Enabled: &enabled},
+				Ingress:            &vzapi.IngressNginxComponent{Enabled: &enabled},
+				Prometheus:         &vzapi.PrometheusComponent{Enabled: &enabled},
+				PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &enabled},
+				DNS: &vzapi.DNSComponent{
+					OCI: &vzapi.OCI{
+						DNSZoneName: "mydomain.com",
+					},
+				},
+			}}},
+			ingressList: []v1.Ingress{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: constants.PrometheusIngress, Namespace: authproxy.ComponentNamespace},
+				},
+			},
+			certList: []certapiv1.Certificate{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: prometheusCertificateName, Namespace: authproxy.ComponentNamespace},
+					Status: certapiv1.CertificateStatus{
+						Conditions: []certapiv1.CertificateCondition{
+							{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "TestPostInstall When nginx, prometheus, and prometheus operator enabled",
+			vz: vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{
+				AuthProxy:          &vzapi.AuthProxyComponent{Enabled: &disabled},
+				Ingress:            &vzapi.IngressNginxComponent{Enabled: &enabled},
+				Prometheus:         &vzapi.PrometheusComponent{Enabled: &enabled},
+				PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &enabled},
+				DNS: &vzapi.DNSComponent{
+					OCI: &vzapi.OCI{
+						DNSZoneName: "mydomain.com",
+					},
+				},
+			}}},
+			ingressList: []v1.Ingress{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: constants.PrometheusIngress, Namespace: constants.VerrazzanoSystemNamespace},
+				},
+			},
+
+			certList: []certapiv1.Certificate{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: prometheusCertificateName, Namespace: constants.VerrazzanoSystemNamespace},
+					Status: certapiv1.CertificateStatus{
+						Conditions: []certapiv1.CertificateCondition{
+							{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "TestPostInstall When only prometheus, and prometheus operator enabled",
+			vz: vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{
+				AuthProxy:          &vzapi.AuthProxyComponent{Enabled: &disabled},
+				Ingress:            &vzapi.IngressNginxComponent{Enabled: &disabled},
+				Prometheus:         &vzapi.PrometheusComponent{Enabled: &enabled},
+				PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &enabled},
+				DNS: &vzapi.DNSComponent{
+					OCI: &vzapi.OCI{
+						DNSZoneName: "mydomain.com",
+					},
+				},
+			}}},
+			certList: []certapiv1.Certificate{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: prometheusCertificateName, Namespace: constants.VerrazzanoMonitoringNamespace},
+					Status: certapiv1.CertificateStatus{
+						Conditions: []certapiv1.CertificateCondition{
+							{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "TestPostInstall When thanos is enabled",
+			vz: vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{
+				AuthProxy:          &vzapi.AuthProxyComponent{Enabled: &enabled},
+				Ingress:            &vzapi.IngressNginxComponent{Enabled: &enabled},
+				Prometheus:         &vzapi.PrometheusComponent{Enabled: &enabled},
+				PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &enabled},
+				Thanos:             &vzapi.ThanosComponent{Enabled: &enabled},
+				DNS: &vzapi.DNSComponent{
+					OCI: &vzapi.OCI{
+						DNSZoneName: "mydomain.com",
+					},
+				},
+			}}},
+			ingressList: []v1.Ingress{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: constants.PrometheusIngress, Namespace: authproxy.ComponentNamespace},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: constants.ThanosSidecarIngress, Namespace: authproxy.ComponentNamespace},
+				},
+			},
+
+			certList: []certapiv1.Certificate{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: prometheusCertificateName, Namespace: authproxy.ComponentNamespace},
+					Status: certapiv1.CertificateStatus{
+						Conditions: []certapiv1.CertificateCondition{
+							{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: thanosCertificateName, Namespace: authproxy.ComponentNamespace},
+					Status: certapiv1.CertificateStatus{
+						Conditions: []certapiv1.CertificateCondition{
+							{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+						},
 					},
 				},
 			},
 		},
 	}
 
-	ingress := &v1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{Name: constants.PrometheusIngress, Namespace: authproxy.ComponentNamespace},
-	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			clientObj := fake.NewClientBuilder().WithScheme(testScheme)
+			for i := range test.ingressList {
+				clientObj = clientObj.WithObjects(&test.ingressList[i])
+			}
+			for i := range test.certList {
+				clientObj = clientObj.WithObjects(&test.certList[i])
+			}
+			client := clientObj.Build()
 
-	time := metav1.Now()
-	cert := &certapiv1.Certificate{
-		ObjectMeta: metav1.ObjectMeta{Name: prometheusCertificateName, Namespace: authproxy.ComponentNamespace},
-		Status: certapiv1.CertificateStatus{
-			Conditions: []certapiv1.CertificateCondition{
-				{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
-			},
-		},
+			ctx := spi.NewFakeContext(client, &test.vz, nil, false, profilesRelativePath)
+			err := NewComponent().PostInstall(ctx)
+			assert.NoError(t, err)
+		})
 	}
-
-	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(ingress, cert).Build()
-	ctx := spi.NewFakeContext(client, vz, nil, false, profilesRelativePath)
-	err := NewComponent().PostInstall(ctx)
-	assert.NoError(t, err)
 }
 
 // TestPostUpgrade tests the component PostUpgrade function

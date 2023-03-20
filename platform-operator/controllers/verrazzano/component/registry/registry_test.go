@@ -4,6 +4,8 @@
 package registry
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -42,6 +44,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancherbackup"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/thanos"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
@@ -63,6 +66,19 @@ const (
 	profileDir                = "../../../../manifests/profiles"
 )
 
+var basicNoneClusterWithStatus = v1alpha1.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "default-none",
+	},
+	Spec: v1alpha1.VerrazzanoSpec{
+		Profile: "none",
+	},
+	Status: v1alpha1.VerrazzanoStatus{
+		Version:            "v1.0.1",
+		VerrazzanoInstance: &v1alpha1.InstanceInfo{},
+	},
+}
+
 // TestGetComponents tests getting the components
 // GIVEN a component
 //
@@ -73,7 +89,7 @@ func TestGetComponents(t *testing.T) {
 	comps := GetComponents()
 
 	var i int
-	a.Len(comps, 33, "Wrong number of components")
+	a.Len(comps, 34, "Wrong number of components")
 	a.Equal(comps[i].Name(), networkpolicies.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), oam.ComponentName)
@@ -139,6 +155,8 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[i].Name(), clusteroperator.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), argocd.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), thanos.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
@@ -606,6 +624,35 @@ func TestComponentDependenciesMetStateCheckNotReady(t *testing.T) {
 //	THEN returns false if a dependency is disabled and the component status is disabled
 func TestComponentDependenciesMetStateCheckCompDisabled(t *testing.T) {
 	runDepenencyStateCheckTest(t, v1alpha1.CompStateDisabled, false)
+}
+
+// TestNoneProfileInstalledAllComponentsDisabled Tests the effectiveCR
+// GIVEN when a verrazzano instance with NONE profile
+// WHEN Newcontext is called
+// THEN all components referred from the registry are disabled except for network-policies
+func TestNoneProfileInstalledAllComponentsDisabled(t *testing.T) {
+	config.TestProfilesDir = profileDir
+	defer func() { config.TestProfilesDir = "" }()
+	t.Run("TestNoneProfileInstalledAllComponentsDisabled", func(t *testing.T) {
+		a := assert.New(t)
+		log := vzlog.DefaultLogger()
+
+		context, err := spi.NewContext(log, fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), &basicNoneClusterWithStatus, nil, false)
+		assert.NoError(t, err)
+		a.NotNil(context, "Context was nil")
+		a.NotNil(context.ActualCR(), "Actual CR was nil")
+		a.Equal(basicNoneClusterWithStatus, *context.ActualCR(), "Actual CR unexpectedly modified")
+		a.NotNil(context.EffectiveCR(), "Effective CR was nil")
+		a.Equal(v1alpha1.VerrazzanoStatus{}, context.EffectiveCR().Status, "Effective CR status not empty")
+
+		for _, comp := range GetComponents() {
+			// Networkpolicies is expected to be installed always
+			if comp.GetJSONName() == "verrazzanoNetworkPolicies" {
+				continue
+			}
+			assert.False(t, comp.IsEnabled(context.EffectiveCR()), "Component: %s should be Disabled", comp.Name())
+		}
+	})
 }
 
 func runDepenencyStateCheckTest(t *testing.T, state v1alpha1.CompStateType, enabled bool) {

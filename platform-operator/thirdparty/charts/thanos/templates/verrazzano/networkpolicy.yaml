@@ -1,0 +1,56 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "common.names.fullname" . }}-query-frontend
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  ingress:
+    # allow auth proxy to forward requests to thanos-query-frontend
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - verrazzano-authproxy
+      ports:
+        # web ui port
+        - port: 10902
+          protocol: TCP
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "common.names.fullname" . }}
+  policyTypes:
+    - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "common.names.fullname" . }}-query
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  ingress:
+    # allow thanos-query-frontend to forward requests to thanos-query
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - thanos
+      ports:
+        # web ui port
+        - port: 10902
+          protocol: TCP
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "common.names.fullname" . }}
+  policyTypes:
+    - Ingress

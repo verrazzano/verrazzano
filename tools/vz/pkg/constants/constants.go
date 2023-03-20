@@ -51,6 +51,13 @@ const (
 	VerboseFlagShorthand = "v"
 	VerboseFlagDefault   = false
 	VerboseFlagUsage     = "Enable verbose output."
+
+	ReadOnly = "read-only file system"
+
+	AutoBugReportFlag        = "auto-bug-report"
+	AutoBugReportFlagDefault = true
+	AutoBugReportFlagHelp    = "Automatically call vz bug-report if command fails"
+	VzAnalysisReportTmpFile  = "details-*.out"
 )
 
 // VerrazzanoReleaseList - API for getting the list of Verrazzano releases

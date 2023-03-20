@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package bom
@@ -299,6 +299,7 @@ func (b *Bom) BuildImageStrings(subComponentName string) ([]KeyValue, []string, 
 				Value: regAndRep,
 			})
 		}
+
 		// Either write the image name Key Value, or append it to the full image path
 		if imageBom.HelmImageKey != "" {
 			kvs = append(kvs, KeyValue{

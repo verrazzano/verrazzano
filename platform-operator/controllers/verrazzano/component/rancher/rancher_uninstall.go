@@ -42,6 +42,7 @@ const (
 	defaultRancherCleanupJobYaml = "/verrazzano/platform-operator/thirdparty/manifests/rancher-cleanup/rancher-cleanup.yaml"
 	rancherCleanupJobName        = "cleanup-job"
 	rancherCleanupJobNamespace   = constants.VerrazzanoInstallNamespace
+	finalizerSubString           = ".cattle.io"
 )
 
 var rancherSystemNS = []string{
@@ -77,6 +78,8 @@ var postUninstallFunc postUninstallFuncSig = invokeRancherSystemToolAndCleanup
 
 var rancherCleanupJobYamlPath = defaultRancherCleanupJobYaml
 
+var rancherFinalizersDeleted = false
+
 // getCleanupJobYamlPath - get the path to the yaml to create the cleanup job
 func getCleanupJobYamlPath() string {
 	return rancherCleanupJobYamlPath
@@ -86,6 +89,12 @@ func getCleanupJobYamlPath() string {
 // Required for by unit tests.
 func setCleanupJobYamlPath(path string) {
 	rancherCleanupJobYamlPath = path
+}
+
+// preUninstall - prepare for Rancher uninstall
+func preUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
+	rancherFinalizersDeleted = false
+	return nil
 }
 
 // postUninstall - Rancher component post-uninstall
@@ -100,7 +109,7 @@ func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 		// Check the result
 		succeeded, err := monitor.CheckResult()
 		if err != nil {
-			// Not finished yet, requeue
+			// Background goroutine is not finished yet, requeue
 			ctx.Log().Progress("Component Rancher waiting to finish post-uninstall in the background")
 			return err
 		}
@@ -113,8 +122,6 @@ func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 			monitor.SetCompleted()
 			return nil
 		}
-		// if we were unsuccessful, reset and drop through to try again
-		ctx.Log().Debug("Error during Rancher post-uninstall, retrying")
 	}
 
 	return forkPostUninstallFunc(ctx, monitor)
@@ -122,8 +129,6 @@ func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 
 // forkPostUninstall - fork uninstall install of Rancher
 func forkPostUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
-	ctx.Log().Debug("Creating background post-uninstall goroutine for Rancher")
-
 	monitor.Run(
 		func() error {
 			return postUninstallFunc(ctx)
@@ -137,6 +142,15 @@ func forkPostUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProce
 // This calls the rancher-cleanup tool.
 func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	var err error
+	ctx.Log().Progress("Component Rancher background post-uninstall goroutine is running")
+
+	// Delete Rancher finalizers before running the rancher-cleanup job (to speed up the uninstall)
+	if !rancherFinalizersDeleted {
+		if err := deleteRancherFinalizers(ctx); err != nil {
+			return err
+		}
+		rancherFinalizersDeleted = true
+	}
 
 	// Run the rancher-cleanup job
 	if err := runCleanupJob(ctx); err != nil {
@@ -198,7 +212,7 @@ func runCleanupJob(ctx spi.ComponentContext) error {
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: rancherCleanupJobNamespace, Name: rancherCleanupJobName}, job)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			ctx.Log().Infof("Component %s created job %s/%s", ComponentName, rancherCleanupJobNamespace, rancherCleanupJobName)
+			ctx.Log().Infof("Component %s created cleanup job %s/%s", ComponentName, rancherCleanupJobNamespace, rancherCleanupJobName)
 			return createCleanupJob(ctx)
 		}
 		return err
@@ -214,7 +228,8 @@ func runCleanupJob(ctx spi.ComponentContext) error {
 	}
 
 	if !jobComplete {
-		return fmt.Errorf("Component %s waiting for job to complete: %s/%s", ComponentName, job.Namespace, job.Name)
+		ctx.Log().Progressf("Component %s waiting for cleanup job to complete: %s/%s", ComponentName, job.Namespace, job.Name)
+		return ctrlerrors.RetryableError{}
 	}
 	ctx.Log().Progressf("Component %s job successfully completed: %s/%s", ComponentName, job.Namespace, job.Name)
 
@@ -226,13 +241,14 @@ func createCleanupJob(ctx spi.ComponentContext) error {
 	// Prepare the Yaml to create the rancher-cleanup job
 	jobYaml, err := parseCleanupJobTemplate()
 	if err != nil {
-		ctx.Log().ErrorfThrottled("Failed to create yaml for %s job: %v", rancherCleanupJobName, err)
+		ctx.Log().ErrorfThrottled("Failed to create yaml for %s cleanup job: %v", rancherCleanupJobName, err)
 		return err
 	}
 
 	// Write to a temporary file
 	file, err := os.CreateTempFile("vz", jobYaml)
 	if err != nil {
+		ctx.Log().ErrorfThrottled("Failed to create Rancher cleanup temporary file for %s job: %v", rancherCleanupJobName, err)
 		return err
 	}
 	defer file.Close()
@@ -241,7 +257,8 @@ func createCleanupJob(ctx spi.ComponentContext) error {
 	if err = k8sutil.NewYAMLApplier(ctx.Client(), "").ApplyF(file.Name()); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed applying Yaml to create job %s/%s for component %s: %v", rancherCleanupJobNamespace, rancherCleanupJobName, ComponentName, err)
 	}
-	return ctx.Log().ErrorfNewErr("Component %s waiting for job %s/%s to start", ComponentName, rancherCleanupJobNamespace, rancherCleanupJobName)
+	ctx.Log().Progressf("Component %s waiting for cleanup job %s/%s to start", ComponentName, rancherCleanupJobNamespace, rancherCleanupJobName)
+	return ctrlerrors.RetryableError{}
 }
 
 // deleteCleanupJob - delete the rancher-cleanup job. Do not return any errors,
@@ -250,20 +267,21 @@ func deleteCleanupJob(ctx spi.ComponentContext) {
 	// Prepare the Yaml to delete the rancher-cleanup job
 	jobYaml, err := parseCleanupJobTemplate()
 	if err != nil {
-		ctx.Log().ErrorfThrottled("Failed to create yaml for %s job: %v", rancherCleanupJobName, err)
+		ctx.Log().ErrorfThrottled("Failed to create yaml for %s cleanup job: %v", rancherCleanupJobName, err)
 		return
 	}
 
 	// Write to a temporary file
 	file, err := os.CreateTempFile("vz", jobYaml)
 	if err != nil {
+		ctx.Log().ErrorfThrottled("Failed to create Rancher cleanup temporary file for %s job: %v", rancherCleanupJobName, err)
 		return
 	}
 	defer file.Close()
 
 	// Delete the rancher-cleanup job
 	if err = k8sutil.NewYAMLApplier(ctx.Client(), "").DeleteF(file.Name()); err != nil {
-		ctx.Log().Errorf("Failed applying Yaml to delete job %s/%s for component %s: %v", rancherCleanupJobNamespace, rancherCleanupJobName, ComponentName, err)
+		ctx.Log().Errorf("Failed applying Yaml to delete cleanup job %s/%s for component %s: %v", rancherCleanupJobNamespace, rancherCleanupJobName, ComponentName, err)
 	}
 }
 
@@ -358,9 +376,9 @@ func getCRDList(ctx spi.ComponentContext) *v1.CustomResourceDefinitionList {
 
 // removeCRs deletes any remaining Rancher cattle.io custom resources
 func removeCRs(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) {
-	ctx.Log().Oncef("Removing Rancher custom resources")
+	ctx.Log().Progress("Removing Rancher custom resources")
 	for _, crd := range crds.Items {
-		if strings.HasSuffix(crd.Name, ".cattle.io") {
+		if strings.HasSuffix(crd.Name, finalizerSubString) {
 			for _, version := range crd.Spec.Versions {
 				rancherCRs := unstructured.UnstructuredList{}
 				rancherCRs.SetAPIVersion(fmt.Sprintf("%s/%s", crd.Spec.Group, version.Name))
@@ -390,7 +408,7 @@ func removeCRs(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) 
 func removeCRDFinalizers(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) {
 	var rancherDeletedCRDs []v1.CustomResourceDefinition
 	for _, crd := range crds.Items {
-		if strings.HasSuffix(crd.Name, ".cattle.io") && crd.DeletionTimestamp != nil && !crd.DeletionTimestamp.IsZero() {
+		if strings.Contains(crd.Name, finalizerSubString) && crd.DeletionTimestamp != nil && !crd.DeletionTimestamp.IsZero() {
 			rancherDeletedCRDs = append(rancherDeletedCRDs, crd)
 		}
 	}
@@ -514,4 +532,89 @@ func isRancherNamespace(ns *corev1.Namespace) bool {
 		return true
 	}
 	return false
+}
+
+// deleteRancherFinalizers - delete Rancher finalizers on resources that the cleanup job
+// didn't catch
+func deleteRancherFinalizers(ctx spi.ComponentContext) error {
+
+	// Check the finalizers of all ClusterRoles
+	crList := rbacv1.ClusterRoleList{}
+	if err := ctx.Client().List(context.TODO(), &crList); err != nil {
+		ctx.Log().Errorf("Component %s failed to list ClusterRoles: %v", ComponentName, err)
+	}
+	for i, clusterRole := range crList.Items {
+		if err := removeFinalizer(ctx, &crList.Items[i], clusterRole.Finalizers); err != nil {
+			return err
+		}
+	}
+
+	// Check the finalizers of all ClusterRoleBindings
+	crbList := rbacv1.ClusterRoleBindingList{}
+	if err := ctx.Client().List(context.TODO(), &crbList); err != nil {
+		ctx.Log().Errorf("Component %s failed to list ClusterRoleBindings: %v", ComponentName, err)
+	}
+	for i, clusterRoleBinding := range crbList.Items {
+		if err := removeFinalizer(ctx, &crbList.Items[i], clusterRoleBinding.Finalizers); err != nil {
+			return err
+		}
+	}
+
+	// Check the finalizers of Roles and RoleBindings of all namespaces.  Rancher adds a finalizer
+	// to every one of them.
+	nsList := corev1.NamespaceList{}
+	if err := ctx.Client().List(context.TODO(), &nsList); err != nil {
+		ctx.Log().Errorf("Component %s failed to list Namespaces: %v", ComponentName, err)
+	}
+
+	for _, ns := range nsList.Items {
+		// Skip system namespace
+		if strings.HasPrefix(ns.Name, "kube-") {
+			continue
+		}
+		listOptions := client.ListOptions{Namespace: ns.Name}
+
+		// Check the finalizers of all RoleBindings
+		rbList := rbacv1.RoleBindingList{}
+		if err := ctx.Client().List(context.TODO(), &rbList, &listOptions); err != nil {
+			return err
+		}
+		for i, roleBinding := range rbList.Items {
+			if err := removeFinalizer(ctx, &rbList.Items[i], roleBinding.Finalizers); err != nil {
+				return err
+			}
+		}
+
+		// Check the finalizers of all Roles
+		roleList := rbacv1.RoleList{}
+		if err := ctx.Client().List(context.TODO(), &roleList, &listOptions); err != nil {
+			ctx.Log().Errorf("Component %s failed to list Roles: %v", ComponentName, err)
+		}
+		for i, role := range roleList.Items {
+			if err := removeFinalizer(ctx, &roleList.Items[i], role.Finalizers); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// removeFinalizer - remove finalizers from an object if one is owned by Rancher
+func removeFinalizer(ctx spi.ComponentContext, object client.Object, finalizers []string) error {
+	// If any of the finalizers contains a rancher one, remove them all
+	for _, finalizer := range finalizers {
+		if strings.Contains(finalizer, finalizerSubString) {
+			err := resource.Resource{
+				Name:      object.GetName(),
+				Namespace: object.GetNamespace(),
+				Client:    ctx.Client(),
+				Object:    object,
+				Log:       ctx.Log(),
+			}.RemoveFinalizers()
+			if err != nil {
+				return ctx.Log().ErrorfNewErr("Component %s failed to remove finalizers from %s/%s: %v", ComponentName, object.GetNamespace(), object.GetName(), err)
+			}
+		}
+	}
+	return nil
 }

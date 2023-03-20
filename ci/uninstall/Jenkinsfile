@@ -275,7 +275,7 @@ pipeline {
                     yq -i eval '.spec.components.prometheusPushgateway.enabled = true'  ${INSTALL_CONFIG_FILE}
 
                     echo "Installing Verrazzano on OKE"
-                    ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/acceptance-test-operator.yaml --timeout 30m
+                    ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/acceptance-test-operator.yaml --timeout 45m
 
                     ${TEST_SCRIPTS_DIR}/common-test-setup-script.sh "${GO_REPO_PATH}" "${TEST_CONFIG_FILE}" "${env.DOCKER_REPO}" "${KUBECONFIG}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}" "default" "${env.OCR_REPO}"
                     ${TEST_SCRIPTS_DIR}/get_ingress_ip.sh ${TEST_CONFIG_FILE}
@@ -347,7 +347,7 @@ pipeline {
         stage('Uninstall Verrazzano') {
             steps {
                 sh """
-                    ${GO_REPO_PATH}/vz uninstall --timeout 45m
+                    ${GO_REPO_PATH}/vz uninstall --timeout 60m
                 """
             }
             post {
@@ -412,7 +412,7 @@ pipeline {
                     ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
 
-                    ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/acceptance-test-operator.yaml --timeout 30m
+                    ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/acceptance-test-operator.yaml --timeout 45m
 
                     ${TEST_SCRIPTS_DIR}/common-test-setup-script.sh "${GO_REPO_PATH}" "${TEST_CONFIG_FILE}" "${env.DOCKER_REPO}" "${KUBECONFIG}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}" "default"
                     ${TEST_SCRIPTS_DIR}/get_ingress_ip.sh ${TEST_CONFIG_FILE}
@@ -516,6 +516,7 @@ def runGinkgo(testSuitePath) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
+
         ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
     """
 }
