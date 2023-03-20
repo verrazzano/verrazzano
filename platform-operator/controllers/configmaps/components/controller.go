@@ -71,7 +71,7 @@ func (r *ComponentConfigMapReconciler) isComponentConfigMap(o client.Object) boo
 	return true
 }
 
-// Reconcile fucntion for the ComponentConfigMapReconciler
+// Reconcile function for the ComponentConfigMapReconciler
 func (r *ComponentConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	if ctx == nil {
 		ctx = context.Background()

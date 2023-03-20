@@ -686,26 +686,6 @@ func getComponentImageOverrides(componentName string) ([]bom.KeyValue, error) {
 	return kvs, nil
 }
 
-// Get the image overrides from the BOM for a subcomponent
-func getImageOverrides(subcomponentName string) ([]bom.KeyValue, error) {
-	// Create a Bom and get the Key Value overrides
-	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
-	if err != nil {
-		return nil, err
-	}
-
-	numImages := bomFile.GetSubcomponentImageCount(subcomponentName)
-	if numImages == 0 {
-		return []bom.KeyValue{}, nil
-	}
-
-	kvs, err := bomFile.BuildImageOverrides(subcomponentName)
-	if err != nil {
-		return nil, err
-	}
-	return kvs, nil
-}
-
 func (h HelmComponent) GetSkipUpgrade() bool {
 	return h.SkipUpgrade
 }
