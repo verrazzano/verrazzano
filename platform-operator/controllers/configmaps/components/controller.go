@@ -100,6 +100,12 @@ func (r *ComponentConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
 	}
 
+	if cm.Namespace != vz.Namespace {
+		err = fmt.Errorf("Component ConfigMap must be in the same namespace as the Verrazzano resource, ConfigMap namespace: %s, Verrazzano namespace: %s", cm.Namespace, vz.Namespace)
+		zap.S().Error(err)
+		return ctrl.Result{}, err
+	}
+
 	componentName := cm.Annotations[vzconst.VerrazzanoDevComponentAnnotationName]
 	if componentName == "" {
 		err := fmt.Errorf("component configmap reconcile called %s/%s, but does not have dev component annotation %s",
