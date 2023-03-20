@@ -2348,9 +2348,7 @@ func TestIngressTraitHostsForVirtualServiceAndGateway(t *testing.T) {
 func getHostsInTrait(trait *vzapi.IngressTrait) []string {
 	hosts := []string{}
 	for _, rule := range trait.Spec.Rules {
-		for _, host := range rule.Hosts {
-			hosts = append(hosts, host)
-		}
+		hosts = append(hosts, rule.Hosts...)
 	}
 	return hosts
 }
