@@ -4,13 +4,13 @@
 package operatorinit
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/component_configmaps"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
 	"sync"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/overrides_configmaps"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
@@ -65,7 +65,7 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 	}
 
 	// Setup configMaps reconciler
-	if err = (&overrides_configmaps.OverridesConfigMapsReconciler{
+	if err = (&overrides.OverridesConfigMapsReconciler{
 		Client:        mgr.GetClient(),
 		Scheme:        mgr.GetScheme(),
 		StatusUpdater: statusUpdater,
@@ -81,7 +81,7 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 	mysqlCheck.Start()
 
 	// Setup stacks reconciler
-	if err = (&component_configmaps.ComponentConfigMapReconciler{
+	if err = (&components.ComponentConfigMapReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 		DryRun: config.DryRun,

@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package component_configmaps
+package components
 
 import (
 	"context"
@@ -78,12 +78,14 @@ func (r *ComponentConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	verrazzanos := &vzapi.VerrazzanoList{}
-	if err := r.List(ctx, verrazzanos); err != nil {
-		if k8serrors.IsNotFound(err) || len(verrazzanos.Items) == 0 {
-			return ctrl.Result{}, nil
-		}
+	err := r.List(ctx, verrazzanos)
+	if err != nil && !k8serrors.IsNotFound(err) {
 		zap.S().Errorf("Failed to get Verrazzanos %s/%s", req.Namespace, req.Name)
 		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
+	}
+	if err != nil || len(verrazzanos.Items) == 0 {
+		zap.S().Debug("No Verrazzanos found in the cluster")
+		return ctrl.Result{}, nil
 	}
 	vz := verrazzanos.Items[0]
 
