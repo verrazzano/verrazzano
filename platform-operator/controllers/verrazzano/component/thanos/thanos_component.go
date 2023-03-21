@@ -141,6 +141,6 @@ func (t thanosComponent) GetCertificateNames(ctx spi.ComponentContext) []types.N
 	})
 	return append(certificateNames, types.NamespacedName{
 		Namespace: ns,
-		Name:      queryCertificateName,
+		Name:      queryStoreCertificateName,
 	})
 }

@@ -363,7 +363,7 @@ func TestGetCertificateNames(t *testing.T) {
 			client := fake.NewClientBuilder().WithScheme(scheme).Build()
 			ctx := spi.NewFakeContext(client, &test.vz, nil, false)
 			nsn := NewComponent().GetCertificateNames(ctx)
-			assert.Equal(t, nsn, test.ingNames)
+			assert.Equal(t, test.ingNames, nsn)
 		})
 	}
 }
