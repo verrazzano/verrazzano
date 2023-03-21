@@ -17,16 +17,6 @@ query:
         kubernetes.io/tls-acme: "true"
         nginx.ingress.kubernetes.io/ssl-redirect: "true"
         nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
-      extraRules:
-      - http:
-          paths:
-          - backend:
-            service:
-              name: verrazzano-authproxy
-              port:
-                number: 8776
-            path: /
-            pathType: Prefix
 
   # Adds the Prometheus Thanos sidecar as a Store API endpoint to Query
   stores:
@@ -54,16 +44,6 @@ queryFrontend:
       nginx.ingress.kubernetes.io/session-cookie-expires: "86400"
       nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
       nginx.ingress.kubernetes.io/session-cookie-samesite: "Strict"
-    extraRules:
-    - http:
-        paths:
-        - backend:
-          service:
-            name: verrazzano-authproxy
-            port:
-              number: 8775
-          path: /()(.*)
-          pathType: ImplementationSpecific
 
 compactor:
   podSecurityContext:

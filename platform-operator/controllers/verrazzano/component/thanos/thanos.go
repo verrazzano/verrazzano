@@ -5,6 +5,8 @@ package thanos
 
 import (
 	"fmt"
+	netv1 "k8s.io/api/networking/v1"
+	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -102,6 +104,9 @@ func appendIngressOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom
 		HostName:         frontendHostName,
 		IngressClassName: ingressClassName,
 		TLSSecretName:    queryCertificateName,
+		Path:             "/()(.*)",
+		PathType:         netv1.PathTypeImplementationSpecific,
+		ServicePort:      constants.VerrazzanoAuthProxyServicePort,
 	}
 	kvs = formatIngressOverrides(ctx, frontendProps, kvs)
 	kvs = append(kvs, bom.KeyValue{Key: `queryFrontend.ingress.annotations.nginx\.ingress\.kubernetes\.io/session-cookie-name`, Value: frontendHostName})
@@ -113,6 +118,9 @@ func appendIngressOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom
 		HostName:         storeHostName,
 		IngressClassName: ingressClassName,
 		TLSSecretName:    queryStoreCertificateName,
+		Path:             "/",
+		PathType:         netv1.PathTypePrefix,
+		ServicePort:      constants.VerrazzanoAuthProxyGRPCServicePort,
 	}
 	return formatIngressOverrides(ctx, storeProps, kvs), nil
 }
@@ -124,6 +132,9 @@ type ingressOverrideProperties struct {
 	HostName         string
 	IngressClassName string
 	TLSSecretName    string
+	Path             string
+	PathType         netv1.PathType
+	ServicePort      int
 }
 
 // formatIngressOverrides appends the correct overrides to a given ingress prefix based on generated properties for Ingress values
@@ -132,6 +143,10 @@ func formatIngressOverrides(ctx spi.ComponentContext, props ingressOverridePrope
 		{Key: fmt.Sprintf("%s.namespace", props.KeyPrefix), Value: constants.VerrazzanoSystemNamespace},
 		{Key: fmt.Sprintf("%s.ingressClassName", props.KeyPrefix), Value: props.IngressClassName},
 		{Key: fmt.Sprintf("%s.extraRules[0].host", props.KeyPrefix), Value: props.HostName},
+		{Key: fmt.Sprintf("%s.extraRules[0].http.paths[0].backend.service.name", props.KeyPrefix), Value: constants.VerrazzanoAuthProxyServiceName},
+		{Key: fmt.Sprintf("%s.extraRules[0].http.paths[0].backend.service.port.number", props.KeyPrefix), Value: strconv.Itoa(props.ServicePort)},
+		{Key: fmt.Sprintf("%s.extraRules[0].http.paths[0].path", props.KeyPrefix), Value: props.Path},
+		{Key: fmt.Sprintf("%s.extraRules[0].http.paths[0].pathType", props.KeyPrefix), Value: string(props.PathType)},
 		{Key: fmt.Sprintf("%s.extraTls[0].hosts[0]", props.KeyPrefix), Value: props.HostName},
 		{Key: fmt.Sprintf("%s.extraTls[0].secretName", props.KeyPrefix), Value: props.TLSSecretName},
 	}...)

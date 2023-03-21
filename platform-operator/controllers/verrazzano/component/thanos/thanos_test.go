@@ -6,6 +6,7 @@ package thanos
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
@@ -17,6 +18,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -163,12 +165,20 @@ func TestAppendOverrides(t *testing.T) {
 				"queryFrontend.ingress.namespace":                                                      constants.VerrazzanoSystemNamespace,
 				"queryFrontend.ingress.ingressClassName":                                               "verrazzano-nginx",
 				"queryFrontend.ingress.extraRules[0].host":                                             "thanos-query.default.11.22.33.44.xip.io",
+				"queryFrontend.ingress.extraRules[0].http.paths[0].backend.service.name":               constants.VerrazzanoAuthProxyServiceName,
+				"queryFrontend.ingress.extraRules[0].http.paths[0].backend.service.port.number":        strconv.Itoa(constants.VerrazzanoAuthProxyServicePort),
+				"queryFrontend.ingress.extraRules[0].http.paths[0].path":                               "/(.*)()",
+				"queryFrontend.ingress.extraRules[0].http.paths[0].pathType":                           string(netv1.PathTypeImplementationSpecific),
 				"queryFrontend.ingress.extraTls[0].hosts[0]":                                           "thanos-query.default.11.22.33.44.xip.io",
 				"queryFrontend.ingress.extraTls[0].secretName":                                         queryCertificateName,
 				`queryFrontend.ingress.annotations.nginx\.ingress\.kubernetes\.io/session-cookie-name`: queryHostName,
 				"query.ingress.grpc.namespace":                                                         constants.VerrazzanoSystemNamespace,
 				"query.ingress.grpc.ingressClassName":                                                  "verrazzano-nginx",
 				"query.ingress.grpc.extraRules[0].host":                                                "query-store.default.11.22.33.44.xip.io",
+				"query.ingress.grpc.extraRules[0].http.paths[0].backend.service.name":                  constants.VerrazzanoAuthProxyServiceName,
+				"query.ingress.grpc.extraRules[0].http.paths[0].backend.service.port.number":           strconv.Itoa(constants.VerrazzanoAuthProxyGRPCServicePort),
+				"query.ingress.grpc.extraRules[0].http.paths[0].path":                                  "/",
+				"query.ingress.grpc.extraRules[0].http.paths[0].pathType":                              string(netv1.PathTypePrefix),
 				"query.ingress.grpc.extraTls[0].hosts[0]":                                              "query-store.default.11.22.33.44.xip.io",
 				"query.ingress.grpc.extraTls[0].secretName":                                            queryStoreCertificateName,
 			},
@@ -193,6 +203,10 @@ func TestAppendOverrides(t *testing.T) {
 				"queryFrontend.ingress.namespace":                                                      constants.VerrazzanoSystemNamespace,
 				"queryFrontend.ingress.ingressClassName":                                               "verrazzano-nginx",
 				"queryFrontend.ingress.extraRules[0].host":                                             "thanos-query.default.mydomain.com",
+				"queryFrontend.ingress.extraRules[0].http.paths[0].backend.service.name":               constants.VerrazzanoAuthProxyServiceName,
+				"queryFrontend.ingress.extraRules[0].http.paths[0].backend.service.port.number":        strconv.Itoa(constants.VerrazzanoAuthProxyServicePort),
+				"queryFrontend.ingress.extraRules[0].http.paths[0].path":                               "/(.*)()",
+				"queryFrontend.ingress.extraRules[0].http.paths[0].pathType":                           string(netv1.PathTypeImplementationSpecific),
 				"queryFrontend.ingress.extraTls[0].hosts[0]":                                           "thanos-query.default.mydomain.com",
 				"queryFrontend.ingress.extraTls[0].secretName":                                         queryCertificateName,
 				`queryFrontend.ingress.annotations.external-dns\.alpha\.kubernetes\.io/target`:         "verrazzano-ingress.default.mydomain.com",
@@ -201,6 +215,10 @@ func TestAppendOverrides(t *testing.T) {
 				"query.ingress.grpc.namespace":                                                         constants.VerrazzanoSystemNamespace,
 				"query.ingress.grpc.ingressClassName":                                                  "verrazzano-nginx",
 				"query.ingress.grpc.extraRules[0].host":                                                "query-store.default.mydomain.com",
+				"query.ingress.grpc.extraRules[0].http.paths[0].backend.service.name":                  constants.VerrazzanoAuthProxyServiceName,
+				"query.ingress.grpc.extraRules[0].http.paths[0].backend.service.port.number":           strconv.Itoa(constants.VerrazzanoAuthProxyGRPCServicePort),
+				"query.ingress.grpc.extraRules[0].http.paths[0].path":                                  "/",
+				"query.ingress.grpc.extraRules[0].http.paths[0].pathType":                              string(netv1.PathTypePrefix),
 				"query.ingress.grpc.extraTls[0].hosts[0]":                                              "query-store.default.mydomain.com",
 				"query.ingress.grpc.extraTls[0].secretName":                                            queryStoreCertificateName,
 				`query.ingress.grpc.annotations.external-dns\.alpha\.kubernetes\.io/target`:            "verrazzano-ingress.default.mydomain.com",
