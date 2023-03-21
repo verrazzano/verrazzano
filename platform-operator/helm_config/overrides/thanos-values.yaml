@@ -49,11 +49,11 @@ queryFrontend:
       nginx.ingress.kubernetes.io/rewrite-target: "/$2"
       nginx.ingress.kubernetes.io/service-upstream: "true"
       nginx.ingress.kubernetes.io/upstream-vhost: "${service_name}.${namespace}.svc.cluster.local"
-      nginx.ingress.kubernetes.io/affinity: "cookie",
-      nginx.ingress.kubernetes.io/session-cookie-conditional-samesite-none: "true",
-      nginx.ingress.kubernetes.io/session-cookie-expires: "86400",
-      nginx.ingress.kubernetes.io/session-cookie-max-age: "86400",
-      nginx.ingress.kubernetes.io/session-cookie-samesite: "Strict",
+      nginx.ingress.kubernetes.io/affinity: "cookie"
+      nginx.ingress.kubernetes.io/session-cookie-conditional-samesite-none: "true"
+      nginx.ingress.kubernetes.io/session-cookie-expires: "86400"
+      nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
+      nginx.ingress.kubernetes.io/session-cookie-samesite: "Strict"
     extraRules:
     - http:
         paths:
