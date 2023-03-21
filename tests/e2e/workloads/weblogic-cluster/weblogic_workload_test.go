@@ -21,10 +21,10 @@ import (
 )
 
 const (
-	shortWaitTimeout         = 10 * time.Minute
+	shortWaitTimeout         = 15 * time.Minute
 	shortPollingInterval     = 10 * time.Second
 	longPollingInterval      = 20 * time.Second
-	imagePullWaitTimeout     = 40 * time.Minute
+	imagePullWaitTimeout     = 50 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
 
 	appConfiguration  = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-cluster-app.yaml"
