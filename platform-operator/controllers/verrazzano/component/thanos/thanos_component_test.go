@@ -199,6 +199,7 @@ func TestGetIngressNames(t *testing.T) {
 			},
 			ingNames: []types.NamespacedName{
 				{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.ThanosQueryIngress},
+				{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.ThanosQueryStoreIngress},
 			},
 		},
 		// GIVEN a call to GetIngressNames
@@ -222,6 +223,7 @@ func TestGetIngressNames(t *testing.T) {
 			},
 			ingNames: []types.NamespacedName{
 				{Namespace: authproxy.ComponentNamespace, Name: constants.ThanosQueryIngress},
+				{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.ThanosQueryStoreIngress},
 			},
 		},
 	}
@@ -328,6 +330,7 @@ func TestGetCertificateNames(t *testing.T) {
 			},
 			ingNames: []types.NamespacedName{
 				{Namespace: constants.VerrazzanoSystemNamespace, Name: queryCertificateName},
+				{Namespace: constants.VerrazzanoSystemNamespace, Name: queryStoreCertificateName},
 			},
 		},
 		// GIVEN a call to GetCertificateNames
@@ -351,6 +354,7 @@ func TestGetCertificateNames(t *testing.T) {
 			},
 			ingNames: []types.NamespacedName{
 				{Namespace: authproxy.ComponentNamespace, Name: queryCertificateName},
+				{Namespace: constants.VerrazzanoSystemNamespace, Name: queryStoreCertificateName},
 			},
 		},
 	}
