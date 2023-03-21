@@ -17,6 +17,8 @@ query:
         kubernetes.io/tls-acme: "true"
         nginx.ingress.kubernetes.io/ssl-redirect: "true"
         nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+      # Turn off hostname to disable auto-generated backend
+      hostname: ""
 
   # Adds the Prometheus Thanos sidecar as a Store API endpoint to Query
   stores:
@@ -44,6 +46,8 @@ queryFrontend:
       nginx.ingress.kubernetes.io/session-cookie-expires: "86400"
       nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
       nginx.ingress.kubernetes.io/session-cookie-samesite: "Strict"
+    # Turn off hostname to disable auto-generated backend
+    hostname: ""
 
 compactor:
   podSecurityContext:
