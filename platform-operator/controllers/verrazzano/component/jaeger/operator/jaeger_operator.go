@@ -772,7 +772,7 @@ func createOrUpdateJaegerIngress(ctx spi.ComponentContext, namespace string) err
 		}
 		return nil
 	})
-	if ctrlerrors.ShouldLogKubenetesAPIError(err) {
+	if ctrlerrors.ShouldLogKubernetesAPIError(err) {
 		return ctx.Log().ErrorfNewErr("Failed create/update Jaeger ingress: %v", err)
 	}
 	return err
