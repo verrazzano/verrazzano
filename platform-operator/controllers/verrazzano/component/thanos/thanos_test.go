@@ -94,9 +94,6 @@ func TestGetOverrides(t *testing.T) {
 }
 
 // TestAppendOverrides tests if Thanos overrides are appended
-// GIVEN a call to AppendOverrides
-// WHEN the bom is populated with the Thanos image
-// THEN the overrides are returned from this function
 func TestAppendOverrides(t *testing.T) {
 	config.SetDefaultBomFilePath(bomFilePathOverride)
 	scheme := k8scheme.Scheme
@@ -127,6 +124,9 @@ func TestAppendOverrides(t *testing.T) {
 		vz       *v1alpha1.Verrazzano
 		extraKVS map[string]string
 	}{
+		// GIVEN a call to AppendOverrides
+		// WHEN the NGINX is disabled
+		// THEN query ingresses are disabled
 		{
 			name: "test NGINX Disabled",
 			vz: &v1alpha1.Verrazzano{
@@ -143,6 +143,9 @@ func TestAppendOverrides(t *testing.T) {
 				"queryFrontend.ingress.enabled": "false",
 			},
 		},
+		// GIVEN a call to AppendOverrides
+		// WHEN wildcard is enabled
+		// THEN the proper overrides are populated
 		{
 			name: "test ExternalDNS Disabled",
 			vz: &v1alpha1.Verrazzano{
@@ -170,6 +173,9 @@ func TestAppendOverrides(t *testing.T) {
 				"query.ingress.grpc.extraTls[0].secretName":                                            queryStoreCertificateName,
 			},
 		},
+		// GIVEN a call to AppendOverrides
+		// WHEN wildcard is enabled
+		// THEN the extra external DNS overrides are added
 		{
 			name: "test ExternalDNS Enabled",
 			vz: &v1alpha1.Verrazzano{
