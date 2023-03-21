@@ -179,6 +179,7 @@ pipeline {
                     // currentBuild.displayName = "verrazzano-alacarte-testing"
                     currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + ' : ' + SHORT_COMMIT_HASH + ' : ' + env.GIT_COMMIT + ' : ' + params.GIT_COMMIT_TO_USE
                 }
+
                 script {
                     sh """
                         echo "Downloading VZ CLI from object storage"
