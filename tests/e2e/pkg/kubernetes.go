@@ -209,7 +209,9 @@ func GetDeployment(namespace string, deploymentName string) (*appsv1.Deployment,
 	}
 	deployment, err := clientSet.AppsV1().Deployments(namespace).Get(context.TODO(), deploymentName, metav1.GetOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get Deployment %s from namespace %s: %v ", deploymentName, namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get Deployment %s from namespace %s: %v ", deploymentName, namespace, err))
+		}
 		return nil, err
 	}
 	return deployment, nil
@@ -239,7 +241,9 @@ func GetStatefulSet(namespace string, stsName string) (*appsv1.StatefulSet, erro
 	}
 	sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(context.TODO(), stsName, metav1.GetOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get StatefulSet %s from namespace %s: %v ", stsName, namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get StatefulSet %s from namespace %s: %v ", stsName, namespace, err))
+		}
 		return nil, err
 	}
 	return sts, nil
@@ -254,7 +258,9 @@ func GetDaemonSet(namespace string, daemonSetName string) (*appsv1.DaemonSet, er
 	}
 	daemonset, err := clientSet.AppsV1().DaemonSets(namespace).Get(context.TODO(), daemonSetName, metav1.GetOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get DaemonSet %s from namespace %s: %v ", daemonSetName, namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get DaemonSet %s from namespace %s: %v ", daemonSetName, namespace, err))
+		}
 		return nil, err
 	}
 	return daemonset, nil
@@ -269,7 +275,9 @@ func GetService(namespace string, serviceName string) (*corev1.Service, error) {
 	}
 	svc, err := clientSet.CoreV1().Services(namespace).Get(context.TODO(), serviceName, metav1.GetOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get Service %s from namespace %s: %v ", serviceName, namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get Service %s from namespace %s: %v ", serviceName, namespace, err))
+		}
 		return nil, err
 	}
 	return svc, nil
@@ -293,7 +301,9 @@ func GetIngressList(namespace string) (*netv1.IngressList, error) {
 	}
 	ingressList, err := clientSet.NetworkingV1().Ingresses(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get Ingresses in namespace %s: %v ", namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get Ingresses in namespace %s: %v ", namespace, err))
+		}
 		return nil, err
 	}
 	return ingressList, nil
@@ -308,7 +318,9 @@ func GetIngress(namespace string, ingressName string) (*netv1.Ingress, error) {
 	}
 	ingress, err := clientSet.NetworkingV1().Ingresses(namespace).Get(context.TODO(), ingressName, metav1.GetOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get Ingress %s in namespace %s: %v ", ingressName, namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get Ingress %s in namespace %s: %v ", ingressName, namespace, err))
+		}
 		return nil, err
 	}
 	return ingress, nil
@@ -341,7 +353,9 @@ func GetVirtualServiceList(namespace string) (*istionetv1beta1.VirtualServiceLis
 	}
 	VirtualServiceList, err := clientSet.NetworkingV1beta1().VirtualServices(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get Gateways in namespace %s: %v ", namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get Gateways in namespace %s: %v ", namespace, err))
+		}
 		return nil, err
 	}
 	return VirtualServiceList, nil
@@ -371,7 +385,9 @@ func GetCertificateList(namespace string) (*certmanagerv1.CertificateList, error
 	}
 	certificateList, err := clientSet.Certificates(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get Certificates in namespace %s: %v ", namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get Certificates in namespace %s: %v ", namespace, err))
+		}
 		return nil, err
 	}
 	return certificateList, nil
@@ -386,7 +402,9 @@ func GetClusterIssuerList() (*certmanagerv1.ClusterIssuerList, error) {
 	}
 	clusterIssuerList, err := clientSet.ClusterIssuers().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get Cluster Issuers: %v ", err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get Cluster Issuers: %v ", err))
+		}
 		return nil, err
 	}
 	return clusterIssuerList, nil
@@ -401,7 +419,9 @@ func GetIssuerList(namespace string) (*certmanagerv1.IssuerList, error) {
 	}
 	issuerList, err := clientSet.Issuers(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get Issuers in namespace %s: %v ", namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get Issuers in namespace %s: %v ", namespace, err))
+		}
 		return nil, err
 	}
 	return issuerList, nil
@@ -1254,7 +1274,9 @@ func GetClusterRole(name string) (*rbacv1.ClusterRole, error) {
 
 	clusterrole, err := clientset.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get cluster role %s: %v", name, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get cluster role %s: %v", name, err))
+		}
 		return nil, err
 	}
 
@@ -1297,7 +1319,9 @@ func GetClusterRoleBinding(name string) (*rbacv1.ClusterRoleBinding, error) {
 
 	crb, err := clientset.RbacV1().ClusterRoleBindings().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get cluster role binding %s: %v", name, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get cluster role binding %s: %v", name, err))
+		}
 		return nil, err
 	}
 
@@ -1447,7 +1471,9 @@ func GetConfigMap(configMapName string, namespace string) (*corev1.ConfigMap, er
 	cmi := clientset.CoreV1().ConfigMaps(namespace)
 	configMap, err := cmi.Get(context.TODO(), configMapName, metav1.GetOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get Config Map %s from namespace %s: %v ", configMapName, namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get Config Map %s from namespace %s: %v ", configMapName, namespace, err))
+		}
 		return nil, err
 	}
 	return configMap, nil
@@ -1631,7 +1657,9 @@ func GetServiceAccount(namespace, name string) (*corev1.ServiceAccount, error) {
 	}
 	sa, err := clientset.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get service account %s in namespace %s: %v", name, namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get service account %s in namespace %s: %v", name, namespace, err))
+		}
 		return nil, err
 	}
 	return sa, nil

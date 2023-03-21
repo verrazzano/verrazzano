@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package kiali
@@ -135,7 +135,7 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 		}
 		return nil
 	})
-	if ctrlerrors.ShouldLogKubenetesAPIError(err) {
+	if ctrlerrors.ShouldLogKubernetesAPIError(err) {
 		return ctx.Log().ErrorfNewErr("Failed create/update Kiali ingress: %v", err)
 	}
 	return err
@@ -184,7 +184,7 @@ func createOrUpdateAuthPolicy(ctx spi.ComponentContext) error {
 		}
 		return nil
 	})
-	if ctrlerrors.ShouldLogKubenetesAPIError(err) {
+	if ctrlerrors.ShouldLogKubernetesAPIError(err) {
 		return ctx.Log().ErrorfNewErr("Failed create/update Kiali auth policy: %v", err)
 	}
 	return err
