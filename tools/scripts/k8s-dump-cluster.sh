@@ -315,7 +315,7 @@ function analyze_dump() {
               if [[ -x $GOPATH/bin/vz ]]; then
                   $GOPATH/vz analyze --capture-dir $FULL_PATH_CAPTURE_DIR --report-format detailed --report-file $SAVE_DIR/$REPORT_FILE || true
               elif [[ -x $GO_REPO_PATH/vz ]]; then
-                          $GO_REPO_PATH/vz analyze --capture-dir $FULL_PATH_CAPTURE_DIR || true
+                          $GO_REPO_PATH/vz analyze --capture-dir $FULL_PATH_CAPTURE_DIR --report-format detailed --report-file $SAVE_DIR/$REPORT_FILE || true
               else
                   GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go analyze --capture-dir $FULL_PATH_CAPTURE_DIR --report-format detailed --report-file $SAVE_DIR/$REPORT_FILE || true
               fi
