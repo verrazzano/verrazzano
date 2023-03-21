@@ -38,11 +38,12 @@ generate: controller-gen
 
 # find or download controller-gen
 # download controller-gen if necessary
+CONTROLLER_GEN_PATH := $(shell eval go env GOPATH)
 .PHONY: controller-gen
 controller-gen:
 ifeq (, $(shell command -v controller-gen))
 	$(GO) install sigs.k8s.io/controller-tools/cmd/controller-gen@${CONTROLLER_GEN_VERSION}
-	$(eval CONTROLLER_GEN=$(GOBIN)/controller-gen)
+	$(eval CONTROLLER_GEN=$(CONTROLLER_GEN_PATH)/bin/controller-gen)
 else
 	$(eval CONTROLLER_GEN=$(shell command -v controller-gen))
 endif
