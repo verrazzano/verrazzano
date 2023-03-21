@@ -31,7 +31,7 @@ pipeline {
                 defaultValue: 'NONE',
                 description: 'This is the full git commit hash from the source build to be used for all jobs',
                 trim: true)
-        string(name: 'Installation Profile',
+        string(name: 'Installation_Profile',
                 defaultValue: 'none',
                 description: 'Verrazzano installation profile',
                 trim: true)
