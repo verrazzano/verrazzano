@@ -29,6 +29,7 @@ data:
   VZ_OSD_HOST: osd.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
   VZ_OSD_BACKEND_URL: "http://vmi-system-osd.verrazzano-system.svc.cluster.local:5601"
   VZ_AUTHPROXY_OPENSEARCH_HOST: "verrazzano-authproxy-opensearch:8775"
+  VZ_AUTHPROXY_OPENSEARCH_NS_HOST: "verrazzano-authproxy-opensearch.verrazzano-system:8775"
   VZ_AUTHPROXY_OPENSEARCH_BACKEND_URL: "http://vmi-system-os-ingest.verrazzano-system.svc.cluster.local:9200"
   VZ_KIALI_HOST: kiali.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
   VZ_KIALI_BACKEND_URL: "http://vmi-system-kiali.verrazzano-system.svc.cluster.local:20001"
@@ -544,6 +545,7 @@ data:
         me.setTableValue(ingressServiceTable, os.getenv("VZ_ELASTICSEARCH_HOST"), os.getenv("VZ_ELASTICSEARCH_BACKEND_URL"))
         me.setTableValue(ingressServiceTable, os.getenv("VZ_OPENSEARCH_HOST"), os.getenv("VZ_OPENSEARCH_BACKEND_URL"))
         me.setTableValue(ingressServiceTable, os.getenv("VZ_AUTHPROXY_OPENSEARCH_HOST"), os.getenv("VZ_AUTHPROXY_OPENSEARCH_BACKEND_URL"))
+        me.setTableValue(ingressServiceTable, os.getenv("VZ_AUTHPROXY_OPENSEARCH_NS_HOST"), os.getenv("VZ_AUTHPROXY_OPENSEARCH_BACKEND_URL"))
         me.setTableValue(ingressServiceTable, os.getenv("VZ_KIALI_HOST"), os.getenv("VZ_KIALI_BACKEND_URL"))
         me.setTableValue(ingressServiceTable, os.getenv("VZ_JAEGER_HOST"), os.getenv("VZ_JAEGER_BACKEND_URL"))
         backendServerUrl = ingressServiceTable[ingressHost]
@@ -1298,6 +1300,7 @@ data:
     env VZ_OSD_HOST;
     env VZ_OSD_BACKEND_URL;
     env VZ_AUTHPROXY_OPENSEARCH_HOST;
+    env VZ_AUTHPROXY_OPENSEARCH_NS_HOST;
     env VZ_AUTHPROXY_OPENSEARCH_BACKEND_URL;
     env VZ_ELASTICSEARCH_HOST;
     env VZ_ELASTICSEARCH_BACKEND_URL;
