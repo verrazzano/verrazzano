@@ -160,7 +160,7 @@ fi
 echo "Installing Verrazzano on Kind"
 if [[ -z "${INSTALLATION_PROFILE}" ]]; then
   cd $WORKSPACE
-  ./vz install --filename ${WORKSPACE}/acceptance-test-config.yaml --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE} --set profile=${INSTALLATION_PROFILE}
+  ./vz install --timeout ${INSTALL_TIMEOUT_VALUE} --set profile=${INSTALLATION_PROFILE}
 elif [ -f "$WORKSPACE/vz" ]; then
   cd $WORKSPACE
   ./vz install --filename ${WORKSPACE}/acceptance-test-config.yaml --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
