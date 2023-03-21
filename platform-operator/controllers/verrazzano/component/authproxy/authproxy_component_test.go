@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package authproxy
@@ -59,11 +59,11 @@ func createRelease(name string, status release.Status) *release.Release {
 }
 
 func testActionConfigWithInstalledAuthproxy(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return helmcli.CreateActionConfig(true, "verrazzano-authproxy", release.StatusDeployed, createRelease, vzlog.DefaultLogger())
+	return helmcli.CreateActionConfig(true, "verrazzano-authproxy", release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
 }
 
 func testActionConfigWithUninstalledAuthproxy(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return helmcli.CreateActionConfig(true, "verrazzano-authproxy", release.StatusUninstalled, createRelease, vzlog.DefaultLogger())
+	return helmcli.CreateActionConfig(true, "verrazzano-authproxy", release.StatusUninstalled, vzlog.DefaultLogger(), createRelease)
 }
 
 // TestIsEnabled tests the AuthProxy IsEnabled call
@@ -512,10 +512,8 @@ func TestPreInstall(t *testing.T) {
 //	WHEN I call PreUpgrade with defaults
 //	THEN no error is returned
 func TestPreUpgrade(t *testing.T) {
-	helmcli.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helmcli.ChartStatusDeployed, nil
-	})
-	defer helmcli.SetDefaultChartStateFunction()
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(testActionConfigWithInstalledAuthproxy)
 
 	tests := []struct {
 		name       string

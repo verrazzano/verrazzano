@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package operator
@@ -205,7 +205,7 @@ func createRelease(name string, status release.Status) *release.Release {
 }
 
 func testActionConfigWithInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return helmcli.CreateActionConfig(true, ComponentName, release.StatusDeployed, createRelease, vzlog.DefaultLogger())
+	return helmcli.CreateActionConfig(true, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
 }
 
 // TestPreUpgrade tests the PreUpgrade function for the Jaeger Operator component
@@ -420,6 +420,8 @@ func TestUpgrade(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer helmcli.SetDefaultActionConfigFunction()
 	helmcli.SetActionConfigFunction(testActionConfigWithInstallation)
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../../"})
 
 	tests := []struct {
 		name         string

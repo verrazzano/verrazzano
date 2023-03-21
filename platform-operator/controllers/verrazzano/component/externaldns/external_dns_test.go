@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package externaldns
@@ -141,11 +141,11 @@ func createReleaseWithoutValues(name string, status release.Status) *release.Rel
 }
 
 func testActionConfigWithInstallationAndValues(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return helm.CreateActionConfig(true, "external-dns", release.StatusDeployed, createReleaseWithValues, vzlog.DefaultLogger())
+	return helm.CreateActionConfig(true, "external-dns", release.StatusDeployed, vzlog.DefaultLogger(), createReleaseWithValues)
 }
 
 func testActionConfigWithInstallationNoValues(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return helm.CreateActionConfig(true, "external-dns", release.StatusDeployed, createReleaseWithoutValues, vzlog.DefaultLogger())
+	return helm.CreateActionConfig(true, "external-dns", release.StatusDeployed, vzlog.DefaultLogger(), createReleaseWithoutValues)
 }
 
 // TestIsExternalDNSEnabled tests the IsEnabled fn

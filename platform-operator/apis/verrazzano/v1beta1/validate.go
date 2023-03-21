@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1beta1
@@ -15,10 +15,10 @@ import (
 func ValidateProfile(requestedProfile ProfileType) error {
 	if len(requestedProfile) != 0 {
 		switch requestedProfile {
-		case Prod, Dev, ManagedCluster:
+		case Prod, Dev, ManagedCluster, None:
 			return nil
 		default:
-			return fmt.Errorf("Requested profile %s is invalid, valid options are dev, prod, or managed-cluster",
+			return fmt.Errorf("Requested profile %s is invalid, valid options are dev, prod, managed-cluster, or none",
 				requestedProfile)
 		}
 	}

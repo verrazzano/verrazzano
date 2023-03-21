@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancherbackup
@@ -15,7 +15,6 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
-	"helm.sh/helm/v3/pkg/time"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -131,33 +130,14 @@ func TestIsInstalled(t *testing.T) {
 	}
 }
 
-func createRelease(name string, status release.Status) *release.Release {
-	now := time.Now()
-	return &release.Release{
-		Name:      ComponentName,
-		Namespace: ComponentNamespace,
-		Info: &release.Info{
-			FirstDeployed: now,
-			LastDeployed:  now,
-			Status:        status,
-			Description:   "Named Release Stub",
-		},
-		Version: 1,
-	}
-}
-
-func testActionConfigWithInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return helm.CreateActionConfig(true, ComponentName, release.StatusDeployed, createRelease, vzlog.DefaultLogger())
-}
-
 func testActionConfigWithoutInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return helm.CreateActionConfig(false, ComponentName, release.StatusDeployed, nil, vzlog.DefaultLogger())
+	return helm.CreateActionConfig(false, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), nil)
 }
 
 func TestInstallUpgrade(t *testing.T) {
 	defer config.Set(config.Get())
-	v := NewComponent()
 	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../"})
+	v := NewComponent()
 
 	defer helm.SetDefaultActionConfigFunction()
 	helm.SetActionConfigFunction(testActionConfigWithoutInstallation)

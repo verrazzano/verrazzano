@@ -17,7 +17,7 @@ import (
 
 type CreateReleaseFnType func(name string, releaseStatus release.Status) *release.Release
 
-func CreateActionConfig(includeRelease bool, releaseName string, releaseStatus release.Status, createReleaseFn CreateReleaseFnType, log vzlog.VerrazzanoLogger) (*action.Configuration, error) {
+func CreateActionConfig(includeRelease bool, releaseName string, releaseStatus release.Status, log vzlog.VerrazzanoLogger, createReleaseFn CreateReleaseFnType) (*action.Configuration, error) {
 
 	registryClient, err := registry.NewClient()
 	if err != nil {

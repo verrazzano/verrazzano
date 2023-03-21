@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package velero
@@ -135,13 +135,13 @@ func TestIsInstalled(t *testing.T) {
 }
 
 func testActionConfigWithoutInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return helm.CreateActionConfig(false, ComponentName, release.StatusDeployed, nil, vzlog.DefaultLogger())
+	return helm.CreateActionConfig(false, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), nil)
 }
 
 func TestInstallUpgrade(t *testing.T) {
 	defer config.Set(config.Get())
-	v := NewComponent()
 	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../"})
+	v := NewComponent()
 
 	defer helm.SetDefaultActionConfigFunction()
 	helm.SetActionConfigFunction(testActionConfigWithoutInstallation)

@@ -21,19 +21,19 @@ const helmRelease = "my-release"
 const missingRelease = "no-release"
 
 func testActionConfigWithRelease(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return CreateActionConfig(true, helmRelease, release.StatusDeployed, createRelease, log)
+	return CreateActionConfig(true, helmRelease, release.StatusDeployed, log, createRelease)
 }
 
 func testActionConfigWithFailedRelease(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return CreateActionConfig(true, helmRelease, release.StatusFailed, createRelease, log)
+	return CreateActionConfig(true, helmRelease, release.StatusFailed, log, createRelease)
 }
 
 func testActionConfigWithPendingRelease(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return CreateActionConfig(true, helmRelease, release.StatusPendingInstall, createRelease, log)
+	return CreateActionConfig(true, helmRelease, release.StatusPendingInstall, log, createRelease)
 }
 
 func testActionConfig(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return CreateActionConfig(false, helmRelease, release.StatusFailed, createRelease, log)
+	return CreateActionConfig(false, helmRelease, release.StatusFailed, log, createRelease)
 }
 
 func getChart() *chart.Chart {

@@ -198,7 +198,7 @@ func TestRealBom(t *testing.T) {
 }
 
 // validateImages validates the images in the subcomponents.
-// Optionall check the image Value.
+// Optional check the image Value.
 func validateImages(assert *assert.Assertions, bom *Bom, checkImageVal bool) {
 	// Validate each component
 	for _, comp := range bom.bomDoc.Components {

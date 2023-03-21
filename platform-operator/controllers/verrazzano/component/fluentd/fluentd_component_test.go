@@ -25,7 +25,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
@@ -101,11 +100,11 @@ func createRelease(name string, status release.Status) *release.Release {
 }
 
 func testActionConfigWithInstalledFluentd(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return helmcli.CreateActionConfig(true, "fluentd", release.StatusDeployed, createRelease, vzlog.DefaultLogger())
+	return helmcli.CreateActionConfig(true, "fluentd", release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
 }
 
 func testActionConfigWithUninstalledFluentd(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return helmcli.CreateActionConfig(true, "fluentd", release.StatusUninstalled, createRelease, vzlog.DefaultLogger())
+	return helmcli.CreateActionConfig(true, "fluentd", release.StatusUninstalled, vzlog.DefaultLogger(), createRelease)
 }
 
 func TestValidateUpdate(t *testing.T) {
@@ -461,19 +460,30 @@ func TestInstall(t *testing.T) {
 		},
 	}, nil, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
-	helm.SetUpgradeFunc(fakeUpgrade)
-	defer helm.SetDefaultUpgradeFunc()
-	helmcli.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
-		return helmcli.ChartStatusDeployed, nil
+
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../"})
+
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helmcli.CreateActionConfig(true, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			now := time.Now()
+			return &release.Release{
+				Name:      ComponentName,
+				Namespace: ComponentNamespace,
+				Info: &release.Info{
+					FirstDeployed: now,
+					LastDeployed:  now,
+					Status:        releaseStatus,
+					Description:   "Named Release Stub",
+				},
+				Version: 1,
+			}
+		})
 	})
-	defer helmcli.SetDefaultChartStateFunction()
+
 	err := NewComponent().Install(ctx)
 	assert.NoError(t, err)
-}
-
-// fakeUpgrade override the upgrade function during unit tests
-func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
-	return []byte("success"), []byte(""), nil
 }
 
 // TestPreUpgrade tests the Verrazzano PreUpgrade call
@@ -482,10 +492,8 @@ func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string,
 //	WHEN I call PreUpgrade with defaults
 //	THEN no error is returned. Otherwise, return error.
 func TestPreUpgrade(t *testing.T) {
-	helmcli.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helmcli.ChartStatusDeployed, nil
-	})
-	defer helmcli.SetDefaultChartStateFunction()
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(testActionConfigWithInstalledFluentd)
 
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook

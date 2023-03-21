@@ -1,0 +1,60 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+spec:
+  components:
+    applicationOperator:
+      enabled: false
+    authProxy:
+      enabled: false
+    certManager:
+      enabled: false
+    clusterOperator:
+      enabled: false
+    coherenceOperator:
+      enabled: false
+    console:
+      enabled: false
+    elasticsearch:
+      enabled: false
+      nodes:
+        - name: es-master
+          replicas: 1
+          resources:
+            requests:
+              memory: 1G
+          roles:
+            - master
+    fluentd:
+      enabled: false
+    grafana:
+      enabled: false
+    ingress:
+      enabled: false
+    istio:
+      enabled: false
+    kiali:
+      enabled: false
+    keycloak:
+      enabled: false
+    kubeStateMetrics:
+      enabled: false
+    mySQLOperator:
+      enabled: false
+    kibana:
+      enabled: false
+    oam:
+      enabled: false
+    prometheus:
+      enabled: false
+    prometheusOperator:
+      enabled: false
+    rancher:
+      enabled: false
+    verrazzano:
+      enabled: false
+    weblogicOperator:
+      enabled: false
+    argoCD:
+      enabled: false
+    thanos:
+      enabled: false

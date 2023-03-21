@@ -44,48 +44,6 @@ type HelmOverrides struct {
 	FileOverride       string // for -f
 }
 
-var chartStatusFn ChartStatusFnType = getChartStatus
-
-// SetChartStatusFunction Override the chart status function for unit testing
-func SetChartStatusFunction(f ChartStatusFnType) {
-	chartStatusFn = f
-}
-
-// SetDefaultChartStatusFunction Reset the chart status function
-func SetDefaultChartStatusFunction() {
-	chartStatusFn = getChartStatus
-}
-
-// ReleaseAppVersionFnType - Package-level var and functions to allow overriding GetReleaseAppVersion for unit test purposes
-type ReleaseAppVersionFnType func(releaseName string, namespace string) (string, error)
-
-var releaseAppVersionFn ReleaseAppVersionFnType = getReleaseAppVersion
-
-// SetReleaseAppVersionFunction Override the GetReleaseAppVersion for unit testing
-func SetReleaseAppVersionFunction(f ReleaseAppVersionFnType) {
-	releaseAppVersionFn = f
-}
-
-// SetDefaultReleaseAppVersionFunction Reset the GetReleaseAppVersion function
-func SetDefaultReleaseAppVersionFunction() {
-	releaseAppVersionFn = getReleaseAppVersion
-}
-
-// Package-level var and functions to allow overriding getReleaseState for unit test purposes
-type releaseStateFnType func(releaseName string, namespace string) (string, error)
-
-var releaseStateFn releaseStateFnType = getReleaseState
-
-// SetChartStateFunction Override the chart state function for unit testing
-func SetChartStateFunction(f releaseStateFnType) {
-	releaseStateFn = f
-}
-
-// SetDefaultChartStateFunction Reset the chart state function
-func SetDefaultChartStateFunction() {
-	releaseStateFn = getChartStatus
-}
-
 type ActionConfigFnType func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error)
 
 var actionConfigFn ActionConfigFnType = getActionConfig
@@ -234,7 +192,7 @@ func maskSensitiveData(str string) string {
 // IsReleaseFailed Returns true if the chart helmRelease state is marked 'failed'
 func IsReleaseFailed(releaseName string, namespace string) (bool, error) {
 	log := zap.S()
-	releaseStatus, err := releaseStateFn(releaseName, namespace)
+	releaseStatus, err := getReleaseState(releaseName, namespace)
 	if err != nil {
 		log.Errorf("Getting status for chart %s/%s failed", namespace, releaseName)
 		return false, err
@@ -245,7 +203,7 @@ func IsReleaseFailed(releaseName string, namespace string) (bool, error) {
 // IsReleaseDeployed returns true if the helmRelease is deployed
 func IsReleaseDeployed(releaseName string, namespace string) (found bool, err error) {
 	log := zap.S()
-	releaseStatus, err := chartStatusFn(releaseName, namespace)
+	releaseStatus, err := getChartStatus(releaseName, namespace)
 	if err != nil {
 		log.Errorf("Getting status for chart %s/%s failed with stderr: %v\n", namespace, releaseName, err)
 		return false, err
@@ -261,7 +219,7 @@ func IsReleaseDeployed(releaseName string, namespace string) (found bool, err er
 
 // GetReleaseStatus returns the helmRelease status
 func GetReleaseStatus(log vzlog.VerrazzanoLogger, releaseName string, namespace string) (status string, err error) {
-	releaseStatus, err := chartStatusFn(releaseName, namespace)
+	releaseStatus, err := getChartStatus(releaseName, namespace)
 	if err != nil {
 		log.ErrorfNewErr("Failed getting status for chart %s/%s with stderr: %v\n", namespace, releaseName, err)
 		return "", err
@@ -336,7 +294,7 @@ func getReleaseState(releaseName string, namespace string) (string, error) {
 
 // GetReleaseAppVersion - public function to execute releaseAppVersionFn
 func GetReleaseAppVersion(releaseName string, namespace string) (string, error) {
-	return releaseAppVersionFn(releaseName, namespace)
+	return getReleaseAppVersion(releaseName, namespace)
 }
 
 // GetReleaseStringValues - Returns a subset of Helm helmRelease values as a map of strings

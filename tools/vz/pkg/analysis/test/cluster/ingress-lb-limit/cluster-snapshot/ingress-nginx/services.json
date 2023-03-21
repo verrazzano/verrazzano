@@ -23,7 +23,7 @@
                 "annotations": {
                     "meta.helm.sh/release-name": "ingress-controller",
                     "meta.helm.sh/release-namespace": "ingress-nginx",
-                    "service.beta.kubernetes.io/oci-load-balancer-shape": "8000Mbps"
+                    "service.beta.kubernetes.io/oci-load-balancer-shape": "flexible"
                 },
                 "finalizers": [
                     "service.kubernetes.io/load-balancer-cleanup"

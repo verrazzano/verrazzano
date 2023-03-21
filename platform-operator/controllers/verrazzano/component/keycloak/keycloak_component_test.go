@@ -80,7 +80,7 @@ func TestIsEnabled(t *testing.T) {
 }
 
 func testActionConfigWithoutInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return helm.CreateActionConfig(false, ComponentName, release.StatusDeployed, nil, vzlog.DefaultLogger())
+	return helm.CreateActionConfig(false, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), nil)
 }
 
 // TestReconcileBeforeInstall tests the Keycloak Reconcile call
