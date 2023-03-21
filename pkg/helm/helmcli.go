@@ -213,7 +213,6 @@ func runHelm(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 	if namespace != "" {
 		cmdArgs = append(cmdArgs, "--namespace")
 		cmdArgs = append(cmdArgs, namespace)
-		cmdArgs = append(cmdArgs, "--create-namespace")
 	}
 	cmdArgs = append(cmdArgs, args...)
 

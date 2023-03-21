@@ -1,12 +1,9 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package healthcheck
 
 import (
-	"testing"
-	"time"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -16,6 +13,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"testing"
+	"time"
 )
 
 const reldir = "../../../manifests/profiles"
@@ -27,8 +26,6 @@ type fakeComponent struct {
 	enabled   bool
 	helm.HelmComponent
 }
-
-var _ spi.Component = fakeComponent{}
 
 func (f fakeComponent) IsAvailable(_ spi.ComponentContext) (string, vzapi.ComponentAvailability) {
 	return "", f.available

@@ -10,11 +10,6 @@ import (
 	"sort"
 	"strings"
 
-	"helm.sh/helm/v3/pkg/release"
-	v1 "k8s.io/api/core/v1"
-
-	"k8s.io/apimachinery/pkg/runtime"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -29,6 +24,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
+	"helm.sh/helm/v3/pkg/release"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -556,7 +555,7 @@ func (h HelmComponent) filesFromVerrazzanoHelm(context spi.ComponentContext, nam
 
 	// Get image overrides if they are specified
 	if !h.IgnoreImageOverrides {
-		imageOverrides, err := getComponentImageOverrides(h.ReleaseName)
+		imageOverrides, err := getImageOverrides(h.ReleaseName)
 		if err != nil {
 			return newKvs, err
 		}
@@ -669,19 +668,20 @@ func (h HelmComponent) preInstallUpgrade(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// Get the image overrides from the BOM for a component
-func getComponentImageOverrides(componentName string) ([]bom.KeyValue, error) {
+// Get the image overrides from the BOM
+func getImageOverrides(subcomponentName string) ([]bom.KeyValue, error) {
 	// Create a Bom and get the Key Value overrides
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
 		return nil, err
 	}
-	numImages := bomFile.GetComponentImageCount(componentName)
+
+	numImages := bomFile.GetSubcomponentImageCount(subcomponentName)
 	if numImages == 0 {
 		return []bom.KeyValue{}, nil
 	}
 
-	kvs, err := bomFile.BuildComponentImageOverrides(componentName)
+	kvs, err := bomFile.BuildImageOverrides(subcomponentName)
 	if err != nil {
 		return nil, err
 	}

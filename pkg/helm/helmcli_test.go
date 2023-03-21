@@ -87,7 +87,6 @@ func TestUpgrade(t *testing.T) {
 		expectedArgs: []string{
 			"--namespace",
 			"my_namespace",
-			"--create-namespace",
 			"--install",
 			"-f",
 			"my-override.yaml",
@@ -116,7 +115,6 @@ func TestUpgradeCustomFileOverrides(t *testing.T) {
 		expectedArgs: []string{
 			"--namespace",
 			"my_namespace",
-			"--create-namespace",
 			"--install",
 			"-f",
 			"my-override.yaml",

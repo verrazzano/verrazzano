@@ -239,39 +239,6 @@ func (b *Bom) BuildImageOverrides(subComponentName string) ([]KeyValue, error) {
 	return kvs, err
 }
 
-// GetComponentImageCount returns the number of images in a top level component's subcomponents
-func (b *Bom) GetComponentImageCount(componentName string) int {
-	comp, err := b.GetComponent(componentName)
-	if err != nil {
-		// TODO log the error?
-		return 0
-	}
-	compImageCount := 0
-	for _, subComp := range comp.SubComponents {
-		compImageCount += len(subComp.Images)
-	}
-	return compImageCount
-}
-
-// BuildComponentImageOverrides builds the image overrides array for the subComponent.
-// Each override has an array of 1-n Helm Key:Value pairs
-func (b *Bom) BuildComponentImageOverrides(componentName string) ([]KeyValue, error) {
-	comp, err := b.GetComponent(componentName)
-	if err != nil {
-		// TODO log the error?
-		return nil, err
-	}
-	var kvs []KeyValue
-	for _, subComp := range comp.SubComponents {
-		subCompKVs, _, err := b.BuildImageStrings(subComp.Name)
-		if err != nil {
-			return kvs, err
-		}
-		kvs = append(kvs, subCompKVs...)
-	}
-	return kvs, nil
-}
-
 // GetImageNameList build the image names and return a list of image names
 func (b *Bom) GetImageNameList(subComponentName string) ([]string, error) {
 	_, images, err := b.BuildImageStrings(subComponentName)
