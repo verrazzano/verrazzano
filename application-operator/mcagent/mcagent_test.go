@@ -36,8 +36,8 @@ var validSecret = corev1.Secret{
 	Data: map[string][]byte{constants.ClusterNameData: []byte("cluster1"), mcconstants.KubeconfigKey: []byte("kubeconfig")},
 }
 
-const managedPrometheusHost = "prometheus"
-const managedThanosQueryHost = "thanos.example.com"
+const testManagedPrometheusHost = "prometheus"
+const testManagedThanosQueryHost = "thanos.example.com"
 
 // TestProcessAgentThreadNoProjects tests agent thread when no projects exist
 // GIVEN a request to process the agent loop
@@ -440,12 +440,12 @@ func expectGetAPIServerURLCalled(mock *mocks.MockClient) {
 
 func expectGetPrometheusHostCalled(mock *mocks.MockClient) {
 	// Expect a call to get the prometheus ingress and return the host.
-	expectGetIngress(mock, constants.VerrazzanoSystemNamespace, constants.VzPrometheusIngress, managedPrometheusHost)
+	expectGetIngress(mock, constants.VerrazzanoSystemNamespace, constants.VzPrometheusIngress, testManagedPrometheusHost)
 }
 
 func expectGetThanosQueryHostCalled(mock *mocks.MockClient) {
 	// Expect a call to get the Thanos query ingress and return the host.
-	expectGetIngress(mock, constants.VerrazzanoSystemNamespace, vzconstants.ThanosQueryIngress, managedThanosQueryHost)
+	expectGetIngress(mock, constants.VerrazzanoSystemNamespace, vzconstants.ThanosQueryIngress, testManagedThanosQueryHost)
 }
 
 // Expects a call to get an ingress with the given name and namespace, and returns an ingress with the specified
