@@ -183,8 +183,7 @@ pipeline {
                 script {
                     sh """
                         echo "Downloading VZ CLI from object storage"
-                        echo "Executing command: oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/master/cc08585/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}"
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/master/cc08585/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/master/cc085858/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
                         tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
                         ${GO_REPO_PATH}/vz version
                     """
