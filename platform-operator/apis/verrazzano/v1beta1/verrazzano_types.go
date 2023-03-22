@@ -1089,15 +1089,15 @@ type InstallOverrides struct {
 // Overrides identifies overrides for a component.
 type Overrides struct {
 	// Selector for ConfigMap containing override data.
+	// (<a href="../../../../docs/customize/installationoverrides">configMapRef e.g.</a>)
 	// +optional
 	ConfigMapRef *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
 	// Selector for Secret containing override data.
+	// (<a href="../../../../docs/customize/installationoverrides">secretRef e.g.</a>)
 	// +optional
-	// (<a href="../../../../docs/customize/installationoverrides">configMapRef e.g.</a>)
 	SecretRef *corev1.SecretKeySelector `json:"secretRef,omitempty"`
 	// Configure overrides using inline YAML.
-	// +optional
-	// (<a href="../../../../docs/customize/installationoverrides">secretRef e.g.</a>)
-	Values *apiextensionsv1.JSON `json:"values,omitempty"`
 	// (<a href="../../../../docs/customize/externallbs">values e.g. from External Load Balancers</a>)
+	// +optional
+	Values *apiextensionsv1.JSON `json:"values,omitempty"`
 }
