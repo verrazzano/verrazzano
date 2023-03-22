@@ -12,8 +12,6 @@ import (
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -57,7 +55,8 @@ func (r *ComponentConfigMapReconciler) createComponentConfigMapPredicate() predi
 
 func (r *ComponentConfigMapReconciler) isComponentConfigMap(o client.Object) bool {
 	configMap := o.(*v1.ConfigMap)
-	return configMap.Annotations[vzconst.VerrazzanoDevComponentAnnotationName] != ""
+	return configMap.Labels[devComponentConfigMapAPIVersionLabel] == devComponentConfigMapAPIVersionv1beta2 &&
+		configMap.Labels[devComponentConfigMapKindLabel] != ""
 }
 
 // Reconcile function for the ComponentConfigMapReconciler
@@ -95,31 +94,29 @@ func (r *ComponentConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	componentName := cm.Annotations[vzconst.VerrazzanoDevComponentAnnotationName]
-	if componentName == "" {
-		err = fmt.Errorf("component configmap reconcile called %s/%s, but does not have dev component annotation %s",
-			req.Namespace, req.Name, vzconst.VerrazzanoDevComponentAnnotationName)
-		zap.S().Errorf(err.Error())
-		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
-	}
-	zap.S().Infof("Reconcile retrieved configmap for component %s", componentName)
-
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
-		Name:           componentName,
+		Name:           cm.Name,
 		Namespace:      cm.Namespace,
 		ID:             string(cm.UID),
 		Generation:     cm.Generation,
 		ControllerName: "verrazzanodevcomponent",
 	})
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for component configmap controller: %v", err)
+		zap.S().Errorf("Failed to create controller logger for component configmap %s/%s: %v", cm.GetName(), cm.GetNamespace(), err)
 		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
 	}
 
-	comp, err := newDevComponent(log, cm)
+	if cm.Labels[devComponentConfigMapKindLabel] != devComponentConfigMapKindHelmComponent {
+		err = fmt.Errorf("%s is not a support configmap-kind, %s is the only configmap-kind supported",
+			cm.Labels[devComponentConfigMapKindLabel], devComponentConfigMapKindHelmComponent)
+		log.Error(err)
+		return ctrl.Result{}, err
+	}
+
+	comp, err := newDevHelmComponent(cm)
 	if err != nil {
-		log.Errorf("Failed to read component %s data from configmap %s: %v", componentName, cm.GetName(), err)
+		log.Errorf("Failed to read component %s data from configmap %s/%s: %v", cm.GetName(), cm.GetNamespace(), err)
 		// don't requeue if the data is invalid
 		// once the data is updated to be correct it will trigger another reconcile
 		return ctrl.Result{}, err

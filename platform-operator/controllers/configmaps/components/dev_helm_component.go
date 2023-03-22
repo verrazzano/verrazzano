@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/pkg/helm"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -20,10 +19,14 @@ import (
 )
 
 const (
-	componentNameKey      = "name"
-	componentNamespaceKey = "namespace"
-	chartPathKey          = "chartPath"
-	overridesKey          = "overrides"
+	devComponentConfigMapKindLabel         = "experimental.verrazzano.io/configmap-kind"
+	devComponentConfigMapKindHelmComponent = "HelmComponent"
+	devComponentConfigMapAPIVersionLabel   = "experimental.verrazzano.io/configmap-apiversion"
+	devComponentConfigMapAPIVersionv1beta2 = "v1beta2"
+	componentNameKey                       = "name"
+	componentNamespaceKey                  = "namespace"
+	chartPathKey                           = "chartPath"
+	overridesKey                           = "overrides"
 )
 
 type devComponent struct {
@@ -32,12 +35,10 @@ type devComponent struct {
 
 var _ spi.Component = devComponent{}
 
-func newDevComponent(log vzlog.VerrazzanoLogger, cm v1.ConfigMap) (devComponent, error) {
+func newDevHelmComponent(cm v1.ConfigMap) (devComponent, error) {
 	componentName, ok := cm.Data[componentNameKey]
 	if !ok {
-		annotationName := cm.Annotations[constants.VerrazzanoDevComponentAnnotationName]
-		log.Debugf("Component name field not included in ConfigMap %s data, defaulting to name %s from annotation", cm.Name, annotationName)
-		componentName = annotationName
+		return devComponent{}, fmt.Errorf("ConfigMap %s does not contain the name field, cannot reconcile component", cm.Name)
 	}
 
 	componentNamespace, ok := cm.Data[componentNamespaceKey]
@@ -45,8 +46,8 @@ func newDevComponent(log vzlog.VerrazzanoLogger, cm v1.ConfigMap) (devComponent,
 		return devComponent{}, fmt.Errorf("ConfigMap %s does not contain the namespace field, cannot reconcile component %s", cm.Name, componentName)
 	}
 
-	chartPath := cm.Data[chartPathKey]
-	if chartPath == "" {
+	chartPath, ok := cm.Data[chartPathKey]
+	if !ok {
 		return devComponent{}, fmt.Errorf("ConfigMap %s does not contain the chartPath field, cannot reconcile component %s", cm.Name, componentName)
 	}
 
