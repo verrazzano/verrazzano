@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/certificatewatcher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
@@ -78,6 +79,11 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 	}
 	mysqlCheck.Start()
 
+	certificatewatch, err := certificatewatcher.NewCertificateWatcher(mgr.GetClient(), time.Duration(config.CertificateWatcherPeriodHours)*time.Hour, "verrazzano-install", "verrazzano-install", "verrazzano-platform-operator-webhook")
+	if err != nil {
+		return errors.Wrap(err, "Failed starting CertificateWatcher")
+	}
+	certificatewatch.Start()
 	// +kubebuilder:scaffold:builder
 	log.Info("Starting controller-runtime manager")
 	if err := mgr.Start(controllerruntime.SetupSignalHandler()); err != nil {
