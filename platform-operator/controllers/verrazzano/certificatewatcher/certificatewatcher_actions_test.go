@@ -136,7 +136,7 @@ func getSecret(days int) v1.Secret {
 	crt, key := getSecretValidData(days)
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
+			Name:      VZCertificate,
 			Namespace: VZNamespace,
 		},
 		Immutable: nil,
