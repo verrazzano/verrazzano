@@ -322,7 +322,8 @@ func expectAdminVMCStatusUpdateSuccess(adminMock *mocks.MockClient, vmcName type
 			assert.NotNil(vmc.Status)
 			assert.NotNil(vmc.Status.LastAgentConnectTime)
 			assert.NotNil(vmc.Status.APIUrl)
-			assert.NotNil(vmc.Status.PrometheusHost)
+			assert.Equal(testManagedPrometheusHost, vmc.Status.PrometheusHost)
+			assert.Equal(testManagedThanosQueryHost, vmc.Status.ThanosQueryHost)
 			return nil
 		})
 }
