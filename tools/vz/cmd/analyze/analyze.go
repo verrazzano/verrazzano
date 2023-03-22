@@ -36,7 +36,7 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 		return validateReportFormat(cmd)
 	}
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return runCmdAnalyze(cmd, vzHelper)
+		return RunCmdAnalyze(cmd, vzHelper, true)
 	}
 
 	cmd.Example = helpExample
@@ -88,7 +88,7 @@ func analyzeLiveCluster(cmd *cobra.Command, vzHelper helpers.VZHelper, directory
 	return vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, reportDirectory, moreNS, vzHelper, podLogs)
 }
 
-func runCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printToConsole bool) error {
 	directoryFlag := cmd.PersistentFlags().Lookup(constants.DirectoryFlagName)
 	if err := setVzK8sVersion(directoryFlag, vzHelper, cmd); err == nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), helpers.GetVersionOut())
@@ -122,7 +122,7 @@ func runCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
 		}
 	}
-	return analysis.AnalysisMain(vzHelper, directory, reportFileName, reportFormat)
+	return analysis.AnalysisMain(vzHelper, directory, reportFileName, reportFormat, printToConsole)
 }
 
 // setVzK8sVersion sets vz and k8s version

@@ -99,7 +99,7 @@ func ContributeIssue(log *zap.SugaredLogger, issue Issue) (err error) {
 // GenerateHumanReport is a basic report generator
 // TODO: This is super basic for now, need to do things like sort based on Confidence, add other formats on output, etc...
 // Also add other niceties like time, Summary of what was analyzed, if no issues were found, etc...
-func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat string, includeSupportData bool, includeInfo bool, includeActions bool, minConfidence int, minImpact int, vzHelper helpers.VZHelper) (err error) {
+func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat string, includeSupportData bool, includeInfo bool, includeActions bool, minConfidence int, minImpact int, vzHelper helpers.VZHelper, printToConsole bool) (err error) {
 	// Default to stdout if no reportfile is supplied
 	//TODO: Eventually add support other reportFormat type (json)
 	writeOut, writeSummaryOut, sepOut := "", "", ""
@@ -239,7 +239,9 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 		}
 		// writes vz & k8s version, a separator and detected issues to report file
 		_, err = repFile.Write([]byte(helpers.GetVersionOut() + sepOut + writeOut))
-		printReport()
+		if printToConsole {
+			printReport()
+		}
 		if err != nil {
 			log.Errorf("Failed to write to report file %s, error found : %s", reportFile, err.Error())
 			return err

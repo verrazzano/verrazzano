@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	vzbugreport "github.com/verrazzano/verrazzano/tools/vz/pkg/bugreport"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -276,6 +277,16 @@ func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) e
 	if bugReportErr != nil {
 		fmt.Fprintf(vzHelper.GetErrorStream(), "Error calling vz bug-report %s \n", bugReportErr.Error())
 	}
+	cmd3 := analyze.NewCmdAnalyze(vzHelper)
+	cmd3.Flags().StringVar(&kubeconfigFlagValPointer, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
+	cmd3.Flags().StringVar(&contextFlagValPointer, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
+	cmd3.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
+	cmd3.Flags().Set(constants.GlobalFlagContext, contextFlag)
+	analyzeErr := analyze.RunCmdAnalyze(cmd3, vzHelper, false)
+	if analyzeErr != nil {
+		fmt.Fprintf(vzHelper.GetErrorStream(), "Error calling vz analyze %s \n", bugReportErr.Error())
+	}
+
 	// return original error from running vz command which was passed into CallVzBugReport as a parameter
 	return err
 }
