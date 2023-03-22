@@ -1093,8 +1093,11 @@ type Overrides struct {
 	ConfigMapRef *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
 	// Selector for Secret containing override data.
 	// +optional
+	// (<a href="../../../../docs/customize/installationoverrides">configMapRef e.g.</a>)
 	SecretRef *corev1.SecretKeySelector `json:"secretRef,omitempty"`
 	// Configure overrides using inline YAML.
 	// +optional
+	// (<a href="../../../../docs/customize/installationoverrides">secretRef e.g.</a>)
 	Values *apiextensionsv1.JSON `json:"values,omitempty"`
+	// (<a href="../../../../docs/customize/externallbs">values e.g. from External Load Balancers</a>)
 }
