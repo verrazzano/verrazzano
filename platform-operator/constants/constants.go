@@ -152,11 +152,19 @@ const VerrazzanoVersion1_4_0 = "1.4.0"
 // VerrazzanoVersion1_5_0 is the Verrazzano version string for 1.5.0
 const VerrazzanoVersion1_5_0 = "1.5.0"
 
+// VerrazzanoVersion1_6_0 is the Verrazzano version string for 1.6.0
+const VerrazzanoVersion1_6_0 = "1.6.0"
+
 // UpgradeRetryVersion is the restart version annotation field
 const UpgradeRetryVersion = "verrazzano.io/upgrade-retry-version"
 
 // ObservedUpgradeRetryVersion is the previous restart version annotation field
 const ObservedUpgradeRetryVersion = "verrazzano.io/observed-upgrade-retry-version"
+
+// VerrazzanoDevComponentAnnotationName is the name of the annotation to be used on a ConfigMap,
+// which indicates that the ConfigMap is used to install a dev component. The value of the annotation is
+// the dev component name unless the name field is otherwise definied in the ConfigMap data
+const VerrazzanoDevComponentAnnotationName = "verrazzano.io/devComponent"
 
 // NGINXControllerServiceName is the nginx ingress controller name
 const NGINXControllerServiceName = "ingress-controller-ingress-nginx-controller"
