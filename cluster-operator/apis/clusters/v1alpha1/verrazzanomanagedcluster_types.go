@@ -126,6 +126,8 @@ type VerrazzanoManagedClusterStatus struct {
 	LastAgentConnectTime *metav1.Time `json:"lastAgentConnectTime,omitempty"`
 	// The Prometheus host for this managed cluster.
 	PrometheusHost string `json:"prometheusHost,omitempty"`
+	// The Thanos query host for this managed cluster.
+	ThanosQueryHost string `json:"thanosQueryHost,omitempty"`
 	// The state of Rancher registration for this managed cluster.
 	RancherRegistration RancherRegistration `json:"rancherRegistration,omitempty"`
 	// The state of ArgoCD registration for this managed cluster.

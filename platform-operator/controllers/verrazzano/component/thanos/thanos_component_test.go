@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -198,7 +199,7 @@ func TestGetIngressNames(t *testing.T) {
 				},
 			},
 			ingNames: []types.NamespacedName{
-				{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.ThanosQueryIngress},
+				{Namespace: constants.VerrazzanoSystemNamespace, Name: vzconst.ThanosQueryIngress},
 				{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.ThanosQueryStoreIngress},
 			},
 		},
@@ -222,7 +223,7 @@ func TestGetIngressNames(t *testing.T) {
 				},
 			},
 			ingNames: []types.NamespacedName{
-				{Namespace: authproxy.ComponentNamespace, Name: constants.ThanosQueryIngress},
+				{Namespace: authproxy.ComponentNamespace, Name: vzconst.ThanosQueryIngress},
 				{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.ThanosQueryStoreIngress},
 			},
 		},

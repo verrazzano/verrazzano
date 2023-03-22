@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -35,6 +35,9 @@ var validSecret = corev1.Secret{
 	},
 	Data: map[string][]byte{constants.ClusterNameData: []byte("cluster1"), mcconstants.KubeconfigKey: []byte("kubeconfig")},
 }
+
+const managedPrometheusHost = "prometheus"
+const managedThanosQueryHost = "thanos.example.com"
 
 // TestProcessAgentThreadNoProjects tests agent thread when no projects exist
 // GIVEN a request to process the agent loop
@@ -74,6 +77,7 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 	vmcName := types.NamespacedName{Name: string(validSecret.Data[constants.ClusterNameData]), Namespace: constants.VerrazzanoMultiClusterNamespace}
 	expectGetAPIServerURLCalled(mcMock)
 	expectGetPrometheusHostCalled(mcMock)
+	expectGetThanosQueryHostCalled(mcMock)
 	expectAdminVMCStatusUpdateSuccess(adminMock, vmcName, adminStatusMock, assert)
 
 	// Admin Cluster - expect call to list VerrazzanoProject objects - return an empty list
@@ -404,6 +408,7 @@ func TestSyncer_updateVMCStatus(t *testing.T) {
 
 	expectGetAPIServerURLCalled(localClientMock)
 	expectGetPrometheusHostCalled(localClientMock)
+	expectGetThanosQueryHostCalled(localClientMock)
 	// Mock the success of status updates and assert that updateVMCStatus returns nil error
 	expectAdminVMCStatusUpdateSuccess(adminMock, vmcName, adminStatusMock, assert)
 	assert.Nil(s.updateVMCStatus())
@@ -435,8 +440,19 @@ func expectGetAPIServerURLCalled(mock *mocks.MockClient) {
 
 func expectGetPrometheusHostCalled(mock *mocks.MockClient) {
 	// Expect a call to get the prometheus ingress and return the host.
+	expectGetIngress(mock, constants.VerrazzanoSystemNamespace, constants.VzPrometheusIngress, managedPrometheusHost)
+}
+
+func expectGetThanosQueryHostCalled(mock *mocks.MockClient) {
+	// Expect a call to get the Thanos query ingress and return the host.
+	expectGetIngress(mock, constants.VerrazzanoSystemNamespace, vzconstants.ThanosQueryIngress, managedThanosQueryHost)
+}
+
+// Expects a call to get an ingress with the given name and namespace, and returns an ingress with the specified
+// ingressHost
+func expectGetIngress(mock *mocks.MockClient, ingressNamespace string, ingressName string, ingressHost string) {
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzPrometheusIngress}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: ingressNamespace, Name: ingressName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *networkingv1.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "networking.k8s.io/v1",
@@ -445,7 +461,7 @@ func expectGetPrometheusHostCalled(mock *mocks.MockClient) {
 				Namespace: name.Namespace,
 				Name:      name.Name}
 			ingress.Spec.Rules = []networkingv1.IngressRule{{
-				Host: "prometheus",
+				Host: ingressHost,
 			}}
 			return nil
 		})

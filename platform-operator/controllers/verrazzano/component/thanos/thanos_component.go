@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -116,7 +117,7 @@ func (t thanosComponent) GetIngressNames(ctx spi.ComponentContext) []types.Names
 	}
 	ingressNames = append(ingressNames, types.NamespacedName{
 		Namespace: ns,
-		Name:      constants.ThanosQueryIngress,
+		Name:      vzconst.ThanosQueryIngress,
 	})
 	return append(ingressNames, types.NamespacedName{
 		Namespace: ns,
