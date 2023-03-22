@@ -216,7 +216,7 @@ pipeline {
                 always {
                     archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
                     // enable debug logging of Verrazzano api istio proxy
-                    script {
+                    // script {
                         // if (params.ENABLE_API_ENVOY_LOGGING) {
                         //     sh '''
                         //         vz_api_pod=\$(kubectl get pod -n verrazzano-system -l app=verrazzano-authproxy --no-headers -o custom-columns=\":metadata.name\")
@@ -233,7 +233,7 @@ pipeline {
                         //         fi
                         //     '''
                         // }
-                    }
+                    // }
                 }
             }
         }
