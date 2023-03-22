@@ -61,6 +61,7 @@ console:
 api:
   name: verrazzano-authproxy
   port: 8775
+  grpcPort: 8776
 
 config:
   envName:
