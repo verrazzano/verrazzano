@@ -90,7 +90,6 @@ else
   TARGET_OPERATOR_FILE=${OPERATOR_YAML}
 fi
 
-TODO: UNCOMMENT below snippet
 VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
 echo "Downloading VZ CLI from object storage"
 if [[ -z "$OCI_OS_LOCATION" ]]; then
@@ -159,11 +158,7 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Installing Verrazzano on Kind"
-if [[ -n "${INSTALLATION_PROFILE}" ]]; then
-  echo "Installing verrazzano on kind with installation profile: ${INSTALLATION_PROFILE}"
-  cd $WORKSPACE
-  ./vz install --timeout ${INSTALL_TIMEOUT_VALUE} --set profile=${INSTALLATION_PROFILE}
-elif [ -f "$WORKSPACE/vz" ]; then
+if [ -f "$WORKSPACE/vz" ]; then
   cd $WORKSPACE
   ./vz install --filename ${WORKSPACE}/acceptance-test-config.yaml --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
 else
