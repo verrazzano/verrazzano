@@ -62,14 +62,41 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	}
 
-	t.Logs.Info("WebLogic Application: check expected admin/managed server pods are running")
+	t.Logs.Info("WebLogic Application: check expected admin server pod is running")
 	Eventually(func() bool {
-		result, err := pkg.PodsRunning(namespace, expectedPods)
+		result, err := pkg.PodsRunning(namespace, []string{wlsAdminServer})
 		if err != nil {
-			AbortSuite(fmt.Sprintf("WebLogic admin/managed server pod is not running in the namespace: %v, error: %v", namespace, err))
+			AbortSuite(fmt.Sprintf("WebLogic admin server pod is not running in the namespace: %v, error: %v", namespace, err))
 		}
 		return result
 	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: Admin server pod is not ready")
+
+	t.Logs.Info("WebLogic Application: check expected managed server pod is running")
+	Eventually(func() bool {
+		result, err := pkg.PodsRunning(namespace, []string{wlsManagedServer1})
+		if err != nil {
+			AbortSuite(fmt.Sprintf("WebLogic managed server pod is not running in the namespace: %v, error: %v", namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: Managed server pod is not ready")
+
+	t.Logs.Info("WebLogic Application: check expected admin service is running")
+	Eventually(func() bool {
+		result, err := pkg.DoesServiceExist(namespace, wlsAdminServer)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Admin Service %s is not running in the namespace: %v, error: %v", wlsAdminServer, namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: Admin service is not running")
+
+	t.Logs.Info("WebLogic Application: check expected managed service is running")
+	Eventually(func() bool {
+		result, err := pkg.DoesServiceExist(namespace, wlsManagedServer1)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Managed Service %s is not running in the namespace: %v, error: %v", wlsManagedServer1, namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: Managed service is not running")
 
 	t.Logs.Info("WebLogic Application: check expected VirtualService is ready")
 	Eventually(func() bool {
