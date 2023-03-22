@@ -69,6 +69,9 @@ data:
 
     -- determine backend and set backend parameters
     local backend, can_redirect = auth.getBackendNameFromIngressHost(ingressHost)
+    if backend == "console" then
+        ingressHost = os.getenv("VZ_CONSOLE_HOST")
+    end
     local backendUrl = auth.getBackedServerURLFromIngressHost(ingressHost)
     -- CORS handling
     local h, _ = ngx.req.get_headers()["origin"]
