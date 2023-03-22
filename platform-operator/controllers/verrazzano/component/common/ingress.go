@@ -101,7 +101,7 @@ func CreateOrUpdateSystemComponentIngress(ctx spi.ComponentContext, props Ingres
 		ingress.Annotations = vzmap.UnionStringMaps(ingress.Annotations, props.ExtraAnnotations)
 		return nil
 	})
-	if ctrlerrors.ShouldLogKubenetesAPIError(err) {
+	if ctrlerrors.ShouldLogKubernetesAPIError(err) {
 		return ctx.Log().ErrorfNewErr("Failed creating/updating ingress %s: %v", props.IngressName, err)
 	}
 	return err

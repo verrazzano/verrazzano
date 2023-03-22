@@ -34,7 +34,8 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
 spec:
   ingress:
-    # allow thanos-query-frontend to forward requests to thanos-query
+    # allow thanos-query-frontend to forward requests to thanos-query and
+    # thanos-query to talk to thanos-storegateway
     - from:
         - namespaceSelector:
             matchLabels:
@@ -48,6 +49,9 @@ spec:
       ports:
         # web ui port
         - port: 10902
+          protocol: TCP
+        # storegateway API endpoint
+        - port: 10901
           protocol: TCP
   podSelector:
     matchLabels:
