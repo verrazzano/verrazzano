@@ -31,10 +31,6 @@ pipeline {
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
                         trim: true)
-        string(name: 'Installation_Profile',
-                defaultValue: 'none',
-                description: 'Verrazzano installation profile',
-                trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                         defaultValue: 'NONE',
                         description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from Verrazzano repo will be used to create Verrazzano platform operator',
@@ -198,6 +194,7 @@ pipeline {
             }
             steps {
                 sh """
+                    cp ${env.INSTALL_CONFIG_FILE_KIND_TESTS} ${env.INSTALL_CONFIG_FILE_KIND}
                     cd ${GO_REPO_PATH}/verrazzano
                     ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN} ${params.USE_DB_FOR_GRAFANA}
                 """
