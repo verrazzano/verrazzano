@@ -90,13 +90,14 @@ else
   TARGET_OPERATOR_FILE=${OPERATOR_YAML}
 fi
 
-VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
-echo "Downloading VZ CLI from object storage"
-if [[ -z "$OCI_OS_LOCATION" ]]; then
-  OCI_OS_LOCATION="$BRANCH_NAME/$(git rev-parse --short=8 HEAD)"
-fi
-oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${OCI_OS_LOCATION}/$VZ_CLI_TARGZ --file ${WORKSPACE}/$VZ_CLI_TARGZ
-tar xzf "$WORKSPACE"/$VZ_CLI_TARGZ -C "$WORKSPACE"
+# TODO: UNCOMMENT below snippet
+# VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
+# echo "Downloading VZ CLI from object storage"
+# if [[ -z "$OCI_OS_LOCATION" ]]; then
+#   OCI_OS_LOCATION="$BRANCH_NAME/$(git rev-parse --short=8 HEAD)"
+# fi
+# oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${OCI_OS_LOCATION}/$VZ_CLI_TARGZ --file ${WORKSPACE}/$VZ_CLI_TARGZ
+# tar xzf "$WORKSPACE"/$VZ_CLI_TARGZ -C "$WORKSPACE"
 
 # Create the verrazzano-install namespace
 kubectl create namespace verrazzano-install
@@ -158,7 +159,8 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Installing Verrazzano on Kind"
-if [[ -z "${INSTALLATION_PROFILE}" ]]; then
+if [[ -n "${INSTALLATION_PROFILE}" ]]; then
+  echo "Installing verrazzano on kind with installation profile: ${INSTALLATION_PROFILE}"
   cd $WORKSPACE
   ./vz install --timeout ${INSTALL_TIMEOUT_VALUE} --set profile=${INSTALLATION_PROFILE}
 elif [ -f "$WORKSPACE/vz" ]; then
