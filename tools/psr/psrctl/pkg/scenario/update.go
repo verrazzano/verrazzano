@@ -65,9 +65,9 @@ func (m ScenarioMananger) doHelmUpgrade(manifestMan manifest.ManifestManager, sc
 	if m.Verbose {
 		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Updating use case %s for Helm release %s/%s\n", hr.Usecase.UsecasePath, hr.Namespace, hr.Name))
 	}
-	_, stderr, err := UpdateUpgradeFunc(m.Log, hr.Name, m.Namespace, manifestMan.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
+	err = UpdateUpgradeFunc(m.Log, hr.Name, m.Namespace, manifestMan.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
 	if err != nil {
-		return string(stderr), err
+		return err.Error(), err
 	}
 	return "", nil
 }

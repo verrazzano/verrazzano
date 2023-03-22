@@ -68,9 +68,9 @@ func (m ScenarioMananger) StartScenario(manifestMan manifest.ManifestManager, sc
 		if m.Verbose {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Installing use case %s as Helm release %s/%s\n", uc.UsecasePath, m.Namespace, relname)
 		}
-		_, stderr, err := StartUpgradeFunc(m.Log, relname, m.Namespace, manifestMan.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
+		err = StartUpgradeFunc(m.Log, relname, m.Namespace, manifestMan.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
 		if err != nil {
-			return string(stderr), err
+			return err.Error(), err
 		}
 
 		// Save the HelmRelease info

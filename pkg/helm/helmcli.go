@@ -103,27 +103,27 @@ func GetValues(log vzlog.VerrazzanoLogger, releaseName string, namespace string)
 
 // Upgrade will upgrade a Helm helmRelease with the specified charts.  The override files array
 // are in order with the first files in the array have lower precedence than latter files.
-func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []HelmOverrides) (stdout []byte, stderr []byte, e error) {
+func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []HelmOverrides) (e error) {
 	settings := cli.New()
 	settings.SetNamespace(namespace)
 	actionConfig, err := actionConfigFn(log, settings, namespace)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	p := getter.All(settings)
 	vals, err := mergeValues(overrides, p)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 	// load chart from the path
 	chart, err := loadChartFn(chartDir)
 	if err != nil {
-		return nil, []byte(fmt.Sprintf("Could not load chart from directory %s", chartDir)), err
+		return err
 	}
 	installed, err := IsReleaseInstalled(releaseName, namespace)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	var rel *release.Release
@@ -135,7 +135,9 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 
 		rel, err = client.Run(releaseName, chart, vals)
 		if err != nil {
-			return nil, []byte(err.Error()), err
+			log.Errorf("Failed running Helm command for release %s",
+				releaseName)
+			return err
 		}
 	} else {
 		client := action.NewInstall(actionConfig)
@@ -145,13 +147,15 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 
 		rel, err = client.Run(chart, vals)
 		if err != nil {
-			return nil, []byte(err.Error()), err
+			log.Errorf("Failed running Helm command for release %s",
+				releaseName)
+			return err
 		}
 	}
 
 	log.Infof("Helm upgraded/installed %s in namespace %s", rel.Name, rel.Namespace)
 
-	return []byte(rel.Info.Description), nil, nil
+	return nil
 }
 
 // Uninstall will uninstall the helmRelease in the specified namespace  using helm uninstall

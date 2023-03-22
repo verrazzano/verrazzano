@@ -82,12 +82,12 @@ Usecases:
 	}
 
 	defer func() { scenario.UpdateUpgradeFunc = helmcli.Upgrade }()
-	scenario.UpdateUpgradeFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+	scenario.UpdateUpgradeFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (err error) {
 		assert.Equal(t, 3, len(overrides))
 		assert.Equal(t, "psr-ops-s1-writelogs-0", releaseName)
 		assert.Equal(t, "psr", namespace)
 		assert.Contains(t, chartDir, "manifests/charts/worker")
-		return nil, nil, nil
+		return nil
 	}
 
 	// Send the command output to a byte buffer

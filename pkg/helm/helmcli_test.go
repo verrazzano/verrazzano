@@ -124,10 +124,8 @@ func TestUpgrade(t *testing.T) {
 	})
 	defer SetDefaultLoadChartFunction()
 
-	stdout, stderr, err := Upgrade(vzlog.DefaultLogger(), helmRelease, ns, chartdir, false, false, overrides)
+	err := Upgrade(vzlog.DefaultLogger(), helmRelease, ns, chartdir, false, false, overrides)
 	assertion.NoError(err, "Upgrade returned an error")
-	assertion.Len(stderr, 0, "Upgrade stderr should be empty")
-	assertion.NotZero(stdout, "Upgrade stdout should not be empty")
 }
 
 // TestUpgradeFail tests the Helm upgrade command failure condition
@@ -143,10 +141,8 @@ func TestUpgradeFail(t *testing.T) {
 	defer SetDefaultActionConfigFunction()
 	// no chart load function should generate an error
 
-	stdout, stderr, err := Upgrade(vzlog.DefaultLogger(), helmRelease, ns, "", false, false, overrides)
+	err := Upgrade(vzlog.DefaultLogger(), helmRelease, ns, "", false, false, overrides)
 	assertion.Error(err, "Upgrade should have returned an error")
-	assertion.Len(stdout, 0, "Upgrade stdout should be empty")
-	assertion.NotZero(stderr, "Upgrade stderr should not be empty")
 }
 
 // TestUninstall tests the Helm Uninstall fn
