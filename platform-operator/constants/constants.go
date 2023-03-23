@@ -93,7 +93,7 @@ const KibanaIngress = "vmi-system-kibana"
 const PrometheusIngress = "vmi-system-prometheus"
 
 // ThanosSidecarIngress is the name of the ingress for the Thanos sidecar
-const ThanosSidecarIngress = "thanos-sidecar"
+const ThanosSidecarIngress = "prometheus-operator-kube-p-thanos-gateway"
 
 // GlobalImagePullSecName is the name of the global image pull secret
 const GlobalImagePullSecName = "verrazzano-container-registry"
