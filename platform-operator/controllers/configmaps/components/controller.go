@@ -145,7 +145,7 @@ func (r *ComponentConfigMapReconciler) processComponent(ctx spi.ComponentContext
 		}
 		ctx.Log().Infof("Successfully uninstalled dev component %s", comp.ReleaseName)
 
-		// remove finalizer to delete te component
+		// remove finalizer to delete the component
 		controllerutil.RemoveFinalizer(configMap, constants.DevComponentFinalizer)
 		err := r.Update(context.TODO(), configMap)
 		if err != nil {
@@ -165,7 +165,7 @@ func (r *ComponentConfigMapReconciler) processComponent(ctx spi.ComponentContext
 			return newRequeueWithDelay(), err
 		}
 		ctx.Log().Infof("Successfully added finalizer %s to configmap %s for dev component", constants.DevComponentFinalizer, configMap.Name, comp.ReleaseName)
-		// adding finalizer to ConfigMap will
+		// adding finalizer to ConfigMap will trigger a requeue so no need to requeue here
 		return reconcile.Result{}, nil
 	}
 
