@@ -140,6 +140,11 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
+	// Create secret for the verrazzano-thanos-internal user
+	err = createAuthSecret(ctx, constants.VerrazzanoMonitoringNamespace, "verrazzano-thanos-internal", "verrazzano-thanos-internal")
+	if err != nil {
+		return err
+	}
 
 	// Create secret for the verrazzano-es-internal user
 	err = createAuthSecret(ctx, constants.VerrazzanoSystemNamespace, "verrazzano-es-internal", "verrazzano-es-internal")

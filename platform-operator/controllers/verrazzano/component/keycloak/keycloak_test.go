@@ -609,6 +609,15 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 				},
 				&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano-thanos-internal",
+						Namespace: "verrazzano-monitoring",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "verrazzano-es-internal",
 						Namespace: "verrazzano-system",
 					},
@@ -644,6 +653,15 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 				},
 				&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano-thanos-internal",
+						Namespace: "verrazzano-monitoring",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "verrazzano-es-internal",
 						Namespace: "verrazzano-system",
 					},
@@ -672,6 +690,15 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "verrazzano-prom-internal",
 						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano-thanos-internal",
+						Namespace: "verrazzano-monitoring",
 					},
 					Data: map[string][]byte{
 						"password": []byte("blah di blah"),
