@@ -353,14 +353,14 @@ func TestPostUpgrade(t *testing.T) {
 	a.NoError(err, "PostUpgrade returned an error")
 }
 
-func fakeHelmUninstall(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
+func fakeHelmUninstall(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (err error) {
 	if releaseName != "istiocoredns" {
-		return []byte("error"), []byte(""), fmt.Errorf("expected release name istiocoredns does not match provided release name of %v", releaseName)
+		return fmt.Errorf("expected release name istiocoredns does not match provided release name of %v", releaseName)
 	}
 	if releaseName != "istio-system" {
-		return []byte("error"), []byte(""), fmt.Errorf("expected namespace istio-system does not match provided namespace of %v", namespace)
+		return fmt.Errorf("expected namespace istio-system does not match provided namespace of %v", namespace)
 	}
-	return []byte("success"), []byte(""), nil
+	return nil
 }
 
 func getMock(t *testing.T) *mocks.MockClient {

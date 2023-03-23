@@ -144,6 +144,7 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 		client.Namespace = namespace
 		client.ReleaseName = releaseName
 		client.DryRun = dryRun
+		client.Replace = true
 
 		rel, err = client.Run(chart, vals)
 		if err != nil {
@@ -159,23 +160,24 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 }
 
 // Uninstall will uninstall the helmRelease in the specified namespace  using helm uninstall
-func Uninstall(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
+func Uninstall(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (err error) {
 	settings := cli.New()
 	settings.SetNamespace(namespace)
 	actionConfig, err := actionConfigFn(log, settings, namespace)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	client := action.NewUninstall(actionConfig)
 	client.DryRun = dryRun
 
-	resp, err := client.Run(releaseName)
+	_, err = client.Run(releaseName)
 	if err != nil {
-		return nil, []byte(err.Error()), err
+		log.Errorf("Error uninstalling release %s: %s", releaseName, err.Error())
+		return err
 	}
 
-	return []byte(resp.Release.Info.Description), nil, nil
+	return nil
 }
 
 // maskSensitiveData replaces sensitive data in a string with mask characters.
@@ -209,7 +211,7 @@ func IsReleaseDeployed(releaseName string, namespace string) (found bool, err er
 	log := zap.S()
 	releaseStatus, err := getChartStatus(releaseName, namespace)
 	if err != nil {
-		log.Errorf("Getting status for chart %s/%s failed with stderr: %v\n", namespace, releaseName, err)
+		log.Errorf("Getting status for chart %s/%s failed with error: %v\n", namespace, releaseName, err)
 		return false, err
 	}
 	switch releaseStatus {
@@ -380,7 +382,7 @@ func getReleases(namespace string) ([]*release.Release, error) {
 
 func getActionConfig(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), log.Infof); err != nil {
+	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), log.Progressf); err != nil {
 		return nil, err
 	}
 	return actionConfig, nil

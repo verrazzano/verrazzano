@@ -418,9 +418,9 @@ func (h HelmComponent) Uninstall(context spi.ComponentContext) error {
 		context.Log().Infof("%s already uninstalled", h.Name())
 		return nil
 	}
-	_, stderr, err := helm.Uninstall(context.Log(), h.ReleaseName, h.resolveNamespace(context), context.IsDryRun())
+	err = helm.Uninstall(context.Log(), h.ReleaseName, h.resolveNamespace(context), context.IsDryRun())
 	if err != nil {
-		context.Log().Errorf("Error uninstalling %s, error: %s, stderr: %s", h.Name(), err.Error(), stderr)
+		context.Log().Errorf("Error uninstalling %s, error: %s", h.Name(), err.Error())
 		return err
 	}
 	return nil

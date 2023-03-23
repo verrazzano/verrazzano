@@ -45,10 +45,10 @@ func RunCmdStop(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	}
 
 	fmt.Fprintf(vzHelper.GetOutputStream(), "Stopping scenario %s\n", scenarioID)
-	msg, err := scenarioMan.StopScenarioByID(scenarioID, vzHelper)
+	err = scenarioMan.StopScenarioByID(scenarioID, vzHelper)
 	if err != nil {
 		// Cobra will display failure message
-		return fmt.Errorf("Failed to stop scenario %s/%s: %v\n%s", namespace, scenarioID, err, msg)
+		return fmt.Errorf("Failed to stop scenario %s/%s: %v", namespace, scenarioID, err)
 	}
 	fmt.Fprintf(vzHelper.GetOutputStream(), "Scenario %s successfully stopped\n", scenarioID)
 

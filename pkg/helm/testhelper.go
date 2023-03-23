@@ -29,9 +29,7 @@ func CreateActionConfig(includeRelease bool, releaseName string, releaseStatus r
 		KubeClient:     &fake.FailingKubeClient{PrintingKubeClient: fake.PrintingKubeClient{Out: io.Discard}},
 		Capabilities:   chartutil.DefaultCapabilities,
 		RegistryClient: registryClient,
-		Log: func(format string, v ...interface{}) {
-			log.Infof(format, v...)
-		},
+		Log:            log.Infof,
 	}
 	if includeRelease {
 		testRelease := createReleaseFn(releaseName, releaseStatus)

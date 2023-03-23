@@ -81,11 +81,11 @@ Usecases:
 	}
 
 	defer func() { scenario.UninstallFunc = helmcli.Uninstall }()
-	scenario.UninstallFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
+	scenario.UninstallFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (err error) {
 		assert.Equal(t, "psr-ops-s1-writelogs-0", releaseName)
 		assert.Equal(t, "psr", namespace)
 
-		return nil, nil, nil
+		return nil
 	}
 
 	// Send the command output to a byte buffer
