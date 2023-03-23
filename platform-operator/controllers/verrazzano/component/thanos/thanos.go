@@ -5,7 +5,6 @@ package thanos
 
 import (
 	"fmt"
-	netv1 "k8s.io/api/networking/v1"
 	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -17,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -55,17 +55,11 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 
 	image, err := bomFile.BuildImageOverrides(ComponentName)
 	if err != nil {
-		return kvs, err
+		return kvs, ctx.Log().ErrorfNewErr("Failed to build Thanos image overrides from the Verrazzano BOM: %d", err)
 	}
 	kvs = append(kvs, image...)
 
-	ingresses, err := appendIngressOverrides(ctx, kvs)
-	if err != nil {
-		return kvs, err
-	}
-	kvs = append(kvs, ingresses...)
-
-	return kvs, nil
+	return appendIngressOverrides(ctx, kvs)
 }
 
 // preInstallUpgrade handles pre-install and pre-upgrade processing for the Thanos Component
