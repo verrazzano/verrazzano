@@ -224,6 +224,12 @@ spec:
                     prefix: wls_jvm_
                     key: name
           serverPod:
+            annotations:
+              sidecar.istio.io/logLevel: debug
+            readinessProbe:
+              periodSeconds: 60
+              timeoutSeconds: 60
+              failureThreshold: 3
             labels:
               app: bobbys-front-end
               version: v1
@@ -482,6 +488,12 @@ spec:
                     prefix: wls_jvm_
                     key: name
           serverPod:
+            annotations:
+              sidecar.istio.io/logLevel: debug
+            readinessProbe:
+              periodSeconds: 60
+              timeoutSeconds: 60
+              failureThreshold: 3
             labels:
               app: bobs-bookstore
               version: v1
