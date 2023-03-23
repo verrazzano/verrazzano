@@ -461,7 +461,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 
 // PreUninstall - prepare for Rancher uninstall
 func (r rancherComponent) PreUninstall(ctx spi.ComponentContext) error {
-	return preUninstall(ctx, r.monitor)
+	return preUninstall()
 }
 
 // PostUninstall handles the deletion of all Rancher resources after the Helm uninstall

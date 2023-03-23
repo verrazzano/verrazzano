@@ -28,8 +28,8 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -92,7 +92,7 @@ func setCleanupJobYamlPath(path string) {
 }
 
 // preUninstall - prepare for Rancher uninstall
-func preUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
+func preUninstall() error {
 	rancherFinalizersDeleted = false
 	return nil
 }
@@ -207,9 +207,12 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 
 // runCleanupJob - run the rancher-cleanup job
 func runCleanupJob(ctx spi.ComponentContext) error {
+	k8sClient, err := k8sutil.GetGoClient(ctx.Log())
+	if err != nil {
+		return err
+	}
 	// Create the rancher-cleanup job if it does not already exist
-	job := &batchv1.Job{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: rancherCleanupJobNamespace, Name: rancherCleanupJobName}, job)
+	job, err := k8sClient.BatchV1().Jobs(rancherCleanupJobNamespace).Get(context.TODO(), rancherCleanupJobName, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			ctx.Log().Infof("Component %s created cleanup job %s/%s", ComponentName, rancherCleanupJobNamespace, rancherCleanupJobName)
