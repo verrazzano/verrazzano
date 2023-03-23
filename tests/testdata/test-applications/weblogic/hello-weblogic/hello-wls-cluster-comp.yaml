@@ -38,6 +38,12 @@ spec:
               domainType: WLS
               runtimeEncryptionSecret: hellodomain-runtime-encrypt-secret
           serverPod:
+            annotations:
+              sidecar.istio.io/logLevel: debug
+            readinessProbe:
+              periodSeconds: 60
+              timeoutSeconds: 60
+              failureThreshold: 3
             labels:
               app: hello-domain
               version: v1
