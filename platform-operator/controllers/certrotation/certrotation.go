@@ -18,7 +18,7 @@ const (
 	controllerName     = "CertificateRotationManager"
 	channelBufferSize  = 100
 	componentNamespace = constants.VerrazzanoInstallNamespace
-	componentName      = "certificatewatcher"
+	componentName      = "certrotation"
 )
 
 // CertificateRotationManager periodically checks the expiry of Certs.
