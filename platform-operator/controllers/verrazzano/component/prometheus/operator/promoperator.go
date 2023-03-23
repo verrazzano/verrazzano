@@ -128,7 +128,7 @@ func postInstallUpgrade(ctx spi.ComponentContext) error {
 	if err := updateApplicationAuthorizationPolicies(ctx); err != nil {
 		return err
 	}
-	if err := createOrUpdateIngresses(ctx); err != nil {
+	if err := createOrUpdateIngress(ctx); err != nil {
 		return err
 	}
 	if err := createOrUpdatePrometheusAuthPolicy(ctx); err != nil {
@@ -419,6 +419,13 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 }
 
 func appendThanosSidecarIngressOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	// If NGINX is disabled, prevent the ingress from being created
+	if !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
+		return append(kvs, []bom.KeyValue{
+			{Key: "prometheus.ThanosIngress.enabled", Value: "false"},
+		}...), nil
+	}
+
 	prefix := "prometheus.ThanosIngress"
 	ingressClassName := vzconfig.GetIngressClassName(ctx.EffectiveCR())
 	dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
@@ -741,8 +748,8 @@ func createOrUpdateServiceMonitors(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// create or update ingresses creates ingresses for each of the Prometheus endpoints
-func createOrUpdateIngresses(ctx spi.ComponentContext) error {
+// createOrUpdateIngress creates ingress for the Prometheus endpoint
+func createOrUpdateIngress(ctx spi.ComponentContext) error {
 	// If NGINX is not enabled, skip the ingress creation
 	if !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
 		return nil
@@ -754,28 +761,7 @@ func createOrUpdateIngresses(ctx spi.ComponentContext) error {
 		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
 		ExtraAnnotations: common.SameSiteCookieAnnotations(prometheusName),
 	}
-	if err := common.CreateOrUpdateSystemComponentIngress(ctx, promProps); err != nil {
-		return err
-	}
-
-	// Only create the Thanos Ingress if it is enabled in the Prometheus Spec
-	thanosEnabled, err := isThanosEnabled(ctx)
-	if err != nil {
-		return err
-	}
-	// Delete the existing ingress if the sidecar becomes disabled
-	if !thanosEnabled {
-		return common.DeleteSystemComponentIngress(ctx, constants.ThanosSidecarIngress)
-	}
-
-	thanosProps := common.IngressProperties{
-		IngressName:   constants.ThanosSidecarIngress,
-		HostName:      thanosHostName,
-		TLSSecretName: thanosCertificateName,
-		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
-		ExtraAnnotations: common.SameSiteCookieAnnotations(thanosHostName),
-	}
-	return common.CreateOrUpdateSystemComponentIngress(ctx, thanosProps)
+	return common.CreateOrUpdateSystemComponentIngress(ctx, promProps)
 }
 
 // isThanosEnabled checks to see if the Thanos section of the Prometheus spec is populated

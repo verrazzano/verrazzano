@@ -1,4 +1,4 @@
-{{- if and .Values.prometheus.enabled .Values.prometheus.thanosIngress.enabled }}
+{{- if and .Values.prometheus.enabled .Values.prometheus.thanosIngress.enabled (eq .Values.prometheus.thanos.integration "sidecar") }}
 {{- $pathType := .Values.prometheus.thanosIngress.pathType | default "" }}
 {{- $serviceName := printf "%s-%s" (include "kube-prometheus-stack.fullname" .) "prometheus" }}
 {{- $thanosPort := .Values.prometheus.thanosIngress.servicePort -}}

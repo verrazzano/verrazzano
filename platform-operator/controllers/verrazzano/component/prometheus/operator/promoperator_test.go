@@ -155,7 +155,21 @@ func TestAppendOverrides(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer config.SetDefaultBomFilePath(oldBomPath)
 
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{Name: constants.NGINXControllerServiceName, Namespace: vzconst.IngressNamespace},
+		Spec: corev1.ServiceSpec{
+			Type: corev1.ServiceTypeLoadBalancer,
+		},
+		Status: corev1.ServiceStatus{
+			LoadBalancer: corev1.LoadBalancerStatus{
+				Ingress: []corev1.LoadBalancerIngress{
+					{IP: "11.22.33.44"},
+				},
+			},
+		},
+	}
+
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(service).Build()
 	kvs := make([]bom.KeyValue, 0)
 
 	// GIVEN a Verrazzano CR with the CertManager component enabled
@@ -180,7 +194,7 @@ func TestAppendOverrides(t *testing.T) {
 	var err error
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 27)
+	assert.Len(t, kvs, 36)
 
 	assert.Equal(t, "ghcr.io/verrazzano/prometheus-config-reloader", bom.FindKV(kvs, "prometheusOperator.prometheusConfigReloader.image.repository"))
 	assert.NotEmpty(t, bom.FindKV(kvs, "prometheusOperator.prometheusConfigReloader.image.tag"))
@@ -216,7 +230,7 @@ func TestAppendOverrides(t *testing.T) {
 
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 27)
+	assert.Len(t, kvs, 36)
 
 	assert.Equal(t, "false", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"))
 
@@ -238,7 +252,7 @@ func TestAppendOverrides(t *testing.T) {
 
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 13)
+	assert.Len(t, kvs, 22)
 
 	assert.Equal(t, "false", bom.FindKV(kvs, "prometheus.enabled"))
 }
