@@ -256,3 +256,6 @@ const ServiceMonitorNameKubelet = "prometheus-operator-kube-p-kubelet"
 
 // ServiceMonitorNameKubeStateMetrics indicates the name of serviceMonitor resource for kube-state-metrics monitoring
 const ServiceMonitorNameKubeStateMetrics = "kube-state-metrics"
+
+// VerrazzanoPlatformOperatorWebhook indicate the name of VPO webhook deployment name
+const VerrazzanoPlatformOperatorWebhook = "verrazzano-platform-operator-webhook"

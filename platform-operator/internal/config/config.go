@@ -83,24 +83,24 @@ type OperatorConfig struct {
 	// DryRun Run installs in a dry-run mode
 	DryRun bool
 
-	// CertificateWatcherPeriodHours period for Certificate Watcher to validate certs validity.
-	CertificateWatcherPeriodHours int64
+	// CertificateExpiryCheckPeriodHours period for Certificate Watcher to validate certs validity.
+	CertificateExpiryCheckPeriodHours int64
 }
 
 // The singleton instance of the operator config
 var instance = OperatorConfig{
-	CertDir:                       "/etc/webhook/certs",
-	MetricsAddr:                   ":8080",
-	LeaderElectionEnabled:         false,
-	VersionCheckEnabled:           true,
-	RunWebhookInit:                false,
-	RunWebhooks:                   false,
-	WebhookValidationEnabled:      true,
-	VerrazzanoRootDir:             rootDir,
-	HealthCheckPeriodSeconds:      60,
-	MySQLCheckPeriodSeconds:       60,
-	MySQLRepairTimeoutSeconds:     120,
-	CertificateWatcherPeriodHours: 168, //run every week only to validate the verrazzano certificates
+	CertDir:                           "/etc/webhook/certs",
+	MetricsAddr:                       ":8080",
+	LeaderElectionEnabled:             false,
+	VersionCheckEnabled:               true,
+	RunWebhookInit:                    false,
+	RunWebhooks:                       false,
+	WebhookValidationEnabled:          true,
+	VerrazzanoRootDir:                 rootDir,
+	HealthCheckPeriodSeconds:          60,
+	MySQLCheckPeriodSeconds:           60,
+	MySQLRepairTimeoutSeconds:         120,
+	CertificateExpiryCheckPeriodHours: 168, //run every week only to validate the verrazzano certificates
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests
