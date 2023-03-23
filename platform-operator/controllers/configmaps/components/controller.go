@@ -152,7 +152,7 @@ func (r *ComponentConfigMapReconciler) processComponent(ctx spi.ComponentContext
 			return newRequeueWithDelay(), err
 		}
 		ctx.Log().Infof("dev component %s has been successfully deleted", comp.ReleaseName)
-		return reconcile.Result{}, nil
+		return reconcile.Result{Requeue: true}, nil
 	}
 
 	// Check if our finalizer is already present and add it if not
@@ -164,7 +164,8 @@ func (r *ComponentConfigMapReconciler) processComponent(ctx spi.ComponentContext
 			return newRequeueWithDelay(), err
 		}
 		ctx.Log().Infof("Successfully added finalizer %s to configmap %s for dev component", constants.DevComponentFinalizer, configMap.Name, comp.ReleaseName)
-		return newRequeueWithDelay(), nil
+		// adding finalizer to ConfigMap will
+		return reconcile.Result{}, nil
 	}
 
 	// if the release has not been installed, install it
