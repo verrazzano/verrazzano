@@ -453,7 +453,7 @@ cainjector:
 # due to the Job never being completed because the sidecar proxy does not exit.
 # See https://github.com/cert-manager/cert-manager/pull/4414 for context.
 startupapicheck:
-  enabled: false
+  enabled: true
 
   # Pod Security Context to be set on the startupapicheck component Pod
   # ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
