@@ -2,7 +2,6 @@
 Fixed:
 
 - Fixed the cert-manager startupapicheck job to pull image from ghcr.io and not quay.io.
-- Fixed an upgrade failure calling a validation webhook when upgrading from v1.5.0.  This failure occurred when using v1.4.n of the vz CLI.
 
 ### v1.5.2
 Component version updates:
