@@ -72,12 +72,6 @@
               "tag": "v1.9.1-20230209063813-3a732e40",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
-            },
-            {
-              "image": "cert-manager-kubectl",
-              "tag": "v1.9.1-20230209063813-3a732e40",
-              "helmFullImageKey": "startupapicheck.image.repository",
-              "helmTagKey": "startupapicheck.image.tag"
             }
           ]
         }

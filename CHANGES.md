@@ -1,7 +1,7 @@
 ### v1.5.3
 Fixed:
 
-- Fixed the cert-manager startupapicheck job to pull image from ghcr.io and not quay.io.
+- Disabled the startupapicheck job in cert-manager startup.
 
 ### v1.5.2
 Component version updates:
