@@ -25,6 +25,7 @@ data:
   VZ_ELASTICSEARCH_HOST: elasticsearch.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
   VZ_ELASTICSEARCH_BACKEND_URL: "http://vmi-system-os-ingest.verrazzano-system.svc.cluster.local:9200"
   VZ_OPENSEARCH_HOST: opensearch.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
+  VZ_OPENSEARCH_HTTPS_HOST: opensearch.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}:443
   VZ_OPENSEARCH_BACKEND_URL: "http://vmi-system-os-ingest.verrazzano-system.svc.cluster.local:9200"
   VZ_OSD_HOST: osd.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
   VZ_OSD_BACKEND_URL: "http://vmi-system-osd.verrazzano-system.svc.cluster.local:5601"
@@ -547,6 +548,7 @@ data:
         me.setTableValue(ingressServiceTable, os.getenv("VZ_OSD_HOST"), os.getenv("VZ_OSD_BACKEND_URL"))
         me.setTableValue(ingressServiceTable, os.getenv("VZ_ELASTICSEARCH_HOST"), os.getenv("VZ_ELASTICSEARCH_BACKEND_URL"))
         me.setTableValue(ingressServiceTable, os.getenv("VZ_OPENSEARCH_HOST"), os.getenv("VZ_OPENSEARCH_BACKEND_URL"))
+        me.setTableValue(ingressServiceTable, os.getenv("VZ_OPENSEARCH_HTTPS_HOST"), os.getenv("VZ_OPENSEARCH_BACKEND_URL"))
         me.setTableValue(ingressServiceTable, os.getenv("VZ_AUTHPROXY_OPENSEARCH_HOST"), os.getenv("VZ_AUTHPROXY_OPENSEARCH_BACKEND_URL"))
         me.setTableValue(ingressServiceTable, os.getenv("VZ_AUTHPROXY_OPENSEARCH_NS_HOST"), os.getenv("VZ_AUTHPROXY_OPENSEARCH_BACKEND_URL"))
         me.setTableValue(ingressServiceTable, os.getenv("VZ_KIALI_HOST"), os.getenv("VZ_KIALI_BACKEND_URL"))
@@ -1308,6 +1310,7 @@ data:
     env VZ_ELASTICSEARCH_HOST;
     env VZ_ELASTICSEARCH_BACKEND_URL;
     env VZ_OPENSEARCH_HOST;
+    env VZ_OPENSEARCH_HTTPS_HOST;
     env VZ_OPENSEARCH_BACKEND_URL;
     env VZ_KIALI_HOST;
     env VZ_KIALI_BACKEND_URL;
