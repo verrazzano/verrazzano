@@ -96,7 +96,10 @@ const PrometheusIngress = "vmi-system-prometheus"
 const ThanosSidecarIngress = "thanos-sidecar"
 
 // ThanosQueryIngress is the name of the ingress for the Thanos Query
-const ThanosQueryIngress = "thanos-query"
+const ThanosQueryIngress = "thanos-query-frontend"
+
+// ThanosQueryStoreIngress is the name of the ingress for the Thanos Query Store API
+const ThanosQueryStoreIngress = "thanos-grpc"
 
 // GlobalImagePullSecName is the name of the global image pull secret
 const GlobalImagePullSecName = "verrazzano-container-registry"
@@ -133,6 +136,9 @@ const VerrazzanoAuthProxyServiceName = "verrazzano-authproxy"
 
 // VerrazzanoAuthProxyServicePort is the port exposed by the Verrazzano auth proxy service
 const VerrazzanoAuthProxyServicePort = 8775
+
+// VerrazzanoAuthProxyGRPCServicePort is the port exposed by the Verrazzano auth proxy service for gRPC traffic
+const VerrazzanoAuthProxyGRPCServicePort = 8776
 
 // DefaultEnvironmentName is the default name for install environment
 const DefaultEnvironmentName = "default"
