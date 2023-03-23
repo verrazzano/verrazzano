@@ -16,7 +16,6 @@ import (
 
 const (
 	controllerName     = "CertificateRotationManager"
-	expiry             = 1 * 7 * 24 * time.Hour // one week as grace period
 	channelBufferSize  = 100
 	componentNamespace = constants.VerrazzanoInstallNamespace
 	componentName      = "certificatewatcher"
@@ -32,13 +31,14 @@ type CertificateRotationManager struct {
 	watchNamespace   string
 	targetNamespace  string
 	targetDeployment string
+	compareWindow    time.Duration
 	shutdown         chan int // The channel on which shutdown signals are sent/received
 }
 
 var certrotationManager *CertificateRotationManager
 
 // CertificateRotationManager - instantiate a CertificateWatcher context
-func NewCertificateRotationManager(c clipkg.Client, tick time.Duration, secretNamespace, targetNamespace, targetDeployment string) (*CertificateRotationManager, error) {
+func NewCertificateRotationManager(c clipkg.Client, tick time.Duration, compareWindow time.Duration, secretNamespace, targetNamespace, targetDeployment string) (*CertificateRotationManager, error) {
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
 		Name:           componentName,
 		Namespace:      componentNamespace,
@@ -58,6 +58,7 @@ func NewCertificateRotationManager(c clipkg.Client, tick time.Duration, secretNa
 		watchNamespace:   secretNamespace,
 		targetNamespace:  targetNamespace,
 		targetDeployment: targetDeployment,
+		compareWindow:    compareWindow,
 	}
 	return certrotationManager, nil
 }

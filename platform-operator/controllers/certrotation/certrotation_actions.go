@@ -29,12 +29,12 @@ func (sw *CertificateRotationManager) ValidateCertDate(certContent []byte) (bool
 	if err != nil {
 		return false, fmt.Errorf(err.Error())
 	}
-	deadline := time.Now().Add(expiry)
+	deadline := time.Now().Add(sw.compareWindow)
 	if deadline.After(certs.NotAfter) {
 		sw.log.Infof("cert for %s expires too soon: %s less than %s away",
 			certs.Subject.CommonName,
 			certs.NotAfter.Format(time.RFC3339),
-			expiry)
+			sw.compareWindow)
 		return true, nil
 
 	}

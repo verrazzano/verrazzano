@@ -80,7 +80,7 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 	}
 	mysqlCheck.Start()
 
-	certRotator, err := certrotation.NewCertificateRotationManager(mgr.GetClient(), time.Duration(config.CertificateExpiryCheckPeriodHours)*time.Hour, constants.VerrazzanoInstallNamespace, constants.VerrazzanoInstallNamespace, constants.VerrazzanoPlatformOperatorWebhook)
+	certRotator, err := certrotation.NewCertificateRotationManager(mgr.GetClient(), time.Duration(config.CertificateExpiryCheckPeriodHours)*time.Hour, time.Duration(config.CertificateExpiryCheckWindow)*time.Hour, constants.VerrazzanoInstallNamespace, constants.VerrazzanoInstallNamespace, constants.VerrazzanoPlatformOperatorWebhook)
 	if err != nil {
 		return errors.Wrap(err, "Failed starting CertificateRotationManager")
 	}

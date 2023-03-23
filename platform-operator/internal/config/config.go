@@ -4,10 +4,9 @@
 package config
 
 import (
-	"path/filepath"
-
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"path/filepath"
 )
 
 const (
@@ -83,8 +82,11 @@ type OperatorConfig struct {
 	// DryRun Run installs in a dry-run mode
 	DryRun bool
 
-	// CertificateExpiryCheckPeriodHours period for Certificate Watcher to validate certs validity.
+	// CertificateExpiryCheckPeriodHours period for CertificateRotator Interval expiration check period in hours.
 	CertificateExpiryCheckPeriodHours int64
+
+	// CertificateExpiryCheckWindow period for CertificateRotator window of time to rotate the webhook certificates before expiration in hours.
+	CertificateExpiryCheckWindow int64
 }
 
 // The singleton instance of the operator config
@@ -100,7 +102,8 @@ var instance = OperatorConfig{
 	HealthCheckPeriodSeconds:          60,
 	MySQLCheckPeriodSeconds:           60,
 	MySQLRepairTimeoutSeconds:         120,
-	CertificateExpiryCheckPeriodHours: 168, //run every week only to validate the verrazzano certificates
+	CertificateExpiryCheckPeriodHours: 168, //run every week only to validate the certificates.
+	CertificateExpiryCheckWindow:      336, //expiry window of two weeks.
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests

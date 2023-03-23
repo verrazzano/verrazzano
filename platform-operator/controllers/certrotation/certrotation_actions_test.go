@@ -24,8 +24,9 @@ import (
 )
 
 var (
-	testScheme          = runtime.NewScheme()
-	checkPeriodDuration = time.Duration(1) * time.Second
+	testScheme                 = runtime.NewScheme()
+	checkPeriodDuration        = time.Duration(1) * time.Second
+	checkCompareWindowDuration = time.Duration(168) * time.Hour
 )
 
 func init() {
@@ -48,7 +49,7 @@ func TestExpiredValidateCertificate(t *testing.T) {
 	// Set up the initial context
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&deployment, &secret).Build()
 	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
-	certificateCheck, err := NewCertificateRotationManager(fakeCtx.Client(), checkPeriodDuration, VZNamespace, VZNamespace, VZWebhookDeployment)
+	certificateCheck, err := NewCertificateRotationManager(fakeCtx.Client(), checkPeriodDuration, checkCompareWindowDuration, VZNamespace, VZNamespace, VZWebhookDeployment)
 	assert.NoError(t, err)
 	err = certificateCheck.CheckCertificateExpiration()
 	assert.NoError(t, err)
@@ -63,7 +64,7 @@ func TestValidateCertificate(t *testing.T) {
 	// Set up the initial context
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&deployment, &secret).Build()
 	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
-	certificateCheck, err := NewCertificateRotationManager(fakeCtx.Client(), checkPeriodDuration, VZNamespace, VZNamespace, VZWebhookDeployment)
+	certificateCheck, err := NewCertificateRotationManager(fakeCtx.Client(), checkPeriodDuration, checkCompareWindowDuration, VZNamespace, VZNamespace, VZWebhookDeployment)
 	assert.NoError(t, err)
 	err = certificateCheck.CheckCertificateExpiration()
 	assert.NoError(t, err)
@@ -78,7 +79,7 @@ func TestCertificate1(t *testing.T) {
 	// Set up the initial context
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&deployment, &secret).Build()
 	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
-	certificateCheck, err := NewCertificateRotationManager(fakeCtx.Client(), checkPeriodDuration, VZNamespace, VZNamespace, "operator")
+	certificateCheck, err := NewCertificateRotationManager(fakeCtx.Client(), checkPeriodDuration, checkCompareWindowDuration, VZNamespace, VZNamespace, "operator")
 	assert.NoError(t, err)
 	err = certificateCheck.CheckCertificateExpiration()
 	assert.Equal(t, "an error occurred restarting the deployment operator in namespace verrazzano-install", err.Error())
@@ -93,7 +94,7 @@ func TestCertificate2(t *testing.T) {
 	// Set up the initial context
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&deployment, &secret).Build()
 	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
-	certificateCheck, err := NewCertificateRotationManager(fakeCtx.Client(), checkPeriodDuration, VZNamespace, "verrazzano", "verrazzano-operator")
+	certificateCheck, err := NewCertificateRotationManager(fakeCtx.Client(), checkPeriodDuration, checkCompareWindowDuration, VZNamespace, "verrazzano", "verrazzano-operator")
 	assert.NoError(t, err)
 	err = certificateCheck.CheckCertificateExpiration()
 	assert.Equal(t, "an error occurred restarting the deployment verrazzano-operator in namespace verrazzano", err.Error())
@@ -108,7 +109,7 @@ func TestCertificate3(t *testing.T) {
 	// Set up the initial context
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&deployment, &secret).Build()
 	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
-	certificateCheck, err := NewCertificateRotationManager(fakeCtx.Client(), checkPeriodDuration, "verrazzano", VZNamespace, VZWebhookDeployment)
+	certificateCheck, err := NewCertificateRotationManager(fakeCtx.Client(), checkPeriodDuration, checkCompareWindowDuration, "verrazzano", VZNamespace, VZWebhookDeployment)
 	assert.NoError(t, err)
 	err = certificateCheck.CheckCertificateExpiration()
 	assert.Equal(t, "no certificate found in namespace verrazzano", err.Error())
@@ -122,7 +123,7 @@ func TestCertificate4(t *testing.T) {
 	// Set up the initial context
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&deployment).Build()
 	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
-	certificateCheck, err := NewCertificateRotationManager(fakeCtx.Client(), checkPeriodDuration, VZNamespace, VZNamespace, VZWebhookDeployment)
+	certificateCheck, err := NewCertificateRotationManager(fakeCtx.Client(), checkPeriodDuration, checkCompareWindowDuration, VZNamespace, VZNamespace, VZWebhookDeployment)
 	assert.NoError(t, err)
 	err = certificateCheck.CheckCertificateExpiration()
 	assert.Equal(t, "no certificate found in namespace verrazzano-install", err.Error())
@@ -250,6 +251,6 @@ func TestStart(t *testing.T) {
 
 func newTestCertificateCheck() *CertificateRotationManager {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	certificateWatcher, _ := NewCertificateRotationManager(c, 2*time.Second, VZNamespace, VZNamespace, VZWebhookDeployment)
+	certificateWatcher, _ := NewCertificateRotationManager(c, 2*time.Second, 2*time.Minute, VZNamespace, VZNamespace, VZWebhookDeployment)
 	return certificateWatcher
 }
