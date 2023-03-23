@@ -508,7 +508,7 @@ pipeline {
                                     }
                                 }
                             }
-                            parallel {
+                            stages {
                                 stage('Private Registry - Lite Distribution') {
                                     steps {
                                         retry(count: JOB_PROMOTION_RETRIES) {
