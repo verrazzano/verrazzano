@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package certmc
@@ -86,7 +86,7 @@ func updateCustomCA() {
 		}
 		originalCMs[managedCluster.Name] = oldCM
 		m := &CertModifier{CertManager: newCM}
-		update.RetryUpdate(m, managedCluster.KubeConfigPath, false, pollingInterval, waitTimeout)
+		update.RetryUpdate(m, managedCluster.KubeConfigPath, true, pollingInterval, waitTimeout)
 	}
 }
 
@@ -101,7 +101,7 @@ func revertToDefaultCertManager() {
 		oldCaCrts[managedCluster.Name] = oldCaCrt
 		oldCm := originalCMs[managedCluster.Name]
 		m := &CertModifier{CertManager: oldCm}
-		update.RetryUpdate(m, managedCluster.KubeConfigPath, false, pollingInterval, waitTimeout)
+		update.RetryUpdate(m, managedCluster.KubeConfigPath, true, pollingInterval, waitTimeout)
 	}
 }
 
