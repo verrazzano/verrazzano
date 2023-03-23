@@ -152,7 +152,7 @@ func (r *ComponentConfigMapReconciler) processComponent(ctx spi.ComponentContext
 			ctx.Log().Errorf("Error removing finalizer %s for dev component %s: %v", constants.DevComponentFinalizer, comp.ReleaseName, err)
 			return newRequeueWithDelay(), err
 		}
-		ctx.Log().Infof("dev component %s has been successfully deleted", comp.ReleaseName)
+		ctx.Log().Infof("dev component %s has been successfully uninstalled", comp.ReleaseName)
 		return reconcile.Result{Requeue: true}, nil
 	}
 
