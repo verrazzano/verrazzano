@@ -79,7 +79,6 @@ func (sw *CertificateRotationManager) Start() {
 		for {
 			select {
 			case <-ticker.C:
-				//if err := sw.CheckCertificateExpiration([]string{"verrazzano-platform-operator-ca", "verrazzano-platform-operator-tls"}); err != nil {
 				if err := sw.CheckCertificateExpiration(); err != nil {
 					sw.log.ErrorfThrottled("Failed to sync: %v", err)
 				}
