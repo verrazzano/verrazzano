@@ -54,6 +54,13 @@ prometheus:
       - action: replace
         targetLabel: verrazzano_cluster
         replacement: local
+  thanosIngress:
+    enabled: true
+    annotations:
+      kubernetes.io/tls-acme: "true"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+
 alertmanager:
   enabled: false
   alertmanagerSpec:

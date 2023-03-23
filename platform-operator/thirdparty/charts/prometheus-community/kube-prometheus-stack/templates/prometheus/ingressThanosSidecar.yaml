@@ -3,7 +3,7 @@
 {{- $serviceName := printf "%s-%s" (include "kube-prometheus-stack.fullname" .) "prometheus" }}
 {{- $thanosPort := .Values.prometheus.thanosIngress.servicePort -}}
 {{- $routePrefix := list .Values.prometheus.prometheusSpec.routePrefix }}
-{{- $paths := .Values.prometheus.thanosIngress.paths | default $routePrefix -}}
+{{- $paths := .Values.prometheus.thanosIngress.paths -}}
 {{- $apiIsStable := eq (include "kube-prometheus-stack.ingress.isStable" .) "true" -}}
 {{- $ingressSupportsPathType := eq (include "kube-prometheus-stack.ingress.supportsPathType" .) "true" -}}
 apiVersion: {{ include "kube-prometheus-stack.ingress.apiVersion" . }}
@@ -14,6 +14,7 @@ metadata:
 {{ toYaml .Values.prometheus.thanosIngress.annotations | indent 4 }}
 {{- end }}
   name: {{ template "kube-prometheus-stack.fullname" . }}-thanos-gateway
+  namespace: {{ .Values.thanosIngress.namespace }}
   labels:
     app: {{ template "kube-prometheus-stack.name" . }}-prometheus
 {{ include "kube-prometheus-stack.labels" . | indent 4 }}
@@ -49,7 +50,7 @@ spec:
     {{- end }}
     {{- end -}}
   {{- end -}}
-  {{- else }}
+  {{- else if $paths }}
     - http:
         paths:
   {{- range $p := $paths }}
@@ -69,6 +70,9 @@ spec:
   {{- end }}
   {{- end -}}
   {{- end -}}
+    {{- if .Values.prometheus.thanosIngress.extraRules }}
+{{ toYaml .Values.prometheus.thanosIngress.extraRules | indent 4 }}
+    {{- end -}}
   {{- if .Values.prometheus.thanosIngress.tls }}
   tls:
 {{ tpl (toYaml .Values.prometheus.thanosIngress.tls | indent 4) . }}
