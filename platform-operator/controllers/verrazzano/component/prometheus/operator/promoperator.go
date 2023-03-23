@@ -422,11 +422,11 @@ func appendThanosSidecarIngressOverrides(ctx spi.ComponentContext, kvs []bom.Key
 	// If NGINX is disabled, prevent the ingress from being created
 	if !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
 		return append(kvs, []bom.KeyValue{
-			{Key: "prometheus.ThanosIngress.enabled", Value: "false"},
+			{Key: "prometheus.thanosIngress.enabled", Value: "false"},
 		}...), nil
 	}
 
-	prefix := "prometheus.ThanosIngress"
+	prefix := "prometheus.thanosIngress"
 	ingressClassName := vzconfig.GetIngressClassName(ctx.EffectiveCR())
 	dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
 	if err != nil {

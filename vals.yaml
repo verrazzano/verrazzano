@@ -1,0 +1,80 @@
+prometheus:
+  enabled: true
+  prometheusSpec:
+    additionalScrapeConfigsSecret:
+      enabled: true
+      key: jobs
+      name: additional-scrape-configs
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: prometheus
+            topologyKey: kubernetes.io/hostname
+          weight: 100
+    containers:
+    - name: prometheus
+      securityContext:
+        privileged: false
+    - name: config-reloader
+      securityContext:
+        privileged: false
+    image:
+      repository: ghcr.io/verrazzano/prometheus
+      tag: v2.38.0-20230221215349-cf7b5418
+    initContainers:
+    - name: init-config-reloader
+      securityContext:
+        privileged: false
+    replicas: 1
+    scrapeInterval: 20s
+    securityContext:
+      fsGroup: 65534
+      runAsGroup: 65534
+      runAsNonRoot: true
+      runAsUser: 65534
+      seccompProfile:
+        type: RuntimeDefault
+    serviceMonitorSelector:
+      matchExpressions:
+      - key: release
+        operator: In
+        values:
+        - prometheus-operator
+        - prometheus-node-exporter
+        - kube-state-metrics
+        - prometheus-pushgateway
+    thanos:
+      image: ghcr.io/verrazzano/thanos:v0.28.0-20230322155710-8af2d756
+  serviceMonitor:
+    relabelings:
+    - action: replace
+      replacement: local
+      targetLabel: verrazzano_cluster
+  thanos:
+    integration: sidecar
+  thanosIngress:
+    annotations:
+      kubernetes.io/tls-acme: "true"
+      nginx.ingress.kubernetes.io/backend-protocol: GRPC
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    enabled: true
+    extraRules:
+      - host: thanos-sidecar.default.172.18.0.230.nip.io
+        http:
+          paths:
+            - backend:
+                service:
+                  name: verrazzano-authproxy
+                  port:
+                    number: 8776
+              path: /
+              pathType: ImplementationSpecific
+    ingressClassName: verrazzano-nginx
+    namespace: verrazzano-system
+    tls:
+      - hosts:
+          - thanos-sidecar
+        secretName: system-tls-thanos-sidecar
