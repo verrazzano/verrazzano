@@ -121,7 +121,7 @@ func (t thanosComponent) GetIngressNames(ctx spi.ComponentContext) []types.Names
 	})
 	return append(ingressNames, types.NamespacedName{
 		Namespace: ns,
-		Name:      constants.ThanosQueryStoreIngress,
+		Name:      vzconst.ThanosQueryStoreIngress,
 	})
 }
 

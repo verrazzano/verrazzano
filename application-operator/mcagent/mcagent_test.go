@@ -37,7 +37,7 @@ var validSecret = corev1.Secret{
 }
 
 const testManagedPrometheusHost = "prometheus"
-const testManagedThanosQueryHost = "thanos.example.com"
+const testManagedThanosQueryStoreAPIHost = "thanos-grpc.example.com"
 
 // TestProcessAgentThreadNoProjects tests agent thread when no projects exist
 // GIVEN a request to process the agent loop
@@ -323,7 +323,7 @@ func expectAdminVMCStatusUpdateSuccess(adminMock *mocks.MockClient, vmcName type
 			assert.NotNil(vmc.Status.LastAgentConnectTime)
 			assert.NotNil(vmc.Status.APIUrl)
 			assert.Equal(testManagedPrometheusHost, vmc.Status.PrometheusHost)
-			assert.Equal(testManagedThanosQueryHost, vmc.Status.ThanosQueryHost)
+			assert.Equal(testManagedThanosQueryStoreAPIHost, vmc.Status.ThanosHost)
 			return nil
 		})
 }
@@ -446,7 +446,7 @@ func expectGetPrometheusHostCalled(mock *mocks.MockClient) {
 
 func expectGetThanosQueryHostCalled(mock *mocks.MockClient) {
 	// Expect a call to get the Thanos query ingress and return the host.
-	expectGetIngress(mock, constants.VerrazzanoSystemNamespace, vzconstants.ThanosQueryIngress, testManagedThanosQueryHost)
+	expectGetIngress(mock, constants.VerrazzanoSystemNamespace, vzconstants.ThanosQueryStoreIngress, testManagedThanosQueryStoreAPIHost)
 }
 
 // Expects a call to get an ingress with the given name and namespace, and returns an ingress with the specified

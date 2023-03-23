@@ -169,15 +169,15 @@ func (s *Syncer) updateVMCStatus() error {
 		vmc.Status.PrometheusHost = prometheusHost
 	}
 
-	// Get the Thanos Query component's ingress URL from the local managed cluster, and populate
+	// Get the Thanos API ingress URL from the local managed cluster, and populate
 	// it in the VMC status on the admin cluster, so that admin cluster's Thanos query wire up
 	// to the managed cluster
-	thanosQueryHost, err := s.GetThanosQueryHost()
+	thanosAPIHost, err := s.getThanosQueryStoreAPIHost()
 	if err != nil {
 		return fmt.Errorf("Failed to get Thanos query URL to update VMC %s: %v", vmcName, err)
 	}
-	if thanosQueryHost != "" {
-		vmc.Status.ThanosQueryHost = thanosQueryHost
+	if thanosAPIHost != "" {
+		vmc.Status.ThanosHost = thanosAPIHost
 	}
 
 	// update status of VMC
@@ -321,10 +321,10 @@ func (s *Syncer) GetPrometheusHost() (string, error) {
 	return ingress.Spec.Rules[0].Host, nil
 }
 
-// GetThanosQueryHost returns the Thanos Query URL for Verrazzano instance.
-func (s *Syncer) GetThanosQueryHost() (string, error) {
+// getThanosQueryStoreAPIHost returns the Thanos Query Store API Endpoint URL for Verrazzano instance.
+func (s *Syncer) getThanosQueryStoreAPIHost() (string, error) {
 	ingress := &networkingv1.Ingress{}
-	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: vzconstants.ThanosQueryIngress, Namespace: constants.VerrazzanoSystemNamespace}, ingress)
+	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: vzconstants.ThanosQueryStoreIngress, Namespace: constants.VerrazzanoSystemNamespace}, ingress)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return "", nil

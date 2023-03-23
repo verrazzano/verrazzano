@@ -200,7 +200,7 @@ func TestGetIngressNames(t *testing.T) {
 			},
 			ingNames: []types.NamespacedName{
 				{Namespace: constants.VerrazzanoSystemNamespace, Name: vzconst.ThanosQueryIngress},
-				{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.ThanosQueryStoreIngress},
+				{Namespace: constants.VerrazzanoSystemNamespace, Name: vzconst.ThanosQueryStoreIngress},
 			},
 		},
 		// GIVEN a call to GetIngressNames
@@ -224,7 +224,7 @@ func TestGetIngressNames(t *testing.T) {
 			},
 			ingNames: []types.NamespacedName{
 				{Namespace: authproxy.ComponentNamespace, Name: vzconst.ThanosQueryIngress},
-				{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.ThanosQueryStoreIngress},
+				{Namespace: constants.VerrazzanoSystemNamespace, Name: vzconst.ThanosQueryStoreIngress},
 			},
 		},
 	}
