@@ -206,25 +206,6 @@ pipeline {
                 }
                 always {
                     archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
-                    // enable debug logging of Verrazzano api istio proxy
-                    script {
-                        if (params.ENABLE_API_ENVOY_LOGGING) {
-                            sh '''
-                                vz_api_pod=\$(kubectl get pod -n verrazzano-system -l app=verrazzano-authproxy --no-headers -o custom-columns=\":metadata.name\")
-                                if [ -z "\$vz_api_pod" ]; then
-                                  echo "Could not find verrazzano-authproxy pod, not enabling debug logging"
-                                else
-                                  kubectl exec \$vz_api_pod -c istio-proxy -n verrazzano-system -- curl -X POST http://localhost:15000/logging?level=debug
-                                fi
-                                nginx_ing_pod=\$(kubectl get pod -n ingress-nginx -l app.kubernetes.io/component=controller --no-headers -o custom-columns=\":metadata.name\")
-                                if [ -z "\$nginx_ing_pod" ]; then
-                                  echo "Could not find nginx ingress controller pod, not enabling debug logging"
-                                else
-                                  kubectl exec \$nginx_ing_pod -c istio-proxy -n ingress-nginx -- curl -X POST http://localhost:15000/logging?level=debug
-                                fi
-                            '''
-                        }
-                    }
                 }
             }
         }
@@ -243,6 +224,50 @@ pipeline {
                 }
             }
         }
+
+        stage('Enable Pushgateway') {
+            environment {
+                KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
+                OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                REALM_USER_PASSWORD = credentials('todo-mysql-password')
+                REALM_NAME = 'test-realm'
+            }
+            steps {
+                sh """
+                    cp ${env.INSTALL_CONFIG_FILE_KIND_TESTS} ${env.INSTALL_CONFIG_FILE_KIND}
+                    cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/vz-update1.yaml
+                    cd ${GO_REPO_PATH}/verrazzano
+                    yq -i eval '.spec.components.prometheusPushgateway.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                    kubectl apply -f ${WORKSPACE}/vz-update1.yaml
+                """
+            }
+
+            post {
+                failure {
+                    archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                }
+                always {
+                    archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Verify Install after Pushgateway enabled') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
+            }
+            steps {
+                runGinkgoRandomize('verify-install')
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
+
+
     }
     post {
         always {
