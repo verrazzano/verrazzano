@@ -518,6 +518,14 @@ pipeline {
                                 runGinkgo('examples/helidonmetrics')
                             }
                         }
+                        stage('logging trait Helidon workload') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-helidonworkload"
+                            }
+                            steps {
+                                runGinkgo('loggingtrait/helidonworkload')
+                            }
+                        }
                     }
                     post {
                         always {
@@ -564,14 +572,6 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('workloads/oam')
-                            }
-                        }
-                        stage('logging trait Helidon workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-helidonworkload"
-                            }
-                            steps {
-                                runGinkgo('loggingtrait/helidonworkload')
                             }
                         }
                         stage('logging trait Coherence workload') {
