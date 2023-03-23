@@ -18,6 +18,9 @@ spec:
                 values:
                   - verrazzano-authproxy
       ports:
+        # Store API port
+        - port: 10901
+          protocol: TCP
         # web ui port
         - port: 10902
           protocol: TCP
