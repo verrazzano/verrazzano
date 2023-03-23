@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
@@ -222,7 +223,9 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 		var repFile *os.File
 		defer func() {
 			if repFile != nil {
-				fmt.Fprintf(os.Stdout, "\nDetailed report available in %s\n", repFile.Name())
+				currentDir, _ := os.Getwd()
+				fullPath := filepath.Join(currentDir, repFile.Name())
+				fmt.Fprintf(os.Stdout, "\nDetailed analysis report available in %s\n", fullPath)
 				repFile.Close()
 			}
 		}()

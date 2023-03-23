@@ -47,7 +47,7 @@ type Pods struct {
 }
 
 // CaptureClusterSnapshot selectively captures the resources from the cluster, useful to analyze the issue.
-func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, client clipkg.Client, bugReportDir string, moreNS []string, vzHelper pkghelpers.VZHelper, podLogs PodLogs) error {
+func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, client clipkg.Client, bugReportDir string, moreNS []string, vzHelper pkghelpers.VZHelper, podLogs PodLogs, printToConsole bool) error {
 
 	// Create a file to capture the standard out to a file
 	stdOutFile, err := os.OpenFile(filepath.Join(bugReportDir, constants.BugReportOut), os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
@@ -81,8 +81,10 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	} else {
 		msgPrefix = constants.BugReportMsgPrefix
 	}
-	// Print initial message to console output only
-	fmt.Fprintf(vzHelper.GetOutputStream(), "\n"+msgPrefix+"resources from the cluster ...\n")
+	if printToConsole {
+		// Print initial message to console output only
+		fmt.Fprintf(vzHelper.GetOutputStream(), "\n"+msgPrefix+"resources from the cluster ...\n")
+	}
 	// Capture list of resources from verrazzano-install and verrazzano-system namespaces
 	err = captureResources(client, kubeClient, bugReportDir, vz, vzHelper, nsList)
 	if err != nil {
