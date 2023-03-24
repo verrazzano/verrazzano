@@ -29,6 +29,9 @@ manager:
     timeoutSeconds: 3
     initialDelaySeconds: 10
 
+  # Set this to false to disable the experimental parallel recovery in case you are experiencing problems
+  parallelRecoveryEnabled: true
+
   image:
     repository: public.ecr.aws/opsterio/opensearch-operator
     ## tag default uses appVersion from Chart.yaml, to override specify tag tag: "v1.1"
@@ -71,3 +74,55 @@ kubeRbacProxy:
   image: 
     repository: "gcr.io/kubebuilder/kube-rbac-proxy"
     tag: "v0.8.0"
+
+OpenSearchClusterSpec:
+  name: opensearch
+  security:
+    config:
+      securityConfigSecret:
+        name: securityconfig-secret
+      adminSecret:
+        name: tls-cert
+    tls:
+      transport:
+        generate: false
+        secret:
+          name: tls-cert
+        adminDn: ["CN=opensearch.verrazzano-logging.svc.cluster.local,OU=UNIT,O=ORG,L=TORONTO,ST=ONTARIO,C=CA"]
+        nodesDn: ["CN=opensearch.verrazzano-logging.svc.cluster.local,OU=UNIT,O=ORG,L=TORONTO,ST=ONTARIO,C=CA"]
+      http:
+        generate: false
+        secret:
+          name: tls-cert
+  general:
+    httpPort: 9200
+    serviceName: opensearch
+    version: 2.3.0
+    drainDataNodes: true
+    image: "iad.ocir.io/odsbuilddev/sandboxes/saket.m.mahto/opensearch-security:latest"
+  dashboards:
+    additionalConfig:
+      server.name: opensearch-dashboards
+      opensearch_security.auth.type: "proxy"
+      opensearch_security.proxycache.user_header: "X-WEBAUTH-USER"
+      opensearch_security.proxycache.roles_header: "x-proxy-roles"
+      opensearch.requestHeadersAllowlist: "[\"securitytenant\",\"Authorization\",\"x-forwarded-for\",\"X-WEBAUTH-USER\",\"x-proxy-roles\"]"
+      opensearch_security.multitenancy.enabled: "false"
+    tls:
+      enable: true
+      generate: true
+    version: 2.3.0
+    enable: true
+    replicas: 1
+    image: "iad.ocir.io/odsbuilddev/sandboxes/isha.girdhar/osd:latest"
+  nodePools:
+    - component: masters
+      replicas: 3
+      resources:
+        requests:
+          memory: "1Gi"
+      roles:
+        - "data"
+        - "cluster_manager"
+      persistence:
+        emptyDir: { }
