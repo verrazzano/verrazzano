@@ -217,18 +217,18 @@ func buildFakeClient(cm corev1.ConfigMap) client.Client {
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, _ bool, _ bool, overrides []helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, _ bool, _ bool, overrides []helmcli.HelmOverrides) (err error) {
 	if releaseName != "test-component" {
-		return []byte("error"), []byte(""), fmt.Errorf("Incorrect  releaseName, expecting test-component, got %s", releaseName)
+		return fmt.Errorf("Incorrect  releaseName, expecting test-component, got %s", releaseName)
 	}
 	if chartDir != "/verrazzano/platform-operator/thirdparty/charts/test-component" {
-		return []byte("error"), []byte(""), fmt.Errorf("Incorrect  releaseName, expecting test-component, got %s", chartDir)
+		return fmt.Errorf("Incorrect  releaseName, expecting test-component, got %s", chartDir)
 	}
 	if namespace != constants.VerrazzanoSystemNamespace {
-		return []byte("error"), []byte(""), fmt.Errorf("Incorrect release namespace, expecting verrazzano-system, got %s", namespace)
+		return fmt.Errorf("Incorrect release namespace, expecting verrazzano-system, got %s", namespace)
 	}
 	if len(overrides) != 2 {
-		return []byte("error"), []byte(""), fmt.Errorf("Incorrect number of overrides, expecting 2, got %d", len(overrides))
+		return fmt.Errorf("Incorrect number of overrides, expecting 2, got %d", len(overrides))
 	}
-	return []byte("success"), []byte(""), nil
+	return nil
 }
