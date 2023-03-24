@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package operator
@@ -6,11 +6,6 @@ package operator
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/release"
-	"helm.sh/helm/v3/pkg/time"
 	"testing"
 
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -18,6 +13,7 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	appsv1 "k8s.io/api/apps/v1"
@@ -189,25 +185,6 @@ func TestIsInstalled(t *testing.T) {
 	}
 }
 
-func createRelease(name string, status release.Status) *release.Release {
-	now := time.Now()
-	return &release.Release{
-		Name:      ComponentName,
-		Namespace: ComponentNamespace,
-		Info: &release.Info{
-			FirstDeployed: now,
-			LastDeployed:  now,
-			Status:        status,
-			Description:   "Named Release Stub",
-		},
-		Version: 1,
-	}
-}
-
-func testActionConfigWithInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return helmcli.CreateActionConfig(true, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
-}
-
 // TestPreUpgrade tests the PreUpgrade function for the Jaeger Operator component
 func TestPreUpgrade(t *testing.T) {
 	k8sutil.SetFakeClient(k8sfake.NewSimpleClientset(getJaegerWebHookServiceObjects()))
@@ -359,9 +336,12 @@ func TestPreUpgrade(t *testing.T) {
 			expectErrMsg: "Failed to get webhook service verrazzano-monitoring/jaeger-operator-webhook-service",
 		},
 	}
-	defer helmcli.SetDefaultActionConfigFunction()
-
-	helmcli.SetActionConfigFunction(testActionConfigWithInstallation)
+	helmcli.SetCmdRunner(os.GenericTestRunner{
+		StdOut: []byte(""),
+		StdErr: []byte("not found"),
+		Err:    fmt.Errorf("error_to_ignore"),
+	})
+	defer helmcli.SetDefaultRunner()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.client, &tt.actualCR, nil, false, profilesRelativePath)
@@ -418,11 +398,12 @@ func TestReassociateResources(t *testing.T) {
 // TestUpgrade tests the Upgrade function for the Jaeger Operator component
 func TestUpgrade(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
-	defer helmcli.SetDefaultActionConfigFunction()
-	helmcli.SetActionConfigFunction(testActionConfigWithInstallation)
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../../"})
-
+	helmcli.SetCmdRunner(os.GenericTestRunner{
+		StdOut: []byte(""),
+		StdErr: []byte(""),
+		Err:    nil,
+	})
+	defer helmcli.SetDefaultRunner()
 	tests := []struct {
 		name         string
 		client       client.Client

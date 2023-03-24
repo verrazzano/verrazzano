@@ -7,10 +7,6 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/release"
-	time2 "helm.sh/helm/v3/pkg/time"
 	"math/big"
 	"path/filepath"
 	"testing"
@@ -126,27 +122,25 @@ func TestUpgradeNoVersion(t *testing.T) {
 		config.SetDefaultBomFilePath("")
 	}()
 	// Stub out the call to check the chart status
-	defer helm.SetDefaultActionConfigFunction()
-	helm.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-		return helm.CreateActionConfig(true, name, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
-			now := time2.Now()
-			return &release.Release{
-				Name:      name,
-				Namespace: namespace,
-				Info: &release.Info{
-					FirstDeployed: now,
-					LastDeployed:  now,
-					Status:        releaseStatus,
-					Description:   "Named Release Stub",
-				},
-				Version: 1,
-			}
-		})
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
 	})
+	defer helm.SetDefaultChartStatusFunction()
+
+	// Sample bom file for version validation functions
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
 
 	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
+	// Stubout the call to check the chart status
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
@@ -228,23 +222,21 @@ func TestUpgradeSameVersion(t *testing.T) {
 		config.SetDefaultBomFilePath("")
 	}()
 	// Stubout the call to check the chart status
-	defer helm.SetDefaultActionConfigFunction()
-	helm.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-		return helm.CreateActionConfig(true, name, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
-			now := time2.Now()
-			return &release.Release{
-				Name:      name,
-				Namespace: namespace,
-				Info: &release.Info{
-					FirstDeployed: now,
-					LastDeployed:  now,
-					Status:        releaseStatus,
-					Description:   "Named Release Stub",
-				},
-				Version: 1,
-			}
-		})
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
 	})
+	defer helm.SetDefaultChartStatusFunction()
+
+	// Sample bom file for version validation functions
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	// Stubout the call to check the chart status
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
 
 	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
@@ -1648,23 +1640,21 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 		config.SetDefaultBomFilePath("")
 	}()
 	// Stub-out the call to check the chart status
-	defer helm.SetDefaultActionConfigFunction()
-	helm.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-		return helm.CreateActionConfig(true, name, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
-			now := time2.Now()
-			return &release.Release{
-				Name:      name,
-				Namespace: namespace,
-				Info: &release.Info{
-					FirstDeployed: now,
-					LastDeployed:  now,
-					Status:        releaseStatus,
-					Description:   "Named Release Stub",
-				},
-				Version: 1,
-			}
-		})
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
 	})
+	defer helm.SetDefaultChartStatusFunction()
+
+	// Sample bom file for version validation functions
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	// Stub-out the call to check the chart status
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
 
 	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
@@ -1823,23 +1813,21 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 		config.SetDefaultBomFilePath("")
 	}()
 	// Stub-out the call to check the chart status
-	defer helm.SetDefaultActionConfigFunction()
-	helm.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-		return helm.CreateActionConfig(true, name, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
-			now := time2.Now()
-			return &release.Release{
-				Name:      name,
-				Namespace: namespace,
-				Info: &release.Info{
-					FirstDeployed: now,
-					LastDeployed:  now,
-					Status:        releaseStatus,
-					Description:   "Named Release Stub",
-				},
-				Version: 1,
-			}
-		})
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
 	})
+	defer helm.SetDefaultChartStatusFunction()
+
+	// Sample bom file for version validation functions
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	// Stub-out the call to check the chart status
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
 
 	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()

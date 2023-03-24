@@ -1,15 +1,10 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package authproxy
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/release"
-	"helm.sh/helm/v3/pkg/time"
+	"fmt"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,6 +12,7 @@ import (
 	"testing"
 
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -27,44 +23,6 @@ import (
 )
 
 const profilesRelativePath = "../../../../manifests/profiles"
-
-func getChart() *chart.Chart {
-	return &chart.Chart{
-		Metadata: &chart.Metadata{
-			APIVersion: "v1",
-			Name:       "hello",
-			Version:    "0.1.0",
-			AppVersion: "1.0",
-		},
-		Templates: []*chart.File{
-			{Name: "templates/hello", Data: []byte("hello: world")},
-		},
-	}
-}
-
-func createRelease(name string, status release.Status) *release.Release {
-	now := time.Now()
-	return &release.Release{
-		Name:      name,
-		Namespace: "verrazzano-system",
-		Info: &release.Info{
-			FirstDeployed: now,
-			LastDeployed:  now,
-			Status:        status,
-			Description:   "Named Release Stub",
-		},
-		Chart:   getChart(),
-		Version: 1,
-	}
-}
-
-func testActionConfigWithInstalledAuthproxy(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return helmcli.CreateActionConfig(true, "verrazzano-authproxy", release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
-}
-
-func testActionConfigWithUninstalledAuthproxy(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return helmcli.CreateActionConfig(true, "verrazzano-authproxy", release.StatusUninstalled, vzlog.DefaultLogger(), createRelease)
-}
 
 // TestIsEnabled tests the AuthProxy IsEnabled call
 // GIVEN a AuthProxy component
@@ -247,14 +205,18 @@ func TestValidateUpdateV1beta1(t *testing.T) {
 	}
 }
 
-// TestUninstallHelmChartInstalled tests the authproxy Uninstall call
-// GIVEN a authproxy component
+// TestUninstallHelmChartInstalled tests the Fluentd Uninstall call
+// GIVEN a Fluentd component
 //
-//	WHEN I call Uninstall with the authproxy helm chart installed
+//	WHEN I call Uninstall with the Fluentd helm chart installed
 //	THEN no error is returned
 func TestUninstallHelmChartInstalled(t *testing.T) {
-	defer helmcli.SetDefaultActionConfigFunction()
-	helmcli.SetActionConfigFunction(testActionConfigWithInstalledAuthproxy)
+	helmcli.SetCmdRunner(os.GenericTestRunner{
+		StdOut: []byte(""),
+		StdErr: []byte{},
+		Err:    nil,
+	})
+	defer helmcli.SetDefaultRunner()
 
 	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
@@ -266,9 +228,12 @@ func TestUninstallHelmChartInstalled(t *testing.T) {
 //	WHEN I call Uninstall with the Fluentd helm chart not installed
 //	THEN no error is returned
 func TestUninstallHelmChartNotInstalled(t *testing.T) {
-	defer helmcli.SetDefaultActionConfigFunction()
-	helmcli.SetActionConfigFunction(testActionConfigWithUninstalledAuthproxy)
-
+	helmcli.SetCmdRunner(os.GenericTestRunner{
+		StdOut: []byte(""),
+		StdErr: []byte{},
+		Err:    fmt.Errorf("Not installed"),
+	})
+	defer helmcli.SetDefaultRunner()
 	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 }
@@ -462,12 +427,20 @@ func TestMonitorOverrides(t *testing.T) {
 //	WHEN I call PreInstall with defaults
 //	THEN no error is returned
 func TestPreInstall(t *testing.T) {
-	defer helmcli.SetDefaultActionConfigFunction()
+	defer helmcli.SetDefaultRunner()
 	helmCliNoError := func() {
-		helmcli.SetActionConfigFunction(testActionConfigWithInstalledAuthproxy)
+		helmcli.SetCmdRunner(os.GenericTestRunner{
+			StdOut: []byte(""),
+			StdErr: []byte{},
+			Err:    nil,
+		})
 	}
 	helmCliError := func() {
-		helmcli.SetActionConfigFunction(testActionConfigWithUninstalledAuthproxy)
+		helmcli.SetCmdRunner(os.GenericTestRunner{
+			StdOut: []byte(""),
+			StdErr: []byte{},
+			Err:    fmt.Errorf("not found"),
+		})
 	}
 	tests := []struct {
 		name        string
@@ -512,8 +485,10 @@ func TestPreInstall(t *testing.T) {
 //	WHEN I call PreUpgrade with defaults
 //	THEN no error is returned
 func TestPreUpgrade(t *testing.T) {
-	defer helmcli.SetDefaultActionConfigFunction()
-	helmcli.SetActionConfigFunction(testActionConfigWithInstalledAuthproxy)
+	helmcli.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helmcli.ChartStatusDeployed, nil
+	})
+	defer helmcli.SetDefaultChartStateFunction()
 
 	tests := []struct {
 		name       string

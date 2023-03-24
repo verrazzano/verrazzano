@@ -17,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
@@ -632,12 +633,20 @@ func TestReconcileUninstall2(t *testing.T) {
 		cr  *vzapi.Verrazzano
 	}
 	helmOverrideNotFound := func() {
-		helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
+		helm.SetCmdRunner(vzos.GenericTestRunner{
+			StdOut: []byte(""),
+			StdErr: []byte("not found"),
+			Err:    fmt.Errorf(unExpectedError),
+		})
 	}
 	helmOverrideNoError := func() {
-		helm.SetActionConfigFunction(testActionConfigWithInstallation)
+		helm.SetCmdRunner(vzos.GenericTestRunner{
+			StdOut: []byte(""),
+			StdErr: []byte(""),
+			Err:    nil,
+		})
 	}
-	defer helm.SetDefaultActionConfigFunction()
+	defer helm.SetDefaultRunner()
 	config.TestProfilesDir = relativeProfilesDir
 
 	k8sutil.GetCoreV1Func = common.MockGetCoreV1()

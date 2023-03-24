@@ -132,7 +132,7 @@ type getInstallOverridesSig func(object runtime.Object) interface{}
 type resolveNamespaceSig func(ns string) string
 
 // upgradeFuncSig is a function needed for unit test override
-type upgradeFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (err error)
+type upgradeFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (stdout []byte, stderr []byte, err error)
 
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
@@ -319,7 +319,7 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 	}
 
 	// Perform an install using the helm upgrade --install command
-	err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, h.WaitForInstall, context.IsDryRun(), overrides)
+	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, h.WaitForInstall, context.IsDryRun(), overrides)
 	return err
 }
 
@@ -420,9 +420,9 @@ func (h HelmComponent) Uninstall(context spi.ComponentContext) error {
 		context.Log().Infof("%s already uninstalled", h.Name())
 		return nil
 	}
-	err = helm.Uninstall(context.Log(), h.ReleaseName, h.resolveNamespace(context), context.IsDryRun())
+	_, stderr, err := helm.Uninstall(context.Log(), h.ReleaseName, h.resolveNamespace(context), context.IsDryRun())
 	if err != nil {
-		context.Log().Errorf("Error uninstalling %s, error: %s", h.Name(), err.Error())
+		context.Log().Errorf("Error uninstalling %s, error: %s, stderr: %s", h.Name(), err.Error(), stderr)
 		return err
 	}
 	return nil
@@ -490,7 +490,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	// Generate a list of override files making helm get values overrides first
 	overrides = append([]helm.HelmOverrides{{FileOverride: tmpFile.Name()}}, overrides...)
 
-	err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, true, context.IsDryRun(), overrides)
+	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, true, context.IsDryRun(), overrides)
 	return err
 }
 

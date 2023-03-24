@@ -4,28 +4,26 @@
 package helm
 
 import (
+	"encoding/json"
 	"fmt"
-	yaml2 "github.com/verrazzano/verrazzano/pkg/yaml"
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/chart/loader"
-	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/getter"
-	"helm.sh/helm/v3/pkg/release"
-	"helm.sh/helm/v3/pkg/strvals"
-	"io"
-	"net/url"
-	"os"
+	"os/exec"
 	"regexp"
-	"sigs.k8s.io/yaml"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 // Debug is set from a platform-operator arg and sets the helm --debug flag
 var Debug bool
+
+// cmdRunner needed for unit tests
+var runner vzos.CmdRunner = vzos.DefaultRunner{}
+
+// number of times runHelm will retry running its Helm command
+const maxRetry = 5
 
 // Helm chart status values: unknown, deployed, uninstalled, superseded, failed, uninstalling, pending-install, pending-upgrade or pending-rollback
 const ChartNotFound = "NotFound"
@@ -44,142 +42,207 @@ type HelmOverrides struct {
 	FileOverride       string // for -f
 }
 
-type ActionConfigFnType func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error)
+var chartStatusFn ChartStatusFnType = getChartStatus
 
-var actionConfigFn ActionConfigFnType = getActionConfig
-
-func SetActionConfigFunction(f ActionConfigFnType) {
-	actionConfigFn = f
+// SetChartStatusFunction Override the chart status function for unit testing
+func SetChartStatusFunction(f ChartStatusFnType) {
+	chartStatusFn = f
 }
 
-// SetDefaultActionConfigFunction Resets the action config function
-func SetDefaultActionConfigFunction() {
-	actionConfigFn = getActionConfig
+// SetDefaultChartStatusFunction Reset the chart status function
+func SetDefaultChartStatusFunction() {
+	chartStatusFn = getChartStatus
 }
 
-type LoadChartFnType func(chartDir string) (*chart.Chart, error)
+// ReleaseAppVersionFnType - Package-level var and functions to allow overriding GetReleaseAppVersion for unit test purposes
+type ReleaseAppVersionFnType func(releaseName string, namespace string) (string, error)
 
-var loadChartFn LoadChartFnType = loadChart
+var releaseAppVersionFn ReleaseAppVersionFnType = getReleaseAppVersion
 
-func SetLoadChartFunction(f LoadChartFnType) {
-	loadChartFn = f
+// SetReleaseAppVersionFunction Override the GetReleaseAppVersion for unit testing
+func SetReleaseAppVersionFunction(f ReleaseAppVersionFnType) {
+	releaseAppVersionFn = f
 }
 
-func SetDefaultLoadChartFunction() {
-	loadChartFn = loadChart
+// SetDefaultReleaseAppVersionFunction Reset the GetReleaseAppVersion function
+func SetDefaultReleaseAppVersionFunction() {
+	releaseAppVersionFn = getReleaseAppVersion
 }
 
-// GetValuesMap will run 'helm get values' command and return the output from the command.
-func GetValuesMap(log vzlog.VerrazzanoLogger, releaseName string, namespace string) (map[string]interface{}, error) {
-	settings := cli.New()
-	settings.SetNamespace(namespace)
-	actionConfig, err := actionConfigFn(log, settings, namespace)
-	if err != nil {
-		return nil, err
-	}
+// Package-level var and functions to allow overriding getReleaseState for unit test purposes
+type releaseStateFnType func(releaseName string, namespace string) (string, error)
 
-	client := action.NewGetValues(actionConfig)
-	vals, err := client.Run(releaseName)
-	if err != nil {
-		return nil, err
-	}
+var releaseStateFn releaseStateFnType = getReleaseState
 
-	return vals, nil
+// SetChartStateFunction Override the chart state function for unit testing
+func SetChartStateFunction(f releaseStateFnType) {
+	releaseStateFn = f
+}
+
+// SetDefaultChartStateFunction Reset the chart state function
+func SetDefaultChartStateFunction() {
+	releaseStateFn = getChartStatus
 }
 
 // GetValues will run 'helm get values' command and return the output from the command.
 func GetValues(log vzlog.VerrazzanoLogger, releaseName string, namespace string) ([]byte, error) {
-	vals, err := GetValuesMap(log, releaseName, namespace)
+	// Helm get values command will get the current set values for the installed chart.
+	// The output will be used as input to the helm upgrade command.
+	args := []string{"get", "values", releaseName}
+	if namespace != "" {
+		args = append(args, "--namespace")
+		args = append(args, namespace)
+		args = append(args, "-o")
+		args = append(args, "yaml")
+	}
+
+	cmd := exec.Command("helm", args...)
+	log.Debugf("Running command to get Helm values: %s", cmd.String())
+	stdout, stderr, err := runner.Run(cmd)
 	if err != nil {
+		log.Errorf("Failed to get Helm values for %s: stderr %s", releaseName, string(stderr))
 		return nil, err
 	}
 
-	yamlValues, err := yaml.Marshal(vals)
-	if err != nil {
-		return nil, err
-	}
-	return yamlValues, nil
+	//  Log get values output
+	log.Debugf("Successfully fetched Helm get values %s", releaseName)
+
+	return stdout, nil
 }
 
-// Upgrade will upgrade a Helm helmRelease with the specified charts.  The override files array
+// GetValuesMap will run 'helm get values' command and return the output from the command as a map of Objects.
+func GetValuesMap(log vzlog.VerrazzanoLogger, releaseName string, namespace string) (map[string]interface{}, error) {
+	// Helm get values command will get the current set values for the installed chart.
+	// The output will be used as input to the helm upgrade command.
+	args := []string{"get", "values", releaseName}
+	if namespace != "" {
+		args = append(args, "--namespace")
+		args = append(args, namespace)
+		args = append(args, "-o")
+		args = append(args, "json")
+	}
+
+	cmd := exec.Command("helm", args...)
+	log.Debugf("Running command to get Helm values: %s", cmd.String())
+	stdout, stderr, err := runner.Run(cmd)
+	if err != nil {
+		log.Errorf("Failed to get Helm values for %s: stderr %s", releaseName, string(stderr))
+		return nil, err
+	}
+
+	var valuesMap map[string]interface{}
+	if err := json.Unmarshal(stdout, &valuesMap); err != nil {
+		return map[string]interface{}{}, err
+	}
+	//  Log get values output
+	log.Debugf("Successfully fetched Helm get values %s", releaseName)
+	return valuesMap, nil
+}
+
+// Upgrade will upgrade a Helm release with the specified charts.  The override files array
 // are in order with the first files in the array have lower precedence than latter files.
-func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []HelmOverrides) (e error) {
-	settings := cli.New()
-	settings.SetNamespace(namespace)
-	actionConfig, err := actionConfigFn(log, settings, namespace)
-	if err != nil {
-		return err
-	}
+func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []HelmOverrides) (stdout []byte, stderr []byte, err error) {
+	// Helm upgrade command will apply the new chart, but use all the existing
+	// overrides that we used during the install.
+	args := []string{"--install"}
 
-	p := getter.All(settings)
-	vals, err := mergeValues(overrides, p)
-	if err != nil {
-		return err
-	}
-	// load chart from the path
-	chart, err := loadChartFn(chartDir)
-	if err != nil {
-		return err
-	}
-	installed, err := IsReleaseInstalled(releaseName, namespace)
-	if err != nil {
-		return err
-	}
-
-	var rel *release.Release
-	if installed {
-		// upgrade it
-		log.Infof("Starting Helm upgrade of release %s in namespace %s with overrides: %v", releaseName, namespace, overrides)
-		client := action.NewUpgrade(actionConfig)
-		client.Namespace = namespace
-		client.DryRun = dryRun
-
-		rel, err = client.Run(releaseName, chart, vals)
-		if err != nil {
-			log.Errorf("Failed running Helm command for release %s",
-				releaseName)
-			return err
+	// Do not pass the --reuse-values arg to 'helm upgrade'.  Instead, pass the
+	// values retrieved from 'helm get values' with the -f arg to 'helm upgrade'. This is a workaround to avoid
+	// a failed helm upgrade that results from a nil reference.  The nil reference occurs when a default value
+	// is added to a new chart and new chart references the new value.
+	for _, override := range overrides {
+		// Add file overrides
+		if len(override.FileOverride) > 0 {
+			args = append(args, "-f")
+			args = append(args, override.FileOverride)
 		}
-	} else {
-		log.Infof("Starting Helm installation of release %s in namespace %s with overrides: %v", releaseName, namespace, overrides)
-		client := action.NewInstall(actionConfig)
-		client.Namespace = namespace
-		client.ReleaseName = releaseName
-		client.DryRun = dryRun
-		client.Replace = true
-
-		rel, err = client.Run(chart, vals)
-		if err != nil {
-			log.Errorf("Failed running Helm command for release %s",
-				releaseName)
-			return err
+		// Add the override strings
+		if len(override.SetOverrides) > 0 {
+			args = append(args, "--set")
+			args = append(args, override.SetOverrides)
+		}
+		// Add the set-string override strings
+		if len(override.SetStringOverrides) > 0 {
+			args = append(args, "--set-string")
+			args = append(args, override.SetStringOverrides)
+		}
+		// Add the set-file override strings
+		if len(override.SetFileOverrides) > 0 {
+			args = append(args, "--set-file")
+			args = append(args, override.SetFileOverrides)
 		}
 	}
 
-	log.Infof("Helm upgraded/installed %s in namespace %s", rel.Name, rel.Namespace)
+	stdout, stderr, err = runHelm(log, releaseName, namespace, chartDir, "upgrade", wait, args, dryRun)
+	if err != nil {
+		return stdout, stderr, err
+	}
 
-	return nil
+	return stdout, stderr, nil
 }
 
-// Uninstall will uninstall the helmRelease in the specified namespace  using helm uninstall
-func Uninstall(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (err error) {
-	settings := cli.New()
-	settings.SetNamespace(namespace)
-	actionConfig, err := actionConfigFn(log, settings, namespace)
+// Uninstall will uninstall the release in the specified namespace  using helm uninstall
+func Uninstall(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
+	// Helm upgrade command will apply the new chart, but use all the existing
+	// overrides that we used during the install.
+	var args []string
+
+	stdout, stderr, err = runHelm(log, releaseName, namespace, "", "uninstall", false, args, dryRun)
 	if err != nil {
-		return err
+		return stdout, stderr, err
 	}
 
-	client := action.NewUninstall(actionConfig)
-	client.DryRun = dryRun
+	return stdout, stderr, nil
+}
 
-	_, err = client.Run(releaseName)
-	if err != nil {
-		log.Errorf("Error uninstalling release %s: %s", releaseName, err.Error())
-		return err
+// runHelm is a helper function to execute the helm CLI and return a result
+func runHelm(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, operation string, wait bool, args []string, dryRun bool) (stdout []byte, stderr []byte, err error) {
+	cmdArgs := []string{operation, releaseName}
+	if len(chartDir) > 0 {
+		cmdArgs = append(cmdArgs, chartDir)
+	}
+	if Debug {
+		cmdArgs = append(cmdArgs, "--debug")
+	}
+	if dryRun {
+		cmdArgs = append(cmdArgs, "--dry-run")
+	}
+	if wait {
+		cmdArgs = append(cmdArgs, "--wait")
+	}
+	if namespace != "" {
+		cmdArgs = append(cmdArgs, "--namespace")
+		cmdArgs = append(cmdArgs, namespace)
+	}
+	cmdArgs = append(cmdArgs, args...)
+
+	// Try to upgrade several times.  Sometimes upgrade fails with "already exists" or "no deployed release".
+	// We have seen from tests that doing a retry will eventually succeed if these 2 errors occur.
+	for i := 1; i <= maxRetry; i++ {
+		cmd := exec.Command("helm", cmdArgs...)
+
+		// mask sensitive data before logging
+		cmdStr := maskSensitiveData(cmd.String())
+		if i == 1 {
+			log.Progressf("Running Helm command %s for release %s", cmdStr, releaseName)
+		} else {
+			log.Progressf("Re-running Helm command for release %s", releaseName)
+		}
+
+		stdout, stderr, err = runner.Run(cmd)
+		if err == nil {
+			log.Debugf("Successfully ran Helm command for operation %s and release %s", operation, releaseName)
+			break
+		}
+		if i == maxRetry {
+			log.Errorf("Failed running Helm command for release %s: stderr %s",
+				releaseName, string(stderr))
+			return stdout, stderr, err
+		}
+		log.Infof("Failed running Helm command for operation %s and release %s. Retrying %d of %d", operation, releaseName, i+1, maxRetry)
 	}
 
-	return nil
+	return stdout, stderr, nil
 }
 
 // maskSensitiveData replaces sensitive data in a string with mask characters.
@@ -197,23 +260,23 @@ func maskSensitiveData(str string) string {
 	return str
 }
 
-// IsReleaseFailed Returns true if the chart helmRelease state is marked 'failed'
+// IsReleaseFailed Returns true if the chart release state is marked 'failed'
 func IsReleaseFailed(releaseName string, namespace string) (bool, error) {
 	log := zap.S()
-	releaseStatus, err := getReleaseState(releaseName, namespace)
+	releaseStatus, err := releaseStateFn(releaseName, namespace)
 	if err != nil {
-		log.Errorf("Getting status for chart %s/%s failed", namespace, releaseName)
+		log.Errorf("Getting status for chart %s/%s failed with stderr: %v\n", namespace, releaseName, err)
 		return false, err
 	}
 	return releaseStatus == ChartStatusFailed, nil
 }
 
-// IsReleaseDeployed returns true if the helmRelease is deployed
+// IsReleaseDeployed returns true if the release is deployed
 func IsReleaseDeployed(releaseName string, namespace string) (found bool, err error) {
 	log := zap.S()
-	releaseStatus, err := getChartStatus(releaseName, namespace)
+	releaseStatus, err := chartStatusFn(releaseName, namespace)
 	if err != nil {
-		log.Errorf("Getting status for chart %s/%s failed with error: %v\n", namespace, releaseName, err)
+		log.Errorf("Getting status for chart %s/%s failed with stderr: %v\n", namespace, releaseName, err)
 		return false, err
 	}
 	switch releaseStatus {
@@ -225,9 +288,9 @@ func IsReleaseDeployed(releaseName string, namespace string) (found bool, err er
 	return false, nil
 }
 
-// GetReleaseStatus returns the helmRelease status
+// GetReleaseStatus returns the release status
 func GetReleaseStatus(log vzlog.VerrazzanoLogger, releaseName string, namespace string) (status string, err error) {
-	releaseStatus, err := getChartStatus(releaseName, namespace)
+	releaseStatus, err := chartStatusFn(releaseName, namespace)
 	if err != nil {
 		log.ErrorfNewErr("Failed getting status for chart %s/%s with stderr: %v\n", namespace, releaseName, err)
 		return "", err
@@ -238,62 +301,76 @@ func GetReleaseStatus(log vzlog.VerrazzanoLogger, releaseName string, namespace 
 	return releaseStatus, nil
 }
 
-// IsReleaseInstalled returns true if the helmRelease is installed
+// IsReleaseInstalled returns true if the release is installed
 func IsReleaseInstalled(releaseName string, namespace string) (found bool, err error) {
-	settings := cli.New()
-	settings.SetNamespace(namespace)
-	actionConfig, err := actionConfigFn(vzlog.DefaultLogger(), settings, namespace)
-	if err != nil {
-		return false, err
+	log := zap.S()
+
+	args := []string{"status", releaseName}
+	if namespace != "" {
+		args = append(args, "--namespace")
+		args = append(args, namespace)
+	}
+	cmd := exec.Command("helm", args...)
+	stdout, stderr, err := runner.Run(cmd)
+
+	if err == nil {
+		log.Debugf("helm status stdout: %s", string(stdout))
+		return true, nil
 	}
 
-	client := action.NewStatus(actionConfig)
-	helmRelease, err := client.Run(releaseName)
-	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			return false, nil
-		}
-		return false, err
+	if strings.Contains(string(stderr), "not found") {
+		return false, nil
 	}
-	return release.StatusDeployed == helmRelease.Info.Status, nil
+	log.Errorf("helm status for release %s failed with stderr: %s\n", releaseName, string(stderr))
+	return false, err
 }
 
 // getChartStatus extracts the Helm deployment status of the specified chart from the JSON output as a string
 func getChartStatus(releaseName string, namespace string) (string, error) {
-	settings := cli.New()
-	settings.SetNamespace(namespace)
-	actionConfig, err := actionConfigFn(vzlog.DefaultLogger(), settings, namespace)
-	if err != nil {
-		return "", err
+	args := []string{"status", releaseName}
+	if namespace != "" {
+		args = append(args, "--namespace")
+		args = append(args, namespace)
+		args = append(args, "-o")
+		args = append(args, "json")
 	}
-
-	client := action.NewStatus(actionConfig)
-	helmRelease, err := client.Run(releaseName)
+	cmd := exec.Command("helm", args...)
+	stdout, stderr, err := runner.Run(cmd)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if strings.Contains(string(stderr), "not found") {
 			return ChartNotFound, nil
 		}
+		return "", fmt.Errorf("helm status for release %s failed with stderr: %s", releaseName, string(stderr))
+	}
+
+	var statusInfo map[string]interface{}
+	if err := json.Unmarshal(stdout, &statusInfo); err != nil {
 		return "", err
 	}
 
-	return helmRelease.Info.Status.String(), nil
+	if info, infoFound := statusInfo["info"].(map[string]interface{}); infoFound {
+		if status, statusFound := info["status"].(string); statusFound {
+			return strings.TrimSpace(status), nil
+		}
+	}
+	return "", fmt.Errorf("No chart status found for %s/%s", namespace, releaseName)
 }
 
-// getReleaseState extracts the helmRelease state from an "ls -o json" command for a specific helmRelease/namespace
+// getReleaseState extracts the release state from an "ls -o json" command for a specific release/namespace
 func getReleaseState(releaseName string, namespace string) (string, error) {
-	releases, err := getReleases(namespace)
+	statusInfo, err := getReleases(namespace)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if errors.IsNotFound(err) {
 			return ChartNotFound, nil
 		}
 		return "", err
 	}
 
-	status := ""
-	for _, info := range releases {
-		release := info.Name
+	var status string
+	for _, info := range statusInfo {
+		release := info["name"].(string)
 		if release == releaseName {
-			status = info.Info.Status.String()
+			status = info["status"].(string)
 			break
 		}
 	}
@@ -302,10 +379,10 @@ func getReleaseState(releaseName string, namespace string) (string, error) {
 
 // GetReleaseAppVersion - public function to execute releaseAppVersionFn
 func GetReleaseAppVersion(releaseName string, namespace string) (string, error) {
-	return getReleaseAppVersion(releaseName, namespace)
+	return releaseAppVersionFn(releaseName, namespace)
 }
 
-// GetReleaseStringValues - Returns a subset of Helm helmRelease values as a map of strings
+// GetReleaseStringValues - Returns a subset of Helm release values as a map of strings
 func GetReleaseStringValues(log vzlog.VerrazzanoLogger, valueKeys []string, releaseName string, namespace string) (map[string]string, error) {
 	values, err := GetReleaseValues(log, valueKeys, releaseName, namespace)
 	if err != nil {
@@ -318,7 +395,7 @@ func GetReleaseStringValues(log vzlog.VerrazzanoLogger, valueKeys []string, rele
 	return returnVals, err
 }
 
-// GetReleaseValues - Returns a subset of Helm helmRelease values as a map of objects
+// GetReleaseValues - Returns a subset of Helm release values as a map of objects
 func GetReleaseValues(log vzlog.VerrazzanoLogger, valueKeys []string, releaseName string, namespace string) (map[string]interface{}, error) {
 	isDeployed, err := IsReleaseDeployed(releaseName, namespace)
 	if err != nil {
@@ -340,9 +417,9 @@ func GetReleaseValues(log vzlog.VerrazzanoLogger, valueKeys []string, releaseNam
 	return values, nil
 }
 
-// getReleaseAppVersion extracts the helmRelease app_version from a "ls -o json" command for a specific helmRelease/namespace
+// getReleaseAppVersion extracts the release app_version from a "ls -o json" command for a specific release/namespace
 func getReleaseAppVersion(releaseName string, namespace string) (string, error) {
-	releases, err := getReleases(namespace)
+	statusInfo, err := getReleases(namespace)
 	if err != nil {
 		if err.Error() == ChartNotFound {
 			return ChartNotFound, nil
@@ -351,119 +428,48 @@ func getReleaseAppVersion(releaseName string, namespace string) (string, error) 
 	}
 
 	var status string
-	for _, info := range releases {
-		release := info.Name
+	for _, info := range statusInfo {
+		release := info["name"].(string)
 		if release == releaseName {
-			status = info.Chart.AppVersion()
+			status = info["app_version"].(string)
 			break
 		}
 	}
 	return strings.TrimSpace(status), nil
 }
 
-func getReleases(namespace string) ([]*release.Release, error) {
-	settings := cli.New()
-	settings.SetNamespace(namespace)
-	actionConfig, err := actionConfigFn(vzlog.DefaultLogger(), settings, namespace)
+func getReleases(namespace string) ([]map[string]interface{}, error) {
+	var statusInfo []map[string]interface{}
+
+	args := []string{"ls"}
+	if namespace != "" {
+		args = append(args, "--namespace")
+		args = append(args, namespace)
+		args = append(args, "-o")
+		args = append(args, "json")
+	}
+	cmd := exec.Command("helm", args...)
+	stdout, stderr, err := runner.Run(cmd)
 	if err != nil {
-		return nil, err
+		if strings.Contains(string(stderr), "not found") {
+			return statusInfo, fmt.Errorf(ChartNotFound)
+		}
+		return statusInfo, fmt.Errorf("helm status for namespace %s failed with stderr: %s", namespace, string(stderr))
 	}
 
-	client := action.NewList(actionConfig)
-	client.AllNamespaces = false
-	client.All = true
-	client.StateMask = action.ListAll
-
-	releases, err := client.Run()
-	if err != nil {
-		return nil, err
+	if err := json.Unmarshal(stdout, &statusInfo); err != nil {
+		return statusInfo, err
 	}
 
-	return releases, nil
+	return statusInfo, nil
 }
 
-func getActionConfig(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), log.Debugf); err != nil {
-		return nil, err
-	}
-	return actionConfig, nil
+// SetCmdRunner sets the command runner as needed by unit tests
+func SetCmdRunner(r vzos.CmdRunner) {
+	runner = r
 }
 
-func loadChart(chartDir string) (*chart.Chart, error) {
-	return loader.Load(chartDir)
-}
-
-// readFile load a file using a URI scheme provider
-func readFile(filePath string, p getter.Providers) ([]byte, error) {
-	if strings.TrimSpace(filePath) == "-" {
-		return io.ReadAll(os.Stdin)
-	}
-	u, err := url.Parse(filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	g, err := p.ByScheme(u.Scheme)
-	if err != nil {
-		return os.ReadFile(filePath)
-	}
-	data, err := g.Get(filePath, getter.WithURL(filePath))
-	if err != nil {
-		return nil, err
-	}
-	return data.Bytes(), err
-}
-
-// mergeValues merges values from the specified overrides
-func mergeValues(overrides []HelmOverrides, p getter.Providers) (map[string]interface{}, error) {
-	base := map[string]interface{}{}
-
-	// User specified a values files via -f/--values
-	for _, override := range overrides {
-		if len(override.FileOverride) > 0 {
-			currentMap := map[string]interface{}{}
-
-			bytes, err := readFile(override.FileOverride, p)
-			if err != nil {
-				return nil, err
-			}
-
-			if err := yaml.Unmarshal(bytes, &currentMap); err != nil {
-				return nil, err
-			}
-			// Merge with the previous map
-			yaml2.MergeMaps(base, currentMap)
-		}
-
-		// User specified a value via --set
-		if len(override.SetOverrides) > 0 {
-			if err := strvals.ParseInto(override.SetOverrides, base); err != nil {
-				return nil, err
-			}
-		}
-
-		// User specified a value via --set-string
-		if len(override.SetStringOverrides) > 0 {
-			if err := strvals.ParseIntoString(override.SetStringOverrides, base); err != nil {
-				return nil, err
-			}
-		}
-
-		// User specified a value via --set-file
-		if len(override.SetFileOverrides) > 0 {
-			reader := func(rs []rune) (interface{}, error) {
-				bytes, err := readFile(string(rs), p)
-				if err != nil {
-					return nil, err
-				}
-				return string(bytes), err
-			}
-			if err := strvals.ParseIntoFile(override.SetFileOverrides, base, reader); err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return base, nil
+// SetDefaultRunner sets the command runner to default
+func SetDefaultRunner() {
+	runner = vzos.DefaultRunner{}
 }

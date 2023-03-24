@@ -1,16 +1,13 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helm
 
 import (
+	"errors"
 	"fmt"
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/release"
-	"helm.sh/helm/v3/pkg/time"
 	"os"
+	"os/exec"
 	"reflect"
 	"testing"
 
@@ -41,6 +38,10 @@ import (
 // Needed for unit tests
 var fakeOverrides []string
 
+// helmFakeRunner is used to test helm without actually running an OS exec command
+type helmFakeRunner struct {
+}
+
 const (
 	testBomFilePath     = "../../testdata/test_bom.json"
 	overrideJSON        = "{\"serviceAccount\": {\"create\": false}}"
@@ -65,7 +66,7 @@ var (
 		},
 	}
 	testNs           = "testNamespace"
-	releaseName      = "v1.0-test"
+	releaseName      = "v1.0_test"
 	clientWithSecret = fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&corev1.Secret{
 			Type:       "helm.sh/release.v1",
@@ -76,51 +77,25 @@ var (
 	fakeContextWithSecret = spi.NewFakeContext(clientWithSecret, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false)
 )
 
+// genericHelmTestRunner is used to run generic OS commands with expected results
+type genericHelmTestRunner struct {
+	stdOut []byte
+	stdErr []byte
+	err    error
+}
+
 var testScheme = runtime.NewScheme()
-
-func getChart() *chart.Chart {
-	return &chart.Chart{
-		Metadata: &chart.Metadata{
-			APIVersion: "v1",
-			Name:       "hello",
-			Version:    "0.1.0",
-			AppVersion: "1.0",
-		},
-		Templates: []*chart.File{
-			{Name: "templates/hello", Data: []byte("hello: world")},
-		},
-	}
-}
-
-func createRelease(name string, status release.Status) *release.Release {
-	now := time.Now()
-	return &release.Release{
-		Name:      releaseName,
-		Namespace: "foo",
-		Info: &release.Info{
-			FirstDeployed: now,
-			LastDeployed:  now,
-			Status:        status,
-			Description:   "Named Release Stub",
-		},
-		Chart:   getChart(),
-		Version: 1,
-	}
-}
-
-func testActionConfigWithoutInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return helm.CreateActionConfig(false, "my-release", release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
-}
-
-func testActionConfigWithInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return helm.CreateActionConfig(true, "my-release", release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
-}
 
 func init() {
 	_ = k8scheme.AddToScheme(testScheme)
 	_ = v1alpha1.AddToScheme(testScheme)
 	_ = certv1.AddToScheme(testScheme)
 	// +kubebuilder:scaffold:testScheme
+}
+
+// Run genericHelmTestRunner executor
+func (r genericHelmTestRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+	return r.stdOut, r.stdErr, r.err
 }
 
 // TestName tests the component name
@@ -146,11 +121,12 @@ func TestUpgrade(t *testing.T) {
 	a := assert.New(t)
 
 	comp := HelmComponent{
-		ReleaseName:             releaseName,
+		ReleaseName:             "rancher",
 		ChartDir:                "ChartDir",
 		ChartNamespace:          "chartNS",
 		IgnoreNamespaceOverride: true,
 		ImagePullSecretKeyname:  "imagePullSecrets",
+		ValuesFile:              "ValuesFile",
 		PreUpgradeFunc:          fakePreUpgrade,
 	}
 
@@ -161,13 +137,14 @@ func TestUpgrade(t *testing.T) {
 	}
 
 	config.SetDefaultBomFilePath(testBomFilePath)
-	defer helm.SetDefaultActionConfigFunction()
-	defer helm.SetDefaultLoadChartFunction()
-
-	helm.SetActionConfigFunction(testActionConfigWithInstallation)
-	helm.SetLoadChartFunction(func(chartDir string) (*chart.Chart, error) {
-		return getChart(), nil
+	helm.SetCmdRunner(helmFakeRunner{})
+	defer helm.SetDefaultRunner()
+	SetUpgradeFunc(fakeUpgrade)
+	defer SetDefaultUpgradeFunc()
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
 	})
+	defer helm.SetDefaultChartStatusFunction()
 	err := comp.Upgrade(spi.NewFakeContext(newFakeClient(), &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	a.NoError(err, "Upgrade returned an error")
 }
@@ -179,6 +156,32 @@ func newFakeClient() clipkg.Client {
 	return client
 }
 
+// TestUpgradeIsInstalledUnexpectedError tests the component upgrade
+// GIVEN a component
+//
+//	WHEN I call Upgrade and the chart status function returns an error
+//	THEN the upgrade returns an error
+func TestUpgradeIsInstalledUnexpectedError(t *testing.T) {
+	a := assert.New(t)
+
+	comp := HelmComponent{}
+
+	SetUpgradeFunc(func(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+		return nil, nil, nil
+	})
+	defer SetDefaultUpgradeFunc()
+
+	helm.SetCmdRunner(genericHelmTestRunner{
+		stdOut: []byte(""),
+		stdErr: []byte("What happened?"),
+		err:    fmt.Errorf("Unexpected error"),
+	})
+	defer helm.SetDefaultRunner()
+
+	err := comp.Upgrade(spi.NewFakeContext(nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false))
+	a.Error(err)
+}
+
 // TestUpgradeReleaseNotInstalled tests the component upgrade
 // GIVEN a component
 //
@@ -187,13 +190,15 @@ func newFakeClient() clipkg.Client {
 func TestUpgradeReleaseNotInstalled(t *testing.T) {
 	a := assert.New(t)
 
-	comp := HelmComponent{ReleaseName: releaseName}
+	comp := HelmComponent{}
 
+	SetUpgradeFunc(func(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+		return nil, nil, nil
+	})
+	helm.SetCmdRunner(helmFakeRunner{})
+	defer helm.SetDefaultRunner()
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer config.SetDefaultBomFilePath("")
-	defer helm.SetDefaultActionConfigFunction()
-
-	helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
 
 	err := comp.Upgrade(spi.NewFakeContext(newFakeClient(), &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	a.NoError(err)
@@ -208,11 +213,12 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 	a := assert.New(t)
 
 	comp := HelmComponent{
-		ReleaseName:             releaseName,
+		ReleaseName:             "rancher",
 		ChartDir:                "ChartDir",
 		ChartNamespace:          "chartNS",
 		IgnoreNamespaceOverride: true,
 		ImagePullSecretKeyname:  "imagePullSecrets",
+		ValuesFile:              "ValuesFile",
 		PreUpgradeFunc:          fakePreUpgrade,
 		AppendOverridesFunc: func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 			return []bom.KeyValue{
@@ -238,13 +244,14 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 	}
 
 	config.SetDefaultBomFilePath(testBomFilePath)
-	defer helm.SetDefaultActionConfigFunction()
-	defer helm.SetDefaultLoadChartFunction()
-
-	helm.SetActionConfigFunction(testActionConfigWithInstallation)
-	helm.SetLoadChartFunction(func(chartDir string) (*chart.Chart, error) {
-		return getChart(), nil
+	helm.SetCmdRunner(helmFakeRunner{})
+	defer helm.SetDefaultRunner()
+	SetUpgradeFunc(fakeUpgrade)
+	defer SetDefaultUpgradeFunc()
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
 	})
+	defer helm.SetDefaultChartStatusFunction()
 	err := comp.Upgrade(spi.NewFakeContext(newFakeClient(), &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	a.NoError(err, "Upgrade returned an error")
 }
@@ -262,6 +269,7 @@ func TestInstall(t *testing.T) {
 		ChartDir:                "ChartDir",
 		ChartNamespace:          "chartNS",
 		IgnoreNamespaceOverride: true,
+		ValuesFile:              "ValuesFile",
 		PreUpgradeFunc:          fakePreUpgrade,
 	}
 
@@ -274,12 +282,18 @@ func TestInstall(t *testing.T) {
 	}
 
 	config.SetDefaultBomFilePath(testBomFilePath)
-	helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
-	defer helm.SetDefaultActionConfigFunction()
-	helm.SetLoadChartFunction(func(chartDir string) (*chart.Chart, error) {
-		return getChart(), nil
+	helm.SetCmdRunner(helmFakeRunner{})
+	defer helm.SetDefaultRunner()
+	SetUpgradeFunc(fakeUpgrade)
+	defer SetDefaultUpgradeFunc()
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
 	})
-	defer helm.SetDefaultLoadChartFunction()
+	defer helm.SetDefaultChartStatusFunction()
+	helm.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	defer helm.SetDefaultChartStateFunction()
 	err := comp.Install(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	a.NoError(err, "Upgrade returned an error")
 }
@@ -293,10 +307,11 @@ func TestInstallWithAllOverride(t *testing.T) {
 	a := assert.New(t)
 
 	comp := HelmComponent{
-		ReleaseName:             releaseName,
+		ReleaseName:             "rancher",
 		ChartDir:                "ChartDir",
 		ChartNamespace:          "chartNS",
 		IgnoreNamespaceOverride: true,
+		ValuesFile:              "ValuesFile",
 		PreUpgradeFunc:          fakePreUpgrade,
 		AppendOverridesFunc: func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 			kvs = append(kvs, bom.KeyValue{Key: "", Value: "my-overrides.yaml", IsFile: true})
@@ -316,19 +331,28 @@ func TestInstallWithAllOverride(t *testing.T) {
 	}
 
 	config.SetDefaultBomFilePath(testBomFilePath)
-	helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
-	defer helm.SetDefaultActionConfigFunction()
-	helm.SetLoadChartFunction(func(chartDir string) (*chart.Chart, error) {
-		return getChart(), nil
+	helm.SetCmdRunner(helmFakeRunner{})
+	defer helm.SetDefaultRunner()
+
+	SetUpgradeFunc(fakeUpgrade)
+	defer SetDefaultUpgradeFunc()
+
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
 	})
-	defer helm.SetDefaultLoadChartFunction()
+	defer helm.SetDefaultChartStatusFunction()
+
+	helm.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	defer helm.SetDefaultChartStateFunction()
 
 	err := comp.Install(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	a.Error(err, "Install did not return an open file error")
 	a.Equal(err.Error(), "Could not open file setFileValue: open setFileValue: no such file or directory")
 }
 
-// TestInstallPreviousFailure tests the component installation
+// TestInstallPreviousFailure tests the component install
 // GIVEN a component
 //
 //	WHEN I call Install and the chart release is in a failed status
@@ -337,10 +361,11 @@ func TestInstallPreviousFailure(t *testing.T) {
 	a := assert.New(t)
 
 	comp := HelmComponent{
-		ReleaseName:             releaseName,
+		ReleaseName:             "rancher",
 		ChartDir:                "ChartDir",
 		ChartNamespace:          "chartNS",
 		IgnoreNamespaceOverride: true,
+		ValuesFile:              "ValuesFile",
 		PreUpgradeFunc:          fakePreUpgrade,
 	}
 
@@ -353,13 +378,18 @@ func TestInstallPreviousFailure(t *testing.T) {
 	}
 
 	config.SetDefaultBomFilePath(testBomFilePath)
-	helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
-	defer helm.SetDefaultActionConfigFunction()
-	helm.SetLoadChartFunction(func(chartDir string) (*chart.Chart, error) {
-		return getChart(), nil
+	helm.SetCmdRunner(helmFakeRunner{})
+	defer helm.SetDefaultRunner()
+	SetUpgradeFunc(fakeUpgrade)
+	defer SetDefaultUpgradeFunc()
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
 	})
-	defer helm.SetDefaultLoadChartFunction()
-
+	defer helm.SetDefaultChartStatusFunction()
+	helm.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusFailed, nil
+	})
+	defer helm.SetDefaultChartStateFunction()
 	err := comp.Install(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	a.NoError(err, "Upgrade returned an error")
 
@@ -391,21 +421,28 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 		ChartDir:                "ChartDir",
 		ChartNamespace:          "chartNS",
 		IgnoreNamespaceOverride: true,
+		ValuesFile:              "ValuesFile",
 		AppendOverridesFunc: func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 			return preInstallKVPairs, nil
+
 		},
 	}
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	config.SetDefaultBomFilePath(testBomFilePath)
-	helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
-	defer helm.SetDefaultActionConfigFunction()
-	helm.SetLoadChartFunction(func(chartDir string) (*chart.Chart, error) {
-		return getChart(), nil
+	helm.SetCmdRunner(helmFakeRunner{})
+	defer helm.SetDefaultRunner()
+	SetUpgradeFunc(fakeUpgrade)
+	defer SetDefaultUpgradeFunc()
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
 	})
-	defer helm.SetDefaultLoadChartFunction()
-
+	defer helm.SetDefaultChartStatusFunction()
+	helm.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	defer helm.SetDefaultChartStateFunction()
 	err := comp.Install(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	a.NoError(err, "Upgrade returned an error")
 }
@@ -448,23 +485,24 @@ func TestGetDependencies(t *testing.T) {
 func TestIsInstalled(t *testing.T) {
 	a := assert.New(t)
 
-	comp := HelmComponent{
-		ReleaseName: releaseName,
-	}
+	comp := HelmComponent{}
+	defer helm.SetDefaultChartStatusFunction()
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
-	defer helm.SetDefaultActionConfigFunction()
-	defer helm.SetDefaultLoadChartFunction()
-
-	helm.SetActionConfigFunction(testActionConfigWithInstallation)
-	helm.SetLoadChartFunction(func(chartDir string) (*chart.Chart, error) {
-		return getChart(), nil
+	helm.SetCmdRunner(genericHelmTestRunner{
+		stdOut: []byte(""),
+		stdErr: []byte(""),
+		err:    nil,
 	})
-
+	defer helm.SetDefaultRunner()
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer config.SetDefaultBomFilePath("")
 	a.True(comp.IsInstalled(spi.NewFakeContext(nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false)))
-	helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
+	helm.SetCmdRunner(genericHelmTestRunner{
+		stdOut: []byte(""),
+		stdErr: []byte(""),
+		err:    fmt.Errorf("Not installed"),
+	})
 	a.False(comp.IsInstalled(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false)))
 	// when dry run is enabled
 	a.True(comp.IsInstalled(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, true)))
@@ -476,155 +514,110 @@ func TestIsInstalled(t *testing.T) {
 //	WHEN I call IsReady
 //	THEN true is returned based on chart status and the status check function if defined for the component
 func TestReady(t *testing.T) {
-	defer helm.SetDefaultActionConfigFunction()
+	defer helm.SetDefaultChartStatusFunction()
+	defer helm.SetDefaultChartInfoFunction()
+	defer helm.SetDefaultReleaseAppVersionFunction()
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	fakeCtx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false)
 	dryRunCtx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, true)
 	tests := []struct {
-		name           string
-		actionConfigFn helm.ActionConfigFnType
-		chartInfoFn    helm.ChartInfoFnType
-		expectSuccess  bool
-		ctx            spi.ComponentContext
+		name                string
+		chartStatusFn       helm.ChartStatusFnType
+		chartInfoFn         helm.ChartInfoFnType
+		releaseAppVersionFn helm.ReleaseAppVersionFnType
+		expectSuccess       bool
+		ctx                 spi.ComponentContext
 	}{
 		{
 			name: "IsReady when all conditions are met",
-			actionConfigFn: func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-				return helm.CreateActionConfig(true, releaseName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
-					now := time.Now()
-					return &release.Release{
-						Name:      releaseName,
-						Namespace: testNs,
-						Info: &release.Info{
-							FirstDeployed: now,
-							LastDeployed:  now,
-							Status:        releaseStatus,
-							Description:   "Named Release Stub",
-						},
-						Chart: &chart.Chart{Metadata: &chart.Metadata{
-							AppVersion: "1.0",
-						}},
-						Version: 1,
-					}
-				})
+			chartStatusFn: func(releaseName string, namespace string) (string, error) {
+				return helm.ChartStatusDeployed, nil
 			},
 			chartInfoFn: func(chartDir string) (helm.ChartInfo, error) {
 				return helm.ChartInfo{
 					AppVersion: "1.0",
 				}, nil
+			},
+			releaseAppVersionFn: func(releaseName string, namespace string) (string, error) {
+				return "1.0", nil
 			},
 			expectSuccess: true,
 			ctx:           fakeCtx,
 		},
 		{
 			name: "IsReady fail because chart not found",
-			actionConfigFn: func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-				return helm.CreateActionConfig(false, releaseName, "", vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
-					return nil
-				})
+			chartStatusFn: func(releaseName string, namespace string) (string, error) {
+				return helm.ChartNotFound, nil
 			},
 			chartInfoFn: func(chartDir string) (helm.ChartInfo, error) {
 				return helm.ChartInfo{}, fmt.Errorf("chart not found")
+			},
+			releaseAppVersionFn: func(releaseName string, namespace string) (string, error) {
+				return "1.0", nil
 			},
 			expectSuccess: false,
 			ctx:           fakeCtx,
 		},
 		{
 			name: "IsReady fail because GetReleaseAppVersion is failure",
-			actionConfigFn: func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-				return helm.CreateActionConfig(true, releaseName, release.StatusFailed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
-					now := time.Now()
-					return &release.Release{
-						Name:      releaseName,
-						Namespace: testNs,
-						Info: &release.Info{
-							FirstDeployed: now,
-							LastDeployed:  now,
-							Status:        releaseStatus,
-							Description:   "Named Release Stub",
-						},
-						Chart: &chart.Chart{Metadata: &chart.Metadata{
-							AppVersion: "1.0",
-						}},
-						Version: 1,
-					}
-				})
+			chartStatusFn: func(releaseName string, namespace string) (string, error) {
+				return helm.ChartStatusFailed, nil
 			},
 			chartInfoFn: func(chartDir string) (helm.ChartInfo, error) {
 				return helm.ChartInfo{
 					AppVersion: "1.0",
 				}, nil
+			},
+			releaseAppVersionFn: func(releaseName string, namespace string) (string, error) {
+				return "", fmt.Errorf("error")
 			},
 			expectSuccess: false,
 			ctx:           fakeCtx,
 		},
 		{
 			name: "IsReady fail because error from getting chart status",
-			actionConfigFn: func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-				return nil, fmt.Errorf(unexpectedError)
+			chartStatusFn: func(releaseName string, namespace string) (string, error) {
+				return "", fmt.Errorf("Unexpected error")
 			},
 			chartInfoFn: func(chartDir string) (helm.ChartInfo, error) {
 				return helm.ChartInfo{
 					AppVersion: "1.0",
 				}, nil
+			},
+			releaseAppVersionFn: func(releaseName string, namespace string) (string, error) {
+				return "1.0", nil
 			},
 			expectSuccess: false,
 			ctx:           fakeCtx,
 		},
 		{
 			name: "IsReady fail because app version not matched between release and chart",
-			actionConfigFn: func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-				return helm.CreateActionConfig(true, releaseName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
-					now := time.Now()
-					return &release.Release{
-						Name:      releaseName,
-						Namespace: testNs,
-						Info: &release.Info{
-							FirstDeployed: now,
-							LastDeployed:  now,
-							Status:        releaseStatus,
-							Description:   "Named Release Stub",
-						},
-						Chart: &chart.Chart{Metadata: &chart.Metadata{
-							AppVersion: "1.1",
-						}},
-						Version: 1,
-					}
-				})
+			chartStatusFn: func(releaseName string, namespace string) (string, error) {
+				return helm.ChartStatusDeployed, nil
 			},
 			chartInfoFn: func(chartDir string) (helm.ChartInfo, error) {
 				return helm.ChartInfo{
-					AppVersion: "1.0",
+					AppVersion: "1.1",
 				}, nil
+			},
+			releaseAppVersionFn: func(releaseName string, namespace string) (string, error) {
+				return "1.0", nil
 			},
 			expectSuccess: false,
 			ctx:           fakeCtx,
 		},
 		{
 			name: "IsReady  when dry run is active",
-			actionConfigFn: func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-				return helm.CreateActionConfig(true, releaseName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
-					now := time.Now()
-					return &release.Release{
-						Name:      releaseName,
-						Namespace: testNs,
-						Info: &release.Info{
-							FirstDeployed: now,
-							LastDeployed:  now,
-							Status:        releaseStatus,
-							Description:   "Named Release Stub",
-						},
-						Chart: &chart.Chart{Metadata: &chart.Metadata{
-							AppVersion: "1.1",
-						}},
-						Version: 1,
-					}
-				})
+			chartStatusFn: func(releaseName string, namespace string) (string, error) {
+				return helm.ChartStatusDeployed, nil
 			},
 			chartInfoFn: func(chartDir string) (helm.ChartInfo, error) {
 				return helm.ChartInfo{
 					AppVersion: "1.1",
 				}, nil
+			},
+			releaseAppVersionFn: func(releaseName string, namespace string) (string, error) {
+				return "1.0", nil
 			},
 			expectSuccess: true,
 			ctx:           dryRunCtx,
@@ -636,10 +629,9 @@ func TestReady(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			comp := HelmComponent{}
-			comp.ReleaseName = releaseName
-			comp.ChartNamespace = testNs
-			helm.SetActionConfigFunction(tt.actionConfigFn)
+			helm.SetChartStatusFunction(tt.chartStatusFn)
 			helm.SetChartInfoFunction(tt.chartInfoFn)
+			helm.SetReleaseAppVersionFunction(tt.releaseAppVersionFn)
 			if tt.expectSuccess {
 				a.True(comp.IsReady(tt.ctx))
 			} else {
@@ -871,6 +863,27 @@ func TestFilesFromVerrazzanoHelm(t *testing.T) {
 	}
 }
 
+// fakeUpgrade verifies that the correct parameter values are passed to upgrade
+func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+	if releaseName != "rancher" {
+		return []byte("error"), []byte(""), errors.New("Invalid release name")
+	}
+	if chartDir != "ChartDir" {
+		return []byte("error"), []byte(""), errors.New("Invalid chart directory name")
+	}
+	if namespace != "chartNS" {
+		return []byte("error"), []byte(""), errors.New("Invalid chart namespace")
+	}
+
+	for _, override := range overrides {
+		if override.FileOverride == "" {
+			return []byte("error"), []byte(""), errors.New("found empty filename or non-file override")
+		}
+
+	}
+	return []byte("success"), []byte(""), nil
+}
+
 // TestHelmComponent tests all the getter function of HelmComponent e.g. Namespace, ShouldInstallBeforeUpgrade etc.
 // GIVEN a HelmComponent
 //
@@ -961,8 +974,13 @@ func TestGetOverrides(t *testing.T) {
 	}
 }
 
+// helmFakeRunner overrides the helm run command
+func (r helmFakeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+	return []byte("success"), []byte(""), nil
+}
+
 func fakePreUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, release string, namespace string, chartDir string) error {
-	if release != releaseName {
+	if release != "rancher" {
 		return fmt.Errorf("Incorrect release name %s", release)
 	}
 	if chartDir != "ChartDir" {
@@ -1104,13 +1122,13 @@ func TestValidateMethods(t *testing.T) {
 
 // TestPreInstall test PreInstall to verify the Pre-Install process.
 func TestPreInstall(t *testing.T) {
-	defer helm.SetDefaultActionConfigFunction()
+	defer helm.SetDefaultChartStatusFunction()
 	tests := []struct {
-		name           string
-		helmComponent  HelmComponent
-		actionConfigFn helm.ActionConfigFnType
-		ctx            spi.ComponentContext
-		expectSuccess  bool
+		name          string
+		helmComponent HelmComponent
+		chartStatusFn helm.ChartStatusFnType
+		ctx           spi.ComponentContext
+		expectSuccess bool
 	}{
 		// GIVEN Helm component
 		// WHEN PreInstall is called
@@ -1126,21 +1144,8 @@ func TestPreInstall(t *testing.T) {
 					return nil
 				},
 			},
-			actionConfigFn: func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-				return helm.CreateActionConfig(false, releaseName, release.StatusPendingInstall, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
-					now := time.Now()
-					return &release.Release{
-						Name:      releaseName,
-						Namespace: namespace,
-						Info: &release.Info{
-							FirstDeployed: now,
-							LastDeployed:  now,
-							Status:        releaseStatus,
-							Description:   "Named Release Stub",
-						},
-						Version: 1,
-					}
-				})
+			chartStatusFn: func(releaseName string, namespace string) (string, error) {
+				return helm.ChartStatusPendingInstall, nil
 			},
 			ctx:           fakeContextWithSecret,
 			expectSuccess: true,
@@ -1158,8 +1163,8 @@ func TestPreInstall(t *testing.T) {
 					return nil
 				},
 			},
-			actionConfigFn: func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-				return nil, fmt.Errorf(unexpectedError)
+			chartStatusFn: func(releaseName string, namespace string) (string, error) {
+				return "", fmt.Errorf(unexpectedError)
 			},
 			ctx:           fakeContextWithSecret,
 			expectSuccess: true,
@@ -1177,21 +1182,8 @@ func TestPreInstall(t *testing.T) {
 					return fmt.Errorf(unexpectedError)
 				},
 			},
-			actionConfigFn: func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-				return helm.CreateActionConfig(false, releaseName, release.StatusPendingInstall, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
-					now := time.Now()
-					return &release.Release{
-						Name:      releaseName,
-						Namespace: namespace,
-						Info: &release.Info{
-							FirstDeployed: now,
-							LastDeployed:  now,
-							Status:        releaseStatus,
-							Description:   "Named Release Stub",
-						},
-						Version: 1,
-					}
-				})
+			chartStatusFn: func(releaseName string, namespace string) (string, error) {
+				return helm.ChartStatusPendingInstall, nil
 			},
 			ctx:           fakeContextWithSecret,
 			expectSuccess: false,
@@ -1200,7 +1192,7 @@ func TestPreInstall(t *testing.T) {
 	a := assert.New(t)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			helm.SetActionConfigFunction(tt.actionConfigFn)
+			helm.SetChartStatusFunction(tt.chartStatusFn)
 			if tt.expectSuccess {
 				a.NoError(tt.helmComponent.PreInstall(tt.ctx))
 			} else {
@@ -1289,13 +1281,13 @@ func TestPostInstall(t *testing.T) {
 
 // TestPreUninstall tests PreUninstall function
 func TestPreUninstall(t *testing.T) {
-	defer helm.SetDefaultActionConfigFunction()
+	defer helm.SetDefaultChartStatusFunction()
 	tests := []struct {
-		name           string
-		helmComponent  HelmComponent
-		actionConfigFn helm.ActionConfigFnType
-		ctx            spi.ComponentContext
-		expectSuccess  bool
+		name          string
+		helmComponent HelmComponent
+		chartStatusFn helm.ChartStatusFnType
+		ctx           spi.ComponentContext
+		expectSuccess bool
 	}{
 		// GIVEN Helm component
 		// WHEN PreUninstall is called and chart status is deployed
@@ -1308,21 +1300,8 @@ func TestPreUninstall(t *testing.T) {
 					return testNs
 				},
 			},
-			actionConfigFn: func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-				return helm.CreateActionConfig(false, releaseName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
-					now := time.Now()
-					return &release.Release{
-						Name:      releaseName,
-						Namespace: namespace,
-						Info: &release.Info{
-							FirstDeployed: now,
-							LastDeployed:  now,
-							Status:        releaseStatus,
-							Description:   "Named Release Stub",
-						},
-						Version: 1,
-					}
-				})
+			chartStatusFn: func(releaseName string, namespace string) (string, error) {
+				return helm.ChartStatusDeployed, nil
 			},
 			ctx:           fakeContextWithSecret,
 			expectSuccess: true,
@@ -1337,8 +1316,8 @@ func TestPreUninstall(t *testing.T) {
 					return testNs
 				},
 			},
-			actionConfigFn: func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-				return nil, fmt.Errorf(unexpectedError)
+			chartStatusFn: func(releaseName string, namespace string) (string, error) {
+				return "", fmt.Errorf(unexpectedError)
 			},
 			ctx:           fakeContextWithSecret,
 			expectSuccess: true,
@@ -1353,21 +1332,8 @@ func TestPreUninstall(t *testing.T) {
 					return testNs
 				},
 			},
-			actionConfigFn: func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-				return helm.CreateActionConfig(false, releaseName, release.StatusPendingInstall, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
-					now := time.Now()
-					return &release.Release{
-						Name:      releaseName,
-						Namespace: namespace,
-						Info: &release.Info{
-							FirstDeployed: now,
-							LastDeployed:  now,
-							Status:        releaseStatus,
-							Description:   "Named Release Stub",
-						},
-						Version: 1,
-					}
-				})
+			chartStatusFn: func(releaseName string, namespace string) (string, error) {
+				return helm.ChartStatusPendingInstall, nil
 			},
 			ctx:           fakeContextWithSecret,
 			expectSuccess: true,
@@ -1376,7 +1342,7 @@ func TestPreUninstall(t *testing.T) {
 	a := assert.New(t)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			helm.SetActionConfigFunction(tt.actionConfigFn)
+			helm.SetChartStatusFunction(tt.chartStatusFn)
 			if tt.expectSuccess {
 				a.NoError(tt.helmComponent.PreUninstall(tt.ctx))
 			} else {
@@ -1388,9 +1354,8 @@ func TestPreUninstall(t *testing.T) {
 
 // TestUninstall validates the uninstallation of Helm component
 func TestUninstall(t *testing.T) {
-	defer helm.SetDefaultActionConfigFunction()
-	defer helm.SetDefaultLoadChartFunction()
-
+	defer helm.SetDefaultChartStatusFunction()
+	defer helm.SetDefaultRunner()
 	dryRunCtx := spi.NewFakeContext(clientWithSecret, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, true)
 	tests := []struct {
 		name          string
@@ -1411,7 +1376,11 @@ func TestUninstall(t *testing.T) {
 				},
 			},
 			helmOverride: func() {
-				helm.SetActionConfigFunction(testActionConfigWithInstallation)
+				helm.SetCmdRunner(genericHelmTestRunner{
+					stdOut: []byte("namespace installed"),
+					stdErr: []byte(""),
+					err:    nil,
+				})
 			},
 			ctx:           fakeContextWithSecret,
 			expectSuccess: true,
@@ -1427,7 +1396,11 @@ func TestUninstall(t *testing.T) {
 				},
 			},
 			helmOverride: func() {
-				helm.SetActionConfigFunction(testActionConfigWithInstallation)
+				helm.SetCmdRunner(genericHelmTestRunner{
+					stdOut: []byte(""),
+					stdErr: []byte(notFoundErrorString),
+					err:    fmt.Errorf(notFoundErrorString),
+				})
 			},
 			ctx:           fakeContextWithSecret,
 			expectSuccess: true,
@@ -1443,7 +1416,11 @@ func TestUninstall(t *testing.T) {
 				},
 			},
 			helmOverride: func() {
-				helm.SetActionConfigFunction(testActionConfigWithInstallation)
+				helm.SetCmdRunner(genericHelmTestRunner{
+					stdOut: []byte(""),
+					stdErr: []byte("failed to uninstall namespace"),
+					err:    fmt.Errorf("error uninstalling"),
+				})
 			},
 			ctx:           dryRunCtx,
 			expectSuccess: false,
@@ -1490,13 +1467,12 @@ func TestPostUninstall(t *testing.T) {
 
 // TestPreUpgrade tests the PreUpgrade process
 func TestPreUpgrade(t *testing.T) {
-	helm.SetDefaultActionConfigFunction()
 	tests := []struct {
-		name           string
-		helmComponent  HelmComponent
-		actionConfigFn helm.ActionConfigFnType
-		ctx            spi.ComponentContext
-		expectSuccess  bool
+		name          string
+		helmComponent HelmComponent
+		chartStatusFn helm.ChartStatusFnType
+		ctx           spi.ComponentContext
+		expectSuccess bool
 	}{
 		// GIVEN Helm component
 		// WHEN PreUpgrade is called and chart status is not Deployed
@@ -1509,21 +1485,8 @@ func TestPreUpgrade(t *testing.T) {
 					return testNs
 				},
 			},
-			actionConfigFn: func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-				return helm.CreateActionConfig(false, releaseName, release.StatusPendingInstall, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
-					now := time.Now()
-					return &release.Release{
-						Name:      releaseName,
-						Namespace: namespace,
-						Info: &release.Info{
-							FirstDeployed: now,
-							LastDeployed:  now,
-							Status:        releaseStatus,
-							Description:   "Named Release Stub",
-						},
-						Version: 1,
-					}
-				})
+			chartStatusFn: func(releaseName string, namespace string) (string, error) {
+				return helm.ChartStatusPendingInstall, nil
 			},
 			ctx:           fakeContextWithSecret,
 			expectSuccess: true,
@@ -1538,8 +1501,8 @@ func TestPreUpgrade(t *testing.T) {
 					return testNs
 				},
 			},
-			actionConfigFn: func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-				return nil, fmt.Errorf(unexpectedError)
+			chartStatusFn: func(releaseName string, namespace string) (string, error) {
+				return "", fmt.Errorf(unexpectedError)
 			},
 			ctx:           fakeContextWithSecret,
 			expectSuccess: false,
@@ -1553,23 +1516,9 @@ func TestPreUpgrade(t *testing.T) {
 				ResolveNamespaceFunc: func(ns string) string {
 					return testNs
 				},
-				ReleaseName: releaseName,
 			},
-			actionConfigFn: func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-				return helm.CreateActionConfig(false, releaseName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
-					now := time.Now()
-					return &release.Release{
-						Name:      releaseName,
-						Namespace: namespace,
-						Info: &release.Info{
-							FirstDeployed: now,
-							LastDeployed:  now,
-							Status:        releaseStatus,
-							Description:   "Named Release Stub",
-						},
-						Version: 1,
-					}
-				})
+			chartStatusFn: func(releaseName string, namespace string) (string, error) {
+				return helm.ChartStatusDeployed, nil
 			},
 			ctx:           fakeContextWithSecret,
 			expectSuccess: true,
@@ -1578,7 +1527,7 @@ func TestPreUpgrade(t *testing.T) {
 	a := assert.New(t)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			helm.SetActionConfigFunction(tt.actionConfigFn)
+			helm.SetChartStatusFunction(tt.chartStatusFn)
 			if tt.expectSuccess {
 				a.NoError(tt.helmComponent.PreUpgrade(tt.ctx))
 			} else {
@@ -1667,7 +1616,6 @@ func TestHelmComponentUpgrade(t *testing.T) {
 	mockClient := mocks.NewMockClient(mock)
 	mockClient.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).Return(fmt.Errorf(unexpectedError))
-	defer helm.SetDefaultActionConfigFunction()
 
 	tests := []struct {
 		name          string
@@ -1693,12 +1641,14 @@ func TestHelmComponentUpgrade(t *testing.T) {
 		// THEN upgrade process is skipped
 		{
 			"TestHelmComponentUpgrade when release is not found",
-			HelmComponent{
-				ReleaseName: releaseName,
-			},
+			HelmComponent{},
 			fakeContext,
 			func() {
-				helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
+				helm.SetCmdRunner(genericHelmTestRunner{
+					stdOut: []byte(""),
+					stdErr: []byte(notFoundErrorString),
+					err:    fmt.Errorf(notFoundErrorString),
+				})
 			},
 			false,
 		},
@@ -1711,11 +1661,14 @@ func TestHelmComponentUpgrade(t *testing.T) {
 				PreUpgradeFunc: func(log vzlog.VerrazzanoLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error {
 					return fmt.Errorf(unexpectedError)
 				},
-				ReleaseName: releaseName,
 			},
 			fakeContext,
 			func() {
-				helm.SetActionConfigFunction(testActionConfigWithInstallation)
+				helm.SetCmdRunner(genericHelmTestRunner{
+					stdOut: []byte(""),
+					stdErr: []byte(""),
+					err:    nil,
+				})
 			},
 			true,
 		},
@@ -1728,11 +1681,14 @@ func TestHelmComponentUpgrade(t *testing.T) {
 				PreUpgradeFunc: func(log vzlog.VerrazzanoLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error {
 					return nil
 				},
-				ReleaseName: releaseName,
 			},
 			spi.NewFakeContext(mockClient, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false),
 			func() {
-				helm.SetActionConfigFunction(testActionConfigWithInstallation)
+				helm.SetCmdRunner(genericHelmTestRunner{
+					stdOut: []byte(""),
+					stdErr: []byte(""),
+					err:    nil,
+				})
 			},
 			true,
 		},

@@ -7,10 +7,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/release"
-	"helm.sh/helm/v3/pkg/time"
 	"net/url"
 	"os"
 	"regexp"
@@ -30,6 +26,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
@@ -265,23 +262,10 @@ func TestPreInstall(t *testing.T) {
 
 // TestPreUpgrade tests the PreUpgrade func call
 func TestPreUpgrade(t *testing.T) {
-	defer helmcli.SetDefaultActionConfigFunction()
-	helmcli.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-		return helmcli.CreateActionConfig(true, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
-			now := time.Now()
-			return &release.Release{
-				Name:      ComponentName,
-				Namespace: ComponentNamespace,
-				Info: &release.Info{
-					FirstDeployed: now,
-					LastDeployed:  now,
-					Status:        releaseStatus,
-					Description:   "Named Release Stub",
-				},
-				Version: 1,
-			}
-		})
+	helmcli.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helmcli.ChartStatusDeployed, nil
 	})
+	defer helmcli.SetDefaultChartStateFunction()
 
 	asserts := assert.New(t)
 	three := int32(3)
@@ -364,27 +348,12 @@ func TestPreUpgrade(t *testing.T) {
 // TestInstall tests the Install func call
 func TestInstall(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
-
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../"})
-
-	defer helmcli.SetDefaultActionConfigFunction()
-	helmcli.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-		return helmcli.CreateActionConfig(true, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
-			now := time.Now()
-			return &release.Release{
-				Name:      ComponentName,
-				Namespace: ComponentNamespace,
-				Info: &release.Info{
-					FirstDeployed: now,
-					LastDeployed:  now,
-					Status:        releaseStatus,
-					Description:   "Named Release Stub",
-				},
-				Version: 1,
-			}
-		})
+	helm.SetUpgradeFunc(fakeUpgrade)
+	defer helm.SetDefaultUpgradeFunc()
+	helmcli.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
+		return helmcli.ChartStatusDeployed, nil
 	})
+	defer helmcli.SetDefaultChartStateFunction()
 
 	cli := createFakeTestClient(&v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1256,6 +1225,11 @@ func createFakeTestClient(extraObjs ...client.Object) client.Client {
 	objs = append(objs, extraObjs...)
 	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(objs...).Build()
 	return c
+}
+
+// fakeUpgrade override the upgrade function during unit tests
+func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+	return []byte("success"), []byte(""), nil
 }
 
 func getBoolPtr(b bool) *bool {
