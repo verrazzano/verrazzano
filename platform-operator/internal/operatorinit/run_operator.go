@@ -4,11 +4,15 @@
 package operatorinit
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
+	"sync"
+	"time"
+
 	"github.com/pkg/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/certrotation"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
@@ -18,8 +22,6 @@ import (
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	controllerruntime "sigs.k8s.io/controller-runtime"
-	"sync"
-	"time"
 )
 
 // StartPlatformOperator Platform operator execution entry point
@@ -65,7 +67,7 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 	}
 
 	// Setup configMaps reconciler
-	if err = (&configmaps.VerrazzanoConfigMapsReconciler{
+	if err = (&overrides.OverridesConfigMapsReconciler{
 		Client:        mgr.GetClient(),
 		Scheme:        mgr.GetScheme(),
 		StatusUpdater: statusUpdater,
@@ -79,6 +81,15 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 		return errors.Wrap(err, "Failed starting MySQLChecker")
 	}
 	mysqlCheck.Start()
+
+	// Setup stacks reconciler
+	if err = (&components.ComponentConfigMapReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+		DryRun: config.DryRun,
+	}).SetupWithManager(mgr); err != nil {
+		return errors.Wrap(err, "Failed to setup controller for Verrazzano Stacks")
+	}
 	if err = (&certrotation.CertificateRotationManagerReconciler{
 		Client:           mgr.GetClient(),
 		Scheme:           mgr.GetScheme(),

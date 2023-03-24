@@ -6,6 +6,8 @@ package vzinstance
 import (
 	"context"
 	"fmt"
+
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
@@ -60,7 +62,7 @@ func GetInstanceInfo(ctx spi.ComponentContext) *v1alpha1.InstanceInfo {
 		KialiURL:       getComponentIngressURL(ingressList.Items, ctx, kiali.ComponentName, constants.KialiIngress),
 		JaegerURL:      getComponentIngressURL(ingressList.Items, ctx, jaegeroperator.ComponentName, constants.JaegerIngress),
 		ArgoCDURL:      getComponentIngressURL(ingressList.Items, ctx, argocd.ComponentName, constants.ArgoCDIngress),
-		ThanosQueryURL: getComponentIngressURL(ingressList.Items, ctx, thanos.ComponentName, constants.ThanosQueryIngress),
+		ThanosQueryURL: getComponentIngressURL(ingressList.Items, ctx, thanos.ComponentName, vzconst.ThanosQueryIngress),
 	}
 	return instanceInfo
 }

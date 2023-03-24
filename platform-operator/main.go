@@ -130,6 +130,7 @@ func main() {
 	}
 
 	registry.InitRegistry()
+
 	// This allows separation of webhooks and operator
 	var exitErr error
 	if config.RunWebhookInit {
