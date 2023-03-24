@@ -353,6 +353,9 @@ func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdUninstall(rc)
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	assert.NotNil(t, cmd)
 
 	// Run uninstall command
