@@ -1199,7 +1199,7 @@ type Overrides struct {
 	SecretRef *corev1.SecretKeySelector `json:"secretRef,omitempty"`
 	// Configure overrides using inline YAML.
 	// For sample usage, see
-	// <a href="../../../../docs/customize/externallbs/#example-custom-resource-with-management-and-application-external-load-balancers">Values</a>.
+	// <a href="../../../../docs/customize/installationoverrides/#values">Values</a>.
 	// +optional
 	Values *apiextensionsv1.JSON `json:"values,omitempty"`
 }
