@@ -418,14 +418,6 @@ pipeline {
                 }
                 stage('OCI DNS/ACME-Staging Tests') {
                     steps {
-                        // Tests failing
-                        // Tests failing
-                        // Tests failing
-                        // Tests failing
-                        // Tests failing
-                        // Tests failing
-                        // Tests failing
-                        // Tests failing
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
                                 build job: "verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
