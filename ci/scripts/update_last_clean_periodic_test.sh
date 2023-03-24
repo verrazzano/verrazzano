@@ -54,3 +54,10 @@ oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPA
 
 oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_FULL_RELEASE_BUNDLE} --file ${VZ_FULL_GENERATED}/${VZ_FULL_RELEASE_BUNDLE}
 oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_FULL_RELEASE_BUNDLE_SHA256} --file ${VZ_FULL_GENERATED}/${VZ_FULL_RELEASE_BUNDLE_SHA256}
+
+# Cleanup ephemeral artifacts
+#oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE} --file ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE}
+#oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE_SHA256} --file ${VZ_FULL_RELEASE_BUNDLE_SHA256}
+
+#oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_LITE_RELEASE_BUNDLE} --file ${VZ_LITE_RELEASE_BUNDLE}
+#oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_LITE_RELEASE_BUNDLE_SHA256} --file ${VZ_LITE_RELEASE_BUNDLE_SHA256}
