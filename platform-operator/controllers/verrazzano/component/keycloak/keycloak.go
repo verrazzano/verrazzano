@@ -48,11 +48,13 @@ const (
 	vzMonitorGroup          = "verrazzano-monitors"
 	vzSystemGroup           = "verrazzano-system-users"
 	vzAPIAccessRole         = "vz_api_access"
+	vzLogPusherRole         = "vz_log_pusher"
 	vzUserName              = "verrazzano"
 	vzInternalPromUser      = "verrazzano-prom-internal"
 	vzInternalEsUser        = "verrazzano-es-internal"
 	keycloakPodName         = "keycloak-0"
 	realmManagement         = "realm-management"
+	opensearchAdminRole     = "opensearch-admin"
 	viewUsersRole           = "view-users"
 	noRouterAddr            = "mysql-instances"
 	routerAddr              = "mysql"
@@ -933,6 +935,18 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	// Create Verrazzano Log Pusher Role
+	err = createVerrazzanoRole(ctx, cfg, cli, vzLogPusherRole)
+	if err != nil {
+		return err
+	}
+
+	// Create admin role
+	err = createVerrazzanoRole(ctx, cfg, cli, opensearchAdminRole)
+	if err != nil {
+		return err
+	}
+
 	// Granting Roles to Groups
 	err = grantRolesToGroups(ctx, cfg, cli, userGroupID, adminGroupID, monitorGroupID)
 	if err != nil {
@@ -978,6 +992,18 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 
 	// Creating verrazzano-pg client
 	err = CreateOrUpdateClient(ctx, cfg, cli, "verrazzano-pg", pgClient, "", true, nil)
+	if err != nil {
+		return err
+	}
+
+	// Grant opensearch_admin role to verrazzano user
+	err = addRealmRoleToUser(ctx, cfg, cli, vzUserName, vzSysRealm, opensearchAdminRole)
+	if err != nil {
+		return err
+	}
+
+	// Grant vz_log_pusher role to verrazzano-es-internal user
+	err = addRealmRoleToUser(ctx, cfg, cli, vzInternalEsUser, vzSysRealm, vzLogPusherRole)
 	if err != nil {
 		return err
 	}
@@ -1964,6 +1990,19 @@ func updateRancherClientSecretForKeycloakAuthConfig(ctx spi.ComponentContext) er
 	authConfig := make(map[string]interface{})
 	authConfig[common.AuthConfigKeycloakAttributeClientSecret] = clientSecret
 	return common.UpdateKeycloakOIDCAuthConfig(ctx, authConfig)
+}
+
+func addRealmRoleToUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, userName, targetRealm, roleName string) error {
+	kcPod := keycloakPod()
+	addRoleCmd := kcAdminScript + " add-roles -r " + targetRealm + " --uusername " + userName + " --rolename " + roleName
+	ctx.Log().Debugf("Adding realm role %s to user %s, using command: %s", roleName, userName, addRoleCmd)
+	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(addRoleCmd))
+	if err != nil {
+		ctx.Log().Errorf("Adding realm role %s to the user %s failed: stdout = &s, stderr = %s, error = %s", roleName, userName, stdout, stderr, err.Error())
+		return err
+	}
+	ctx.Log().Oncef("Added realm role %s to the user %s", roleName, userName)
+	return nil
 }
 
 // addClientRoleToUser adds client role to the given user in the target realm
