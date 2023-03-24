@@ -65,3 +65,6 @@ webhook:
     capabilities:
       drop:
         - ALL
+
+startupapicheck:
+  enabled: false

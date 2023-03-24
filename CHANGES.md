@@ -1,3 +1,8 @@
+### v1.5.3
+Fixed:
+
+- Disabled the startupapicheck job in cert-manager startup.
+
 ### v1.5.2
 Component version updates:
 
