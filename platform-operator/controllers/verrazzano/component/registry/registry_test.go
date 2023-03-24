@@ -6,6 +6,11 @@ package registry
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -219,10 +224,6 @@ func TestComponentDependenciesMet(t *testing.T) {
 			},
 		},
 	).Build()
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
 	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "default"}}, nil, true))
 	assert.True(t, ready)
 }
@@ -250,10 +251,6 @@ func TestComponentDependenciesNotMet(t *testing.T) {
 			UpdatedReplicas:   0,
 		},
 	}).Build()
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
 	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	assert.False(t, ready)
 }
@@ -300,10 +297,6 @@ func TestComponentDependenciesDependencyChartNotInstalled(t *testing.T) {
 		Dependencies:   []string{istio.ComponentName},
 	}
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusPendingInstall, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
 	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	assert.False(t, ready)
 }
@@ -331,12 +324,26 @@ func TestComponentMultipleDependenciesPartiallyMet(t *testing.T) {
 			UpdatedReplicas:   0,
 		},
 	}).Build()
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
 	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	assert.False(t, ready)
+}
+
+func createRelease(name string, namespace string, releaseStatus release.Status, appVersion string) *release.Release {
+	now := time.Now()
+	return &release.Release{
+		Name:      name,
+		Namespace: namespace,
+		Info: &release.Info{
+			FirstDeployed: now,
+			LastDeployed:  now,
+			Status:        releaseStatus,
+			Description:   "Named Release Stub",
+		},
+		Chart: &chart.Chart{Metadata: &chart.Metadata{
+			AppVersion: appVersion,
+		}},
+		Version: 1,
+	}
 }
 
 // TestComponentMultipleDependenciesMet tests ComponentDependenciesMet
@@ -345,12 +352,9 @@ func TestComponentMultipleDependenciesPartiallyMet(t *testing.T) {
 //	WHEN I call ComponentDependenciesMet for it
 //	THEN the true is returned if all dependencies are met
 func TestComponentMultipleDependenciesMet(t *testing.T) {
-	comp := helm2.HelmComponent{
-		ReleaseName:    "foo",
-		ChartDir:       "chartDir",
-		ChartNamespace: "bar",
-		Dependencies:   []string{oam.ComponentName, certmanager.ComponentName},
-	}
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../"})
+	InitRegistry()
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		newReadyDeployment("oam-kubernetes-runtime", vzconst.VerrazzanoSystemNamespace, map[string]string{"app.kubernetes.io/name": "oam-kubernetes-runtime"}),
 		newPod("oam-kubernetes-runtime", vzconst.VerrazzanoSystemNamespace, map[string]string{"app.kubernetes.io/name": "oam-kubernetes-runtime"}),
@@ -366,23 +370,41 @@ func TestComponentMultipleDependenciesMet(t *testing.T) {
 		newReplicaSet(webhookDeploymentName, certManagerNamespace),
 	).Build()
 
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
+	defer helm.SetDefaultActionConfigFunction()
+	helm.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		actionConfig, err := helm.CreateActionConfig(false, certManagerDeploymentName, release.StatusDeployed, vzlog.DefaultLogger(), nil)
+		if err != nil {
+			return nil, err
+		}
+		if settings.Namespace() == vzconst.VerrazzanoSystemNamespace {
+			err = actionConfig.Releases.Create(createRelease("oam-kubernetes-runtime", vzconst.VerrazzanoSystemNamespace, release.StatusDeployed, "0.3.0"))
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			err = actionConfig.Releases.Create(createRelease(certManagerDeploymentName, certManagerNamespace, release.StatusDeployed, "v1.9.1"))
+			if err != nil {
+				return nil, err
+			}
+			err = actionConfig.Releases.Create(createRelease(cainjectorDeploymentName, certManagerNamespace, release.StatusDeployed, "v1.9.1"))
+			if err != nil {
+				return nil, err
+			}
+			err = actionConfig.Releases.Create(createRelease(webhookDeploymentName, certManagerNamespace, release.StatusDeployed, "v1.9.1"))
+			if err != nil {
+				return nil, err
+			}
+		}
 
-	helm.SetChartInfoFunction(func(chartDir string) (helm.ChartInfo, error) {
-		return helm.ChartInfo{
-			AppVersion: "1.0",
-		}, nil
+		return actionConfig, nil
 	})
-	defer helm.SetDefaultChartInfoFunction()
 
-	helm.SetReleaseAppVersionFunction(func(releaseName string, namespace string) (string, error) {
-		return "1.0", nil
-	})
-	defer helm.SetDefaultReleaseAppVersionFunction()
-
+	comp := helm2.HelmComponent{
+		ReleaseName:    "foo",
+		ChartDir:       "chartDir",
+		ChartNamespace: "bar",
+		Dependencies:   []string{oam.ComponentName, certmanager.ComponentName},
+	}
 	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	assert.True(t, ready)
 }
@@ -404,10 +426,6 @@ func TestComponentDependenciesCycle(t *testing.T) {
 		newReadyDeployment(certManagerDeploymentName, certManagerNamespace, nil),
 		newReadyDeployment(cainjectorDeploymentName, certManagerNamespace, nil),
 		newReadyDeployment(webhookDeploymentName, certManagerNamespace, nil)).Build()
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
 	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	assert.False(t, ready)
 }
@@ -570,10 +588,6 @@ func Test_checkDependencyCycles(t *testing.T) {
 //	WHEN I call checkDependencies for it
 //	THEN No error is returned that indicates a cycle in the chain
 func TestRegistryDependencies(t *testing.T) {
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	for _, comp := range GetComponents() {

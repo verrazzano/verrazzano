@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package velero
@@ -6,7 +6,10 @@ package velero
 import (
 	"context"
 	"fmt"
-	"os/exec"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -42,18 +45,6 @@ var veleroEnabledCR = &v1alpha1.Verrazzano{
 			},
 		},
 	},
-}
-
-// genericTestRunner is used to run generic OS commands with expected results
-type genericTestRunner struct {
-	stdOut []byte
-	stdErr []byte
-	err    error
-}
-
-// Run genericTestRunner executor
-func (r genericTestRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
-	return r.stdOut, r.stdErr, r.err
 }
 
 // TestIsEnabled tests the IsEnabled function for the Velero Operator component
@@ -143,22 +134,17 @@ func TestIsInstalled(t *testing.T) {
 	}
 }
 
+func testActionConfigWithoutInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return helm.CreateActionConfig(false, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), nil)
+}
+
 func TestInstallUpgrade(t *testing.T) {
 	defer config.Set(config.Get())
-	v := NewComponent()
 	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../"})
+	v := NewComponent()
 
-	helm.SetCmdRunner(genericTestRunner{
-		stdOut: []byte(""),
-		stdErr: []byte{},
-		err:    nil,
-	})
-	defer helm.SetDefaultRunner()
-
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartNotFound, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
+	defer helm.SetDefaultActionConfigFunction()
+	helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
 
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(veleroEnabledCR).Build()
 	ctx := spi.NewFakeContext(client, veleroEnabledCR, nil, false)

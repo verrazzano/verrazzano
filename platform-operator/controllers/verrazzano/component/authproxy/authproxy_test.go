@@ -329,18 +329,14 @@ func TestAppendOverridesIfManagedCluster(t *testing.T) {
 	assert.Equal(t, "verrazzano-pkce", overrides.Proxy.PKCEClientID, "wrong client ID")
 }
 
-// TestUninstallResources tests the Fluentd Uninstall call
-// GIVEN a Fluentd component
+// TestUninstallResources tests the authproxy Uninstall call
+// GIVEN a authproxy component
 //
-//	WHEN I call Uninstall with the Fluentd helm chart not installed
-//	THEN ensure that all Fluentd resources are explicitly deleted
+//	WHEN I call Uninstall with the authproxy helm chart not installed
+//	THEN ensure that all authproxy resources are explicitly deleted
 func TestUninstallResources(t *testing.T) {
-	helmcli.SetCmdRunner(vzos.GenericTestRunner{
-		StdOut: []byte(""),
-		StdErr: []byte{},
-		Err:    fmt.Errorf("Not installed"),
-	})
-	defer helmcli.SetDefaultRunner()
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(testActionConfigWithUninstalledAuthproxy)
 
 	clusterRole := &rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: "impersonate-api-user"}}
 	clusterRoleBinding := &rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "impersonate-api-user"}}
