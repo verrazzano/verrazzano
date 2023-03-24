@@ -718,6 +718,41 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			"",
 			fakeConfigureRealmCommands,
 		},
+		{
+			"should pass when able to successfully exec commands on the keycloak pod and thanos secret does not exist (because thanos is not installed)",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, nginxService, keycloakPod, &authConfig, osIngress,
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano-prom-internal",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano-es-internal",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
+				}).Build(),
+			"blahblah'id",
+			false,
+			"",
+			fakeConfigureRealmCommands,
+		},
 	}
 
 	for _, tt := range tests {

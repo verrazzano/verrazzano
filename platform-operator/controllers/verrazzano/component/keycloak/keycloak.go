@@ -946,10 +946,18 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// Creating Verrazzano Internal Thanos User
-	err = createUser(ctx, cfg, cli, vzInternalThanosUser, "verrazzano-thanos-internal", constants.VerrazzanoMonitoringNamespace, vzSystemGroup, "", "")
-	if err != nil {
+	// Create Verrazzano Internal Thanos User if the corresponding secret exists. The secret is installed via the Thanos Helm chart.
+	const thanosSecretName = "verrazzano-thanos-internal"
+	secret := &corev1.Secret{}
+	err = ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: thanosSecretName}, secret)
+	if client.IgnoreNotFound(err) != nil {
 		return err
+	}
+	if err == nil {
+		err = createUser(ctx, cfg, cli, vzInternalThanosUser, thanosSecretName, constants.VerrazzanoMonitoringNamespace, vzSystemGroup, "", "")
+		if err != nil {
+			return err
+		}
 	}
 
 	// Creating Verrazzano Internal ES User
