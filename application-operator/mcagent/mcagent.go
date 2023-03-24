@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -6,9 +6,10 @@ package mcagent
 import (
 	"context"
 	"fmt"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"time"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -162,11 +163,21 @@ func (s *Syncer) updateVMCStatus() error {
 	vmc.Status.APIUrl = apiURL
 	prometheusHost, err := s.GetPrometheusHost()
 	if err != nil {
-		return fmt.Errorf("Failed to get api prometheus host for vmc %s with error %v", vmcName, err)
+		return fmt.Errorf("Failed to get api prometheus host to update VMC %s: %v", vmcName, err)
 	}
-
 	if prometheusHost != "" {
 		vmc.Status.PrometheusHost = prometheusHost
+	}
+
+	// Get the Thanos API ingress URL from the local managed cluster, and populate
+	// it in the VMC status on the admin cluster, so that admin cluster's Thanos query wire up
+	// to the managed cluster
+	thanosAPIHost, err := s.getThanosQueryStoreAPIHost()
+	if err != nil {
+		return fmt.Errorf("Failed to get Thanos query URL to update VMC %s: %v", vmcName, err)
+	}
+	if thanosAPIHost != "" {
+		vmc.Status.ThanosHost = thanosAPIHost
 	}
 
 	// update status of VMC
@@ -301,6 +312,19 @@ func (s *Syncer) GetAPIServerURL() (string, error) {
 func (s *Syncer) GetPrometheusHost() (string, error) {
 	ingress := &networkingv1.Ingress{}
 	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.VzPrometheusIngress, Namespace: constants.VerrazzanoSystemNamespace}, ingress)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", nil
+		}
+		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", constants.VerrazzanoSystemNamespace, constants.VzPrometheusIngress, err)
+	}
+	return ingress.Spec.Rules[0].Host, nil
+}
+
+// getThanosQueryStoreAPIHost returns the Thanos Query Store API Endpoint URL for Verrazzano instance.
+func (s *Syncer) getThanosQueryStoreAPIHost() (string, error) {
+	ingress := &networkingv1.Ingress{}
+	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: vzconstants.ThanosQueryStoreIngress, Namespace: constants.VerrazzanoSystemNamespace}, ingress)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return "", nil

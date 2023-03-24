@@ -10,6 +10,15 @@ query:
     capabilities:
       drop:
         - ALL
+  ingress:
+    grpc:
+      enabled: true
+      annotations:
+        kubernetes.io/tls-acme: "true"
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+        nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+      # Turn off hostname to disable auto-generated backend
+      hostname: ""
 
   # Adds the Prometheus Thanos sidecar as a Store API endpoint to Query
   stores:
@@ -24,6 +33,21 @@ queryFrontend:
     capabilities:
       drop:
         - ALL
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/tls-acme: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: "6M"
+      nginx.ingress.kubernetes.io/rewrite-target: "/$2"
+      nginx.ingress.kubernetes.io/service-upstream: "true"
+      nginx.ingress.kubernetes.io/upstream-vhost: "${service_name}.${namespace}.svc.cluster.local"
+      nginx.ingress.kubernetes.io/affinity: "cookie"
+      nginx.ingress.kubernetes.io/session-cookie-conditional-samesite-none: "true"
+      nginx.ingress.kubernetes.io/session-cookie-expires: "86400"
+      nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
+      nginx.ingress.kubernetes.io/session-cookie-samesite: "Strict"
+    # Turn off hostname to disable auto-generated backend
+    hostname: ""
 
 compactor:
   podSecurityContext:
