@@ -129,6 +129,7 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 	var rel *release.Release
 	if installed {
 		// upgrade it
+		log.Infof("Starting Helm upgrade of release %s in namespace %s with overrides: %v", releaseName, namespace, overrides)
 		client := action.NewUpgrade(actionConfig)
 		client.Namespace = namespace
 		client.DryRun = dryRun
@@ -140,6 +141,7 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 			return err
 		}
 	} else {
+		log.Infof("Starting Helm installation of release %s in namespace %s with overrides: %v", releaseName, namespace, overrides)
 		client := action.NewInstall(actionConfig)
 		client.Namespace = namespace
 		client.ReleaseName = releaseName
@@ -382,7 +384,7 @@ func getReleases(namespace string) ([]*release.Release, error) {
 
 func getActionConfig(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), log.Progressf); err != nil {
+	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), log.Debugf); err != nil {
 		return nil, err
 	}
 	return actionConfig, nil
