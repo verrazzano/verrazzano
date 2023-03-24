@@ -34,6 +34,9 @@ query:
   stores:
     - prometheus-operator-kube-p-prometheus:10901
 
+  # ConfigMap containing Verrazzano managed cluster Thanos endpoints that the admin cluster Thanos Query should use
+  # This configmap is managed by the VMC controller
+  existingSDConfigmap: "verrazzano-thanos-endpoints"
 queryFrontend:
   podSecurityContext:
     seccompProfile:

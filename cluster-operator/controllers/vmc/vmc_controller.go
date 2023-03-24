@@ -271,6 +271,12 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 		}
 	}
 
+	err = r.syncThanosQueryEndpoint(ctx, vmc, log)
+	if err != nil {
+		r.handleError(ctx, vmc, "Failed to update Thanos Query endpoint managed cluster", err, log)
+		return newRequeueWithDelay(), err
+	}
+
 	log.Debugf("Creating or updating keycloak client for %s", vmc.Name)
 	err = r.createManagedClusterKeycloakClient(vmc)
 	if err != nil {
