@@ -1,19 +1,14 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package externaldns
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/helm"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/release"
-	"helm.sh/helm/v3/pkg/time"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"os/exec"
 	"strings"
 	"testing"
 
@@ -83,69 +78,16 @@ func init() {
 	_ = vzapi.AddToScheme(testScheme)
 }
 
-func getChart() *chart.Chart {
-	return &chart.Chart{
-		Metadata: &chart.Metadata{
-			APIVersion: "v1",
-			Name:       "hello",
-			Version:    "0.1.0",
-			AppVersion: "1.0",
-		},
-		Templates: []*chart.File{
-			{Name: "templates/hello", Data: []byte("hello: world")},
-		},
-	}
+// genericTestRunner is used to run generic OS commands with expected results
+type genericTestRunner struct {
+	stdOut []byte
+	stdErr []byte
+	err    error
 }
 
-func createReleaseWithValues(name string, status release.Status) *release.Release {
-	now := time.Now()
-	return &release.Release{
-		Name:      name,
-		Namespace: ComponentNamespace,
-		Info: &release.Info{
-			FirstDeployed: now,
-			LastDeployed:  now,
-			Status:        status,
-			Description:   "Named Release Stub",
-		},
-		Chart: getChart(),
-		Config: map[string]interface{}{
-			"domainFilters": []string{
-				"my.domain.io",
-			},
-			"triggerLoopOnEvent": true,
-			"txtOwnerId":         "storedOwnerId",
-			"txtPrefix":          "storedPrefix",
-			"zoneIDFilters": []string{
-				"ocid1.dns-zone.oc1..blahblahblah",
-			},
-		},
-		Version: 1,
-	}
-}
-
-func createReleaseWithoutValues(name string, status release.Status) *release.Release {
-	now := time.Now()
-	return &release.Release{
-		Name:      name,
-		Namespace: ComponentNamespace,
-		Info: &release.Info{
-			FirstDeployed: now,
-			LastDeployed:  now,
-			Status:        status,
-			Description:   "Named Release Stub",
-		},
-		Chart:   getChart(),
-		Version: 1,
-	}
-}
-
-func testActionConfigWithInstallationAndValues(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return helm.CreateActionConfig(true, "external-dns", release.StatusDeployed, vzlog.DefaultLogger(), createReleaseWithValues)
-}
-
-func testActionConfigWithInstallationNoValues(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return helm.CreateActionConfig(true, "external-dns", release.StatusDeployed, vzlog.DefaultLogger(), createReleaseWithoutValues)
+// Run genericTestRunner executor
+func (r genericTestRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+	return r.stdOut, r.stdErr, r.err
 }
 
 // TestIsExternalDNSEnabled tests the IsEnabled fn
@@ -198,8 +140,17 @@ func TestAppendExternalDNSOverrides(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.DNS.OCI = oci
 
-	defer helm.SetDefaultActionConfigFunction()
-	helm.SetActionConfigFunction(testActionConfigWithInstallationNoValues)
+	helm.SetCmdRunner(genericTestRunner{
+		stdOut: []byte(""),
+		stdErr: []byte{},
+		err:    nil,
+	})
+	defer helm.SetDefaultRunner()
+
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
 
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, nil, false, profileDir), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
@@ -286,8 +237,31 @@ func TestExternalDNSPreInstall3InvalidScope(t *testing.T) {
 //	WHEN a valid helm release and namespace are deployed and the txtOwnerId and txtPrefix values exist in the release values
 //	THEN the function returns the stored helm values and no error
 func TestOwnerIDTextPrefix_HelmValueExists(t *testing.T) {
-	defer helm.SetDefaultActionConfigFunction()
-	helm.SetActionConfigFunction(testActionConfigWithInstallationAndValues)
+	jsonOut := []byte(`
+{
+  "domainFilters": [
+    "my.domain.io"
+  ],
+  "triggerLoopOnEvent": true,
+  "txtOwnerId": "storedOwnerId",
+  "txtPrefix": "storedPrefix",
+  "zoneIDFilters": [
+    "ocid1.dns-zone.oc1..blahblahblah"
+  ]
+}
+`)
+
+	helm.SetCmdRunner(genericTestRunner{
+		stdOut: jsonOut,
+		stdErr: []byte{},
+		err:    nil,
+	})
+	defer helm.SetDefaultRunner()
+
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
 
 	localvz := vz.DeepCopy()
 	localvz.UID = "uid"
@@ -311,8 +285,17 @@ func TestOwnerIDTextPrefix_HelmValueExists(t *testing.T) {
 //	WHEN no stored helm values exist
 //	THEN the function returns the generated values and no error
 func Test_getOrBuildOwnerID_NoHelmValueExists(t *testing.T) {
-	defer helm.SetDefaultActionConfigFunction()
-	helm.SetActionConfigFunction(testActionConfigWithInstallationNoValues)
+	helm.SetCmdRunner(genericTestRunner{
+		stdOut: []byte(""),
+		stdErr: []byte{},
+		err:    nil,
+	})
+	defer helm.SetDefaultRunner()
+
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
 
 	localvz := vz.DeepCopy()
 	localvz.UID = "uid"
