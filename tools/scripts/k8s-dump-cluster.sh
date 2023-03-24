@@ -298,7 +298,7 @@ function analyze_dump() {
           elif [[ -x $GO_REPO_PATH/vz ]]; then
             $GO_REPO_PATH/vz analyze --capture-dir $FULL_PATH_CAPTURE_DIR || true
           else
-           echo "Warning: VZ tool is not available. Pleaes downlaod and configured" $GO_REPO_PATH
+           echo "Warning: VZ tool is not available. Pleaes download and configured" $GO_REPO_PATH
           fi
       else
           # Since we have to change the current working directory to run go, we need to take into account if the reportFile specified was relative to the original
@@ -309,14 +309,14 @@ function analyze_dump() {
               elif [[ -x $GO_REPO_PATH/vz ]]; then
                   $GO_REPO_PATH/vz analyze --capture-dir $FULL_PATH_CAPTURE_DIR || true
               else
-                  echo "Warning: VZ tool is not available. Pleaes downlaod and configured" $GO_REPO_PATH
+                  echo "Warning: VZ tool is not available. Pleaes download and configured" $GO_REPO_PATH
             else
               if [[ -x $GOPATH/bin/vz ]]; then
                   $GOPATH/vz analyze --capture-dir $FULL_PATH_CAPTURE_DIR --report-format detailed --report-file $SAVE_DIR/$REPORT_FILE || true
               elif [[ -x $GO_REPO_PATH/vz ]]; then
                           $GO_REPO_PATH/vz analyze --capture-dir $FULL_PATH_CAPTURE_DIR --report-format detailed --report-file $SAVE_DIR/$REPORT_FILE || true
               else
-                  echo "Warning: VZ tool is not available. Pleaes downlaod and configured" $GO_REPO_PATH
+                  echo "Warning: VZ tool is not available. Pleaes download and configured" $GO_REPO_PATH
               fi
           fi
         fi
