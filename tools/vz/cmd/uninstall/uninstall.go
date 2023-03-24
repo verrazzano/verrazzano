@@ -43,6 +43,7 @@ vz uninstall
 
 # Uninstall Verrazzano and wait for the command to complete. Timeout the command after 30 minutes.
 vz uninstall --timeout 30m`
+	confirmUninstall = "w"
 )
 
 // Number of retries after waiting a second for uninstall job pod to be ready
@@ -97,10 +98,12 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	// Hide the flag for overriding the default wait timeout for the platform-operator
 	cmd.PersistentFlags().MarkHidden(constants.VPOTimeoutFlag)
 
+	cmd.PersistentFlags().Bool(confirmUninstall, true, "Used to suppress uninstall prompt")
 	return cmd
 }
 
 func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+
 	err := uninstallVerrazzanoFn(cmd, vzHelper)
 	if err != nil {
 		autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
@@ -530,4 +533,16 @@ func deleteClusterRole(client client.Client, name string) error {
 
 func failedToUninstallErr(err error) error {
 	return fmt.Errorf("Failed to uninstall Verrazzano: %s", err.Error())
+}
+
+func displayUninstallWarning() bool {
+	s := "y"
+	switch s {
+	case "y":
+		return true
+	case "n":
+		return false
+	default:
+		return false
+	}
 }
