@@ -180,7 +180,7 @@ func SetDefaultIstioUninstallFunction() {
 	istioUninstallFunc = istio.Uninstall
 }
 
-type helmUninstallFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
+type helmUninstallFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (err error)
 
 var helmUninstallFunction helmUninstallFuncSig = helm.Uninstall
 
@@ -497,7 +497,7 @@ func deleteIstioCoreDNS(context spi.ComponentContext) error {
 		return context.Log().ErrorfNewErr("Failed searching for release: %v", err)
 	}
 	if found {
-		_, _, err = helmUninstallFunction(context.Log(), IstioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
+		err = helmUninstallFunction(context.Log(), IstioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
 		if err != nil {
 			return context.Log().ErrorfNewErr("Failed trying to uninstall istiocoredns: %v", err)
 		}
