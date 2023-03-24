@@ -19,7 +19,7 @@ import (
 )
 
 // ValidateCertDate validates the certs.
-func (sw *CertificateRotationManager) ValidateCertDate(certContent []byte) (bool, error) {
+func (sw *CertificateRotationManagerReconciler) ValidateCertDate(certContent []byte) (bool, error) {
 	block, _ := pem.Decode(certContent)
 	if block == nil {
 		log.Fatal("failed to parse PEM block containing the public key")
@@ -29,12 +29,12 @@ func (sw *CertificateRotationManager) ValidateCertDate(certContent []byte) (bool
 	if err != nil {
 		return false, fmt.Errorf(err.Error())
 	}
-	deadline := time.Now().Add(sw.compareWindow)
+	deadline := time.Now().Add(time.Hour * sw.CompareWindow)
 	if deadline.After(certs.NotAfter) {
 		sw.log.Infof("cert for %s expires too soon: %s less than %s away",
 			certs.Subject.CommonName,
 			certs.NotAfter.Format(time.RFC3339),
-			sw.compareWindow)
+			sw.CompareWindow)
 		return true, nil
 
 	}
@@ -46,10 +46,10 @@ func (sw *CertificateRotationManager) ValidateCertDate(certContent []byte) (bool
 
 // GetSecretData checks if secret exists in namespace or not
 // if exists then return secret data else return nil
-func (sw *CertificateRotationManager) GetSecretData(secretName string) (corev1.Secret, []byte) {
+func (sw *CertificateRotationManagerReconciler) GetSecretData(secretName string) (corev1.Secret, []byte) {
 	sec := corev1.Secret{}
-	err := sw.client.Get(context.TODO(), clipkg.ObjectKey{
-		Namespace: sw.watchNamespace,
+	err := sw.Get(context.TODO(), clipkg.ObjectKey{
+		Namespace: sw.WatchNamespace,
 		Name:      secretName,
 	}, &sec)
 	if err != nil && apierrors.IsNotFound(err) {
@@ -64,30 +64,30 @@ func (sw *CertificateRotationManager) GetSecretData(secretName string) (corev1.S
 }
 
 // DeleteSecret deletes the tls secret.
-func (sw *CertificateRotationManager) DeleteSecret(secretName corev1.Secret) error {
-	if err := sw.client.Delete(context.TODO(), &secretName, &clipkg.DeleteOptions{}); err != nil {
-		sw.log.Errorf("an error while deleting the certificate secret %v in namespace %v with error %v", secretName.Name, sw.watchNamespace, err)
+func (sw *CertificateRotationManagerReconciler) DeleteSecret(secretName corev1.Secret) error {
+	if err := sw.Delete(context.TODO(), &secretName, &clipkg.DeleteOptions{}); err != nil {
+		sw.log.Errorf("an error while deleting the certificate secret %v in namespace %v with error %v", secretName.Name, sw.WatchNamespace, err)
 		return fmt.Errorf("an while deleting the secret")
 	}
-	sw.log.Infof("successfully deleted the secret %v in namespace %v ", secretName.Name, sw.watchNamespace)
+	sw.log.Infof("successfully deleted the secret %v in namespace %v ", secretName.Name, sw.WatchNamespace)
 	return nil
 }
 
-func (sw *CertificateRotationManager) RolloutRestartDeployment() error {
+func (sw *CertificateRotationManagerReconciler) RolloutRestartDeployment() error {
 	deployment := appsv1.Deployment{}
 	var err error
-	err = sw.client.Get(context.TODO(), clipkg.ObjectKey{Namespace: sw.targetNamespace, Name: sw.targetDeployment}, &deployment)
+	err = sw.Get(context.TODO(), clipkg.ObjectKey{Namespace: sw.TargetNamespace, Name: sw.TargetDeployment}, &deployment)
 	sw.log.Debug("deployment listed", deployment.Name)
 	if err != nil && apierrors.IsNotFound(err) {
-		sw.log.Errorf("an error while listing the deployment in namespace %v", sw.targetNamespace)
+		sw.log.Errorf("an error while listing the deployment in namespace %v", sw.TargetNamespace)
 		return err
 	}
-	err = sw.client.Patch(context.TODO(), &deployment, clipkg.RawPatch(types.StrategicMergePatchType, generatePatch()))
-	sw.log.Infof("successfully restart the deployment %v in namespace %v ", sw.targetDeployment, sw.watchNamespace)
+	err = sw.Patch(context.TODO(), &deployment, clipkg.RawPatch(types.StrategicMergePatchType, generatePatch()))
 	if err != nil {
-		sw.log.Errorf("an error while patching the deployment %v in namespace %v", sw.targetDeployment, sw.targetNamespace)
+		sw.log.Errorf("an error while patching the deployment %v in namespace %v", sw.TargetDeployment, sw.TargetNamespace)
 		return err
 	}
+	sw.log.Infof("successfully restart the deployment %v in namespace %v ", sw.TargetDeployment, sw.WatchNamespace)
 	return nil
 }
 

@@ -79,12 +79,22 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 		return errors.Wrap(err, "Failed starting MySQLChecker")
 	}
 	mysqlCheck.Start()
-
-	certRotator, err := certrotation.NewCertificateRotationManager(mgr.GetClient(), time.Duration(config.CertificateExpiryCheckPeriodHours)*time.Hour, time.Duration(config.CertificateExpiryCheckWindow)*time.Hour, constants.VerrazzanoInstallNamespace, constants.VerrazzanoInstallNamespace, constants.VerrazzanoPlatformOperatorWebhook)
-	if err != nil {
-		return errors.Wrap(err, "Failed starting CertificateRotationManager")
+	if err = (&certrotation.CertificateRotationManagerReconciler{
+		Client:           mgr.GetClient(),
+		Scheme:           mgr.GetScheme(),
+		StatusUpdater:    statusUpdater,
+		WatchNamespace:   constants.VerrazzanoInstallNamespace,
+		TargetNamespace:  constants.VerrazzanoInstallNamespace,
+		TargetDeployment: constants.VerrazzanoPlatformOperatorWebhook,
+		CompareWindow:    time.Duration(config.CertificateExpiryCheckWindow),
+	}).SetupWithManager(mgr); err != nil {
+		return errors.Wrap(err, "Failed to setup controller CertificateRotationManager")
 	}
-	certRotator.Start()
+	//certRotator, err := certrotation.NewCertificateRotationManager(mgr.GetClient(), time.Duration(config.CertificateExpiryCheckPeriodHours)*time.Hour, time.Duration(config.CertificateExpiryCheckWindow)*time.Hour, constants.VerrazzanoInstallNamespace, constants.VerrazzanoInstallNamespace, constants.VerrazzanoPlatformOperatorWebhook)
+	//if err != nil {
+	//	return errors.Wrap(err, "Failed starting CertificateRotationManager")
+	//}
+	//certRotator.Start()
 	// +kubebuilder:scaffold:builder
 	log.Info("Starting controller-runtime manager")
 	if err := mgr.Start(controllerruntime.SetupSignalHandler()); err != nil {

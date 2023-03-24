@@ -5,83 +5,91 @@ package certrotation
 
 import (
 	"bytes"
+	"context"
 	cryptorand "crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"math/big"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+)
+
+const (
+	VZNamespace         = "verrazzano-install"
+	VZWebhookDeployment = "verrazzano-platform-operator-webhook"
+	VZCertificate       = "verrazzano-platform-operator-tls"
+	CheckPeriodDuration = 1
 )
 
 var (
-	testScheme                 = runtime.NewScheme()
-	checkPeriodDuration        = time.Duration(1) * time.Second
-	checkCompareWindowDuration = time.Duration(168) * time.Hour
+	testScheme = runtime.NewScheme()
+	//checkPeriodDuration = time.Duration(1) * time.Second
 )
 
 func init() {
 	_ = k8scheme.AddToScheme(testScheme)
 }
 
-const (
-	VZNamespace         = "verrazzano-install"
-	VZWebhookDeployment = "verrazzano-platform-operator-webhook"
-	VZCertificate       = "verrazzano-platform-operator-tls"
-)
-
 // TestExpiredValidateCertificate validate certificate
 // if certificate is expired
 // THEN restart the target deployment
 // (restart of operator will re-generate the certificate)
 func TestExpiredValidateCertificate(t *testing.T) {
+	asserts := assert.New(t)
 	deployment := getDeployment()
-	secret := getSecret(5)
-	// Set up the initial context
+	secret := getSecret(2)
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&deployment, &secret).Build()
-	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
-	certificateCheck, err := NewCertificateRotationManager(fakeCtx.Client(), checkPeriodDuration, checkCompareWindowDuration, VZNamespace, VZNamespace, VZWebhookDeployment)
-	assert.NoError(t, err)
-	err = certificateCheck.CheckCertificateExpiration()
-	assert.NoError(t, err)
+	request0 := newRequest(deployment.Name, secret.Name)
+	reconciler := newCertificateManagerReconciler(cli, VZNamespace, VZNamespace, VZWebhookDeployment, 10)
+	res0, err0 := reconciler.Reconcile(context.TODO(), request0)
+	asserts.NoError(err0)
+	asserts.Equal(true, res0.Requeue)
 }
 
 // TestValidateCertificate checks certificate
 // if certificate is expired
 // THEN restart the target deployment
 func TestValidateCertificate(t *testing.T) {
+	asserts := assert.New(t)
 	deployment := getDeployment()
-	secret := getSecret(15)
-	// Set up the initial context
+	secret := getSecret(1)
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&deployment, &secret).Build()
-	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
-	certificateCheck, err := NewCertificateRotationManager(fakeCtx.Client(), checkPeriodDuration, checkCompareWindowDuration, VZNamespace, VZNamespace, VZWebhookDeployment)
-	assert.NoError(t, err)
-	err = certificateCheck.CheckCertificateExpiration()
-	assert.NoError(t, err)
+	request0 := newRequest(deployment.Name, secret.Name)
+	reconciler := newCertificateManagerReconciler(cli, VZNamespace, VZNamespace, VZWebhookDeployment, 25)
+	res0, err0 := reconciler.Reconcile(context.TODO(), request0)
+	asserts.NoError(err0)
+	asserts.Equal(true, res0.Requeue)
 }
 
 // TestCertificate1 checks certificate
 // if target deployment doesn't exist
 // THEN error should be thrown
 func TestCertificate1(t *testing.T) {
+	asserts := assert.New(t)
 	deployment := getDeployment()
-	secret := getSecret(5)
+	secret := getSecret(2)
 	// Set up the initial context
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&deployment, &secret).Build()
-	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
-	certificateCheck, err := NewCertificateRotationManager(fakeCtx.Client(), checkPeriodDuration, checkCompareWindowDuration, VZNamespace, VZNamespace, "operator")
-	assert.NoError(t, err)
-	err = certificateCheck.CheckCertificateExpiration()
+	request0 := newRequest(deployment.Name, secret.Name)
+	reconciler := newCertificateManagerReconciler(cli, VZNamespace, VZNamespace, VZWebhookDeployment, 10)
+	res0, err := reconciler.Reconcile(context.TODO(), request0)
+	asserts.Equal(true, res0.Requeue)
 	assert.Equal(t, "an error occurred restarting the deployment operator in namespace verrazzano-install", err.Error())
 }
 
@@ -89,14 +97,15 @@ func TestCertificate1(t *testing.T) {
 // if target Namespace doesn't exist
 // THEN error should be thrown
 func TestCertificate2(t *testing.T) {
+	asserts := assert.New(t)
 	deployment := getDeployment()
-	secret := getSecret(5)
+	secret := getSecret(2)
 	// Set up the initial context
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&deployment, &secret).Build()
-	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
-	certificateCheck, err := NewCertificateRotationManager(fakeCtx.Client(), checkPeriodDuration, checkCompareWindowDuration, VZNamespace, "verrazzano", "verrazzano-operator")
-	assert.NoError(t, err)
-	err = certificateCheck.CheckCertificateExpiration()
+	request0 := newRequest(deployment.Name, secret.Name)
+	reconciler := newCertificateManagerReconciler(cli, VZNamespace, "verrazzano", VZWebhookDeployment, 10)
+	res0, err := reconciler.Reconcile(context.TODO(), request0)
+	asserts.Equal(true, res0.Requeue)
 	assert.Equal(t, "an error occurred restarting the deployment verrazzano-operator in namespace verrazzano", err.Error())
 }
 
@@ -104,14 +113,15 @@ func TestCertificate2(t *testing.T) {
 // if secret Namespace doesn't exist
 // THEN error should be thrown
 func TestCertificate3(t *testing.T) {
+	asserts := assert.New(t)
 	deployment := getDeployment()
-	secret := getSecret(5)
+	secret := getSecret(2)
 	// Set up the initial context
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&deployment, &secret).Build()
-	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
-	certificateCheck, err := NewCertificateRotationManager(fakeCtx.Client(), checkPeriodDuration, checkCompareWindowDuration, "verrazzano", VZNamespace, VZWebhookDeployment)
-	assert.NoError(t, err)
-	err = certificateCheck.CheckCertificateExpiration()
+	request0 := newRequest(deployment.Name, secret.Name)
+	reconciler := newCertificateManagerReconciler(cli, "verrazzano", VZNamespace, VZWebhookDeployment, 10)
+	res0, err := reconciler.Reconcile(context.TODO(), request0)
+	asserts.Equal(true, res0.Requeue)
 	assert.Equal(t, "no certificate found in namespace verrazzano", err.Error())
 }
 
@@ -119,15 +129,34 @@ func TestCertificate3(t *testing.T) {
 // if secret/certificate doesn't exist
 // THEN error should be thrown
 func TestCertificate4(t *testing.T) {
+	asserts := assert.New(t)
 	deployment := getDeployment()
 	// Set up the initial context
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&deployment).Build()
-	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
-	certificateCheck, err := NewCertificateRotationManager(fakeCtx.Client(), checkPeriodDuration, checkCompareWindowDuration, VZNamespace, VZNamespace, VZWebhookDeployment)
-	assert.NoError(t, err)
-	err = certificateCheck.CheckCertificateExpiration()
+	request0 := newRequest(deployment.Name, deployment.Name)
+	reconciler := newCertificateManagerReconciler(cli, VZNamespace, VZNamespace, VZWebhookDeployment, 10)
+	res0, err := reconciler.Reconcile(context.TODO(), request0)
+	asserts.Equal(true, res0.Requeue)
 	assert.Equal(t, "no certificate found in namespace verrazzano-install", err.Error())
 }
+
+// newScheme creates a new scheme that includes this package's object to use for testing
+func newScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	_ = v1.AddToScheme(scheme)
+	return scheme
+}
+
+// newRequest creates a new reconciler request for testing
+// namespace - The namespace to use in the request
+// name - The name to use in the request
+func newRequest(namespace string, name string) ctrl.Request {
+	return ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: namespace,
+			Name:      name}}
+}
+
 func getInt32Ptr(i int32) *int32 {
 	return &i
 }
@@ -181,8 +210,6 @@ func getSecretValidData(days int) ([]byte, []byte) {
 	}
 	// server private key
 	serverPrivKey, _ := rsa.GenerateKey(cryptorand.Reader, 4096)
-	// sign the server cert
-	//certBytes, err := x509.CreateCertificate(rand.Reader, cert, ca, &certPrivKey.PublicKey, caPrivKey)
 	serverCertBytes, _ := x509.CreateCertificate(cryptorand.Reader, cert, caValue, &serverPrivKey.PublicKey, caPrivateKey)
 	certPEM := new(bytes.Buffer)
 	pem.Encode(certPEM, &pem.Block{
@@ -239,18 +266,19 @@ func getCaCert() (*x509.Certificate, *rsa.PrivateKey) {
 	return ca, caPrivKey
 }
 
-// TestStart Validates the controller
-func TestStart(t *testing.T) {
-	p := newTestCertificateCheck()
-	assert.Nil(t, p.shutdown)
-	p.Start()
-	assert.NotNil(t, p.shutdown)
-	p.Start()
-	assert.NotNil(t, p.shutdown)
-}
-
-func newTestCertificateCheck() *CertificateRotationManager {
-	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	certificateWatcher, _ := NewCertificateRotationManager(c, 2*time.Second, 2*time.Minute, VZNamespace, VZNamespace, VZWebhookDeployment)
-	return certificateWatcher
+// newConfigMapReconciler creates a new reconciler for testing
+func newCertificateManagerReconciler(c client.Client, watchNamespace, targetNamespace, targetDeployment string, compareWindow int64) CertificateRotationManagerReconciler {
+	vzLog := vzlog.DefaultLogger()
+	scheme := newScheme()
+	reconciler := CertificateRotationManagerReconciler{
+		Client:           c,
+		Scheme:           scheme,
+		StatusUpdater:    &vzstatus.FakeVerrazzanoStatusUpdater{Client: c},
+		log:              vzLog,
+		WatchNamespace:   watchNamespace,
+		TargetNamespace:  targetNamespace,
+		TargetDeployment: targetDeployment,
+		CompareWindow:    time.Duration(compareWindow),
+	}
+	return reconciler
 }
