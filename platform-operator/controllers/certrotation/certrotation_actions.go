@@ -64,8 +64,8 @@ func (r *CertificateRotationManagerReconciler) GetSecretData(secretName string) 
 // DeleteSecret deletes the tls secret.
 func (r *CertificateRotationManagerReconciler) DeleteSecret(secretName corev1.Secret) error {
 	if err := r.Delete(context.TODO(), &secretName, &clipkg.DeleteOptions{}); err != nil {
-		r.log.Errorf("an error while deleting the certificate secret %v in namespace %v with error %v", secretName.Name, r.WatchNamespace, err)
-		return r.log.ErrorfNewErr("an while deleting the secret")
+
+		return r.log.ErrorfNewErr("an error while deleting the certificate secret %v in namespace %v with error %v", secretName.Name, r.WatchNamespace, err)
 	}
 	r.log.Infof("successfully deleted the secret %v in namespace %v ", secretName.Name, r.WatchNamespace)
 	return nil

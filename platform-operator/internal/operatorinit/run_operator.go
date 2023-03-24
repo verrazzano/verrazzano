@@ -90,11 +90,6 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 	}).SetupWithManager(mgr); err != nil {
 		return errors.Wrap(err, "Failed to setup controller CertificateRotationManager")
 	}
-	//certRotator, err := certrotation.NewCertificateRotationManager(mgr.GetClient(), time.Duration(config.CertificateExpiryCheckPeriodHours)*time.Hour, time.Duration(config.CertificateExpiryCheckWindow)*time.Hour, constants.VerrazzanoInstallNamespace, constants.VerrazzanoInstallNamespace, constants.VerrazzanoPlatformOperatorWebhook)
-	//if err != nil {
-	//	return errors.Wrap(err, "Failed starting CertificateRotationManager")
-	//}
-	//certRotator.Start()
 	// +kubebuilder:scaffold:builder
 	log.Info("Starting controller-runtime manager")
 	if err := mgr.Start(controllerruntime.SetupSignalHandler()); err != nil {
