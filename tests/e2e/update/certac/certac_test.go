@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package certac
@@ -92,7 +92,7 @@ func updateAdminClusterCA() string {
 		Certificate: vzapi.Certificate{CA: vzapi.CA{SecretName: genCA, ClusterResourceNamespace: constants.CertManagerNamespace}},
 	}
 	m := &CertModifier{CertManager: newCM}
-	update.RetryUpdate(m, adminCluster.KubeConfigPath, false, pollingInterval, waitTimeout)
+	update.RetryUpdate(m, adminCluster.KubeConfigPath, true, pollingInterval, waitTimeout)
 	return oldIngressCaCrt
 }
 
@@ -108,7 +108,7 @@ func revertToDefaultCertManager() string {
 	oldIngressCaCrt := adminCluster.
 		GetSecretDataAsString(constants.VerrazzanoSystemNamespace, pocnst.VerrazzanoIngressSecret, mcconstants.CaCrtKey)
 	m := &CertModifier{CertManager: originalCM}
-	update.RetryUpdate(m, adminCluster.KubeConfigPath, false, pollingInterval, waitTimeout)
+	update.RetryUpdate(m, adminCluster.KubeConfigPath, true, pollingInterval, waitTimeout)
 	return oldIngressCaCrt
 }
 
