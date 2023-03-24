@@ -567,7 +567,7 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) error {
 		ctx.Log().Errorf("Component %s failed to list Namespaces: %v", ComponentName, err)
 	}
 
-	for _, ns := range nsList.Items {
+	for j, ns := range nsList.Items {
 		// Skip system namespace
 		if strings.HasPrefix(ns.Name, "kube-") {
 			continue
@@ -592,6 +592,14 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) error {
 		}
 		for i, role := range roleList.Items {
 			if err := removeFinalizer(ctx, &roleList.Items[i], role.Finalizers); err != nil {
+				return err
+			}
+		}
+
+		// Remove finalizer from the install namespace.  The deletion of this namespace depends on how
+		// the uninstall was initiated ("delete vz" versus "vz uninstall").
+		if strings.EqualFold(ns.GetName(), constants.VerrazzanoInstallNamespace) {
+			if err := removeFinalizer(ctx, &nsList.Items[j], ns.Finalizers); err != nil {
 				return err
 			}
 		}
