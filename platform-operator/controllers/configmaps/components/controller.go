@@ -6,12 +6,14 @@ package components
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"time"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -19,8 +21,10 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 type ComponentConfigMapReconciler struct {
@@ -69,54 +73,54 @@ func (r *ComponentConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.R
 	err := r.List(ctx, verrazzanos)
 	if err != nil && !k8serrors.IsNotFound(err) {
 		zap.S().Errorf("Failed to get Verrazzanos %s/%s", req.Namespace, req.Name)
-		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
+		return newRequeueWithDelay(), err
 	}
 	if err != nil || len(verrazzanos.Items) == 0 {
 		zap.S().Debug("No Verrazzanos found in the cluster")
-		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
+		return newRequeueWithDelay(), err
 	}
 	vz := verrazzanos.Items[0]
 
 	zap.S().Infof("Reconciling component configmap %s/%s", req.Namespace, req.Name)
 	// Get the configmap for the request
-	cm := v1.ConfigMap{}
-	if err = r.Get(ctx, req.NamespacedName, &cm); err != nil {
+	configMap := &v1.ConfigMap{}
+	if err = r.Get(ctx, req.NamespacedName, configMap); err != nil {
 		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
 		zap.S().Errorf("Failed to get configmap %s/%s", req.Namespace, req.Name)
-		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
+		return newRequeueWithDelay(), err
 	}
 
-	if cm.Namespace != vz.Namespace {
-		err = fmt.Errorf("Component ConfigMap must be in the same namespace as the Verrazzano resource, ConfigMap namespace: %s, Verrazzano namespace: %s", cm.Namespace, vz.Namespace)
+	if configMap.Namespace != vz.Namespace {
+		err = fmt.Errorf("Component ConfigMap must be in the same namespace as the Verrazzano resource, ConfigMap namespace: %s, Verrazzano namespace: %s", configMap.Namespace, vz.Namespace)
 		zap.S().Error(err)
 		return ctrl.Result{}, err
 	}
 
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
-		Name:           cm.Name,
-		Namespace:      cm.Namespace,
-		ID:             string(cm.UID),
-		Generation:     cm.Generation,
+		Name:           configMap.Name,
+		Namespace:      configMap.Namespace,
+		ID:             string(configMap.UID),
+		Generation:     configMap.Generation,
 		ControllerName: "verrazzanodevcomponent",
 	})
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for component configmap %s/%s: %v", cm.GetName(), cm.GetNamespace(), err)
-		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
+		zap.S().Errorf("Failed to create controller logger for component configmap %s/%s: %v", configMap.GetName(), configMap.GetNamespace(), err)
+		return newRequeueWithDelay(), err
 	}
 
-	if cm.Labels[devComponentConfigMapKindLabel] != devComponentConfigMapKindHelmComponent {
+	if configMap.Labels[devComponentConfigMapKindLabel] != devComponentConfigMapKindHelmComponent {
 		err = fmt.Errorf("%s is not a support configmap-kind, %s is the only configmap-kind supported",
-			cm.Labels[devComponentConfigMapKindLabel], devComponentConfigMapKindHelmComponent)
+			configMap.Labels[devComponentConfigMapKindLabel], devComponentConfigMapKindHelmComponent)
 		log.Error(err)
 		return ctrl.Result{}, err
 	}
 
-	comp, err := newDevHelmComponent(cm)
+	comp, err := newDevHelmComponent(configMap)
 	if err != nil {
-		log.Errorf("Failed to read component %s data from configmap %s/%s: %v", cm.GetName(), cm.GetNamespace(), err)
+		log.Errorf("Failed to read component %s data from configmap %s/%s: %v", configMap.GetName(), configMap.GetNamespace(), err)
 		// don't requeue if the data is invalid
 		// once the data is updated to be correct it will trigger another reconcile
 		return ctrl.Result{}, err
@@ -125,16 +129,72 @@ func (r *ComponentConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.R
 	compCtx, err := spi.NewContext(log, r.Client, &vz, nil, false)
 	if err != nil {
 		log.Errorf("Failed to create context: %v", err)
-		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
+		return newRequeueWithDelay(), err
 	}
 
-	// install dev component
-	// TODO: turn this into a state machine
-	err = comp.Install(compCtx)
-	if err != nil {
-		log.Errorf("Failed to install component %s from configMap %s: ", comp.ReleaseName, cm.GetName(), err)
-		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
+	return r.processComponent(compCtx, comp, configMap)
+}
+
+func (r *ComponentConfigMapReconciler) processComponent(ctx spi.ComponentContext, comp devComponent, configMap *v1.ConfigMap) (ctrl.Result, error) {
+	// check if component is being deleted
+	if !configMap.DeletionTimestamp.IsZero() {
+		// uninstall component
+		if err := comp.doUninstall(ctx); err != nil {
+			ctx.Log().Errorf("Error uninstalling dev component %s: %v", comp.ReleaseName, err)
+			return newRequeueWithDelay(), err
+		}
+		ctx.Log().Infof("Successfully uninstalled dev component %s", comp.ReleaseName)
+
+		// remove finalizer to delete the component
+		controllerutil.RemoveFinalizer(configMap, constants.DevComponentFinalizer)
+		err := r.Update(context.TODO(), configMap)
+		if err != nil {
+			ctx.Log().Errorf("Error removing finalizer %s for dev component %s: %v", constants.DevComponentFinalizer, comp.ReleaseName, err)
+			return newRequeueWithDelay(), err
+		}
+		ctx.Log().Infof("dev component %s has been successfully uninstalled", comp.ReleaseName)
+		return reconcile.Result{Requeue: true}, nil
 	}
-	log.Infof("Successfully installed component %s", comp.ReleaseName)
-	return ctrl.Result{}, nil
+
+	// Check if our finalizer is already present and add it if not
+	if !controllerutil.ContainsFinalizer(configMap, constants.DevComponentFinalizer) {
+		configMap.Finalizers = append(configMap.Finalizers, constants.DevComponentFinalizer)
+		err := r.Update(context.TODO(), configMap)
+		if err != nil {
+			ctx.Log().Errorf("Error adding finalizer %s for dev component %s: %v", constants.DevComponentFinalizer, comp.ReleaseName, err)
+			return newRequeueWithDelay(), err
+		}
+		ctx.Log().Infof("Successfully added finalizer %s to configmap %s for dev component", constants.DevComponentFinalizer, configMap.Name, comp.ReleaseName)
+		// adding finalizer to ConfigMap will trigger a requeue so no need to requeue here
+		return reconcile.Result{}, nil
+	}
+
+	// if the release has not been installed, install it
+	installed, err := comp.IsInstalled(ctx)
+	if err != nil {
+		ctx.Log().Errorf("Error checking release status for release %s: %v", comp.ReleaseName, err)
+		return newRequeueWithDelay(), err
+	}
+	if !installed {
+		if err = comp.doInstall(ctx); err != nil {
+			ctx.Log().Errorf("Error installing dev component %s: %v", comp.ReleaseName, err)
+			return newRequeueWithDelay(), err
+		}
+		ctx.Log().Infof("dev component %s has been successfully installed", comp.ReleaseName)
+		return reconcile.Result{}, nil
+	}
+
+	// if the release has already been installed, upgrade it
+	if err = comp.doUpgrade(ctx); err != nil {
+		ctx.Log().Errorf("Error upgrading dev component %s: %v", comp.ReleaseName, err)
+		return newRequeueWithDelay(), err
+	}
+	ctx.Log().Infof("dev component %s has been successfully upgraded", comp.ReleaseName)
+	return reconcile.Result{}, nil
+
+}
+
+// Create a new Result that will cause a reconcile requeue after a short delay
+func newRequeueWithDelay() ctrl.Result {
+	return vzctrl.NewRequeueWithDelay(3, 5, time.Second)
 }

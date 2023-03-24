@@ -6,7 +6,6 @@ package components
 import (
 	"fmt"
 
-	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -35,7 +34,7 @@ type devComponent struct {
 
 var _ spi.Component = devComponent{}
 
-func newDevHelmComponent(cm v1.ConfigMap) (devComponent, error) {
+func newDevHelmComponent(cm *v1.ConfigMap) (devComponent, error) {
 	componentName, ok := cm.Data[componentNameKey]
 	if !ok {
 		return devComponent{}, fmt.Errorf("ConfigMap %s does not contain the name field, cannot reconcile component", cm.Name)
@@ -72,15 +71,32 @@ func newDevHelmComponent(cm v1.ConfigMap) (devComponent, error) {
 	}, nil
 }
 
-// IsReady Indicates whether a component is available and ready
-func (h devComponent) IsReady(context spi.ComponentContext) bool {
-	if context.IsDryRun() {
-		context.Log().Debugf("IsReady() dry run for %s", h.ReleaseName)
-		return true
+func (d devComponent) doInstall(ctx spi.ComponentContext) error {
+	if err := d.PreInstall(ctx); err != nil {
+		return err
 	}
+	if err := d.Install(ctx); err != nil {
+		return err
+	}
+	return d.PostInstall(ctx)
+}
 
-	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, h.ChartNamespace); deployed {
-		return true
+func (d devComponent) doUpgrade(ctx spi.ComponentContext) error {
+	if err := d.PreUpgrade(ctx); err != nil {
+		return err
 	}
-	return false
+	if err := d.Upgrade(ctx); err != nil {
+		return err
+	}
+	return d.PostUpgrade(ctx)
+}
+
+func (d devComponent) doUninstall(ctx spi.ComponentContext) error {
+	if err := d.PreUninstall(ctx); err != nil {
+		return err
+	}
+	if err := d.Uninstall(ctx); err != nil {
+		return err
+	}
+	return d.PostUninstall(ctx)
 }

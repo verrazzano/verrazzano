@@ -212,6 +212,9 @@ const JaegerCollectorService = "service-collector"
 // OverridesFinalizer is a label value for value override object finalizer
 const OverridesFinalizer = "overrides.finalizers.verrazzano.io/finalizer"
 
+// DevComponentFinalizer is a label value for dev components configmap finalizer
+const DevComponentFinalizer = "components.finalizers.verrazzano.io/finalizer"
+
 // ConfigMapKind is a label value for ConfigMap kind
 const ConfigMapKind = "ConfigMap"
 
