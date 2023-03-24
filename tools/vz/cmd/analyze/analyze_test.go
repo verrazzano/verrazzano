@@ -225,4 +225,3 @@ func createStdTempFiles(t *testing.T) (*os.File, *os.File) {
 
 	return stdoutFile, stderrFile
 }
-
