@@ -13,32 +13,30 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"log"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
 )
 
 // ValidateCertDate validates the certs.
-func (sw *CertificateRotationManagerReconciler) ValidateCertDate(certContent []byte) (bool, error) {
+func (r *CertificateRotationManagerReconciler) ValidateCertDate(certContent []byte) (bool, error) {
 	block, _ := pem.Decode(certContent)
 	if block == nil {
-		log.Fatal("failed to parse PEM block containing the public key")
-		return false, fmt.Errorf("unable to parse the certificate")
+		return false, r.log.ErrorfNewErr("unable to parse the certificate")
 	}
 	certs, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		return false, fmt.Errorf(err.Error())
+		return false, r.log.ErrorfNewErr(err.Error())
 	}
-	deadline := time.Now().Add(time.Hour * sw.CompareWindow)
+	deadline := time.Now().Add(time.Hour * r.CompareWindow)
 	if deadline.After(certs.NotAfter) {
-		sw.log.Infof("cert for %s expires too soon: %s less than %s away",
+		r.log.Progressf("certificate for %s expires too soon: %s less than %s away",
 			certs.Subject.CommonName,
 			certs.NotAfter.Format(time.RFC3339),
-			sw.CompareWindow)
+			r.CompareWindow)
 		return true, nil
 
 	}
-	sw.log.Infof("cert for %s has validity %s",
+	r.log.Progressf("certificate for %s has validity %s",
 		certs.Subject.CommonName,
 		certs.NotAfter.Sub(deadline).Round(time.Hour))
 	return false, nil
@@ -46,17 +44,17 @@ func (sw *CertificateRotationManagerReconciler) ValidateCertDate(certContent []b
 
 // GetSecretData checks if secret exists in namespace or not
 // if exists then return secret data else return nil
-func (sw *CertificateRotationManagerReconciler) GetSecretData(secretName string) (corev1.Secret, []byte) {
+func (r *CertificateRotationManagerReconciler) GetSecretData(secretName string) (corev1.Secret, []byte) {
 	sec := corev1.Secret{}
-	err := sw.Get(context.TODO(), clipkg.ObjectKey{
-		Namespace: sw.WatchNamespace,
+	err := r.Get(context.TODO(), clipkg.ObjectKey{
+		Namespace: r.WatchNamespace,
 		Name:      secretName,
 	}, &sec)
 	if err != nil && apierrors.IsNotFound(err) {
-		sw.log.Errorf("an error while listing the certificate secret %v", secretName)
+		r.log.Errorf("an error while listing the certificate secret %v", secretName)
 		return sec, nil
 	}
-	sw.log.Debugf("successfully found the certificate secret %v", secretName)
+	r.log.Debugf("successfully found the certificate secret %v", secretName)
 	if val, ok := sec.Data["tls.crt"]; ok {
 		return sec, val
 	}
@@ -64,30 +62,34 @@ func (sw *CertificateRotationManagerReconciler) GetSecretData(secretName string)
 }
 
 // DeleteSecret deletes the tls secret.
-func (sw *CertificateRotationManagerReconciler) DeleteSecret(secretName corev1.Secret) error {
-	if err := sw.Delete(context.TODO(), &secretName, &clipkg.DeleteOptions{}); err != nil {
-		sw.log.Errorf("an error while deleting the certificate secret %v in namespace %v with error %v", secretName.Name, sw.WatchNamespace, err)
-		return fmt.Errorf("an while deleting the secret")
+func (r *CertificateRotationManagerReconciler) DeleteSecret(secretName corev1.Secret) error {
+	if err := r.Delete(context.TODO(), &secretName, &clipkg.DeleteOptions{}); err != nil {
+		r.log.Errorf("an error while deleting the certificate secret %v in namespace %v with error %v", secretName.Name, r.WatchNamespace, err)
+		return r.log.ErrorfNewErr("an while deleting the secret")
 	}
-	sw.log.Infof("successfully deleted the secret %v in namespace %v ", secretName.Name, sw.WatchNamespace)
+	r.log.Infof("successfully deleted the secret %v in namespace %v ", secretName.Name, r.WatchNamespace)
 	return nil
 }
 
-func (sw *CertificateRotationManagerReconciler) RolloutRestartDeployment() error {
+func (r *CertificateRotationManagerReconciler) RolloutRestartDeployment() error {
 	deployment := appsv1.Deployment{}
 	var err error
-	err = sw.Get(context.TODO(), clipkg.ObjectKey{Namespace: sw.TargetNamespace, Name: sw.TargetDeployment}, &deployment)
-	sw.log.Debug("deployment listed", deployment.Name)
+	err = r.Get(context.TODO(), clipkg.ObjectKey{Namespace: r.TargetNamespace, Name: r.TargetDeployment}, &deployment)
+	r.log.Debug("deployment listed", deployment.Name)
 	if err != nil && apierrors.IsNotFound(err) {
-		sw.log.Errorf("an error while listing the deployment in namespace %v", sw.TargetNamespace)
+		r.log.Errorf("an error while listing the deployment in namespace %v", r.TargetNamespace)
 		return err
 	}
-	err = sw.Patch(context.TODO(), &deployment, clipkg.RawPatch(types.StrategicMergePatchType, generatePatch()))
+	//deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = buildRestartAnnotationString(generation)
+	//if _, err := goClient.AppsV1().Deployments(deployment.Namespace).Update(context.TODO(), deployment, metav1.UpdateOptions{}); err != nil {
+	//	return log.ErrorfNewErr("Failed, error updating Deployment %s annotation to force a pod restart", deployment.Name)
+	//}
+	err = r.Patch(context.TODO(), &deployment, clipkg.RawPatch(types.StrategicMergePatchType, generatePatch()))
 	if err != nil {
-		sw.log.Errorf("an error while patching the deployment %v in namespace %v", sw.TargetDeployment, sw.TargetNamespace)
+		r.log.Errorf("an error while patching the deployment %v in namespace %v", r.TargetDeployment, r.TargetNamespace)
 		return err
 	}
-	sw.log.Infof("successfully restart the deployment %v in namespace %v ", sw.TargetDeployment, sw.WatchNamespace)
+	r.log.Infof("successfully restart the deployment %v in namespace %v ", r.TargetDeployment, r.WatchNamespace)
 	return nil
 }
 

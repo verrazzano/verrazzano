@@ -5,7 +5,6 @@ package certrotation
 
 import (
 	"context"
-	"fmt"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -54,13 +53,12 @@ func (r *CertificateRotationManagerReconciler) Reconcile(ctx context.Context, re
 	}
 	// If no error during certification checks, then next reconcile will happen
 	// every alternative day.
-	// else in case of error it will happend after 5 mintues.
+	// else in case of error it will happen after 5 mintues.
 	if err := r.CheckCertificateExpiration(); err != nil {
-		return newRequeueWithDelay(3, 5, 5*time.Minute), nil
+		return newRequeueWithDelay(3, 5, time.Minute), nil
 	} else {
-		return newRequeueWithDelay(3, 5, 24*time.Hour), err
+		return newRequeueWithDelay(3, 24, time.Hour), err
 	}
-	return ctrl.Result{}, nil
 }
 
 // initialize secret logger
@@ -86,46 +84,46 @@ func newRequeueWithDelay(min, max int, unit time.Duration) ctrl.Result {
 	return vzctrl.NewRequeueWithDelay(min, max, unit)
 }
 
-func (sw *CertificateRotationManagerReconciler) CheckCertificateExpiration() error {
-	status := false
+func (r *CertificateRotationManagerReconciler) CheckCertificateExpiration() error {
+	mustRotate := false
 	var err error
 	var certsList []string
-	if certsList, err = sw.GetCertificateList(); err != nil {
+	if certsList, err = r.getCertSecretList(); err != nil {
 		return err
 	}
 	for i := range certsList {
 		secret := certsList[i]
-		sw.log.Debugf("secret/certificate found %v", secret)
-		sec, secdata := sw.GetSecretData(secret)
+		r.log.Debugf("secret/certificate found %v", secret)
+		sec, secdata := r.GetSecretData(secret)
 		if secdata == nil {
-			return fmt.Errorf("an error occurred obtaining certificate data for %s", secret)
+			return r.log.ErrorfNewErr("an error occurred obtaining certificate data for %s", secret)
 		}
-		status, err = sw.ValidateCertDate(secdata)
-		sw.log.Debugf("cert data expiry status for secret %v", secret)
+		mustRotate, err = r.ValidateCertDate(secdata)
+		r.log.Debugf("cert data expiry status for secret %v", secret)
 		if err != nil {
-			return fmt.Errorf("an error while validating the certificate secret data")
+			return r.log.ErrorfNewErr("an error while validating the certificate secret data")
 		}
-		if status {
-			err = sw.DeleteSecret(sec)
+		if mustRotate {
+			err = r.DeleteSecret(sec)
 			if err != nil {
-				return fmt.Errorf("an error deleting the certificate")
+				return r.log.ErrorfNewErr("an error deleting the certificate")
 			}
-			err = sw.RolloutRestartDeployment()
+			err = r.RolloutRestartDeployment()
 			if err != nil {
-				return fmt.Errorf("an error occurred restarting the deployment %v in namespace %v", sw.TargetDeployment, sw.TargetNamespace)
+				return r.log.ErrorfNewErr("an error occurred restarting the deployment %v in namespace %v", r.TargetDeployment, r.TargetNamespace)
 			}
 		}
 	}
 	return nil
 }
 
-func (sw *CertificateRotationManagerReconciler) GetCertificateList() ([]string, error) {
+func (r *CertificateRotationManagerReconciler) getCertSecretList() ([]string, error) {
 	certificates := make([]string, 0)
 	secretList := corev1.SecretList{}
-	listOptions := &clipkg.ListOptions{Namespace: sw.WatchNamespace}
-	err := sw.List(context.TODO(), &secretList, listOptions)
+	listOptions := &clipkg.ListOptions{Namespace: r.WatchNamespace}
+	err := r.List(context.TODO(), &secretList, listOptions)
 	if err != nil {
-		return nil, fmt.Errorf("an error while listing the certificate sceret")
+		return nil, r.log.ErrorfNewErr("an error while listing the certificate sceret")
 	}
 	for _, secret := range secretList.Items {
 		if secret.Type == corev1.SecretTypeTLS {
@@ -135,5 +133,5 @@ func (sw *CertificateRotationManagerReconciler) GetCertificateList() ([]string, 
 	if len(certificates) > 0 {
 		return certificates, nil
 	}
-	return nil, fmt.Errorf("no certificate found in namespace %v", sw.WatchNamespace)
+	return nil, r.log.ErrorfNewErr("no certificate found in namespace %v", r.WatchNamespace)
 }
