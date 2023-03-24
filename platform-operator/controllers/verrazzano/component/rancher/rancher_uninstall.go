@@ -193,11 +193,6 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 
 	crds := getCRDList(ctx)
 
-	// Remove Rancher finalizers again, Rancher may have put some back during the uninstall
-	if err = deleteRancherFinalizers(ctx); err != nil {
-		return err
-	}
-
 	// Remove any Rancher custom resources that remain
 	removeCRs(ctx, crds)
 
