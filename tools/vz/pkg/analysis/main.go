@@ -24,13 +24,13 @@ var minConfidence int
 var logger *zap.SugaredLogger
 
 // The analyze tool will analyze information which has already been captured from an environment
-func AnalysisMain(vzHelper helpers.VZHelper, directory string, reportFile string, reportFormat string, printToConsole bool) error {
+func AnalysisMain(vzHelper helpers.VZHelper, directory string, reportFile string, reportFormat string, printReportToConsole bool) error {
 	logger = zap.S()
-	return handleMain(vzHelper, directory, reportFile, reportFormat, printToConsole)
+	return handleMain(vzHelper, directory, reportFile, reportFormat, printReportToConsole)
 }
 
 // handleMain is where the main logic is at, separated here to allow for more test coverage
-func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, reportFormat string, printToConsole bool) error {
+func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, reportFormat string, printReportToConsole bool) error {
 	// TODO: how we surface different analysis report types will likely change up, for now it is specified here, and it may also
 	// make sense to treat all cluster dumps the same way whether single or multiple (structure the dumps the same way)
 	// We could also have different types of report output formats as well. For example, the current report format is
@@ -46,7 +46,7 @@ func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, 
 	}
 
 	// Generate a report
-	err = report.GenerateHumanReport(logger, reportFile, reportFormat, includeSupport, includeInfo, includeActions, minConfidence, minImpact, vzHelper, printToConsole)
+	err = report.GenerateHumanReport(logger, reportFile, reportFormat, includeSupport, includeInfo, includeActions, minConfidence, minImpact, vzHelper, printReportToConsole)
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "\nReport generation failed, exiting.\n")
 		return fmt.Errorf("%s", err.Error())
