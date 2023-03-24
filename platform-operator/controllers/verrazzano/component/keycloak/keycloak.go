@@ -947,7 +947,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Create Verrazzano Internal Thanos User if the corresponding secret exists. The secret is installed via the Thanos Helm chart.
-	const thanosSecretName = "verrazzano-thanos-internal"
+	const thanosSecretName = "verrazzano-thanos-internal" //nolint:gosec //#gosec G101
 	secret := &corev1.Secret{}
 	err = ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: thanosSecretName}, secret)
 	if client.IgnoreNotFound(err) != nil {
