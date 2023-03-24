@@ -244,12 +244,12 @@
             },
             {
               "image": "opensearch",
-              "tag": "2.3.0-20230210125230-1ff5dd09b32",
+              "tag": "2.3.0-20230324071613-ae6dc07e5dd",
               "helmFullImageKey": "monitoringOperator.osImage"
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "2.3.0-20230209072030-f9e6353395",
+              "tag": "2.3.0-20230324072109-f9e6353395",
               "helmFullImageKey": "monitoringOperator.osdImage"
             },
             {
