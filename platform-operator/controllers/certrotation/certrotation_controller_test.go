@@ -79,55 +79,55 @@ func TestValidateCertificate(t *testing.T) {
 
 // TestCertificate1 checks certificate
 // if target deployment doesn't exist
-// THEN error should be thrown
+// THEN Requeue should happen.
 func TestCertificate1(t *testing.T) {
 	asserts := assert.New(t)
 	deployment := getDeployment()
-	secret := getSecret(2)
+	secret := getSecret(1)
 	// Set up the initial context
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&deployment, &secret).Build()
 	request0 := newRequest(deployment.Name, secret.Name)
-	reconciler := newCertificateManagerReconciler(cli, VZNamespace, VZNamespace, VZWebhookDeployment, 10)
+	reconciler := newCertificateManagerReconciler(cli, VZNamespace, VZNamespace, "verrazzano", 25)
 	res0, err := reconciler.Reconcile(context.TODO(), request0)
 	asserts.Equal(true, res0.Requeue)
-	assert.Equal(t, "an error occurred restarting the deployment operator in namespace verrazzano-install", err.Error())
+	asserts.Equal(err, nil)
 }
 
 // TestCertificate2 checks certificate
 // if target Namespace doesn't exist
-// THEN error should be thrown
+// THEN Requeue should happen.
 func TestCertificate2(t *testing.T) {
 	asserts := assert.New(t)
 	deployment := getDeployment()
-	secret := getSecret(2)
+	secret := getSecret(1)
 	// Set up the initial context
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&deployment, &secret).Build()
 	request0 := newRequest(deployment.Name, secret.Name)
-	reconciler := newCertificateManagerReconciler(cli, VZNamespace, "verrazzano", VZWebhookDeployment, 10)
+	reconciler := newCertificateManagerReconciler(cli, VZNamespace, "verrazzano", VZWebhookDeployment, 25)
 	res0, err := reconciler.Reconcile(context.TODO(), request0)
 	asserts.Equal(true, res0.Requeue)
-	assert.Equal(t, "an error occurred restarting the deployment verrazzano-operator in namespace verrazzano", err.Error())
+	asserts.Equal(err, nil)
 }
 
 // TestCertificate3 checks certificate
 // if secret Namespace doesn't exist
-// THEN error should be thrown
+// THEN Requeue should happen.
 func TestCertificate3(t *testing.T) {
 	asserts := assert.New(t)
 	deployment := getDeployment()
-	secret := getSecret(2)
+	secret := getSecret(1)
 	// Set up the initial context
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&deployment, &secret).Build()
 	request0 := newRequest(deployment.Name, secret.Name)
-	reconciler := newCertificateManagerReconciler(cli, "verrazzano", VZNamespace, VZWebhookDeployment, 10)
+	reconciler := newCertificateManagerReconciler(cli, "verrazzano", VZNamespace, VZWebhookDeployment, 25)
 	res0, err := reconciler.Reconcile(context.TODO(), request0)
 	asserts.Equal(true, res0.Requeue)
-	assert.Equal(t, "no certificate found in namespace verrazzano", err.Error())
+	asserts.Equal(err, nil)
 }
 
 // TestCertificate4 checks certificate
 // if secret/certificate doesn't exist
-// THEN error should be thrown
+// THEN Requeue should happen.
 func TestCertificate4(t *testing.T) {
 	asserts := assert.New(t)
 	deployment := getDeployment()
@@ -137,7 +137,7 @@ func TestCertificate4(t *testing.T) {
 	reconciler := newCertificateManagerReconciler(cli, VZNamespace, VZNamespace, VZWebhookDeployment, 10)
 	res0, err := reconciler.Reconcile(context.TODO(), request0)
 	asserts.Equal(true, res0.Requeue)
-	assert.Equal(t, "no certificate found in namespace verrazzano-install", err.Error())
+	asserts.Equal(err, nil)
 }
 
 // newScheme creates a new scheme that includes this package's object to use for testing
