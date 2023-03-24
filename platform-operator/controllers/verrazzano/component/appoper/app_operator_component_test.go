@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package appoper
@@ -6,6 +6,12 @@ package appoper
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	"testing"
@@ -13,8 +19,6 @@ import (
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	oamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	v1alpha12 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/pkg/helm"
-
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
@@ -44,6 +48,25 @@ var crEnabled = v1alpha1.Verrazzano{
 	},
 }
 
+func createRelease(name string, status release.Status) *release.Release {
+	now := time.Now()
+	return &release.Release{
+		Name:      ComponentName,
+		Namespace: ComponentNamespace,
+		Info: &release.Info{
+			FirstDeployed: now,
+			LastDeployed:  now,
+			Status:        status,
+			Description:   "Named Release Stub",
+		},
+		Version: 1,
+	}
+}
+
+func testActionConfigWithInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return helm.CreateActionConfig(true, "verrazzano-application-operator", release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
+}
+
 func TestPreInstall(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VerrazzanoRootDir: relativeRootDir})
@@ -62,10 +85,8 @@ func TestPreInstall(t *testing.T) {
 func TestPreUpgrade(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VerrazzanoRootDir: relativeRootDir})
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
+	defer helm.SetDefaultActionConfigFunction()
+	helm.SetActionConfigFunction(testActionConfigWithInstallation)
 
 	a := NewComponent()
 	client := fake.NewClientBuilder().WithScheme(newScheme()).
