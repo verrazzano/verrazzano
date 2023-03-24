@@ -70,9 +70,9 @@ spec:
   {{- end }}
   {{- end -}}
   {{- end -}}
-    {{- if .Values.prometheus.thanosIngress.extraRules }}
+  {{- if .Values.prometheus.thanosIngress.extraRules }}
 {{ toYaml .Values.prometheus.thanosIngress.extraRules | indent 4 }}
-    {{- end -}}
+  {{- end -}}
   {{- if .Values.prometheus.thanosIngress.tls }}
   tls:
 {{ tpl (toYaml .Values.prometheus.thanosIngress.tls | indent 4) . }}
