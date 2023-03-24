@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: hotrod-container
-          image: "ghcr.io/verrazzano/jaeger-example-hotrod:1.37.0-20221219184221-55f6b454"
+          image: "ghcr.io/verrazzano/jaeger-example-hotrod:1.37.0-20230324122806-8df5ebad"
           env:
             - name: JAEGER_AGENT_HOST
               value: "localhost"
