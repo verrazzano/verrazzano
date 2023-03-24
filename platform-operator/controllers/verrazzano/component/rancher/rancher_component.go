@@ -461,7 +461,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 
 // PreUninstall - prepare for Rancher uninstall
 func (r rancherComponent) PreUninstall(ctx spi.ComponentContext) error {
-	return preUninstall()
+	return preUninstall(ctx, r.monitor)
 }
 
 // PostUninstall handles the deletion of all Rancher resources after the Helm uninstall
@@ -683,6 +683,9 @@ func checkClusterProvisioned(client corev1.CoreV1Interface, dynClient dynamic.In
 			}
 			u, err := dynClient.Resource(resource).Namespace("").Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
 			if err != nil {
+				if kerrs.IsNotFound(err) {
+					return false, nil
+				}
 				return false, err
 			}
 
