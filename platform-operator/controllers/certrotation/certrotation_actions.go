@@ -6,13 +6,11 @@ package certrotation
 import (
 	"context"
 	"crypto/x509"
-	"encoding/json"
 	"encoding/pem"
-	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
 )
@@ -29,10 +27,9 @@ func (r *CertificateRotationManagerReconciler) ValidateCertDate(certContent []by
 	}
 	deadline := time.Now().Add(time.Hour * r.CompareWindow)
 	if deadline.After(certs.NotAfter) {
-		r.log.Progressf("certificate for %s expires too soon: %s less than %s away",
+		r.log.Progressf("certificate for %s expires in less than %s hours",
 			certs.Subject.CommonName,
-			certs.NotAfter.Format(time.RFC3339),
-			r.CompareWindow)
+			certs.NotAfter.Format(time.RFC3339))
 		return true, nil
 
 	}
@@ -44,9 +41,9 @@ func (r *CertificateRotationManagerReconciler) ValidateCertDate(certContent []by
 
 // GetSecretData checks if secret exists in namespace or not
 // if exists then return secret data else return nil
-func (r *CertificateRotationManagerReconciler) GetSecretData(secretName string) (corev1.Secret, []byte) {
+func (r *CertificateRotationManagerReconciler) GetSecretData(ctx context.Context, secretName string) (corev1.Secret, []byte) {
 	sec := corev1.Secret{}
-	err := r.Get(context.TODO(), clipkg.ObjectKey{
+	err := r.Get(ctx, clipkg.ObjectKey{
 		Namespace: r.WatchNamespace,
 		Name:      secretName,
 	}, &sec)
@@ -62,30 +59,30 @@ func (r *CertificateRotationManagerReconciler) GetSecretData(secretName string) 
 }
 
 // DeleteSecret deletes the tls secret.
-func (r *CertificateRotationManagerReconciler) DeleteSecret(secretName corev1.Secret) error {
-	if err := r.Delete(context.TODO(), &secretName, &clipkg.DeleteOptions{}); err != nil {
-
+func (r *CertificateRotationManagerReconciler) DeleteSecret(ctx context.Context, secretName corev1.Secret) error {
+	if err := r.Delete(ctx, &secretName, &clipkg.DeleteOptions{}); err != nil {
 		return r.log.ErrorfNewErr("an error while deleting the certificate secret %v in namespace %v with error %v", secretName.Name, r.WatchNamespace, err)
 	}
 	r.log.Infof("successfully deleted the secret %v in namespace %v ", secretName.Name, r.WatchNamespace)
 	return nil
 }
 
-func (r *CertificateRotationManagerReconciler) RolloutRestartDeployment() error {
+func (r *CertificateRotationManagerReconciler) RolloutRestartDeployment(ctx context.Context) error {
 	deployment := appsv1.Deployment{}
 	var err error
-	err = r.Get(context.TODO(), clipkg.ObjectKey{Namespace: r.TargetNamespace, Name: r.TargetDeployment}, &deployment)
+	err = r.Get(ctx, clipkg.ObjectKey{Namespace: r.TargetNamespace, Name: r.TargetDeployment}, &deployment)
 	r.log.Debug("deployment listed", deployment.Name)
 	if err != nil && apierrors.IsNotFound(err) {
 		r.log.Errorf("an error while listing the deployment in namespace %v", r.TargetNamespace)
 		return err
 	}
-	//deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = buildRestartAnnotationString(generation)
-	//if _, err := goClient.AppsV1().Deployments(deployment.Namespace).Update(context.TODO(), deployment, metav1.UpdateOptions{}); err != nil {
-	//	return log.ErrorfNewErr("Failed, error updating Deployment %s annotation to force a pod restart", deployment.Name)
-	//}
-	err = r.Patch(context.TODO(), &deployment, clipkg.RawPatch(types.StrategicMergePatchType, generatePatch()))
-	if err != nil {
+	time := time.Now()
+
+	if deployment.Spec.Template.ObjectMeta.Annotations == nil {
+		deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+	}
+	deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = buildRestartAnnotationString(time)
+	if err = r.Update(context.TODO(), &deployment); err != nil {
 		r.log.Errorf("an error while patching the deployment %v in namespace %v", r.TargetDeployment, r.TargetNamespace)
 		return err
 	}
@@ -93,22 +90,7 @@ func (r *CertificateRotationManagerReconciler) RolloutRestartDeployment() error 
 	return nil
 }
 
-// generatePatch returns patch data used to restart the deployment.
-func generatePatch() []byte {
-	patchTime := time.Now().Format(time.RFC3339)
-	mergePatch, err := json.Marshal(map[string]interface{}{
-		"spec": map[string]interface{}{
-			"template": map[string]interface{}{
-				"metadata": map[string]interface{}{
-					"annotations": map[string]interface{}{
-						"kubectl.kubernetes.io/restartedAt": patchTime,
-					},
-				},
-			},
-		},
-	})
-	if err != nil {
-		fmt.Println("error while doing operation")
-	}
-	return mergePatch
+// buildRestartAnnotationString returns the current time for annotating deployment to restart the pod
+func buildRestartAnnotationString(time time.Time) string {
+	return time.String()
 }

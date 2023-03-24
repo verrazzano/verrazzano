@@ -54,11 +54,12 @@ func (r *CertificateRotationManagerReconciler) Reconcile(ctx context.Context, re
 	// If no error during certification checks, then next reconcile will happen
 	// every alternative day.
 	// else in case of error it will happen after 5 mintues.
-	if err := r.CheckCertificateExpiration(); err != nil {
+	err := r.CheckCertificateExpiration(ctx)
+	if err != nil {
 		return newRequeueWithDelay(3, 5, time.Minute), nil
-	} else {
-		return newRequeueWithDelay(3, 24, time.Hour), err
 	}
+	return newRequeueWithDelay(3, 24, time.Hour), err
+
 }
 
 // initialize secret logger
@@ -84,17 +85,17 @@ func newRequeueWithDelay(min, max int, unit time.Duration) ctrl.Result {
 	return vzctrl.NewRequeueWithDelay(min, max, unit)
 }
 
-func (r *CertificateRotationManagerReconciler) CheckCertificateExpiration() error {
+func (r *CertificateRotationManagerReconciler) CheckCertificateExpiration(ctx context.Context) error {
 	mustRotate := false
 	var err error
 	var certsList []string
-	if certsList, err = r.getCertSecretList(); err != nil {
+	if certsList, err = r.getCertSecretList(ctx); err != nil {
 		return err
 	}
 	for i := range certsList {
 		secret := certsList[i]
 		r.log.Debugf("secret/certificate found %v", secret)
-		sec, secdata := r.GetSecretData(secret)
+		sec, secdata := r.GetSecretData(ctx, secret)
 		if secdata == nil {
 			return r.log.ErrorfNewErr("an error occurred obtaining certificate data for %s", secret)
 		}
@@ -104,24 +105,24 @@ func (r *CertificateRotationManagerReconciler) CheckCertificateExpiration() erro
 			return r.log.ErrorfNewErr("an error while validating the certificate secret data")
 		}
 		if mustRotate {
-			err = r.DeleteSecret(sec)
+			err = r.DeleteSecret(ctx, sec)
 			if err != nil {
 				return r.log.ErrorfNewErr("an error deleting the certificate")
 			}
-			err = r.RolloutRestartDeployment()
+			err = r.RolloutRestartDeployment(ctx)
 			if err != nil {
-				return r.log.ErrorfNewErr("an error occurred restarting the deployment %v in namespace %v", r.TargetDeployment, r.TargetNamespace)
+				return err
 			}
 		}
 	}
 	return nil
 }
 
-func (r *CertificateRotationManagerReconciler) getCertSecretList() ([]string, error) {
+func (r *CertificateRotationManagerReconciler) getCertSecretList(ctx context.Context) ([]string, error) {
 	certificates := make([]string, 0)
 	secretList := corev1.SecretList{}
 	listOptions := &clipkg.ListOptions{Namespace: r.WatchNamespace}
-	err := r.List(context.TODO(), &secretList, listOptions)
+	err := r.List(ctx, &secretList, listOptions)
 	if err != nil {
 		return nil, r.log.ErrorfNewErr("an error while listing the certificate sceret")
 	}
