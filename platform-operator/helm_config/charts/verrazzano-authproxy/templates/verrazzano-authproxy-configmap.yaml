@@ -17,7 +17,7 @@ data:
   VZ_PROMETHEUS_HOST: prometheus.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
   VZ_PROMETHEUS_BACKEND_URL: "http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local:9090"
   VZ_THANOS_SIDECAR_HOST: thanos-sidecar.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
-  VZ_THANOS_SIDECAR_BACKEND_URL: "http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local:10901"
+  VZ_THANOS_SIDECAR_BACKEND_URL: "grpc://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local:10901"
   VZ_THANOS_QUERY_HOST: thanos-query.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
   VZ_THANOS_QUERY_BACKEND_URL: "http://thanos-query-frontend.verrazzano-monitoring.svc.cluster.local:9090"
   VZ_KIBANA_HOST: kibana.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
@@ -1404,6 +1404,24 @@ data:
                 stub_status;
                 allow 127.0.0.1;
                 deny all;
+            }
+        }
+
+        # Verrazzano gRPC proxy
+        server {
+            listen       8776 http2;
+            server_name  verrazzano-grpc-proxy;
+
+            location / {
+                lua_ssl_verify_depth 2;
+                lua_ssl_trusted_certificate /etc/nginx/upstream.pem;
+
+                set $oidc_user "";
+                set $backend_server_url "";
+                rewrite_by_lua_file /etc/nginx/conf.lua;
+                proxy_set_header X-WEBAUTH-USER $oidc_user;
+                grpc_pass $backend_server_url;
+                proxy_ssl_trusted_certificate /etc/nginx/upstream.pem;
             }
         }
     }
