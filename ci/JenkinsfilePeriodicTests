@@ -171,7 +171,6 @@ pipeline {
                 }
             }
         }
-
         stage ('Periodic Test Suites') {
             when {
                 allOf {
@@ -342,7 +341,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Kind Acceptance Tests on 1.24 Non-Calico') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
@@ -488,7 +486,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Private Registry') {
                     stages {
                         stage('Build Release Distributions') {
@@ -498,7 +495,7 @@ pipeline {
                                 """
                             }
                         }
-                        stage('Private Registry Tests - OCIR') {
+                        stage('Private Registry Tests') {
                             when {
                                 allOf {
                                     not { buildingTag() }
@@ -539,55 +536,53 @@ pipeline {
                                 }
                             }
                         }
-                        stage('Push to OCIR') {
-                            environment {
-                                OCI_CLI_AUTH="api_key"
-                                OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
-                                OCI_CLI_USER = credentials('oci-dev-user-ocid')
-                                OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
-                                OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
-                                OCI_CLI_REGION = "us-ashburn-1"
-                                OCI_REGION = "${env.OCI_CLI_REGION}"
-                                // Directory containing the Verrazzano image tar files
-                                VERRAZZANO_IMAGES_DIRECTORY = "${WORKSPACE}/vz-full/verrazzano-${VERRAZZANO_DEV_VERSION}/images"
-                            }
-                            steps {
-                                script {
-                                    sh """
-                                        echo "Pushing images to OCIR, these are treated as the latest scan results for ${CLEAN_BRANCH_NAME}"
-                                        ci/scripts/push_to_ocir.sh
-                                    """
-                                }
-                            }
-                        }
-
-                        stage('Release Candidate Validation Checks') {
-                            steps {
-                                script {
-                                    releaseValidationChecks()
-                                }
-                            }
-                        }
-
-                        stage('Update Last Clean Periodic Test') {
-                            environment {
-                                GIT_COMMIT_USED = "${env.GIT_COMMIT}"
-                            }
-                            steps {
-                                script {
-                                    sh """
-                                        ci/scripts/update_last_clean_periodic_test.sh ${VERRAZZANO_DEV_VERSION}
-                                    """
-                                }
-                            }
-                            post {
-                                success {
-                                    script {
-                                        captureDistributionURLs()
-                                    }
-                                }
-                            }
-                        }
+                    }
+                }
+            }
+        }
+        stage('Push to OCIR') {
+            environment {
+                OCI_CLI_AUTH="api_key"
+                OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
+                OCI_CLI_USER = credentials('oci-dev-user-ocid')
+                OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
+                OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
+                OCI_CLI_REGION = "us-ashburn-1"
+                OCI_REGION = "${env.OCI_CLI_REGION}"
+                // Directory containing the Verrazzano image tar files
+                VERRAZZANO_IMAGES_DIRECTORY = "${WORKSPACE}/vz-full/verrazzano-${VERRAZZANO_DEV_VERSION}/images"
+            }
+            steps {
+                script {
+                    sh """
+                        echo "Pushing images to OCIR, these are treated as the latest scan results for ${CLEAN_BRANCH_NAME}"
+                        ci/scripts/push_to_ocir.sh
+                    """
+                }
+            }
+        }
+        stage('Release Candidate Validation Checks') {
+            steps {
+                script {
+                    releaseValidationChecks()
+                }
+            }
+        }
+        stage('Update Last Clean Periodic Test') {
+            environment {
+                GIT_COMMIT_USED = "${env.GIT_COMMIT}"
+            }
+            steps {
+                script {
+                    sh """
+                        ci/scripts/update_last_clean_periodic_test.sh ${VERRAZZANO_DEV_VERSION}
+                    """
+                }
+            }
+            post {
+                success {
+                    script {
+                        captureDistributionURLs()
                     }
                 }
             }
