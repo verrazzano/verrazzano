@@ -225,7 +225,7 @@ pipeline {
             }
         }
 
-        stage('Enable Pushgateway') {
+        stage('Enable Edge Stack') {
             environment {
                 KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
@@ -237,6 +237,11 @@ pipeline {
                     cp ${env.INSTALL_CONFIG_FILE_KIND_TESTS} ${env.INSTALL_CONFIG_FILE_KIND}
                     cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/vz-update1.yaml
                     cd ${GO_REPO_PATH}/verrazzano
+                    yq -i eval '.spec.components.kubeStateMetrics.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.prometheus.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.prometheusOperator.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.prometheusAdapter.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.prometheusNodeExporter.enabled = true' ${WORKSPACE}/vz-update1.yaml
                     yq -i eval '.spec.components.prometheusPushgateway.enabled = true' ${WORKSPACE}/vz-update1.yaml
                     kubectl apply -f ${WORKSPACE}/vz-update1.yaml
                 """
@@ -252,12 +257,13 @@ pipeline {
             }
         }
 
-        stage('Verify Install after Pushgateway enabled') {
+        stage('Verify Install after Edge stack enabled') {
             environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install/promstack"
             }
             steps {
                 runGinkgoRandomize('verify-install')
+                runGinkgoRandomize('verify-install/promstack')
             }
             post {
                 always {
@@ -267,6 +273,67 @@ pipeline {
             }
         }
 
+
+        stage('Enable Application stack') {
+            environment {
+                KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
+                OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                REALM_USER_PASSWORD = credentials('todo-mysql-password')
+                REALM_NAME = 'test-realm'
+            }
+            steps {
+                sh """
+                    cp ${env.INSTALL_CONFIG_FILE_KIND_TESTS} ${env.INSTALL_CONFIG_FILE_KIND}
+                    cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/vz-update1.yaml
+                    cd ${GO_REPO_PATH}/verrazzano
+                    yq -i eval '.spec.components.kubeStateMetrics.enabled = false' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.prometheus.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.prometheusOperator.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.prometheusAdapter.enabled = false' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.prometheusNodeExporter.enabled = false' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.prometheusPushgateway.enabled = false' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.applicationOperator.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.authProxy.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.certManager.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.fluentd.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.grafana.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.ingressNGINX.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.keycloak.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.mySQLOperator.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.opensearch.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.opensearchDashboards.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.oam.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.verrazzano.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.jaegerOperator.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                    kubectl apply -f ${WORKSPACE}/vz-update1.yaml
+                """
+            }
+
+            post {
+                failure {
+                    archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                }
+                always {
+                    archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Verify Install after Application stack enabled') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra"
+            }
+            steps {
+                runGinkgoRandomize('verify-infra')
+                runGinkgoRandomize('verify-install')
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
 
     }
     post {
