@@ -799,7 +799,9 @@ func validateCorrectNumberOfPodsRunningSts(stsName string, nameSpace string, lab
 }
 
 // Validate the verrazzano-system service ports to make sure they follow Istio conventions for
-// naming ports.  Ports should have the prefix of "http-" or "https-" or be equal to "http" or "https".
+// naming ports.  Ports should have the prefix of "http-", "https-", or "grpc-", or be equal to
+// "http", "https", or "grpc". Note that this is not an exhaustive list of valid Istio port names; these
+// are the port names that we currently use.
 func validateVerrazzanoSystemServicePorts() {
 	// Get the list of verrazzano-system services
 	var services *corev1.ServiceList
@@ -825,9 +827,10 @@ func validateVerrazzanoSystemServicePorts() {
 			}
 			if checkName {
 				hasPrefix := false
-				if strings.Compare(port.Name, "http") == 0 || strings.Compare(port.Name, "https") == 0 ||
-					strings.HasPrefix(port.Name, "http-") || strings.HasPrefix(port.Name, "https-") ||
-					(port.AppProtocol != nil && (strings.Compare(*port.AppProtocol, "http") == 0 || strings.Compare(*port.AppProtocol, "https") == 0)) {
+				if strings.Compare(port.Name, "http") == 0 || strings.Compare(port.Name, "https") == 0 || strings.Compare(port.Name, "grpc") == 0 ||
+					strings.HasPrefix(port.Name, "http-") || strings.HasPrefix(port.Name, "https-") || strings.HasPrefix(port.Name, "grpc-") ||
+					(port.AppProtocol != nil &&
+						(strings.Compare(*port.AppProtocol, "http") == 0 || strings.Compare(*port.AppProtocol, "https") == 0 || strings.Compare(*port.AppProtocol, "grpc") == 0)) {
 					hasPrefix = true
 				}
 				Expect(hasPrefix).Should(BeTrue(), fmt.Sprintf("Service \"%s\" port name \"%s\" is not a valid port name", service.Name, port.Name))

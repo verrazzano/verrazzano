@@ -46,11 +46,13 @@ func TestConfigMapReconciler(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-component",
 					Namespace: constants.VerrazzanoInstallNamespace,
-					Annotations: map[string]string{
-						constants.VerrazzanoDevComponentAnnotationName: "test-component",
+					Labels: map[string]string{
+						devComponentConfigMapKindLabel:       devComponentConfigMapKindHelmComponent,
+						devComponentConfigMapAPIVersionLabel: devComponentConfigMapAPIVersionv1beta2,
 					},
 				},
 				Data: map[string]string{
+					componentNameKey:      "test-component",
 					chartPathKey:          "test-component",
 					componentNamespaceKey: constants.VerrazzanoSystemNamespace,
 					overridesKey:          "overrideKey: overrideVal",
@@ -65,8 +67,30 @@ func TestConfigMapReconciler(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-component",
 					Namespace: constants.VerrazzanoSystemNamespace,
-					Annotations: map[string]string{
-						constants.VerrazzanoDevComponentAnnotationName: "test-component",
+					Labels: map[string]string{
+						devComponentConfigMapKindLabel:       devComponentConfigMapKindHelmComponent,
+						devComponentConfigMapAPIVersionLabel: devComponentConfigMapAPIVersionv1beta2,
+					},
+				},
+				Data: map[string]string{
+					componentNameKey:      "test-component",
+					chartPathKey:          "test-component",
+					componentNamespaceKey: constants.VerrazzanoSystemNamespace,
+					overridesKey:          "overrideKey: overrideVal",
+				},
+			},
+			returnError: true,
+			requeue:     false,
+		},
+		{
+			name: "no name",
+			cm: corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-component",
+					Namespace: constants.VerrazzanoSystemNamespace,
+					Labels: map[string]string{
+						devComponentConfigMapKindLabel:       devComponentConfigMapKindHelmComponent,
+						devComponentConfigMapAPIVersionLabel: devComponentConfigMapAPIVersionv1beta2,
 					},
 				},
 				Data: map[string]string{
@@ -84,11 +108,13 @@ func TestConfigMapReconciler(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-component",
 					Namespace: constants.VerrazzanoInstallNamespace,
-					Annotations: map[string]string{
-						constants.VerrazzanoDevComponentAnnotationName: "test-component",
+					Labels: map[string]string{
+						devComponentConfigMapKindLabel:       devComponentConfigMapKindHelmComponent,
+						devComponentConfigMapAPIVersionLabel: devComponentConfigMapAPIVersionv1beta2,
 					},
 				},
 				Data: map[string]string{
+					componentNameKey:      "test-component",
 					componentNamespaceKey: constants.VerrazzanoSystemNamespace,
 					overridesKey:          "overrideKey: overrideVal",
 				},
@@ -102,13 +128,15 @@ func TestConfigMapReconciler(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-component",
 					Namespace: constants.VerrazzanoInstallNamespace,
-					Annotations: map[string]string{
-						constants.VerrazzanoDevComponentAnnotationName: "test-component",
+					Labels: map[string]string{
+						devComponentConfigMapKindLabel:       devComponentConfigMapKindHelmComponent,
+						devComponentConfigMapAPIVersionLabel: devComponentConfigMapAPIVersionv1beta2,
 					},
 				},
 				Data: map[string]string{
-					chartPathKey: "test-component",
-					overridesKey: "overrideKey: overrideVal",
+					componentNameKey: "test-component",
+					chartPathKey:     "test-component",
+					overridesKey:     "overrideKey: overrideVal",
 				},
 			},
 			returnError: true,
