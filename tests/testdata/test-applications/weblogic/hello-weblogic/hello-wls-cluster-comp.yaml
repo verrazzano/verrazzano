@@ -41,11 +41,11 @@ spec:
             annotations:
               sidecar.istio.io/logLevel: debug
             livenessProbe:
-              periodSeconds: 30
+              periodSeconds: 20
               timeoutSeconds: 60
               failureThreshold: 3
             readinessProbe:
-              periodSeconds: 30
+              periodSeconds: 10
               timeoutSeconds: 60
               failureThreshold: 3
             labels:

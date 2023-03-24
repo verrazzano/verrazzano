@@ -146,10 +146,10 @@ var _ = t.AfterEach(func() {
 })
 
 var afterSuite = t.AfterSuiteFunc(func() {
-	if failed || !beforeSuitePassed {
-		dump.CaptureContainerLogs(namespace, wlsAdminServer, "weblogic-server", "/scratch/logs/hello-domain")
-		dump.ExecuteBugReport(namespace)
-	}
+	// if failed || !beforeSuitePassed {
+	dump.CaptureContainerLogs(namespace, wlsAdminServer, "weblogic-server", "/scratch/logs/hello-domain")
+	dump.ExecuteBugReport(namespace)
+	// }
 	if !skipUndeploy {
 		undeployWebLogicApp()
 	}
