@@ -194,7 +194,7 @@ func IsExternalDNSEnabled(cr runtime.Object) bool {
 
 // IsVMOEnabled - Returns false if all VMO components are disabled
 func IsVMOEnabled(vz runtime.Object) bool {
-	return IsPrometheusEnabled(vz) || IsOpenSearchDashboardsEnabled(vz) || IsOpenSearchEnabled(vz) || IsGrafanaEnabled(vz)
+	return IsOpenSearchDashboardsEnabled(vz) || IsOpenSearchEnabled(vz) || IsGrafanaEnabled(vz)
 }
 
 // IsPrometheusOperatorEnabled returns false only if the Prometheus Operator is explicitly disabled in the CR
