@@ -233,8 +233,8 @@
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
-              "image": "grafana-jenkins",
-              "tag": "v7.5.17-20230313121501-39a69c69",
+              "image": "grafana",
+              "tag": "v7.5.17-20230324124607-7afbf50a",
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
@@ -378,7 +378,7 @@
           "images": [
             {
               "image": "kiali",
-              "tag": "v1.57.1-20230223193254-0e6b42d8",
+              "tag": "v1.57.1-20230324120010-d94b80c9",
               "helmFullImageKey": "deployment.image_name",
               "helmTagKey": "deployment.image_version"
             }
@@ -506,8 +506,8 @@
           "name": "alertmanager",
           "images": [
             {
-              "image": "alertmanager-jenkins",
-              "tag": "v0.24.0-20230227112109-4a45f62f",
+              "image": "alertmanager",
+              "tag": "v0.24.0-20230324104837-18128160",
               "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
               "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
             }
@@ -518,8 +518,8 @@
           "name": "prometheus",
           "images": [
             {
-              "image": "prometheus-jenkins",
-              "tag": "v2.38.0-20230316123547-fade9373",
+              "image": "prometheus",
+              "tag": "v2.38.0-20230324105920-186a8ee6",
               "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
               "helmTagKey": "prometheus.prometheusSpec.image.tag"
             }
@@ -553,7 +553,7 @@
           "images": [
             {
               "image": "kube-state-metrics",
-              "tag": "v2.6.0-20230310051048-36212f20",
+              "tag": "v2.6.0-20230223191441-e3cc4e3d",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -586,8 +586,8 @@
           "name": "prometheus-node-exporter",
           "images": [
             {
-              "image": "node-exporter-jenkins",
-              "tag": "v1.3.1-20230313114029-c412597c",
+              "image": "node-exporter",
+              "tag": "v1.3.1-20230323153951-b7f69924",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
