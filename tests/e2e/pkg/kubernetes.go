@@ -856,7 +856,7 @@ func IsPrometheusEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.Prometheus.Enabled
 }
 
-// IsPrometheusEnabled returns true if the Prometheus component is not set and the Prometheus Operator is enabled, or the value of its Enabled field otherwise
+// IsIngressEnabled returns false if the IngressNGINX component is not set and the IngressNGINX is enabled, or the value of its Enabled field otherwise
 func IsIngressEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
