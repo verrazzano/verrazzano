@@ -490,8 +490,12 @@ spec:
           serverPod:
             annotations:
               sidecar.istio.io/logLevel: debug
+            livenessProbe:
+              periodSeconds: 30
+              timeoutSeconds: 60
+              failureThreshold: 3
             readinessProbe:
-              periodSeconds: 60
+              periodSeconds: 30
               timeoutSeconds: 60
               failureThreshold: 3
             labels:
@@ -506,6 +510,8 @@ spec:
                 value: /u01/oracle/wlserver
               - name: MW_HOME
                 value: /u01/oracle
+              - name: RESTART_MAX
+                value: "0"
       clusters:
         - apiVersion: weblogic.oracle/v1
           metadata:
