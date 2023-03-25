@@ -7,17 +7,14 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
-	"io"
-	"regexp"
-	"time"
-
 	"github.com/spf13/cobra"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"io"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -28,7 +25,10 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	"os"
+	"regexp"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"time"
 )
 
 const (
@@ -43,7 +43,7 @@ vz uninstall
 
 # Uninstall Verrazzano and wait for the command to complete. Timeout the command after 30 minutes.
 vz uninstall --timeout 30m`
-	confirmUninstall = "w"
+	confirmUninstall = "confirm"
 )
 
 // Number of retries after waiting a second for uninstall job pod to be ready
@@ -98,13 +98,21 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	// Hide the flag for overriding the default wait timeout for the platform-operator
 	cmd.PersistentFlags().MarkHidden(constants.VPOTimeoutFlag)
 
+	// TODO
 	cmd.PersistentFlags().Bool(confirmUninstall, true, "Used to suppress uninstall prompt")
 	return cmd
 }
 
 func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-
-	err := uninstallVerrazzanoFn(cmd, vzHelper)
+	isPromptDisplayed, err := cmd.Flags().GetBool(confirmUninstall)
+	if err != nil {
+		return err
+	}
+	err = displayUninstallPrompt(isPromptDisplayed)
+	if err != nil {
+		return err
+	}
+	err = uninstallVerrazzanoFn(cmd, vzHelper)
 	if err != nil {
 		autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
 		if errFlag != nil {
@@ -535,14 +543,21 @@ func failedToUninstallErr(err error) error {
 	return fmt.Errorf("Failed to uninstall Verrazzano: %s", err.Error())
 }
 
-func displayUninstallWarning() bool {
-	s := "y"
-	switch s {
-	case "y":
-		return true
-	case "n":
-		return false
+func displayUninstallPrompt(displayPrompt bool) error {
+	switch displayPrompt {
+	case false:
+		return nil
 	default:
-		return false
+		fmt.Printf("Are you sure you want to uninstall Verrazzano?\n")
+		reader := bufio.NewReader(os.Stdin)
+		char, _, err := reader.ReadRune()
+		if err != nil {
+			fmt.Println(err)
+		}
+		if char == 'n' {
+			fmt.Println("VZ will NOT uninstall")
+		}
+		return nil
 	}
+	return nil
 }
