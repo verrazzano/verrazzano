@@ -25,12 +25,12 @@ data:
   VZ_ELASTICSEARCH_HOST: elasticsearch.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
   VZ_ELASTICSEARCH_BACKEND_URL: "http://vmi-system-os-ingest.verrazzano-system.svc.cluster.local:9200"
   VZ_OPENSEARCH_HOST: opensearch.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
-  VZ_OPENSEARCH_HTTPS_HOST: opensearch.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}:443
+  VZ_OPENSEARCH_HTTPS_HOST: opensearch.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
   VZ_OPENSEARCH_BACKEND_URL: "http://vmi-system-os-ingest.verrazzano-system.svc.cluster.local:9200"
   VZ_OSD_HOST: osd.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
   VZ_OSD_BACKEND_URL: "http://vmi-system-osd.verrazzano-system.svc.cluster.local:5601"
-  VZ_AUTHPROXY_OPENSEARCH_HOST: "verrazzano-authproxy-opensearch:8775"
-  VZ_AUTHPROXY_OPENSEARCH_NS_HOST: "verrazzano-authproxy-opensearch.verrazzano-system:8775"
+  VZ_AUTHPROXY_OPENSEARCH_HOST: "verrazzano-authproxy-opensearch"
+  VZ_AUTHPROXY_OPENSEARCH_NS_HOST: "verrazzano-authproxy-opensearch.verrazzano-system"
   VZ_AUTHPROXY_OPENSEARCH_BACKEND_URL: "http://vmi-system-os-ingest.verrazzano-system.svc.cluster.local:9200"
   VZ_KIALI_HOST: kiali.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}
   VZ_KIALI_BACKEND_URL: "http://vmi-system-kiali.verrazzano-system.svc.cluster.local:20001"
