@@ -596,7 +596,7 @@ func deleteRancherFinalizers(ctx spi.ComponentContext) error {
 			}
 		}
 
-		// Remove finalizer from the install namespace.  The deletion of this namespace depends on how
+		// Remove finalizer from the install or rancher namespaces.  The deletion of the install namespace depends on how
 		// the uninstall was initiated ("delete vz" versus "vz uninstall").
 		if strings.EqualFold(ns.GetName(), constants.VerrazzanoInstallNamespace) || isRancherNamespace(&nsList.Items[j]) {
 			if err := removeFinalizer(ctx, &nsList.Items[j], ns.Finalizers); err != nil {
