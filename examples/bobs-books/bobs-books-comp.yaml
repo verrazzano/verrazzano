@@ -491,12 +491,12 @@ spec:
             annotations:
               sidecar.istio.io/logLevel: debug
             livenessProbe:
-              periodSeconds: 20
-              timeoutSeconds: 60
+              periodSeconds: 10
+              timeoutSeconds: 65
               failureThreshold: 3
             readinessProbe:
               periodSeconds: 10
-              timeoutSeconds: 60
+              timeoutSeconds: 50
               failureThreshold: 3
             labels:
               app: bobs-bookstore
