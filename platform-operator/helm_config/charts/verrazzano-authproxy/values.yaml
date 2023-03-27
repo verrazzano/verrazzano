@@ -12,6 +12,7 @@ replicas:
 # is obtained from the bill of materials file (verrazzano-bom.json).
 pullPolicy: IfNotPresent
 port: 8775
+grpcPort: 8776
 impersonatorRoleName: impersonate-api-user
 managedClusterRegistered: false
 proxy:

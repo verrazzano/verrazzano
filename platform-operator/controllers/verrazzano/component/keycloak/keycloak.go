@@ -50,6 +50,7 @@ const (
 	vzAPIAccessRole         = "vz_api_access"
 	vzUserName              = "verrazzano"
 	vzInternalPromUser      = "verrazzano-prom-internal"
+	vzInternalThanosUser    = "verrazzano-thanos-internal"
 	vzInternalEsUser        = "verrazzano-es-internal"
 	keycloakPodName         = "keycloak-0"
 	realmManagement         = "realm-management"
@@ -934,19 +935,33 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Creating Verrazzano User
-	err = createUser(ctx, cfg, cli, vzUserName, "verrazzano", vzAdminGroup, "Verrazzano", "Admin")
+	err = createUser(ctx, cfg, cli, vzUserName, "verrazzano", constants.VerrazzanoSystemNamespace, vzAdminGroup, "Verrazzano", "Admin")
 	if err != nil {
 		return err
 	}
 
 	// Creating Verrazzano Internal Prometheus User
-	err = createUser(ctx, cfg, cli, vzInternalPromUser, "verrazzano-prom-internal", vzSystemGroup, "", "")
+	err = createUser(ctx, cfg, cli, vzInternalPromUser, "verrazzano-prom-internal", constants.VerrazzanoSystemNamespace, vzSystemGroup, "", "")
 	if err != nil {
 		return err
 	}
 
+	// Create Verrazzano Internal Thanos User if the corresponding secret exists. The secret is installed via the Thanos Helm chart.
+	const thanosSecretName = "verrazzano-thanos-internal" //nolint:gosec //#gosec G101
+	secret := &corev1.Secret{}
+	err = ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: thanosSecretName}, secret)
+	if client.IgnoreNotFound(err) != nil {
+		return err
+	}
+	if err == nil {
+		err = createUser(ctx, cfg, cli, vzInternalThanosUser, thanosSecretName, constants.VerrazzanoMonitoringNamespace, vzSystemGroup, "", "")
+		if err != nil {
+			return err
+		}
+	}
+
 	// Creating Verrazzano Internal ES User
-	err = createUser(ctx, cfg, cli, vzInternalEsUser, "verrazzano-es-internal", vzSystemGroup, "", "")
+	err = createUser(ctx, cfg, cli, vzInternalEsUser, "verrazzano-es-internal", constants.VerrazzanoSystemNamespace, vzSystemGroup, "", "")
 	if err != nil {
 		return err
 	}
@@ -1256,7 +1271,7 @@ func grantRolesToGroups(ctx spi.ComponentContext, cfg *restclient.Config, cli ku
 	return nil
 }
 
-func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, userName string, secretName string, groupName string, firstName string, lastName string) error {
+func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, userName, secretName, secretNamespace, groupName, firstName, lastName string) error {
 	kcPod := keycloakPod()
 	keycloakUsers, err := getKeycloakUsers(ctx, cfg, cli, kcPod)
 	if err == nil && userExists(keycloakUsers, userName) {
@@ -1281,7 +1296,7 @@ func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes
 	}
 	ctx.Log().Debugf("createUser: Successfully Created VZ User %s", userName)
 
-	vzpw, err := getSecretPassword(ctx, "verrazzano-system", secretName)
+	vzpw, err := getSecretPassword(ctx, secretNamespace, secretName)
 	if err != nil {
 		return err
 	}

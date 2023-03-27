@@ -142,6 +142,8 @@ func FindComponent(componentName string) (bool, spi.Component) {
 // to continue to deploy if it's not enabled.  In the long run, the dependency mechanism should likely go away and
 // allow components to individually make those decisions.
 func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) bool {
+	var notReadyDependencies []string
+	var dependenciesReady = true
 	log := context.Log()
 	trace, err := checkDirectDependenciesReady(c, context, make(map[string]bool))
 	if err != nil {
@@ -153,12 +155,17 @@ func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) boo
 		return true
 	}
 	log.Debugf("Trace results for %s: %v", c.Name(), trace)
-	for _, value := range trace {
+
+	for compName, value := range trace {
 		if !value {
-			return false
+			dependenciesReady = false
+			notReadyDependencies = append(notReadyDependencies, compName)
 		}
 	}
-	return true
+	if !dependenciesReady {
+		log.Progressf("Component %s waiting for dependencies %v to be ready", c.Name(), notReadyDependencies)
+	}
+	return dependenciesReady
 }
 
 // checkDependencies Check the ready state of any dependencies and check for cycles

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package spi
 
@@ -138,8 +138,8 @@ func TestShouldLogKubenetesAPIError(t *testing.T) {
 	asserts := assert.New(t)
 	err := fmt.Errorf("some kubernetes API error")
 
-	asserts.True(ShouldLogKubenetesAPIError(err))
+	asserts.True(ShouldLogKubernetesAPIError(err))
 
 	err = fmt.Errorf(`operation cannot be fulfilled on configmaps "test": the object has been modified; please apply your changes to the latest version and try again`)
-	asserts.False(ShouldLogKubenetesAPIError(err))
+	asserts.False(ShouldLogKubernetesAPIError(err))
 }

@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	testKubeConfig    = "/tmp/kubeconfig"
+	testKubeConfig    = "kubeconfig"
 	testK8sContext    = "testcontext"
 	bugReportFilePath = "bug-report.tar.gz"
 )
@@ -73,10 +73,12 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
-	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
+	defer os.RemoveAll(tempKubeConfigPath.Name())
 
 	// Run upgrade command
 	err := cmd.Execute()
@@ -106,10 +108,12 @@ func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 	cmd.PersistentFlags().Set(constants.AutoBugReportFlag, "false")
-	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
+	defer os.RemoveAll(tempKubeConfigPath.Name())
 
 	// Run upgrade command
 	err := cmd.Execute()
