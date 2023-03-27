@@ -24,6 +24,11 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const (
+	serviceEntryCRDName    = "serviceentries.networking.istio.io"
+	destinationRuleCRDName = "destinationrules.networking.istio.io"
+)
+
 // thanosServiceDiscovery represents one element in the Thanos service discovery YAML. The YAML
 // format contains a list of thanosServiceDiscovery elements
 type thanosServiceDiscovery struct {
@@ -210,13 +215,12 @@ func toGrpcTarget(hostname string) string {
 // used along with a DestinationRule to initiate TLS to the managed cluster ingress. Skip processing if the ServiceEntry CRD
 // does not exist in the cluster.
 func (r *VerrazzanoManagedClusterReconciler) createOrUpdateServiceEntry(name, host string, port uint32) error {
-	const crdName = "serviceentries.networking.istio.io"
-	isInstalled, err := r.isCRDInstalled(crdName)
+	isInstalled, err := r.isCRDInstalled(serviceEntryCRDName)
 	if err != nil {
-		return r.log.ErrorfNewErr("Unable to determine if CRD %s is installed: %v", crdName, err)
+		return r.log.ErrorfNewErr("Unable to determine if CRD %s is installed: %v", serviceEntryCRDName, err)
 	}
 	if !isInstalled {
-		r.log.Debugf("CRD %s does not exist in cluster, skipping creating/updating ServiceEntry", crdName)
+		r.log.Debugf("CRD %s does not exist in cluster, skipping creating/updating ServiceEntry", serviceEntryCRDName)
 		return nil
 	}
 
@@ -262,14 +266,13 @@ func populateServiceEntry(se *istioclinet.ServiceEntry, host string, port uint32
 // used along with a ServiceEntry to initiate TLS to the managed cluster ingress. Skip processing if the DestinationRule CRD
 // does not exist in the cluster.
 func (r *VerrazzanoManagedClusterReconciler) createOrUpdateDestinationRule(name, host string, port uint32) error {
-	const crdName = "destinationrules.networking.istio.io"
-	isInstalled, err := r.isCRDInstalled(crdName)
+	isInstalled, err := r.isCRDInstalled(destinationRuleCRDName)
 	if err != nil {
-		r.log.Errorf("Unable to determine if CRD %s is installed: %v", crdName, err)
+		r.log.Errorf("Unable to determine if CRD %s is installed: %v", destinationRuleCRDName, err)
 		return err
 	}
 	if !isInstalled {
-		r.log.Debugf("CRD %s does not exist in cluster, skipping creating/updating DestinationRule", crdName)
+		r.log.Debugf("CRD %s does not exist in cluster, skipping creating/updating DestinationRule", destinationRuleCRDName)
 		return nil
 	}
 
@@ -327,14 +330,34 @@ func (r *VerrazzanoManagedClusterReconciler) isCRDInstalled(crdName string) (boo
 
 // deleteServiceEntry deletes an Istio ServiceEntry. No error is returned if the ServiceEntry is not found.
 func (r *VerrazzanoManagedClusterReconciler) deleteServiceEntry(name string) error {
+	isInstalled, err := r.isCRDInstalled(serviceEntryCRDName)
+	if err != nil {
+		r.log.Errorf("Unable to determine if CRD %s is installed: %v", serviceEntryCRDName, err)
+		return err
+	}
+	if !isInstalled {
+		r.log.Debugf("CRD %s does not exist in cluster, skipping creating/updating DestinationRule", serviceEntryCRDName)
+		return nil
+	}
+
 	se := &istioclinet.ServiceEntry{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: constants.VerrazzanoMonitoringNamespace}}
-	err := r.Client.Delete(context.TODO(), se)
+	err = r.Client.Delete(context.TODO(), se)
 	return client.IgnoreNotFound(err)
 }
 
 // deleteDestinationRule deletes an Istio DestinationRule. No error is returned if the DestinationRule is not found.
 func (r *VerrazzanoManagedClusterReconciler) deleteDestinationRule(name string) error {
+	isInstalled, err := r.isCRDInstalled(destinationRuleCRDName)
+	if err != nil {
+		r.log.Errorf("Unable to determine if CRD %s is installed: %v", destinationRuleCRDName, err)
+		return err
+	}
+	if !isInstalled {
+		r.log.Debugf("CRD %s does not exist in cluster, skipping creating/updating DestinationRule", destinationRuleCRDName)
+		return nil
+	}
+
 	dr := &istioclinet.DestinationRule{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: constants.VerrazzanoMonitoringNamespace}}
-	err := r.Client.Delete(context.TODO(), dr)
+	err = r.Client.Delete(context.TODO(), dr)
 	return client.IgnoreNotFound(err)
 }

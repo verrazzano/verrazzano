@@ -13,7 +13,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/thanos"
+	istionet "istio.io/api/networking/v1beta1"
+	istioclinet "istio.io/client-go/pkg/apis/networking/v1beta1"
 	v1 "k8s.io/api/core/v1"
+	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -216,4 +221,291 @@ func assertThanosEndpointsConfigMap(t *testing.T, cli client.WithWatch, ctx cont
 	if hostShoudExist {
 		assert.Contains(t, modifiedContent[0].Targets, toGrpcTarget(host))
 	}
+}
+
+// TestCreateServiceEntry tests ServiceEntry creation scenarios.
+func TestCreateServiceEntry(t *testing.T) {
+	const managedClusterName = "managed-cluster"
+	const host = "thanos-query.example.com"
+	const port = uint32(443)
+
+	log := vzlog.DefaultLogger()
+
+	// GIVEN the CRD for Istio ServiceEntry does not exist in the cluster
+	// WHEN  the createOrUpdateServiceEntry function is called
+	// THEN  the call does not return an error and no ServiceEntry is created
+	cli := fake.NewClientBuilder().WithScheme(newSchemeForTests()).WithRuntimeObjects().Build()
+	r := &VerrazzanoManagedClusterReconciler{
+		Client: cli,
+		log:    log,
+	}
+
+	err := r.createOrUpdateServiceEntry(managedClusterName, host, port)
+	assert.NoError(t, err)
+
+	se := &istioclinet.ServiceEntry{}
+	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: managedClusterName}, se)
+	assert.True(t, k8serrors.IsNotFound(err))
+
+	// GIVEN the CRD for Istio ServiceEntry exists in the cluster
+	// AND   the ServiceEntry does not exist
+	// WHEN  the createOrUpdateServiceEntry function is called
+	// THEN  the call does not return an error and a ServiceEntry is created
+	cli = fake.NewClientBuilder().WithScheme(newSchemeForTests()).WithRuntimeObjects(
+		&k8sapiext.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: serviceEntryCRDName,
+			},
+		},
+	).Build()
+	r = &VerrazzanoManagedClusterReconciler{
+		Client: cli,
+		log:    log,
+	}
+
+	err = r.createOrUpdateServiceEntry(managedClusterName, host, port)
+	assert.NoError(t, err)
+
+	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: managedClusterName}, se)
+	assert.NoError(t, err)
+	assert.Contains(t, se.Spec.Hosts, host)
+	assert.Equal(t, se.Spec.Resolution, istionet.ServiceEntry_DNS)
+	assert.Equal(t, se.Spec.Ports[0].Number, port)
+	assert.Equal(t, se.Spec.Ports[0].TargetPort, port)
+	assert.Equal(t, se.Spec.Ports[0].Protocol, "GRPC")
+}
+
+// TestUpdateServiceEntry tests ServiceEntry update scenarios.
+func TestUpdateServiceEntry(t *testing.T) {
+	const managedClusterName = "managed-cluster"
+	const host = "thanos-query.example.com"
+	const port = uint32(443)
+
+	log := vzlog.DefaultLogger()
+
+	// GIVEN the ServiceEntry exists
+	// WHEN  the createOrUpdateServiceEntry function is called
+	// THEN  the call does not return an error and the ServiceEntry is updated
+	se := &istioclinet.ServiceEntry{ObjectMeta: metav1.ObjectMeta{Name: managedClusterName, Namespace: constants.VerrazzanoMonitoringNamespace}}
+	populateServiceEntry(se, "bad-bad-host", port)
+
+	cli := fake.NewClientBuilder().WithScheme(newSchemeForTests()).WithRuntimeObjects(
+		&k8sapiext.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: serviceEntryCRDName,
+			},
+		},
+		se,
+	).Build()
+	r := &VerrazzanoManagedClusterReconciler{
+		Client: cli,
+		log:    log,
+	}
+
+	err := r.createOrUpdateServiceEntry(managedClusterName, host, port)
+	assert.NoError(t, err)
+
+	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: managedClusterName}, se)
+	assert.NoError(t, err)
+	assert.Contains(t, se.Spec.Hosts, host)
+	assert.Equal(t, se.Spec.Resolution, istionet.ServiceEntry_DNS)
+	assert.Equal(t, se.Spec.Ports[0].Number, port)
+	assert.Equal(t, se.Spec.Ports[0].TargetPort, port)
+	assert.Equal(t, se.Spec.Ports[0].Protocol, "GRPC")
+}
+
+// TestDeleteServiceEntry tests ServiceEntry deletion scenarios.
+func TestDeleteServiceEntry(t *testing.T) {
+	const managedClusterName = "managed-cluster"
+	const host = "thanos-query.example.com"
+	const port = uint32(443)
+
+	log := vzlog.DefaultLogger()
+
+	// GIVEN the CRD for Istio ServiceEntry does not exist in the cluster
+	// WHEN  the deleteServiceEntry function is called
+	// THEN  the call does not return an error
+	cli := fake.NewClientBuilder().WithScheme(newSchemeForTests()).WithRuntimeObjects().Build()
+	r := &VerrazzanoManagedClusterReconciler{
+		Client: cli,
+		log:    log,
+	}
+
+	err := r.deleteServiceEntry(managedClusterName)
+	assert.NoError(t, err)
+
+	// GIVEN the ServiceEntry exists
+	// WHEN  the deleteServiceEntry function is called
+	// THEN  the call does not return an error and the ServiceEntry is deleted
+	se := &istioclinet.ServiceEntry{ObjectMeta: metav1.ObjectMeta{Name: managedClusterName, Namespace: constants.VerrazzanoMonitoringNamespace}}
+	populateServiceEntry(se, host, port)
+
+	cli = fake.NewClientBuilder().WithScheme(newSchemeForTests()).WithRuntimeObjects(
+		&k8sapiext.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: serviceEntryCRDName,
+			},
+		},
+		se,
+	).Build()
+	r = &VerrazzanoManagedClusterReconciler{
+		Client: cli,
+		log:    log,
+	}
+
+	err = r.deleteServiceEntry(managedClusterName)
+	assert.NoError(t, err)
+
+	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: managedClusterName}, se)
+	assert.True(t, k8serrors.IsNotFound(err))
+
+	// GIVEN the ServiceEntry does not exist
+	// WHEN  the deleteServiceEntry function is called
+	// THEN  the call does not return an error
+	err = r.deleteServiceEntry(managedClusterName)
+	assert.NoError(t, err)
+}
+
+// TestCreateDestinationRule tests DestinationRule creation scenarios.
+func TestCreateDestinationRule(t *testing.T) {
+	const managedClusterName = "managed-cluster"
+	const host = "thanos-query.example.com"
+	const port = uint32(443)
+
+	log := vzlog.DefaultLogger()
+
+	// GIVEN the CRD for Istio DestinationRule does not exist in the cluster
+	// WHEN  the createOrUpdateDestinationRule function is called
+	// THEN  the call does not return an error and no DestinationRule is created
+	cli := fake.NewClientBuilder().WithScheme(newSchemeForTests()).WithRuntimeObjects().Build()
+	r := &VerrazzanoManagedClusterReconciler{
+		Client: cli,
+		log:    log,
+	}
+
+	err := r.createOrUpdateDestinationRule(managedClusterName, host, port)
+	assert.NoError(t, err)
+
+	dr := &istioclinet.DestinationRule{}
+	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: managedClusterName}, dr)
+	assert.True(t, k8serrors.IsNotFound(err))
+
+	// GIVEN the CRD for Istio DestinationRule exists in the cluster
+	// AND   the DestinationRule does not exist
+	// WHEN  the createOrUpdateDestinationRule function is called
+	// THEN  the call does not return an error and a DestinationRule is created
+	cli = fake.NewClientBuilder().WithScheme(newSchemeForTests()).WithRuntimeObjects(
+		&k8sapiext.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: destinationRuleCRDName,
+			},
+		},
+	).Build()
+	r = &VerrazzanoManagedClusterReconciler{
+		Client: cli,
+		log:    log,
+	}
+
+	err = r.createOrUpdateDestinationRule(managedClusterName, host, port)
+	assert.NoError(t, err)
+
+	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: managedClusterName}, dr)
+	assert.NoError(t, err)
+	assert.Equal(t, dr.Spec.Host, host)
+	assert.Equal(t, dr.Spec.TrafficPolicy.PortLevelSettings[0].Port.Number, port)
+	assert.Equal(t, dr.Spec.TrafficPolicy.PortLevelSettings[0].Tls.Mode, istionet.ClientTLSSettings_SIMPLE)
+}
+
+// TestUpdateDestinationRule tests DestinationRule update scenarios.
+func TestUpdateDestinationRule(t *testing.T) {
+	const managedClusterName = "managed-cluster"
+	const host = "thanos-query.example.com"
+	const port = uint32(443)
+
+	log := vzlog.DefaultLogger()
+
+	// GIVEN the DestinationRule exists
+	// WHEN  the createOrUpdateDestinationRule function is called
+	// THEN  the call does not return an error and the DestinationRule is updated
+	dr := &istioclinet.DestinationRule{ObjectMeta: metav1.ObjectMeta{Name: managedClusterName, Namespace: constants.VerrazzanoMonitoringNamespace}}
+	populateDestinationRule(dr, "bad-bad-host", port)
+
+	cli := fake.NewClientBuilder().WithScheme(newSchemeForTests()).WithRuntimeObjects(
+		&k8sapiext.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: destinationRuleCRDName,
+			},
+		},
+		dr,
+	).Build()
+	r := &VerrazzanoManagedClusterReconciler{
+		Client: cli,
+		log:    log,
+	}
+
+	err := r.createOrUpdateDestinationRule(managedClusterName, host, port)
+	assert.NoError(t, err)
+
+	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: managedClusterName}, dr)
+	assert.NoError(t, err)
+	assert.Contains(t, dr.Spec.Host, host)
+}
+
+// TestDeleteDestinationRule tests DestinationRule deletion scenarios.
+func TestDeleteDestinationRule(t *testing.T) {
+	const managedClusterName = "managed-cluster"
+	const host = "thanos-query.example.com"
+	const port = uint32(443)
+
+	log := vzlog.DefaultLogger()
+
+	// GIVEN the CRD for Istio DestinationRule does not exist in the cluster
+	// WHEN  the deleteDestinationRule function is called
+	// THEN  the call does not return an error
+	cli := fake.NewClientBuilder().WithScheme(newSchemeForTests()).WithRuntimeObjects().Build()
+	r := &VerrazzanoManagedClusterReconciler{
+		Client: cli,
+		log:    log,
+	}
+
+	err := r.deleteDestinationRule(managedClusterName)
+	assert.NoError(t, err)
+
+	// GIVEN the DestinationRule exists
+	// WHEN  the deleteDestinationRule function is called
+	// THEN  the call does not return an error and the DestinationRule is deleted
+	dr := &istioclinet.DestinationRule{ObjectMeta: metav1.ObjectMeta{Name: managedClusterName, Namespace: constants.VerrazzanoMonitoringNamespace}}
+	populateDestinationRule(dr, host, port)
+
+	cli = fake.NewClientBuilder().WithScheme(newSchemeForTests()).WithRuntimeObjects(
+		&k8sapiext.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: destinationRuleCRDName,
+			},
+		},
+		dr,
+	).Build()
+	r = &VerrazzanoManagedClusterReconciler{
+		Client: cli,
+		log:    log,
+	}
+
+	err = r.deleteDestinationRule(managedClusterName)
+	assert.NoError(t, err)
+
+	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: managedClusterName}, dr)
+	assert.True(t, k8serrors.IsNotFound(err))
+
+	// GIVEN the DestinationRule does not exist
+	// WHEN  the deleteDestinationRule function is called
+	// THEN  the call does not return an error
+	err = r.deleteDestinationRule(managedClusterName)
+	assert.NoError(t, err)
+}
+
+func newSchemeForTests() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	istioclinet.AddToScheme(scheme)
+	k8sapiext.AddToScheme(scheme)
+	return scheme
 }
