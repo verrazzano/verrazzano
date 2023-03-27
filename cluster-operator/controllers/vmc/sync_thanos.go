@@ -44,7 +44,8 @@ func (r *VerrazzanoManagedClusterReconciler) syncThanosQueryEndpoint(ctx context
 	}
 
 	if thanosEnabled, err := r.isThanosEnabled(); err != nil || !thanosEnabled {
-		r.log.Oncef("Thanos is not enabled on this cluster. Not updating Thanos endpoints", vmc.Name)
+		r.log.Oncef("Thanos is not enabled on this cluster. Not updating Thanos endpoints for VMC %s", vmc.Name)
+		return nil
 	}
 
 	return r.addThanosHostIfNotPresent(ctx, vmc.Status.ThanosHost)
@@ -57,7 +58,8 @@ func (r *VerrazzanoManagedClusterReconciler) deleteClusterThanosEndpoint(ctx con
 	}
 
 	if thanosEnabled, err := r.isThanosEnabled(); err != nil || !thanosEnabled {
-		r.log.Oncef("Thanos is not enabled on this cluster. Not updating Thanos endpoints", vmc.Name)
+		r.log.Oncef("Thanos is not enabled on this cluster. Not updating Thanos endpoints for VMC %s", vmc.Name)
+		return nil
 	}
 
 	return r.removeThanosHostFromConfigMap(ctx, vmc.Status.ThanosHost, r.log)
@@ -122,6 +124,14 @@ func (r *VerrazzanoManagedClusterReconciler) addThanosHostIfNotPresent(ctx conte
 		// not found, add this host endpoint and update the config map
 		serviceDiscovery.Targets = append(serviceDiscovery.Targets, hostEndpoint)
 
+	}
+	if len(serviceDiscoveryList) == 0 {
+		// empty list found, add this host endpoint and update the config map
+
+		serviceDiscoveryList = append(serviceDiscoveryList,
+			&thanosServiceDiscovery{
+				Targets: []string{hostEndpoint},
+			})
 	}
 	newServiceDiscoveryYaml, err := yaml.Marshal(serviceDiscoveryList)
 	if err != nil {
