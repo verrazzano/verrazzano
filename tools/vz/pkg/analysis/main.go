@@ -34,7 +34,7 @@ func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, 
 	// TODO: how we surface different analysis report types will likely change up, for now it is specified here, and it may also
 	// make sense to treat all cluster dumps the same way whether single or multiple (structure the dumps the same way)
 	// We could also have different types of report output formats as well. For example, the current report format is
-	// presenting issues/actions/supporting data which would be used by someone with technical background to resolve an issue
+	// presentin issues/actions/supporting data which would be used by someone with technical background to resolve an issue
 	// in their environment. We also could generate a more detailed "bug-report-type" which someone could call which would
 	// gather up information, sanitize it in a way that it could be sent along to someone else for further analysis, etc...
 
@@ -44,8 +44,7 @@ func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, 
 		fmt.Fprintf(vzHelper.GetOutputStream(), "Analyze failed with error: %s, exiting.\n", err.Error())
 		return fmt.Errorf("\nanalyze failed with error: %s, exiting", err.Error())
 	}
-
-	reportContext := helpers.ReportContext{ReportFile: reportFile, ReportFormat: reportFormat, IncludeSupportData: includeSupport, IncludeInfo: includeInfo, MinConfidence: minConfidence, MinImpact: minImpact, PrintReportToConsole: printReportToConsole}
+	reportContext := helpers.ReportCtx{ReportFile: reportFile, ReportFormat: reportFormat, IncludeSupportData: includeSupport, IncludeInfo: includeInfo, IncludeActions: includeActions,MinConfidence: minConfidence, MinImpact: minImpact, PrintReportToConsole: printReportToConsole}
 
 	// Generate a report
 	err = report.GenerateHumanReport(logger, vzHelper, reportContext)

@@ -85,7 +85,8 @@ func analyzeLiveCluster(cmd *cobra.Command, vzHelper helpers.VZHelper, directory
 		IsPodLog: true,
 		Duration: int64(0),
 	}
-	return vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, reportDirectory, moreNS, vzHelper, podLogs, true)
+	clusterSnapshotCtx := helpers.ClusterSnapshotCtx{BugReportDir: reportDirectory, MoreNS: moreNS, PrintReportToConsole: true}
+	return vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, vzHelper, podLogs, clusterSnapshotCtx)
 }
 
 func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToConsole bool) error {

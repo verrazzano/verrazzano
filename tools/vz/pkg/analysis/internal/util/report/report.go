@@ -100,7 +100,7 @@ func ContributeIssue(log *zap.SugaredLogger, issue Issue) (err error) {
 // GenerateHumanReport is a basic report generator
 // TODO: This is super basic for now, need to do things like sort based on Confidence, add other formats on output, etc...
 // Also add other niceties like time, Summary of what was analyzed, if no issues were found, etc...
-func GenerateHumanReport(log *zap.SugaredLogger, vzHelper helpers.VZHelper, reportCtx helpers.ReportContext) (err error) {
+func GenerateHumanReport(log *zap.SugaredLogger, vzHelper helpers.VZHelper, reportCtx helpers.ReportCtx) (err error) {
 	// Default to stdout if no reportfile is supplied
 	//TODO: Eventually add support other reportFormat type (json)
 	writeOut, writeSummaryOut, sepOut := "", "", ""

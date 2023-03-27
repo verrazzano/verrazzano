@@ -160,7 +160,8 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	helpers.SetVerboseOutput(isVerbose)
 
 	// Capture cluster snapshot
-	err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, bugReportDir, moreNS, vzHelper, vzbugreport.PodLogs{IsPodLog: isPodLog, Duration: durationValue}, false)
+	clusterSnapshotCtx := helpers.ClusterSnapshotCtx{BugReportDir: bugReportDir, MoreNS: moreNS, PrintReportToConsole: false}
+	err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, vzHelper, vzbugreport.PodLogs{IsPodLog: isPodLog, Duration: durationValue}, clusterSnapshotCtx)
 	if err != nil {
 		os.Remove(bugReportFile)
 		return fmt.Errorf(err.Error())
