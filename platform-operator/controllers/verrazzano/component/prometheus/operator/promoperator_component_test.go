@@ -286,22 +286,11 @@ func TestPostInstall(t *testing.T) {
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: constants.PrometheusIngress, Namespace: authproxy.ComponentNamespace},
 				},
-				{
-					ObjectMeta: metav1.ObjectMeta{Name: constants.ThanosSidecarIngress, Namespace: authproxy.ComponentNamespace},
-				},
 			},
 
 			certList: []certapiv1.Certificate{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: prometheusCertificateName, Namespace: authproxy.ComponentNamespace},
-					Status: certapiv1.CertificateStatus{
-						Conditions: []certapiv1.CertificateCondition{
-							{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
-						},
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{Name: thanosCertificateName, Namespace: authproxy.ComponentNamespace},
 					Status: certapiv1.CertificateStatus{
 						Conditions: []certapiv1.CertificateCondition{
 							{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},

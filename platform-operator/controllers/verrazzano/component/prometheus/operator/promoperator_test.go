@@ -194,7 +194,7 @@ func TestAppendOverrides(t *testing.T) {
 	var err error
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 36)
+	assert.Len(t, kvs, 27)
 
 	assert.Equal(t, "ghcr.io/verrazzano/prometheus-config-reloader", bom.FindKV(kvs, "prometheusOperator.prometheusConfigReloader.image.repository"))
 	assert.NotEmpty(t, bom.FindKV(kvs, "prometheusOperator.prometheusConfigReloader.image.tag"))
@@ -230,7 +230,7 @@ func TestAppendOverrides(t *testing.T) {
 
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 36)
+	assert.Len(t, kvs, 27)
 
 	assert.Equal(t, "false", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"))
 
@@ -252,7 +252,7 @@ func TestAppendOverrides(t *testing.T) {
 
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 22)
+	assert.Len(t, kvs, 13)
 
 	assert.Equal(t, "false", bom.FindKV(kvs, "prometheus.enabled"))
 }
@@ -915,13 +915,12 @@ func TestCreateOrUpdatePrometheusAuthPolicy(t *testing.T) {
 	err = client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: prometheusAuthPolicyName}, authPolicy)
 	assertions.NoError(err)
 
-	assertions.Len(authPolicy.Spec.Rules, 4)
+	assertions.Len(authPolicy.Spec.Rules, 3)
 	assertions.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy")
 	assertions.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
 	assertions.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/vmi-system-kiali")
 	assertions.Contains(authPolicy.Spec.Rules[1].From[0].Source.Principals, serviceAccount)
 	assertions.Contains(authPolicy.Spec.Rules[2].From[0].Source.Principals, "cluster.local/ns/verrazzano-monitoring/sa/jaeger-operator-jaeger")
-	assertions.Contains(authPolicy.Spec.Rules[3].From[0].Source.Principals, "cluster.local/ns/verrazzano-monitoring/sa/thanos-query")
 
 	// GIVEN Prometheus Operator is being installed or upgraded
 	// AND   Istio is disabled

@@ -1,9 +1,9 @@
-{{- if and .Values.prometheus.enabled .Values.prometheus.thanosIngress.enabled (eq .Values.prometheus.thanos.integration "sidecar") }}
+{{- if and .Values.prometheus.enabled .Values.prometheus.thanosIngress.enabled }}
 {{- $pathType := .Values.prometheus.thanosIngress.pathType | default "" }}
 {{- $serviceName := printf "%s-%s" (include "kube-prometheus-stack.fullname" .) "prometheus" }}
 {{- $thanosPort := .Values.prometheus.thanosIngress.servicePort -}}
 {{- $routePrefix := list .Values.prometheus.prometheusSpec.routePrefix }}
-{{- $paths := .Values.prometheus.thanosIngress.paths -}}
+{{- $paths := .Values.prometheus.thanosIngress.paths | default $routePrefix -}}
 {{- $apiIsStable := eq (include "kube-prometheus-stack.ingress.isStable" .) "true" -}}
 {{- $ingressSupportsPathType := eq (include "kube-prometheus-stack.ingress.supportsPathType" .) "true" -}}
 apiVersion: {{ include "kube-prometheus-stack.ingress.apiVersion" . }}
@@ -14,7 +14,6 @@ metadata:
 {{ toYaml .Values.prometheus.thanosIngress.annotations | indent 4 }}
 {{- end }}
   name: {{ template "kube-prometheus-stack.fullname" . }}-thanos-gateway
-  namespace: {{ .Values.prometheus.thanosIngress.namespace }}
   labels:
     app: {{ template "kube-prometheus-stack.name" . }}-prometheus
 {{ include "kube-prometheus-stack.labels" . | indent 4 }}
@@ -50,7 +49,7 @@ spec:
     {{- end }}
     {{- end -}}
   {{- end -}}
-  {{- else if $paths }}
+  {{- else }}
     - http:
         paths:
   {{- range $p := $paths }}
@@ -69,9 +68,6 @@ spec:
               servicePort: {{ $thanosPort }}
   {{- end }}
   {{- end -}}
-  {{- end -}}
-  {{- if .Values.prometheus.thanosIngress.extraRules }}
-{{ toYaml .Values.prometheus.thanosIngress.extraRules | indent 4 }}
   {{- end -}}
   {{- if .Values.prometheus.thanosIngress.tls }}
   tls:

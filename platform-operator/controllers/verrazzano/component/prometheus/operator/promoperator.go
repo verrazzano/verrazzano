@@ -23,7 +23,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	securityv1beta1 "istio.io/api/security/v1beta1"
 	istiov1beta1 "istio.io/api/type/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -349,7 +348,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	// Add label to the Prometheus Operator pod to avoid a sidecar injection
 	kvs = append(kvs, bom.KeyValue{Key: `prometheusOperator.podAnnotations.sidecar\.istio\.io/inject`, Value: `"false"`})
 
-	return appendThanosSidecarIngressOverrides(ctx, kvs)
+	return kvs, nil
 }
 
 // appendResourceRequestOverrides adds overrides for persistent storage and memory
@@ -415,43 +414,6 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 		}
 	}
 
-	return kvs, nil
-}
-
-func appendThanosSidecarIngressOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	// If NGINX is disabled, prevent the ingress from being created
-	if !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
-		return append(kvs, []bom.KeyValue{
-			{Key: "prometheus.thanosIngress.enabled", Value: "false"},
-		}...), nil
-	}
-
-	prefix := "prometheus.thanosIngress"
-	ingressClassName := vzconfig.GetIngressClassName(ctx.EffectiveCR())
-	dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
-	if err != nil {
-		return kvs, ctx.Log().ErrorfNewErr("Failed building DNS domain name for Thanos sidecar ingress: %v", err)
-	}
-	qualifiedHostName := fmt.Sprintf("%s.%s", thanosHostName, dnsSubDomain)
-
-	kvs = append(kvs, []bom.KeyValue{
-		{Key: fmt.Sprintf("%s.namespace", prefix), Value: constants.VerrazzanoSystemNamespace},
-		{Key: fmt.Sprintf("%s.ingressClassName", prefix), Value: ingressClassName},
-		{Key: fmt.Sprintf("%s.extraRules[0].host", prefix), Value: qualifiedHostName},
-		{Key: fmt.Sprintf("%s.extraRules[0].http.paths[0].backend.service.name", prefix), Value: constants.VerrazzanoAuthProxyServiceName},
-		{Key: fmt.Sprintf("%s.extraRules[0].http.paths[0].backend.service.port.number", prefix), Value: strconv.Itoa(constants.VerrazzanoAuthProxyGRPCServicePort)},
-		{Key: fmt.Sprintf("%s.extraRules[0].http.paths[0].path", prefix), Value: "/"},
-		{Key: fmt.Sprintf("%s.extraRules[0].http.paths[0].pathType", prefix), Value: string(netv1.PathTypeImplementationSpecific)},
-		{Key: fmt.Sprintf("%s.tls[0].hosts[0]", prefix), Value: thanosHostName},
-		{Key: fmt.Sprintf("%s.tls[0].secretName", prefix), Value: thanosCertificateName},
-	}...)
-	if vzcr.IsExternalDNSEnabled(ctx.EffectiveCR()) {
-		ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
-		kvs = append(kvs, []bom.KeyValue{
-			{Key: fmt.Sprintf(`%s.annotations.external-dns\.alpha\.kubernetes\.io/target`, prefix), Value: ingressTarget},
-			{Key: fmt.Sprintf(`%s.annotations.external-dns\.alpha\.kubernetes\.io/ttl`, prefix), Value: "60"},
-		}...)
-	}
 	return kvs, nil
 }
 
@@ -678,22 +640,6 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 					To: []*securityv1beta1.Rule_To{{
 						Operation: &securityv1beta1.Operation{
 							Ports: []string{"9090"},
-						},
-					}},
-				},
-				{
-					// allow Thanos Query to access the Prometheus Thanos sidecar
-					From: []*securityv1beta1.Rule_From{{
-						Source: &securityv1beta1.Source{
-							Principals: []string{
-								fmt.Sprintf("cluster.local/ns/%s/sa/thanos-query", constants.VerrazzanoMonitoringNamespace),
-							},
-							Namespaces: []string{constants.VerrazzanoMonitoringNamespace},
-						},
-					}},
-					To: []*securityv1beta1.Rule_To{{
-						Operation: &securityv1beta1.Operation{
-							Ports: []string{"10901"},
 						},
 					}},
 				},
