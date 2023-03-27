@@ -7,6 +7,8 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"io"
 	"net/http"
 	neturl "net/url"
@@ -738,4 +740,41 @@ func IsVerrazzanoManaged(labels map[string]string) bool {
 		return val == "true"
 	}
 	return false
+}
+
+func IngressesExist(vz *v1alpha1.Verrazzano, namespace string, ingressNames []string) (bool, error) {
+	if !vzcr.IsNGINXEnabled(vz) {
+		Log(Info, "Component NGINX is disabled, skipping Ingress check.")
+		return true, nil
+	}
+	ingresses, err := ListIngresses(namespace)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to list ingresses in namespace %s", namespace))
+	}
+
+	// Initialize map for search later
+	ingressMap := map[string]bool{}
+	for _, ingName := range ingressNames {
+		ingressMap[ingName] = false
+	}
+
+	// Populate found ingresses
+	for _, ing := range ingresses.Items {
+		if _, ok := ingressMap[ing.Name]; ok {
+			ingressMap[ing.Name] = true
+		}
+	}
+
+	// List all not found ingresses
+	missing := []string{}
+	for ingName, exists := range ingressMap {
+		if !exists {
+			missing = append(missing, ingName)
+		}
+	}
+	if len(missing) > 0 {
+		Log(Info, fmt.Sprintf("Ingresses %s not running in namespace %s", missing, namespace))
+		return false, nil
+	}
+	return true, err
 }

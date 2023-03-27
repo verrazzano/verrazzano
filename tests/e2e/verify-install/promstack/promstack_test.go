@@ -177,13 +177,13 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 		// WHEN we check to make sure the pods are running
 		// THEN we successfully find the running pods
 		WhenPromStackInstalledIt("should have running pods", func() {
-			promStackPodsRunning := func() bool {
+			promStackPodsRunning := func() (bool, error) {
 				enabledPods := listEnabledComponents()
 				result, err := pkg.PodsRunning(constants.VerrazzanoMonitoringNamespace, enabledPods)
 				if err != nil {
-					AbortSuite(fmt.Sprintf("Pods %v is not running in the namespace: %v, error: %v", enabledPods, constants.VerrazzanoMonitoringNamespace, err))
+					t.Logs.Errorf("Pods %v is not running in the namespace: %v, error: %v", enabledPods, constants.VerrazzanoMonitoringNamespace, err)
 				}
-				return result
+				return result, err
 			}
 			Eventually(promStackPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
