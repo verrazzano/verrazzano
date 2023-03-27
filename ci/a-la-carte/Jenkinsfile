@@ -194,6 +194,9 @@ pipeline {
                     cp ${env.INSTALL_CONFIG_FILE_KIND_TESTS} ${env.INSTALL_CONFIG_FILE_KIND}
                     cd ${GO_REPO_PATH}/verrazzano
                     ci/scripts/prepare_jenkins_at_environment.sh true nip.io false
+
+                    # wait for Verrazzano install to complete
+                    ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
                 """
             }
 
@@ -227,6 +230,9 @@ pipeline {
                     yq -i eval '.spec.components.prometheusNodeExporter.enabled = true' ${WORKSPACE}/edgestack.yaml
                     yq -i eval '.spec.components.prometheusPushgateway.enabled = true' ${WORKSPACE}/edgestack.yaml
                     kubectl apply -f ${WORKSPACE}/edgestack.yaml
+
+                    # wait for Verrazzano install to complete
+                    ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
                 """
             }
 
@@ -288,6 +294,9 @@ pipeline {
                     yq -i eval '.spec.components.verrazzano.enabled = true' ${WORKSPACE}/appstack.yaml
                     yq -i eval '.spec.components.jaegerOperator.enabled = true' ${WORKSPACE}/appstack.yaml
                     kubectl apply -f ${WORKSPACE}/appstack.yaml
+
+                    # wait for Verrazzano install to complete
+                    ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
                 """
             }
 
