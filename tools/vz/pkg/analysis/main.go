@@ -44,7 +44,7 @@ func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, 
 		fmt.Fprintf(vzHelper.GetOutputStream(), "Analyze failed with error: %s, exiting.\n", err.Error())
 		return fmt.Errorf("\nanalyze failed with error: %s, exiting", err.Error())
 	}
-	reportContext := helpers.ReportCtx{ReportFile: reportFile, ReportFormat: reportFormat, IncludeSupportData: includeSupport, IncludeInfo: includeInfo, IncludeActions: includeActions,MinConfidence: minConfidence, MinImpact: minImpact, PrintReportToConsole: printReportToConsole}
+	reportContext := helpers.ReportCtx{ReportFile: reportFile, ReportFormat: reportFormat, IncludeSupportData: includeSupport, IncludeInfo: includeInfo, IncludeActions: includeActions, MinConfidence: minConfidence, MinImpact: minImpact, PrintReportToConsole: printReportToConsole}
 
 	// Generate a report
 	err = report.GenerateHumanReport(logger, vzHelper, reportContext)
