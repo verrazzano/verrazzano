@@ -113,7 +113,7 @@ func appendIngressOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom
 		IngressClassName: ingressClassName,
 		TLSSecretName:    queryStoreCertificateName,
 		Path:             "/",
-		PathType:         netv1.PathTypePrefix,
+		PathType:         netv1.PathTypeImplementationSpecific,
 		ServicePort:      constants.VerrazzanoAuthProxyGRPCServicePort,
 	}
 	return formatIngressOverrides(ctx, storeProps, kvs), nil

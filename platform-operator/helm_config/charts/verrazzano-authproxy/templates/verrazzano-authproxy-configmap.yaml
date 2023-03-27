@@ -428,9 +428,9 @@ data:
                 check_host = backend..me.hostSuffix
             elseif backend == 'jaeger' then
                 check_host = backend..me.hostSuffix
-            elseif backend == 'thanos-sidecar' then
-                check_host = backend..me.hostSuffix
             elseif backend == 'thanos-query' then
+                check_host = backend..me.hostSuffix
+            elseif backend == 'query-store' then
                 check_host = backend..me.hostSuffix
             else
                 check_host = backend..vmi_system..me.hostSuffix
@@ -518,10 +518,10 @@ data:
             serverUrl = me.makeVmiBackendUrl(backend, '3000')
         elseif backend == 'prometheus' then
             serverUrl = me.makeMonitoringComponentBackendUrl('http', 'prometheus-operator-kube-p-prometheus', '9090')
-        elseif backend == 'thanos-sidecar' then
-            serverUrl = me.makeMonitoringComponentBackendUrl('grpc', 'prometheus-operator-kube-p-prometheus', '10901')
         elseif backend == 'thanos-query' then
             serverUrl = me.makeMonitoringComponentBackendUrl('http', 'thanos-query-frontend', '9090')
+        elseif backend == 'query-store' then
+            serverUrl = me.makeMonitoringComponentBackendUrl('grpc', 'thanos-query-grpc', '10901')
         elseif backend == 'kibana' then
             serverUrl = me.makeVmiBackendUrl('osd', '5601')
         elseif backend == 'osd' then
@@ -1209,10 +1209,10 @@ data:
             allowedOrigins = os.getenv("VZ_GRAFANA_ALLOWED_ORIGINS")
         elseif backend == 'prometheus' then
             allowedOrigins = os.getenv("VZ_PROMETHEUS_ALLOWED_ORIGINS")
-        elseif backend == 'thanos-sidecar' then
-            allowedOrigins = os.getenv("VZ_THANOS_SIDECAR_ALLOWED_ORIGINS")
         elseif backend == 'thanos-query' then
             allowedOrigins = os.getenv("VZ_THANOS_QUERY_ALLOWED_ORIGINS")
+        elseif backend == 'query-store' then
+            allowedOrigins = os.getenv("VZ_QUERY_STORE_ALLOWED_ORIGINS")
         elseif backend == 'kibana' then
             allowedOrigins = os.getenv("VZ_KIBANA_ALLOWED_ORIGINS")
         elseif backend == 'osd' then
@@ -1261,8 +1261,8 @@ data:
     env VZ_CONSOLE_ALLOWED_ORIGINS;
     env VZ_GRAFANA_ALLOWED_ORIGINS;
     env VZ_PROMETHEUS_ALLOWED_ORIGINS;
-    env VZ_THANOS_SIDECAR_ALLOWED_ORIGINS;
     env VZ_THANOS_QUERY_ALLOWED_ORIGINS;
+    env VZ_QUERY_STORE_ALLOWED_ORIGINS;
     env VZ_KIBANA_ALLOWED_ORIGINS;
     env VZ_ES_ALLOWED_ORIGINS;
     env VZ_KIALI_ALLOWED_ORIGINS;
