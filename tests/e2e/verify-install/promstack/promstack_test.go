@@ -169,7 +169,7 @@ func isThanosInstalled() (bool, error) {
 		MatchLabels: map[string]string{"app.kubernetes.io/name": "prometheus"},
 	}, constants.VerrazzanoMonitoringNamespace)
 	if err != nil {
-		t.Logs.Errorf("Failed to get the Prometheus deployment from the cluster: %v", err)
+		t.Logs.Errorf("Failed to get the Prometheus pod from the cluster: %v", err)
 		return false, err
 	}
 
