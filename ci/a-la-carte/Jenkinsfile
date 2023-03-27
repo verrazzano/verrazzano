@@ -210,7 +210,7 @@ pipeline {
         }
 
 
-        stage('Enable Edge Stack') {
+        stage('Install Edge Stack') {
             environment {
                 KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
@@ -220,15 +220,15 @@ pipeline {
             steps {
                 sh """
                     cp ${env.INSTALL_CONFIG_FILE_KIND_TESTS} ${env.INSTALL_CONFIG_FILE_KIND}
-                    cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/vz-update1.yaml
+                    cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/edgestack.yaml
                     cd ${GO_REPO_PATH}/verrazzano
-                    yq -i eval '.spec.components.kubeStateMetrics.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.prometheus.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.prometheusOperator.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.prometheusAdapter.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.prometheusNodeExporter.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.prometheusPushgateway.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                    kubectl apply -f ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.kubeStateMetrics.enabled = true' ${WORKSPACE}/edgestack.yaml
+                    yq -i eval '.spec.components.prometheus.enabled = true' ${WORKSPACE}/edgestack.yaml
+                    yq -i eval '.spec.components.prometheusOperator.enabled = true' ${WORKSPACE}/edgestack.yaml
+                    yq -i eval '.spec.components.prometheusAdapter.enabled = true' ${WORKSPACE}/edgestack.yaml
+                    yq -i eval '.spec.components.prometheusNodeExporter.enabled = true' ${WORKSPACE}/edgestack.yaml
+                    yq -i eval '.spec.components.prometheusPushgateway.enabled = true' ${WORKSPACE}/edgestack.yaml
+                    kubectl apply -f ${WORKSPACE}/edgestack.yaml
                 """
             }
 
@@ -242,7 +242,7 @@ pipeline {
             }
         }
 
-        stage('Verify Install after Edge stack enabled') {
+        stage('verify-install promstack') {
             environment {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install/promstack"
             }
@@ -258,7 +258,7 @@ pipeline {
         }
 
 
-        stage('Enable Application stack') {
+        stage('Install Application stack') {
             environment {
                 KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
@@ -268,28 +268,28 @@ pipeline {
             steps {
                 sh """
                     cp ${env.INSTALL_CONFIG_FILE_KIND_TESTS} ${env.INSTALL_CONFIG_FILE_KIND}
-                    cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/vz-update1.yaml
+                    cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/appstack.yaml
                     cd ${GO_REPO_PATH}/verrazzano
-                    yq -i eval '.spec.components.kubeStateMetrics.enabled = false' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.prometheus.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.prometheusOperator.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.prometheusAdapter.enabled = false' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.prometheusNodeExporter.enabled = false' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.prometheusPushgateway.enabled = false' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.applicationOperator.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.authProxy.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.certManager.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.fluentd.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.grafana.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.ingressNGINX.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.keycloak.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.mySQLOperator.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.opensearch.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.opensearchDashboards.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.oam.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.verrazzano.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                    yq -i eval '.spec.components.jaegerOperator.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                    kubectl apply -f ${WORKSPACE}/vz-update1.yaml
+                    yq -i eval '.spec.components.kubeStateMetrics.enabled = false' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.prometheus.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.prometheusOperator.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.prometheusAdapter.enabled = false' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.prometheusNodeExporter.enabled = false' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.prometheusPushgateway.enabled = false' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.applicationOperator.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.authProxy.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.certManager.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.fluentd.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.grafana.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.ingressNGINX.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.keycloak.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.mySQLOperator.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.opensearch.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.opensearchDashboards.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.oam.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.verrazzano.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.jaegerOperator.enabled = true' ${WORKSPACE}/appstack.yaml
+                    kubectl apply -f ${WORKSPACE}/appstack.yaml
                 """
             }
 
@@ -303,7 +303,7 @@ pipeline {
             }
         }
 
-        stage('Verify Install after Application stack enabled') {
+        stage('verify-infra vmi') {
             environment {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra/vmi"
             }
