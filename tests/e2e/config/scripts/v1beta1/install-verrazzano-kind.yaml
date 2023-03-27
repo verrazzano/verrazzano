@@ -21,6 +21,8 @@ spec:
             key: test-overrides-secret.yaml
         - values:
             prometheus:
+              thanos:
+                integration: sidecar
               prometheusSpec:
                 replicas: 2
     prometheusAdapter:

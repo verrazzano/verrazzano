@@ -25,6 +25,7 @@ const (
 	prometheusTLSSecret             = "prometheus-operator-kube-p-admission"
 	prometheusOperatorDeployment    = "prometheus-operator-kube-p-operator"
 	prometheusOperatorContainerName = "kube-prometheus-stack"
+	thanosSidecarContainerName      = "thanos-sidecar"
 	overrideConfigMapSecretName     = "test-overrides"
 	overrideKey                     = "override"
 	overrideValue                   = "true"
@@ -118,6 +119,62 @@ func areOverridesEnabled() bool {
 	}
 
 	return false
+}
+
+// isThanosSidecarEnabled returns true if the Helm override for enabling the Thanos sidecar is found
+func isThanosSidecarEnabled() (bool, error) {
+	kubeconfigPath := getKubeConfigOrAbort()
+	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		t.Logs.Errorf("Failed to get installed Verrazzano resource in the cluster: %v", err)
+		return false, err
+	}
+
+	if vz.Spec.Components.PrometheusOperator == nil {
+		return false, nil
+	}
+	overrides := vz.Spec.Components.PrometheusOperator.ValueOverrides
+
+	for _, override := range overrides {
+		if override.Values == nil {
+			continue
+		}
+		vals, err := gabs.ParseJSON(override.Values.Raw)
+		if err != nil {
+			t.Logs.Errorf("Failed to parse the Values Override JSON: %v", err)
+			return false, err
+		}
+
+		if integration := vals.Path("prometheus.thanos.integration").String(); integration == "sidecar" {
+			return true, nil
+		}
+	}
+	t.Logs.Infof("Thanos Sidecar override not found in the Prometheus Operator overrides.")
+	return false, nil
+}
+
+// isThanosInstalled returns true if Thanos is disabled, or if Thanos is enabled and the sidecar container is found
+func isThanosInstalled() (bool, error) {
+	enabled, err := isThanosSidecarEnabled()
+	if err != nil {
+		return false, err
+	}
+	if !enabled {
+		return true, nil
+	}
+
+	promDeploy, err := pkg.GetDeployment(constants.VerrazzanoMonitoringNamespace, prometheusOperatorDeployment)
+	if err != nil {
+		t.Logs.Errorf("Failed to get the Prometheus deployment from the cluster: %v", err)
+		return false, err
+	}
+
+	for _, container := range promDeploy.Spec.Template.Spec.Containers {
+		if container.Name == thanosSidecarContainerName {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // 'It' Wrapper to only run spec if the Prometheus Stack is supported on the current Verrazzano version
@@ -245,6 +302,15 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 				return true, nil
 			}
 			Eventually(verifyCRDList, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+
+		// GIVEN the Prometheus stack is installed
+		// WHEN the Prometheus Instance has Thanos enabled
+		// THEN we see that the Thanos sidecar exists
+		WhenPromStackInstalledIt("should have the Thanos sidecar if enabled", func() {
+			Eventually(func() (bool, error) {
+				return isThanosInstalled()
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		WhenPromStackInstalledIt("should have the TLS secret", func() {
