@@ -194,9 +194,6 @@ pipeline {
                     cp ${env.INSTALL_CONFIG_FILE_KIND_TESTS} ${env.INSTALL_CONFIG_FILE_KIND}
                     cd ${GO_REPO_PATH}/verrazzano
                     ci/scripts/prepare_jenkins_at_environment.sh true nip.io false
-
-                    # wait for Verrazzano install to complete
-                    ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
                 """
             }
 
@@ -233,6 +230,10 @@ pipeline {
 
                     # wait for Verrazzano install to complete
                     ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+
+                    # Log the vz status to get the URLs
+                    sleep 10
+                    vz status
                 """
             }
 
@@ -297,6 +298,10 @@ pipeline {
 
                     # wait for Verrazzano install to complete
                     ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+
+                    # Log the vz status to get the URLs
+                    sleep 10
+                    vz status
                 """
             }
 
