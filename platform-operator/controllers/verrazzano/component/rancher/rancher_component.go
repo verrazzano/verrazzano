@@ -683,6 +683,9 @@ func checkClusterProvisioned(client corev1.CoreV1Interface, dynClient dynamic.In
 			}
 			u, err := dynClient.Resource(resource).Namespace("").Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
 			if err != nil {
+				if kerrs.IsNotFound(err) {
+					return false, nil
+				}
 				return false, err
 			}
 
