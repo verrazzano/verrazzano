@@ -1,3 +1,4 @@
+
 // Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
@@ -57,7 +58,9 @@ pipeline {
             label "${agentLabel}"
         }
     }
-
+    triggers {
+        cron(branchSpecificSchedule)
+    }
     triggers {
         URLTrigger(
             cronTabSpec: branchSpecificSchedule,
@@ -579,4 +582,13 @@ def getLatestReleaseVersion() {
     list gitTags = extractReleaseTags(releaseTags)
     echo "gitTags = ${gitTags}"
     return gitTags.pop()
+}
+
+def getCronSchedule() {
+    if (env.BRANCH_NAME.equals("master")) {
+
+        //Set cron job to run every Friday at 9 AM
+        return "0 9 * * 5"
+    }
+    return ""
 }
