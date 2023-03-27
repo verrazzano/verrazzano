@@ -5,231 +5,185 @@ package vmc
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/thanos"
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
 )
 
-type syncThanosTestType struct {
+type addRemoveSyncThanosTestType struct {
 	name           string
 	host           string
 	existingHosts  []string
 	expectError    bool
 	expectNumHosts int
-	hostShoudExist bool
 }
 
 func TestVerrazzanoManagedClusterReconciler_addThanosHostIfNotPresent(t *testing.T) {
-	tests := []syncThanosTestType{
+	newHostName := "newhostname"
+	otherHost1 := toGrpcTarget("otherhost1")
+	otherHost2 := toGrpcTarget("otherhost2")
+	newHost := toGrpcTarget(newHostName)
+	tests := []addRemoveSyncThanosTestType{
 		// TODO: Add test cases.
-		{"no existing hosts", "newhostname", []string{}, false, 1, true},
-		{"host already exists", "newhostname", []string{"otherhost", "newhostname"}, false, 2, true},
-		{"host does not exist", "newhostname", []string{"otherhost", "yetanotherhost"}, false, 3, true},
+		{"no existing hosts", newHostName, []string{}, false, 1},
+		{"host already exists", newHostName, []string{otherHost1, newHost}, false, 2},
+		{"host does not exist", newHostName, []string{otherHost1, otherHost2}, false, 3},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			log := vzlog.DefaultLogger()
 			ctx := context.TODO()
-			// existingHostInfo := thanosServiceDiscovery{targets: tt.existingHosts}
-			existingHostInfo := map[string]interface{}{"targets": []string{}}
-			yamlExistingHostInfo, err := yaml.Marshal(existingHostInfo)
-			assert.NoError(t, err)
 			cli := fake.NewClientBuilder().WithRuntimeObjects(
-				&v1.ConfigMap{
-					ObjectMeta: v12.ObjectMeta{Namespace: thanos.ComponentNamespace, Name: ThanosManagedClusterEndpointsConfigMap},
-					Data: map[string]string{
-						serviceDiscoveryKey: string(yamlExistingHostInfo),
-					},
-				},
+				makeThanosConfigMapWithExistingHosts(t, tt.existingHosts),
 			).Build()
 			r := &VerrazzanoManagedClusterReconciler{
 				Client: cli,
 				log:    log,
 			}
-			err = r.addThanosHostIfNotPresent(ctx, tt.host, log)
+			err := r.addThanosHostIfNotPresent(ctx, tt.host, log)
 			if tt.expectError {
 				assert.Error(t, err, "Expected error")
 			} else {
-				modifiedConfigMap := &v1.ConfigMap{}
-				err = cli.Get(ctx, types.NamespacedName{Namespace: thanos.ComponentNamespace, Name: ThanosManagedClusterEndpointsConfigMap}, modifiedConfigMap)
-				assert.NoError(t, err)
-				modifiedContent := thanosServiceDiscovery{}
-				err = yaml.Unmarshal([]byte(modifiedConfigMap.Data[serviceDiscoveryKey]), &modifiedContent)
-				assert.NoError(t, err)
-				assert.Equalf(t, tt.expectNumHosts, len(modifiedContent.targets), "Expected %d hosts in modified config map", tt.expectNumHosts)
-				if tt.hostShoudExist {
-					assert.Contains(t, modifiedContent.targets, toGrpcTarget(tt.host))
-				}
+				hostShouldExist := true
+				assertThanosEndpointsConfigMap(t, cli, ctx, tt.expectNumHosts, tt.host, hostShouldExist)
 			}
-		})
-	}
-}
-
-func TestVerrazzanoManagedClusterReconciler_getThanosEndpointsConfigMap(t *testing.T) {
-	type fields struct {
-		Client client.Client
-		Scheme *runtime.Scheme
-		log    vzlog.VerrazzanoLogger
-	}
-	type args struct {
-		ctx context.Context
-		log vzlog.VerrazzanoLogger
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    *v1.ConfigMap
-		wantErr assert.ErrorAssertionFunc
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := &VerrazzanoManagedClusterReconciler{
-				Client: tt.fields.Client,
-				Scheme: tt.fields.Scheme,
-				log:    tt.fields.log,
-			}
-			got, err := r.getThanosEndpointsConfigMap(tt.args.ctx, tt.args.log)
-			if !tt.wantErr(t, err, fmt.Sprintf("getThanosEndpointsConfigMap(%v, %v)", tt.args.ctx, tt.args.log)) {
-				return
-			}
-			assert.Equalf(t, tt.want, got, "getThanosEndpointsConfigMap(%v, %v)", tt.args.ctx, tt.args.log)
 		})
 	}
 }
 
 func TestVerrazzanoManagedClusterReconciler_removeThanosHostFromConfigMap(t *testing.T) {
-	type fields struct {
-		Client client.Client
-		Scheme *runtime.Scheme
-		log    vzlog.VerrazzanoLogger
-	}
-	type args struct {
-		ctx  context.Context
-		host string
-		log  vzlog.VerrazzanoLogger
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr assert.ErrorAssertionFunc
-	}{
-		// TODO: Add test cases.
+	newHostName := "newhostname"
+	otherHost1 := toGrpcTarget("otherhost1")
+	otherHost2 := toGrpcTarget("otherhost2")
+	newHost := toGrpcTarget(newHostName)
+	tests := []addRemoveSyncThanosTestType{
+		{"no existing hosts", newHostName, []string{}, false, 0},
+		{"host already exists", newHostName, []string{otherHost1, newHost}, false, 1},
+		{"host does not exist", newHostName, []string{otherHost1, otherHost2}, false, 2},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			log := vzlog.DefaultLogger()
+			ctx := context.TODO()
+			cli := fake.NewClientBuilder().WithRuntimeObjects(
+				makeThanosConfigMapWithExistingHosts(t, tt.existingHosts),
+			).Build()
 			r := &VerrazzanoManagedClusterReconciler{
-				Client: tt.fields.Client,
-				Scheme: tt.fields.Scheme,
-				log:    tt.fields.log,
+				Client: cli,
+				log:    log,
 			}
-			tt.wantErr(t, r.removeThanosHostFromConfigMap(tt.args.ctx, tt.args.host, tt.args.log), fmt.Sprintf("removeThanosHostFromConfigMap(%v, %v, %v)", tt.args.ctx, tt.args.host, tt.args.log))
+			err := r.removeThanosHostFromConfigMap(ctx, tt.host, log)
+			if tt.expectError {
+				assert.Error(t, err, "Expected error")
+			} else {
+				hostShouldExist := false
+				assertThanosEndpointsConfigMap(t, cli, ctx, tt.expectNumHosts, tt.host, hostShouldExist)
+			}
 		})
 	}
 }
 
 func TestVerrazzanoManagedClusterReconciler_syncThanosQueryEndpoint(t *testing.T) {
-	type fields struct {
-		Client client.Client
-		Scheme *runtime.Scheme
-		log    vzlog.VerrazzanoLogger
-	}
-	type args struct {
-		ctx context.Context
-		vmc *clustersv1alpha1.VerrazzanoManagedCluster
-		log vzlog.VerrazzanoLogger
-	}
+	newHostName := "newhostname"
+	otherHost1 := toGrpcTarget("otherhost1")
+	otherHost2 := toGrpcTarget("otherhost2")
+	newHost := toGrpcTarget(newHostName)
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr assert.ErrorAssertionFunc
+		name                   string
+		vmcStatus              *clustersv1alpha1.VerrazzanoManagedClusterStatus
+		expectedConfigMapHosts int
+		hostname               string
+		configMapExistingHosts []string
+		hostShouldExistInCM    bool
 	}{
-		// TODO: Add test cases.
+		{"VMC status empty", nil, 1, "", []string{otherHost1}, false},
+		{"VMC status has no Thanos host",
+			&clustersv1alpha1.VerrazzanoManagedClusterStatus{APIUrl: "someurl"},
+			1,
+			"",
+			[]string{otherHost1},
+			false,
+		},
+		{"VMC status has existing Thanos host",
+			&clustersv1alpha1.VerrazzanoManagedClusterStatus{APIUrl: "someurl", ThanosHost: newHostName},
+			2,
+			newHostName,
+			[]string{newHost, otherHost1},
+			true, // new host already exists in query endpoints configmap, should still exist
+		},
+		{"VMC status has non-existing Thanos host",
+			&clustersv1alpha1.VerrazzanoManagedClusterStatus{APIUrl: "someurl", ThanosHost: newHostName},
+			3,
+			newHostName,
+			[]string{otherHost1, otherHost2},
+			true, // new host should be added to query endpoints configmap
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			log := vzlog.DefaultLogger()
+			ctx := context.TODO()
+			var vmcStatus clustersv1alpha1.VerrazzanoManagedClusterStatus
+			if tt.vmcStatus != nil {
+				vmcStatus = *tt.vmcStatus
+			}
+			vmc := &clustersv1alpha1.VerrazzanoManagedCluster{
+				ObjectMeta: v12.ObjectMeta{Name: "somename", Namespace: constants.VerrazzanoMultiClusterNamespace},
+				Status:     vmcStatus,
+			}
+			cli := fake.NewClientBuilder().WithRuntimeObjects(
+				makeThanosConfigMapWithExistingHosts(t, tt.configMapExistingHosts),
+			).Build()
 			r := &VerrazzanoManagedClusterReconciler{
-				Client: tt.fields.Client,
-				Scheme: tt.fields.Scheme,
-				log:    tt.fields.log,
+				Client: cli,
+				log:    log,
 			}
-			tt.wantErr(t, r.syncThanosQueryEndpoint(tt.args.ctx, tt.args.vmc, tt.args.log), fmt.Sprintf("syncThanosQueryEndpoint(%v, %v, %v)", tt.args.ctx, tt.args.vmc, tt.args.log))
+			err := r.syncThanosQueryEndpoint(ctx, vmc, log)
+			assert.NoError(t, err)
+			assertThanosEndpointsConfigMap(t, cli, ctx, tt.expectedConfigMapHosts, tt.hostname, tt.hostShouldExistInCM)
 		})
 	}
 }
 
-func Test_findHost(t *testing.T) {
-	type args struct {
-		serviceDiscovery *thanosServiceDiscovery
-		host             string
+func makeThanosConfigMapWithExistingHosts(t *testing.T, hosts []string) *v1.ConfigMap {
+	existingHostInfo := []*thanosServiceDiscovery{
+		{
+			Targets: hosts,
+		},
 	}
-	tests := []struct {
-		name string
-		args args
-		want int
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, findHost(tt.args.serviceDiscovery, tt.args.host), "findHost(%v, %v)", tt.args.serviceDiscovery, tt.args.host)
-		})
+	yamlExistingHostInfo, err := yaml.Marshal(existingHostInfo)
+	assert.NoError(t, err)
+	return &v1.ConfigMap{
+		ObjectMeta: v12.ObjectMeta{Namespace: thanos.ComponentNamespace, Name: ThanosManagedClusterEndpointsConfigMap},
+		Data: map[string]string{
+			serviceDiscoveryKey: string(yamlExistingHostInfo),
+		},
 	}
 }
 
-func Test_parseThanosEndpointsConfigMap(t *testing.T) {
-	type args struct {
-		configMap *v1.ConfigMap
-		log       vzlog.VerrazzanoLogger
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *thanosServiceDiscovery
-		wantErr assert.ErrorAssertionFunc
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseThanosEndpointsConfigMap(tt.args.configMap, tt.args.log)
-			if !tt.wantErr(t, err, fmt.Sprintf("parseThanosEndpointsConfigMap(%v, %v)", tt.args.configMap, tt.args.log)) {
-				return
-			}
-			assert.Equalf(t, tt.want, got, "parseThanosEndpointsConfigMap(%v, %v)", tt.args.configMap, tt.args.log)
-		})
-	}
-}
-
-func Test_toGrpcTarget(t *testing.T) {
-	type args struct {
-		hostname string
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, toGrpcTarget(tt.args.hostname), "toGrpcTarget(%v)", tt.args.hostname)
-		})
+func assertThanosEndpointsConfigMap(t *testing.T, cli client.WithWatch, ctx context.Context, expectNumHosts int, host string, hostShoudExist bool) {
+	modifiedConfigMap := &v1.ConfigMap{}
+	err := cli.Get(ctx, types.NamespacedName{Namespace: thanos.ComponentNamespace, Name: ThanosManagedClusterEndpointsConfigMap}, modifiedConfigMap)
+	assert.NoError(t, err)
+	// make sure "targets" element is serialized in lower case in the config map
+	assert.Contains(t, modifiedConfigMap.Data[serviceDiscoveryKey], "targets")
+	modifiedContent := []*thanosServiceDiscovery{}
+	err = yaml.Unmarshal([]byte(modifiedConfigMap.Data[serviceDiscoveryKey]), &modifiedContent)
+	assert.NoError(t, err)
+	// for now we are only testing with a single service discovery entry with zero or more Targets
+	assert.Len(t, modifiedContent, 1)
+	assert.Equalf(t, expectNumHosts, len(modifiedContent[0].Targets), "Expected %d hosts in modified config map", expectNumHosts)
+	if hostShoudExist {
+		assert.Contains(t, modifiedContent[0].Targets, toGrpcTarget(host))
 	}
 }
