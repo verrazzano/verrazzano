@@ -145,7 +145,9 @@ func isThanosSidecarEnabled() (bool, error) {
 			return false, err
 		}
 
-		if integration := vals.Path("prometheus.thanos.integration").String(); integration == "sidecar" {
+		integration, ok := vals.Path("prometheus.thanos.integration").Data().(string)
+		t.Logs.Debugf("Integration Override: %s", integration)
+		if ok && integration == "sidecar" {
 			return true, nil
 		}
 	}
