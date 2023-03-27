@@ -112,6 +112,11 @@ func (r *VerrazzanoManagedClusterReconciler) addThanosHostIfNotPresent(ctx conte
 		}
 	}
 	hostEndpoint := toGrpcTarget(host)
+
+	if len(serviceDiscoveryList) == 0 {
+		// empty list found, add a placeholder item so that the loop below will populate it
+		serviceDiscoveryList = append(serviceDiscoveryList, &thanosServiceDiscovery{})
+	}
 	for _, serviceDiscovery := range serviceDiscoveryList {
 		if serviceDiscovery.Targets == nil {
 			serviceDiscovery.Targets = []string{}
@@ -119,19 +124,12 @@ func (r *VerrazzanoManagedClusterReconciler) addThanosHostIfNotPresent(ctx conte
 		foundIndex := findHost(serviceDiscovery, hostEndpoint)
 		if foundIndex > -1 {
 			// already exists, nothing to be added
+			r.log.Debugf("Managed cluster endpoint %s is already present in the Thanos endpoints config map", hostEndpoint)
 			return nil
 		}
 		// not found, add this host endpoint and update the config map
+		r.log.Debugf("Adding managed cluster endpoint %s to Thanos endpoints config map", hostEndpoint)
 		serviceDiscovery.Targets = append(serviceDiscovery.Targets, hostEndpoint)
-
-	}
-	if len(serviceDiscoveryList) == 0 {
-		// empty list found, add this host endpoint and update the config map
-
-		serviceDiscoveryList = append(serviceDiscoveryList,
-			&thanosServiceDiscovery{
-				Targets: []string{hostEndpoint},
-			})
 	}
 	newServiceDiscoveryYaml, err := yaml.Marshal(serviceDiscoveryList)
 	if err != nil {
