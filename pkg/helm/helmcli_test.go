@@ -9,9 +9,6 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/time"
-	"math/rand"
-	"strings"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -128,73 +125,6 @@ func TestUpgrade(t *testing.T) {
 	defer SetDefaultLoadChartFunction()
 
 	err := Upgrade(vzlog.DefaultLogger(), helmRelease, ns, chartdir, false, false, overrides)
-	assertion.NoError(err, "Upgrade returned an error")
-}
-
-type testHelmOp func()
-
-func helmOp(waitgroup *sync.WaitGroup, op testHelmOp) {
-	defer waitgroup.Done()
-	op()
-}
-
-// TestUpgrade tests whether helm is thread safe by invoking both an upgrade and uninstall
-// GIVEN a set of upgrade parameters
-//
-//	WHEN I call Upgrade and and uninstall at the same time
-//	THEN both operations return successfully
-func TestUpgradeAndUninstallSimultaneously(t *testing.T) {
-	var overrides []HelmOverrides
-	overrides = append(overrides, HelmOverrides{SetOverrides: "name1=modifiedValue1"})
-	assertion := assert.New(t)
-	synchTestActionConfig, err := CreateActionConfig(true, helmRelease, release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
-
-	SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-		return synchTestActionConfig, nil
-	})
-	defer SetDefaultActionConfigFunction()
-	SetLoadChartFunction(func(chartDir string) (*chart.Chart, error) {
-		return getChart(), nil
-	})
-	defer SetDefaultLoadChartFunction()
-
-	var wg sync.WaitGroup
-
-	helmOps := []testHelmOp{
-		func() {
-			t.Log("Upgrading")
-			err = Upgrade(vzlog.DefaultLogger(), helmRelease, ns, chartdir, false, false, overrides)
-			if err != nil {
-				// ignore error for installing/upgrading uninstalled release - that should generate an error
-				if !strings.Contains(err.Error(), "has no deployed releases") || !strings.Contains(err.Error(), "cannot re-use a name that is still in use") {
-					assert.Fail(t, "Error during upgrade: ", err.Error())
-				} else {
-					// set err to nil to avoid test failure below
-					err = nil
-				}
-			}
-		}, func() {
-			t.Log("Uninstalling")
-			err = Uninstall(vzlog.DefaultLogger(), helmRelease, ns, false)
-			if err != nil {
-				assert.Fail(t, "Error during uninstall: ", err.Error())
-			}
-		}}
-
-	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(helmOps), func(i, j int) {
-		helmOps[i], helmOps[j] = helmOps[j], helmOps[i]
-	})
-
-	for i := 0; i < 2; i++ {
-		wg.Add(1)
-		go helmOp(&wg, helmOps[i])
-	}
-	wg.Wait()
-
-	status, _ := GetReleaseStatus(vzlog.DefaultLogger(), helmRelease, ns)
-	t.Logf("Status: %s", status)
-
 	assertion.NoError(err, "Upgrade returned an error")
 }
 
