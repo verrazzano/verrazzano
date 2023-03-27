@@ -788,7 +788,7 @@
           "images": [
             {
               "image": "thanos",
-              "tag": "v0.28.0-20230322155710-8af2d756",
+              "tag": "v0.28.0-20230327140642-44e53eff",
               "helmRegKey": "image.registry",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
