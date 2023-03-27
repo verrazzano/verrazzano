@@ -46,3 +46,5 @@ spec:
           minIndexAge: "1d"
     jaegerOperator:
       enabled: true
+    thanos:
+      enabled: true
