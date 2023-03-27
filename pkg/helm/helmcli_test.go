@@ -9,7 +9,6 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/time"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -127,13 +126,6 @@ func TestUpgrade(t *testing.T) {
 
 	err := Upgrade(vzlog.DefaultLogger(), helmRelease, ns, chartdir, false, false, overrides)
 	assertion.NoError(err, "Upgrade returned an error")
-}
-
-type testHelmOp func()
-
-func helmOp(waitgroup *sync.WaitGroup, op testHelmOp) {
-	defer waitgroup.Done()
-	op()
 }
 
 // TestUpgradeFail tests the Helm upgrade command failure condition
