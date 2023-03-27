@@ -231,7 +231,7 @@ pipeline {
 
                     # Log the vz status to get the URLs
                     sleep 10
-                    vz status
+                    ${GO_REPO_PATH}/vz version
                 """
             }
 
@@ -299,7 +299,7 @@ pipeline {
 
                     # Log the vz status to get the URLs
                     sleep 10
-                    vz status
+                    ${GO_REPO_PATH}/vz version
                 """
             }
 
