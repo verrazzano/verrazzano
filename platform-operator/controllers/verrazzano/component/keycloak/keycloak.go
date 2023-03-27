@@ -581,14 +581,14 @@ const ManagedClusterClientUrisTemplate = `
 	"redirectUris": [
 	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/*",
 	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-      "https://query-store.{{.DNSSubDomain}}/*",
+	  "https://query-store.{{.DNSSubDomain}}/*",
 	  "https://query-store.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://thanos-query.{{.DNSSubDomain}}/*",
 	  "https://thanos-query.{{.DNSSubDomain}}/_authentication_callback"
 	],
 	"webOrigins": [
 	  "https://prometheus.vmi.system.{{.DNSSubDomain}}",
-      "https://query-store.{{.DNSSubDomain}}",
+	  "https://query-store.{{.DNSSubDomain}}",
 	  "https://thanos-query.{{.DNSSubDomain}}"
 	]
 `
