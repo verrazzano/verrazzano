@@ -165,15 +165,19 @@ func isThanosInstalled() (bool, error) {
 		return true, nil
 	}
 
-	promDeploy, err := pkg.GetDeployment(constants.VerrazzanoMonitoringNamespace, prometheusOperatorDeployment)
+	promPod, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{
+		MatchLabels: map[string]string{"app.kubernetes.io/name": "prometheus"},
+	}, constants.VerrazzanoMonitoringNamespace)
 	if err != nil {
 		t.Logs.Errorf("Failed to get the Prometheus deployment from the cluster: %v", err)
 		return false, err
 	}
 
-	for _, container := range promDeploy.Spec.Template.Spec.Containers {
-		if container.Name == thanosSidecarContainerName {
-			return true, nil
+	for _, pod := range promPod {
+		for _, container := range pod.Spec.Containers {
+			if container.Name == thanosSidecarContainerName {
+				return true, nil
+			}
 		}
 	}
 	return false, nil
