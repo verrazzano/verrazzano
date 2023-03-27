@@ -1,16 +1,10 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-def ociOsRegion = "us-phoenix-1"
-def ociOsBucket = "verrazzano-builds"
-def urlTriggerBranchName = env.BRANCH_NAME.replace('/', '%2F')
-def lastStableCommitFile = "last-stable-commit.txt"
-
 pipeline {
     options {
         timeout(time: 4, unit: 'HOURS')
         skipDefaultCheckout true
-        disableConcurrentBuilds()
         timestamps ()
     }
 
@@ -25,6 +19,14 @@ pipeline {
     }
 
     parameters {
+        string (name: 'VERRAZZANO_BRANCH',
+                defaultValue: 'master',
+                description: 'Branch to clone and checkout the Verrazzano repo',
+                trim: true)
+        string (name: 'GIT_COMMIT_TO_USE',
+                defaultValue: 'NONE',
+                description: 'This is the full git commit hash from the source build to be used for all jobs',
+                trim: true)
         string (name: 'TAGGED_TESTS',
                 defaultValue: '',
                 description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
@@ -37,8 +39,6 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
-        booleanParam (description: 'Force execution of the tests even if up-to-date', name: 'FORCE', defaultValue: false)
-        booleanParam (description: 'Skip test execution (for debugging)', name: 'DRY_RUN', defaultValue: false)
     }
 
     environment {
@@ -73,7 +73,40 @@ pipeline {
         stage('Clean workspace and checkout') {
             steps {
                 script {
-                    cleanWorkspaceAndCheckout()
+                    EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
+                    if (params.GIT_COMMIT_TO_USE == "NONE") {
+                        echo "Specific GIT commit was not specified, use current head"
+                        def scmInfo = checkout scm
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                    } else {
+                        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
+                        def scmInfo = checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: params.GIT_COMMIT_TO_USE]],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [],
+                            submoduleCfg: [],
+                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                        // If the commit we were handed is not what the SCM says we are using, fail
+                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
+                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+                            exit 1
+                        }
+                    }
+                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                }
+                script {
+                    def props = readProperties file: '.verrazzano-development-version'
+                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+                    DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
+                    // update the description with some meaningful info
+                    setDisplayName()
+                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
                 }
             }
         }
@@ -88,12 +121,9 @@ pipeline {
 
         stage('Private Registry Tests') {
             when {
-                allOf {
-                    not { buildingTag() }
-                    anyOf {
-                        branch 'master';
-                        branch 'release-*';
-                    }
+                anyOf {
+                    branch 'master';
+                    branch 'release-*';
                 }
             }
             parallel {
