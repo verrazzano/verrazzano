@@ -45,8 +45,10 @@ func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, 
 		return fmt.Errorf("\nanalyze failed with error: %s, exiting", err.Error())
 	}
 
+	reportContext := helpers.ReportContext{ReportFile: reportFile, ReportFormat: reportFormat, IncludeSupportData: includeSupport, IncludeInfo: includeInfo, MinConfidence: minConfidence, MinImpact: minImpact, PrintReportToConsole: printReportToConsole}
+
 	// Generate a report
-	err = report.GenerateHumanReport(logger, reportFile, reportFormat, includeSupport, includeInfo, includeActions, minConfidence, minImpact, vzHelper, printReportToConsole)
+	err = report.GenerateHumanReport(logger, vzHelper, reportContext)
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "\nReport generation failed, exiting.\n")
 		return fmt.Errorf("%s", err.Error())
