@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package thanos
@@ -52,15 +52,19 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	}
 	isThanosInstalled = vzcr.IsThanosEnabled(inClusterVZ)
 })
+
 var _ = BeforeSuite(beforeSuite)
 
 // 'It' Wrapper to only run spec if the Thanos is supported on the current Verrazzano version and is installed
 func WhenThanosInstalledIt(description string, f func()) {
-	if isThanosSupported && isThanosInstalled {
-		t.It(description, f)
-	} else {
-		t.Logs.Infof("Skipping check '%v', Thanos is not installed on this cluster", description)
-	}
+	t.It(description, func() {
+		if isThanosSupported && isThanosInstalled {
+			f()
+		} else {
+			t.Logs.Infof("Skipping check '%v', Thanos is not installed on this cluster", description)
+		}
+	})
+
 }
 
 var _ = t.Describe("Thanos", Label("f:platform-lcm.install"), func() {
