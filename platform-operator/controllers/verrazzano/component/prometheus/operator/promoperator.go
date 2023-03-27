@@ -28,7 +28,6 @@ import (
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -127,7 +126,7 @@ func postInstallUpgrade(ctx spi.ComponentContext) error {
 	if err := updateApplicationAuthorizationPolicies(ctx); err != nil {
 		return err
 	}
-	if err := createOrUpdateIngresses(ctx); err != nil {
+	if err := createOrUpdateIngress(ctx); err != nil {
 		return err
 	}
 	if err := createOrUpdatePrometheusAuthPolicy(ctx); err != nil {
@@ -643,22 +642,6 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 						},
 					}},
 				},
-				{
-					// allow Thanos Query to access the Prometheus Thanos sidecar
-					From: []*securityv1beta1.Rule_From{{
-						Source: &securityv1beta1.Source{
-							Principals: []string{
-								fmt.Sprintf("cluster.local/ns/%s/sa/thanos-query", constants.VerrazzanoMonitoringNamespace),
-							},
-							Namespaces: []string{constants.VerrazzanoMonitoringNamespace},
-						},
-					}},
-					To: []*securityv1beta1.Rule_To{{
-						Operation: &securityv1beta1.Operation{
-							Ports: []string{"10901"},
-						},
-					}},
-				},
 			},
 		}
 		return nil
@@ -710,8 +693,8 @@ func createOrUpdateServiceMonitors(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// create or update ingresses creates ingresses for each of the Prometheus endpoints
-func createOrUpdateIngresses(ctx spi.ComponentContext) error {
+// createOrUpdateIngress creates ingress for the Prometheus endpoint
+func createOrUpdateIngress(ctx spi.ComponentContext) error {
 	// If NGINX is not enabled, skip the ingress creation
 	if !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
 		return nil
@@ -723,46 +706,7 @@ func createOrUpdateIngresses(ctx spi.ComponentContext) error {
 		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
 		ExtraAnnotations: common.SameSiteCookieAnnotations(prometheusName),
 	}
-	if err := common.CreateOrUpdateSystemComponentIngress(ctx, promProps); err != nil {
-		return err
-	}
-
-	// Only create the Thanos Ingress if it is enabled in the Prometheus Spec
-	thanosEnabled, err := isThanosEnabled(ctx)
-	if err != nil {
-		return err
-	}
-	// Delete the existing ingress if the sidecar becomes disabled
-	if !thanosEnabled {
-		return common.DeleteSystemComponentIngress(ctx, constants.ThanosSidecarIngress)
-	}
-
-	thanosProps := common.IngressProperties{
-		IngressName:   constants.ThanosSidecarIngress,
-		HostName:      thanosHostName,
-		TLSSecretName: thanosCertificateName,
-		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
-		ExtraAnnotations: common.SameSiteCookieAnnotations(thanosHostName),
-	}
-	return common.CreateOrUpdateSystemComponentIngress(ctx, thanosProps)
-}
-
-// isThanosEnabled checks to see if the Thanos section of the Prometheus spec is populated
-func isThanosEnabled(ctx spi.ComponentContext) (bool, error) {
-	prometheusList := promoperapi.PrometheusList{}
-	err := ctx.Client().List(context.TODO(), &prometheusList, &client.ListOptions{Namespace: constants.VerrazzanoMonitoringNamespace})
-	if meta.IsNoMatchError(err) {
-		return false, nil
-	}
-	if err != nil {
-		return false, ctx.Log().ErrorfNewErr("Failed to list Prometheus objects in the %s namespace: %v", constants.VerrazzanoMonitoringNamespace, err)
-	}
-	for _, prometheus := range prometheusList.Items {
-		if prometheus.Spec.Thanos != nil {
-			return true, nil
-		}
-	}
-	return false, nil
+	return common.CreateOrUpdateSystemComponentIngress(ctx, promProps)
 }
 
 // deleteNetworkPolicy deletes the existing NetworkPolicy. Since the NetworkPolicy is now part of the Helm chart,

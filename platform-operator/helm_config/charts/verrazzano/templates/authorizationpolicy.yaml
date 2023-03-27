@@ -16,7 +16,7 @@ spec:
       app: {{ .Values.api.name }}
   action: ALLOW
   rules:
-    # verrazzano-authproxy:8775 <- ingress-controller-ingress-nginx-controller
+    # verrazzano-authproxy:8775,8776 <- ingress-controller-ingress-nginx-controller
     - from:
         - source:
             namespaces: ["ingress-nginx"]
