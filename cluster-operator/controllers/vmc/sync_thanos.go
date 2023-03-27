@@ -32,7 +32,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncThanosQueryEndpoint(ctx context
 	vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
 
 	if vmc.Status.ThanosHost == "" {
-		r.log.Progressf("Managed cluster Thanos Host not found in VMC Status for VMC %s. Not updating Thanos endpoints", vmc.Name)
+		r.log.Oncef("Managed cluster Thanos Host not found in VMC Status for VMC %s. Not updating Thanos endpoints", vmc.Name)
 		return nil
 	}
 
