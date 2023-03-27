@@ -7,5 +7,4 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
 # TODO labels?
 data:
-  servicediscovery.yml: |
-    - targets: []
+  servicediscovery.yml: ""
