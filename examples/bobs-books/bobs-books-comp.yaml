@@ -224,8 +224,6 @@ spec:
                     prefix: wls_jvm_
                     key: name
           serverPod:
-            annotations:
-              sidecar.istio.io/logLevel: debug
             livenessProbe:
               periodSeconds: 10
               timeoutSeconds: 65
