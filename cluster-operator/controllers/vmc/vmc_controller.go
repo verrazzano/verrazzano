@@ -261,7 +261,7 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 	}
 
 	if vmc.Status.PrometheusHost == "" {
-		log.Progressf("Managed cluster Prometheus Host not found in VMC Status for VMC %s. Waiting for VMC to be registered...", vmc.Name)
+		log.Oncef("Managed cluster Prometheus Host not found in VMC Status for VMC %s. Waiting for VMC to be registered...", vmc.Name)
 	} else {
 		log.Debugf("Syncing the prometheus scraper for VMC %s", vmc.Name)
 		err = r.syncPrometheusScraper(ctx, vmc)
