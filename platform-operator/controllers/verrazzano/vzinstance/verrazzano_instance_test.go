@@ -6,7 +6,6 @@ package vzinstance
 import (
 	"context"
 	"fmt"
-	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
@@ -107,12 +106,6 @@ func TestGetInstanceInfo(t *testing.T) {
 			return nil
 		})
 
-	mock.EXPECT().
-		List(gomock.Any(), gomock.AssignableToTypeOf(&promoperapi.PrometheusList{}), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, promList *promoperapi.PrometheusList, opts ...client.ListOption) error {
-			return nil
-		})
-
 	enabled := true
 	vz := &v1alpha1.Verrazzano{
 		Spec: v1alpha1.VerrazzanoSpec{
@@ -192,12 +185,6 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 					},
 				},
 			}
-			return nil
-		})
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.AssignableToTypeOf(&promoperapi.PrometheusList{}), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, promList *promoperapi.PrometheusList, opts ...client.ListOption) error {
 			return nil
 		})
 
