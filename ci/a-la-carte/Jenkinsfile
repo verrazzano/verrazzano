@@ -229,11 +229,10 @@ pipeline {
                     # wait for Verrazzano install to complete
                     ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
 
-                    waitForPodsToBeUp()
-
                     # Log the vz status to get the URLs
                     ${GO_REPO_PATH}/vz status
                 """
+                waitForPodsToBeUp()
             }
 
             post {
@@ -298,11 +297,10 @@ pipeline {
                     # wait for Verrazzano install to complete
                     ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
 
-                    waitForPodsToBeUp()
-
                     # Log the vz status to get the URLs
                     ${GO_REPO_PATH}/vz status
                 """
+                waitForPodsToBeUp()
             }
 
             post {
