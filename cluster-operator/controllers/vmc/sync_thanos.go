@@ -9,10 +9,17 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/thanos"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+	istionet "istio.io/api/networking/v1beta1"
+	istioclinet "istio.io/client-go/pkg/apis/networking/v1beta1"
 	v1 "k8s.io/api/core/v1"
+	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
 )
@@ -189,4 +196,137 @@ func (r *VerrazzanoManagedClusterReconciler) isThanosEnabled() (bool, error) {
 
 func toGrpcTarget(hostname string) string {
 	return hostname + ":443"
+}
+
+// createOrUpdateServiceEntry ensures that an Istio ServiceEntry exists for a managed cluster Thanos endpoint. The ServiceEntry is
+// used along with a DestinationRule to initiate TLS to the managed cluster ingress. Skip processing if the ServiceEntry CRD
+// does not exist in the cluster.
+func (r *VerrazzanoManagedClusterReconciler) createOrUpdateServiceEntry(name, host string, port uint32) error {
+	const crdName = "serviceentries.networking.istio.io"
+	isInstalled, err := r.isCRDInstalled(crdName)
+	if err != nil {
+		return r.log.ErrorfNewErr("Unable to determine if CRD %s is installed: %v", crdName, err)
+	}
+	if !isInstalled {
+		r.log.Debugf("CRD %s does not exist in cluster, skipping creating/updating ServiceEntry", crdName)
+		return nil
+	}
+
+	// NOTE: We cannot use controller-runtime CreateOrUpdate here because DeepEqual does not work with protobuf-generated types
+	se := &istioclinet.ServiceEntry{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: constants.VerrazzanoMonitoringNamespace}}
+
+	// get the ServiceEntry, if it exists we update it, if it does not exist we create it
+	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: name}, se)
+	if client.IgnoreNotFound(err) != nil {
+		return r.log.ErrorfNewErr("Unable to get ServiceEntry %s/%s: %v", constants.VerrazzanoMonitoringNamespace, name, err)
+	}
+	if err == nil {
+		// we should do some basic fields checks and only update if there are changes, but for now this will have to do
+		populateServiceEntry(se, host, port)
+		if err = r.Client.Update(context.TODO(), se); err != nil {
+			return r.log.ErrorfNewErr("Unable to update ServiceEntry %s/%s: %v", constants.VerrazzanoMonitoringNamespace, name, err)
+		}
+		return nil
+	}
+
+	populateServiceEntry(se, host, port)
+	if err = r.Client.Create(context.TODO(), se); err != nil {
+		return r.log.ErrorfNewErr("Unable to create ServiceEntry %s/%s: %v", constants.VerrazzanoMonitoringNamespace, name, err)
+	}
+
+	return nil
+}
+
+func populateServiceEntry(se *istioclinet.ServiceEntry, host string, port uint32) {
+	se.Spec.Hosts = []string{host}
+	se.Spec.Ports = []*istionet.Port{
+		{
+			Name:       "grpc",
+			Number:     port,
+			TargetPort: port,
+			Protocol:   "GRPC",
+		},
+	}
+	se.Spec.Resolution = istionet.ServiceEntry_DNS
+}
+
+// createOrUpdateDestinationRule ensures that an Istio DestinationRule exists for a managed cluster Thanos endpoint. The DestinationRule is
+// used along with a ServiceEntry to initiate TLS to the managed cluster ingress. Skip processing if the DestinationRule CRD
+// does not exist in the cluster.
+func (r *VerrazzanoManagedClusterReconciler) createOrUpdateDestinationRule(name, host string, port uint32) error {
+	const crdName = "destinationrules.networking.istio.io"
+	isInstalled, err := r.isCRDInstalled(crdName)
+	if err != nil {
+		r.log.Errorf("Unable to determine if CRD %s is installed: %v", crdName, err)
+		return err
+	}
+	if !isInstalled {
+		r.log.Debugf("CRD %s does not exist in cluster, skipping creating/updating DestinationRule", crdName)
+		return nil
+	}
+
+	// NOTE: We cannot use controller-runtime CreateOrUpdate here because DeepEqual does not work with protobuf-generated types
+	dr := &istioclinet.DestinationRule{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: constants.VerrazzanoMonitoringNamespace}}
+
+	// get the DestinationRule, if it exists we update it, if it does not exist we create it
+	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: name}, dr)
+	if client.IgnoreNotFound(err) != nil {
+		return r.log.ErrorfNewErr("Unable to get DestinationRule %s/%s: %v", constants.VerrazzanoMonitoringNamespace, name, err)
+	}
+	if err == nil {
+		// we should do some basic fields checks and only update if there are changes, but for now this will have to do
+		populateDestinationRule(dr, host, port)
+		if err = r.Client.Update(context.TODO(), dr); err != nil {
+			return r.log.ErrorfNewErr("Unable to update DestinationRule %s/%s: %v", constants.VerrazzanoMonitoringNamespace, name, err)
+		}
+		return nil
+	}
+
+	populateDestinationRule(dr, host, port)
+	if err = r.Client.Create(context.TODO(), dr); err != nil {
+		return r.log.ErrorfNewErr("Unable to create DestinationRule %s/%s: %v", constants.VerrazzanoMonitoringNamespace, name, err)
+	}
+
+	return nil
+}
+
+func populateDestinationRule(dr *istioclinet.DestinationRule, host string, port uint32) {
+	dr.Spec.Host = host
+	dr.Spec.TrafficPolicy = &istionet.TrafficPolicy{
+		PortLevelSettings: []*istionet.TrafficPolicy_PortTrafficPolicy{
+			{
+				Port: &istionet.PortSelector{
+					Number: port,
+				},
+				Tls: &istionet.ClientTLSSettings{
+					Mode:               istionet.ClientTLSSettings_SIMPLE,
+					InsecureSkipVerify: wrapperspb.Bool(true), // this will be replaced with false when we support managed cluster CA cert checking
+				},
+			},
+		},
+	}
+}
+
+// isCRDInstalled returns true if the named CRD exists in the cluster, otherwise false.
+func (r *VerrazzanoManagedClusterReconciler) isCRDInstalled(crdName string) (bool, error) {
+	crd := &k8sapiext.CustomResourceDefinition{}
+	err := r.Client.Get(context.TODO(), client.ObjectKey{Name: crdName}, crd)
+	if client.IgnoreNotFound(err) != nil {
+		return false, err
+	}
+	return err == nil, nil
+}
+
+// deleteServiceEntry deletes an Istio ServiceEntry. No error is returned if the ServiceEntry is not found.
+func (r *VerrazzanoManagedClusterReconciler) deleteServiceEntry(name string) error {
+	se := &istioclinet.ServiceEntry{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: constants.VerrazzanoMonitoringNamespace}}
+	err := r.Client.Delete(context.TODO(), se)
+	return client.IgnoreNotFound(err)
+}
+
+// deleteDestinationRule deletes an Istio DestinationRule. No error is returned if the DestinationRule is not found.
+func (r *VerrazzanoManagedClusterReconciler) deleteDestinationRule(name string) error {
+	dr := &istioclinet.DestinationRule{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: constants.VerrazzanoMonitoringNamespace}}
+	err := r.Client.Delete(context.TODO(), dr)
+	return client.IgnoreNotFound(err)
 }
