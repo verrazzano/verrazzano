@@ -98,7 +98,9 @@ func (r *VerrazzanoManagedClusterReconciler) addThanosHostIfNotPresent(ctx conte
 	if err != nil {
 		// We will wipe out and repopulate the config map if it could not be parsed
 		r.log.Info("Clearing and repopulating Thanos endpoints ConfigMap due to parse error")
-		serviceDiscoveryList = []*thanosServiceDiscovery{}
+		serviceDiscoveryList = []*thanosServiceDiscovery{
+			{Targets: []string{}},
+		}
 	}
 	hostEndpoint := toGrpcTarget(host)
 	for _, serviceDiscovery := range serviceDiscoveryList {

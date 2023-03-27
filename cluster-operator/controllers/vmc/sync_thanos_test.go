@@ -26,25 +26,26 @@ type addRemoveSyncThanosTestType struct {
 	existingHosts  []string
 	expectError    bool
 	expectNumHosts int
+	useValidCM     bool
 }
 
-func TestVerrazzanoManagedClusterReconciler_addThanosHostIfNotPresent(t *testing.T) {
+func TestAddThanosHostIfNotPresent(t *testing.T) {
 	newHostName := "newhostname"
 	otherHost1 := toGrpcTarget("otherhost1")
 	otherHost2 := toGrpcTarget("otherhost2")
 	newHost := toGrpcTarget(newHostName)
 	tests := []addRemoveSyncThanosTestType{
-		// TODO: Add test cases.
-		{"no existing hosts", newHostName, []string{}, false, 1},
-		{"host already exists", newHostName, []string{otherHost1, newHost}, false, 2},
-		{"host does not exist", newHostName, []string{otherHost1, otherHost2}, false, 3},
+		{"no existing hosts", newHostName, []string{}, false, 1, true},
+		{"host already exists", newHostName, []string{otherHost1, newHost}, false, 2, true},
+		{"host does not exist", newHostName, []string{otherHost1, otherHost2}, false, 3, true},
+		{"existing ConfigMap is malformed", newHostName, []string{}, false, 1, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			log := vzlog.DefaultLogger()
 			ctx := context.TODO()
 			cli := fake.NewClientBuilder().WithRuntimeObjects(
-				makeThanosConfigMapWithExistingHosts(t, tt.existingHosts),
+				makeThanosConfigMapWithExistingHosts(t, tt.existingHosts, tt.useValidCM),
 			).Build()
 			r := &VerrazzanoManagedClusterReconciler{
 				Client: cli,
@@ -61,22 +62,22 @@ func TestVerrazzanoManagedClusterReconciler_addThanosHostIfNotPresent(t *testing
 	}
 }
 
-func TestVerrazzanoManagedClusterReconciler_removeThanosHostFromConfigMap(t *testing.T) {
+func TestRemoveThanosHostFromConfigMap(t *testing.T) {
 	newHostName := "newhostname"
 	otherHost1 := toGrpcTarget("otherhost1")
 	otherHost2 := toGrpcTarget("otherhost2")
 	newHost := toGrpcTarget(newHostName)
 	tests := []addRemoveSyncThanosTestType{
-		{"no existing hosts", newHostName, []string{}, false, 0},
-		{"host already exists", newHostName, []string{otherHost1, newHost}, false, 1},
-		{"host does not exist", newHostName, []string{otherHost1, otherHost2}, false, 2},
+		{"no existing hosts", newHostName, []string{}, false, 0, true},
+		{"host already exists", newHostName, []string{otherHost1, newHost}, false, 1, true},
+		{"host does not exist", newHostName, []string{otherHost1, otherHost2}, false, 2, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			log := vzlog.DefaultLogger()
 			ctx := context.TODO()
 			cli := fake.NewClientBuilder().WithRuntimeObjects(
-				makeThanosConfigMapWithExistingHosts(t, tt.existingHosts),
+				makeThanosConfigMapWithExistingHosts(t, tt.existingHosts, false),
 			).Build()
 			r := &VerrazzanoManagedClusterReconciler{
 				Client: cli,
@@ -93,7 +94,7 @@ func TestVerrazzanoManagedClusterReconciler_removeThanosHostFromConfigMap(t *tes
 	}
 }
 
-func TestVerrazzanoManagedClusterReconciler_syncThanosQueryEndpoint(t *testing.T) {
+func TestSyncThanosQueryEndpoint(t *testing.T) {
 	newHostName := "newhostname"
 	otherHost1 := toGrpcTarget("otherhost1")
 	otherHost2 := toGrpcTarget("otherhost2")
@@ -142,7 +143,7 @@ func TestVerrazzanoManagedClusterReconciler_syncThanosQueryEndpoint(t *testing.T
 				Status:     vmcStatus,
 			}
 			cli := fake.NewClientBuilder().WithRuntimeObjects(
-				makeThanosConfigMapWithExistingHosts(t, tt.configMapExistingHosts),
+				makeThanosConfigMapWithExistingHosts(t, tt.configMapExistingHosts, false),
 			).Build()
 			r := &VerrazzanoManagedClusterReconciler{
 				Client: cli,
@@ -155,14 +156,20 @@ func TestVerrazzanoManagedClusterReconciler_syncThanosQueryEndpoint(t *testing.T
 	}
 }
 
-func makeThanosConfigMapWithExistingHosts(t *testing.T, hosts []string) *v1.ConfigMap {
-	existingHostInfo := []*thanosServiceDiscovery{
-		{
-			Targets: hosts,
-		},
+func makeThanosConfigMapWithExistingHosts(t *testing.T, hosts []string, useValidConfigMap bool) *v1.ConfigMap {
+	var yamlExistingHostInfo []byte
+	var err error
+	if useValidConfigMap {
+		existingHostInfo := []*thanosServiceDiscovery{
+			{
+				Targets: hosts,
+			},
+		}
+		yamlExistingHostInfo, err = yaml.Marshal(existingHostInfo)
+		assert.NoError(t, err)
+	} else {
+		yamlExistingHostInfo = []byte("- targets: garbledTextHere")
 	}
-	yamlExistingHostInfo, err := yaml.Marshal(existingHostInfo)
-	assert.NoError(t, err)
 	return &v1.ConfigMap{
 		ObjectMeta: v12.ObjectMeta{Namespace: thanos.ComponentNamespace, Name: ThanosManagedClusterEndpointsConfigMap},
 		Data: map[string]string{
