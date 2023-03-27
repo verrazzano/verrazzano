@@ -60,8 +60,6 @@ spec:
                 value: /u01/oracle/wlserver
               - name: MW_HOME
                 value: /u01/oracle
-              - name: RESTART_MAX
-                value: "0"
       clusters:
         - apiVersion: weblogic.oracle/v1
           metadata:
