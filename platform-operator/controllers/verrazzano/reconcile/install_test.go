@@ -6,6 +6,11 @@ package reconcile
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
 	"net/url"
 	"strings"
 	"testing"
@@ -356,9 +361,6 @@ func TestUpdateBeforeInstallComplete(t *testing.T) {
 func reset() {
 	registry.ResetGetComponentsFn()
 	config.SetDefaultBomFilePath("")
-	helm.SetDefaultChartStatusFunction()
-	config.SetDefaultBomFilePath("")
-	helm.SetDefaultChartStatusFunction()
 	config.TestProfilesDir = ""
 }
 
@@ -436,16 +438,26 @@ func testUpdate(t *testing.T,
 	// Sample bom file for version validation functions
 	config.SetDefaultBomFilePath(testBomFilePath)
 	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
+	defer helm.SetDefaultActionConfigFunction()
+	helm.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helm.CreateActionConfig(true, fakeCompReleaseName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			now := time.Now()
+			return &release.Release{
+				Name:      fakeCompReleaseName,
+				Namespace: namespace,
+				Info: &release.Info{
+					FirstDeployed: now,
+					LastDeployed:  now,
+					Status:        releaseStatus,
+					Description:   "Named Release Stub",
+				},
+				Version: 1,
+			}
+		})
 	})
 
 	// Sample bom file for version validation functions
 	config.SetDefaultBomFilePath(testBomFilePath)
-	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
 	config.TestProfilesDir = relativeProfilesDir
 
 	// Create and make the request

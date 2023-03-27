@@ -1,7 +1,7 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package configmaps
+package overrides
 
 import (
 	"context"
@@ -27,9 +27,9 @@ import (
 	"go.uber.org/zap"
 )
 
-// VerrazzanoConfigMapsReconciler reconciles ConfigMaps.
+// OverridesConfigMapsReconciler reconciles ConfigMaps.
 // This controller manages install override sources from the Verrazzano CR
-type VerrazzanoConfigMapsReconciler struct {
+type OverridesConfigMapsReconciler struct {
 	client.Client
 	Scheme        *runtime.Scheme
 	log           vzlog.VerrazzanoLogger
@@ -37,14 +37,14 @@ type VerrazzanoConfigMapsReconciler struct {
 }
 
 // SetupWithManager creates a new controller and adds it to the manager
-func (r *VerrazzanoConfigMapsReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *OverridesConfigMapsReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.ConfigMap{}).
 		Complete(r)
 }
 
 // Reconcile the ConfigMap
-func (r *VerrazzanoConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *OverridesConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	if ctx == nil {
 		ctx = context.TODO()
@@ -75,7 +75,7 @@ func (r *VerrazzanoConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl
 
 // reconcileInstallOverrideConfigMap looks through the Verrazzano CR for the ConfigMap
 // if the request is from the same namespace as the CR
-func (r *VerrazzanoConfigMapsReconciler) reconcileInstallOverrideConfigMap(ctx context.Context, req ctrl.Request, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
+func (r *OverridesConfigMapsReconciler) reconcileInstallOverrideConfigMap(ctx context.Context, req ctrl.Request, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 
 	// Get the ConfigMap present in the Verrazzano CR namespace
 	configMap := &corev1.ConfigMap{}
@@ -142,7 +142,7 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileInstallOverrideConfigMap(ctx c
 }
 
 // initialize logger for ConfigMap
-func (r *VerrazzanoConfigMapsReconciler) initLogger(cm corev1.ConfigMap) (ctrl.Result, error) {
+func (r *OverridesConfigMapsReconciler) initLogger(cm corev1.ConfigMap) (ctrl.Result, error) {
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
 		Name:           cm.Name,

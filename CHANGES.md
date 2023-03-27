@@ -5,6 +5,10 @@ Component version updates:
 - WebLogic Kubernetes Operator v4.0.5
 - WebLogic Monitoring Exporter v2.1.2
 
+Fixes:
+
+- Disabled the startupapicheck job in cert-manager startup.
+
 ### v1.5.0
 Features:
 

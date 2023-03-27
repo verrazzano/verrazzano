@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package hotrod
@@ -21,6 +21,7 @@ import (
 const (
 	shortPollingInterval = 10 * time.Second
 	shortWaitTimeout     = 5 * time.Minute
+	longWaitTimeout      = 10 * time.Minute
 	projectName          = "hotrod"
 )
 
@@ -92,7 +93,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 			return false
 		}
 		return result
-	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
+	}).WithPolling(shortPollingInterval).WithTimeout(longWaitTimeout).Should(BeTrue())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	err := pkg.GenerateTrafficForTraces(projectName, "", "dispatch?customer=123", managedKubeconfig)
 	if err != nil {

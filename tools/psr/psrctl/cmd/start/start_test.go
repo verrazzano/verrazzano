@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package start
@@ -49,13 +49,13 @@ func TestStartCmd(t *testing.T) {
 	}
 
 	defer func() { scenario.StartUpgradeFunc = helmcli.Upgrade }()
-	scenario.StartUpgradeFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+	scenario.StartUpgradeFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (err error) {
 		assert.Equal(t, 4, len(overrides))
 		assert.Equal(t, "psr-ops-s1-ops-writelogs-0", releaseName)
 		assert.Equal(t, "psr", namespace)
 		assert.Contains(t, chartDir, "manifests/charts/worker")
 
-		return nil, nil, nil
+		return nil
 	}
 
 	// Send the command output to a byte buffer
@@ -201,13 +201,13 @@ func TestStartDir(t *testing.T) {
 	}
 
 	defer func() { scenario.StartUpgradeFunc = helmcli.Upgrade }()
-	scenario.StartUpgradeFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+	scenario.StartUpgradeFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (err error) {
 		assert.Equal(t, 4, len(overrides))
 		assert.Equal(t, "psr-ops-test-ops-writelogs-0", releaseName)
 		assert.Equal(t, "default", namespace)
 		assert.Contains(t, chartDir, "manifests/charts/worker")
 
-		return nil, nil, nil
+		return nil
 	}
 
 	// Send the command output to a byte buffer

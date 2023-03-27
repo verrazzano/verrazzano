@@ -28,13 +28,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.3.1-20230302040354-bf21e9603",
+              "tag": "v1.3.1-20230322153500-05e7a995d",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "v1.3.1-20230302040354-bf21e9603",
+              "tag": "v1.3.1-20230322153500-05e7a995d",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -199,7 +199,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.3.1-20230302040354-bf21e9603",
+              "tag": "v1.3.1-20230322153500-05e7a995d",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             },
@@ -244,17 +244,17 @@
             },
             {
               "image": "opensearch",
-              "tag": "2.3.0-20230210125230-1ff5dd09b32",
+              "tag": "2.3.0-20230324071613-ae6dc07e5dd",
               "helmFullImageKey": "monitoringOperator.osImage"
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "2.3.0-20230209072030-f9e6353395",
+              "tag": "2.3.0-20230324072109-f9e6353395",
               "helmFullImageKey": "monitoringOperator.osdImage"
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.3.1-20230302040354-bf21e9603",
+              "tag": "v1.3.1-20230322153500-05e7a995d",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             }
           ]
@@ -788,7 +788,7 @@
           "images": [
             {
               "image": "thanos",
-              "tag": "v0.28.0-20230307214739-f86032ae",
+              "tag": "v0.28.0-20230322155710-8af2d756",
               "helmRegKey": "image.registry",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
