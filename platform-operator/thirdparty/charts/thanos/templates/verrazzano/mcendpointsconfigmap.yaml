@@ -8,3 +8,4 @@ metadata:
 # TODO labels?
 data:
   servicediscovery.yml: ""
+{{- end}}

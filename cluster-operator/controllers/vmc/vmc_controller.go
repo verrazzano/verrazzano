@@ -271,7 +271,7 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 		}
 	}
 
-	err = r.syncThanosQueryEndpoint(ctx, vmc, log)
+	err = r.syncThanosQueryEndpoint(ctx, vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to update Thanos Query endpoint managed cluster", err, log)
 		return newRequeueWithDelay(), err
@@ -407,6 +407,9 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileManagedClusterDelete(ctx c
 		return err
 	}
 	if err := r.unregisterClusterFromArgoCD(ctx, vmc); err != nil {
+		return err
+	}
+	if err := r.deleteClusterThanosEndpoint(ctx, vmc); err != nil {
 		return err
 	}
 	return r.deleteClusterFromRancher(ctx, vmc)

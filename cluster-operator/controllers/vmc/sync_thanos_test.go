@@ -50,7 +50,7 @@ func TestVerrazzanoManagedClusterReconciler_addThanosHostIfNotPresent(t *testing
 				Client: cli,
 				log:    log,
 			}
-			err := r.addThanosHostIfNotPresent(ctx, tt.host, log)
+			err := r.addThanosHostIfNotPresent(ctx, tt.host)
 			if tt.expectError {
 				assert.Error(t, err, "Expected error")
 			} else {
@@ -148,7 +148,7 @@ func TestVerrazzanoManagedClusterReconciler_syncThanosQueryEndpoint(t *testing.T
 				Client: cli,
 				log:    log,
 			}
-			err := r.syncThanosQueryEndpoint(ctx, vmc, log)
+			err := r.syncThanosQueryEndpoint(ctx, vmc)
 			assert.NoError(t, err)
 			assertThanosEndpointsConfigMap(t, cli, ctx, tt.expectedConfigMapHosts, tt.hostname, tt.hostShouldExistInCM)
 		})
