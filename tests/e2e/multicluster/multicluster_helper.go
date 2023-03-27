@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	errs "errors"
 	"fmt"
+	"gopkg.in/yaml.v2"
 	"io"
 	"os"
 	"os/exec"
@@ -518,8 +519,12 @@ func (c *Cluster) GetCR(waitForReady bool) *vzapi.Verrazzano {
 			if err != nil {
 				return err
 			}
+			marshal, err := yaml.Marshal(cr)
+			if err != nil {
+				pkg.Log(pkg.Info, fmt.Sprintf("CR resource not ready yet: %v", string(marshal)))
+				return err
+			}
 			if cr.Status.State != vzapi.VzStateReady {
-				pkg.Log(pkg.Error, fmt.Sprintf("CR resource not ready yet: %v", cr))
 				return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
 			}
 			return nil
