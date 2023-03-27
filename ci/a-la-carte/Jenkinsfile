@@ -210,20 +210,6 @@ pipeline {
             }
         }
 
-        stage('Verify Install') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
-            }
-            steps {
-                runGinkgoRandomize('verify-install')
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-            }
-        }
 
         stage('Enable Edge Stack') {
             environment {
@@ -262,7 +248,6 @@ pipeline {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install/promstack"
             }
             steps {
-                runGinkgoRandomize('verify-install')
                 runGinkgoRandomize('verify-install/promstack')
             }
             post {
@@ -321,11 +306,10 @@ pipeline {
 
         stage('Verify Install after Application stack enabled') {
             environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra"
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra/vmi"
             }
             steps {
-                runGinkgoRandomize('verify-infra')
-                runGinkgoRandomize('verify-install')
+                runGinkgoRandomize('verify-infra/vmi')
             }
             post {
                 always {
