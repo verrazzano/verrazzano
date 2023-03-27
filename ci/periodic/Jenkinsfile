@@ -1,0 +1,153 @@
+// Copyright (c) 2023, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+def ociOsRegion = "us-phoenix-1"
+def ociOsBucket = "verrazzano-builds"
+def urlTriggerBranchName = env.BRANCH_NAME.replace('/', '%2F')
+def lastStableCommitFile = "last-stable-commit.txt"
+
+pipeline {
+    options {
+        timeout(time: 4, unit: 'HOURS')
+        skipDefaultCheckout true
+        disableConcurrentBuilds()
+        timestamps ()
+    }
+
+    agent {
+       docker {
+            image "${RUNNER_DOCKER_IMAGE}"
+            args "${RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            registryCredentialsId 'ocir-pull-and-push-account'
+            label "${agentLabel}"
+        }
+    }
+
+    parameters {
+        string (name: 'TAGGED_TESTS',
+                defaultValue: '',
+                description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
+                trim: true)
+        string (name: 'INCLUDED_TESTS',
+                defaultValue: '.*',
+                description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*',
+                trim: true)
+        string (name: 'EXCLUDED_TESTS',
+                defaultValue: '_excluded_test',
+                description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
+                trim: true)
+        booleanParam (description: 'Force execution of the tests even if up-to-date', name: 'FORCE', defaultValue: false)
+        booleanParam (description: 'Skip test execution (for debugging)', name: 'DRY_RUN', defaultValue: false)
+    }
+
+    environment {
+        IS_PERIODIC_PIPELINE = "true"
+        OCIR_SCAN_COMPARTMENT = credentials('ocir-scan-compartment')
+        OCIR_SCAN_TARGET = credentials('ocir-scan-target')
+        OCIR_SCAN_REGISTRY = credentials('ocir-scan-registry')
+        OCIR_SCAN_REPOSITORY_PATH = credentials('ocir-scan-repository-path')
+        DOCKER_SCAN_CREDS = credentials('v8odev-ocir')
+        DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_REPO = 'ghcr.io'
+
+        OCI_CLI_AUTH="instance_principal"
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_OS_BUCKET="verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
+        SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
+
+        STABLE_COMMIT_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-stable-commit.txt"
+        LAST_PERIODIC_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-periodic-run-commit.txt"
+        CLEAN_PERIODIC_OS_LOCATION = "${CLEAN_BRANCH_NAME}-last-clean-periodic-test/verrazzano_periodic-commit.txt"
+
+        STABLE_COMMIT_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
+        LAST_PERIODIC_LOCATION = "${WORKSPACE}/last-periodic-run-commit.txt"
+        CLEAN_PERIODIC_LOCATION = "${WORKSPACE}/last-clean-periodic-commit.txt"
+
+        OCI_OS_REGION="us-phoenix-1"
+    }
+
+    stages {
+        stage('Clean workspace and checkout') {
+            steps {
+                script {
+                    cleanWorkspaceAndCheckout()
+                }
+            }
+        }
+
+        stage('Build Release Distributions') {
+            steps {
+                sh """
+                    ci/scripts/build_distribution.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${VERRAZZANO_DEV_VERSION}
+                """
+            }
+        }
+
+        stage('Private Registry Tests') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    anyOf {
+                        branch 'master';
+                        branch 'release-*';
+                    }
+                }
+            }
+            parallel {
+                stage('Private Registry - Lite Distribution') {
+                    steps {
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                        string(name: 'DISTRIBUTION_VARIANT', value: 'Lite'),
+                                        string(name: 'ZIPFILE_LOCATION', value: liteBundle)
+                                    ], wait: true
+                            }
+                        }
+                    }
+                }
+
+                stage('Private Registry - Full Distribution') {
+                    steps {
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                            string(name: 'DISTRIBUTION_VARIANT', value: 'Full'),
+                                                string(name: 'ZIPFILE_LOCATION', value: fullBundle)
+                                    ], wait: true
+                            }
+                        }
+                    }
+                }
+                stage('Push to OCIR for scanning') {
+                    environment {
+                        OCI_CLI_AUTH="api_key"
+                        OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
+                        OCI_CLI_USER = credentials('oci-dev-user-ocid')
+                        OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
+                        OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
+                        OCI_CLI_REGION = "us-ashburn-1"
+                        OCI_REGION = "${env.OCI_CLI_REGION}"
+                        // Directory containing the Verrazzano image tar files
+                        VERRAZZANO_IMAGES_DIRECTORY = "${WORKSPACE}/vz-full/verrazzano-${VERRAZZANO_DEV_VERSION}/images"
+                    }
+                    steps {
+                        script {
+                            sh """
+                                echo "Pushing images to OCIR, these are treated as the latest scan results for ${CLEAN_BRANCH_NAME}"
+                                ci/scripts/push_to_ocir.sh
+                            """
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
