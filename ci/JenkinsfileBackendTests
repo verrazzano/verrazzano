@@ -57,6 +57,7 @@ pipeline {
             label "${agentLabel}"
         }
     }
+
     triggers {
         cron(branchSpecificSchedule)
         URLTrigger(
