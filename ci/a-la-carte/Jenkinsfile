@@ -230,8 +230,7 @@ pipeline {
                     ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
 
                     # Log the vz status to get the URLs
-                    sleep 10
-                    ${GO_REPO_PATH}/vz version
+                    ${GO_REPO_PATH}/vz status
                 """
             }
 
@@ -299,7 +298,7 @@ pipeline {
 
                     # Log the vz status to get the URLs
                     sleep 10
-                    ${GO_REPO_PATH}/vz version
+                    ${GO_REPO_PATH}/vz status
                 """
             }
 
