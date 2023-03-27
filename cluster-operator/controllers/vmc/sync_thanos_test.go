@@ -77,7 +77,7 @@ func TestRemoveThanosHostFromConfigMap(t *testing.T) {
 			log := vzlog.DefaultLogger()
 			ctx := context.TODO()
 			cli := fake.NewClientBuilder().WithRuntimeObjects(
-				makeThanosConfigMapWithExistingHosts(t, tt.existingHosts, false),
+				makeThanosConfigMapWithExistingHosts(t, tt.existingHosts, tt.useValidCM),
 			).Build()
 			r := &VerrazzanoManagedClusterReconciler{
 				Client: cli,
@@ -143,7 +143,7 @@ func TestSyncThanosQueryEndpoint(t *testing.T) {
 				Status:     vmcStatus,
 			}
 			cli := fake.NewClientBuilder().WithRuntimeObjects(
-				makeThanosConfigMapWithExistingHosts(t, tt.configMapExistingHosts, false),
+				makeThanosConfigMapWithExistingHosts(t, tt.configMapExistingHosts, true),
 			).Build()
 			r := &VerrazzanoManagedClusterReconciler{
 				Client: cli,
