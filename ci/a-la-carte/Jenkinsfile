@@ -229,6 +229,8 @@ pipeline {
                     # wait for Verrazzano install to complete
                     ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
 
+                    waitForPodsToBeUp()
+
                     # Log the vz status to get the URLs
                     ${GO_REPO_PATH}/vz status
                 """
@@ -296,8 +298,9 @@ pipeline {
                     # wait for Verrazzano install to complete
                     ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
 
+                    waitForPodsToBeUp()
+
                     # Log the vz status to get the URLs
-                    sleep 10
                     ${GO_REPO_PATH}/vz status
                 """
             }
@@ -506,4 +509,10 @@ def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
             fi
         """
     }
+}
+
+def waitForPodsToBeUp() {
+    sh """
+         kubectl wait -A --for=condition=ready pod --all --timeout 20m
+    """
 }
