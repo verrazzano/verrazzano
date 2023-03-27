@@ -28,7 +28,6 @@ import (
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -708,24 +707,6 @@ func createOrUpdateIngress(ctx spi.ComponentContext) error {
 		ExtraAnnotations: common.SameSiteCookieAnnotations(prometheusName),
 	}
 	return common.CreateOrUpdateSystemComponentIngress(ctx, promProps)
-}
-
-// isThanosEnabled checks to see if the Thanos section of the Prometheus spec is populated
-func isThanosEnabled(ctx spi.ComponentContext) (bool, error) {
-	prometheusList := promoperapi.PrometheusList{}
-	err := ctx.Client().List(context.TODO(), &prometheusList, &client.ListOptions{Namespace: constants.VerrazzanoMonitoringNamespace})
-	if meta.IsNoMatchError(err) {
-		return false, nil
-	}
-	if err != nil {
-		return false, ctx.Log().ErrorfNewErr("Failed to list Prometheus objects in the %s namespace: %v", constants.VerrazzanoMonitoringNamespace, err)
-	}
-	for _, prometheus := range prometheusList.Items {
-		if prometheus.Spec.Thanos != nil {
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 // deleteNetworkPolicy deletes the existing NetworkPolicy. Since the NetworkPolicy is now part of the Helm chart,
