@@ -10,10 +10,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/thanos"
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -44,8 +46,9 @@ func TestAddThanosHostIfNotPresent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			log := vzlog.DefaultLogger()
 			ctx := context.TODO()
-			cli := fake.NewClientBuilder().WithRuntimeObjects(
+			cli := fake.NewClientBuilder().WithScheme(makeThanosTestScheme()).WithRuntimeObjects(
 				makeThanosConfigMapWithExistingHosts(t, tt.existingHosts, tt.useValidCM),
+				makeThanosEnabledVerrazzano(),
 			).Build()
 			r := &VerrazzanoManagedClusterReconciler{
 				Client: cli,
@@ -76,8 +79,9 @@ func TestRemoveThanosHostFromConfigMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			log := vzlog.DefaultLogger()
 			ctx := context.TODO()
-			cli := fake.NewClientBuilder().WithRuntimeObjects(
+			cli := fake.NewClientBuilder().WithScheme(makeThanosTestScheme()).WithRuntimeObjects(
 				makeThanosConfigMapWithExistingHosts(t, tt.existingHosts, tt.useValidCM),
+				makeThanosEnabledVerrazzano(),
 			).Build()
 			r := &VerrazzanoManagedClusterReconciler{
 				Client: cli,
@@ -142,8 +146,9 @@ func TestSyncThanosQueryEndpoint(t *testing.T) {
 				ObjectMeta: v12.ObjectMeta{Name: "somename", Namespace: constants.VerrazzanoMultiClusterNamespace},
 				Status:     vmcStatus,
 			}
-			cli := fake.NewClientBuilder().WithRuntimeObjects(
+			cli := fake.NewClientBuilder().WithScheme(makeThanosTestScheme()).WithRuntimeObjects(
 				makeThanosConfigMapWithExistingHosts(t, tt.configMapExistingHosts, true),
+				makeThanosEnabledVerrazzano(),
 			).Build()
 			r := &VerrazzanoManagedClusterReconciler{
 				Client: cli,
@@ -153,6 +158,24 @@ func TestSyncThanosQueryEndpoint(t *testing.T) {
 			assert.NoError(t, err)
 			assertThanosEndpointsConfigMap(t, cli, ctx, tt.expectedConfigMapHosts, tt.hostname, tt.hostShouldExistInCM)
 		})
+	}
+}
+
+func makeThanosTestScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	_ = v1beta1.AddToScheme(scheme)
+	_ = v1.AddToScheme(scheme)
+	return scheme
+}
+
+func makeThanosEnabledVerrazzano() *v1beta1.Verrazzano {
+	trueVal := true
+	return &v1beta1.Verrazzano{
+		Spec: v1beta1.VerrazzanoSpec{
+			Components: v1beta1.ComponentSpec{
+				Thanos: &v1beta1.ThanosComponent{Enabled: &trueVal},
+			},
+		},
 	}
 }
 
