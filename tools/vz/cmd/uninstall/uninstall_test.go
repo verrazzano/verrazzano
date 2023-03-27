@@ -60,6 +60,9 @@ func TestUninstallCmd(t *testing.T) {
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
 
+	// Suppressing uninstall prompt
+	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "false")
+
 	// Run uninstall command, check for the expected status results to be displayed
 	err := cmd.Execute()
 	assert.NoError(t, err)
@@ -108,6 +111,9 @@ func TestUninstallCmdUninstallJob(t *testing.T) {
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
 
+	// Suppressing uninstall prompt
+	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "false")
+
 	// Run uninstall command, check for the expected status results to be displayed
 	err := cmd.Execute()
 	assert.NoError(t, err)
@@ -151,6 +157,9 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	_ = cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	defer os.RemoveAll(tempKubeConfigPath.Name())
 
+	// Suppressing uninstall prompt
+	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "false")
+
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.Error(t, err)
@@ -193,6 +202,9 @@ func TestUninstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	_ = cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	_ = cmd.PersistentFlags().Set(constants.AutoBugReportFlag, "false")
 
+	// Suppressing uninstall prompt
+	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "false")
+
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.Error(t, err)
@@ -228,6 +240,9 @@ func TestUninstallCmdDefaultNoWait(t *testing.T) {
 	assert.NotNil(t, cmd)
 	_ = cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 
+	// Suppressing uninstall prompt
+	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "false")
+
 	// Run uninstall command
 	err := cmd.Execute()
 	assert.NoError(t, err)
@@ -256,6 +271,9 @@ func TestUninstallCmdJsonLogFormat(t *testing.T) {
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "json")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+
+	// Suppressing uninstall prompt
+	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "false")
 
 	// Run uninstall command
 	err := cmd.Execute()
@@ -289,6 +307,9 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	defer os.RemoveAll(tempKubeConfigPath.Name())
+
+	// Suppressing uninstall prompt
+	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "false")
 
 	// Run uninstall command
 	err := cmd.Execute()
@@ -330,6 +351,9 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	defer resetWaitRetries()
 	defer os.RemoveAll(tempKubeConfigPath.Name())
 
+	// Suppressing uninstall prompt
+	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "false")
+
 	// Run uninstall command
 	err := cmd.Execute()
 	assert.Error(t, err)
@@ -354,6 +378,9 @@ func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	rc.SetClient(c)
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
+
+	// Suppressing uninstall prompt
+	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "false")
 
 	// Run uninstall command
 	err := cmd.Execute()
