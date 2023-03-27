@@ -580,12 +580,3 @@ def getLatestReleaseVersion() {
     echo "gitTags = ${gitTags}"
     return gitTags.pop()
 }
-
-def getCronSchedule() {
-    if (env.BRANCH_NAME.equals("master")) {
-
-        //Set cron job to run every Friday at 9 AM
-        return "0 9 * * 5"
-    }
-    return ""
-}
