@@ -155,8 +155,8 @@ func isThanosSidecarEnabled() (bool, error) {
 	return false, nil
 }
 
-// isThanosInstalled returns true if Thanos is disabled, or if Thanos is enabled and the sidecar container is found
-func isThanosInstalled() (bool, error) {
+// isThanosSidecarInstalledIfEnabled returns true if Thanos is disabled, or if Thanos is enabled and the sidecar container is found
+func isThanosSidecarInstalledIfEnabled() (bool, error) {
 	enabled, err := isThanosSidecarEnabled()
 	if err != nil {
 		return false, err
@@ -315,7 +315,7 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 		// THEN we see that the Thanos sidecar exists
 		WhenPromStackInstalledIt("should have the Thanos sidecar if enabled", func() {
 			Eventually(func() (bool, error) {
-				return isThanosInstalled()
+				return isThanosSidecarInstalledIfEnabled()
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 

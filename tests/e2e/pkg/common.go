@@ -13,6 +13,7 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strconv"
 	"strings"
 	"sync"
@@ -747,31 +748,24 @@ func IngressesExist(vz *v1alpha1.Verrazzano, namespace string, ingressNames []st
 		Log(Info, "Component NGINX is disabled, skipping Ingress check.")
 		return true, nil
 	}
-	ingresses, err := ListIngresses(namespace)
+
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to list ingresses in namespace %s", namespace))
+		return false, err
 	}
 
-	// Initialize map for search later
-	ingressMap := map[string]bool{}
-	for _, ingName := range ingressNames {
-		ingressMap[ingName] = false
-	}
-
-	// Populate found ingresses
-	for _, ing := range ingresses.Items {
-		if _, ok := ingressMap[ing.Name]; ok {
-			ingressMap[ing.Name] = true
-		}
-	}
-
-	// List all not found ingresses
 	missing := []string{}
-	for ingName, exists := range ingressMap {
-		if !exists {
-			missing = append(missing, ingName)
+	for _, name := range ingressNames {
+		_, err := clientset.NetworkingV1().Ingresses(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+		if client.IgnoreNotFound(err) != nil {
+			Log(Error, fmt.Sprintf("Failed to get Ingress %s/%s from the cluster: %v", namespace, name, err))
+			return false, err
+		}
+		if errors.IsNotFound(err) {
+			missing = append(missing, name)
 		}
 	}
+
 	if len(missing) > 0 {
 		Log(Info, fmt.Sprintf("Ingresses %s not running in namespace %s", missing, namespace))
 		return false, nil
