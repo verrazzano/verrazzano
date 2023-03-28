@@ -200,6 +200,9 @@ func setVzK8sVersion(vzHelper helpers.VZHelper, cmd *cobra.Command) error {
 	if err != nil {
 		return err
 	}
+	if client == nil {
+		return errors.New("client error")
+	}
 	// set vz version
 	if err = helpers.SetVzVer(&client); err != nil {
 		return err
