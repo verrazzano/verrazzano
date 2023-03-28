@@ -23,6 +23,8 @@ import (
 	v12 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -30,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
 
@@ -738,4 +741,34 @@ func IsVerrazzanoManaged(labels map[string]string) bool {
 		return val == "true"
 	}
 	return false
+}
+
+func IngressesExist(vz *v1alpha1.Verrazzano, namespace string, ingressNames []string) (bool, error) {
+	if !vzcr.IsNGINXEnabled(vz) {
+		Log(Info, "Component NGINX is disabled, skipping Ingress check.")
+		return true, nil
+	}
+
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return false, err
+	}
+
+	missing := []string{}
+	for _, name := range ingressNames {
+		_, err := clientset.NetworkingV1().Ingresses(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+		if client.IgnoreNotFound(err) != nil {
+			Log(Error, fmt.Sprintf("Failed to get Ingress %s/%s from the cluster: %v", namespace, name, err))
+			return false, err
+		}
+		if errors.IsNotFound(err) {
+			missing = append(missing, name)
+		}
+	}
+
+	if len(missing) > 0 {
+		Log(Info, fmt.Sprintf("Ingresses %s do not exist in namespace %s", missing, namespace))
+		return false, nil
+	}
+	return true, err
 }

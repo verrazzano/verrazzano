@@ -148,7 +148,7 @@ func formatIngressOverrides(ctx spi.ComponentContext, props ingressOverridePrope
 		ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", props.Subdomain)
 		kvs = append(kvs, []bom.KeyValue{
 			{Key: fmt.Sprintf(`%s.annotations.external-dns\.alpha\.kubernetes\.io/target`, props.KeyPrefix), Value: ingressTarget},
-			{Key: fmt.Sprintf(`%s.annotations.external-dns\.alpha\.kubernetes\.io/ttl`, props.KeyPrefix), Value: "60"},
+			{Key: fmt.Sprintf(`%s.annotations.external-dns\.alpha\.kubernetes\.io/ttl`, props.KeyPrefix), Value: "60", SetString: true},
 		}...)
 	}
 	return kvs

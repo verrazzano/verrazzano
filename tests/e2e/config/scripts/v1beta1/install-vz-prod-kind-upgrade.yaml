@@ -26,6 +26,15 @@ spec:
                   - key: rancher-sync
                     operator: In
                     values: [ enabled ]
+    prometheusOperator:
+      enabled: true
+      overrides:
+        - values:
+            prometheus:
+              thanos:
+                integration: sidecar
+    thanos:
+      enabled: true
     # Prometheus Operator components are not included to account for upgrade tests
   volumeClaimSpecTemplates:
     - metadata:
