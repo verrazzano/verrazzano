@@ -46,6 +46,23 @@ type VZHelper interface {
 	GetDynamicClient(cmd *cobra.Command) (dynamic.Interface, error)
 }
 
+type ReportCtx struct {
+	ReportFile           string
+	ReportFormat         string
+	IncludeSupportData   bool
+	IncludeInfo          bool
+	IncludeActions       bool
+	MinConfidence        int
+	MinImpact            int
+	PrintReportToConsole bool
+}
+
+type ClusterSnapshotCtx struct {
+	BugReportDir         string
+	MoreNS               []string
+	PrintReportToConsole bool
+}
+
 const defaultVerrazzanoTmpl = `apiVersion: install.verrazzano.io/%s
 kind: Verrazzano
 metadata:

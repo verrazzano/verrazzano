@@ -79,6 +79,17 @@ func listEnabledComponents() []string {
 	return enabledPods
 }
 
+func listDisabledComponents() []string {
+	kubeconfigPath := getKubeConfigOrAbort()
+	var disabledPods []string
+	for _, component := range promStackEnabledComponents {
+		if !component.enabledFunc(kubeconfigPath) {
+			disabledPods = append(disabledPods, component.podName)
+		}
+	}
+	return disabledPods
+}
+
 func isPrometheusOperatorEnabled() bool {
 	return pkg.IsPrometheusOperatorEnabled(getKubeConfigOrAbort())
 }
@@ -182,6 +193,22 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 				result, err := pkg.PodsRunning(constants.VerrazzanoMonitoringNamespace, enabledPods)
 				if err != nil {
 					AbortSuite(fmt.Sprintf("Pods %v is not running in the namespace: %v, error: %v", enabledPods, constants.VerrazzanoMonitoringNamespace, err))
+				}
+				return result
+			}
+			Eventually(promStackPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+
+		// GIVEN the Prometheus stack is installed
+		// WHEN we check to make sure any disabled pods are NOT running
+		// THEN we successfully find the running pods
+		WhenPromStackInstalledIt("Disabled pods not running", func() {
+			promStackPodsRunning := func() bool {
+				disabledPods := listDisabledComponents()
+				t.Logs.Debugf("Checking disabled component pods %v", disabledPods)
+				result, err := pkg.PodsNotRunning(constants.VerrazzanoMonitoringNamespace, disabledPods)
+				if err != nil {
+					AbortSuite(fmt.Sprintf("Unexpected error occurred checking for pods %v in namespace: %v, error: %v", disabledPods, constants.VerrazzanoMonitoringNamespace, err))
 				}
 				return result
 			}
