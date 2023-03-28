@@ -15,7 +15,7 @@ resName=$(kubectl get vz -o jsonpath='{.items[*].metadata.name}')
 echo "waiting for install of resource ${resName} to complete"
 while [[ $retval_success -ne 0 ]] && [[ $retval_failed -ne 0 ]]  && [[ $i -lt 45 ]]  ; do
   sleep 60
-  vzstate=$(kubectl get vz my-verrazzano -o jsonpath={.status.state})
+  vzstate=$(kubectl get vz ${resName} -o jsonpath={.status.state})
   echo "vz/${resName} state: ${vzstate}"
   # Only check the status if the CR is in the ready state
   if [ "${vzstate}" == "Ready" ]; then

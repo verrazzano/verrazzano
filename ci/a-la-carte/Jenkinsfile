@@ -330,7 +330,7 @@ pipeline {
 
         stage('Verify App Stack') {
             parallel {
-                stage('verify-install promstack') {
+                stage('verify-install/promstack') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install/promstack"
                     }
@@ -338,7 +338,7 @@ pipeline {
                         runGinkgoRandomize('verify-install/promstack')
                     }
                 }
-                stage('verify-infra vmi') {
+                stage('verify-infra/vmi') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra/vmi"
                     }
