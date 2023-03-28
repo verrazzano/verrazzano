@@ -34,6 +34,7 @@ const (
 	testK8sContext    = "testcontext"
 	VzVpoFailureError = "Failed to find the Verrazzano platform operator in namespace verrazzano-install"
 	PodNotFoundError  = "Waiting for verrazzano-uninstall-verrazzano, verrazzano-uninstall-verrazzano pod not found in namespace verrazzano-install"
+	BugReportNotExist = "cannot find bug report file in current directory"
 )
 
 // TestUninstallCmd
@@ -158,7 +159,7 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	assert.Equal(t, "Error: Failed to uninstall Verrazzano: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
 	ensureResourcesNotDeleted(t, c)
 	if !helpers.CheckBugReportExistsInDir("") {
-		t.Fatal("cannot find bug report file in current directory")
+		t.Fatal(BugReportNotExist)
 	}
 }
 
@@ -297,7 +298,7 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	assert.ErrorContains(t, err, VzVpoFailureError)
 	assert.Contains(t, errBuf.String(), VzVpoFailureError)
 	if !helpers.CheckBugReportExistsInDir("") {
-		t.Fatal("cannot find bug report file in current directory")
+		t.Fatal(BugReportNotExist)
 	}
 }
 
@@ -338,7 +339,7 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	assert.ErrorContains(t, err, PodNotFoundError)
 	assert.Contains(t, errBuf.String(), PodNotFoundError)
 	if !helpers.CheckBugReportExistsInDir("") {
-		t.Fatal("cannot find bug report file in current directory")
+		t.Fatal(BugReportNotExist)
 	}
 }
 
