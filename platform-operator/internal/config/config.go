@@ -83,6 +83,7 @@ type OperatorConfig struct {
 	// DryRun Run installs in a dry-run mode
 	DryRun bool
 
+	// ExperimentalCRDS toggles the VPO to run with experimental CRDs
 	ExperimentalCRDS bool
 }
 
