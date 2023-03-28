@@ -83,7 +83,7 @@ func TestBugReportExistingReportFile(t *testing.T) {
 	assert.NoError(t, err)
 	err = cmd.Execute()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), fmt.Sprintf("file exists"))
+	assert.Contains(t, err.Error(),"file exists")
 }
 
 // TestBugReportExistingDir
@@ -260,6 +260,7 @@ func TestDefaultBugReportReadOnlySuccess(t *testing.T) {
 	assert.NotNil(t, cmd)
 
 	pwd, err := os.Getwd()
+	assert.Nil(t, err)
 	assert.Nil(t, os.Chdir("/"))
 	defer os.Chdir(pwd)
 

@@ -14,7 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	pkghelper "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -158,7 +157,7 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	// since the Verrazzano resource gets deleted almost instantaneously
 	assert.Equal(t, "Error: Failed to uninstall Verrazzano: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
 	ensureResourcesNotDeleted(t, c)
-	if !pkghelper.CheckBugReportExistsInDir("") {
+	if !helpers.CheckBugReportExistsInDir("") {
 		t.Fatal("cannot find bug report file in current directory")
 	}
 }
@@ -201,7 +200,7 @@ func TestUninstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	assert.Equal(t, "Error: Failed to uninstall Verrazzano: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
 	ensureResourcesNotDeleted(t, c)
 	// Bug Report must not exist
-	if pkghelper.CheckBugReportExistsInDir("") {
+	if helpers.CheckBugReportExistsInDir("") {
 		t.Fatal("found bug report file in current directory")
 	}
 }
@@ -297,7 +296,7 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, VzVpoFailureError)
 	assert.Contains(t, errBuf.String(), VzVpoFailureError)
-	if !pkghelper.CheckBugReportExistsInDir("") {
+	if !helpers.CheckBugReportExistsInDir("") {
 		t.Fatal("cannot find bug report file in current directory")
 	}
 }
@@ -338,7 +337,7 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, PodNotFoundError)
 	assert.Contains(t, errBuf.String(), PodNotFoundError)
-	if !pkghelper.CheckBugReportExistsInDir("") {
+	if !helpers.CheckBugReportExistsInDir("") {
 		t.Fatal("cannot find bug report file in current directory")
 	}
 }
