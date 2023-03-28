@@ -311,20 +311,32 @@ pipeline {
             }
         }
 
-        //stage('verify-infra vmi') {
-        //    environment {
-        //        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra/vmi"
-        //    }
-        //    steps {
-        //        runGinkgoRandomize('verify-infra/vmi')
-        //    }
-        //    post {
-        //        always {
-        //            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
-        //            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-        //        }
-        //    }
-        //}
+        stage('Verify App Stack') {
+            parallel {
+                stage('verify-install promstack') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install/promstack"
+                    }
+                    steps {
+                        runGinkgoRandomize('verify-install/promstack')
+                    }
+                }
+                //stage('verify-infra vmi') {
+                //    environment {
+                //        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra/vmi"
+                //    }
+                //    steps {
+                //        runGinkgoRandomize('verify-infra/vmi')
+                //    }
+                //}
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
 
     }
     post {
