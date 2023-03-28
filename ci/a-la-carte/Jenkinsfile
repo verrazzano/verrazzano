@@ -300,7 +300,6 @@ pipeline {
                     # Log the vz status to get the URLs
                     ${GO_REPO_PATH}/vz status
                 """
-                waitForPodsToBeUp()
             }
 
             post {
@@ -507,10 +506,4 @@ def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
             fi
         """
     }
-}
-
-def waitForPodsToBeUp() {
-    sh """
-         kubectl wait -A --for=condition=ready pod --all --timeout 20m
-    """
 }
