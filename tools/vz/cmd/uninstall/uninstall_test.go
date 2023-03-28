@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	pkghelper "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -32,7 +33,6 @@ import (
 const (
 	testKubeConfig    = "kubeconfig"
 	testK8sContext    = "testcontext"
-	bugReportFilePath = "bug-report.tar.gz"
 	VzVpoFailureError = "Failed to find the Verrazzano platform operator in namespace verrazzano-install"
 	PodNotFoundError  = "Waiting for verrazzano-uninstall-verrazzano, verrazzano-uninstall-verrazzano pod not found in namespace verrazzano-install"
 )
@@ -157,10 +157,10 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	// This must be less than the 1 second polling delay to pass
 	// since the Verrazzano resource gets deleted almost instantaneously
 	assert.Equal(t, "Error: Failed to uninstall Verrazzano: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
-	assert.FileExists(t, bugReportFilePath)
-	os.Remove(bugReportFilePath)
-
 	ensureResourcesNotDeleted(t, c)
+	if !pkghelper.CheckBugReportExistsInDir("") {
+		t.Fatal("cannot find bug report file in current directory")
+	}
 }
 
 // TestUninstallCmdDefaultTimeoutNoBugReport
@@ -199,9 +199,11 @@ func TestUninstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	// This must be less than the 1 second polling delay to pass
 	// since the Verrazzano resource gets deleted almost instantaneously
 	assert.Equal(t, "Error: Failed to uninstall Verrazzano: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
-	assert.NoFileExists(t, bugReportFilePath)
-
 	ensureResourcesNotDeleted(t, c)
+	// Bug Report must not exist
+	if pkghelper.CheckBugReportExistsInDir("") {
+		t.Fatal("found bug report file in current directory")
+	}
 }
 
 // TestUninstallCmdDefaultNoWait
@@ -295,8 +297,9 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, VzVpoFailureError)
 	assert.Contains(t, errBuf.String(), VzVpoFailureError)
-	assert.FileExists(t, bugReportFilePath)
-	os.Remove(bugReportFilePath)
+	if !pkghelper.CheckBugReportExistsInDir("") {
+		t.Fatal("cannot find bug report file in current directory")
+	}
 }
 
 // TestUninstallCmdDefaultNoUninstallJob
@@ -335,8 +338,9 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, PodNotFoundError)
 	assert.Contains(t, errBuf.String(), PodNotFoundError)
-	assert.FileExists(t, bugReportFilePath)
-	os.Remove(bugReportFilePath)
+	if !pkghelper.CheckBugReportExistsInDir("") {
+		t.Fatal("cannot find bug report file in current directory")
+	}
 }
 
 // TestUninstallCmdDefaultNoVzResource

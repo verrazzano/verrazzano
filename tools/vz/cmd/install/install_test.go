@@ -28,10 +28,9 @@ import (
 )
 
 const (
-	testKubeConfig    = "kubeconfig"
-	testK8sContext    = "testcontext"
-	testFilenamePath  = "../../test/testdata/v1beta1.yaml"
-	bugReportFilePath = "bug-report.tar.gz"
+	testKubeConfig   = "kubeconfig"
+	testK8sContext   = "testcontext"
+	testFilenamePath = "../../test/testdata/v1beta1.yaml"
 )
 
 // TestInstallCmdDefaultNoWait
@@ -79,8 +78,9 @@ func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for install to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
-	assert.FileExists(t, bugReportFilePath)
-	os.Remove(bugReportFilePath)
+	if !helpers.CheckBugReportExistsInDir("") {
+		t.Fatal("cannot find bug report file in current directory")
+	}
 }
 
 // TestInstallCmdDefaultTimeoutNoBugReport
@@ -100,14 +100,16 @@ func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer os.RemoveAll(tempKubeConfigPath.Name())
 	defer cmdHelpers.SetDefaultDeleteFunc()
-	os.Remove(bugReportFilePath)
 
 	// Run install command
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for install to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
-	assert.NoFileExists(t, bugReportFilePath)
+	// Bug report must not exist
+	if helpers.CheckBugReportExistsInDir("") {
+		t.Fatal("found bug report file in current directory")
+	}
 }
 
 // TestInstallCmdDefaultNoVPO

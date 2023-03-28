@@ -23,9 +23,8 @@ import (
 )
 
 const (
-	testKubeConfig    = "kubeconfig"
-	testK8sContext    = "testcontext"
-	bugReportFilePath = "bug-report.tar.gz"
+	testKubeConfig = "kubeconfig"
+	testK8sContext = "testcontext"
 )
 
 // TestUpgradeCmdDefaultNoWait
@@ -85,8 +84,9 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
-	assert.FileExists(t, bugReportFilePath)
-	os.Remove(bugReportFilePath)
+	if !helpers.CheckBugReportExistsInDir("") {
+		t.Fatal("cannot find bug report file in current directory")
+	}
 }
 
 // TestUpgradeCmdDefaultTimeoutNoBugReport
@@ -120,7 +120,10 @@ func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
-	assert.NoFileExists(t, bugReportFilePath)
+	// Bug report must not exists
+	if helpers.CheckBugReportExistsInDir("") {
+		t.Fatal("found bug report file in current directory")
+	}
 }
 
 // TestUpgradeCmdDefaultNoVPO

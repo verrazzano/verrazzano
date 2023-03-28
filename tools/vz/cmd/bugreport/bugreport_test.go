@@ -7,8 +7,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -235,13 +233,9 @@ func TestDefaultBugReportSuccess(t *testing.T) {
 	err = cmd.Execute()
 	assert.Nil(t, err)
 
-	bugReportFilePattern := strings.Replace(constants.BugReportFileDefaultValue, "-dt", "", 1)
-	if fileMatched, _ := filepath.Glob(bugReportFilePattern); len(fileMatched) == 1 {
-		os.Remove(fileMatched[0])
-		assert.NoFileExists(t, fileMatched[0])
-		return
+	if !pkghelper.CheckBugReportExistsInDir("") {
+		t.Fatal("cannot find bug report file in current directory")
 	}
-	t.Fatal("cannot find report file in current directory")
 }
 
 // TestDefaultBugReportSuccess
@@ -272,13 +266,9 @@ func TestDefaultBugReportReadOnlySuccess(t *testing.T) {
 	err = cmd.Execute()
 	assert.Nil(t, err)
 
-	bugReportFilePattern := strings.Replace(constants.BugReportFileDefaultValue, "-dt", "", 1)
-	if fileMatched, _ := filepath.Glob(os.TempDir() + "/" + bugReportFilePattern); len(fileMatched) == 1 {
-		os.Remove(fileMatched[0])
-		assert.NoFileExists(t, fileMatched[0])
-		return
+	if !pkghelper.CheckBugReportExistsInDir(os.TempDir() + "/") {
+		t.Fatal("cannot find bug report file in temp directory")
 	}
-	t.Fatal("cannot find report file in tmp directory")
 }
 
 // TestBugReportDefaultReportFile
@@ -288,12 +278,9 @@ func TestDefaultBugReportReadOnlySuccess(t *testing.T) {
 func TestBugReportDefaultReportFile(t *testing.T) {
 	// clean up the bugreport file that is generated
 	defer func(t *testing.T) {
-		if fileMatched, _ := filepath.Glob(strings.Replace(constants.BugReportFileDefaultValue, "-dt", "", 1)); len(fileMatched) == 1 {
-			os.Remove(fileMatched[0])
-			assert.NoFileExists(t, fileMatched[0])
-			return
+		if !pkghelper.CheckBugReportExistsInDir("") {
+			t.Fatal("cannot find and delete bug report file in current directory")
 		}
-		t.Fatal("cannot delete report file")
 	}(t)
 
 	c := getClientWithVZWatch()
@@ -549,6 +536,5 @@ func TestBugReportSuccessWithDuration(t *testing.T) {
 	if err != nil {
 		assert.Error(t, err)
 	}
-
 	assert.NoError(t, err)
 }
