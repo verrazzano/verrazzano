@@ -89,7 +89,16 @@ func (r *VerrazzanoManagedClusterReconciler) deleteClusterThanosEndpoint(ctx con
 		return nil
 	}
 
-	return r.removeThanosHostFromConfigMap(ctx, vmc.Status.ThanosHost, r.log)
+	if err := r.removeThanosHostFromConfigMap(ctx, vmc.Status.ThanosHost, r.log); err != nil {
+		return err
+	}
+	if err := r.deleteDestinationRule(vmc.Name); err != nil {
+		return err
+	}
+	if err := r.deleteServiceEntry(vmc.Name); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r *VerrazzanoManagedClusterReconciler) removeThanosHostFromConfigMap(ctx context.Context, host string, log vzlog.VerrazzanoLogger) error {
