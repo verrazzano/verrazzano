@@ -499,29 +499,29 @@ pipeline {
                     }
                 }
             }
-            stage('Release Candidate Validation Checks') {
-                steps {
-                    script {
-                            releaseValidationChecks()
-                    }
+        }
+        stage('Release Candidate Validation Checks') {
+            steps {
+                script {
+                    releaseValidationChecks()
                 }
             }
-            stage('Update Last Clean Periodic Test') {
-                environment {
-                    GIT_COMMIT_USED = "${env.GIT_COMMIT}"
+        }
+        stage('Update Last Clean Periodic Test') {
+            environment {
+                GIT_COMMIT_USED = "${env.GIT_COMMIT}"
+            }
+            steps {
+                script {
+                    sh """
+                        ci/scripts/update_last_clean_periodic_test.sh ${VERRAZZANO_DEV_VERSION}
+                    """
                 }
-                steps {
+            }
+            post {
+                success {
                     script {
-                        sh """
-                            ci/scripts/update_last_clean_periodic_test.sh ${VERRAZZANO_DEV_VERSION}
-                        """
-                    }
-                }
-                post {
-                    success {
-                        script {
-                            captureDistributionURLs()
-                        }
+                        captureDistributionURLs()
                     }
                 }
             }
