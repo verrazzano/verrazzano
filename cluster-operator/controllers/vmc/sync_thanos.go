@@ -209,7 +209,6 @@ func (r *VerrazzanoManagedClusterReconciler) getThanosEndpointsConfigMap(ctx con
 		Name:      ThanosManagedClusterEndpointsConfigMap,
 	}
 	configMap := v1.ConfigMap{}
-	// validate secret if it exists
 	if err := r.Get(ctx, configMapNsn, &configMap); err != nil {
 		return nil, r.log.ErrorfNewErr("failed to fetch the Thanos endpoints ConfigMap %s/%s, %v", configMapNsn.Namespace, configMapNsn.Name, err)
 	}
