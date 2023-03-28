@@ -21,6 +21,11 @@ spec:
         - source: /u01/data
     prometheusOperator:
       enabled: true
+      overrides:
+        - values:
+            prometheus:
+              thanos:
+                integration: sidecar
     prometheusAdapter:
       enabled: true
     kubeStateMetrics:
@@ -28,4 +33,6 @@ spec:
     prometheusPushgateway:
       enabled: true
     prometheusNodeExporter:
+      enabled: true
+    thanos:
       enabled: true
