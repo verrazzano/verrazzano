@@ -6,7 +6,6 @@ package webhooks
 import (
 	"context"
 	"go.uber.org/zap"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -15,10 +14,7 @@ const (
 	ValidateModulesWebhooksPath = "/validate-modules-v1alpha1-install-verrazzano-io"
 )
 
-type WebhookV1alpha1 struct {
-	client  client.Client
-	decoder *admission.Decoder
-}
+type WebhookV1alpha1 struct{}
 
 func (v *WebhookV1alpha1) Handle(_ context.Context, _ admission.Request) admission.Response {
 	zap.S().Infof("Handled module admission request")
