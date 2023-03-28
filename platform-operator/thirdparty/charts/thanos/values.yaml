@@ -184,7 +184,7 @@ query:
   ## @param query.existingSDConfigmap Name of existing ConfigMap with Ruler configuration
   ## NOTE: This will override query.sdConfig
   ##
-  existingSDConfigmap:
+  existingSDConfigmap: ""
   ## @param query.extraEnvVars Extra environment variables for Thanos Query container
   ## e.g:
   ## extraEnvVars:
