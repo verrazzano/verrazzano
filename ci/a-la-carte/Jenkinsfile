@@ -352,7 +352,7 @@ pipeline {
                     dumpK8sCluster('verify-install-post-app-stack-installation-failure-dump')
                 }
                 always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**',**/*cluster-snapshot*/**, allowEmptyArchive: true
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/*cluster-snapshot*/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
                 success {
