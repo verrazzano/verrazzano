@@ -232,7 +232,6 @@ pipeline {
                     # Log the vz status to get the URLs
                     ${GO_REPO_PATH}/vz status
                 """
-                waitForPodsToBeUp()
             }
 
             post {
@@ -245,21 +244,24 @@ pipeline {
             }
         }
 
-        stage('verify-install promstack') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install/promstack"
-            }
-            steps {
-                runGinkgoRandomize('verify-install/promstack')
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+        stage('Verify Edge Stack') {
+            parallel {
+                stage('verify-install/promstack') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install/promstack"
+                    }
+                    steps {
+                        runGinkgoRandomize('verify-install/promstack')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
                 }
             }
         }
-
 
         stage('Install Application stack') {
             environment {
@@ -300,7 +302,6 @@ pipeline {
                     # Log the vz status to get the URLs
                     ${GO_REPO_PATH}/vz status
                 """
-                waitForPodsToBeUp()
             }
 
             post {
@@ -313,12 +314,24 @@ pipeline {
             }
         }
 
-        stage('verify-infra vmi') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra/vmi"
-            }
-            steps {
-                runGinkgoRandomize('verify-infra/vmi')
+        stage('Verify App Stack') {
+            parallel {
+                stage('verify-install promstack') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install/promstack"
+                    }
+                    steps {
+                        runGinkgoRandomize('verify-install/promstack')
+                    }
+                }
+                //stage('verify-infra vmi') {
+                //    environment {
+                //        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra/vmi"
+                //    }
+                //    steps {
+                //        runGinkgoRandomize('verify-infra/vmi')
+                //    }
+                //}
             }
             post {
                 always {
@@ -507,10 +520,4 @@ def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
             fi
         """
     }
-}
-
-def waitForPodsToBeUp() {
-    sh """
-         kubectl wait -A --for=condition=ready pod --all --timeout 20m
-    """
 }

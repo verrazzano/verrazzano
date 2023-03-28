@@ -858,7 +858,7 @@ func IsPrometheusOperatorEnabled(kubeconfigPath string) bool {
 		return true
 	}
 	if vz.Spec.Components.PrometheusOperator == nil || vz.Spec.Components.PrometheusOperator.Enabled == nil {
-		return true
+		return vz.Spec.Profile != v1alpha1.None
 	}
 	return *vz.Spec.Components.PrometheusOperator.Enabled
 }
@@ -871,7 +871,7 @@ func IsPrometheusEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	if vz.Spec.Components.Prometheus == nil || vz.Spec.Components.Prometheus.Enabled == nil {
-		return true
+		return vz.Spec.Profile != v1alpha1.None
 	}
 	return *vz.Spec.Components.Prometheus.Enabled
 }
@@ -897,7 +897,7 @@ func IsKubeStateMetricsEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	if vz.Spec.Components.KubeStateMetrics == nil || vz.Spec.Components.KubeStateMetrics.Enabled == nil {
-		return false
+		return vz.Spec.Profile != v1alpha1.None
 	}
 	return *vz.Spec.Components.KubeStateMetrics.Enabled
 }
@@ -923,7 +923,7 @@ func IsPrometheusNodeExporterEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	if vz.Spec.Components.PrometheusNodeExporter == nil || vz.Spec.Components.PrometheusNodeExporter.Enabled == nil {
-		return false
+		return IsPrometheusEnabled(kubeconfigPath)
 	}
 	return *vz.Spec.Components.PrometheusNodeExporter.Enabled
 }
