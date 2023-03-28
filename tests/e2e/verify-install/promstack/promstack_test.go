@@ -83,6 +83,10 @@ func isPrometheusOperatorEnabled() bool {
 	return pkg.IsPrometheusOperatorEnabled(getKubeConfigOrAbort())
 }
 
+func isIngressEnabled() bool {
+	return pkg.IsIngressEnabled(getKubeConfigOrAbort())
+}
+
 // areOverridesEnabled - return true if the override value prometheusOperator.podAnnotations.override
 // is present and set to "true"
 func areOverridesEnabled() bool {
@@ -286,7 +290,7 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 						defaultScrapeTargets = append(defaultScrapeTargets, fmt.Sprintf("serviceMonitor/%s/%s", constants.VerrazzanoMonitoringNamespace, constants.ServiceMonitorNameKubeStateMetrics))
 					}
 
-					if isPrometheusOperatorEnabled() {
+					if isPrometheusOperatorEnabled() && isIngressEnabled() {
 						return pkg.ScrapeTargetsHealthy(defaultScrapeTargets)
 					}
 					return true, nil
