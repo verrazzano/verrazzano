@@ -279,6 +279,10 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 				return
 			}
 			vz, err := pkg.GetVerrazzanoInstallResourceInCluster(adminKubeConfig)
+			if err != nil {
+				pkg.Log(pkg.Error, fmt.Sprintf("Failed to get Verrazzano resource from the cluster: %v", err))
+				return
+			}
 			if !vzcr.IsThanosEnabled(vz) {
 				return
 			}
