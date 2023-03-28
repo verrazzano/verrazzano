@@ -74,13 +74,6 @@ pipeline {
 
     stages {
         stage('Clean workspace and checkout') {
-            when {
-                anyOf {
-                    branch 'master';
-                    branch 'release-*';
-                    expression { params.RUN_TESTS == true };
-                }
-            }
             steps {
                 script {
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
@@ -154,13 +147,6 @@ pipeline {
         }
 
         stage('Build Release Distributions') {
-            when {
-                anyOf {
-                    branch 'master';
-                    branch 'release-*';
-                    expression { params.RUN_TESTS == true };
-                }
-            }
             steps {
                 sh """
                     ci/scripts/build_distribution.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${VERRAZZANO_DEV_VERSION}
