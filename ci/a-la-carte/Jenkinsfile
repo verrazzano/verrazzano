@@ -233,6 +233,7 @@ pipeline {
                     # Log the vz status to get the URLs
                     ${GO_REPO_PATH}/vz status
                 """
+                waitForPodsToBeUp()
             }
 
             post {
@@ -246,17 +247,21 @@ pipeline {
             }
         }
 
-        stage('verify-install-promstack post edge stack installation') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install/promstack"
-            }
-            steps {
-                runGinkgoRandomize('verify-install/promstack')
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+        stage('Verify Edge Stack') {
+            parallel {
+                stage('verify-install/promstack') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install/promstack"
+                    }
+                    steps {
+                        runGinkgoRandomize('verify-install/promstack')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
                 }
                 failure {
                     dumpK8sCluster('verify-install-post-edge-stack-installation-failure-dump')
@@ -311,6 +316,7 @@ pipeline {
                     # Log the vz status to get the URLs
                     ${GO_REPO_PATH}/vz status
                 """
+                waitForPodsToBeUp()
             }
 
             post {
@@ -324,12 +330,24 @@ pipeline {
             }
         }
 
-        stage('verify-install-promstack post app stack installation') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install/promstack"
-            }
-            steps {
-                runGinkgoRandomize('verify-install/promstack')
+        stage('Verify App Stack') {
+            parallel {
+                stage('verify-install promstack') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install/promstack"
+                    }
+                    steps {
+                        runGinkgoRandomize('verify-install/promstack')
+                    }
+                }
+                //stage('verify-infra vmi') {
+                //    environment {
+                //        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra/vmi"
+                //    }
+                //    steps {
+                //        runGinkgoRandomize('verify-infra/vmi')
+                //    }
+                //}
             }
             post {
                 failure {
@@ -370,7 +388,7 @@ pipeline {
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
             """
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/*cluster-snapshot*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             deleteCluster()
         }
