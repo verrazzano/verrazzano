@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	ValidateModulesWebhookPath  = "verrazzano-modules-validator"
+	ValidateModulesWebhookPath  = "verrazzano-modules"
 	ValidateModulesWebhooksPath = "/validate-modules-v1alpha1-install-verrazzano-io"
 )
 

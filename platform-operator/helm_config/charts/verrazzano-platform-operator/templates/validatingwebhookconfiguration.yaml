@@ -180,15 +180,15 @@ webhooks:
       - v1beta1
       - v1
 ---
-{{ if .Values.experimental.modules.enabled }}
+{{ if .Values.experimental.modules }}
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
-  name: verrazzano-modules-validator
+  name: verrazzano-modules
   labels:
-    app: verrazzano-modules-validator
+    app: verrazzano-modules
 webhooks:
-  - name: modules.verrazzano.io.v1alpha1
+  - name: validate-modules.verrazzano.io.v1alpha1
     namespaceSelector:
       matchExpressions:
         - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }

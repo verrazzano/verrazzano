@@ -43,5 +43,4 @@ webhooks:
   resourceValidation: false
 
 experimental:
-  modules:
-    enabled: false
+ modules: true

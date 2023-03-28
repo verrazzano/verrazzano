@@ -83,8 +83,8 @@ type OperatorConfig struct {
 	// DryRun Run installs in a dry-run mode
 	DryRun bool
 
-	// ExperimentalCRDS toggles the VPO to run with experimental CRDs
-	ExperimentalCRDS bool
+	// ExperimentalModules toggles the VPO to run with experimental CRDs
+	ExperimentalModules bool
 }
 
 // The singleton instance of the operator config
@@ -101,7 +101,7 @@ var instance = OperatorConfig{
 	HealthCheckPeriodSeconds:       60,
 	MySQLCheckPeriodSeconds:        60,
 	MySQLRepairTimeoutSeconds:      120,
-	ExperimentalCRDS:               false,
+	ExperimentalModules:            false,
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests
