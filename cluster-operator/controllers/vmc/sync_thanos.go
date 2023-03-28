@@ -45,12 +45,16 @@ const serviceDiscoveryKey = "servicediscovery.yml"
 // TODO - we will also need to add the cluster's CA cert for Thanos Query to use
 func (r *VerrazzanoManagedClusterReconciler) syncThanosQuery(ctx context.Context,
 	vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+
+	if vmc.Status.ThanosHost == "" {
+		r.log.Oncef("Managed cluster Thanos Host not found in VMC Status for VMC %s. Not updating Thanos endpoints", vmc.Name)
+		return nil
+	}
+
 	if err := r.syncThanosQueryEndpoint(ctx, vmc); err != nil {
 		return err
 	}
-	if vmc.Status.ThanosHost == "" {
-		return nil
-	}
+
 	if err := r.createOrUpdateServiceEntry(vmc.Name, vmc.Status.ThanosHost, thanosGrpcIngressPort); err != nil {
 		return err
 	}
@@ -64,11 +68,6 @@ func (r *VerrazzanoManagedClusterReconciler) syncThanosQuery(ctx context.Context
 // Thanos store API endpoint.
 func (r *VerrazzanoManagedClusterReconciler) syncThanosQueryEndpoint(ctx context.Context,
 	vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-
-	if vmc.Status.ThanosHost == "" {
-		r.log.Oncef("Managed cluster Thanos Host not found in VMC Status for VMC %s. Not updating Thanos endpoints", vmc.Name)
-		return nil
-	}
 
 	if thanosEnabled, err := r.isThanosEnabled(); err != nil || !thanosEnabled {
 		r.log.Oncef("Thanos is not enabled on this cluster. Not updating Thanos endpoints for VMC %s", vmc.Name)
@@ -118,18 +117,23 @@ func (r *VerrazzanoManagedClusterReconciler) removeThanosHostFromConfigMap(ctx c
 		foundTargetIndex := findHost(serviceDiscovery, hostEndpoint)
 		if foundTargetIndex > -1 {
 			serviceDiscovery.Targets = append(serviceDiscovery.Targets[:foundTargetIndex], serviceDiscovery.Targets[foundTargetIndex+1:]...)
-			newServiceDiscoveryYaml, err := yaml.Marshal(serviceDiscoveryList)
-			if err != nil {
-				return log.ErrorfNewErr("Failed to serialize after removing endpoint %s from Thanos endpoints config map: %v", hostEndpoint, err)
-			}
-			_, err = controllerruntime.CreateOrUpdate(context.TODO(), r.Client, configMap, func() error {
-				configMap.Data[serviceDiscoveryKey] = string(newServiceDiscoveryYaml)
-				return nil
-			})
-			if err != nil {
-				return log.ErrorfNewErr("Failed to update Thanos endpoints config map after removing endpoint %s: %v", hostEndpoint, err)
-			}
+			return r.createOrUpdateThanosEndpointConfigMap(ctx, serviceDiscoveryList, hostEndpoint, configMap)
 		}
+	}
+	return nil
+}
+
+func (r *VerrazzanoManagedClusterReconciler) createOrUpdateThanosEndpointConfigMap(ctx context.Context, serviceDiscoveryList []*thanosServiceDiscovery, hostEndpoint string, configMap *v1.ConfigMap) error {
+	newServiceDiscoveryYaml, err := yaml.Marshal(serviceDiscoveryList)
+	if err != nil {
+		return r.log.ErrorfNewErr("Failed to serialize Thanos endpoints config map content for host %s: %v", hostEndpoint, err)
+	}
+	_, err = controllerruntime.CreateOrUpdate(ctx, r.Client, configMap, func() error {
+		configMap.Data[serviceDiscoveryKey] = string(newServiceDiscoveryYaml)
+		return nil
+	})
+	if err != nil {
+		return r.log.ErrorfNewErr("Failed to update Thanos endpoints config map after removing endpoint %s: %v", hostEndpoint, err)
 	}
 	return nil
 }
@@ -163,22 +167,11 @@ func (r *VerrazzanoManagedClusterReconciler) addThanosHostIfNotPresent(ctx conte
 			r.log.Debugf("Managed cluster endpoint %s is already present in the Thanos endpoints config map", hostEndpoint)
 			return nil
 		}
-		// not found, add this host endpoint and update the config map
-		r.log.Debugf("Adding managed cluster endpoint %s to Thanos endpoints config map", hostEndpoint)
-		serviceDiscovery.Targets = append(serviceDiscovery.Targets, hostEndpoint)
 	}
-	newServiceDiscoveryYaml, err := yaml.Marshal(serviceDiscoveryList)
-	if err != nil {
-		return r.log.ErrorfNewErr("Failed to serialize after adding endpoint %s to Thanos endpoints config map: %v", hostEndpoint, err)
-	}
-	_, err = controllerruntime.CreateOrUpdate(context.TODO(), r.Client, configMap, func() error {
-		configMap.Data[serviceDiscoveryKey] = string(newServiceDiscoveryYaml)
-		return nil
-	})
-	if err != nil {
-		return r.log.ErrorfNewErr("Failed to update Thanos endpoints config map after adding endpoint %s: %v", hostEndpoint, err)
-	}
-	return nil
+	// not found, add this host endpoint and update the config map
+	r.log.Debugf("Adding managed cluster endpoint %s to Thanos endpoints config map", hostEndpoint)
+	serviceDiscoveryList[0].Targets = append(serviceDiscoveryList[0].Targets, hostEndpoint)
+	return r.createOrUpdateThanosEndpointConfigMap(ctx, serviceDiscoveryList, hostEndpoint, configMap)
 }
 
 func findHost(serviceDiscovery *thanosServiceDiscovery, host string) int {
@@ -186,6 +179,7 @@ func findHost(serviceDiscovery *thanosServiceDiscovery, host string) int {
 	for i, target := range serviceDiscovery.Targets {
 		if target == host {
 			foundIndex = i
+			break
 		}
 	}
 	return foundIndex
