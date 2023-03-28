@@ -198,6 +198,7 @@ pipeline {
             post {
                 failure {
                     archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                    dumpK8sCluster('kind-cluster-with-none-failure-dump')
                 }
                 always {
                     archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
@@ -237,6 +238,7 @@ pipeline {
             post {
                 failure {
                     archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                    dumpK8sCluster('edge-stack-installation-failure-dump')
                 }
                 always {
                     archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
@@ -258,10 +260,21 @@ pipeline {
                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
+                        failure {
+                            dumpK8sCluster('verify-install-post-edge-stack-installation-failure-dump')
+                        }
+                        success {
+                            script {
+                                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                                    dumpK8sCluster('edge-stack-installation-cluster-snapshot')
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
+
 
         stage('Install Application stack') {
             environment {
@@ -307,6 +320,7 @@ pipeline {
             post {
                 failure {
                     archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                    dumpK8sCluster('app-stack-installation-failure-dump')
                 }
                 always {
                     archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
@@ -334,9 +348,19 @@ pipeline {
                 //}
             }
             post {
+                failure {
+                    dumpK8sCluster('verify-install-post-app-stack-installation-failure-dump')
+                }
                 always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/*cluster-snapshot*/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                success {
+                    script {
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('edge-stack-installation-cluster-snapshot')
+                        }
+                    }
                 }
             }
         }
@@ -362,7 +386,7 @@ pipeline {
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
             """
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/*cluster-snapshot*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             deleteCluster()
         }
