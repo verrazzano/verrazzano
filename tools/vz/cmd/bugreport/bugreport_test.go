@@ -83,7 +83,7 @@ func TestBugReportExistingReportFile(t *testing.T) {
 	assert.NoError(t, err)
 	err = cmd.Execute()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(),"file exists")
+	assert.Contains(t, err.Error(), "file exists")
 }
 
 // TestBugReportExistingDir
