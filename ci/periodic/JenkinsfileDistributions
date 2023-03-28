@@ -152,12 +152,6 @@ pipeline {
         }
 
         stage('Private Registry Tests') {
-            when {
-                anyOf {
-                    branch 'master';
-                    branch 'release-*';
-                }
-            }
             parallel {
                 stage('Private Registry - Lite Distribution') {
                     steps {
