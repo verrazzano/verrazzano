@@ -13,7 +13,6 @@ import (
 	"os"
 	"reflect"
 	"regexp"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strconv"
 	"strings"
 	"sync"
@@ -33,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
 
