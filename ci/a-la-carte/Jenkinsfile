@@ -198,6 +198,7 @@ pipeline {
             post {
                 failure {
                     archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                    dumpK8sCluster('kind-cluster-with-none-failure-dump')
                 }
                 always {
                     archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
@@ -232,12 +233,12 @@ pipeline {
                     # Log the vz status to get the URLs
                     ${GO_REPO_PATH}/vz status
                 """
-                waitForPodsToBeUp()
             }
 
             post {
                 failure {
                     archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                    dumpK8sCluster('edge-stack-installation-failure-dump')
                 }
                 always {
                     archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
@@ -245,7 +246,7 @@ pipeline {
             }
         }
 
-        stage('verify-install promstack') {
+        stage('verify-install-promstack post edge stack installation') {
             environment {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install/promstack"
             }
@@ -300,12 +301,12 @@ pipeline {
                     # Log the vz status to get the URLs
                     ${GO_REPO_PATH}/vz status
                 """
-                waitForPodsToBeUp()
             }
 
             post {
                 failure {
                     archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                    dumpK8sCluster('app-stack-installation-failure-dump')
                 }
                 always {
                     archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
@@ -313,12 +314,12 @@ pipeline {
             }
         }
 
-        stage('verify-infra vmi') {
+        stage('verify-install-promstack post app stack installation') {
             environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra/vmi"
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install/promstack"
             }
             steps {
-                runGinkgoRandomize('verify-infra/vmi')
+                runGinkgoRandomize('verify-install/promstack')
             }
             post {
                 always {
@@ -349,7 +350,7 @@ pipeline {
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
             """
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/*cluster-snapshot*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             deleteCluster()
         }
@@ -507,10 +508,4 @@ def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
             fi
         """
     }
-}
-
-def waitForPodsToBeUp() {
-    sh """
-         kubectl wait -A --for=condition=ready pod --all --timeout 20m
-    """
 }
