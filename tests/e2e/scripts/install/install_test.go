@@ -130,8 +130,8 @@ func getExpectedConsoleURLs(kubeConfig string) ([]string, error) {
 		// elasticsearch and kibana ingresses are created for permanent redirection when upgraded from older VZ releases to 1.5.0 or later.
 		// The Thanos Store API endpoints are not stored in the Verrazzano instance and can be ignored
 		if strings.HasPrefix(ingressHost, "elasticsearch") ||
-		    strings.HasPrefix(ingressHost, "kibana") ||
-		    strings.HasPrefix(ingressHost, "query-store") {
+			strings.HasPrefix(ingressHost, "kibana") ||
+			strings.HasPrefix(ingressHost, "query-store") {
 			continue
 		}
 		// Any verrazzano-managed ingresses in the Rancher namespace are created for managed clusters to be
@@ -140,7 +140,6 @@ func getExpectedConsoleURLs(kubeConfig string) ([]string, error) {
 		if ingress.Namespace == constants.RancherSystemNamespace && pkg.IsVerrazzanoManaged(ingress.Labels) {
 			continue
 		}
-		if strings.HasPrefix(ingressHost, "query-store")
 		// If it's not the console ingress, or it is and the console is enabled, add it to the expected set of URLs
 		if !isConsoleIngressHost(ingressHost) || consoleURLExpected {
 			expectedUrls = append(expectedUrls, fmt.Sprintf("https://%s", ingressHost))
