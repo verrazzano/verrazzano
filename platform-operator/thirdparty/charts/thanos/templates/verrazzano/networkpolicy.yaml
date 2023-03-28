@@ -1,5 +1,4 @@
 # Copyright (c) 2023, Oracle and/or its affiliates.
-# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -19,6 +18,9 @@ spec:
                 values:
                   - verrazzano-authproxy
       ports:
+        # Store API port
+        - port: 10901
+          protocol: TCP
         # web ui port
         - port: 10902
           protocol: TCP
@@ -35,7 +37,8 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
 spec:
   ingress:
-    # allow thanos-query-frontend to forward requests to thanos-query
+    # allow thanos-query-frontend to forward requests to thanos-query and
+    # thanos-query to talk to thanos-storegateway
     - from:
         - namespaceSelector:
             matchLabels:
@@ -49,6 +52,9 @@ spec:
       ports:
         # web ui port
         - port: 10902
+          protocol: TCP
+        # storegateway API endpoint
+        - port: 10901
           protocol: TCP
   podSelector:
     matchLabels:

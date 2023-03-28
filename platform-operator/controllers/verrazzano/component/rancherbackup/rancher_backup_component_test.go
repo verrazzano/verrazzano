@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancherbackup
@@ -7,10 +7,14 @@ import (
 	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -18,7 +22,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"os/exec"
 	crtclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
@@ -38,18 +41,6 @@ var rancherBackupEnabledCR = &v1alpha1.Verrazzano{
 			},
 		},
 	},
-}
-
-// genericTestRunner is used to run generic OS commands with expected results
-type genericTestRunner struct {
-	stdOut []byte
-	stdErr []byte
-	err    error
-}
-
-// Run genericTestRunner executor
-func (r genericTestRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
-	return r.stdOut, r.stdErr, r.err
 }
 
 // TestIsEnabled tests the IsEnabled function for the Rancher Backup Operator component
@@ -139,23 +130,17 @@ func TestIsInstalled(t *testing.T) {
 	}
 }
 
+func testActionConfigWithoutInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return helm.CreateActionConfig(false, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), nil)
+}
+
 func TestInstallUpgrade(t *testing.T) {
 	defer config.Set(config.Get())
-	v := NewComponent()
 	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../"})
+	v := NewComponent()
 
-	helm.SetCmdRunner(genericTestRunner{
-		stdOut: []byte(""),
-		stdErr: []byte{},
-		err:    nil,
-	})
-	defer helm.SetDefaultRunner()
-
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartNotFound, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
-
+	defer helm.SetDefaultActionConfigFunction()
+	helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(rancherBackupEnabledCR).Build()
 	ctx := spi.NewFakeContext(client, rancherBackupEnabledCR, nil, false)
 	err := v.Install(ctx)
@@ -262,6 +247,8 @@ func TestIsReady(t *testing.T) {
 // WHEN PreInstall func is called it tries to install crds
 // THEN true is returned if successful else false is returned in case of failure
 func TestPreInstall(t *testing.T) {
+	defer helm.SetDefaultActionConfigFunction()
+	helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{

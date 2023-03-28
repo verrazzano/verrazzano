@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	testKubeConfig    = "/tmp/kubeconfig"
+	testKubeConfig    = "kubeconfig"
 	testK8sContext    = "testcontext"
 	testFilenamePath  = "../../test/testdata/v1beta1.yaml"
 	bugReportFilePath = "bug-report.tar.gz"
@@ -66,11 +66,13 @@ func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
-	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
+	defer os.RemoveAll(tempKubeConfigPath.Name())
 
 	// Run install command
 	err := cmd.Execute()
@@ -91,11 +93,14 @@ func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
-	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmd.PersistentFlags().Set(constants.AutoBugReportFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer os.RemoveAll(tempKubeConfigPath.Name())
 	defer cmdHelpers.SetDefaultDeleteFunc()
+	os.Remove(bugReportFilePath)
 
 	// Run install command
 	err := cmd.Execute()
@@ -299,7 +304,7 @@ func TestInstallCmdFilenamesAndSets(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=prod")
 	cmd.PersistentFlags().Set(constants.SetFlag, "environmentName=test")
 	cmd.PersistentFlags().Set(constants.SetFlag, "components.ingress.overrides[0].values.controller.podLabels.override=\"true\"")
-	cmd.PersistentFlags().Set(constants.SetFlag, "components.ingress.overrides[1].values.controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\"=10Mbps")
+	cmd.PersistentFlags().Set(constants.SetFlag, "components.ingress.overrides[1].values.controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\"=flexible")
 	cmd.PersistentFlags().Set(constants.SetFlag, "components.ingress.enabled=true")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -326,7 +331,7 @@ func TestInstallCmdFilenamesAndSets(t *testing.T) {
 	assert.NoError(t, err)
 	outyaml, err = yaml.JSONToYAML(json)
 	assert.NoError(t, err)
-	assert.Equal(t, "controller:\n  service:\n    annotations:\n      service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps\n", string(outyaml))
+	assert.Equal(t, "controller:\n  service:\n    annotations:\n      service.beta.kubernetes.io/oci-load-balancer-shape: flexible\n", string(outyaml))
 }
 
 // TestInstallCmdOperatorFile

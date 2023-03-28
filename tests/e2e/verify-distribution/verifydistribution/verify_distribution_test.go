@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package verifydistribution
@@ -41,7 +41,7 @@ var opensourcefileslistbydir = map[string][]string{
 	"bin":       {"bom_utils.sh", "vz", "vz-registry-image-helper.sh"},
 	"manifests": {"charts", "k8s", "profiles", "verrazzano-bom.json"},
 	"k8s":       {"verrazzano-platform-operator.yaml"},
-	"profiles":  {"dev.yaml", "managed-cluster.yaml", "prod.yaml"},
+	"profiles":  {"dev.yaml", "managed-cluster.yaml", "none.yaml", "prod.yaml"},
 }
 
 var fullBundleFileslistbydir = map[string][]string{
@@ -50,7 +50,7 @@ var fullBundleFileslistbydir = map[string][]string{
 	"vz":        {"vz"},
 	"manifests": {"charts", "k8s", "profiles", "verrazzano-bom.json"},
 	"k8s":       {"verrazzano-platform-operator.yaml"},
-	"profiles":  {"dev.yaml", "managed-cluster.yaml", "prod.yaml"},
+	"profiles":  {"dev.yaml", "managed-cluster.yaml", "none.yaml", "prod.yaml"},
 }
 
 var t = framework.NewTestFramework("verifydistribution")

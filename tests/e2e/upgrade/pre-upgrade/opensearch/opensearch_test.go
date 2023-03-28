@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package opensearch
@@ -68,7 +68,7 @@ var _ = t.Describe("Pre Upgrade OpenSearch", Label("f:observability.logging.es")
 	if err != nil {
 		Expect(err).To(BeNil(), fmt.Sprintf(pkg.KubeConfigErrorFmt, err))
 	}
-	t.ItMinimumVersion("Verify OpenSearch plugins have been installed", "1.3.0", kubeConfigPath, func() {
+	t.ItMinimumVersion("Verify OpenSearch plugins have been installed", "1.6.0", kubeConfigPath, func() {
 		pkg.TestOpenSearchPlugins(pollingInterval, waitTimeout)
 	})
 })

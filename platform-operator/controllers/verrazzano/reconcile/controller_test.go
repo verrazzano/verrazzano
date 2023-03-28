@@ -8,6 +8,10 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	time2 "helm.sh/helm/v3/pkg/time"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/client-go/dynamic"
 	"reflect"
@@ -17,7 +21,6 @@ import (
 
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	constants3 "github.com/verrazzano/verrazzano/pkg/constants"
-	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	vzContext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
@@ -263,11 +266,23 @@ func TestInstallInitComponents(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
+	defer helm.SetDefaultActionConfigFunction()
+	helm.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helm.CreateActionConfig(true, name, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			now := time2.Now()
+			return &release.Release{
+				Name:      name,
+				Namespace: namespace,
+				Info: &release.Info{
+					FirstDeployed: now,
+					LastDeployed:  now,
+					Status:        releaseStatus,
+					Description:   "Named Release Stub",
+				},
+				Version: 1,
+			}
+		})
 	})
-	defer helm.SetDefaultChartStatusFunction()
 
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -420,10 +435,23 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 		config.SetDefaultBomFilePath("")
 	}()
 	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
+	defer helm.SetDefaultActionConfigFunction()
+	helm.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helm.CreateActionConfig(true, name, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			now := time2.Now()
+			return &release.Release{
+				Name:      name,
+				Namespace: namespace,
+				Info: &release.Info{
+					FirstDeployed: now,
+					LastDeployed:  now,
+					Status:        releaseStatus,
+					Description:   "Named Release Stub",
+				},
+				Version: 1,
+			}
+		})
 	})
-	defer helm.SetDefaultChartStatusFunction()
 
 	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
@@ -2061,6 +2089,29 @@ func (s *statusUpdater) Patch(ctx context.Context, obj client.Object, patch clie
 	return nil
 }
 
+func createRelease(name string, status release.Status) *release.Release {
+	now := time2.Now()
+	return &release.Release{
+		Name:      rancher.ComponentName,
+		Namespace: rancher.ComponentNamespace,
+		Info: &release.Info{
+			FirstDeployed: now,
+			LastDeployed:  now,
+			Status:        status,
+			Description:   "Named Release Stub",
+		},
+		Version: 1,
+	}
+}
+
+func testActionConfigWithInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return helm.CreateActionConfig(true, rancher.ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
+}
+
+func testActionConfigWithoutInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return helm.CreateActionConfig(false, rancher.ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
+}
+
 // TestReconcilerProcReadyState tests ProcReadyState
 func TestReconcilerProcReadyState(t *testing.T) {
 	temp := unitTesting
@@ -2069,11 +2120,7 @@ func TestReconcilerProcReadyState(t *testing.T) {
 	}()
 	unitTesting = false
 	helmOverrideNoErr := func() {
-		helm.SetCmdRunner(vzos.GenericTestRunner{
-			StdOut: []byte(""),
-			StdErr: []byte(""),
-			Err:    nil,
-		})
+		helm.SetActionConfigFunction(testActionConfigWithInstallation)
 	}
 
 	k8sClient := fakes.NewClientBuilder().WithScheme(newScheme()).Build()
@@ -2165,7 +2212,7 @@ func TestReconcilerProcReadyState(t *testing.T) {
 	}
 	defer func() { config.TestProfilesDir = "" }()
 	defer registry.ResetGetComponentsFn()
-	defer helm.SetDefaultRunner()
+	defer helm.SetDefaultActionConfigFunction()
 	for _, tt := range tests {
 		registry.OverrideGetComponentsFn(getCompFunc)
 		t.Run(tt.name, func(t *testing.T) {

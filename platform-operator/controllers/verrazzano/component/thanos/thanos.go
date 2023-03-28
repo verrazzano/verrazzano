@@ -4,6 +4,9 @@
 package thanos
 
 import (
+	"fmt"
+	"strconv"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -12,13 +15,19 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
-	// Thanos Query Frontend ingress constants
-	frontendHostName        = "thanos-query-frontend"
-	frontendCertificateName = "system-tls-thanos-query-frontend"
+	// Thanos Query ingress constants
+	queryHostName        = "thanos-query"
+	queryCertificateName = "system-tls-thanos-query"
+
+	// Thanos Query StoreAPI constants
+	queryStoreHostName        = "query-store"
+	queryStoreCertificateName = "system-tls-query-store"
 )
 
 // GetOverrides gets the install overrides for the Thanos component
@@ -38,16 +47,19 @@ func GetOverrides(object runtime.Object) interface{} {
 }
 
 // AppendOverrides appends the default overrides for the Thanos component
-func AppendOverrides(_ spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
 		return kvs, err
 	}
+
 	image, err := bomFile.BuildImageOverrides(ComponentName)
 	if err != nil {
-		return kvs, err
+		return kvs, ctx.Log().ErrorfNewErr("Failed to build Thanos image overrides from the Verrazzano BOM: %d", err)
 	}
-	return append(kvs, image...), nil
+	kvs = append(kvs, image...)
+
+	return appendIngressOverrides(ctx, kvs)
 }
 
 // preInstallUpgrade handles pre-install and pre-upgrade processing for the Thanos Component
@@ -63,29 +75,81 @@ func preInstallUpgrade(ctx spi.ComponentContext) error {
 	return common.EnsureVerrazzanoMonitoringNamespace(ctx)
 }
 
-// preInstallUpgrade handles post-install and post-upgrade processing for the Thanos Component
-func postInstallUpgrade(ctx spi.ComponentContext) error {
-	// Do nothing if dry run
-	if ctx.IsDryRun() {
-		ctx.Log().Debug("Thanos postInstallUpgrade dry run")
-		return nil
+// appendIngressOverrides generates overrides for ingress objects in the Thanos component
+func appendIngressOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	// If NGINX is disabled, prevent the ingresses from being created
+	if !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
+		return append(kvs, []bom.KeyValue{
+			{Key: "query.ingress.grpc.enabled", Value: "false"},
+			{Key: "queryFrontend.ingress.enabled", Value: "false"},
+		}...), nil
 	}
 
-	return createOrUpdateComponentIngress(ctx)
+	ingressClassName := vzconfig.GetIngressClassName(ctx.EffectiveCR())
+	dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed building DNS domain name for Thanos Ingress: %v", err)
+	}
+
+	frontendHostName := fmt.Sprintf("%s.%s", queryHostName, dnsSubDomain)
+	frontendProps := ingressOverrideProperties{
+		KeyPrefix:        "queryFrontend.ingress",
+		Subdomain:        dnsSubDomain,
+		HostName:         frontendHostName,
+		IngressClassName: ingressClassName,
+		TLSSecretName:    queryCertificateName,
+		Path:             "/()(.*)",
+		PathType:         netv1.PathTypeImplementationSpecific,
+		ServicePort:      constants.VerrazzanoAuthProxyServicePort,
+	}
+	kvs = formatIngressOverrides(ctx, frontendProps, kvs)
+	kvs = append(kvs, bom.KeyValue{Key: `queryFrontend.ingress.annotations.nginx\.ingress\.kubernetes\.io/session-cookie-name`, Value: frontendHostName})
+
+	storeHostName := fmt.Sprintf("%s.%s", queryStoreHostName, dnsSubDomain)
+	storeProps := ingressOverrideProperties{
+		KeyPrefix:        "query.ingress.grpc",
+		Subdomain:        dnsSubDomain,
+		HostName:         storeHostName,
+		IngressClassName: ingressClassName,
+		TLSSecretName:    queryStoreCertificateName,
+		Path:             "/",
+		PathType:         netv1.PathTypeImplementationSpecific,
+		ServicePort:      constants.VerrazzanoAuthProxyGRPCServicePort,
+	}
+	return formatIngressOverrides(ctx, storeProps, kvs), nil
 }
 
-func createOrUpdateComponentIngress(ctx spi.ComponentContext) error {
-	// If NGINX is not enabled, skip the ingress creation
-	if !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
-		return nil
-	}
+// ingressOverrideProperties creates a structure to host Override property strings for Thanos ingresses
+type ingressOverrideProperties struct {
+	KeyPrefix        string
+	Subdomain        string
+	HostName         string
+	IngressClassName string
+	TLSSecretName    string
+	Path             string
+	PathType         netv1.PathType
+	ServicePort      int
+}
 
-	// Create the Thanos Query Frontend Ingress
-	thanosProps := common.IngressProperties{
-		IngressName:      constants.ThanosQueryFrontendIngress,
-		HostName:         frontendHostName,
-		TLSSecretName:    frontendCertificateName,
-		ExtraAnnotations: common.SameSiteCookieAnnotations(frontendHostName),
+// formatIngressOverrides appends the correct overrides to a given ingress prefix based on generated properties for Ingress values
+func formatIngressOverrides(ctx spi.ComponentContext, props ingressOverrideProperties, kvs []bom.KeyValue) []bom.KeyValue {
+	kvs = append(kvs, []bom.KeyValue{
+		{Key: fmt.Sprintf("%s.namespace", props.KeyPrefix), Value: constants.VerrazzanoSystemNamespace},
+		{Key: fmt.Sprintf("%s.ingressClassName", props.KeyPrefix), Value: props.IngressClassName},
+		{Key: fmt.Sprintf("%s.extraRules[0].host", props.KeyPrefix), Value: props.HostName},
+		{Key: fmt.Sprintf("%s.extraRules[0].http.paths[0].backend.service.name", props.KeyPrefix), Value: constants.VerrazzanoAuthProxyServiceName},
+		{Key: fmt.Sprintf("%s.extraRules[0].http.paths[0].backend.service.port.number", props.KeyPrefix), Value: strconv.Itoa(props.ServicePort)},
+		{Key: fmt.Sprintf("%s.extraRules[0].http.paths[0].path", props.KeyPrefix), Value: props.Path},
+		{Key: fmt.Sprintf("%s.extraRules[0].http.paths[0].pathType", props.KeyPrefix), Value: string(props.PathType)},
+		{Key: fmt.Sprintf("%s.extraTls[0].hosts[0]", props.KeyPrefix), Value: props.HostName},
+		{Key: fmt.Sprintf("%s.extraTls[0].secretName", props.KeyPrefix), Value: props.TLSSecretName},
+	}...)
+	if vzcr.IsExternalDNSEnabled(ctx.EffectiveCR()) {
+		ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", props.Subdomain)
+		kvs = append(kvs, []bom.KeyValue{
+			{Key: fmt.Sprintf(`%s.annotations.external-dns\.alpha\.kubernetes\.io/target`, props.KeyPrefix), Value: ingressTarget},
+			{Key: fmt.Sprintf(`%s.annotations.external-dns\.alpha\.kubernetes\.io/ttl`, props.KeyPrefix), Value: "60"},
+		}...)
 	}
-	return common.CreateOrUpdateSystemComponentIngress(ctx, thanosProps)
+	return kvs
 }

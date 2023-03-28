@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -104,26 +105,6 @@ func (t thanosComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return t.HelmComponent.PreUpgrade(ctx)
 }
 
-// PostInstall handles the post-install operations for the Thanos component
-func (t thanosComponent) PostInstall(ctx spi.ComponentContext) error {
-	if err := postInstallUpgrade(ctx); err != nil {
-		return err
-	}
-
-	t.IngressNames = t.GetIngressNames(ctx)
-	t.Certificates = t.GetCertificateNames(ctx)
-	return t.HelmComponent.PostInstall(ctx)
-}
-
-// PostUpgrade handles the post-upgrade operations for the Thanos component
-func (t thanosComponent) PostUpgrade(ctx spi.ComponentContext) error {
-	if err := postInstallUpgrade(ctx); err != nil {
-		return err
-	}
-
-	return t.HelmComponent.PostUpgrade(ctx)
-}
-
 // GetIngressNames returns the Thanos ingress names
 func (t thanosComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var ingressNames []types.NamespacedName
@@ -134,9 +115,13 @@ func (t thanosComponent) GetIngressNames(ctx spi.ComponentContext) []types.Names
 	if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
 		ns = authproxy.ComponentNamespace
 	}
+	ingressNames = append(ingressNames, types.NamespacedName{
+		Namespace: ns,
+		Name:      vzconst.ThanosQueryIngress,
+	})
 	return append(ingressNames, types.NamespacedName{
 		Namespace: ns,
-		Name:      constants.ThanosQueryFrontendIngress,
+		Name:      vzconst.ThanosQueryStoreIngress,
 	})
 }
 
@@ -151,8 +136,12 @@ func (t thanosComponent) GetCertificateNames(ctx spi.ComponentContext) []types.N
 	if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
 		ns = authproxy.ComponentNamespace
 	}
+	certificateNames = append(certificateNames, types.NamespacedName{
+		Namespace: ns,
+		Name:      queryCertificateName,
+	})
 	return append(certificateNames, types.NamespacedName{
 		Namespace: ns,
-		Name:      frontendCertificateName,
+		Name:      queryStoreCertificateName,
 	})
 }

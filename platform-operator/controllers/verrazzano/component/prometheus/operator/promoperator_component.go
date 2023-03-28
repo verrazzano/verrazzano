@@ -43,9 +43,6 @@ const (
 	prometheusHostName        = "prometheus.vmi.system"
 	prometheusCertificateName = "system-tls-prometheus"
 
-	thanosHostName        = "thanos-sidecar"
-	thanosCertificateName = "system-tls-thanos-sidecar"
-
 	istioPrometheus = "prometheus-server"
 )
 
@@ -118,6 +115,9 @@ func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
 
 // PreUpgrade updates resources necessary for the Prometheus Operator Component installation
 func (c prometheusComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	if err := deleteNetworkPolicy(ctx); err != nil {
+		return err
+	}
 	if err := preInstallUpgrade(ctx); err != nil {
 		return err
 	}
@@ -197,17 +197,9 @@ func (c prometheusComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 	if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
 		ns = authproxy.ComponentNamespace
 	}
-	ingressNames = append(ingressNames, types.NamespacedName{
-		Namespace: ns,
-		Name:      constants.PrometheusIngress,
-	})
-
-	if thanosEnabled, err := isThanosEnabled(ctx); !thanosEnabled || err != nil {
-		return ingressNames
-	}
 	return append(ingressNames, types.NamespacedName{
 		Namespace: ns,
-		Name:      constants.ThanosSidecarIngress,
+		Name:      constants.PrometheusIngress,
 	})
 }
 
@@ -222,17 +214,9 @@ func (c prometheusComponent) GetCertificateNames(ctx spi.ComponentContext) []typ
 	if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
 		ns = authproxy.ComponentNamespace
 	}
-	certificateNames = append(certificateNames, types.NamespacedName{
-		Namespace: ns,
-		Name:      prometheusCertificateName,
-	})
-
-	if thanosEnabled, err := isThanosEnabled(ctx); !thanosEnabled || err != nil {
-		return certificateNames
-	}
 	return append(certificateNames, types.NamespacedName{
 		Namespace: ns,
-		Name:      thanosCertificateName,
+		Name:      prometheusCertificateName,
 	})
 }
 

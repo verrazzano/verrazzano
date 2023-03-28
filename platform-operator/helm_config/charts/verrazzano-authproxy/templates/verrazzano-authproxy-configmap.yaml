@@ -428,9 +428,9 @@ data:
                 check_host = backend..me.hostSuffix
             elseif backend == 'jaeger' then
                 check_host = backend..me.hostSuffix
-            elseif backend == 'thanos-sidecar' then
+            elseif backend == 'thanos-query' then
                 check_host = backend..me.hostSuffix
-            elseif backend == 'thanos-query-frontend' then
+            elseif backend == 'query-store' then
                 check_host = backend..me.hostSuffix
             else
                 check_host = backend..vmi_system..me.hostSuffix
@@ -501,8 +501,8 @@ data:
         return 'http://vmi-system-'..backend..'.verrazzano-system.svc.cluster.local'..':'..port
     end
 
-    function me.makeMonitoringComponentBackendUrl(serviceName, port)
-        return 'http://'..serviceName..'.verrazzano-monitoring.svc.cluster.local'..':'..port
+    function me.makeMonitoringComponentBackendUrl(protocol, serviceName, port)
+        return protocol..'://'..serviceName..'.verrazzano-monitoring.svc.cluster.local'..':'..port
     end
 
     function me.getBackendServerUrlFromName(backend)
@@ -517,11 +517,11 @@ data:
         elseif backend == 'grafana' then
             serverUrl = me.makeVmiBackendUrl(backend, '3000')
         elseif backend == 'prometheus' then
-            serverUrl = me.makeMonitoringComponentBackendUrl('prometheus-operator-kube-p-prometheus', '9090')
-        elseif backend == 'thanos-sidecar' then
-            serverUrl = me.makeMonitoringComponentBackendUrl('prometheus-operator-kube-p-prometheus', '10901')
-        elseif backend == 'thanos-query-frontend' then
-            serverUrl = me.makeMonitoringComponentBackendUrl('thanos-query-frontend', '9090')
+            serverUrl = me.makeMonitoringComponentBackendUrl('http', 'prometheus-operator-kube-p-prometheus', '9090')
+        elseif backend == 'thanos-query' then
+            serverUrl = me.makeMonitoringComponentBackendUrl('http', 'thanos-query-frontend', '9090')
+        elseif backend == 'query-store' then
+            serverUrl = me.makeMonitoringComponentBackendUrl('grpc', 'thanos-query-grpc', '10901')
         elseif backend == 'kibana' then
             serverUrl = me.makeVmiBackendUrl('osd', '5601')
         elseif backend == 'osd' then
@@ -533,7 +533,7 @@ data:
         elseif backend == 'kiali' then
             serverUrl = me.makeVmiBackendUrl(backend, '20001')
         elseif backend == 'jaeger' then
-            serverUrl = me.makeMonitoringComponentBackendUrl('jaeger-operator-jaeger-query', '16686')
+            serverUrl = me.makeMonitoringComponentBackendUrl('http', 'jaeger-operator-jaeger-query', '16686')
         else
             me.not_found("Invalid backend name '"..backend.."'")
         end
@@ -1209,10 +1209,10 @@ data:
             allowedOrigins = os.getenv("VZ_GRAFANA_ALLOWED_ORIGINS")
         elseif backend == 'prometheus' then
             allowedOrigins = os.getenv("VZ_PROMETHEUS_ALLOWED_ORIGINS")
-        elseif backend == 'thanos-sidecar' then
-            allowedOrigins = os.getenv("VZ_THANOS_SIDECAR_ALLOWED_ORIGINS")
-        elseif backend == 'thanos-query-frontend' then
-            allowedOrigins = os.getenv("VZ_THANOS_QUERY_FRONTEND_ALLOWED_ORIGINS")
+        elseif backend == 'thanos-query' then
+            allowedOrigins = os.getenv("VZ_THANOS_QUERY_ALLOWED_ORIGINS")
+        elseif backend == 'query-store' then
+            allowedOrigins = os.getenv("VZ_QUERY_STORE_ALLOWED_ORIGINS")
         elseif backend == 'kibana' then
             allowedOrigins = os.getenv("VZ_KIBANA_ALLOWED_ORIGINS")
         elseif backend == 'osd' then
@@ -1261,8 +1261,8 @@ data:
     env VZ_CONSOLE_ALLOWED_ORIGINS;
     env VZ_GRAFANA_ALLOWED_ORIGINS;
     env VZ_PROMETHEUS_ALLOWED_ORIGINS;
-    env VZ_THANOS_SIDECAR_ALLOWED_ORIGINS;
-    env VZ_THANOS_QUERY_FRONTEND_ALLOWED_ORIGINS;
+    env VZ_THANOS_QUERY_ALLOWED_ORIGINS;
+    env VZ_QUERY_STORE_ALLOWED_ORIGINS;
     env VZ_KIBANA_ALLOWED_ORIGINS;
     env VZ_ES_ALLOWED_ORIGINS;
     env VZ_KIALI_ALLOWED_ORIGINS;
@@ -1354,6 +1354,24 @@ data:
                 stub_status;
                 allow 127.0.0.1;
                 deny all;
+            }
+        }
+
+        # Verrazzano gRPC proxy
+        server {
+            listen       8776 http2;
+            server_name  verrazzano-grpc-proxy;
+
+            location / {
+                lua_ssl_verify_depth 2;
+                lua_ssl_trusted_certificate /etc/nginx/upstream.pem;
+
+                set $oidc_user "";
+                set $backend_server_url "";
+                rewrite_by_lua_file /etc/nginx/conf.lua;
+                proxy_set_header X-WEBAUTH-USER $oidc_user;
+                grpc_pass $backend_server_url;
+                proxy_ssl_trusted_certificate /etc/nginx/upstream.pem;
             }
         }
     }
