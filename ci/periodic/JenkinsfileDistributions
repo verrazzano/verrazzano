@@ -34,6 +34,9 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
+        booleanParam (name: 'RUN_TESTS',
+                defaultValue: false,
+                description: 'If true, the private registry pipeline will run on a development branch. It will automatically run on master and release-* branches.')
     }
 
     environment {
@@ -70,6 +73,13 @@ pipeline {
     }
 
     stages {
+        when {
+            anyOf {
+                branch 'master';
+                branch 'release-*';
+                expression { params.RUN_TESTS == true };
+            }
+        }
         stage('Clean workspace and checkout') {
             steps {
                 script {
