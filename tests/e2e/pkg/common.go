@@ -767,7 +767,7 @@ func IngressesExist(vz *v1alpha1.Verrazzano, namespace string, ingressNames []st
 	}
 
 	if len(missing) > 0 {
-		Log(Info, fmt.Sprintf("Ingresses %s not running in namespace %s", missing, namespace))
+		Log(Info, fmt.Sprintf("Ingresses %s do not exist in namespace %s", missing, namespace))
 		return false, nil
 	}
 	return true, err
