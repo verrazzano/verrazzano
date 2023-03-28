@@ -21,10 +21,10 @@ import (
 
 const (
 	flagErrorStr = "error fetching flag: %s"
-	CommandName = "bug-report"
-	helpShort   = "Collect information from the cluster to report an issue"
-	helpLong    = `Verrazzano command line utility to collect data from the cluster, to report an issue`
-	helpExample = `
+	CommandName  = "bug-report"
+	helpShort    = "Collect information from the cluster to report an issue"
+	helpLong     = `Verrazzano command line utility to collect data from the cluster, to report an issue`
+	helpExample  = `
 # Create a bug report file, bugreport.tar.gz, by collecting data from the cluster:
 vz bug-report --report-file bugreport.tar.gz
 
