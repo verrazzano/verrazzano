@@ -56,13 +56,13 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		deployWebLogicApp(namespace)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
-		t.Logs.Info("Container image pull check")
+		// Container image pull check
 		Eventually(func() bool {
 			return pkg.ContainerImagePullWait(namespace, expectedPods)
 		}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	}
 
-	t.Logs.Info("WebLogic Application: check expected admin server pod is running")
+	// check expected admin server pod is running
 	Eventually(func() bool {
 		result, err := pkg.PodsRunning(namespace, []string{wlsAdminServer})
 		if err != nil {
@@ -71,7 +71,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return result
 	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: Admin server pod is not ready")
 
-	t.Logs.Info("WebLogic Application: check expected managed server pod is running")
+	// check expected managed server pod is running
 	Eventually(func() bool {
 		result, err := pkg.PodsRunning(namespace, []string{wlsManagedServer1})
 		if err != nil {
@@ -80,7 +80,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return result
 	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: Managed server pod is not ready")
 
-	t.Logs.Info("WebLogic Application: check expected admin service is running")
+	// check expected admin service is running
 	Eventually(func() bool {
 		result, err := pkg.DoesServiceExist(namespace, wlsAdminServer)
 		if err != nil {
@@ -89,7 +89,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return result
 	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: Admin service is not running")
 
-	t.Logs.Info("WebLogic Application: check expected managed service is running")
+	// check expected managed service is running
 	Eventually(func() bool {
 		result, err := pkg.DoesServiceExist(namespace, wlsManagedServer1)
 		if err != nil {
@@ -98,7 +98,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return result
 	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: Managed service is not running")
 
-	t.Logs.Info("WebLogic Application: check expected VirtualService is ready")
+	// check expected VirtualService is ready
 	Eventually(func() bool {
 		result, err := pkg.DoesVirtualServiceExist(namespace, trait)
 		if err != nil {
@@ -107,7 +107,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return result
 	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: VirtualService is not ready")
 
-	t.Logs.Info("WebLogic Application: check expected Secrets exist")
+	// check expected Secrets exist
 	Eventually(func() bool {
 		result, err := pkg.DoesSecretExist(namespace, helloDomainWeblogicCreds)
 		if err != nil {
@@ -127,7 +127,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	// Get the host from the Istio gateway resource.
 	start := time.Now()
-	t.Logs.Info("WebLogic Application: check expected Gateway is ready")
+	// check expected Gateway is ready
 	Eventually(func() (string, error) {
 		host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 		return host, err
@@ -172,12 +172,12 @@ func deployWebLogicApp(namespace string) {
 		return pkg.CreateNamespace(namespace, nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	t.Logs.Info("Create docker-registry secret to enable pulling image from the registry")
+	// Create docker-registry secret to enable pulling image from the registry
 	Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateDockerSecret(namespace, helloDomainRepoCreds, regServ, regUser, regPass)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	t.Logs.Info("Create secret for the WebLogic domain")
+	// Create secret for the WebLogic domain
 	Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateCredentialsSecret(namespace, helloDomainWeblogicCreds, wlsUser, wlsPass, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
@@ -223,7 +223,7 @@ func undeployWebLogicApp() {
 		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	t.Logs.Info("Wait for pod to terminate")
+	// Wait for pod to terminate
 	Eventually(func() bool {
 		podsTerminated, _ := pkg.PodsNotRunning(namespace, expectedPods)
 		return podsTerminated
@@ -234,12 +234,12 @@ func undeployWebLogicApp() {
 		return pkg.DeleteNamespace(namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	t.Logs.Info("Wait for namespace finalizer to be removed")
+	// Wait for namespace finalizer to be removed
 	Eventually(func() bool {
 		return pkg.CheckNamespaceFinalizerRemoved(namespace)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
-	t.Logs.Info("Wait for namespace deletion")
+	// Wait for namespace deletion
 	Eventually(func() bool {
 		_, err := pkg.GetNamespace(namespace)
 		return err != nil && errors.IsNotFound(err)
