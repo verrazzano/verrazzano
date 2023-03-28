@@ -57,6 +57,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncThanosQuery(ctx context.Context
 	if err := r.createOrUpdateDestinationRule(vmc.Name, vmc.Status.ThanosHost, thanosGrpcIngressPort); err != nil {
 		return err
 	}
+	return nil
 }
 
 // syncThanosQueryEndpoint will update the config map used by Thanos Query with the managed cluster
