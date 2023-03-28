@@ -897,7 +897,7 @@ func IsKubeStateMetricsEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	if vz.Spec.Components.KubeStateMetrics == nil || vz.Spec.Components.KubeStateMetrics.Enabled == nil {
-		return false
+		return vz.Spec.Profile != v1alpha1.None
 	}
 	return *vz.Spec.Components.KubeStateMetrics.Enabled
 }
