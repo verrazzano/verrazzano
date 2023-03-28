@@ -915,12 +915,13 @@ func TestCreateOrUpdatePrometheusAuthPolicy(t *testing.T) {
 	err = client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: prometheusAuthPolicyName}, authPolicy)
 	assertions.NoError(err)
 
-	assertions.Len(authPolicy.Spec.Rules, 3)
+	assertions.Len(authPolicy.Spec.Rules, 4)
 	assertions.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy")
 	assertions.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
 	assertions.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/vmi-system-kiali")
 	assertions.Contains(authPolicy.Spec.Rules[1].From[0].Source.Principals, serviceAccount)
 	assertions.Contains(authPolicy.Spec.Rules[2].From[0].Source.Principals, "cluster.local/ns/verrazzano-monitoring/sa/jaeger-operator-jaeger")
+	assertions.Contains(authPolicy.Spec.Rules[3].From[0].Source.Principals, "cluster.local/ns/verrazzano-monitoring/sa/thanos-query")
 
 	// GIVEN Prometheus Operator is being installed or upgraded
 	// AND   Istio is disabled
