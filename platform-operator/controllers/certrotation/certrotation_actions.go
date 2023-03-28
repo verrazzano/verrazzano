@@ -11,6 +11,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
 )
@@ -71,18 +72,20 @@ func (r *CertificateRotationManagerReconciler) RolloutRestartDeployment(ctx cont
 	deployment := appsv1.Deployment{}
 	var err error
 	err = r.Get(ctx, clipkg.ObjectKey{Namespace: r.TargetNamespace, Name: r.TargetDeployment}, &deployment)
-	r.log.Debug("deployment listed", deployment.Name)
+	r.log.Debugf("deployment listed with name %v", deployment.Name)
 	if err != nil && apierrors.IsNotFound(err) {
 		r.log.Errorf("an error while listing the deployment in namespace %v", r.TargetNamespace)
 		return err
 	}
 	time := time.Now()
-
-	if deployment.Spec.Template.ObjectMeta.Annotations == nil {
-		deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-	}
-	deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = buildRestartAnnotationString(time)
-	if err = r.Update(context.TODO(), &deployment); err != nil {
+	_, err = controllerruntime.CreateOrUpdate(context.TODO(), r.Client, &deployment, func() error {
+		if deployment.Spec.Template.ObjectMeta.Annotations == nil {
+			deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+		}
+		deployment.Spec.Template.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = buildRestartAnnotationString(time)
+		return nil
+	})
+	if err != nil {
 		r.log.Errorf("an error while patching the deployment %v in namespace %v", r.TargetDeployment, r.TargetNamespace)
 		return err
 	}

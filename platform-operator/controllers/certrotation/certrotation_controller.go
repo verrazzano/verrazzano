@@ -12,9 +12,11 @@ import (
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	//"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	ctrl "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"time"
 )
 
@@ -40,6 +42,10 @@ type CertificateRotationManagerReconciler struct {
 func (r *CertificateRotationManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Secret{}).
+		WithEventFilter(r.createComponentCertificatePredicate()).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: 1,
+		}).
 		Complete(r)
 }
 
@@ -100,7 +106,7 @@ func (r *CertificateRotationManagerReconciler) CheckCertificateExpiration(ctx co
 			return r.log.ErrorfNewErr("an error occurred obtaining certificate data for %s", secret)
 		}
 		mustRotate, err = r.ValidateCertDate(secdata)
-		r.log.Debugf("cert data expiry status for secret %v", secret)
+		r.log.Debugf("cert data expiry status for secret %v is %v", secret, mustRotate)
 		if err != nil {
 			return r.log.ErrorfNewErr("an error while validating the certificate secret data")
 		}
@@ -135,4 +141,26 @@ func (r *CertificateRotationManagerReconciler) getCertSecretList(ctx context.Con
 		return certificates, nil
 	}
 	return nil, r.log.ErrorfNewErr("no certificate found in namespace %v", r.WatchNamespace)
+}
+
+func (r *CertificateRotationManagerReconciler) createComponentCertificatePredicate() predicate.Predicate {
+	return predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			return r.isComponentNamespace(e.Object)
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return r.isComponentNamespace(e.Object)
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return r.isComponentNamespace(e.ObjectNew)
+		},
+		GenericFunc: func(genericEvent event.GenericEvent) bool {
+			return r.isComponentNamespace(genericEvent.Object)
+		},
+	}
+}
+
+func (r *CertificateRotationManagerReconciler) isComponentNamespace(o clipkg.Object) bool {
+	secret := o.(*corev1.Secret)
+	return secret.Namespace == r.WatchNamespace
 }
