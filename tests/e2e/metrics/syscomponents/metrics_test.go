@@ -5,6 +5,7 @@ package syscomponents
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"os"
 	"strings"
 	"time"
@@ -267,6 +268,26 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 			})
 		}
+
+		t.It("Verify metrics can be queried from Thanos", func() {
+			minVer16, err := pkg.IsVerrazzanoMinVersion("1.6.0", adminKubeConfig)
+			if err != nil {
+				pkg.Log(pkg.Error, fmt.Sprintf("Failed to verify the Verrazzano version was min 1.6.0: %v", err))
+				return
+			}
+			if !minVer16 {
+				return
+			}
+			vz, err := pkg.GetVerrazzanoInstallResourceInCluster(adminKubeConfig)
+			if !vzcr.IsThanosEnabled(vz) {
+				return
+			}
+
+			// If the min version is >1.6 and Thanos is enabled, try to query metrics from its source
+			Eventually(func() (string, error) {
+				return pkg.QueryThanosMetric("base_jvm_uptime", adminKubeConfig)
+			}, longWaitTimeout, longPollingInterval).ShouldNot(BeEmpty())
+		})
 	})
 })
 
