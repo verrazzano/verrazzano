@@ -338,14 +338,14 @@ pipeline {
                         runGinkgoRandomize('verify-install/promstack')
                     }
                 }
-                //stage('verify-infra vmi') {
-                //    environment {
-                //        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra/vmi"
-                //    }
-                //    steps {
-                //        runGinkgoRandomize('verify-infra/vmi')
-                //    }
-                //}
+                stage('verify-infra vmi') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra/vmi"
+                    }
+                    steps {
+                        runGinkgoRandomize('verify-infra/vmi')
+                    }
+                }
             }
             post {
                 failure {
