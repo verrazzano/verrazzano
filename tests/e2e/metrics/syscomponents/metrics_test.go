@@ -283,10 +283,11 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 				return
 			}
 
-			// If the min version is >1.6 and Thanos is enabled, try to query metrics from its source
-			Eventually(func() (string, error) {
-				return pkg.QueryThanosMetric("base_jvm_uptime", adminKubeConfig)
-			}, longWaitTimeout, longPollingInterval).ShouldNot(BeEmpty())
+			// If the min version is >= 1.6 and Thanos is enabled, try to query metrics from its source
+			// this test assumes that the Thanos sidecar is also enabled with the Thanos installation
+			Eventually(func() (bool, error) {
+				return ThanosMetricsExist(prometheusTargetIntervalLength, adminKubeConfig)
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
 })
@@ -444,4 +445,17 @@ func eventuallyMetricsContainLabels(metricName string, kv map[string]string) {
 	Eventually(func() bool {
 		return metricsContainLabels(metricName, kv)
 	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+}
+
+func ThanosMetricsExist(metricsName, kubeconfigPath string) (bool, error) {
+	metrics, err := pkg.QueryThanosMetric(metricsName, kubeconfigPath)
+	if err != nil {
+		t.Logs.Errorf("Failed to query Thanos metric %s: %v", metricsName, err)
+		return false, err
+	}
+	metricsList := pkg.JTq(metrics, "data", "result").([]interface{})
+	if len(metricsList) == 0 {
+		t.Logs.Infof("No logs found for metric %s in Thanos", metricsName)
+	}
+	return len(metricsList) > 0, nil
 }
