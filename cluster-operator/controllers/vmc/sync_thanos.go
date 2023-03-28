@@ -5,6 +5,7 @@ package vmc
 
 import (
 	"context"
+	"fmt"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -26,6 +27,7 @@ import (
 const (
 	serviceEntryCRDName    = "serviceentries.networking.istio.io"
 	destinationRuleCRDName = "destinationrules.networking.istio.io"
+	thanosGrpcIngressPort  = 443
 )
 
 // thanosServiceDiscovery represents one element in the Thanos service discovery YAML. The YAML
@@ -37,8 +39,28 @@ type thanosServiceDiscovery struct {
 const ThanosManagedClusterEndpointsConfigMap = "verrazzano-thanos-endpoints"
 const serviceDiscoveryKey = "servicediscovery.yml"
 
+// syncThanosQuery will perform the necessary sync to make sure Thanos Query on admin cluster can
+// talk to Thanos Query on managed cluster (this involves updating the endpoints ConfigMap and
+// the Istio config needed for TLS communication to managed cluster)
+// TODO - we will also need to add the cluster's CA cert for Thanos Query to use
+func (r *VerrazzanoManagedClusterReconciler) syncThanosQuery(ctx context.Context,
+	vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	if err := r.syncThanosQueryEndpoint(ctx, vmc); err != nil {
+		return err
+	}
+	if vmc.Status.ThanosHost == "" {
+		return nil
+	}
+	if err := r.createOrUpdateServiceEntry(vmc.Name, vmc.Status.ThanosHost, thanosGrpcIngressPort); err != nil {
+		return err
+	}
+	if err := r.createOrUpdateDestinationRule(vmc.Name, vmc.Status.ThanosHost, thanosGrpcIngressPort); err != nil {
+		return err
+	}
+}
+
 // syncThanosQueryEndpoint will update the config map used by Thanos Query with the managed cluster
-// Thanos store API endpoint. TODO - we will also need to add the cluster's CA cert for Thanos Query to use
+// Thanos store API endpoint.
 func (r *VerrazzanoManagedClusterReconciler) syncThanosQueryEndpoint(ctx context.Context,
 	vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
 
@@ -200,7 +222,7 @@ func (r *VerrazzanoManagedClusterReconciler) isThanosEnabled() (bool, error) {
 }
 
 func toGrpcTarget(hostname string) string {
-	return hostname + ":443"
+	return fmt.Sprintf("%s:%d", hostname, thanosGrpcIngressPort)
 }
 
 // createOrUpdateServiceEntry ensures that an Istio ServiceEntry exists for a managed cluster Thanos endpoint. The ServiceEntry is

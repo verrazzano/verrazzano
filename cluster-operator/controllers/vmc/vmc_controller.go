@@ -271,7 +271,7 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 		}
 	}
 
-	err = r.syncThanosQueryEndpoint(ctx, vmc)
+	err = r.syncThanosQuery(ctx, vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to update Thanos Query endpoint managed cluster", err, log)
 		return newRequeueWithDelay(), err
