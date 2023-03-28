@@ -21,9 +21,9 @@ spec:
         - name: hotrod-container
           image: "ghcr.io/verrazzano/jaeger-example-hotrod:1.42.0-20230327232727-cd357656"
           env:
-            - name: JAEGER_AGENT_HOST
+            - name: OTEL_EXPORTER_JAEGER_AGENT_HOST
               value: "localhost"
-            - name: JAEGER_AGENT_PORT
+            - name: OTEL_EXPORTER_JAEGER_AGENT_PORT
               value: "6831"
           ports:
             - containerPort: 8080
