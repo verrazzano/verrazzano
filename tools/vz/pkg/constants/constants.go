@@ -125,8 +125,8 @@ const (
 	BugReportFileFlagName     = "report-file"
 	BugReportFileFlagValue    = ""
 	BugReportFileFlagShort    = "r"
-	BugReportFileFlagUsage    = "The report file created by the vz bug-report command, as a *.tar.gz file. Defaults to bug-report-datetime-xxxx.tar.gz in the current directory."
-	BugReportFileDefaultValue = "bug-report-dt-*.tar.gz"
+	BugReportFileFlagUsage    = "The report file created by the vz bug-report command, as a *.tar.gz file. Defaults to vz-bug-report-datetime-xxxx.tar.gz in the current directory."
+	BugReportFileDefaultValue = "vz-bug-report-dt-*.tar.gz"
 
 	BugReportIncludeNSFlagName  = "include-namespaces"
 	BugReportIncludeNSFlagShort = "i"
