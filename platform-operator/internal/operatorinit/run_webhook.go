@@ -102,7 +102,7 @@ func updateWebhooks(log *zap.SugaredLogger, mgr manager.Manager, config internal
 		return fmt.Errorf("Failed to create Kubernetes dynamic client: %v", err)
 	}
 
-	if err := updateWebhookConfigurations(kubeClient, log, conf); err != nil {
+	if err := updateWebhookConfigurations(kubeClient, log, conf, config); err != nil {
 		return err
 	}
 	if err := createOrUpdateNetworkPolicies(conf, log, kubeClient); err != nil {
@@ -159,7 +159,7 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 }
 
 // updateWebhookConfigurations Creates or updates the webhook configurations as needed
-func updateWebhookConfigurations(kubeClient *kubernetes.Clientset, log *zap.SugaredLogger, conf *rest.Config) error {
+func updateWebhookConfigurations(kubeClient *kubernetes.Clientset, log *zap.SugaredLogger, conf *rest.Config, operatorConfig internalconfig.OperatorConfig) error {
 	log.Debug("Delete old VPO webhook configuration")
 	if err := deleteValidatingWebhookConfiguration(kubeClient, certificate.OldOperatorName); err != nil {
 		return fmt.Errorf("Failed to delete old webhook configuration: %v", err)
@@ -194,6 +194,14 @@ func updateWebhookConfigurations(kubeClient *kubernetes.Clientset, log *zap.Suga
 	if err := updateValidatingWebhookConfiguration(kubeClient, webhooks.MysqlInstallValuesWebhook); err != nil {
 		return fmt.Errorf("Failed to update validation webhook configuration: %v", err)
 	}
+
+	if operatorConfig.ExperimentalCRDS {
+		log.Debug("Updating module webhook configuration")
+		if err := updateValidatingWebhookConfiguration(kubeClient, moduleswebhooks.ValidateModulesWebhookPath); err != nil {
+			return fmt.Errorf("Failed to update validation webhook configuration: %v", err)
+		}
+	}
+
 	return nil
 }
 

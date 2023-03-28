@@ -188,7 +188,7 @@ metadata:
   labels:
     app: {{ .Values.name }}-modules-webhook
 webhooks:
-  - name: install.verrazzano.io
+  - name: validate-modules
     namespaceSelector:
       matchExpressions:
         - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }

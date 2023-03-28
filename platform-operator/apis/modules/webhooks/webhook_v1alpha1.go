@@ -10,7 +10,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-const ValidateModulesWebhooksPath = "/validate-modules-v1alpha1-install-verrazzano-io"
+const (
+	ValidateModulesWebhookPath  = "validate-modules"
+	ValidateModulesWebhooksPath = "/validate-modules-v1alpha1-install-verrazzano-io"
+)
 
 type WebhookV1alpha1 struct {
 	client  client.Client
