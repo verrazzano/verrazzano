@@ -20,7 +20,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
 )
 
@@ -189,13 +188,6 @@ func (r *VerrazzanoManagedClusterReconciler) getThanosEndpointsConfigMap(ctx con
 		return nil, r.log.ErrorfNewErr("failed to fetch the Thanos endpoints ConfigMap %s/%s, %v", configMapNsn.Namespace, configMapNsn.Name, err)
 	}
 	return &configMap, nil
-}
-
-// createOrUpdateArgoCDSecret create or update the Argo CD cluster secret
-func (r *VerrazzanoManagedClusterReconciler) createOrUpdateThanosConfigMap(configMap *v1.ConfigMap, mutateFn controllerutil.MutateFn) error {
-	// Create or update on the local cluster
-	_, err := controllerruntime.CreateOrUpdate(context.TODO(), r.Client, configMap, mutateFn)
-	return err
 }
 
 func (r *VerrazzanoManagedClusterReconciler) isThanosEnabled() (bool, error) {

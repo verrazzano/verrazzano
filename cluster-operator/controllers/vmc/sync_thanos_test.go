@@ -19,7 +19,6 @@ import (
 	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -64,7 +63,7 @@ func TestAddThanosHostIfNotPresent(t *testing.T) {
 				assert.Error(t, err, "Expected error")
 			} else {
 				hostShouldExist := true
-				assertThanosEndpointsConfigMap(t, cli, ctx, tt.expectNumHosts, tt.host, hostShouldExist)
+				assertThanosEndpointsConfigMap(ctx, t, cli, tt.expectNumHosts, tt.host, hostShouldExist)
 			}
 		})
 	}
@@ -97,7 +96,7 @@ func TestRemoveThanosHostFromConfigMap(t *testing.T) {
 				assert.Error(t, err, "Expected error")
 			} else {
 				hostShouldExist := false
-				assertThanosEndpointsConfigMap(t, cli, ctx, tt.expectNumHosts, tt.host, hostShouldExist)
+				assertThanosEndpointsConfigMap(ctx, t, cli, tt.expectNumHosts, tt.host, hostShouldExist)
 			}
 		})
 	}
@@ -148,7 +147,7 @@ func TestSyncThanosQueryEndpoint(t *testing.T) {
 				vmcStatus = *tt.vmcStatus
 			}
 			vmc := &clustersv1alpha1.VerrazzanoManagedCluster{
-				ObjectMeta: v12.ObjectMeta{Name: "somename", Namespace: constants.VerrazzanoMultiClusterNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: "somename", Namespace: constants.VerrazzanoMultiClusterNamespace},
 				Status:     vmcStatus,
 			}
 			cli := fake.NewClientBuilder().WithScheme(makeThanosTestScheme()).WithRuntimeObjects(
@@ -161,7 +160,7 @@ func TestSyncThanosQueryEndpoint(t *testing.T) {
 			}
 			err := r.syncThanosQueryEndpoint(ctx, vmc)
 			assert.NoError(t, err)
-			assertThanosEndpointsConfigMap(t, cli, ctx, tt.expectedConfigMapHosts, tt.hostname, tt.hostShouldExistInCM)
+			assertThanosEndpointsConfigMap(ctx, t, cli, tt.expectedConfigMapHosts, tt.hostname, tt.hostShouldExistInCM)
 		})
 	}
 }
@@ -199,14 +198,14 @@ func makeThanosConfigMapWithExistingHosts(t *testing.T, hosts []string, useValid
 		yamlExistingHostInfo = []byte("- targets: garbledTextHere")
 	}
 	return &v1.ConfigMap{
-		ObjectMeta: v12.ObjectMeta{Namespace: thanos.ComponentNamespace, Name: ThanosManagedClusterEndpointsConfigMap},
+		ObjectMeta: metav1.ObjectMeta{Namespace: thanos.ComponentNamespace, Name: ThanosManagedClusterEndpointsConfigMap},
 		Data: map[string]string{
 			serviceDiscoveryKey: string(yamlExistingHostInfo),
 		},
 	}
 }
 
-func assertThanosEndpointsConfigMap(t *testing.T, cli client.WithWatch, ctx context.Context, expectNumHosts int, host string, hostShoudExist bool) {
+func assertThanosEndpointsConfigMap(ctx context.Context, t *testing.T, cli client.WithWatch, expectNumHosts int, host string, hostShoudExist bool) {
 	modifiedConfigMap := &v1.ConfigMap{}
 	err := cli.Get(ctx, types.NamespacedName{Namespace: thanos.ComponentNamespace, Name: ThanosManagedClusterEndpointsConfigMap}, modifiedConfigMap)
 	assert.NoError(t, err)
