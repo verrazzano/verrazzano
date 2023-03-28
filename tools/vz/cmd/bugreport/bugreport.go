@@ -82,10 +82,6 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	}
 
 	start := time.Now()
-	if err := setVzK8sVersion(vzHelper, cmd); err == nil {
-		// print k8s and vz version on console stdout
-		fmt.Fprintf(vzHelper.GetOutputStream(), helpers.GetVersionOut())
-	}
 	// determines the bug report file
 	bugReportFile, err := cmd.PersistentFlags().GetString(constants.BugReportFileFlagName)
 	if err != nil {
@@ -202,27 +198,6 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	} else {
 		// Verrazzano is not installed, remove the empty bug report file
 		os.Remove(bugRepFile.Name())
-	}
-	return nil
-}
-
-// setVzK8sVersion sets vz and k8s version
-func setVzK8sVersion(vzHelper helpers.VZHelper, cmd *cobra.Command) error {
-	// Get the controller runtime client
-	client, err := vzHelper.GetClient(cmd)
-	if err != nil {
-		return err
-	}
-	if client == nil {
-		return errors.New("client error")
-	}
-	// set vz version
-	if err = helpers.SetVzVer(&client); err != nil {
-		return err
-	}
-	// set cluster k8s version
-	if err = helpers.SetK8sVer(); err != nil {
-		return err
 	}
 	return nil
 }

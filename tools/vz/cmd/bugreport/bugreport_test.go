@@ -196,7 +196,7 @@ func TestDefaultBugReportSuccess(t *testing.T) {
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
-
+	setUpGlobalFlags(cmd)
 	err = cmd.Execute()
 	assert.Nil(t, err)
 
@@ -225,7 +225,7 @@ func TestDefaultBugReportReadOnlySuccess(t *testing.T) {
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
-
+	setUpGlobalFlags(cmd)
 	pwd, err := os.Getwd()
 	assert.Nil(t, err)
 	assert.Nil(t, os.Chdir("/"))
