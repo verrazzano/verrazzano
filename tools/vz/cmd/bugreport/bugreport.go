@@ -20,6 +20,7 @@ import (
 )
 
 const (
+	flagErrorStr = "error fetching flag: %s"
 	CommandName = "bug-report"
 	helpShort   = "Collect information from the cluster to report an issue"
 	helpLong    = `Verrazzano command line utility to collect data from the cluster, to report an issue`
@@ -74,7 +75,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	newCmd := analyze.NewCmdAnalyze(vzHelper)
 	err := setUpFlags(cmd, newCmd)
 	if err != nil {
-		return fmt.Errorf("error fetching flag: %s", err.Error())
+		return fmt.Errorf(flagErrorStr, err.Error())
 	}
 	analyzeErr := analyze.RunCmdAnalyze(newCmd, vzHelper, false)
 	if analyzeErr != nil {
@@ -84,7 +85,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	start := time.Now()
 	bugReportFile, err := getBugReportFile(cmd, vzHelper)
 	if err != nil {
-		return fmt.Errorf("error fetching flag: %s", err.Error())
+		return fmt.Errorf(flagErrorStr, err.Error())
 	}
 
 	// Get the kubernetes clientset, which will validate that the kubeconfigFlagValPointer and contextFlagValPointer are valid.
@@ -200,7 +201,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 func getBugReportFile(cmd *cobra.Command, vzHelper helpers.VZHelper) (string, error) {
 	bugReport, err := cmd.PersistentFlags().GetString(constants.BugReportFileFlagName)
 	if err != nil {
-		return "", fmt.Errorf("error fetching flag: %s", err.Error())
+		return "", fmt.Errorf(flagErrorStr, err.Error())
 	}
 	if bugReport == "" {
 		currentDir, err := os.Getwd()
@@ -285,11 +286,11 @@ func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) e
 func setUpFlags(cmd *cobra.Command, newCmd *cobra.Command) error {
 	kubeconfigFlag, errFlag := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
 	if errFlag != nil {
-		return fmt.Errorf("Error fetching flags: %s", errFlag.Error())
+		return fmt.Errorf(flagErrorStr, errFlag.Error())
 	}
 	contextFlag, errFlag2 := cmd.Flags().GetString(constants.GlobalFlagContext)
 	if errFlag2 != nil {
-		return fmt.Errorf("Error fetching flags: %s", errFlag2.Error())
+		return fmt.Errorf(flagErrorStr, errFlag2.Error())
 	}
 	newCmd.Flags().StringVar(&kubeconfigFlagValPointer, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
 	newCmd.Flags().StringVar(&contextFlagValPointer, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
