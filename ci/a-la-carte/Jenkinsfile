@@ -244,21 +244,24 @@ pipeline {
             }
         }
 
-        stage('verify-install promstack') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install/promstack"
-            }
-            steps {
-                runGinkgoRandomize('verify-install/promstack')
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+        stage('Verify Edge Stack') {
+            parallel {
+                stage('verify-install/promstack') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install/promstack"
+                    }
+                    steps {
+                        runGinkgoRandomize('verify-install/promstack')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
                 }
             }
         }
-
 
         stage('Install Application stack') {
             environment {
