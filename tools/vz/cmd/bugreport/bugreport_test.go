@@ -208,10 +208,8 @@ func TestBugReportSuccess(t *testing.T) {
 	if err != nil {
 		assert.Error(t, err)
 	}
-
 	assert.NoError(t, err)
 }
-
 
 // TestDefaultBugReportSuccess
 // GIVEN a CLI bug-report command with no flags (default)
@@ -282,7 +280,6 @@ func TestDefaultBugReportReadOnlySuccess(t *testing.T) {
 	}
 	t.Fatal("cannot find report file in tmp directory")
 }
-
 
 // TestBugReportDefaultReportFile
 // GIVEN a CLI bug-report command
