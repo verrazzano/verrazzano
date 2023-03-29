@@ -48,7 +48,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncThanosQuery(ctx context.Context
 
 	if vmc.Status.ThanosHost == "" {
 		r.log.Oncef("Managed cluster Thanos Host not found in VMC Status for VMC %s. Not updating Thanos endpoints", vmc.Name)
-		return nil
+		return r.syncThanosQueryEndpointDelete(ctx, vmc)
 	}
 
 	if err := r.syncThanosQueryEndpoint(ctx, vmc); err != nil {
@@ -81,12 +81,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncThanosQueryEndpoint(ctx context
 	return r.addThanosHostIfNotPresent(ctx, vmc.Status.ThanosHost)
 }
 
-func (r *VerrazzanoManagedClusterReconciler) deleteClusterThanosEndpoint(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-	if vmc.Status.ThanosHost == "" {
-		r.log.Oncef("Managed cluster Thanos Host not found in VMC Status for VMC %s. No Thanos endpoint to be deleted", vmc.Name)
-		return nil
-	}
-
+func (r *VerrazzanoManagedClusterReconciler) syncThanosQueryEndpointDelete(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
 	if thanosEnabled, err := r.isThanosEnabled(); err != nil || !thanosEnabled {
 		r.log.Oncef("Thanos is not enabled on this cluster. Not updating Thanos endpoints for VMC %s", vmc.Name)
 		return nil

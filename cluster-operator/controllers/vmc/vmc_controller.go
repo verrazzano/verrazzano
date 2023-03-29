@@ -409,7 +409,7 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileManagedClusterDelete(ctx c
 	if err := r.unregisterClusterFromArgoCD(ctx, vmc); err != nil {
 		return err
 	}
-	if err := r.deleteClusterThanosEndpoint(ctx, vmc); err != nil {
+	if err := r.syncThanosQueryEndpointDelete(ctx, vmc); err != nil {
 		return err
 	}
 	return r.deleteClusterFromRancher(ctx, vmc)
