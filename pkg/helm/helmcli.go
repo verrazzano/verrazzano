@@ -107,9 +107,12 @@ func GetValues(log vzlog.VerrazzanoLogger, releaseName string, namespace string)
 //	return UpgradeRelease(log, "", releaseName, namespace, chartDir, "", wait, dryRun, overrides)
 //}
 
+func UpgradeRelease(log vzlog.VerrazzanoLogger, repoURL string, releaseName string, namespace string, chartDirOrName string, chartVersion string, wait bool, dryRun bool, overrides []HelmOverrides) (e error) {
+	return log.ErrorfThrottledNewErr("Not implemented")
+}
+
 // Upgrade will upgrade a Helm helmRelease with the specified charts.  The override files array
 // are in order with the first files in the array have lower precedence than latter files.
-// func UpgradeRelease(log vzlog.VerrazzanoLogger, repoURL string, releaseName string, namespace string, chartDirOrName string, chartVersion string, wait bool, dryRun bool, overrides []HelmOverrides) (e error)  {
 func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []HelmOverrides) (*release.Release, error) {
 	settings := cli.New()
 	settings.SetNamespace(namespace)
@@ -473,4 +476,37 @@ func mergeValues(overrides []HelmOverrides, p getter.Providers) (map[string]inte
 	}
 
 	return base, nil
+}
+
+// Pull will upgrade a Helm release with the specified charts.  The override files array
+// are in order with the first files in the array have lower precedence than latter files.
+func Pull(log vzlog.VerrazzanoLogger, repoURL string, chartName string, chartVersion string, downloadDir string, untar bool) error {
+	// Helm upgrade command will apply the new chart, but use all the existing
+	// overrides that we used during the installation.
+	//args := []string{"pull", chartName}
+	//if len(repoURL) > 0 {
+	//	args = append(args, fmt.Sprintf("%s=%s", "--repo", repoURL))
+	//}
+	//
+	//if len(chartVersion) > 0 {
+	//	args = append(args, fmt.Sprintf("%s=%s", "--version", chartVersion))
+	//}
+	//
+	//if len(downloadDir) > 0 {
+	//	args = append(args, fmt.Sprintf("--untardir=%s", downloadDir))
+	//}
+	//
+	//if untar {
+	//	args = append(args, "--untar")
+	//}
+	//
+	//cmd := exec.Command("helm", args...)
+	//_, stderr, err := runner.Run(cmd)
+	//if err != nil {
+	//	if strings.Contains(string(stderr), "not found") {
+	//		return nil
+	//	}
+	//	return fmt.Errorf("helm pull for chart %s:%s failed with stderr: %s", chartName, chartVersion, string(stderr))
+	//}
+	return nil
 }

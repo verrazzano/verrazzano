@@ -6,6 +6,8 @@
 package scheme
 
 import (
+	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
+	platformv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/platform/v1alpha1"
 	verrazzanov1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	verrazzanov1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,6 +21,8 @@ var Scheme = runtime.NewScheme()
 var Codecs = serializer.NewCodecFactory(Scheme)
 var ParameterCodec = runtime.NewParameterCodec(Scheme)
 var localSchemeBuilder = runtime.SchemeBuilder{
+	modulesv1alpha1.AddToScheme,
+	platformv1alpha1.AddToScheme,
 	verrazzanov1beta1.AddToScheme,
 	verrazzanov1alpha1.AddToScheme,
 }

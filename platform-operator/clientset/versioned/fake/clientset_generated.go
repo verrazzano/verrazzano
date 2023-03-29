@@ -7,6 +7,10 @@ package fake
 
 import (
 	clientset "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
+	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/modules/v1alpha1"
+	fakemodulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/modules/v1alpha1/fake"
+	platformv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/platform/v1alpha1"
+	fakeplatformv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/platform/v1alpha1/fake"
 	verrazzanov1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/verrazzano/v1alpha1"
 	fakeverrazzanov1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/verrazzano/v1alpha1/fake"
 	verrazzanov1beta1 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/verrazzano/v1beta1"
@@ -67,6 +71,16 @@ var (
 	_ clientset.Interface = &Clientset{}
 	_ testing.FakeClient  = &Clientset{}
 )
+
+// ModulesV1alpha1 retrieves the ModulesV1alpha1Client
+func (c *Clientset) ModulesV1alpha1() modulesv1alpha1.ModulesV1alpha1Interface {
+	return &fakemodulesv1alpha1.FakeModulesV1alpha1{Fake: &c.Fake}
+}
+
+// PlatformV1alpha1 retrieves the PlatformV1alpha1Client
+func (c *Clientset) PlatformV1alpha1() platformv1alpha1.PlatformV1alpha1Interface {
+	return &fakeplatformv1alpha1.FakePlatformV1alpha1{Fake: &c.Fake}
+}
 
 // VerrazzanoV1beta1 retrieves the VerrazzanoV1beta1Client
 func (c *Clientset) VerrazzanoV1beta1() verrazzanov1beta1.VerrazzanoV1beta1Interface {

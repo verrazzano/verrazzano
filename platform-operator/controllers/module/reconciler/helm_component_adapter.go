@@ -4,7 +4,6 @@ package reconciler
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
@@ -12,17 +11,23 @@ import (
 	modules2 "github.com/verrazzano/verrazzano/platform-operator/controllers/module/modules"
 	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
 type helmComponentAdapter struct {
 	helmcomp.HelmComponent
+
+	// ChartVersion is the version of the helm chart
+	ChartVersion string
+
+	// RepositoryURL The name or URL of the repository, e.g., http://myrepo/vz/stable
+	RepositoryURL string
+
 	module *modulesv1alpha1.Module
 }
 
 // upgradeFuncSig is a function needed for unit test override
-type upgradeFuncSig func(log vzlog.VerrazzanoLogger, repoURL string, releaseName string, namespace string, chartDirOrName string, chartVersion string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (stdout []byte, stderr []byte, err error)
+type upgradeFuncSig func(log vzlog.VerrazzanoLogger, repoURL string, releaseName string, namespace string, chartDirOrName string, chartVersion string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (err error)
 
 var (
 	_ spi.Component = helmComponentAdapter{}
@@ -45,8 +50,6 @@ func NewHelmAdapter(module *modulesv1alpha1.Module) modules2.DelegateReconciler 
 		ReleaseName:             module.Name,
 		ChartDir:                installer.HelmChart.Name,
 		ChartNamespace:          module.ChartNamespace(),
-		RepositoryURL:           chartURL,
-		ChartVersion:            installer.HelmChart.Version,
 		IgnoreNamespaceOverride: true,
 
 		GetInstallOverridesFunc: func(object runtime.Object) interface{} {
@@ -70,6 +73,8 @@ func NewHelmAdapter(module *modulesv1alpha1.Module) modules2.DelegateReconciler 
 	}
 	component := helmComponentAdapter{
 		HelmComponent: hc,
+		RepositoryURL: chartURL,
+		ChartVersion:  installer.HelmChart.Version,
 		module:        module,
 	}
 	return &Reconciler{
@@ -80,12 +85,12 @@ func NewHelmAdapter(module *modulesv1alpha1.Module) modules2.DelegateReconciler 
 // Install installs the component using Helm
 func (h helmComponentAdapter) Install(context spi.ComponentContext) error {
 
-	var kvs []bom.KeyValue
+	//var kvs []bom.KeyValue
 	// check for global image pull secret
-	kvs, err := secret.AddGlobalImagePullSecretHelmOverride(context.Log(), context.Client(), h.ChartNamespace, kvs, h.ImagePullSecretKeyname)
-	if err != nil {
-		return err
-	}
+	//kvs, err := secret.AddGlobalImagePullSecretHelmOverride(context.Log(), context.Client(), h.ChartNamespace, kvs, h.ImagePullSecretKeyname)
+	//if err != nil {
+	//	return err
+	//}
 
 	// TODO: utilize overrides hooks
 	// vz-specific chart overrides file
@@ -96,8 +101,7 @@ func (h helmComponentAdapter) Install(context spi.ComponentContext) error {
 	//}
 
 	// Perform an install using the helm upgrade --install command
-	_, _, err = upgradeFunc(context.Log(), h.RepositoryURL, h.ReleaseName, h.ChartNamespace, h.ChartDir, h.ChartVersion, h.WaitForInstall, context.IsDryRun(), []helm.HelmOverrides{})
-	return err
+	return upgradeFunc(context.Log(), h.RepositoryURL, h.ReleaseName, h.ChartNamespace, h.ChartDir, h.ChartVersion, h.WaitForInstall, context.IsDryRun(), []helm.HelmOverrides{})
 }
 
 func (h helmComponentAdapter) Upgrade(context spi.ComponentContext) error {

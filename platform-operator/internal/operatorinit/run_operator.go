@@ -4,13 +4,19 @@
 package operatorinit
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
+	modulepoc "github.com/verrazzano/verrazzano/platform-operator/controllers/module"
+	modulectrl "github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/module"
+	platformctrl "github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/platform"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/platformdef"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
@@ -87,6 +93,45 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 		DryRun: config.DryRun,
 	}).SetupWithManager(mgr); err != nil {
 		return errors.Wrap(err, "Failed to setup controller for Verrazzano Stacks")
+	}
+
+	if config.ExperimentalModules {
+		log.Infof("Experimental Modules API enabled, starting controllers")
+
+		if err = (&modulepoc.Reconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+		}).SetupWithManager(mgr); err != nil {
+			log.Error(err, "Failed to setup controller", vzlog.FieldController, "ModulesController")
+			os.Exit(1)
+		}
+
+		// v1beta2 PlatformDefinition controller
+		if err = (&platformdef.PlatformDefinitionReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+		}).SetupWithManager(mgr); err != nil {
+			log.Error(err, "Failed to setup controller", vzlog.FieldController, "PlatformDefinitionController")
+			os.Exit(1)
+		}
+
+		// v1beta2 Platform controller
+		if err = (&platformctrl.PlatformReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+		}).SetupWithManager(mgr); err != nil {
+			log.Error(err, "Failed to setup controller", vzlog.FieldController, "PlatformController")
+			os.Exit(1)
+		}
+
+		// v1beta2 VerrazzanoModule controller
+		if err = (&modulectrl.VerrazzanoModuleReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+		}).SetupWithManager(mgr); err != nil {
+			log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoModuleController")
+			os.Exit(1)
+		}
 	}
 
 	// +kubebuilder:scaffold:builder

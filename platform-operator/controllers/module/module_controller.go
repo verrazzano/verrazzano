@@ -13,10 +13,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	modules2 "github.com/verrazzano/verrazzano/platform-operator/controllers/module/modules"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/reconciler"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"go.uber.org/zap"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,9 +24,9 @@ import (
 )
 
 var delegates = map[string]func(*modulesv1alpha1.Module) modules2.DelegateReconciler{
-	keycloak.ComponentName:  keycloak.NewComponent,
-	coherence.ComponentName: coherence.NewComponent,
-	weblogic.ComponentName:  weblogic.NewComponent,
+	//keycloak.ComponentName:  keycloak.NewComponent,
+	//coherence.ComponentName: coherence.NewComponent,
+	//weblogic.ComponentName:  weblogic.NewComponent,
 }
 
 type Reconciler struct {
@@ -108,14 +105,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 func (r *Reconciler) createComponentContext(log vzlog.VerrazzanoLogger, verrazzanos *vzapi.VerrazzanoList, module *modulesv1alpha1.Module) (spi.ComponentContext, error) {
 	var moduleCtx spi.ComponentContext
 	var err error
-	if len(verrazzanos.Items) > 0 {
-		moduleCtx, err = spi.NewModuleContext(log, r.Client, &verrazzanos.Items[0], module, false)
-	} else {
-		moduleCtx, err = spi.NewMinimalModuleContext(r.Client, log, module, false)
-	}
-	if err != nil {
-		log.Errorf("Failed to create module context: %v", err)
-	}
+	//if len(verrazzanos.Items) > 0 {
+	//	moduleCtx, err = spi.NewModuleContext(log, r.Client, &verrazzanos.Items[0], module, false)
+	//} else {
+	//	moduleCtx, err = spi.NewMinimalModuleContext(r.Client, log, module, false)
+	//}
+	//if err != nil {
+	//	log.Errorf("Failed to create module context: %v", err)
+	//}
 	return moduleCtx, err
 }
 
@@ -129,15 +126,16 @@ func getDelegateController(module *modulesv1alpha1.Module) modules2.DelegateReco
 }
 
 func handleError(ctx spi.ComponentContext, err error) (ctrl.Result, error) {
-	log := ctx.Log()
-	module := ctx.Module()
-	if k8serrors.IsConflict(err) {
-		log.Debugf("Conflict resolving module %s", module.Name)
-	} else if modules2.IsNotReadyError(err) {
-		log.Progressf("Module %s is not ready yet", module.Name)
-	} else {
-		log.Errorf("Failed to reconcile module %s/%s: %v", module.Name, module.Namespace, err)
-		return clusters.NewRequeueWithDelay(), err
-	}
-	return clusters.NewRequeueWithDelay(), nil
+	//log := ctx.Log()
+	//module := ctx.Module()
+	//if k8serrors.IsConflict(err) {
+	//	log.Debugf("Conflict resolving module %s", module.Name)
+	//} else if modules2.IsNotReadyError(err) {
+	//	log.Progressf("Module %s is not ready yet", module.Name)
+	//} else {
+	//	log.Errorf("Failed to reconcile module %s/%s: %v", module.Name, module.Namespace, err)
+	//	return clusters.NewRequeueWithDelay(), err
+	//}
+	//return clusters.NewRequeueWithDelay(), nil
+	return ctrl.Result{}, nil
 }
