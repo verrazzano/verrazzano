@@ -35,7 +35,7 @@ const (
 	testKubeConfig    = "kubeconfig"
 	testK8sContext    = "testcontext"
 	testFilenamePath  = "../../test/testdata/v1beta1.yaml"
-	bugReportFilePath = "bug-report.tar.gz"
+	BugReportNotExist = "cannot find bug report file in current directory"
 )
 
 // TestInstallCmdDefaultNoWait
@@ -83,8 +83,9 @@ func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for install to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
-	assert.FileExists(t, bugReportFilePath)
-	os.Remove(bugReportFilePath)
+	if !helpers.CheckBugReportExistsInDir("") {
+		t.Fatal(BugReportNotExist)
+	}
 }
 
 // TestInstallCmdDefaultTimeoutNoBugReport
@@ -104,14 +105,16 @@ func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer os.RemoveAll(tempKubeConfigPath.Name())
 	defer cmdHelpers.SetDefaultDeleteFunc()
-	os.Remove(bugReportFilePath)
 
 	// Run install command
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for install to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
-	assert.NoFileExists(t, bugReportFilePath)
+	// Bug report must not exist
+	if helpers.CheckBugReportExistsInDir("") {
+		t.Fatal("found bug report file in current directory")
+	}
 }
 
 // TestInstallCmdDefaultNoVPO
@@ -560,7 +563,7 @@ func TestInstallCmdInProgress(t *testing.T) {
 // GIVEN a CLI install command when an install already happened
 //
 //	WHEN I call cmd.Execute for install
-//	THEN the CLI install command is unsuccessful
+//	THEN the CLI install command is unsuccessful and a bug report is generated
 func TestInstallCmdAlreadyInstalled(t *testing.T) {
 	vz := &v1beta1.Verrazzano{
 		TypeMeta: metav1.TypeMeta{},
@@ -586,13 +589,16 @@ func TestInstallCmdAlreadyInstalled(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Only one install of Verrazzano is allowed")
+	if !helpers.CheckBugReportExistsInDir("") {
+		t.Fatal(BugReportNotExist)
+	}
 }
 
 // TestInstallCmdDifferentVersion
 // GIVEN a CLI install command when an install is in progress for a different version
 //
 //	WHEN I call cmd.Execute for install
-//	THEN the CLI install command is unsuccessful
+//	THEN the CLI install command is unsuccessful and a bug report is generated
 func TestInstallCmdDifferentVersion(t *testing.T) {
 	vz := &v1beta1.Verrazzano{
 		TypeMeta: metav1.TypeMeta{},
@@ -618,6 +624,9 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Unable to install version v1.3.1, install of version v1.3.2 is in progress")
+	if !helpers.CheckBugReportExistsInDir("") {
+		t.Fatal(BugReportNotExist)
+	}
 }
 
 func createNewTestCommandAndBuffers(t *testing.T, c client.Client) (*cobra.Command, *bytes.Buffer, *bytes.Buffer, *testhelpers.FakeRootCmdContext) {
@@ -684,7 +693,6 @@ func TestAnalyzeCommandDefault(t *testing.T) {
 	defer func() {
 		os.Remove(stdoutFile.Name())
 		os.Remove(stderrFile.Name())
-		os.Remove(bugReportFilePath)
 	}()
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	rc.SetClient(c)
