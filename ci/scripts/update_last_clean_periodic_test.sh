@@ -14,7 +14,13 @@ if [ -z "$1" ]; then
 fi
 DEVELOPENT_VERSION="$1"
 
-if [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$CLEAN_BRANCH_NAME" ] || [ -z "$OCI_OS_REGION" ] || [ -z "$GIT_COMMIT_USED" ]; then
+if [ -z "$2" ]; then
+  echo "Short commit hash must be specified"
+  exit 1
+fi
+SHORT_COMMIT_HASH_ENV="$2"
+
+if [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$CLEAN_BRANCH_NAME" ] || [ -z "$BRANCH_NAME" ] || [ -z "$OCI_OS_REGION" ] || [ -z "$GIT_COMMIT_USED" ]; then
   echo "This script requires environment variables - CLEAN_BRANCH_NAME, OCI_OS_BUCKET, OCI_OS_NAMESPACE, OCI_OS_REGION, GIT_COMMIT_USED, and WORKSPACE"
   exit 1
 fi
@@ -56,8 +62,8 @@ oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPA
 oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_FULL_RELEASE_BUNDLE_SHA256} --file ${VZ_FULL_GENERATED}/${VZ_FULL_RELEASE_BUNDLE_SHA256}
 
 # Cleanup ephemeral artifacts
-#oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE} --file ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE}
-#oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE_SHA256} --file ${VZ_FULL_RELEASE_BUNDLE_SHA256}
+oci --region ${OCI_OS_REGION} os object delete --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE}
+oci --region ${OCI_OS_REGION} os object delete --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE_SHA256}
 
-#oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_LITE_RELEASE_BUNDLE} --file ${VZ_LITE_RELEASE_BUNDLE}
-#oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_LITE_RELEASE_BUNDLE_SHA256} --file ${VZ_LITE_RELEASE_BUNDLE_SHA256}
+oci --region ${OCI_OS_REGION} os object delete --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_LITE_RELEASE_BUNDLE}
+oci --region ${OCI_OS_REGION} os object delete --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_LITE_RELEASE_BUNDLE_SHA256}
