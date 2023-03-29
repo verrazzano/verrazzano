@@ -487,7 +487,7 @@ pipeline {
                 stage('Verrazzano Distribution and Private Registry') {
                     steps {
                         script {
-                            build job: "/Verrazzano%20Distributions%20Testing/${CLEAN_BRANCH_NAME}",
+                            build job: "/verrazzano-distributions-testing/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
