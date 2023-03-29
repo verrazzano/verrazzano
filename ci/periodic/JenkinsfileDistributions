@@ -2,6 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def verrazzanoPrefix="verrazzano-"
+def props = readProperties file: '.verrazzano-development-version'
 
 pipeline {
     options {
@@ -73,6 +74,7 @@ pipeline {
 
         SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
         storeLocation="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+        VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
         fullBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
         liteBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
 
@@ -141,8 +143,6 @@ pipeline {
                 """
 
                 script {
-                    def props = readProperties file: '.verrazzano-development-version'
-                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
@@ -155,11 +155,6 @@ pipeline {
 
         stage('Build Release Distributions') {
             steps {
-                script {
-                    def props = readProperties file: '.verrazzano-development-version'
-                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
-                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                }
                 sh """
                     ci/scripts/build_distribution.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${VERRAZZANO_DEV_VERSION}
                 """
@@ -176,12 +171,6 @@ pipeline {
             }
             parallel {
                 stage('Private Registry - Lite Distribution') {
-                    steps {
-                        script {
-                            def props = readProperties file: '.verrazzano-development-version'
-                            VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
-                            SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                        }
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
                                 build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
@@ -197,11 +186,6 @@ pipeline {
 
                 stage('Private Registry - Full Distribution') {
                     steps {
-                        script {
-                            def props = readProperties file: '.verrazzano-development-version'
-                            VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
-                            SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                        }
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
                                 build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
