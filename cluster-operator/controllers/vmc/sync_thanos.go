@@ -61,7 +61,10 @@ func (r *VerrazzanoManagedClusterReconciler) syncThanosQuery(ctx context.Context
 	if err := r.createOrUpdateDestinationRule(vmc.Name, vmc.Status.ThanosHost, thanosGrpcIngressPort); err != nil {
 		return err
 	}
-	return nil
+
+	// If we successfully sync the managed cluster Thanos Query store, we should remove the federated Prometheus to avoid duplication
+	r.log.Oncef("Thanos Query synced for VMC %s. Removing the Prometheus scraper", vmc.Name)
+	return r.deleteClusterPrometheusConfiguration(ctx, vmc)
 }
 
 // syncThanosQueryEndpoint will update the config map used by Thanos Query with the managed cluster
@@ -71,6 +74,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncThanosQueryEndpoint(ctx context
 
 	if thanosEnabled, err := r.isThanosEnabled(); err != nil || !thanosEnabled {
 		r.log.Oncef("Thanos is not enabled on this cluster. Not updating Thanos endpoints for VMC %s", vmc.Name)
+
 		return nil
 	}
 

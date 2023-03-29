@@ -5,11 +5,14 @@ package vmc
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/metricsutils"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/thanos"
@@ -108,6 +111,7 @@ func TestSyncThanosQuery(t *testing.T) {
 	otherHost1 := toGrpcTarget("otherhost1")
 	otherHost2 := toGrpcTarget("otherhost2")
 	newHost := toGrpcTarget(newHostName)
+	vmcName := "somename"
 	tests := []struct {
 		name                   string
 		vmcStatus              *clustersv1alpha1.VerrazzanoManagedClusterStatus
@@ -115,14 +119,16 @@ func TestSyncThanosQuery(t *testing.T) {
 		hostname               string
 		configMapExistingHosts []string
 		hostShouldExistInCM    bool
+		prometheusConfig       *v1.Secret
 	}{
-		{"VMC status empty", nil, 1, "", []string{otherHost1}, false},
+		{"VMC status empty", nil, 1, "", []string{otherHost1}, false, nil},
 		{"VMC status has no Thanos host",
 			&clustersv1alpha1.VerrazzanoManagedClusterStatus{APIUrl: "someurl"},
 			1,
 			"",
 			[]string{otherHost1},
 			false,
+			nil,
 		},
 		{"VMC status has existing Thanos host",
 			&clustersv1alpha1.VerrazzanoManagedClusterStatus{APIUrl: "someurl", ThanosHost: newHostName},
@@ -130,6 +136,7 @@ func TestSyncThanosQuery(t *testing.T) {
 			newHostName,
 			[]string{newHost, otherHost1},
 			true, // new host already exists in query endpoints configmap, should still exist
+			nil,
 		},
 		{"VMC status has non-existing Thanos host",
 			&clustersv1alpha1.VerrazzanoManagedClusterStatus{APIUrl: "someurl", ThanosHost: newHostName},
@@ -137,6 +144,41 @@ func TestSyncThanosQuery(t *testing.T) {
 			newHostName,
 			[]string{otherHost1, otherHost2},
 			true, // new host should be added to query endpoints configmap
+			nil,
+		},
+		{"VMC deletes existing Prometheus Scrape",
+			&clustersv1alpha1.VerrazzanoManagedClusterStatus{APIUrl: "someurl", ThanosHost: newHostName},
+			3,
+			newHostName,
+			[]string{otherHost1, otherHost2},
+			true, // new host should be added to query endpoints configmap
+			&v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      vzconst.PromAdditionalScrapeConfigsSecretName,
+					Namespace: constants.VerrazzanoMonitoringNamespace,
+				},
+				Data: map[string][]byte{
+					vzconst.PromAdditionalScrapeConfigsSecretKey: []byte(fmt.Sprintf("- %s: %s", vzconst.PrometheusJobNameKey, vmcName)),
+				},
+			},
+		},
+		{"VMC deletes existing Prometheus Scrape of multiple jobs",
+			&clustersv1alpha1.VerrazzanoManagedClusterStatus{APIUrl: "someurl", ThanosHost: newHostName},
+			3,
+			newHostName,
+			[]string{otherHost1, otherHost2},
+			true, // new host should be added to query endpoints configmap
+			&v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      vzconst.PromAdditionalScrapeConfigsSecretName,
+					Namespace: constants.VerrazzanoMonitoringNamespace,
+				},
+				Data: map[string][]byte{
+					vzconst.PromAdditionalScrapeConfigsSecretKey: []byte(
+						fmt.Sprintf("- %s: %s\n- %s: %s", vzconst.PrometheusJobNameKey, vmcName, vzconst.PrometheusJobNameKey, "fakejob"),
+					),
+				},
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -151,12 +193,17 @@ func TestSyncThanosQuery(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "somename", Namespace: constants.VerrazzanoMultiClusterNamespace},
 				Status:     vmcStatus,
 			}
-			cli := fake.NewClientBuilder().WithScheme(makeThanosTestScheme()).WithRuntimeObjects(
+			cliBuilder := fake.NewClientBuilder().WithScheme(makeThanosTestScheme()).WithRuntimeObjects(
 				makeThanosConfigMapWithExistingHosts(t, tt.configMapExistingHosts, true),
 				makeThanosEnabledVerrazzano(),
 				&k8sapiext.CustomResourceDefinition{ObjectMeta: metav1.ObjectMeta{Name: serviceEntryCRDName}},
 				&k8sapiext.CustomResourceDefinition{ObjectMeta: metav1.ObjectMeta{Name: destinationRuleCRDName}},
-			).Build()
+			)
+			if tt.prometheusConfig != nil {
+				cliBuilder = cliBuilder.WithObjects(tt.prometheusConfig)
+			}
+			cli := cliBuilder.Build()
+
 			r := &VerrazzanoManagedClusterReconciler{
 				Client: cli,
 				log:    log,
@@ -167,6 +214,9 @@ func TestSyncThanosQuery(t *testing.T) {
 			if tt.hostShouldExistInCM {
 				assertThanosServiceEntry(t, r, vmc.Name, tt.hostname, thanosGrpcIngressPort)
 				assertThanosDestinationRule(t, r, vmc.Name, tt.hostname, thanosGrpcIngressPort)
+			}
+			if tt.prometheusConfig != nil {
+				assertAdditionalScrapeConfigRemoved(t, r, vmcName)
 			}
 		})
 	}
@@ -517,4 +567,16 @@ func assertThanosDestinationRule(t *testing.T, r *VerrazzanoManagedClusterReconc
 	assert.Equal(t, dr.Spec.Host, hostName)
 	assert.Equal(t, dr.Spec.TrafficPolicy.PortLevelSettings[0].Port.Number, portNum)
 	assert.Equal(t, dr.Spec.TrafficPolicy.PortLevelSettings[0].Tls.Mode, istionet.ClientTLSSettings_SIMPLE)
+}
+
+func assertAdditionalScrapeConfigRemoved(t *testing.T, r *VerrazzanoManagedClusterReconciler, vmcName string) {
+	sec := &v1.Secret{}
+	err := r.Client.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: vzconst.PromAdditionalScrapeConfigsSecretName}, sec)
+	assert.NoError(t, err)
+	data, ok := sec.Data[vzconst.PromAdditionalScrapeConfigsSecretKey]
+	assert.True(t, ok, "Additional scrape configs key not found in secret")
+	assert.NotEmpty(t, data)
+	scrapeConfigContainer, err := metricsutils.ParseScrapeConfig(string(data))
+	assert.NoError(t, err)
+	assert.Negative(t, metricsutils.FindScrapeJob(scrapeConfigContainer, vmcName))
 }
