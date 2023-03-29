@@ -97,6 +97,7 @@ func main() {
 		"Webhook certificate expiration check period in hours")
 	flag.Int64Var(&config.CertificateExpiryCheckWindow, "cert-rotation-window", config.CertificateExpiryCheckWindow,
 		"The window of time to rotate the webhook certificates before expiration in hours")
+	flag.BoolVar(&config.ExperimentalModules, "experimental-modules", config.ExperimentalModules, "enable experimental modules")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}

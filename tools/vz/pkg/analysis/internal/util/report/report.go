@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
@@ -99,7 +100,7 @@ func ContributeIssue(log *zap.SugaredLogger, issue Issue) (err error) {
 // GenerateHumanReport is a basic report generator
 // TODO: This is super basic for now, need to do things like sort based on Confidence, add other formats on output, etc...
 // Also add other niceties like time, Summary of what was analyzed, if no issues were found, etc...
-func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat string, includeSupportData bool, includeInfo bool, includeActions bool, minConfidence int, minImpact int, vzHelper helpers.VZHelper) (err error) {
+func GenerateHumanReport(log *zap.SugaredLogger, vzHelper helpers.VZHelper, reportCtx helpers.ReportCtx) (err error) {
 	// Default to stdout if no reportfile is supplied
 	//TODO: Eventually add support other reportFormat type (json)
 	writeOut, writeSummaryOut, sepOut := "", "", ""
@@ -112,7 +113,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 		log.Debugf("Will report on %d issues that were reported for %s", len(reportIssues), source)
 		// We need to filter and sort the list of Issues that will be reported
 		// TODO: Need to sort them as well eventually
-		actuallyReported := filterReportIssues(log, reportIssues, includeInfo, minConfidence, minImpact)
+		actuallyReported := filterReportIssues(log, reportIssues, reportCtx.IncludeInfo, reportCtx.MinConfidence, reportCtx.MinImpact)
 		if len(actuallyReported) == 0 {
 			log.Debugf("No issues to report for source: %s", source)
 			continue
@@ -129,7 +130,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 		sepOut = "\n" + issuesDetected + "\n" + strings.Repeat(constants.LineSeparator, len(issuesDetected)) + "\n"
 		for _, issue := range actuallyReported {
 			// Display only summary and action when the report-format is set to summary
-			if reportFormat == constants.SummaryReport {
+			if reportCtx.ReportFormat == constants.SummaryReport {
 				writeSummaryOut += fmt.Sprintf("\n\tISSUE (%s): %s\n", issue.Type, issue.Summary)
 				for _, action := range issue.Actions {
 					writeSummaryOut += fmt.Sprintf("\t%s\n", action.Summary)
@@ -137,7 +138,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 
 			}
 			writeOut += fmt.Sprintf("\n\tISSUE (%s)\n\t\tsummary: %s\n", issue.Type, issue.Summary)
-			if len(issue.Actions) > 0 && includeActions {
+			if len(issue.Actions) > 0 && reportCtx.IncludeActions {
 				log.Debugf("Output actions")
 				writeOut += "\t\tactions:\n"
 				for _, action := range issue.Actions {
@@ -156,7 +157,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 					}
 				}
 			}
-			if len(issue.SupportingData) > 0 && includeSupportData {
+			if len(issue.SupportingData) > 0 && reportCtx.IncludeSupportData {
 				log.Debugf("Output supporting data")
 				writeOut += "\t\tsupportingData:\n"
 				for _, data := range issue.SupportingData {
@@ -211,9 +212,9 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 
 	// printReport std outs reports to console
 	printReport := func() {
-		if reportFormat == constants.DetailedReport {
+		if reportCtx.ReportFormat == constants.DetailedReport {
 			fmt.Fprintf(vzHelper.GetOutputStream(), sepOut+writeOut)
-		} else if reportFormat == constants.SummaryReport {
+		} else if reportCtx.ReportFormat == constants.SummaryReport {
 			fmt.Fprintf(vzHelper.GetOutputStream(), sepOut+writeSummaryOut)
 		}
 	}
@@ -222,30 +223,34 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 		var repFile *os.File
 		defer func() {
 			if repFile != nil {
-				fmt.Fprintf(os.Stdout, "\nDetailed report available in %s\n", repFile.Name())
+				currentDir, _ := os.Getwd()
+				fullPath := filepath.Join(currentDir, repFile.Name())
+				fmt.Fprintf(os.Stdout, "\nDetailed analysis report available in %s\n", fullPath)
 				repFile.Close()
 			}
 		}()
-		if reportFile == "" {
+		if reportCtx.ReportFile == "" {
 			// flag --report-file is unset or empty
-			repFile, err = genTmpReport(&reportFile)
+			repFile, err = genTmpReport(&reportCtx.ReportFile)
 		} else {
 			// flag --report-file is set
-			repFile, err = genUsrDefinedReport(&reportFile)
+			repFile, err = genUsrDefinedReport(&reportCtx.ReportFile)
 		}
 		if err != nil {
-			log.Errorf("Failed to create report file : %s, error found : %s", reportFile, err.Error())
+			log.Errorf("Failed to create report file : %s, error found : %s", reportCtx.ReportFile, err.Error())
 			return err
 		}
 		// writes vz & k8s version, a separator and detected issues to report file
 		_, err = repFile.Write([]byte(helpers.GetVersionOut() + sepOut + writeOut))
-		printReport()
+		if reportCtx.PrintReportToConsole {
+			printReport()
+		}
 		if err != nil {
-			log.Errorf("Failed to write to report file %s, error found : %s", reportFile, err.Error())
+			log.Errorf("Failed to write to report file %s, error found : %s", reportCtx.ReportFile, err.Error())
 			return err
 		}
 	} else {
-		if includeInfo {
+		if reportCtx.IncludeInfo {
 			if len(sourcesWithoutIssues) > 0 {
 				writeOut += "\n\n"
 			}

@@ -1,0 +1,11 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+{{- if .Values.query.existingSDConfigmap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: verrazzano-thanos-endpoints
+  namespace: {{ .Release.Namespace | quote }}
+# TODO labels?
+data:
+  servicediscovery.yml: ""
+{{- end}}

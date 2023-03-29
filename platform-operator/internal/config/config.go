@@ -87,6 +87,9 @@ type OperatorConfig struct {
 
 	// CertificateExpiryCheckWindow period for CertificateRotator window of time to rotate the webhook certificates before expiration in hours.
 	CertificateExpiryCheckWindow int64
+
+	// ExperimentalModules toggles the VPO to use the experimental modules feature
+	ExperimentalModules bool
 }
 
 // The singleton instance of the operator config
@@ -97,11 +100,13 @@ var instance = OperatorConfig{
 	VersionCheckEnabled:               true,
 	RunWebhookInit:                    false,
 	RunWebhooks:                       false,
+	ResourceRequirementsValidation:    false,
 	WebhookValidationEnabled:          true,
 	VerrazzanoRootDir:                 rootDir,
 	HealthCheckPeriodSeconds:          60,
 	MySQLCheckPeriodSeconds:           60,
 	MySQLRepairTimeoutSeconds:         120,
+	ExperimentalModules:               false,
 	CertificateExpiryCheckPeriodHours: 168, //run every week only to validate the certificates.
 	CertificateExpiryCheckWindow:      336, //expiry window of two weeks.
 }

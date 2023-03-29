@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package pushgateway
@@ -91,9 +91,8 @@ func (c prometheusPushgatewayComponent) MonitorOverrides(ctx spi.ComponentContex
 		if ctx.EffectiveCR().Spec.Components.PrometheusPushgateway.MonitorChanges != nil {
 			return *ctx.EffectiveCR().Spec.Components.PrometheusPushgateway.MonitorChanges
 		}
-		return true
 	}
-	return false
+	return true
 }
 
 // AppendOverrides appends install overrides for the Prometheus PrometheusPushgateway component's Helm chart

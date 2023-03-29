@@ -337,6 +337,14 @@ pipeline {
                                 runGinkgo('examples/bobsbooks')
                             }
                         }
+                        stage('examples weblogic cluster') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-cluster"
+                            }
+                            steps {
+                                runGinkgo('workloads/weblogic-cluster')
+                            }
+                        }
                     }
                 }
             }

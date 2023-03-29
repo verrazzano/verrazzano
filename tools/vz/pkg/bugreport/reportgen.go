@@ -47,17 +47,17 @@ type Pods struct {
 }
 
 // CaptureClusterSnapshot selectively captures the resources from the cluster, useful to analyze the issue.
-func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, client clipkg.Client, bugReportDir string, moreNS []string, vzHelper pkghelpers.VZHelper, podLogs PodLogs) error {
+func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, client clipkg.Client, vzHelper pkghelpers.VZHelper, podLogs PodLogs, clusterSnapshotCtx pkghelpers.ClusterSnapshotCtx) error {
 
 	// Create a file to capture the standard out to a file
-	stdOutFile, err := os.OpenFile(filepath.Join(bugReportDir, constants.BugReportOut), os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+	stdOutFile, err := os.OpenFile(filepath.Join(clusterSnapshotCtx.BugReportDir, constants.BugReportOut), os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
 	if err != nil {
 		return fmt.Errorf("an error occurred while creating the file include the summary of the resources captured: %s", err.Error())
 	}
 	defer stdOutFile.Close()
 
 	// Create a file to capture the standard err to a file
-	stdErrFile, err := os.OpenFile(filepath.Join(bugReportDir, constants.BugReportErr), os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+	stdErrFile, err := os.OpenFile(filepath.Join(clusterSnapshotCtx.BugReportDir, constants.BugReportErr), os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
 	if err != nil {
 		return fmt.Errorf("an error occurred while creating the file include the summary of the resources captured: %s", err.Error())
 	}
@@ -74,17 +74,19 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	}
 
 	// Get the list of namespaces based on the failed components and value specified by flag --include-namespaces
-	nsList, additionalNS := collectNamespaces(kubeClient, moreNS, vz, vzHelper)
+	nsList, additionalNS := collectNamespaces(kubeClient, clusterSnapshotCtx.MoreNS, vz, vzHelper)
 	var msgPrefix string
 	if pkghelpers.GetIsLiveCluster() {
 		msgPrefix = constants.AnalysisMsgPrefix
 	} else {
 		msgPrefix = constants.BugReportMsgPrefix
 	}
-	// Print initial message to console output only
-	fmt.Fprintf(vzHelper.GetOutputStream(), "\n"+msgPrefix+"resources from the cluster ...\n")
+	if clusterSnapshotCtx.PrintReportToConsole {
+		// Print initial message to console output only
+		fmt.Fprintf(vzHelper.GetOutputStream(), "\n"+msgPrefix+"resources from the cluster ...\n")
+	}
 	// Capture list of resources from verrazzano-install and verrazzano-system namespaces
-	err = captureResources(client, kubeClient, bugReportDir, vz, vzHelper, nsList)
+	err = captureResources(client, kubeClient, clusterSnapshotCtx.BugReportDir, vz, vzHelper, nsList)
 	if err != nil {
 		pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the Verrazzano resources: %s", err.Error()))
 	}
@@ -95,11 +97,11 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 
 	// Capture OAM resources from the namespaces specified using --include-namespaces
 	if len(additionalNS) > 0 {
-		captureAdditionalResources(client, kubeClient, dynamicClient, vzHelper, bugReportDir, additionalNS, podLogs)
+		captureAdditionalResources(client, kubeClient, dynamicClient, vzHelper, clusterSnapshotCtx.BugReportDir, additionalNS, podLogs)
 	}
 
 	// Capture Verrazzano Projects and VerrazzanoManagedCluster
-	if err := captureMultiClusterResources(dynamicClient, bugReportDir, vzHelper); err != nil {
+	if err := captureMultiClusterResources(dynamicClient, clusterSnapshotCtx.BugReportDir, vzHelper); err != nil {
 		return err
 	}
 	return nil

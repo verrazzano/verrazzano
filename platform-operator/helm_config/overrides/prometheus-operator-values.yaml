@@ -54,6 +54,7 @@ prometheus:
       - action: replace
         targetLabel: verrazzano_cluster
         replacement: local
+
 alertmanager:
   enabled: false
   alertmanagerSpec:

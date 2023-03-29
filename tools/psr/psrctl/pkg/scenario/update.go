@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package scenario
@@ -65,9 +65,9 @@ func (m ScenarioMananger) doHelmUpgrade(manifestMan manifest.ManifestManager, sc
 	if m.Verbose {
 		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Updating use case %s for Helm release %s/%s\n", hr.Usecase.UsecasePath, hr.Namespace, hr.Name))
 	}
-	_, stderr, err := UpdateUpgradeFunc(m.Log, hr.Name, m.Namespace, manifestMan.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
+	err = UpdateUpgradeFunc(m.Log, hr.Name, m.Namespace, manifestMan.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
 	if err != nil {
-		return string(stderr), err
+		return err.Error(), err
 	}
 	return "", nil
 }
