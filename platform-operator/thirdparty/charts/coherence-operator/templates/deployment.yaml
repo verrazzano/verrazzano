@@ -76,7 +76,7 @@ spec:
       control-plane: coherence
   template:
     metadata:
-      annotations:
+      labels:
         sidecar.istio.io/inject: 'false'
         control-plane: coherence
         app.kubernetes.io/name: coherence-operator
