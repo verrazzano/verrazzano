@@ -20,6 +20,7 @@ import (
 const (
 	devComponentConfigMapKindLabel         = "experimental.verrazzano.io/configmap-kind"
 	devComponentConfigMapKindHelmComponent = "HelmComponent"
+	devComponentConfigMapKindShimComponent = "ShimComponent"
 	devComponentConfigMapAPIVersionLabel   = "experimental.verrazzano.io/configmap-apiversion"
 	devComponentConfigMapAPIVersionv1beta2 = "v1beta2"
 	componentNameKey                       = "name"
@@ -34,7 +35,7 @@ type devComponent struct {
 
 var _ spi.Component = devComponent{}
 
-func newDevHelmComponent(cm *v1.ConfigMap) (devComponent, error) {
+func newDevHelmComponent(cm *v1.ConfigMap) (spi.Component, error) {
 	componentName, ok := cm.Data[componentNameKey]
 	if !ok {
 		return devComponent{}, fmt.Errorf("ConfigMap %s does not contain the name field, cannot reconcile component", cm.Name)
@@ -71,32 +72,32 @@ func newDevHelmComponent(cm *v1.ConfigMap) (devComponent, error) {
 	}, nil
 }
 
-func (d devComponent) doInstall(ctx spi.ComponentContext) error {
-	if err := d.PreInstall(ctx); err != nil {
+func doInstall(ctx spi.ComponentContext, comp spi.Component) error {
+	if err := comp.PreInstall(ctx); err != nil {
 		return err
 	}
-	if err := d.Install(ctx); err != nil {
+	if err := comp.Install(ctx); err != nil {
 		return err
 	}
-	return d.PostInstall(ctx)
+	return comp.PostInstall(ctx)
 }
 
-func (d devComponent) doUpgrade(ctx spi.ComponentContext) error {
-	if err := d.PreUpgrade(ctx); err != nil {
+func doUpgrade(ctx spi.ComponentContext, comp spi.Component) error {
+	if err := comp.PreUpgrade(ctx); err != nil {
 		return err
 	}
-	if err := d.Upgrade(ctx); err != nil {
+	if err := comp.Upgrade(ctx); err != nil {
 		return err
 	}
-	return d.PostUpgrade(ctx)
+	return comp.PostUpgrade(ctx)
 }
 
-func (d devComponent) doUninstall(ctx spi.ComponentContext) error {
-	if err := d.PreUninstall(ctx); err != nil {
+func doUninstall(ctx spi.ComponentContext, comp spi.Component) error {
+	if err := comp.PreUninstall(ctx); err != nil {
 		return err
 	}
-	if err := d.Uninstall(ctx); err != nil {
+	if err := comp.Uninstall(ctx); err != nil {
 		return err
 	}
-	return d.PostUninstall(ctx)
+	return comp.PostUninstall(ctx)
 }
