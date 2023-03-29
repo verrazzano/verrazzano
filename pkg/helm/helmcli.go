@@ -102,8 +102,14 @@ func GetValues(log vzlog.VerrazzanoLogger, releaseName string, namespace string)
 	return yamlValues, nil
 }
 
+// Upgrade or install a local chart
+//func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []HelmOverrides) (err error) {
+//	return UpgradeRelease(log, "", releaseName, namespace, chartDir, "", wait, dryRun, overrides)
+//}
+
 // Upgrade will upgrade a Helm helmRelease with the specified charts.  The override files array
 // are in order with the first files in the array have lower precedence than latter files.
+// func UpgradeRelease(log vzlog.VerrazzanoLogger, repoURL string, releaseName string, namespace string, chartDirOrName string, chartVersion string, wait bool, dryRun bool, overrides []HelmOverrides) (e error)  {
 func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []HelmOverrides) (*release.Release, error) {
 	settings := cli.New()
 	settings.SetNamespace(namespace)
