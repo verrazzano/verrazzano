@@ -69,6 +69,10 @@ pipeline {
         LAST_PERIODIC_LOCATION = "${WORKSPACE}/last-periodic-run-commit.txt"
         CLEAN_PERIODIC_LOCATION = "${WORKSPACE}/last-clean-periodic-commit.txt"
 
+        storeLocation="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+        fullBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
+        liteBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
+
         OCI_OS_REGION="us-phoenix-1"
     }
 
@@ -185,8 +189,8 @@ pipeline {
                                 build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                            string(name: 'DISTRIBUTION_VARIANT', value: 'Full'),
-                                                string(name: 'ZIPFILE_LOCATION', value: fullBundle)
+                                        string(name: 'DISTRIBUTION_VARIANT', value: 'Full'),
+                                        string(name: 'ZIPFILE_LOCATION', value: fullBundle)
                                     ], wait: true
                             }
                         }
