@@ -41,3 +41,6 @@ webhookAffinity:
         weight: 100
 webhooks:
   resourceValidation: false
+
+experimental:
+  modules: false

@@ -21,6 +21,11 @@ spec:
         - source: /u01/data
     prometheusOperator:
       enabled: true
+      overrides:
+        - values:
+            prometheus:
+              thanos:
+                integration: sidecar
     prometheusAdapter:
       enabled: true
     kubeStateMetrics:
@@ -39,3 +44,5 @@ spec:
                   - key: rancher-sync
                     operator: In
                     values: [ enabled ]
+    thanos:
+      enabled: true

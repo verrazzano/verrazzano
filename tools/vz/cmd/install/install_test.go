@@ -7,7 +7,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
+	appsv1 "k8s.io/api/apps/v1"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -31,7 +35,7 @@ const (
 	testKubeConfig    = "kubeconfig"
 	testK8sContext    = "testcontext"
 	testFilenamePath  = "../../test/testdata/v1beta1.yaml"
-	bugReportFilePath = "bug-report.tar.gz"
+	BugReportNotExist = "cannot find bug report file in current directory"
 )
 
 // TestInstallCmdDefaultNoWait
@@ -79,8 +83,9 @@ func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for install to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
-	assert.FileExists(t, bugReportFilePath)
-	os.Remove(bugReportFilePath)
+	if !helpers.CheckBugReportExistsInDir("") {
+		t.Fatal(BugReportNotExist)
+	}
 }
 
 // TestInstallCmdDefaultTimeoutNoBugReport
@@ -100,14 +105,16 @@ func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer os.RemoveAll(tempKubeConfigPath.Name())
 	defer cmdHelpers.SetDefaultDeleteFunc()
-	os.Remove(bugReportFilePath)
 
 	// Run install command
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for install to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
-	assert.NoFileExists(t, bugReportFilePath)
+	// Bug report must not exist
+	if helpers.CheckBugReportExistsInDir("") {
+		t.Fatal("found bug report file in current directory")
+	}
 }
 
 // TestInstallCmdDefaultNoVPO
@@ -123,6 +130,9 @@ func TestInstallCmdDefaultNoVPO(t *testing.T) {
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 	cmd.PersistentFlags().Set(constants.VPOTimeoutFlag, "1s")
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
@@ -142,6 +152,9 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 	cmd.PersistentFlags().Set(constants.VPOTimeoutFlag, "1s")
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
@@ -183,6 +196,9 @@ func TestInstallCmdMultipleGroupVersions(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 
 	// Run install command
 	err := cmd.Execute()
@@ -382,6 +398,9 @@ func TestInstallValidations(t *testing.T) {
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.OperatorFileFlag, "test")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "test")
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), fmt.Sprintf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.OperatorFileFlag))
@@ -544,7 +563,7 @@ func TestInstallCmdInProgress(t *testing.T) {
 // GIVEN a CLI install command when an install already happened
 //
 //	WHEN I call cmd.Execute for install
-//	THEN the CLI install command is unsuccessful
+//	THEN the CLI install command is unsuccessful and a bug report is generated
 func TestInstallCmdAlreadyInstalled(t *testing.T) {
 	vz := &v1beta1.Verrazzano{
 		TypeMeta: metav1.TypeMeta{},
@@ -560,6 +579,9 @@ func TestInstallCmdAlreadyInstalled(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
@@ -567,13 +589,16 @@ func TestInstallCmdAlreadyInstalled(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Only one install of Verrazzano is allowed")
+	if !helpers.CheckBugReportExistsInDir("") {
+		t.Fatal(BugReportNotExist)
+	}
 }
 
 // TestInstallCmdDifferentVersion
 // GIVEN a CLI install command when an install is in progress for a different version
 //
 //	WHEN I call cmd.Execute for install
-//	THEN the CLI install command is unsuccessful
+//	THEN the CLI install command is unsuccessful and a bug report is generated
 func TestInstallCmdDifferentVersion(t *testing.T) {
 	vz := &v1beta1.Verrazzano{
 		TypeMeta: metav1.TypeMeta{},
@@ -589,6 +614,9 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
@@ -596,6 +624,9 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Unable to install version v1.3.1, install of version v1.3.2 is in progress")
+	if !helpers.CheckBugReportExistsInDir("") {
+		t.Fatal(BugReportNotExist)
+	}
 }
 
 func createNewTestCommandAndBuffers(t *testing.T, c client.Client) (*cobra.Command, *bytes.Buffer, *bytes.Buffer, *testhelpers.FakeRootCmdContext) {
@@ -608,4 +639,112 @@ func createNewTestCommandAndBuffers(t *testing.T, c client.Client) (*cobra.Comma
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	return cmd, buf, errBuf, rc
+}
+
+// installVZ installs Verrazzano using the given client
+func installVZ(t *testing.T, c client.WithWatch) {
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc.SetClient(c)
+	cmd := NewCmdInstall(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	// Run install command
+	err := cmd.Execute()
+	assert.NoError(t, err)
+	buf, err := os.ReadFile(stderrFile.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "", string(buf))
+}
+
+// createStdTempFiles creates temporary files for stdout and stderr.
+func createStdTempFiles(t *testing.T) (*os.File, *os.File) {
+	stdoutFile, err := os.CreateTemp("", "tmpstdout")
+	assert.NoError(t, err)
+
+	stderrFile, err := os.CreateTemp("", "tmpstderr")
+	assert.NoError(t, err)
+
+	return stdoutFile, stderrFile
+}
+
+// TestAnalyzeCommandDefault
+// GIVEN a CLI analyze command
+// WHEN I call cmd.Execute without specifying flag capture-dir
+// THEN expect the command to analyze the live cluster
+func TestAnalyzeCommandDefault(t *testing.T) {
+	c := getClientWithWatch()
+	installVZ(t, c)
+
+	// Verify the vz resource is as expected
+	vz := v1beta1.Verrazzano{}
+	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+	assert.NoError(t, err)
+
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc.SetClient(c)
+	cmd := analyze.NewCmdAnalyze(rc)
+	assert.NotNil(t, cmd)
+	err = cmd.Execute()
+	assert.Nil(t, err)
+	buf, err := os.ReadFile(stdoutFile.Name())
+	assert.NoError(t, err)
+	// This should generate a stdout from the live cluster
+	assert.Contains(t, string(buf), "Verrazzano analysis CLI did not detect any issue in")
+	// Clean analysis should not generate a report file
+	fileMatched, _ := filepath.Glob(constants.VzAnalysisReportTmpFile)
+	assert.Len(t, fileMatched, 0)
+}
+
+// getClientWithWatch returns a client for installing Verrazzano
+func getClientWithWatch() client.WithWatch {
+	vpo := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+			Labels: map[string]string{
+				"app":               constants.VerrazzanoPlatformOperator,
+				"pod-template-hash": "45f78ffddd",
+			},
+		},
+	}
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
+			},
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 1,
+			UpdatedReplicas:   1,
+		},
+	}
+	replicaset := &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      fmt.Sprintf("%s-45f78ffddd", constants.VerrazzanoPlatformOperator),
+			Annotations: map[string]string{
+				"deployment.kubernetes.io/revision": "1",
+			},
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment, replicaset).Build()
+	return c
 }
