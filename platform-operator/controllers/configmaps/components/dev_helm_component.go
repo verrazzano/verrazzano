@@ -35,7 +35,7 @@ type devComponent struct {
 
 var _ spi.Component = devComponent{}
 
-func newDevHelmComponent(cm *v1.ConfigMap) (spi.Component, error) {
+func newDevHelmComponent(cm *v1.ConfigMap) (devComponent, error) {
 	componentName, ok := cm.Data[componentNameKey]
 	if !ok {
 		return devComponent{}, fmt.Errorf("ConfigMap %s does not contain the name field, cannot reconcile component", cm.Name)
