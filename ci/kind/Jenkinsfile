@@ -485,14 +485,9 @@ pipeline {
                         stage('jaeger hotrod') {
                             environment {
                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-hotrod"
-                               HOTROD_NAMESPACE = "hotrod-tracing"
                             }
                             steps {
-                               sh '''
-                                    # create secret in verrazzano-install ns
-                                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "${HOTROD_NAMESPACE}"
-                               '''
-                               runGinkgo('jaeger/hotrod', "${HOTROD_NAMESPACE}")
+                               runGinkgo('jaeger/hotrod')
                             }
                         }
                         stage('jwt helidon') {
@@ -713,15 +708,6 @@ def runGinkgo(testSuitePath) {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-        """
-    }
-}
-
-def runGinkgo(testSuitePath, namespace) {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        sh """
-            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" --namespace=${namespace} ${testSuitePath}/...
         """
     }
 }
