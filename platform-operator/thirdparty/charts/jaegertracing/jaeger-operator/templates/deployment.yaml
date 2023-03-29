@@ -16,6 +16,8 @@ spec:
   template:
     metadata:
       name: {{ include "jaeger-operator.fullname" . }}
+      annotations:
+        sidecar.istio.io/inject: "false"
       labels:
 {{ include "jaeger-operator.labels" . | indent 8 }}
 {{- with .Values.extraLabels }}
@@ -47,7 +49,7 @@ spec:
             name: metrics
           - containerPort: 9443
             name: webhook-server
-            protocol: TCP  
+            protocol: TCP
           volumeMounts:
           - mountPath: /tmp/k8s-webhook-server/serving-certs
             name: cert
