@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
@@ -25,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	"os"
 	"regexp"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
@@ -42,7 +44,8 @@ vz uninstall
 
 # Uninstall Verrazzano and wait for the command to complete. Timeout the command after 30 minutes.
 vz uninstall --timeout 30m`
-	ConfirmUninstallFlag = "confirm-uninstall"
+	ConfirmUninstallFlag          = "skip-confirmation"
+	ConfirmUninstallFlagShorthand = "y"
 )
 
 // Number of retries after waiting a second for uninstall job pod to be ready
@@ -98,20 +101,12 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().MarkHidden(constants.VPOTimeoutFlag)
 
 	// When set to false, uninstall prompt can be suppressed
-	cmd.PersistentFlags().Bool(ConfirmUninstallFlag, true, "Used to suppress uninstall prompt")
+	cmd.PersistentFlags().BoolP(ConfirmUninstallFlag, ConfirmUninstallFlagShorthand, false, "Used to confirm uninstall and suppress prompt")
 	return cmd
 }
 
 func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	confirmUninstallFlag, err := cmd.Flags().GetBool(ConfirmUninstallFlag)
-	continueUninstall, err := continueUninstall(confirmUninstallFlag)
-	if err != nil {
-		return err
-	}
-	if !continueUninstall {
-		return nil
-	}
-	err = uninstallVerrazzanoFn(cmd, vzHelper)
+	err := uninstallVerrazzanoFn(cmd, vzHelper)
 	if err != nil {
 		autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
 		if errFlag != nil {
@@ -138,6 +133,15 @@ func uninstallVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	vz, err := helpers.FindVerrazzanoResource(client)
 	if err != nil {
 		return fmt.Errorf("Verrazzano is not installed: %s", err.Error())
+	}
+
+	confirmUninstallFlag, err := cmd.Flags().GetBool(ConfirmUninstallFlag)
+	continueUninstall, err := continueUninstall(confirmUninstallFlag)
+	if err != nil {
+		return err
+	}
+	if !continueUninstall {
+		return nil
 	}
 
 	// Decide whether to stream the old uninstall job log or the VPO log.  With Verrazzano 1.4.0,
@@ -544,20 +548,26 @@ func failedToUninstallErr(err error) error {
 
 func continueUninstall(confirmUninstall bool) (bool, error) {
 	var response string
-	if !confirmUninstall {
+	var logger = vzlog.DefaultLogger()
+	scanner := bufio.NewScanner(os.Stdin)
+	if confirmUninstall {
+		logger.Debug("confirm-uninstall=true")
 		return true, nil
 	}
 	for {
-		fmt.Print("Are you sure you want to uninstall Verrazzano? [y/n]: ")
-		_, err := fmt.Scanln(&response)
-		if err != nil {
+		fmt.Print("Are you sure you want to uninstall Verrazzano? [Y/n]: ")
+		if scanner.Scan() {
+			response = scanner.Text()
+		}
+		if err := scanner.Err(); err != nil {
 			return false, err
 		}
-		if response == "n" {
-			return false, nil
-		}
-		if response == "y" {
+		if response == "y" || response == "Y" {
+			logger.Debug("Continuing with Uninstall . . .")
 			return true, nil
+		} else {
+			logger.Debug("Canceling Uninstall . . .")
+			return false, nil
 		}
 	}
 }

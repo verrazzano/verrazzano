@@ -389,6 +389,108 @@ func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	assert.Contains(t, errBuf.String(), "Verrazzano is not installed: Failed to find any Verrazzano resources")
 }
 
+// TestUninstallWithConfirmUninstallFlag
+// Given the "--confirm" flag the Verrazzano Uninstall prompt will be suppressed
+func TestUninstallWithConfirmUninstallFlag(t *testing.T) {
+	type fields struct {
+		deployment              *appsv1.Deployment
+		vpo                     *corev1.Pod
+		namespace               *corev1.Namespace
+		validatingWebhookConfig *adminv1.ValidatingWebhookConfiguration
+		clusterRoleBinding      *rbacv1.ClusterRoleBinding
+		clusterRole             *rbacv1.ClusterRole
+		vz                      *v1beta1.Verrazzano
+		cmdLineInput            string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+	}{
+		{"Suppress Uninstall prompt", fields{deployment: createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"}),
+			vpo:                     createVpoPod(),
+			namespace:               createNamespace(),
+			validatingWebhookConfig: createWebhook(),
+			clusterRoleBinding:      createClusterRoleBinding(),
+			clusterRole:             createClusterRole(),
+			vz:                      createVz(),
+			cmdLineInput:            ""}},
+		{"Proceed with Uninstall, Y", fields{deployment: createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"}),
+			vpo:                     createVpoPod(),
+			namespace:               createNamespace(),
+			validatingWebhookConfig: createWebhook(),
+			clusterRoleBinding:      createClusterRoleBinding(),
+			clusterRole:             createClusterRole(),
+			vz:                      createVz(),
+			cmdLineInput:            "Y"}},
+		{"Proceed with Uninstall, y", fields{deployment: createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"}),
+			vpo:                     createVpoPod(),
+			namespace:               createNamespace(),
+			validatingWebhookConfig: createWebhook(),
+			clusterRoleBinding:      createClusterRoleBinding(),
+			clusterRole:             createClusterRole(),
+			vz:                      createVz(),
+			cmdLineInput:            "y"}},
+		{"Halt with Uninstall, n", fields{deployment: createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"}),
+			vpo:                     createVpoPod(),
+			namespace:               createNamespace(),
+			validatingWebhookConfig: createWebhook(),
+			clusterRoleBinding:      createClusterRoleBinding(),
+			clusterRole:             createClusterRole(),
+			vz:                      createVz(),
+			cmdLineInput:            "n"}},
+		{"Garbage input passed on cmdLine", fields{deployment: createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"}),
+			vpo:                     createVpoPod(),
+			namespace:               createNamespace(),
+			validatingWebhookConfig: createWebhook(),
+			clusterRoleBinding:      createClusterRoleBinding(),
+			clusterRole:             createClusterRole(),
+			vz:                      createVz(),
+			cmdLineInput:            "GARBAGE"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(
+				tt.fields.deployment,
+				tt.fields.vpo,
+				tt.fields.vz,
+				tt.fields.namespace,
+				tt.fields.validatingWebhookConfig,
+				tt.fields.clusterRoleBinding,
+				tt.fields.clusterRole).Build()
+
+			content := []byte(tt.fields.cmdLineInput)
+			tmpfile, err := os.CreateTemp("", "test-input.txt")
+			if err != nil {
+				assert.Error(t, err)
+			}
+			// clean up tmpfile
+			defer os.Remove(tmpfile.Name())
+			if _, err := tmpfile.Write(content); err != nil {
+				assert.Error(t, err)
+			}
+			if _, err := tmpfile.Seek(0, 0); err != nil {
+				assert.Error(t, err)
+			}
+			oldStdin := os.Stdin
+			// Restore original Stdin
+			defer func() { os.Stdin = oldStdin }()
+			os.Stdin = tmpfile
+			// Send stdout stderr to a byte buffer
+			buf := new(bytes.Buffer)
+			errBuf := new(bytes.Buffer)
+			rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+			rc.SetClient(c)
+			cmd := NewCmdUninstall(rc)
+			if tt.name == "Suppress Uninstall prompt" {
+				// Suppressing uninstall prompt
+				cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
+			}
+			err = cmd.Execute()
+			assert.NoError(t, err)
+		})
+	}
+}
+
 func createNamespace() *corev1.Namespace {
 	return &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{},
