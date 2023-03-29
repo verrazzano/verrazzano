@@ -261,7 +261,7 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 	}
 
 	if vmc.Status.PrometheusHost == "" {
-		log.Progressf("Managed cluster Prometheus Host not found in VMC Status for VMC %s. Waiting for VMC to be registered...", vmc.Name)
+		log.Oncef("Managed cluster Prometheus Host not found in VMC Status for VMC %s. Waiting for VMC to be registered...", vmc.Name)
 	} else {
 		log.Debugf("Syncing the prometheus scraper for VMC %s", vmc.Name)
 		err = r.syncPrometheusScraper(ctx, vmc)
@@ -269,6 +269,12 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 			r.handleError(ctx, vmc, "Failed to setup the prometheus scraper for managed cluster", err, log)
 			return newRequeueWithDelay(), err
 		}
+	}
+
+	err = r.syncThanosQuery(ctx, vmc)
+	if err != nil {
+		r.handleError(ctx, vmc, "Failed to update Thanos Query endpoint managed cluster", err, log)
+		return newRequeueWithDelay(), err
 	}
 
 	log.Debugf("Creating or updating keycloak client for %s", vmc.Name)
@@ -401,6 +407,9 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileManagedClusterDelete(ctx c
 		return err
 	}
 	if err := r.unregisterClusterFromArgoCD(ctx, vmc); err != nil {
+		return err
+	}
+	if err := r.deleteClusterThanosEndpoint(ctx, vmc); err != nil {
 		return err
 	}
 	return r.deleteClusterFromRancher(ctx, vmc)

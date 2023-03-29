@@ -858,7 +858,7 @@ func IsPrometheusOperatorEnabled(kubeconfigPath string) bool {
 		return true
 	}
 	if vz.Spec.Components.PrometheusOperator == nil || vz.Spec.Components.PrometheusOperator.Enabled == nil {
-		return true
+		return vz.Spec.Profile != v1alpha1.None
 	}
 	return *vz.Spec.Components.PrometheusOperator.Enabled
 }
@@ -871,9 +871,22 @@ func IsPrometheusEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	if vz.Spec.Components.Prometheus == nil || vz.Spec.Components.Prometheus.Enabled == nil {
-		return true
+		return vz.Spec.Profile != v1alpha1.None
 	}
 	return *vz.Spec.Components.Prometheus.Enabled
+}
+
+// IsIngressEnabled returns false if the IngressNGINX component is not set and the IngressNGINX is enabled, or the value of its Enabled field otherwise
+func IsIngressEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
+		return false
+	}
+	if vz.Spec.Components.Ingress == nil || vz.Spec.Components.Ingress.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.Ingress.Enabled
 }
 
 // IsKubeStateMetricsEnabled returns false if the Kube State Metrics component is not set, or the value of its Enabled field otherwise
@@ -884,7 +897,7 @@ func IsKubeStateMetricsEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	if vz.Spec.Components.KubeStateMetrics == nil || vz.Spec.Components.KubeStateMetrics.Enabled == nil {
-		return false
+		return vz.Spec.Profile != v1alpha1.None
 	}
 	return *vz.Spec.Components.KubeStateMetrics.Enabled
 }
@@ -910,7 +923,7 @@ func IsPrometheusNodeExporterEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	if vz.Spec.Components.PrometheusNodeExporter == nil || vz.Spec.Components.PrometheusNodeExporter.Enabled == nil {
-		return false
+		return IsPrometheusEnabled(kubeconfigPath)
 	}
 	return *vz.Spec.Components.PrometheusNodeExporter.Enabled
 }

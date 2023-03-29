@@ -47,8 +47,13 @@ spec:
           args:
             - --zap-log-level=info
             - --health-check-period=60
+            {{ if .Values.experimental.modules }}
+            - --experimental-modules=true
+            {{ end }}
           env:
             - name: VERRAZZANO_KUBECONFIG
+              value: /home/verrazzano/kubeconfig
+            - name: KUBECONFIG
               value: /home/verrazzano/kubeconfig
             {{- if .Values.global.registry }}
             - name: REGISTRY
@@ -122,6 +127,9 @@ spec:
           args:
             - --zap-log-level=info
             - --run-webhook-init=true
+            {{ if .Values.experimental.modules }}
+            - --experimental-modules=true
+            {{ end }}
           resources:
             requests:
               memory: 72Mi
@@ -142,6 +150,9 @@ spec:
             - --zap-log-level=info
             - --run-webhooks=true
             - --resource-validation={{ .Values.webhooks.resourceValidation }}
+            {{ if .Values.experimental.modules }}
+            - --experimental-modules=true
+            {{ end }}
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
