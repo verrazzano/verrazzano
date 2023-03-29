@@ -492,7 +492,7 @@ pipeline {
                                     # create secret in verrazzano-install ns
                                     ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "${hotrodNamespace}"
                                '''
-                               runGinkgoJaegerHotrod('jaeger/hotrod', hotrodNamespace)
+                               runGinkgo('jaeger/hotrod', hotrodNamespace)
                             }
                         }
                         stage('jwt helidon') {
@@ -717,7 +717,7 @@ def runGinkgo(testSuitePath) {
     }
 }
 
-def runGinkgoWithNamespace(testSuitePath, namespace) {
+def runGinkgo(testSuitePath, namespace) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
