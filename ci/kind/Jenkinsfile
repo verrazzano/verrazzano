@@ -492,7 +492,7 @@ pipeline {
                                     # create secret in verrazzano-install ns
                                     ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "${HOTROD_NAMESPACE}"
                                '''
-                               runGinkgo('jaeger/hotrod', ${HOTROD_NAMESPACE})
+                               runGinkgo('jaeger/hotrod', "${HOTROD_NAMESPACE}")
                             }
                         }
                         stage('jwt helidon') {
