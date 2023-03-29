@@ -1,9 +1,10 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package jaeger
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -67,6 +68,17 @@ func DeployApplication(namespace, testAppComponentFilePath, testAppConfiguration
 			"istio-injection":    "enabled"}
 		return pkg.CreateNamespace(namespace, nsLabels)
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(gomega.BeNil())
+
+	gomega.Eventually(func() error {
+		var logger = vzlog.DefaultLogger()
+		kubeconfig, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			logger.Errorf("Error getting kubeconfig, error: %v", err)
+			return err
+		}
+		err = pkg.CreateOrUpdatePipelineImagePullSecret(logger, namespace, kubeconfig)
+		return err
+	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(gomega.HaveOccurred())
 
 	gomega.Eventually(func() error {
 		file, err := pkg.FindTestDataFile(testAppComponentFilePath)

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package common
@@ -9,7 +9,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tools/psr/tests/pkg/psrctlcli"
-	"github.com/verrazzano/verrazzano/tools/psr/tests/pkg/secrets"
 )
 
 var (
@@ -26,7 +25,7 @@ func InitScenario(t *framework.TestFramework, log vzlog.VerrazzanoLogger, scenar
 	_, err := pkg.CreateOrUpdateNamespace(namespace, NamespaceLabels, nil)
 	gomega.Expect(err).To(gomega.Not(gomega.HaveOccurred()))
 
-	err = secrets.CreateOrUpdatePipelineImagePullSecret(log, namespace, kubeconfig)
+	err = pkg.CreateOrUpdatePipelineImagePullSecret(log, namespace, kubeconfig)
 	gomega.Expect(err).To(gomega.Not(gomega.HaveOccurred()))
 
 	if skipStartScenario {
