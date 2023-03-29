@@ -96,7 +96,7 @@ func QueryMetricByHost(metricsName, kubeconfigPath, host string) (string, error)
 	return string(resp.Body), nil
 }
 
-// GetPrometheusIngressHost gest the host used for ingress to the system Prometheus in the given cluster
+// GetPrometheusIngressHost gets the host used for ingress to the system Prometheus in the given cluster
 func GetPrometheusIngressHost(kubeconfigPath string) string {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
@@ -113,7 +113,7 @@ func GetPrometheusIngressHost(kubeconfigPath string) string {
 	return ""
 }
 
-// GetThanosQueryIngressHost gest the host used for ingress to Thanos Query in the given cluster
+// GetThanosQueryIngressHost gets the host used for ingress to Thanos Query in the given cluster
 func GetThanosQueryIngressHost(kubeconfigPath string) string {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {

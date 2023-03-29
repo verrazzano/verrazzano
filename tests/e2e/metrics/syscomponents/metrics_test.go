@@ -457,8 +457,5 @@ func ThanosMetricsExist(metricsName, kubeconfigPath string) (bool, error) {
 		return false, err
 	}
 	metricsList := pkg.JTq(metrics, "data", "result").([]interface{})
-	if len(metricsList) == 0 {
-		t.Logs.Infof("No logs found for metric %s in Thanos", metricsName)
-	}
 	return len(metricsList) > 0, nil
 }
