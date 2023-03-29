@@ -142,7 +142,6 @@ func uninstallVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	if !continueUninstall {
 		return nil
 	}
-
 	// Decide whether to stream the old uninstall job log or the VPO log.  With Verrazzano 1.4.0,
 	// the uninstall job has been removed and the VPO does the uninstall.
 	useUninstallJob, err := cmdhelpers.UsePlatformOperatorUninstallJob(client)
@@ -552,13 +551,14 @@ func continueUninstall(confirmUninstall bool) (bool, error) {
 		return true, nil
 	}
 	for {
-		fmt.Print("Are you sure you want to uninstall Verrazzano? [Y/n]: \n")
+		fmt.Print("Are you sure you want to uninstall Verrazzano? [Y/n]: ")
 		if scanner.Scan() {
 			response = scanner.Text()
 		}
 		if err := scanner.Err(); err != nil {
 			return false, err
 		}
+		fmt.Println()
 		if response == "y" || response == "Y" {
 			return true, nil
 		}
