@@ -520,6 +520,7 @@ func (c *Cluster) GetCR(waitForReady bool) *vzapi.Verrazzano {
 				return err
 			}
 			marshal, err := yaml.Marshal(cr)
+			pkg.Log(pkg.Info, fmt.Sprintf("CR resource: %v", string(marshal)))
 			if err != nil {
 				pkg.Log(pkg.Info, fmt.Sprintf("CR resource not ready yet: %v", string(marshal)))
 				return err
