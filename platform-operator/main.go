@@ -93,6 +93,7 @@ func main() {
 		"MySQL check period seconds; set to 0 to disable MySQL checks")
 	flag.Int64Var(&config.MySQLRepairTimeoutSeconds, "mysql-repair-timeout", config.MySQLRepairTimeoutSeconds,
 		"MySQL repair timeout seconds")
+	flag.BoolVar(&config.ExperimentalModules, "experimental-modules", config.ExperimentalModules, "enable experimental modules")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}
