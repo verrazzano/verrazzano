@@ -26,6 +26,7 @@ import (
 	"os"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"strings"
 	"testing"
 )
 
@@ -390,7 +391,8 @@ func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 }
 
 // TestUninstallWithConfirmUninstallFlag
-// Given the "--confirm" flag the Verrazzano Uninstall prompt will be suppressed
+// Given the "--skip-confirmation or -y" flag the Verrazzano Uninstall prompt will be suppressed
+// any other input to the command-line other than Y or y will kill the uninstall process
 func TestUninstallWithConfirmUninstallFlag(t *testing.T) {
 	type fields struct {
 		deployment              *appsv1.Deployment
@@ -401,19 +403,21 @@ func TestUninstallWithConfirmUninstallFlag(t *testing.T) {
 		clusterRole             *rbacv1.ClusterRole
 		vz                      *v1beta1.Verrazzano
 		cmdLineInput            string
+		doesUninstall           bool
 	}
 	tests := []struct {
 		name   string
 		fields fields
 	}{
-		{"Suppress Uninstall prompt", fields{deployment: createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"}),
+		{"Suppress Uninstall prompt with --skip-confirmation=true", fields{deployment: createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"}),
 			vpo:                     createVpoPod(),
 			namespace:               createNamespace(),
 			validatingWebhookConfig: createWebhook(),
 			clusterRoleBinding:      createClusterRoleBinding(),
 			clusterRole:             createClusterRole(),
 			vz:                      createVz(),
-			cmdLineInput:            ""}},
+			cmdLineInput:            "",
+			doesUninstall:           true}},
 		{"Proceed with Uninstall, Y", fields{deployment: createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"}),
 			vpo:                     createVpoPod(),
 			namespace:               createNamespace(),
@@ -421,7 +425,8 @@ func TestUninstallWithConfirmUninstallFlag(t *testing.T) {
 			clusterRoleBinding:      createClusterRoleBinding(),
 			clusterRole:             createClusterRole(),
 			vz:                      createVz(),
-			cmdLineInput:            "Y"}},
+			cmdLineInput:            "Y",
+			doesUninstall:           true}},
 		{"Proceed with Uninstall, y", fields{deployment: createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"}),
 			vpo:                     createVpoPod(),
 			namespace:               createNamespace(),
@@ -429,7 +434,8 @@ func TestUninstallWithConfirmUninstallFlag(t *testing.T) {
 			clusterRoleBinding:      createClusterRoleBinding(),
 			clusterRole:             createClusterRole(),
 			vz:                      createVz(),
-			cmdLineInput:            "y"}},
+			cmdLineInput:            "y",
+			doesUninstall:           true}},
 		{"Halt with Uninstall, n", fields{deployment: createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"}),
 			vpo:                     createVpoPod(),
 			namespace:               createNamespace(),
@@ -437,7 +443,8 @@ func TestUninstallWithConfirmUninstallFlag(t *testing.T) {
 			clusterRoleBinding:      createClusterRoleBinding(),
 			clusterRole:             createClusterRole(),
 			vz:                      createVz(),
-			cmdLineInput:            "n"}},
+			cmdLineInput:            "n",
+			doesUninstall:           false}},
 		{"Garbage input passed on cmdLine", fields{deployment: createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"}),
 			vpo:                     createVpoPod(),
 			namespace:               createNamespace(),
@@ -445,7 +452,8 @@ func TestUninstallWithConfirmUninstallFlag(t *testing.T) {
 			clusterRoleBinding:      createClusterRoleBinding(),
 			clusterRole:             createClusterRole(),
 			vz:                      createVz(),
-			cmdLineInput:            "GARBAGE"}},
+			cmdLineInput:            "GARBAGE",
+			doesUninstall:           false}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -475,18 +483,27 @@ func TestUninstallWithConfirmUninstallFlag(t *testing.T) {
 			// Restore original Stdin
 			defer func() { os.Stdin = oldStdin }()
 			os.Stdin = tmpfile
-			// Send stdout stderr to a byte buffer
+
+			// Send stdout stderr to a byte bufferF
 			buf := new(bytes.Buffer)
 			errBuf := new(bytes.Buffer)
 			rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 			rc.SetClient(c)
 			cmd := NewCmdUninstall(rc)
-			if tt.name == "Suppress Uninstall prompt" {
-				// Suppressing uninstall prompt
-				cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
+
+			if tt.fields.doesUninstall {
+				if strings.Contains(tt.name, "skip-confirmation") {
+					// Suppressing uninstall prompt
+					cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
+				}
+				err = cmd.Execute()
+				assert.NoError(t, err)
+				ensureResourcesDeleted(t, c)
+			} else if !tt.fields.doesUninstall {
+				err = cmd.Execute()
+				assert.NoError(t, err)
+				ensureResourcesNotDeleted(t, c)
 			}
-			err = cmd.Execute()
-			assert.NoError(t, err)
 		})
 	}
 }

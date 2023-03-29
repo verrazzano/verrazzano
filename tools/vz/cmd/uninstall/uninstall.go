@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
@@ -548,10 +547,8 @@ func failedToUninstallErr(err error) error {
 
 func continueUninstall(confirmUninstall bool) (bool, error) {
 	var response string
-	var logger = vzlog.DefaultLogger()
 	scanner := bufio.NewScanner(os.Stdin)
 	if confirmUninstall {
-		logger.Debug("confirm-uninstall=true")
 		return true, nil
 	}
 	for {
@@ -563,10 +560,8 @@ func continueUninstall(confirmUninstall bool) (bool, error) {
 			return false, err
 		}
 		if response == "y" || response == "Y" {
-			logger.Debug("Continuing with Uninstall . . .")
 			return true, nil
 		} else {
-			logger.Debug("Canceling Uninstall . . .")
 			return false, nil
 		}
 	}
