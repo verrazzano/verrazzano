@@ -71,6 +71,7 @@ pipeline {
         LAST_PERIODIC_LOCATION = "${WORKSPACE}/last-periodic-run-commit.txt"
         CLEAN_PERIODIC_LOCATION = "${WORKSPACE}/last-clean-periodic-commit.txt"
 
+        SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
         storeLocation="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
         fullBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
         liteBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
