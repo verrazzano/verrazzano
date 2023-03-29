@@ -78,7 +78,6 @@ spec:
     metadata:
       annotations:
         sidecar.istio.io/inject: 'false'
-      labels:
         control-plane: coherence
         app.kubernetes.io/name: coherence-operator
         app.kubernetes.io/instance: coherence-operator-manager

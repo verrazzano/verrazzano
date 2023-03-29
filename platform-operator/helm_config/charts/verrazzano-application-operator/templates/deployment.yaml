@@ -17,7 +17,6 @@ spec:
     metadata:
       labels:
         app: {{ .Values.name }}
-      annotations:
         sidecar.istio.io/inject: "false"
     spec:
       initContainers:

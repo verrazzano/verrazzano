@@ -46,4 +46,5 @@ Create chart name and version as used by the chart label.
 {{- define "jaeger-operator.labels" }}
 app.kubernetes.io/name: {{ include "jaeger-operator.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
+sidecar.istio.io/inject: 'false'
 {{- end }}

@@ -73,7 +73,7 @@ alertmanager:
         securityContext:
           privileged: false
 prometheusOperator:
-  annotations:
+  labels:
     sidecar.istio.io/inject: 'false'
   admissionWebhooks:
     enabled: true

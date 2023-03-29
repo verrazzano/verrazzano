@@ -16,8 +16,6 @@ spec:
   template:
     metadata:
       name: {{ include "jaeger-operator.fullname" . }}
-      annotations:
-        sidecar.istio.io/inject: "false"
       labels:
 {{ include "jaeger-operator.labels" . | indent 8 }}
 {{- with .Values.extraLabels }}

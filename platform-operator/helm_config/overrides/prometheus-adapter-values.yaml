@@ -11,5 +11,5 @@ podSecurityContext:
   seccompProfile:
     type: RuntimeDefault
 
-customAnnotations:
+customLabels:
   sidecar.istio.io/inject: 'false'

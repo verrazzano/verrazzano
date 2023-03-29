@@ -165,8 +165,6 @@ spec:
   replicas: {{ .Values.replicaCount }}
   template:
     metadata:
-      annotations:
-        sidecar.istio.io/inject: 'false'
       labels:
         {{- include "oam-kubernetes-runtime.selectorLabels" . | nindent 8 }}
     spec:
