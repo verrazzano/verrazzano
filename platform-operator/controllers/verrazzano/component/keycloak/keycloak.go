@@ -50,7 +50,6 @@ const (
 	vzAPIAccessRole         = "vz_api_access"
 	vzUserName              = "verrazzano"
 	vzInternalPromUser      = "verrazzano-prom-internal"
-	vzInternalThanosUser    = "verrazzano-thanos-internal"
 	vzInternalEsUser        = "verrazzano-es-internal"
 	keycloakPodName         = "keycloak-0"
 	realmManagement         = "realm-management"
@@ -953,14 +952,13 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Create Verrazzano Internal Thanos User if the corresponding secret exists. The secret is installed via the Thanos Helm chart.
-	const thanosSecretName = "verrazzano-thanos-internal" //nolint:gosec //#gosec G101
 	secret := &corev1.Secret{}
-	err = ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: thanosSecretName}, secret)
+	err = ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: constants.ThanosInternalUserSecretName}, secret)
 	if client.IgnoreNotFound(err) != nil {
 		return err
 	}
 	if err == nil {
-		err = createUser(ctx, cfg, cli, vzInternalThanosUser, thanosSecretName, constants.VerrazzanoMonitoringNamespace, vzSystemGroup, "", "")
+		err = createUser(ctx, cfg, cli, constants.ThanosInternalUserSecretName, constants.ThanosInternalUserSecretName, constants.VerrazzanoMonitoringNamespace, vzSystemGroup, "", "")
 		if err != nil {
 			return err
 		}
@@ -1005,7 +1003,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	if vzcr.IsArgoCDEnabled(ctx.EffectiveCR()) {
-		//Creating groups client scope
+		// Creating groups client scope
 		err = createOrUpdateClientScope(ctx, cfg, cli, "groups")
 		if err != nil {
 			return err
@@ -1017,8 +1015,8 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 			return err
 		}
 
-		//Setting the Access Token Lifespan value to 20mins.
-		//Required to ensure Argo CD UI does not log out the user until the Access Token lifespan expires
+		// Setting the Access Token Lifespan value to 20mins.
+		// Required to ensure Argo CD UI does not log out the user until the Access Token lifespan expires
 		// Setting password policy for Verrazzano realm
 		err = setAccessTokenLifespanForRealm(ctx, cfg, cli, "verrazzano-system")
 		if err != nil {
