@@ -32,8 +32,11 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
+	"strings"
 )
 
 type VZHelper interface {
@@ -335,4 +338,14 @@ func GetVersionOut() string {
 		verOut += fmt.Sprintf("\nKubernetes Version: %s\n", k8sVer)
 	}
 	return verOut
+}
+
+// CheckBugReportExistsInDir checks vz bug report exists in dir or not
+func CheckBugReportExistsInDir(dir string) bool {
+	bugReportFilePattern := strings.Replace(vzconstants.BugReportFileDefaultValue, "-dt", "", 1)
+	if fileMatched, _ := filepath.Glob(dir + bugReportFilePattern); len(fileMatched) == 1 {
+		os.Remove(fileMatched[0])
+		return true
+	}
+	return false
 }

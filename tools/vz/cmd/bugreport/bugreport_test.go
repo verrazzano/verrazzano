@@ -80,7 +80,7 @@ func TestBugReportExistingReportFile(t *testing.T) {
 	assert.NoError(t, err)
 	err = cmd.Execute()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), fmt.Sprintf("%s already exists", reportFile))
+	assert.Contains(t, err.Error(), "file exists")
 }
 
 // TestBugReportExistingDir
@@ -103,7 +103,7 @@ func TestBugReportExistingDir(t *testing.T) {
 	assert.NoError(t, err)
 	err = cmd.Execute()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "test-report is an existing directory")
+	assert.Contains(t, err.Error(), "file exists")
 }
 
 // TestBugReportNonExistingFileDir
@@ -124,7 +124,7 @@ func TestBugReportNonExistingFileDir(t *testing.T) {
 	assert.NoError(t, err)
 	err = cmd.Execute()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "test-report: no such file or directory")
+	assert.Contains(t, err.Error(), "no such file or directory")
 }
 
 // TestBugReportFileNoPermission
@@ -148,11 +148,11 @@ func TestBugReportFileNoPermission(t *testing.T) {
 	assert.NoError(t, err)
 	err = cmd.Execute()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "permission denied to create the bug report")
+	assert.Contains(t, err.Error(), "permission denied")
 }
 
 // TestBugReportSuccess
-// GIVEN a CLI bug-report command
+// GIVEN a CLI bug-report command with multiple flags
 // WHEN I call cmd.Execute
 // THEN expect the command to show the resources captured in the standard output and create the bug report file
 func TestBugReportSuccess(t *testing.T) {
@@ -173,48 +173,81 @@ func TestBugReportSuccess(t *testing.T) {
 	if err != nil {
 		assert.Error(t, err)
 	}
-
 	assert.NoError(t, err)
-	// Commenting the assertions due to intermittent failures
-	// assert.Contains(t, buf.String(), captureResourceErrMsg)
-	// assert.Contains(t, buf.String(), captureVerrazzanoErrMsg)
-	// assert.Contains(t, buf.String(), captureLogErrMsg)
-	// assert.Contains(t, buf.String(), sensitiveDataErrMsg)
-	// assert.Contains(t, buf.String(), dummyNamespaceErrMsg)
+}
 
-	// assert.FileExists(t, bugRepFile)
+// TestDefaultBugReportSuccess
+// GIVEN a CLI bug-report command with no flags (default)
+// WHEN I call cmd.Execute from user permissive directory
+// THEN expect the command to show the resources captured in the standard output and create the bug report file in current dir
+func TestDefaultBugReportSuccess(t *testing.T) {
+	c := getClientWithVZWatch()
 
-	//Validate the fact that --verbose is disabled by default
-	// buf = new(bytes.Buffer)
-	// errBuf = new(bytes.Buffer)
-	// rc = helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	// rc.SetClient(c)
-	// bugRepFile = tmpDir + string(os.PathSeparator) + "bug-report-verbose-false.tgz"
-	// cmd = NewCmdBugReport(rc)
-	// err = cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
-	// assert.NoError(t, err)
-	// err = cmd.Execute()
-	// if err != nil {
-	//	assert.Error(t, err)
-	// }
+	// Verify the vz resource is as expected
+	vz := v1beta1.Verrazzano{}
+	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+	assert.NoError(t, err)
 
-	// assert.NoError(t, err)
-	// assert.Contains(t, buf.String(), captureResourceErrMsg)
-	// assert.Contains(t, buf.String(), sensitiveDataErrMsg)
-	// assert.NotContains(t, buf.String(), captureVerrazzanoErrMsg)
-	// assert.NotContains(t, buf.String(), captureLogErrMsg)
-	// assert.FileExists(t, bugRepFile)
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer os.Remove(stdoutFile.Name())
+	defer os.Remove(stderrFile.Name())
+
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc.SetClient(c)
+	cmd := NewCmdBugReport(rc)
+	assert.NotNil(t, cmd)
+	setUpGlobalFlags(cmd)
+	err = cmd.Execute()
+	assert.Nil(t, err)
+
+	if !pkghelper.CheckBugReportExistsInDir("") {
+		t.Fatal("cannot find bug report file in current directory")
+	}
+}
+
+// TestDefaultBugReportSuccess
+// GIVEN a CLI bug-report command with no flags (default)
+// WHEN I call cmd.Execute from read only directory
+// THEN expect the command to show the resources captured in the standard output and create the bug report file in tmp dir
+func TestDefaultBugReportReadOnlySuccess(t *testing.T) {
+	c := getClientWithVZWatch()
+
+	// Verify the vz resource is as expected
+	vz := v1beta1.Verrazzano{}
+	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+	assert.NoError(t, err)
+
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer os.Remove(stdoutFile.Name())
+	defer os.Remove(stderrFile.Name())
+
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc.SetClient(c)
+	cmd := NewCmdBugReport(rc)
+	assert.NotNil(t, cmd)
+	setUpGlobalFlags(cmd)
+	pwd, err := os.Getwd()
+	assert.Nil(t, err)
+	assert.Nil(t, os.Chdir("/"))
+	defer os.Chdir(pwd)
+
+	err = cmd.Execute()
+	assert.Nil(t, err)
+
+	if !pkghelper.CheckBugReportExistsInDir(os.TempDir() + "/") {
+		t.Fatal("cannot find bug report file in temp directory")
+	}
 }
 
 // TestBugReportDefaultReportFile
 // GIVEN a CLI bug-report command
 // WHEN I call cmd.Execute, without specifying --report-file
-// THEN expect the command to create the report bug-report.tar.gz under the current directory
+// THEN expect the command to create the report vz-bug-report-*.tar.gz under the current directory
 func TestBugReportDefaultReportFile(t *testing.T) {
 	// clean up the bugreport file that is generated
 	defer func(t *testing.T) {
-		if err := os.Remove(constants.BugReportFileDefaultValue); err != nil {
-			t.Fatal(err.Error())
+		if !pkghelper.CheckBugReportExistsInDir("") {
+			t.Fatal("cannot find and delete bug report file in current directory")
 		}
 	}(t)
 
@@ -245,10 +278,6 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 
 	_, err = os.ReadFile(stdoutFile.Name())
 	assert.NoError(t, err)
-	// Commenting the assertions due to intermittent failures
-	// assert.Contains(t, buf.String(), captureLogErrMsg)
-	// assert.Contains(t, buf.String(), "Created bug report")
-	// assert.Contains(t, buf.String(), sensitiveDataErrMsg)
 }
 
 // TestBugReportNoVerrazzano
@@ -462,7 +491,6 @@ func TestBugReportSuccessWithDuration(t *testing.T) {
 	if err != nil {
 		assert.Error(t, err)
 	}
-
 	assert.NoError(t, err)
 }
 

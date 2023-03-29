@@ -9,55 +9,43 @@ const GlobalFlagKubeConfigHelp = "Path to the kubeconfig file to use"
 
 // GlobalFlagContext - global flag for specifying which kube config context to use
 const GlobalFlagContext = "context"
-const GlobalFlagContextHelp = "The name of the kubeconfig context to use"
-
-// GlobalFlagHelp - global help flag
-const GlobalFlagHelp = "help"
-
-// Flags that are common to more than one command
+const GlobalFlagContextHelp = "The name of the kubeconfig context to use" // Flags that are common to more than one command
 const (
-	WaitFlag        = "wait"
-	WaitFlagHelp    = "Wait for the command to complete and stream the logs to the console. The wait period is controlled by --timeout."
-	WaitFlagDefault = true
-
-	TimeoutFlag     = "timeout"
-	TimeoutFlagHelp = "Limits the amount of time a command will wait to complete"
-
-	VPOTimeoutFlag     = "platform-operator-timeout"
-	VPOTimeoutFlagHelp = "Limits the amount of time a command will wait for the Verrazzano Platform Operator to be ready"
-
-	VersionFlag            = "version"
-	VersionFlagDefault     = "latest"
-	VersionFlagInstallHelp = "The version of Verrazzano to install"
-	VersionFlagUpgradeHelp = "The version of Verrazzano to upgrade to"
-
-	DryRunFlag = "dry-run"
-
-	SetFlag          = "set"
-	SetFlagShorthand = "s"
-	SetFlagHelp      = "Override a Verrazzano resource value (e.g. --set profile=dev).  This flag can be specified multiple times."
-
-	OperatorFileFlag     = "operator-file"
-	OperatorFileFlagHelp = "The path to the file for installing the Verrazzano platform operator. The default is derived from the version string."
-
-	LogFormatFlag = "log-format"
-	LogFormatHelp = "The format of the log output. Valid output formats are \"simple\" and \"json\"."
-
-	FilenameFlag          = "filename"
-	FilenameFlagShorthand = "f"
-	FilenameFlagHelp      = "Path to file containing Verrazzano custom resource.  This flag can be specified multiple times to overlay multiple files.  Specifying \"-\" as the filename accepts input from stdin."
-
-	VerboseFlag          = "verbose"
-	VerboseFlagShorthand = "v"
-	VerboseFlagDefault   = false
-	VerboseFlagUsage     = "Enable verbose output."
-
-	ReadOnly = "read-only file system"
-
+	// GlobalFlagHelp - global help flag
+	GlobalFlagHelp           = "help"
+	WaitFlag                 = "wait"
+	WaitFlagHelp             = "Wait for the command to complete and stream the logs to the console. The wait period is controlled by --timeout."
+	WaitFlagDefault          = true
+	TimeoutFlag              = "timeout"
+	TimeoutFlagHelp          = "Limits the amount of time a command will wait to complete"
+	VPOTimeoutFlag           = "platform-operator-timeout"
+	VPOTimeoutFlagHelp       = "Limits the amount of time a command will wait for the Verrazzano Platform Operator to be ready"
+	VersionFlag              = "version"
+	VersionFlagDefault       = "latest"
+	VersionFlagInstallHelp   = "The version of Verrazzano to install"
+	VersionFlagUpgradeHelp   = "The version of Verrazzano to upgrade to"
+	DryRunFlag               = "dry-run"
+	SetFlag                  = "set"
+	SetFlagShorthand         = "s"
+	SetFlagHelp              = "Override a Verrazzano resource value (e.g. --set profile=dev).  This flag can be specified multiple times."
+	OperatorFileFlag         = "operator-file"
+	OperatorFileFlagHelp     = "The path to the file for installing the Verrazzano platform operator. The default is derived from the version string."
+	LogFormatFlag            = "log-format"
+	LogFormatHelp            = "The format of the log output. Valid output formats are \"simple\" and \"json\"."
+	FilenameFlag             = "filename"
+	FilenameFlagShorthand    = "f"
+	FilenameFlagHelp         = "Path to file containing Verrazzano custom resource.  This flag can be specified multiple times to overlay multiple files.  Specifying \"-\" as the filename accepts input from stdin."
+	VerboseFlag              = "verbose"
+	VerboseFlagShorthand     = "v"
+	VerboseFlagDefault       = false
+	VerboseFlagUsage         = "Enable verbose output."
+	ReadOnly                 = "read-only file system"
 	AutoBugReportFlag        = "auto-bug-report"
 	AutoBugReportFlagDefault = true
 	AutoBugReportFlagHelp    = "Automatically call vz bug-report if command fails"
 	VzAnalysisReportTmpFile  = "details-*.out"
+	// DatetimeFormat - suffix to vz bug report file in yyyymmddhhmmss format
+	DatetimeFormat = "20060102150405"
 )
 
 // VerrazzanoReleaseList - API for getting the list of Verrazzano releases
@@ -137,8 +125,8 @@ const (
 	BugReportFileFlagName     = "report-file"
 	BugReportFileFlagValue    = ""
 	BugReportFileFlagShort    = "r"
-	BugReportFileFlagUsage    = "The report file created by the vz bug-report command, as a *.tar.gz file. Defaults to bug-report.tar.gz in the current directory."
-	BugReportFileDefaultValue = "bug-report.tar.gz"
+	BugReportFileFlagUsage    = "The report file created by the vz bug-report command, as a *.tar.gz file. Defaults to vz-bug-report-datetime-xxxx.tar.gz in the current directory."
+	BugReportFileDefaultValue = "vz-bug-report-dt-*.tar.gz"
 
 	BugReportIncludeNSFlagName  = "include-namespaces"
 	BugReportIncludeNSFlagShort = "i"
