@@ -171,6 +171,7 @@ pipeline {
             }
             parallel {
                 stage('Private Registry - Lite Distribution') {
+                    steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
                                 build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
