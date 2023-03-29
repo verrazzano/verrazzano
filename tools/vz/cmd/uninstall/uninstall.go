@@ -552,7 +552,7 @@ func continueUninstall(confirmUninstall bool) (bool, error) {
 		return true, nil
 	}
 	for {
-		fmt.Print("Are you sure you want to uninstall Verrazzano? [Y/n]: ")
+		fmt.Print("Are you sure you want to uninstall Verrazzano? [Y/n]: \n")
 		if scanner.Scan() {
 			response = scanner.Text()
 		}
@@ -561,8 +561,7 @@ func continueUninstall(confirmUninstall bool) (bool, error) {
 		}
 		if response == "y" || response == "Y" {
 			return true, nil
-		} else {
-			return false, nil
 		}
+		return false, nil
 	}
 }
