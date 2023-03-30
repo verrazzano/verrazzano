@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package pkg
@@ -32,6 +32,7 @@ const (
 	opensearchIndexManagement    = "opensearch-index-management"
 	opensearchJobScheduler       = "opensearch-job-scheduler"
 	opensearchPrometheusExporter = "prometheus-exporter"
+	opensearchAlerting           = "opensearch-alerting"
 )
 
 // GetOpenSearchSystemIndex in Verrazzano 1.3.0, indices in the verrazzano-system namespace have been migrated
@@ -252,6 +253,7 @@ func VerifyOpenSearchPlugins() error {
 		missingPlugins := checkMissingPlugin(out, opensearchJobScheduler, &missingPluginsStr)
 		missingPlugins = missingPlugins || checkMissingPlugin(out, opensearchIndexManagement, &missingPluginsStr)
 		missingPlugins = missingPlugins || checkMissingPlugin(out, opensearchPrometheusExporter, &missingPluginsStr)
+		missingPlugins = missingPlugins || checkMissingPlugin(out, opensearchAlerting, &missingPluginsStr)
 
 		if missingPlugins {
 			return fmt.Errorf("missing OpenSearch plugins that were not installed: %s", missingPluginsStr)

@@ -19,6 +19,8 @@ const (
 	Dev ProfileType = "dev"
 	// Prod identifies the production install profile
 	Prod ProfileType = "prod"
+	// None identifies a profile with all components disabled
+	None ProfileType = "none"
 	// ManagedCluster identifies the production managed-cluster install profile
 	ManagedCluster ProfileType = "managed-cluster"
 )
@@ -137,6 +139,9 @@ type InstanceInfo struct {
 	PrometheusURL *string `json:"prometheusUrl,omitempty"`
 	// The Rancher URL for this Verrazzano installation.
 	RancherURL *string `json:"rancherUrl,omitempty"`
+	// The Thanos Query URL for this Verrazzano installation.
+	// The Thanos Query ingress gets forwarded to the Thanos Query Frontend service.
+	ThanosQueryURL *string `json:"thanosQueryUrl,omitempty"`
 }
 
 // VerrazzanoStatus defines the observed state of a Verrazzano resource.
@@ -401,6 +406,10 @@ type ComponentSpec struct {
 	// The rancherBackup component configuration.
 	// +optional
 	RancherBackup *RancherBackupComponent `json:"rancherBackup,omitempty"`
+
+	// The Thanos component configuration.
+	// +optional
+	Thanos *ThanosComponent `json:"thanos,omitempty"`
 
 	// The Velero component configuration.
 	// +optional
@@ -914,7 +923,7 @@ type FluentdComponent struct {
 	// +optional
 	OpenSearchSecret string `json:"opensearchSecret,omitempty"`
 	// The target OpenSearch URLs.
-	// Specify this option in this <a href="https://docs.fluentd.org/output/elasticsearch#hosts-optional">format</a>.
+	// Specify this option in this <a href="https://docs.fluentd.org/output/opensearch#hosts-optional">format</a>.
 	// The default `http://vmi-system-es-ingest-oidc:8775` is the VMI OpenSearch URL.
 	// +optional
 	OpenSearchURL string `json:"opensearchURL,omitempty"`
@@ -943,6 +952,20 @@ type VeleroComponent struct {
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
 	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/velero/values.yaml %}} )
+	// and invalid values will be ignored.
+	// +optional
+	InstallOverrides `json:",inline"`
+}
+
+// ThanosComponent specifies the Thanos configuration.
+type ThanosComponent struct {
+	// If true, then Thanos will be installed.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/thanos/values.yaml %}} )
 	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
@@ -1066,12 +1089,18 @@ type InstallOverrides struct {
 // Overrides identifies overrides for a component.
 type Overrides struct {
 	// Selector for ConfigMap containing override data.
+	// For sample usage, see
+	// <a href="../../../../docs/customize/installationoverrides/#configmap">ConfigMapRef</a>.
 	// +optional
 	ConfigMapRef *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
 	// Selector for Secret containing override data.
+	// For sample usage, see
+	// <a href="../../../../docs/customize/installationoverrides/#secret">SecretRef</a>.
 	// +optional
 	SecretRef *corev1.SecretKeySelector `json:"secretRef,omitempty"`
 	// Configure overrides using inline YAML.
+	// For sample usage, see
+	// <a href="../../../../docs/customize/installationoverrides/#values">Values</a>.
 	// +optional
 	Values *apiextensionsv1.JSON `json:"values,omitempty"`
 }

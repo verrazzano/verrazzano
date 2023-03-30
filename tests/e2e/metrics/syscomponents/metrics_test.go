@@ -9,13 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
 
 const (
@@ -267,6 +267,31 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 			})
 		}
+
+		t.It("Verify metrics can be queried from Thanos", func() {
+			minVer16, err := pkg.IsVerrazzanoMinVersion("1.6.0", adminKubeConfig)
+			if err != nil {
+				pkg.Log(pkg.Error, fmt.Sprintf("Failed to verify the Verrazzano version was min 1.6.0: %v", err))
+				return
+			}
+			if !minVer16 {
+				return
+			}
+			vz, err := pkg.GetVerrazzanoInstallResourceInCluster(adminKubeConfig)
+			if err != nil {
+				pkg.Log(pkg.Error, fmt.Sprintf("Failed to get Verrazzano resource from the cluster: %v", err))
+				return
+			}
+			if !vzcr.IsThanosEnabled(vz) {
+				return
+			}
+
+			// If the min version is >= 1.6 and Thanos is enabled, try to query metrics from its source
+			// this test assumes that the Thanos sidecar is also enabled with the Thanos installation
+			Eventually(func() (bool, error) {
+				return ThanosMetricsExist(prometheusTargetIntervalLength, adminKubeConfig)
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+		})
 	})
 })
 
@@ -423,4 +448,14 @@ func eventuallyMetricsContainLabels(metricName string, kv map[string]string) {
 	Eventually(func() bool {
 		return metricsContainLabels(metricName, kv)
 	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+}
+
+func ThanosMetricsExist(metricsName, kubeconfigPath string) (bool, error) {
+	metrics, err := pkg.QueryThanosMetric(metricsName, kubeconfigPath)
+	if err != nil {
+		t.Logs.Errorf("Failed to query Thanos metric %s: %v", metricsName, err)
+		return false, err
+	}
+	metricsList := pkg.JTq(metrics, "data", "result").([]interface{})
+	return len(metricsList) > 0, nil
 }

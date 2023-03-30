@@ -6,6 +6,11 @@ package reconcile
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
 	"net/url"
 	"strings"
 	"testing"
@@ -58,7 +63,7 @@ var (
 )
 
 // TestStartUpdate tests the reconcile func with updated generation
-// GIVEN a request to reconcile an verrazzano resource after install is completed
+// GIVEN a request to reconcile a verrazzano resource after install is completed
 // WHEN all components have the smaller LastReconciledGeneration than verrazzano CR in the request
 // THEN ensure a Reconciling State
 func TestStartUpdate(t *testing.T) {
@@ -94,7 +99,7 @@ func TestStartUpdate(t *testing.T) {
 }
 
 // TestCompleteUpdateReadyComponent tests the reconcile func with updated generation
-// GIVEN a request to reconcile an verrazzano resource after install has been started
+// GIVEN a request to reconcile a verrazzano resource after install has been started
 // WHEN all components have the smaller LastReconciledGeneration than verrazzano CR in the request
 // THEN ensure a Ready State
 func TestCompleteUpdateReadyComponent(t *testing.T) {
@@ -134,7 +139,7 @@ func TestCompleteUpdateReadyComponent(t *testing.T) {
 }
 
 // TestCompleteUpdateDisabledComponent tests the reconcile func with updated generation
-// GIVEN a request to reconcile an verrazzano resource after install has been started
+// GIVEN a request to reconcile a verrazzano resource after install has been started
 // WHEN all components have the smaller LastReconciledGeneration than verrazzano CR in the request
 // THEN ensure a Ready State
 func TestCompleteUpdateDisabledComponent(t *testing.T) {
@@ -174,7 +179,7 @@ func TestCompleteUpdateDisabledComponent(t *testing.T) {
 }
 
 // TestNoUpdateSameGeneration tests the reconcile func with same generation
-// GIVEN a request to reconcile an verrazzano resource after install is completed
+// GIVEN a request to reconcile a verrazzano resource after install is completed
 // WHEN all components have the same LastReconciledGeneration as verrazzano CR
 // THEN ensure a Ready State
 func TestNoUpdateSameGeneration(t *testing.T) {
@@ -207,7 +212,7 @@ func TestNoUpdateSameGeneration(t *testing.T) {
 }
 
 // TestUpdateWithUpgrade tests the reconcile func with updated generation
-// GIVEN a request to reconcile an verrazzano resource after install is completed
+// GIVEN a request to reconcile a verrazzano resource after install is completed
 // WHEN all components have the smaller LastReconciledGeneration than verrazzano CR in the request
 // THEN ensure an Upgrading State
 func TestUpdateWithUpgrade(t *testing.T) {
@@ -241,7 +246,7 @@ func TestUpdateWithUpgrade(t *testing.T) {
 }
 
 // TestUpdateOnUpdate tests the reconcile func with updated generation
-// GIVEN a request to reconcile an verrazzano resource after install is completed
+// GIVEN a request to reconcile a verrazzano resource after install is completed
 // WHEN all components have the smaller LastReconciledGeneration than verrazzano CR in the request
 // THEN ensure a Reconciling State
 func TestUpdateOnUpdate(t *testing.T) {
@@ -279,7 +284,7 @@ func TestUpdateOnUpdate(t *testing.T) {
 }
 
 // TestUpdateFalseMonitorChanges tests the reconcile func with updated generation
-// GIVEN a request to reconcile an verrazzano resource after install is completed
+// GIVEN a request to reconcile a verrazzano resource after install is completed
 // WHEN all components have the smaller LastReconciledGeneration but MonitorOverrides returns false
 // THEN ensure a Ready State
 func TestUpdateFalseMonitorChanges(t *testing.T) {
@@ -316,12 +321,46 @@ func TestUpdateFalseMonitorChanges(t *testing.T) {
 	assertArgoCDConfig(asserts, ctx)
 }
 
+// TestUpdateBeforeInstallComplete tests the reconcile func with updated generation
+// GIVEN a request to reconcile an installing verrazzano resource before it completes
+// WHEN all components have the smaller LastReconciledGeneration than verrazzano CR in the request
+// THEN ensure a Reconciling State
+func TestUpdateBeforeInstallComplete(t *testing.T) {
+	initUnitTesing()
+
+	status := vzapi.VerrazzanoStatus{
+		State:   vzapi.VzStateReconciling,
+		Version: statusVer,
+		Conditions: []vzapi.Condition{
+			{
+				Type: vzapi.CondInstallStarted,
+			},
+		},
+		Components: makeVerrazzanoComponentStatusMap(),
+	}
+
+	ctx, asserts, result, fakeCompUpdated, err := testUpdate(t,
+		lastReconciledGeneration+1, int64(0), lastReconciledGeneration,
+		"1.3.0", status, namespace, name, "true")
+	asserts.NoError(err)
+
+	defer reset()
+
+	vz := vzapi.Verrazzano{}
+	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &vz)
+	asserts.NoError(err)
+
+	asserts.Equal(vzapi.VzStateReconciling, vz.Status.State)
+	asserts.False(*fakeCompUpdated)
+	asserts.Equal(vz.Generation, vz.Status.Components[fakeCompReleaseName].ReconcilingGeneration)
+	asserts.Equal(vzapi.CondInstallComplete, vz.Status.Components[fakeCompReleaseName].Conditions[0].Type)
+	asserts.Equal(vzapi.CondPreInstall, vz.Status.Components[fakeCompReleaseName].Conditions[1].Type)
+	asserts.True(result.Requeue)
+}
+
 func reset() {
 	registry.ResetGetComponentsFn()
 	config.SetDefaultBomFilePath("")
-	helm.SetDefaultChartStatusFunction()
-	config.SetDefaultBomFilePath("")
-	helm.SetDefaultChartStatusFunction()
 	config.TestProfilesDir = ""
 }
 
@@ -399,16 +438,26 @@ func testUpdate(t *testing.T,
 	// Sample bom file for version validation functions
 	config.SetDefaultBomFilePath(testBomFilePath)
 	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
+	defer helm.SetDefaultActionConfigFunction()
+	helm.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helm.CreateActionConfig(true, fakeCompReleaseName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			now := time.Now()
+			return &release.Release{
+				Name:      fakeCompReleaseName,
+				Namespace: namespace,
+				Info: &release.Info{
+					FirstDeployed: now,
+					LastDeployed:  now,
+					Status:        releaseStatus,
+					Description:   "Named Release Stub",
+				},
+				Version: 1,
+			}
+		})
 	})
 
 	// Sample bom file for version validation functions
 	config.SetDefaultBomFilePath(testBomFilePath)
-	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
 	config.TestProfilesDir = relativeProfilesDir
 
 	// Create and make the request

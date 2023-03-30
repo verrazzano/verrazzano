@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package root
@@ -18,8 +18,8 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 )
 
-var kubeconfig string
-var context string
+var kubeconfigFlagValPointer string
+var contextFlagValPointer string
 
 const (
 	CommandName = "vz"
@@ -32,8 +32,8 @@ func NewRootCmd(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 
 	// Add global flags
-	cmd.PersistentFlags().StringVar(&kubeconfig, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
-	cmd.PersistentFlags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
+	cmd.PersistentFlags().StringVar(&kubeconfigFlagValPointer, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
+	cmd.PersistentFlags().StringVar(&contextFlagValPointer, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
 
 	// Add commands
 	cmd.AddCommand(status.NewCmdStatus(vzHelper))

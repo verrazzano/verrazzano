@@ -669,6 +669,17 @@ spec:
               app: jaeger
         - namespaceSelector:
             matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchExpressions:
+            - key: app.kubernetes.io/component
+              operator: In
+              values:
+              - query
+              - query-frontend
+              - storegateway
+        - namespaceSelector:
+            matchLabels:
               verrazzano.io/namespace: mysql-operator
           podSelector:
             matchLabels:

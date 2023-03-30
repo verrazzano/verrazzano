@@ -38,6 +38,14 @@ spec:
               domainType: WLS
               runtimeEncryptionSecret: hellodomain-runtime-encrypt-secret
           serverPod:
+            livenessProbe:
+              periodSeconds: 10
+              timeoutSeconds: 65
+              failureThreshold: 3
+            readinessProbe:
+              periodSeconds: 10
+              timeoutSeconds: 50
+              failureThreshold: 3
             labels:
               app: hello-domain
               version: v1

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strconv"
 	"strings"
 
@@ -40,6 +39,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ComponentName is the name of the component
@@ -459,6 +459,11 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
+// PreUninstall - prepare for Rancher uninstall
+func (r rancherComponent) PreUninstall(ctx spi.ComponentContext) error {
+	return preUninstall(ctx, r.monitor)
+}
+
 // PostUninstall handles the deletion of all Rancher resources after the Helm uninstall
 func (r rancherComponent) PostUninstall(ctx spi.ComponentContext) error {
 	if ctx.IsDryRun() {
@@ -678,6 +683,9 @@ func checkClusterProvisioned(client corev1.CoreV1Interface, dynClient dynamic.In
 			}
 			u, err := dynClient.Resource(resource).Namespace("").Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
 			if err != nil {
+				if kerrs.IsNotFound(err) {
+					return false, nil
+				}
 				return false, err
 			}
 

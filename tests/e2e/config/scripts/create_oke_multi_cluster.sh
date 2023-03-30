@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -68,7 +68,7 @@ rm -rf ${KUBECONFIG_DIR}/*
 
 # check available resources
 check_for_resources VCN vcn vcn-count $REQUIRED_VNC_COUNT
-check_for_resources LB load-balancer lb-100mbps-count $REQUIRED_LB_COUNT
+check_for_resources LB load-balancer lb-flexible-count $REQUIRED_LB_COUNT
 
 cd ${SCRIPT_DIR}/terraform/cluster
 

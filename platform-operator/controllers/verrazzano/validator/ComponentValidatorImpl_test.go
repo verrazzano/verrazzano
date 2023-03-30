@@ -8,11 +8,17 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapibeta "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	appsv1Cli "k8s.io/client-go/kubernetes/typed/apps/v1"
 	corev1Cli "k8s.io/client-go/kubernetes/typed/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
 
@@ -84,6 +90,10 @@ func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
 // WHEN ValidateInstallV1Beta1 is called
 // THEN ensure that no error is raised
 func TestComponentValidatorImpl_ValidateInstallV1Beta1(t *testing.T) {
+	vzconfig.GetControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects().Build(), nil
+	}
+	defer func() { vzconfig.GetControllerRuntimeClient = validators.GetClient }()
 	k8sutil.GetCoreV1Func = func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
 		return k8sfake.NewSimpleClientset().CoreV1(), nil
 	}
@@ -218,6 +228,10 @@ func TestComponentValidatorImpl_ValidateUpdate(t *testing.T) {
 // WHEN ValidateUpdateV1Beta1 is called
 // THEN ensure that no error is raised
 func TestComponentValidatorImpl_ValidateUpdateV1Beta1(t *testing.T) {
+	vzconfig.GetControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects().Build(), nil
+	}
+	defer func() { vzconfig.GetControllerRuntimeClient = validators.GetClient }()
 	tests := []struct {
 		name           string
 		old            *vzapibeta.Verrazzano
@@ -289,4 +303,10 @@ func TestComponentValidatorImpl_ValidateUpdateV1Beta1(t *testing.T) {
 			}
 		})
 	}
+}
+
+func newScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	k8scheme.AddToScheme(scheme)
+	return scheme
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package uninstall
@@ -6,9 +6,8 @@ package uninstall
 import (
 	"bytes"
 	"context"
-	"os"
-	"testing"
-
+	"fmt"
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -24,8 +23,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"os"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"testing"
+)
+
+const (
+	testKubeConfig    = "kubeconfig"
+	testK8sContext    = "testcontext"
+	VzVpoFailureError = "Failed to find the Verrazzano platform operator in namespace verrazzano-install"
+	PodNotFoundError  = "Waiting for verrazzano-uninstall-verrazzano, verrazzano-uninstall-verrazzano pod not found in namespace verrazzano-install"
+	BugReportNotExist = "cannot find bug report file in current directory"
 )
 
 // TestUninstallCmd
@@ -113,7 +122,7 @@ func TestUninstallCmdUninstallJob(t *testing.T) {
 // GIVEN a CLI uninstall command with all defaults and --timeout=2ms
 //
 //	WHEN I call cmd.Execute for uninstall
-//	THEN the CLI uninstall command times out
+//	THEN the CLI uninstall command times out and a bug-report is generated
 func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
 	vpo := createVpoPod()
@@ -129,9 +138,18 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
+	uninstallFunc := func(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+		return fmt.Errorf("Timeout 2ms exceeded waiting for uninstall to complete")
+	}
+	SetUninstallVerrazzanoFn(uninstallFunc)
+	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	_ = cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
+	defer os.RemoveAll(tempKubeConfigPath.Name())
 
 	// Run upgrade command
 	err := cmd.Execute()
@@ -139,9 +157,53 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	// This must be less than the 1 second polling delay to pass
 	// since the Verrazzano resource gets deleted almost instantaneously
 	assert.Equal(t, "Error: Failed to uninstall Verrazzano: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
-	assert.Contains(t, buf.String(), "Uninstalling Verrazzano")
-
 	ensureResourcesNotDeleted(t, c)
+	if !helpers.CheckBugReportExistsInDir("") {
+		t.Fatal(BugReportNotExist)
+	}
+}
+
+// TestUninstallCmdDefaultTimeoutNoBugReport
+// GIVEN a CLI uninstall command with all defaults, --timeout=2ms, and auto-bug-report=false
+//
+//	WHEN I call cmd.Execute for uninstall
+//	THEN the CLI uninstall command times out and bug-report is not generated
+func TestUninstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
+	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
+	vpo := createVpoPod()
+	namespace := createNamespace()
+	vz := createVz()
+	webhook := createWebhook()
+	cr := createClusterRole()
+	crb := createClusterRoleBinding()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vpo, vz, namespace, webhook, cr, crb).Build()
+
+	// Send stdout stderr to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	uninstallFunc := func(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+		return fmt.Errorf("Timeout 2ms exceeded waiting for uninstall to complete")
+	}
+	SetUninstallVerrazzanoFn(uninstallFunc)
+	defer ResetUninstallVerrazzanoFn()
+	cmd := NewCmdUninstall(rc)
+	assert.NotNil(t, cmd)
+	_ = cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
+	_ = cmd.PersistentFlags().Set(constants.AutoBugReportFlag, "false")
+
+	// Run upgrade command
+	err := cmd.Execute()
+	assert.Error(t, err)
+	// This must be less than the 1 second polling delay to pass
+	// since the Verrazzano resource gets deleted almost instantaneously
+	assert.Equal(t, "Error: Failed to uninstall Verrazzano: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
+	ensureResourcesNotDeleted(t, c)
+	// Bug Report must not exist
+	if helpers.CheckBugReportExistsInDir("") {
+		t.Fatal("found bug report file in current directory")
+	}
 }
 
 // TestUninstallCmdDefaultNoWait
@@ -207,7 +269,7 @@ func TestUninstallCmdJsonLogFormat(t *testing.T) {
 // GIVEN a CLI uninstall command with all defaults and no VPO found
 //
 //	WHEN I call cmd.Execute for uninstall
-//	THEN the CLI uninstall command fails
+//	THEN the CLI uninstall command fails and a bug-report is generated
 func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
 	vz := createVz()
@@ -218,21 +280,33 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
+	uninstallFunc := func(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+		return fmt.Errorf(VzVpoFailureError)
+	}
+	SetUninstallVerrazzanoFn(uninstallFunc)
+	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
+	defer os.RemoveAll(tempKubeConfigPath.Name())
 
 	// Run uninstall command
 	err := cmd.Execute()
 	assert.Error(t, err)
-	assert.ErrorContains(t, err, "Failed to find the Verrazzano platform operator in namespace verrazzano-install")
-	assert.Contains(t, errBuf.String(), "Failed to find the Verrazzano platform operator in namespace verrazzano-install")
+	assert.ErrorContains(t, err, VzVpoFailureError)
+	assert.Contains(t, errBuf.String(), VzVpoFailureError)
+	if !helpers.CheckBugReportExistsInDir("") {
+		t.Fatal(BugReportNotExist)
+	}
 }
 
 // TestUninstallCmdDefaultNoUninstallJob
 // GIVEN a CLI uninstall command with all defaults and no uninstall job pod
 //
 //	WHEN I call cmd.Execute for uninstall
-//	THEN the CLI uninstall command fails
+//	THEN the CLI uninstall command fails and a bug-report is generated
 func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.3.0"})
 	vz := createVz()
@@ -243,18 +317,30 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
+	uninstallFunc := func(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+		return fmt.Errorf(PodNotFoundError)
+	}
+	SetUninstallVerrazzanoFn(uninstallFunc)
+	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "simple")
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 
 	setWaitRetries(1)
 	defer resetWaitRetries()
+	defer os.RemoveAll(tempKubeConfigPath.Name())
 
 	// Run uninstall command
 	err := cmd.Execute()
 	assert.Error(t, err)
-	assert.ErrorContains(t, err, "Waiting for verrazzano-uninstall-verrazzano, verrazzano-uninstall-verrazzano pod not found in namespace verrazzano-install")
-	assert.Contains(t, errBuf.String(), "Waiting for verrazzano-uninstall-verrazzano, verrazzano-uninstall-verrazzano pod not found in namespace verrazzano-install")
+	assert.ErrorContains(t, err, PodNotFoundError)
+	assert.Contains(t, errBuf.String(), PodNotFoundError)
+	if !helpers.CheckBugReportExistsInDir("") {
+		t.Fatal(BugReportNotExist)
+	}
 }
 
 // TestUninstallCmdDefaultNoVzResource
@@ -271,13 +357,16 @@ func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdUninstall(rc)
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	assert.NotNil(t, cmd)
 
 	// Run uninstall command
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Verrazzano is not installed: Failed to find any Verrazzano resources")
-	assert.Contains(t, errBuf.String(), "Error: Verrazzano is not installed: Failed to find any Verrazzano resources")
+	assert.Contains(t, errBuf.String(), "Verrazzano is not installed: Failed to find any Verrazzano resources")
 }
 
 func createNamespace() *corev1.Namespace {

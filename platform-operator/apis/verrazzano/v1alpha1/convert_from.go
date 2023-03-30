@@ -94,16 +94,17 @@ func convertVerrazzanoInstanceFromV1Beta1(instance *v1beta1.InstanceInfo) *Insta
 		return nil
 	}
 	return &InstanceInfo{
-		ArgoCDURL:     instance.ArgoCDURL,
-		ConsoleURL:    instance.ConsoleURL,
-		KeyCloakURL:   instance.KeyCloakURL,
-		RancherURL:    instance.RancherURL,
-		ElasticURL:    instance.OpenSearchURL,
-		KibanaURL:     instance.OpenSearchDashboardsURL,
-		GrafanaURL:    instance.GrafanaURL,
-		PrometheusURL: instance.PrometheusURL,
-		KialiURL:      instance.KialiURL,
-		JaegerURL:     instance.JaegerURL,
+		ArgoCDURL:      instance.ArgoCDURL,
+		ConsoleURL:     instance.ConsoleURL,
+		KeyCloakURL:    instance.KeyCloakURL,
+		RancherURL:     instance.RancherURL,
+		ElasticURL:     instance.OpenSearchURL,
+		KibanaURL:      instance.OpenSearchDashboardsURL,
+		GrafanaURL:     instance.GrafanaURL,
+		PrometheusURL:  instance.PrometheusURL,
+		KialiURL:       instance.KialiURL,
+		JaegerURL:      instance.JaegerURL,
+		ThanosQueryURL: instance.ThanosQueryURL,
 	}
 }
 
@@ -142,6 +143,7 @@ func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 		PrometheusPushgateway:  convertPrometheusPushGatewayFromV1Beta1(in.PrometheusPushgateway),
 		Rancher:                convertRancherFromV1Beta1(in.Rancher),
 		RancherBackup:          convertRancherBackupFromV1Beta1(in.RancherBackup),
+		Thanos:                 convertThanosFromV1Beta1(in.Thanos),
 		WebLogicOperator:       convertWeblogicOperatorFromV1Beta1(in.WebLogicOperator),
 		Velero:                 convertVeleroFromV1Beta1(in.Velero),
 		Verrazzano:             convertVerrazzanoFromV1Beta1(in.Verrazzano),
@@ -560,6 +562,16 @@ func convertClusterOperatorFromV1Beta1(in *v1beta1.ClusterOperatorComponent) *Cl
 	return &ClusterOperatorComponent{
 		Enabled:          in.Enabled,
 		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
+	}
+}
+
+func convertThanosFromV1Beta1(src *v1beta1.ThanosComponent) *ThanosComponent {
+	if src == nil {
+		return nil
+	}
+	return &ThanosComponent{
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(src.InstallOverrides),
 	}
 }
 
