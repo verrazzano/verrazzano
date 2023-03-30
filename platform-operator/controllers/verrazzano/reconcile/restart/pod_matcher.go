@@ -73,12 +73,12 @@ func (o *OutdatedSidecarPodMatcher) Matches(log vzlog.VerrazzanoLogger, podList 
 		log.Errorf("Failed to get kubernetes client for AppConfig %s/%s: %v", workloadType, workloadName, err)
 		return false
 	}
-	for _, pod := range podList.Items {
+	for i, pod := range podList.Items {
 		for _, c := range pod.Spec.Containers {
 			if isImageOutOfDate(log, fluentdImageName, c.Image, o.fluentdImage, workloadType, workloadName) == OutOfDate {
 				return true
 			}
-			if isNewIstioProxyNeeded(log, goClient, &pod, c.Image, o.istioProxyImage) {
+			if isNewIstioProxyNeeded(log, goClient, &podList.Items[i], c.Image, o.istioProxyImage) {
 				return true
 			}
 		}
@@ -211,8 +211,6 @@ func isNewIstioProxyNeeded(log vzlog.VerrazzanoLogger, goClient kubernetes.Inter
 	default:
 		return true
 	}
-
-	return true
 }
 
 func isNameSpaceIstioInjectionEnabled(log vzlog.VerrazzanoLogger, goClient kubernetes.Interface, namespace string) (bool, error) {
@@ -225,8 +223,7 @@ func isNameSpaceIstioInjectionEnabled(log vzlog.VerrazzanoLogger, goClient kuber
 	}
 
 	namespaceLabels := podNamespace.GetLabels()
-	value, _ := namespaceLabels[namespaceIstioInjectLabel]
-
+	value := namespaceLabels[namespaceIstioInjectLabel]
 	if value == "enabled" {
 		return true, nil
 	}

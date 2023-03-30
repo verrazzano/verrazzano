@@ -5,7 +5,6 @@ package restart
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/runtime"
 	"testing"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -353,12 +352,4 @@ func initNamespace(name string, istioInject bool) *v1.Namespace {
 			Labels: labels,
 		},
 	}
-}
-
-func podsToClientObjects(inObjs []*v1.Pod) []runtime.Object {
-	objs := []runtime.Object{}
-	for i, _ := range inObjs {
-		objs = append(objs, inObjs[i])
-	}
-	return objs
 }
