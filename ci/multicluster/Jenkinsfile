@@ -448,10 +448,19 @@ pipeline {
                         }
                     }
                 }
-                stage("verify-cert-manager-update") {
+                // cert-manager update suites related to admin and managed clusters should be run sequentially to
+                // avoid intermittent test failures.
+                stage("verify-admin-cluster-cert-manager-update") {
                     steps {
                         script {
-                            parallel verifyCertManagerUpdate()
+                            runGinkgoAdmin('update/certac')
+                        }
+                    }
+                }
+                stage("verify-managed-clusters-cert-manager-update") {
+                    steps {
+                        script {
+                            runGinkgoAdmin('update/certmc')
                         }
                     }
                 }
@@ -1407,17 +1416,6 @@ def verifyDNSUpdate() {
         },
         "verify-managed-cluster-dns-update": {
             runGinkgoAdmin('update/dnsmc')
-        },
-    ]
-}
-
-def verifyCertManagerUpdate() {
-    return [
-        "verify-admin-cluster-cert-manager-update": {
-            runGinkgoAdmin('update/certac')
-        },
-        "verify-managed-cluster-cert-manager-update": {
-            runGinkgoAdmin('update/certmc')
         },
     ]
 }

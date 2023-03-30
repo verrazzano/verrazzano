@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/vzchecks"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelpers "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -70,7 +69,7 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	// Find the Verrazzano resource to analyze.
 	vz, err := pkghelpers.FindVerrazzanoResource(client)
 	if err != nil {
-		return fmt.Errorf("Verrazzano is not installed: %s", err.Error())
+		pkghelpers.LogMessage(fmt.Sprintf("Verrazzano is not installed: %s", err.Error()))
 	}
 
 	// Get the list of namespaces based on the failed components and value specified by flag --include-namespaces
@@ -89,10 +88,6 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	err = captureResources(client, kubeClient, clusterSnapshotCtx.BugReportDir, vz, vzHelper, nsList)
 	if err != nil {
 		pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the Verrazzano resources: %s", err.Error()))
-	}
-
-	for _, e := range vzchecks.PrerequisiteCheck(client, vzchecks.ProfileType(vz.Spec.Profile)) {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Warning: "+e.Error()+"\n")
 	}
 
 	// Capture OAM resources from the namespaces specified using --include-namespaces
@@ -145,7 +140,7 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bug
 	close(ecl)
 	close(ecr)
 	close(evr)
-	// Report errors (if any), in collecting the logs from various pods
+	// Report errors (if any), in capturing the verrazzano resource
 	for err := range evr {
 		return fmt.Errorf("an error occurred while capturing the Verrazzano resource, error: %s", err.ErrorMessage)
 	}
@@ -234,9 +229,14 @@ func collectNamespaces(kubeClient kubernetes.Interface, includedNS []string, vz 
 
 	var nsList []string
 
-	// Include namespaces for all the components
+	// Include namespaces for all the vz components
 	allCompNS := pkghelpers.GetNamespacesForAllComponents(vz)
 	nsList = append(nsList, allCompNS...)
+
+	// Verify and Include verrazzano-install namespace
+	if pkghelpers.VerifyVzInstallNamespaceExists() {
+		nsList = append(nsList, vzconstants.VerrazzanoInstallNamespace)
+	}
 
 	// Include the namespaces specified by flag --include-namespaces
 	var additionalNS []string

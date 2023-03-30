@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	vzconstants "github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
 	"io"
@@ -25,6 +26,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -211,8 +213,11 @@ func NewScheme() *runtime.Scheme {
 
 // GetNamespacesForAllComponents returns the list of unique namespaces of all the components included in the Verrazzano resource
 func GetNamespacesForAllComponents(vz *v1beta1.Verrazzano) []string {
-	allComponents := getAllComponents(vz)
 	var nsList []string
+	if vz == nil {
+		return nsList
+	}
+	allComponents := getAllComponents(vz)
 	for _, eachComp := range allComponents {
 		found, comp := registry.FindComponent(eachComp)
 		if found {
@@ -340,8 +345,22 @@ func GetVersionOut() string {
 	return verOut
 }
 
-// CheckBugReportExistsInDir checks vz bug report exists in dir or not
-func CheckBugReportExistsInDir(dir string) bool {
+// VerifyVzInstallNamespaceExists returns existence of verrazzano-install namespace
+func VerifyVzInstallNamespaceExists() bool {
+	pods, err := pkg.ListPods(vzconstants.VerrazzanoInstall, metav1.ListOptions{})
+	if err != nil {
+		return false
+	}
+	for i := range pods.Items {
+		if strings.HasPrefix(pods.Items[i].Name, vzconstants.VerrazzanoPlatformOperator) {
+			return true
+		}
+	}
+	return false
+}
+
+// CheckAndRemoveBugReportExistsInDir checks vz bug report exists in dir or not
+func CheckAndRemoveBugReportExistsInDir(dir string) bool {
 	bugReportFilePattern := strings.Replace(vzconstants.BugReportFileDefaultValue, "-dt", "", 1)
 	if fileMatched, _ := filepath.Glob(dir + bugReportFilePattern); len(fileMatched) == 1 {
 		os.Remove(fileMatched[0])

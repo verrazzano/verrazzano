@@ -519,7 +519,6 @@ func (c *Cluster) GetCR(waitForReady bool) *vzapi.Verrazzano {
 				return err
 			}
 			if cr.Status.State != vzapi.VzStateReady {
-				pkg.Log(pkg.Error, fmt.Sprintf("CR resource not ready yet: %v", cr))
 				return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
 			}
 			return nil

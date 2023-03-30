@@ -167,6 +167,7 @@ spec:
     metadata:
       labels:
         {{- include "oam-kubernetes-runtime.selectorLabels" . | nindent 8 }}
+        {{- toYaml .Values.extraLabels | nindent 8 }}
     spec:
       serviceAccountName: {{ include "oam-kubernetes-runtime.serviceAccountName" . }}
       securityContext:
