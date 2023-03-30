@@ -65,7 +65,7 @@ func (o *OutdatedSidecarPodMatcher) ReInit() error {
 func (o *OutdatedSidecarPodMatcher) Matches(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType, workloadName string) bool {
 	for _, pod := range podList.Items {
 		for _, c := range pod.Spec.Containers {
-			if isImageOutOfDate(log, proxyv2ImageName, c.Image, o.istioProxyImage, workloadType, workloadName) == OutOfDate {
+			if !isProxyInjectionDisabled(pod) && isImageOutOfDate(log, proxyv2ImageName, c.Image, o.istioProxyImage, workloadType, workloadName) == OutOfDate {
 				return true
 			}
 			if isImageOutOfDate(log, fluentdImageName, c.Image, o.fluentdImage, workloadType, workloadName) == OutOfDate {
@@ -159,15 +159,18 @@ func (a *AppPodMatcher) Matches(log vzlog.VerrazzanoLogger, podList *v1.PodList,
 			case OutOfDate:
 				return true
 			case NotFound:
+				if isProxyInjectionDisabled(pod) {
+					return false
+				}
 				podNamespace, _ := goClient.CoreV1().Namespaces().Get(context.TODO(), pod.GetNamespace(), metav1.GetOptions{})
 				namespaceLabels := podNamespace.GetLabels()
 				value, ok := namespaceLabels["istio-injection"]
 
-				// Ignore OAM pods that do not have Istio injected
+				// Ignore namespaces that do not have Istio injected
 				if !ok || value != "enabled" {
 					return false
 				}
-				log.Oncef("Restarting %s %s which has a pod with istio injected namespace", workloadType, workloadName)
+				// The namespace has Istio injection enabled and the pod doesn't explicitly disable injection
 				return true
 			default:
 				return false
@@ -207,5 +210,23 @@ func (n *NoIstioSidecarMatcher) Matches(log vzlog.VerrazzanoLogger, podList *v1.
 		}
 	}
 
+	return false
+}
+
+// isProxyInjectionDisabled returns true if the pod has label or annotation with sidecar.istio.io/inject=false
+func isProxyInjectionDisabled(pod v1.Pod) bool {
+	const istioInject = "sidecar.istio.io/inject"
+	if pod.Labels != nil {
+		v, _ := pod.Labels[istioInject]
+		if v == "false" {
+			return true
+		}
+	}
+	if pod.Annotations != nil {
+		v, _ := pod.Annotations[istioInject]
+		if v == "false" {
+			return true
+		}
+	}
 	return false
 }
