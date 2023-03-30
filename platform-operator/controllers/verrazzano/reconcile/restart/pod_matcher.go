@@ -7,10 +7,15 @@ import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
+	"k8s.io/client-go/kubernetes"
+)
+
+const (
+	podIstioInjectLabel       = "sidecar.istio.io/inject"
+	namespaceIstioInjectLabel = "istio-injection"
 )
 
 // PodMatcher implementations returns true/false if a given podList
@@ -47,9 +52,6 @@ type EnvoyOlderThanTwoVersionsPodMatcher struct {
 	istioProxyImage string
 }
 
-// NoIstioSidecarMatcher matches pods without an Envoy sidecar
-type NoIstioSidecarMatcher struct{}
-
 func (o *OutdatedSidecarPodMatcher) ReInit() error {
 	images, err := getImages(istioSubcomponent, proxyv2ImageName,
 		verrazzanoSubcomponent, fluentdImageName)
@@ -63,12 +65,17 @@ func (o *OutdatedSidecarPodMatcher) ReInit() error {
 
 // Matches when a pod has an outdated istiod/proxyv2 image, or an outdate fluentd image
 func (o *OutdatedSidecarPodMatcher) Matches(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType, workloadName string) bool {
+	goClient, err := k8sutil.GetGoClient(log)
+	if err != nil {
+		log.Errorf("Failed to get kubernetes client for AppConfig %s/%s: %v", workloadType, workloadName, err)
+		return false
+	}
 	for _, pod := range podList.Items {
 		for _, c := range pod.Spec.Containers {
-			if isImageOutOfDate(log, proxyv2ImageName, c.Image, o.istioProxyImage, workloadType, workloadName) == OutOfDate {
+			if isImageOutOfDate(log, fluentdImageName, c.Image, o.fluentdImage, workloadType, workloadName) == OutOfDate {
 				return true
 			}
-			if isImageOutOfDate(log, fluentdImageName, c.Image, o.fluentdImage, workloadType, workloadName) == OutOfDate {
+			if isNewIstioProxyNeeded(log, goClient, &pod, c.Image, o.istioProxyImage) {
 				return true
 			}
 		}
@@ -177,35 +184,65 @@ func (a *AppPodMatcher) Matches(log vzlog.VerrazzanoLogger, podList *v1.PodList,
 	return false
 }
 
-func (n *NoIstioSidecarMatcher) ReInit() error {
-	return nil
+// isNewIstioProxyNeeded returns true when a pod has a missing outdated istiod/proxyv2 image
+func isNewIstioProxyNeeded(log vzlog.VerrazzanoLogger, goClient kubernetes.Interface, pod *v1.Pod, actualImage string, expectedImage string) bool {
+	enabled, _ := isNameSpaceIstioInjectionEnabled(log, goClient, pod.GetNamespace())
+	if !enabled {
+		return false
+	}
+
+	if isProxyInjectionDisabled(pod) {
+		return false
+	}
+
+	istioImageStatus := isImageOutOfDate(log, proxyv2ImageName, actualImage, expectedImage, pod.Namespace, pod.Name)
+	switch istioImageStatus {
+	case UpToDate:
+		return false
+	case OutOfDate:
+		return true
+	case NotFound:
+		// The istio sidecar should have been found but was not, meaning it must not have been injected
+		// To be safe, return true so the pod gets restarted.
+		return true
+	default:
+		return true
+	}
+
+	return true
 }
 
-// Matches when if any pods don't have an Envoy sidecar
-func (n *NoIstioSidecarMatcher) Matches(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType, workloadName string) bool {
-	for _, pod := range podList.Items {
-		// Ignore pods that are not expected to have Istio injected
-		noInjection := false
-		for _, item := range config.GetNoInjectionComponents() {
-			if strings.Contains(pod.Name, item) {
-				noInjection = true
-				break
-			}
+func isNameSpaceIstioInjectionEnabled(log vzlog.VerrazzanoLogger, goClient kubernetes.Interface, namespace string) (bool, error) {
+	podNamespace, err := goClient.CoreV1().Namespaces().Get(context.TODO(), namespace, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
 		}
-		if noInjection {
-			continue
-		}
-		proxyFound := false
-		for _, container := range pod.Spec.Containers {
-			if strings.Contains(container.Image, proxyv2ImageName) {
-				proxyFound = true
-			}
-		}
-		if !proxyFound {
-			log.Oncef("Restarting %s %s which has a pod with no Istio proxy image", workloadType, workloadName)
+		return false, err
+	}
+
+	namespaceLabels := podNamespace.GetLabels()
+	value, _ := namespaceLabels[namespaceIstioInjectLabel]
+
+	if value == "enabled" {
+		return true, nil
+	}
+	return false, nil
+}
+
+// isProxyInjectionDisabled returns true if the pod has label or annotation with sidecar.istio.io/inject=false
+func isProxyInjectionDisabled(pod *v1.Pod) bool {
+	if pod.Labels != nil {
+		v := pod.Labels[podIstioInjectLabel]
+		if v == "false" {
 			return true
 		}
 	}
-
+	if pod.Annotations != nil {
+		v := pod.Annotations[podIstioInjectLabel]
+		if v == "false" {
+			return true
+		}
+	}
 	return false
 }
