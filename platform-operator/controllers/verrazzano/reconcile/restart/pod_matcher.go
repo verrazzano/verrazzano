@@ -53,6 +53,9 @@ type EnvoyOlderThanTwoVersionsPodMatcher struct {
 }
 
 func (o *OutdatedSidecarPodMatcher) ReInit() error {
+	if len(o.istioProxyImage) > 0 || len(o.fluentdImage) > 0 {
+		return nil
+	}
 	images, err := getImages(istioSubcomponent, proxyv2ImageName,
 		verrazzanoSubcomponent, fluentdImageName)
 	if err != nil {

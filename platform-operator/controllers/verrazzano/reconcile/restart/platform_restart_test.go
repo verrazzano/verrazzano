@@ -126,42 +126,88 @@ func TestNoRestartAllWorkloadTypesWithInjectFalse(t *testing.T) {
 		pods          []*v1.Pod
 		expectRestart bool
 	}{
-		//// Don't inject proxy since NS has injection enabled but pod has sidecar.istio.io/inject=false label
-		//{
-		//	name:          "noinject-pod-injection-false",
-		//	namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
-		//	pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", someImage, "false")},
-		//	expectRestart: false,
-		//},
-		//// Inject proxy since NS has injection enabled and pod has sidecar.istio.io/inject=true label
+		// No restart, NS does NOT have injection enabled
+		{
+			name:          "norestart-ns-not-labeled",
+			namespace:     initNamespace(constants.VerrazzanoSystemNamespace, false),
+			pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", oldProxyImage, "")},
+			expectRestart: false,
+		},
+		// No restart, NS has injection enabled, proxy image current
+		{
+			name:          "norestart-proxy-current",
+			namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
+			pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", proxyImage, "")},
+			expectRestart: false,
+		},
+		// No restart, NS has injection enabled, proxy image current, pod injection disabled
+		{
+			name:          "norestart-proxy-current-pod-inject-true",
+			namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
+			pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", proxyImage, "true")},
+			expectRestart: false,
+		},
+		// No restart, NS has injection enabled, proxy image current, pod injection missing
+		{
+			name:          "norestart-proxy-current-pod-inject-missing",
+			namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
+			pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", proxyImage, "true")},
+			expectRestart: false,
+		},
+		// No restart, NS has injection enabled, proxy image old, pod injection disabled
+		{
+			name:          "norestart-proxy-old-pod-inject-false",
+			namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
+			pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", oldProxyImage, "false")},
+			expectRestart: false,
+		},
+		// Restart, NS has injection enabled, proxy image old, pod injection enabled
+		{
+			name:          "restart-proxy-old-pod-inject-true",
+			namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
+			pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", oldProxyImage, "true")},
+			expectRestart: true,
+		},
+		// Restart, NS has injection enabled, proxy image old, pod injection missing
+		{
+			name:          "restart-proxy-old-pod-inject-missing",
+			namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
+			pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", oldProxyImage, "")},
+			expectRestart: true,
+		},
+		//// Restart since NS has injection enabled and pod has sidecar.istio.io/inject=true label but no proxy image
 		//{
 		//	name:          "inject-pod-injection-true",
 		//	namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
 		//	pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", someImage, "true")},
 		//	expectRestart: true,
 		//},
-		//// Inject proxy since NS has injection enabled
+		//// Restart since NS has injection enabled and pod missing sidecar.istio.io/inject label and image is old
 		//{
-		//	name:          "noinject-ns-injection-enabled",
+		//	name:          "norestart-no-pod-label-proxyimage-old",
 		//	namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
-		//	pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", someImage, "")},
+		//	pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", oldProxyImage, "")},
 		//	expectRestart: true,
 		//},
+		//// No restart since NS has injection enabled and pod has sidecar.istio.io/inject=false label
 		//{
-		//	name:          "noinject-pod-injection-false-proxyimage",
+		//	name:          "norestart-pod-injection-false-proxyimage-old",
 		//	namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
-		//	pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", proxyImage, "false")},
+		//	pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", oldProxyImage, "false")},
 		//	expectRestart: false,
 		//},
-		{
-			name:          "inject-pod-injection-true-proxyimage",
-			namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
-			pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", proxyImage, "true")},
-			expectRestart: false,
-		},
+		//// No restart since NS has injection enabled and pod has sidecar.istio.io/inject=true label but image is current
 		//{
-		//	name:          "proxy-missing-injection",
-		//	pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", proxyImage, "")},
+		//	name:          "norestart-pod-injection-true-proxyimage-current",
+		//	namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
+		//	pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", proxyImage, "true")},
+		//	expectRestart: false,
+		//},
+		//// Restart since NS has injection enabled and pod has sidecar.istio.io/inject=true label and image is old
+		//{
+		//	name:          "restart-pod-injection-true-proxyimage-old",
+		//	namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
+		//	pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", oldProxyImage, "")},
 		//	expectRestart: true,
 		//},
 	}
@@ -173,7 +219,9 @@ func TestNoRestartAllWorkloadTypesWithInjectFalse(t *testing.T) {
 			k8sutil.SetFakeClient(clientSet)
 
 			namespaces := []string{constants.VerrazzanoSystemNamespace}
-			err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, &OutdatedSidecarPodMatcher{})
+			err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, &OutdatedSidecarPodMatcher{
+				istioProxyImage: proxyImage,
+			})
 
 			var expectedVal string
 			if test.expectRestart {
