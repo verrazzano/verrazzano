@@ -395,75 +395,30 @@ func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 // any other input to the command-line other than Y or y will kill the uninstall process
 func TestUninstallWithConfirmUninstallFlag(t *testing.T) {
 	type fields struct {
-		deployment              *appsv1.Deployment
-		vpo                     *corev1.Pod
-		namespace               *corev1.Namespace
-		validatingWebhookConfig *adminv1.ValidatingWebhookConfiguration
-		clusterRoleBinding      *rbacv1.ClusterRoleBinding
-		clusterRole             *rbacv1.ClusterRole
-		vz                      *v1beta1.Verrazzano
-		cmdLineInput            string
-		doesUninstall           bool
+		cmdLineInput  string
+		doesUninstall bool
 	}
 	tests := []struct {
 		name   string
 		fields fields
 	}{
-		{"Suppress Uninstall prompt with --skip-confirmation=true", fields{deployment: createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"}),
-			vpo:                     createVpoPod(),
-			namespace:               createNamespace(),
-			validatingWebhookConfig: createWebhook(),
-			clusterRoleBinding:      createClusterRoleBinding(),
-			clusterRole:             createClusterRole(),
-			vz:                      createVz(),
-			doesUninstall:           true}},
-		{"Proceed with Uninstall, Y", fields{deployment: createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"}),
-			vpo:                     createVpoPod(),
-			namespace:               createNamespace(),
-			validatingWebhookConfig: createWebhook(),
-			clusterRoleBinding:      createClusterRoleBinding(),
-			clusterRole:             createClusterRole(),
-			vz:                      createVz(),
-			cmdLineInput:            "Y",
-			doesUninstall:           true}},
-		{"Proceed with Uninstall, y", fields{deployment: createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"}),
-			vpo:                     createVpoPod(),
-			namespace:               createNamespace(),
-			validatingWebhookConfig: createWebhook(),
-			clusterRoleBinding:      createClusterRoleBinding(),
-			clusterRole:             createClusterRole(),
-			vz:                      createVz(),
-			cmdLineInput:            "y",
-			doesUninstall:           true}},
-		{"Halt with Uninstall, n", fields{deployment: createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"}),
-			vpo:                     createVpoPod(),
-			namespace:               createNamespace(),
-			validatingWebhookConfig: createWebhook(),
-			clusterRoleBinding:      createClusterRoleBinding(),
-			clusterRole:             createClusterRole(),
-			vz:                      createVz(),
-			cmdLineInput:            "n",
-			doesUninstall:           false}},
-		{"Garbage input passed on cmdLine", fields{deployment: createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"}),
-			vpo:                     createVpoPod(),
-			namespace:               createNamespace(),
-			validatingWebhookConfig: createWebhook(),
-			clusterRoleBinding:      createClusterRoleBinding(),
-			clusterRole:             createClusterRole(),
-			vz:                      createVz(),
-			cmdLineInput:            "GARBAGE",
-			doesUninstall:           false}},
+		{"Suppress Uninstall prompt with --skip-confirmation=true", fields{cmdLineInput: "", doesUninstall: true}},
+		{"Proceed with Uninstall, Y", fields{cmdLineInput: "Y", doesUninstall: true}},
+		{"Proceed with Uninstall, y", fields{cmdLineInput: "y", doesUninstall: true}},
+		{"Halt with Uninstall, n", fields{cmdLineInput: "n", doesUninstall: false}},
+		{"Garbage input passed on cmdLine", fields{cmdLineInput: "GARBAGE", doesUninstall: false}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
+			vpo := createVpoPod()
+			namespace := createNamespace()
+			validatingWebhookConfig := createWebhook()
+			clusterRoleBinding := createClusterRoleBinding()
+			clusterRole := createClusterRole()
+			vz := createVz()
 			c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(
-				tt.fields.deployment,
-				tt.fields.vpo,
-				tt.fields.vz,
-				tt.fields.namespace,
-				tt.fields.validatingWebhookConfig,
-				tt.fields.clusterRoleBinding,
-				tt.fields.clusterRole).Build()
+				deployment, vpo, vz, namespace, validatingWebhookConfig, clusterRoleBinding, clusterRole).Build()
 
 			if tt.fields.cmdLineInput != "" {
 				content := []byte(tt.fields.cmdLineInput)
