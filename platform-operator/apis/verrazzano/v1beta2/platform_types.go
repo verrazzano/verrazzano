@@ -8,10 +8,9 @@ import (
 )
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=platforms
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
-// +kubebuilder:resource:shortName=vzpf;vzpfs
+// +kubebuilder:resource:path=platforms,shortName=vzpf;vzpfs
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="The current version of the Verrazzano platform."
 // +genclient
 

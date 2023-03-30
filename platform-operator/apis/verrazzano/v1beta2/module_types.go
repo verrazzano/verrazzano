@@ -9,12 +9,11 @@ import (
 )
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=modules
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
-// +kubebuilder:resource:shortName=vzmod;vzmods
+// +kubebuilder:resource:path=modules;shortName=vzmod;vzmods
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="The current version of the Verrazzano platform."
-//+kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.state",description="State of Module reconciliation"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.state",description="State of Module reconciliation"
 // +genclient
 
 // Module specifies a Verrazzano Module instance

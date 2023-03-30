@@ -12,7 +12,7 @@ import (
 //+kubebuilder:subresource:status
 //+kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.state",description="State of Module reconciliation"
 //+kubebuilder:storageversion
-//+kubebuilder:resource:shortName=mlc;mlcs
+//+kubebuilder:resource:path=modulelifecycles,shortName=mlc;mlcs
 //+genclient
 
 // ModuleLifecycle defines the schema for a module lifecycle operation
