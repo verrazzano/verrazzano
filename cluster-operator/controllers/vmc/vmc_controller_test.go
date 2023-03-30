@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"net/http"
 	"strings"
 	"testing"
@@ -812,6 +813,7 @@ func TestDeleteVMC(t *testing.T) {
 	// Expect all of the calls when deleting a VMC
 	expectMockCallsForDelete(t, mock, namespace)
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectThanosDelete(t, mock)
 
 	// Expect an API call to delete the Rancher cluster
 	mockRequestSender.EXPECT().
@@ -868,6 +870,7 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 
 	// Expect all of the calls when deleting a VMC
 	expectMockCallsForDelete(t, mock, namespace)
+	expectThanosDelete(t, mock)
 
 	// Expect an HTTP request to fetch the admin token from Rancher - return an error
 	mockRequestSender.EXPECT().
@@ -920,6 +923,7 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 	// Expect all of the calls when deleting a VMC
 	expectMockCallsForDelete(t, mock, namespace)
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectThanosDelete(t, mock)
 
 	// Expect an API call to delete the Rancher cluster - return an error
 	mockRequestSender.EXPECT().
@@ -1181,7 +1185,7 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 			return nil
 		})
 
-	rc, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, constants.DefaultRancherIngressHost, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1219,7 +1223,7 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 			return nil
 		})
 
-	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, constants.DefaultRancherIngressHost, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1260,7 +1264,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	rc, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, constants.DefaultRancherIngressHost, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1303,7 +1307,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, constants.DefaultRancherIngressHost, vzlog.DefaultLogger())
 	asserts.NoError(err)
 
 	regYAML, _, err := registerManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
@@ -1379,7 +1383,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, constants.DefaultRancherIngressHost, vzlog.DefaultLogger())
 	asserts.NoError(err)
 
 	regYAML, _, err = registerManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
@@ -1456,7 +1460,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, constants.DefaultRancherIngressHost, vzlog.DefaultLogger())
 	asserts.NoError(err)
 
 	regYAML, _, err = registerManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
@@ -1512,7 +1516,7 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 			return resp, nil
 		}).Times(retrySteps)
 
-	_, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, vzlog.DefaultLogger())
+	_, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, constants.DefaultRancherIngressHost, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1856,7 +1860,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			}
 			list.Items = append(list.Items, vz)
 			return nil
-		}).Times(3)
+		}).Times(4)
 
 	// Expect a call to get the tls ingress and return the ingress.
 	if !externalES {
@@ -2274,6 +2278,27 @@ func expectRancherGetAdminTokenHTTPCall(t *testing.T, requestSenderMock *mocks.M
 			return resp, nil
 		})
 
+}
+
+func expectThanosDelete(t *testing.T, mock *mocks.MockClient) {
+	// Expect a call to get the Thanos configmap
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: ThanosManagedClusterEndpointsConfigMap}), gomock.AssignableToTypeOf(&corev1.ConfigMap{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, cm *corev1.ConfigMap) error {
+			return nil
+		})
+
+	// Expect a call to get the Istio CRDs
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Name: destinationRuleCRDName}), gomock.AssignableToTypeOf(&v1.CustomResourceDefinition{})).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, crd *v1.CustomResourceDefinition) error {
+			return errors.NewNotFound(schema.GroupResource{}, "not found")
+		})
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Name: serviceEntryCRDName}), gomock.AssignableToTypeOf(&v1.CustomResourceDefinition{})).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, crd *v1.CustomResourceDefinition) error {
+			return errors.NewNotFound(schema.GroupResource{}, "not found")
+		})
 }
 
 // expectSyncCACertRancherHTTPCalls asserts all of the expected calls on the HTTP client mock when sync'ing the managed cluster

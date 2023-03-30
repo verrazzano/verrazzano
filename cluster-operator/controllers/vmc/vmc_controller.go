@@ -43,8 +43,9 @@ const finalizerName = "managedcluster.verrazzano.io"
 // contains the kubeconfig to be used by the Multi-Cluster Agent to access the admin cluster.
 type VerrazzanoManagedClusterReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
-	log    vzlog.VerrazzanoLogger
+	Scheme      *runtime.Scheme
+	IngressHost string
+	log         vzlog.VerrazzanoLogger
 }
 
 // bindingParams used to mutate the RoleBinding
@@ -423,7 +424,7 @@ func (r *VerrazzanoManagedClusterReconciler) deleteClusterFromRancher(ctx contex
 		return nil
 	}
 
-	rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.log)
+	rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.IngressHost, r.log)
 	if err != nil {
 		msg := "Failed to create Rancher API client"
 		r.updateRancherStatus(ctx, vmc, clustersv1alpha1.DeleteFailed, clusterID, msg)
