@@ -27,7 +27,7 @@ const (
 )
 
 // RestartComponents restarts all the deployments, StatefulSets, and DaemonSets
-// in all of the Istio injected system namespaces
+// in all the Istio injected system namespaces
 func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generation int64, podMatcher PodMatcher) error {
 	if err := podMatcher.ReInit(); err != nil {
 		return err
@@ -58,9 +58,9 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 		if err != nil {
 			return err
 		}
-		// Check if any pods contain the old Istio proxy image
-		found := podMatcher.Matches(log, podList, "Deployment", deployment.Name)
-		if !found {
+		// Check if any pods need the new Istio image injected
+		needsNewProxy := podMatcher.Matches(log, podList, "Deployment", deployment.Name)
+		if !needsNewProxy {
 			continue
 		}
 		// Annotate the deployment to do a restart of the pods

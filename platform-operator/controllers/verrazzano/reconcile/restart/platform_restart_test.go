@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package restart
@@ -28,86 +28,11 @@ const (
 	oldIstioImage             = "proxyv2:1.4.3"
 )
 
-// TestRestartAllWorkloadTypesWithOldProxy tests the RestartComponents method for the following use case
-// GIVEN a request to RestartComponents passing DoesPodHaveOutdatedImages
-// WHEN where the fake client has deployments, statefulsets, and daemonsets that need to be restarted
-// THEN the workloads have the restart annotation with the Verrazzano CR generation as the value
-func TestRestartAllWorkloadTypesWithOldProxy(t *testing.T) {
-	asserts := assert.New(t)
-	config.SetDefaultBomFilePath(unitTestBomFile)
-
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
-
-	// Setup fake client to provide workloads for restart platform testing
-	clientSet := fake.NewSimpleClientset(initFakePod(oldIstioImage), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet())
-	k8sutil.SetFakeClient(clientSet)
-
-	namespaces := []string{constants.VerrazzanoSystemNamespace}
-	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, &OutdatedSidecarPodMatcher{})
-
-	// Validate the results
-	asserts.NoError(err)
-	dep, err := clientSet.AppsV1().Deployments("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
-	asserts.NoError(err)
-	val := dep.Spec.Template.Annotations[vzconst.VerrazzanoRestartAnnotation]
-	asserts.Equal("1", val, "Incorrect Deployment restart annotation")
-
-	sts, err := clientSet.AppsV1().StatefulSets("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
-	asserts.NoError(err)
-	val = sts.Spec.Template.Annotations[vzconst.VerrazzanoRestartAnnotation]
-	asserts.Equal("1", val, "Incorrect StatefulSet restart annotation")
-
-	daemonSet, err := clientSet.AppsV1().DaemonSets("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
-	asserts.NoError(err)
-	val = daemonSet.Spec.Template.Annotations[vzconst.VerrazzanoRestartAnnotation]
-	asserts.Equal("1", val, "Incorrect DaemonSet restart annotation")
-}
-
-// TestNoRestartAllWorkloadTypesWithNoProxy tests the RestartComponents method for the following use case
-// GIVEN a request to RestartComponents passing DoesPodContainNoIstioSidecar
-// WHEN where the fake client has deployments, statefulsets, and daemonsets that do not need to be restarted
-// THEN the workloads should not have the restart annotation with the Verrazzano CR generation as the value
-func TestNoRestartAllWorkloadTypesWithNoProxy(t *testing.T) {
-	asserts := assert.New(t)
-	config.SetDefaultBomFilePath(unitTestBomFile)
-
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
-
-	// Setup fake client to provide workloads for restart platform testing
-	clientSet := fake.NewSimpleClientset(initFakePod("someimage"), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet())
-	k8sutil.SetFakeClient(clientSet)
-
-	namespaces := []string{constants.VerrazzanoSystemNamespace}
-	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, &OutdatedSidecarPodMatcher{})
-
-	// Validate the results
-	asserts.NoError(err)
-	dep, err := clientSet.AppsV1().Deployments("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
-	asserts.NoError(err)
-	val := dep.Spec.Template.Annotations[vzconst.VerrazzanoRestartAnnotation]
-	asserts.Equal("1", val, "Incorrect Deployment restart annotation")
-
-	sts, err := clientSet.AppsV1().StatefulSets("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
-	asserts.NoError(err)
-	val = sts.Spec.Template.Annotations[vzconst.VerrazzanoRestartAnnotation]
-	asserts.Equal("1", val, "Incorrect StatefulSet restart annotation")
-
-	daemonSet, err := clientSet.AppsV1().DaemonSets("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
-	asserts.NoError(err)
-	val = daemonSet.Spec.Template.Annotations[vzconst.VerrazzanoRestartAnnotation]
-	asserts.Equal("1", val, "Incorrect DaemonSet restart annotation")
-}
-
-// TestNoRestartAllWorkloadTypesWithInjectFalse tests the RestartComponents method for the following use case
-// GIVEN a request to RestartComponents passing DoesPodContainNoIstioSidecar
-// WHEN where the fake client has a namespace labeled to enable Istio injection and the
-//
-//	deployments, statefulsets, and daemonsets have sidecar.istio.io/inject=false
-//
-// THEN the workloads should not have the restart annotation with the Verrazzano CR generation as the value
-func TestNoRestartAllWorkloadTypesWithInjectFalse(t *testing.T) {
+// TestRestartIstioProxy tests the RestartComponents method for the following use case
+// GIVEN a request to RestartComponents
+// WHEN a component is supposed to have an Istio proxy sidecar, and the proxy is current, old, or missing
+// THEN ensure the workloads have the restart annotation if needed
+func TestRestartIstioProxy(t *testing.T) {
 	asserts := assert.New(t)
 	config.SetDefaultBomFilePath(unitTestBomFile)
 
@@ -161,6 +86,13 @@ func TestNoRestartAllWorkloadTypesWithInjectFalse(t *testing.T) {
 			pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", oldProxyImage, "false")},
 			expectRestart: false,
 		},
+		// No restart, NS has injection enabled, proxy image missing, pod injection false
+		{
+			name:          "norestart-proxy-missing-pod-inject-false",
+			namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
+			pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", someImage, "false")},
+			expectRestart: false,
+		},
 		// Restart, NS has injection enabled, proxy image old, pod injection enabled
 		{
 			name:          "restart-proxy-old-pod-inject-true",
@@ -175,46 +107,17 @@ func TestNoRestartAllWorkloadTypesWithInjectFalse(t *testing.T) {
 			pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", oldProxyImage, "")},
 			expectRestart: true,
 		},
-		//// Restart since NS has injection enabled and pod has sidecar.istio.io/inject=true label but no proxy image
-		//{
-		//	name:          "inject-pod-injection-true",
-		//	namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
-		//	pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", someImage, "true")},
-		//	expectRestart: true,
-		//},
-		//// Restart since NS has injection enabled and pod missing sidecar.istio.io/inject label and image is old
-		//{
-		//	name:          "norestart-no-pod-label-proxyimage-old",
-		//	namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
-		//	pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", oldProxyImage, "")},
-		//	expectRestart: true,
-		//},
-		//// No restart since NS has injection enabled and pod has sidecar.istio.io/inject=false label
-		//{
-		//	name:          "norestart-pod-injection-false-proxyimage-old",
-		//	namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
-		//	pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", oldProxyImage, "false")},
-		//	expectRestart: false,
-		//},
-		//// No restart since NS has injection enabled and pod has sidecar.istio.io/inject=true label but image is current
-		//{
-		//	name:          "norestart-pod-injection-true-proxyimage-current",
-		//	namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
-		//	pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", proxyImage, "true")},
-		//	expectRestart: false,
-		//},
-		//// Restart since NS has injection enabled and pod has sidecar.istio.io/inject=true label and image is old
-		//{
-		//	name:          "restart-pod-injection-true-proxyimage-old",
-		//	namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
-		//	pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", oldProxyImage, "")},
-		//	expectRestart: true,
-		//},
+		// Restart, NS has injection enabled, proxy image missing, pod injection missing
+		{
+			name:          "restart-proxy-missing-pod-inject-missing",
+			namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
+			pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", someImage, "")},
+			expectRestart: true,
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			// Setup fake client to provide workloads for restart platform testing
-			//	pods := podsToClientObjects(test.pods)
 			clientSet := fake.NewSimpleClientset(test.namespace, initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet(), test.pods[0])
 			k8sutil.SetFakeClient(clientSet)
 
