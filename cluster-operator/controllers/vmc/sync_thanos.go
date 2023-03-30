@@ -6,6 +6,7 @@ package vmc
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -33,6 +34,7 @@ const (
 
 // thanosServiceDiscovery represents one element in the Thanos service discovery YAML. The YAML
 // format contains a list of thanosServiceDiscovery elements
+// The format of this object is outlined here https://github.com/thanos-io/thanos/blob/main/docs/service-discovery.md#file-service-discovery
 type thanosServiceDiscovery struct {
 	Targets []string          `json:"targets"`
 	Labels  map[string]string `json:"labels"`
@@ -47,17 +49,6 @@ const serviceDiscoveryKey = "servicediscovery.yml"
 // TODO - we will also need to add the cluster's CA cert for Thanos Query to use
 func (r *VerrazzanoManagedClusterReconciler) syncThanosQuery(ctx context.Context,
 	vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-
-	if thanosEnabled, err := r.isThanosEnabled(); err != nil || !thanosEnabled {
-		r.log.Oncef("Thanos is not enabled on this cluster. Not updating Thanos endpoints for VMC %s", vmc.Name)
-		return nil
-	}
-
-	if vmc.Status.ThanosHost == "" {
-		r.log.Oncef("Managed cluster Thanos Host not found in VMC Status for VMC %s. Not updating Thanos endpoints", vmc.Name)
-		return r.syncThanosQueryEndpointDelete(ctx, vmc)
-	}
-
 	if err := r.syncThanosQueryEndpoint(ctx, vmc); err != nil {
 		return err
 	}
@@ -65,13 +56,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncThanosQuery(ctx context.Context
 	if err := r.createOrUpdateServiceEntry(vmc.Name, vmc.Status.ThanosHost, thanosGrpcIngressPort); err != nil {
 		return err
 	}
-	if err := r.createOrUpdateDestinationRule(vmc.Name, vmc.Status.ThanosHost, thanosGrpcIngressPort); err != nil {
-		return err
-	}
-
-	// If we successfully sync the managed cluster Thanos Query store, we should remove the federated Prometheus to avoid duplication
-	r.log.Oncef("Thanos Query synced for VMC %s. Removing the Prometheus scraper", vmc.Name)
-	return r.deleteClusterPrometheusConfiguration(ctx, vmc)
+	return r.createOrUpdateDestinationRule(vmc.Name, vmc.Status.ThanosHost, thanosGrpcIngressPort)
 }
 
 // syncThanosQueryEndpoint will update the config map used by Thanos Query with the managed cluster
@@ -95,6 +80,12 @@ func (r *VerrazzanoManagedClusterReconciler) syncThanosQueryEndpointDelete(ctx c
 }
 
 func (r *VerrazzanoManagedClusterReconciler) removeThanosHostFromConfigMap(ctx context.Context, vmcName string, log vzlog.VerrazzanoLogger) error {
+	// Check if Thanos is enabled before getting the endpoints ConfigMap
+	// to avoid repeating error message when Thanos is disabled
+	thanosEnabled, err := r.isThanosEnabled()
+	if err != nil || !thanosEnabled {
+		return err
+	}
 	configMap, err := r.getThanosEndpointsConfigMap(ctx)
 	if err != nil {
 		return err
@@ -120,12 +111,15 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateThanosEndpointConfigM
 	if err != nil {
 		return r.log.ErrorfNewErr("Failed to serialize Thanos endpoints config map content for VMC %s: %v", vmcName, err)
 	}
-	_, err = controllerruntime.CreateOrUpdate(ctx, r.Client, configMap, func() error {
+	result, err := controllerruntime.CreateOrUpdate(ctx, r.Client, configMap, func() error {
 		configMap.Data[serviceDiscoveryKey] = string(newServiceDiscoveryYaml)
 		return nil
 	})
 	if err != nil {
 		return r.log.ErrorfNewErr("Failed to update Thanos endpoints config map after removing endpoint for VMC %s: %v", vmcName, err)
+	}
+	if result != controllerutil.OperationResultNone {
+		r.log.Infof("The Thanos endpoint Configmap %s has been modified for VMC %s", configMap.Name, vmcName)
 	}
 	return nil
 }
@@ -195,6 +189,7 @@ func parseThanosEndpointsConfigMap(configMap *v1.ConfigMap, log vzlog.Verrazzano
 	//    - example.com:443
 	//    labels:
 	//      verrazzano_cluster: managed
+	// The format is outlined here: https://github.com/thanos-io/thanos/blob/main/docs/service-discovery.md#file-service-discovery
 	serviceDiscoveryYaml, exists := configMap.Data[serviceDiscoveryKey]
 	serviceDiscoveryArray := []*thanosServiceDiscovery{}
 	var err error
@@ -215,7 +210,8 @@ func (r *VerrazzanoManagedClusterReconciler) getThanosEndpointsConfigMap(ctx con
 	}
 	configMap := v1.ConfigMap{}
 	if err := r.Get(ctx, configMapNsn, &configMap); err != nil {
-		return nil, r.log.ErrorfNewErr("failed to fetch the Thanos endpoints ConfigMap %s/%s, %v", configMapNsn.Namespace, configMapNsn.Name, err)
+		r.log.Errorf("failed to fetch the Thanos endpoints ConfigMap %s/%s, %v", configMapNsn.Namespace, configMapNsn.Name, err)
+		return nil, err
 	}
 	return &configMap, nil
 }

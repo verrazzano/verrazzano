@@ -261,20 +261,7 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 		log.Errorf("Failed to update status to ready for VMC %s: %v", vmc.Name, err)
 	}
 
-	if vmc.Status.PrometheusHost == "" {
-		log.Oncef("Managed cluster Prometheus Host not found in VMC Status for VMC %s. Waiting for VMC to be registered...", vmc.Name)
-	} else if vmc.Status.ThanosHost == "" {
-		log.Debugf("Syncing the prometheus scraper for VMC %s", vmc.Name)
-		err = r.syncPrometheusScraper(ctx, vmc)
-		if err != nil {
-			r.handleError(ctx, vmc, "Failed to setup the prometheus scraper for managed cluster", err, log)
-			return newRequeueWithDelay(), err
-		}
-	}
-
-	err = r.syncThanosQuery(ctx, vmc)
-	if err != nil {
-		r.handleError(ctx, vmc, "Failed to update Thanos Query endpoint managed cluster", err, log)
+	if err := r.syncManagedMetrics(ctx, log, vmc); err != nil {
 		return newRequeueWithDelay(), err
 	}
 
@@ -368,6 +355,65 @@ func (r *VerrazzanoManagedClusterReconciler) syncManagedRoleBinding(vmc *cluster
 		// will automatically get deleted when the VerrazzanoManagedCluster is deleted
 		return controllerutil.SetControllerReference(vmc, &roleBinding, r.Scheme)
 	})
+}
+
+// syncManagedMetrics syncs the metrics federation for managed clusters
+// There are currently two ways of federating metrics from managed clusters:
+// 1. Creating a Scrape config for the managed cluster on the admin cluster Prometheus
+// 2. Creating a Store in Thanos so that managed cluster metrics can be accessed by the admin cluster Query
+// These scenarios are mutually exclusive and the Thanos Query method takes precedence
+// There are two conditions that enable the Thanos query method
+//  1. Thanos is enabled on the managed cluster
+//     a. This manifests as the ThanosHost field in the VMC being populated
+//  2. Thanos is enabled on the managed cluster
+//
+// If these two conditions are not met, the Prometheus federation will be enabled
+func (r *VerrazzanoManagedClusterReconciler) syncManagedMetrics(ctx context.Context, log vzlog.VerrazzanoLogger, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	thanosEnabled, err := r.isThanosEnabled()
+	if err != nil {
+		r.handleError(ctx, vmc, "Failed to verify if Thanos is enabled", err, log)
+		return err
+	}
+	// If the Thanos multicluster requirements are met, set up the Thanos Query store
+	if vmc.Status.ThanosHost != "" && thanosEnabled {
+		err = r.syncThanosQuery(ctx, vmc)
+		if err != nil {
+			r.handleError(ctx, vmc, "Failed to update Thanos Query endpoint managed cluster", err, log)
+			return err
+		}
+
+		// If we successfully sync the managed cluster Thanos Query store, we should remove the federated Prometheus to avoid duplication
+		r.log.Oncef("Thanos Query synced for VMC %s. Removing the Prometheus scraper", vmc.Name)
+		err = r.deleteClusterPrometheusConfiguration(ctx, vmc)
+		if err != nil {
+			r.handleError(ctx, vmc, "Failed to remove the Prometheus scrape config", err, log)
+			return err
+		}
+		return nil
+	}
+
+	// If Thanos multicluster is disabled, attempt to delete left over resources
+	err = r.syncThanosQueryEndpointDelete(ctx, vmc)
+	if err != nil {
+		r.handleError(ctx, vmc, "Failed to delete Thanos Query endpoint managed cluster", err, log)
+		return err
+	}
+
+	// If the Prometheus host is not populated, skip federation and do nothing
+	if vmc.Status.PrometheusHost == "" {
+		log.Oncef("Managed cluster Prometheus Host not found in VMC Status for VMC %s. Waiting for VMC to be registered...", vmc.Name)
+		return nil
+	}
+
+	// Sync the Prometheus Scraper if Thanos multicluster is disabled and the host is populated
+	log.Debugf("Syncing the prometheus scraper for VMC %s", vmc.Name)
+	err = r.syncPrometheusScraper(ctx, vmc)
+	if err != nil {
+		r.handleError(ctx, vmc, "Failed to setup the prometheus scraper for managed cluster", err, log)
+		return err
+	}
+
+	return nil
 }
 
 // mutateBinding mutates the RoleBinding to ensure it has the valid params
