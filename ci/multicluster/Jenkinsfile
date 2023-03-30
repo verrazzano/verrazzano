@@ -448,6 +448,8 @@ pipeline {
                         }
                     }
                 }
+                // cert-manager update suites related to admin and managed clusters should be run sequentially to
+                // avoid intermittent test failures.
                 stage("verify-admin-cluster-cert-manager-update") {
                     steps {
                         script {
