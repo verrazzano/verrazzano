@@ -35,3 +35,6 @@ To uninstall the `sample-coherence-operator` deployment:
 $ helm delete sample-coherence-operator
 ```
 
+### Modifications by the Verrazzano team
+
+1. The deployment pod template in deployment.yaml has been changed to add a new label, `sidecar.istio.io/inject: "false"`.
