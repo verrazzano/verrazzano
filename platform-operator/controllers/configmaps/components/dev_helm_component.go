@@ -5,12 +5,12 @@ package components
 
 import (
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"time"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -78,6 +78,14 @@ func doInstall(ctx spi.ComponentContext, comp spi.Component) error {
 	}
 	if err := comp.Install(ctx); err != nil {
 		return err
+	}
+	for {
+		if !comp.IsReady(ctx) {
+			ctx.Log().Progressf("Component %s has been installed. Waiting for the component to be ready", comp.Name())
+			time.Sleep(time.Second * 5)
+		} else {
+			break
+		}
 	}
 	return comp.PostInstall(ctx)
 }
