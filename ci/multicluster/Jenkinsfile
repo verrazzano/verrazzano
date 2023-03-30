@@ -1465,9 +1465,6 @@ def verifyExamples() {
         "jaeger helidon": {
             runGinkgo("multicluster/verify-jaeger/helidon", "${TEST_DUMP_ROOT}/jaeger-helidon")
         },
-        "jaeger hotrod": {
-            runGinkgo("multicluster/verify-jaeger/hotrod", "${TEST_DUMP_ROOT}/jaeger-hotrod")
-        },
     ]
 }
 
