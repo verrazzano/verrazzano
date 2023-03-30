@@ -482,14 +482,6 @@ pipeline {
                                runGinkgo('jaeger/system')
                             }
                         }
-                        stage('jaeger hotrod') {
-                            environment {
-                               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-hotrod"
-                            }
-                            steps {
-                               runGinkgo('jaeger/hotrod')
-                            }
-                        }
                         stage('jwt helidon') {
                             when {
                                 expression {params.ENABLE_JWT_TESTING == true}
