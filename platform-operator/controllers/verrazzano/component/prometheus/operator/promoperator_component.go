@@ -4,7 +4,6 @@
 package operator
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -160,9 +159,6 @@ func (c prometheusComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
 func (c prometheusComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
-	}
 	convertedVZ := installv1beta1.Verrazzano{}
 	if err := common.ConvertVerrazzanoCR(new, &convertedVZ); err != nil {
 		return err
@@ -180,9 +176,6 @@ func (c prometheusComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzan
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
 func (c prometheusComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
-	}
 	return c.validatePrometheusOperator(new)
 }
 
