@@ -45,10 +45,26 @@ metadata:
   labels:
     app: {{ .Values.name }}
 data:
+  env-vars.yaml: |
+    verrazzano.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}: ""
+    console.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}: "http://verrazzano-console.verrazzano-system.svc.cluster.local:8000"
+    grafana.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}: "http://vmi-system-grafana.verrazzano-system.svc.cluster.local:3000"
+    prometheus.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}: "http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local:9090"
+    thanos-sidecar.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}: "grpc://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local:10901"
+    thanos-query.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}: "http://thanos-query-frontend.verrazzano-monitoring.svc.cluster.local:9090"
+    kibana.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}: "http://vmi-system-osd.verrazzano-system.svc.cluster.local:5601"
+    elasticsearch.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}: "http://vmi-system-os-ingest.verrazzano-system.svc.cluster.local:9200"
+    opensearch.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}: "http://vmi-system-os-ingest.verrazzano-system.svc.cluster.local:9200"
+    osd.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}: "http://vmi-system-osd.verrazzano-system.svc.cluster.local:5601"
+    "verrazzano-authproxy-opensearch": "http://vmi-system-os-ingest.verrazzano-system.svc.cluster.local:9200"
+    "verrazzano-authproxy-opensearch.verrazzano-system": "http://vmi-system-os-ingest.verrazzano-system.svc.cluster.local:9200"
+    "kiali.vmi.system.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}": "http://vmi-system-kiali.verrazzano-system.svc.cluster.local:20001"
+    jaeger.{{.Values.config.envName}}.{{.Values.config.dnsSuffix}}: "http://jaeger-operator-jaeger-query.verrazzano-monitoring.svc.cluster.local:16686"
   conf.lua: |
     local clusterHostSuffix = '{{ .Values.config.envName }}'..'.'..'{{ .Values.config.dnsSuffix }}'
 {{- with .Values.proxy }}
     local ingressHost = ngx.req.get_headers()["x-forwarded-host"]
+    local ingressMappingTable = ngx.ctx.mapping_table
     if not ingressHost then
       ingressHost = ngx.req.get_headers()["host"]
     end
@@ -74,7 +90,7 @@ data:
     if backend == "console" then
         ingressHost = os.getenv("VZ_CONSOLE_HOST")
     end
-    local backendUrl = auth.getBackedServerURLFromIngressHost(ingressHost)
+    local backendUrl = auth.getBackedServerURLFromIngressHost(ingressMappingTable, ingressHost)
     -- CORS handling
     local h, _ = ngx.req.get_headers()["origin"]
     if h ~= nil and h ~= "" then
@@ -217,7 +233,6 @@ data:
     local oidcProviderInClusterUri = nil
     local oidcIssuerUri = nil
     local oidcIssuerUriLocal = nil
-
     function me.config(opts)
         for key, val in pairs(opts) do
             me[key] = val
@@ -536,25 +551,9 @@ data:
             ingressServiceTable[key] = value
         end
     end
-    function me.getBackedServerURLFromIngressHost(ingressHost)
+    function me.getBackedServerURLFromIngressHost(ingressMappingTable, ingressHost)
         local backendServerUrl = nil
-        local ingressServiceTable = {}
-        me.setTableValue(ingressServiceTable, os.getenv("VZ_VERRAZZANO_HOST"), me.getLocalKubernetesApiUrl())
-        me.setTableValue(ingressServiceTable, os.getenv("VZ_CONSOLE_HOST"), os.getenv("VZ_CONSOLE_BACKEND_URL"))
-        me.setTableValue(ingressServiceTable, os.getenv("VZ_GRAFANA_HOST"), os.getenv("VZ_GRAFANA_BACKEND_URL"))
-        me.setTableValue(ingressServiceTable, os.getenv("VZ_PROMETHEUS_HOST"), os.getenv("VZ_PROMETHEUS_BACKEND_URL"))
-        me.setTableValue(ingressServiceTable, os.getenv("VZ_THANOS_SIDECAR_HOST"), os.getenv("VZ_THANOS_SIDECAR_BACKEND_URL"))
-        me.setTableValue(ingressServiceTable, os.getenv("VZ_THANOS_QUERY_HOST"), os.getenv("VZ_THANOS_QUERY_BACKEND_URL"))
-        me.setTableValue(ingressServiceTable, os.getenv("VZ_KIBANA_HOST"), os.getenv("VZ_KIBANA_BACKEND_URL"))
-        me.setTableValue(ingressServiceTable, os.getenv("VZ_OSD_HOST"), os.getenv("VZ_OSD_BACKEND_URL"))
-        me.setTableValue(ingressServiceTable, os.getenv("VZ_ELASTICSEARCH_HOST"), os.getenv("VZ_ELASTICSEARCH_BACKEND_URL"))
-        me.setTableValue(ingressServiceTable, os.getenv("VZ_OPENSEARCH_HOST"), os.getenv("VZ_OPENSEARCH_BACKEND_URL"))
-        me.setTableValue(ingressServiceTable, os.getenv("VZ_OPENSEARCH_HTTPS_HOST"), os.getenv("VZ_OPENSEARCH_BACKEND_URL"))
-        me.setTableValue(ingressServiceTable, os.getenv("VZ_AUTHPROXY_OPENSEARCH_HOST"), os.getenv("VZ_AUTHPROXY_OPENSEARCH_BACKEND_URL"))
-        me.setTableValue(ingressServiceTable, os.getenv("VZ_AUTHPROXY_OPENSEARCH_NS_HOST"), os.getenv("VZ_AUTHPROXY_OPENSEARCH_BACKEND_URL"))
-        me.setTableValue(ingressServiceTable, os.getenv("VZ_KIALI_HOST"), os.getenv("VZ_KIALI_BACKEND_URL"))
-        me.setTableValue(ingressServiceTable, os.getenv("VZ_JAEGER_HOST"), os.getenv("VZ_JAEGER_BACKEND_URL"))
-        backendServerUrl = ingressServiceTable[ingressHost]
+        backendServerUrl = ingressMappingTable[ingressHost]
         if not backendServerUrl then
             me.not_found("Invalid backend '"..ingressHost.."'")
         end
@@ -1290,33 +1289,6 @@ data:
     env VZ_KIALI_ALLOWED_ORIGINS;
     env VZ_JAEGER_ALLOWED_ORIGINS;
 
-    env VZ_VERRAZZANO_HOST;
-    env VZ_CONSOLE_HOST;
-    env VZ_CONSOLE_BACKEND_URL;
-    env VZ_GRAFANA_HOST;
-    env VZ_GRAFANA_BACKEND_URL;
-    env VZ_PROMETHEUS_HOST;
-    env VZ_PROMETHEUS_BACKEND_URL;
-    env VZ_THANOS_SIDECAR_HOST;
-    env VZ_THANOS_SIDECAR_BACKEND_URL;
-    env VZ_THANOS_QUERY_HOST;
-    env VZ_THANOS_QUERY_BACKEND_URL;
-    env VZ_KIBANA_HOST;
-    env VZ_KIBANA_BACKEND_URL;
-    env VZ_OSD_HOST;
-    env VZ_OSD_BACKEND_URL;
-    env VZ_AUTHPROXY_OPENSEARCH_HOST;
-    env VZ_AUTHPROXY_OPENSEARCH_NS_HOST;
-    env VZ_AUTHPROXY_OPENSEARCH_BACKEND_URL;
-    env VZ_ELASTICSEARCH_HOST;
-    env VZ_ELASTICSEARCH_BACKEND_URL;
-    env VZ_OPENSEARCH_HOST;
-    env VZ_OPENSEARCH_HTTPS_HOST;
-    env VZ_OPENSEARCH_BACKEND_URL;
-    env VZ_KIALI_HOST;
-    env VZ_KIALI_BACKEND_URL;
-    env VZ_JAEGER_HOST;
-    env VZ_JAEGER_BACKEND_URL;
 
     events {
         worker_connections  1024;
@@ -1380,7 +1352,13 @@ data:
         add_header        Cache-Control no-store always;
 
         proxy_http_version 1.1;
-
+        init_by_lua_block {
+          local yaml = require "yaml"
+          local file = io.open("/api-config/env-vars.yaml", "r")
+          local data = file:read("*all")
+          file:close()
+          ngx.ctx.mapping_table = yaml.load(data)
+        }
         # Verrazzano api and console
         server {
             listen       8775;
