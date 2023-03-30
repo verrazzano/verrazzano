@@ -347,7 +347,7 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 // GIVEN a CLI uninstall command with all defaults and no vz resource found
 //
 //	WHEN I call cmd.Execute for uninstall
-//	THEN the CLI uninstall command fails
+//	THEN the CLI uninstall command fails and bug report should be generated
 func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).Build()
 
@@ -367,6 +367,9 @@ func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Verrazzano is not installed: Failed to find any Verrazzano resources")
 	assert.Contains(t, errBuf.String(), "Verrazzano is not installed: Failed to find any Verrazzano resources")
+	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+		t.Fatal(BugReportNotExist)
+	}
 }
 
 func createNamespace() *corev1.Namespace {
