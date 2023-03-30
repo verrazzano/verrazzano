@@ -129,10 +129,12 @@ function verify_prerequisites() {
   command -v grype >/dev/null 2>&1 || {
     usage 1 "grype scanner is not installed"
   }
-  echo "Print Grype and Trivy path"
-  which trivy
-  which grype
+  echo "Grype path: $(which grype)"
+  echo "Trivy path: $(which trivy)"
+  echo "Trivy version:"
   trivy version
+  echo "Grype version:"
+  grype version
 }
 
 while getopts 'hb:a:o:n:r:p:x:' opt; do
