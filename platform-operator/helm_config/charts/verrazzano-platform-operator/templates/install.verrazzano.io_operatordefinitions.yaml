@@ -8,25 +8,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.9.2
   creationTimestamp: null
-  name: platformdefinitions.platform.verrazzano.io
+  name: operatordefinitions.install.verrazzano.io
 spec:
-  group: platform.verrazzano.io
+  group: install.verrazzano.io
   names:
-    kind: PlatformDefinition
-    listKind: PlatformDefinitionList
-    plural: platformdefinitions
+    kind: OperatorDefinition
+    listKind: OperatorDefinitionList
+    plural: operatordefinitions
     shortNames:
-    - pd
-    - pds
-    singular: platformdefinition
-  scope: Namespaced
+    - opdef
+    - opdefs
+    singular: operatordefinition
+  scope: Cluster
   versions:
-  - additionalPrinterColumns:
-    - description: The current version of the Verrazzano Platform definition .
-      jsonPath: .status.version
-      name: Version
-      type: string
-    name: v1alpha1
+  - name: v1beta2
     schema:
       openAPIV3Schema:
         properties:
@@ -41,51 +36,41 @@ spec:
               crds:
                 items:
                   properties:
-                    defaultVersion:
-                      type: string
                     name:
                       type: string
                     supportedVersions:
+                      type: string
+                    version:
+                      type: string
+                    wait:
+                      type: boolean
+                    waitTimeout:
                       type: string
                   required:
                   - name
                   type: object
                 type: array
-              modules:
-                items:
-                  properties:
-                    defaultVersion:
-                      type: string
-                    name:
-                      type: string
-                    supportedVersions:
-                      type: string
-                  required:
-                  - name
-                  type: object
-                type: array
+              lifecycleClass:
+                type: string
               operators:
                 items:
                   properties:
-                    defaultVersion:
-                      type: string
                     name:
                       type: string
                     supportedVersions:
+                      type: string
+                    version:
+                      type: string
+                    wait:
+                      type: boolean
+                    waitTimeout:
                       type: string
                   required:
                   - name
                   type: object
                 type: array
-              version:
-                type: string
-            required:
-            - version
             type: object
           status:
-            properties:
-              version:
-                type: string
             type: object
         type: object
     served: true
