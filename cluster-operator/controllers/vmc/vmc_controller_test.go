@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"net/http"
 	"strings"
 	"testing"
@@ -30,6 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apiv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -2290,13 +2290,13 @@ func expectThanosDelete(t *testing.T, mock *mocks.MockClient) {
 
 	// Expect a call to get the Istio CRDs
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Name: destinationRuleCRDName}), gomock.AssignableToTypeOf(&v1.CustomResourceDefinition{})).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, crd *v1.CustomResourceDefinition) error {
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Name: destinationRuleCRDName}), gomock.AssignableToTypeOf(&apiv1.CustomResourceDefinition{})).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, crd *apiv1.CustomResourceDefinition) error {
 			return errors.NewNotFound(schema.GroupResource{}, "not found")
 		})
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Name: serviceEntryCRDName}), gomock.AssignableToTypeOf(&v1.CustomResourceDefinition{})).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, crd *v1.CustomResourceDefinition) error {
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Name: serviceEntryCRDName}), gomock.AssignableToTypeOf(&apiv1.CustomResourceDefinition{})).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, crd *apiv1.CustomResourceDefinition) error {
 			return errors.NewNotFound(schema.GroupResource{}, "not found")
 		})
 }
