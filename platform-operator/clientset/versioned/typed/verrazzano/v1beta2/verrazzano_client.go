@@ -16,9 +16,7 @@ import (
 type VerrazzanoV1beta2Interface interface {
 	RESTClient() rest.Interface
 	ModulesGetter
-	ModuleDefinitionsGetter
 	ModuleLifecyclesGetter
-	OperatorDefinitionsGetter
 	PlatformsGetter
 	PlatformDefinitionsGetter
 }
@@ -32,16 +30,8 @@ func (c *VerrazzanoV1beta2Client) Modules(namespace string) ModuleInterface {
 	return newModules(c, namespace)
 }
 
-func (c *VerrazzanoV1beta2Client) ModuleDefinitions() ModuleDefinitionInterface {
-	return newModuleDefinitions(c)
-}
-
 func (c *VerrazzanoV1beta2Client) ModuleLifecycles(namespace string) ModuleLifecycleInterface {
 	return newModuleLifecycles(c, namespace)
-}
-
-func (c *VerrazzanoV1beta2Client) OperatorDefinitions() OperatorDefinitionInterface {
-	return newOperatorDefinitions(c)
 }
 
 func (c *VerrazzanoV1beta2Client) Platforms(namespace string) PlatformInterface {
