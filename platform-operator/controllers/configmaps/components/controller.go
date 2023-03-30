@@ -10,7 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
@@ -35,7 +34,9 @@ type ComponentConfigMapReconciler struct {
 }
 
 func initShimComponentList() {
-	shimComponents[rancher.ComponentName] = rancher.NewComponent()
+	// Add any shim components here that you want to test.
+	// For example, to add a shim component to test a new CAPI component
+	//	shimComponents[capi.ComponentName] = capi.NewComponent()
 }
 
 func (r *ComponentConfigMapReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -129,9 +130,7 @@ func (r *ComponentConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	if err != nil {
 		log.Errorf("Invalid configmap %s/%s: %v", configMap.GetNamespace(), configMap.GetName(), err)
-		// don't requeue if the data is invalid
-		// once the data is updated to be correct it will trigger another reconcile
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
 	compCtx, err := spi.NewContext(log, r.Client, &vz, nil, false)
@@ -205,4 +204,42 @@ func (r *ComponentConfigMapReconciler) processComponent(ctx spi.ComponentContext
 // Create a new Result that will cause reconcile to requeue after a short delay
 func newRequeueWithDelay() ctrl.Result {
 	return vzctrl.NewRequeueWithDelay(3, 5, time.Second)
+}
+
+func doInstall(ctx spi.ComponentContext, comp spi.Component) error {
+	if err := comp.PreInstall(ctx); err != nil {
+		return err
+	}
+	if err := comp.Install(ctx); err != nil {
+		return err
+	}
+	for {
+		if !comp.IsReady(ctx) {
+			ctx.Log().Progressf("Component %s has been installed. Waiting for the component to be ready", comp.Name())
+			time.Sleep(time.Second * 5)
+		} else {
+			break
+		}
+	}
+	return comp.PostInstall(ctx)
+}
+
+func doUpgrade(ctx spi.ComponentContext, comp spi.Component) error {
+	if err := comp.PreUpgrade(ctx); err != nil {
+		return err
+	}
+	if err := comp.Upgrade(ctx); err != nil {
+		return err
+	}
+	return comp.PostUpgrade(ctx)
+}
+
+func doUninstall(ctx spi.ComponentContext, comp spi.Component) error {
+	if err := comp.PreUninstall(ctx); err != nil {
+		return err
+	}
+	if err := comp.Uninstall(ctx); err != nil {
+		return err
+	}
+	return comp.PostUninstall(ctx)
 }

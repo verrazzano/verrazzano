@@ -10,8 +10,6 @@ import (
 	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"time"
-
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
@@ -70,42 +68,4 @@ func newDevHelmComponent(cm *v1.ConfigMap) (devComponent, error) {
 			ImagePullSecretKeyname: constants.GlobalImagePullSecName,
 		},
 	}, nil
-}
-
-func doInstall(ctx spi.ComponentContext, comp spi.Component) error {
-	if err := comp.PreInstall(ctx); err != nil {
-		return err
-	}
-	if err := comp.Install(ctx); err != nil {
-		return err
-	}
-	for {
-		if !comp.IsReady(ctx) {
-			ctx.Log().Progressf("Component %s has been installed. Waiting for the component to be ready", comp.Name())
-			time.Sleep(time.Second * 5)
-		} else {
-			break
-		}
-	}
-	return comp.PostInstall(ctx)
-}
-
-func doUpgrade(ctx spi.ComponentContext, comp spi.Component) error {
-	if err := comp.PreUpgrade(ctx); err != nil {
-		return err
-	}
-	if err := comp.Upgrade(ctx); err != nil {
-		return err
-	}
-	return comp.PostUpgrade(ctx)
-}
-
-func doUninstall(ctx spi.ComponentContext, comp spi.Component) error {
-	if err := comp.PreUninstall(ctx); err != nil {
-		return err
-	}
-	if err := comp.Uninstall(ctx); err != nil {
-		return err
-	}
-	return comp.PostUninstall(ctx)
 }

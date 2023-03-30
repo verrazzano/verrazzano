@@ -30,8 +30,8 @@ const (
 	testBomFilePath = "../../verrazzano/testdata/test_bom.json"
 )
 
-// TestConfigMapReconciler tests ComponentConfigMapReconciler method for a correct and incorrect configmap
-func TestConfigMapReconciler(t *testing.T) {
+// TestConfigMapKindHelmReconciler tests ComponentConfigMapReconciler method for a correct and incorrect configmap
+func TestConfigMapKindHelmReconciler(t *testing.T) {
 	asserts := assert.New(t)
 
 	tests := []struct {
