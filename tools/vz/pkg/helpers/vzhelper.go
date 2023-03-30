@@ -34,6 +34,8 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 	"strings"
@@ -47,6 +49,23 @@ type VZHelper interface {
 	GetKubeClient(cmd *cobra.Command) (kubernetes.Interface, error)
 	GetHTTPClient() *http.Client
 	GetDynamicClient(cmd *cobra.Command) (dynamic.Interface, error)
+}
+
+type ReportCtx struct {
+	ReportFile           string
+	ReportFormat         string
+	IncludeSupportData   bool
+	IncludeInfo          bool
+	IncludeActions       bool
+	MinConfidence        int
+	MinImpact            int
+	PrintReportToConsole bool
+}
+
+type ClusterSnapshotCtx struct {
+	BugReportDir         string
+	MoreNS               []string
+	PrintReportToConsole bool
 }
 
 const defaultVerrazzanoTmpl = `apiVersion: install.verrazzano.io/%s
@@ -336,6 +355,16 @@ func VerifyVzInstallNamespaceExists() bool {
 		if strings.HasPrefix(pods.Items[i].Name, vzconstants.VerrazzanoPlatformOperator) {
 			return true
 		}
+	}
+	return false
+}
+
+// CheckAndRemoveBugReportExistsInDir checks vz bug report exists in dir or not
+func CheckAndRemoveBugReportExistsInDir(dir string) bool {
+	bugReportFilePattern := strings.Replace(vzconstants.BugReportFileDefaultValue, "-dt", "", 1)
+	if fileMatched, _ := filepath.Glob(dir + bugReportFilePattern); len(fileMatched) == 1 {
+		os.Remove(fileMatched[0])
+		return true
 	}
 	return false
 }
