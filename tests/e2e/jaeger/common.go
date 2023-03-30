@@ -69,6 +69,8 @@ func DeployApplication(namespace, testAppComponentFilePath, testAppConfiguration
 		return pkg.CreateNamespace(namespace, nsLabels)
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(gomega.BeNil())
 
+	// The jaeger images are typically public. However, when working on uptaking new version of Jaeger,
+	// we need a mechanism to verify the private image of jaeger hotrod is correctly functioning.
 	gomega.Eventually(func() error {
 		var logger = vzlog.DefaultLogger()
 		kubeconfig, err := k8sutil.GetKubeConfigLocation()
