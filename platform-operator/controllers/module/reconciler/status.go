@@ -5,14 +5,15 @@ package reconciler
 
 import (
 	"fmt"
-	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
+	"time"
+
+	modulesv1beta2 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
-	"time"
 )
 
 // UpdateStatus configures the Module's status based on the passed in state and then updates the Module on the cluster
-func (r *Reconciler) UpdateStatus(ctx spi.ComponentContext, condition modulesv1alpha1.ModuleCondition) error {
+func (r *Reconciler) UpdateStatus(ctx spi.ComponentContext, condition modulesv1beta2.LifecycleCondition) error {
 	//module := ctx.Module()
 	//state := modulesv1alpha1.State(condition)
 	//// Update the Module's State
@@ -34,9 +35,9 @@ func NeedsReconcile(ctx spi.ComponentContext) bool {
 	return false
 }
 
-func NewCondition(message string, condition modulesv1alpha1.ModuleCondition) modulesv1alpha1.Condition {
+func NewCondition(message string, condition modulesv1beta2.LifecycleCondition) modulesv1beta2.ModuleLifecycleCondition {
 	t := time.Now().UTC()
-	return modulesv1alpha1.Condition{
+	return modulesv1beta2.ModuleLifecycleCondition{
 		Type:    condition,
 		Message: message,
 		Status:  corev1.ConditionTrue,

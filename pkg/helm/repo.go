@@ -7,7 +7,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
-	platformv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/platform/v1alpha1"
+	installv1beta2 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/repo"
@@ -37,21 +37,21 @@ func ListChartsInRepo(log vzlog.VerrazzanoLogger, repoName string, repoURL strin
 	return nil
 }
 
-func LookupChartType(log vzlog.VerrazzanoLogger, repoName, repoURI, chartName, chartVersion string) (platformv1alpha1.ChartType, error) {
+func LookupChartType(log vzlog.VerrazzanoLogger, repoName, repoURI, chartName, chartVersion string) (installv1beta2.ChartType, error) {
 	indexFile, err := loadAndSortRepoIndexFile(repoName, repoURI)
 	if err != nil {
-		return platformv1alpha1.UnclassifiedChartType, err
+		return installv1beta2.UnclassifiedChartType, err
 	}
 	chartVersions := findChartEntry(indexFile, chartName)
 	for _, version := range chartVersions {
 		if version.Version == chartVersion {
 			moduleType, ok := version.Annotations[ModuleTypeAnnotation]
 			if ok {
-				return platformv1alpha1.ChartType(moduleType), nil
+				return installv1beta2.ChartType(moduleType), nil
 			}
 		}
 	}
-	return platformv1alpha1.UnclassifiedChartType, log.ErrorfThrottledNewErr("Unable to load module type for chart %s-v%s in repo %s", chartName, chartVersion, repoURI)
+	return installv1beta2.UnclassifiedChartType, log.ErrorfThrottledNewErr("Unable to load module type for chart %s-v%s in repo %s", chartName, chartVersion, repoURI)
 }
 
 func ApplyModuleDefinitions(log vzlog.VerrazzanoLogger, client client.Client, chartName, chartVersion, repoURI string) error {

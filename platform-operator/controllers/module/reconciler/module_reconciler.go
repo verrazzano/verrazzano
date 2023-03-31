@@ -4,7 +4,7 @@
 package reconciler
 
 import (
-	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
+	modulesv1beta2 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -88,7 +88,7 @@ func (r *Reconciler) doReconcile(ctx spi.ComponentContext) error {
 // ReadyState reconciles put the Module back to pending state if the generation has changed
 func (r *Reconciler) ReadyState(ctx spi.ComponentContext) error {
 	if NeedsReconcile(ctx) {
-		return r.UpdateStatus(ctx, modulesv1alpha1.CondPreUpgrade)
+		return r.UpdateStatus(ctx, modulesv1beta2.CondPreUpgrade)
 	}
 	return nil
 }

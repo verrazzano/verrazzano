@@ -39,7 +39,7 @@ type ChartVersion struct {
 }
 
 type HelmChartRepository struct {
-	URL               string `json:"url,omitempty"`
+	URI               string `json:"uri,omitempty"`
 	CredentialsSecret string `json:"credentialsSecret,omitempty"`
 }
 

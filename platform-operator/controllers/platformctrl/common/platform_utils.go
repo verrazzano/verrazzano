@@ -4,10 +4,10 @@ package common
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	platformapi "github.com/verrazzano/verrazzano/platform-operator/apis/platform/v1alpha1"
+	installv1beta2 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
 )
 
-func FindPlatformModuleVersion(log vzlog.VerrazzanoLogger, module platformapi.Module, pd *platformapi.PlatformDefinition) (string, bool) {
+func FindPlatformModuleVersion(log vzlog.VerrazzanoLogger, module installv1beta2.Module, pd *installv1beta2.PlatformDefinition) (string, bool) {
 	moduleInfo, ok := FindModuleInfo(module.Name, pd)
 	if ok {
 		return moduleInfo.DefaultVersion, true
@@ -15,7 +15,7 @@ func FindPlatformModuleVersion(log vzlog.VerrazzanoLogger, module platformapi.Mo
 	return "", false
 }
 
-func FindModuleInfo(modName string, pd *platformapi.PlatformDefinition) (platformapi.ChartVersion, bool) {
+func FindModuleInfo(modName string, pd *installv1beta2.PlatformDefinition) (installv1beta2.ChartVersion, bool) {
 	for _, modInfo := range pd.Spec.CRDVersions {
 		if modInfo.Name == modName {
 			return modInfo, true
@@ -31,5 +31,5 @@ func FindModuleInfo(modName string, pd *platformapi.PlatformDefinition) (platfor
 			return modInfo, true
 		}
 	}
-	return platformapi.ChartVersion{}, false
+	return installv1beta2.ChartVersion{}, false
 }

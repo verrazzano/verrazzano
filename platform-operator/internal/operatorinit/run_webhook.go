@@ -10,9 +10,9 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	moduleswebhooks "github.com/verrazzano/verrazzano/platform-operator/apis/modules/webhooks"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	installv1beta2 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -153,7 +153,7 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1alpha1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1alpha1{BomVersion: bomFile.GetVersion()}})
 
 	if config.ExperimentalModules {
-		mgr.GetWebhookServer().Register(moduleswebhooks.ValidateModulesWebhooksPath, &webhook.Admission{Handler: &moduleswebhooks.WebhookV1alpha1{}})
+		mgr.GetWebhookServer().Register(installv1beta2.ValidateModulesWebhooksPath, &webhook.Admission{Handler: &installv1beta2.WebhookV1Beta2{}})
 	}
 	return nil
 }
@@ -197,7 +197,7 @@ func updateWebhookConfigurations(kubeClient *kubernetes.Clientset, log *zap.Suga
 
 	if operatorConfig.ExperimentalModules {
 		log.Debug("Updating module webhook configuration")
-		if err := updateValidatingWebhookConfiguration(kubeClient, moduleswebhooks.ValidateModulesWebhookPath); err != nil {
+		if err := updateValidatingWebhookConfiguration(kubeClient, installv1beta2.ValidateModulesWebhookPath); err != nil {
 			return fmt.Errorf("Failed to update validation webhook configuration: %v", err)
 		}
 	}

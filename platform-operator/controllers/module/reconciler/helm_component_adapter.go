@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	modulesv1beta2 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	modules2 "github.com/verrazzano/verrazzano/platform-operator/controllers/module/modules"
 	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -23,7 +24,7 @@ type helmComponentAdapter struct {
 	// RepositoryURL The name or URL of the repository, e.g., http://myrepo/vz/stable
 	RepositoryURL string
 
-	module *modulesv1alpha1.Module
+	module *modulesv1beta2.ModuleLifecycle
 }
 
 // upgradeFuncSig is a function needed for unit test override
@@ -43,17 +44,20 @@ func SetDefaultUpgradeFunc() {
 	upgradeFunc = helm.UpgradeRelease
 }
 
-func NewHelmAdapter(module *modulesv1alpha1.Module) modules2.DelegateReconciler {
+func NewHelmAdapter(module *modulesv1beta2.ModuleLifecycle) modules2.DelegateReconciler {
 	installer := module.Spec.Installer
-	chartURL := fmt.Sprintf("%s/%s", installer.HelmChart.Repository.URI, installer.HelmChart.Repository.Path)
+	chartInfo := installer.HelmRelease.ChartInfo
+	chartURL := fmt.Sprintf("%s/%s", installer.HelmRelease.Repository.URI, chartInfo.Path)
 	hc := helmcomp.HelmComponent{
 		ReleaseName:             module.Name,
-		ChartDir:                installer.HelmChart.Name,
+		ChartDir:                chartInfo.Path,
 		ChartNamespace:          module.ChartNamespace(),
 		IgnoreNamespaceOverride: true,
 
 		GetInstallOverridesFunc: func(object runtime.Object) interface{} {
-			return installer.HelmChart.InstallOverrides.ValueOverrides
+			return v1beta1.InstallOverrides{
+				ValueOverrides: copyOverrides(installer.HelmRelease.Overrides),
+			}
 		},
 
 		ImagePullSecretKeyname: constants.GlobalImagePullSecName,
@@ -74,12 +78,24 @@ func NewHelmAdapter(module *modulesv1alpha1.Module) modules2.DelegateReconciler 
 	component := helmComponentAdapter{
 		HelmComponent: hc,
 		RepositoryURL: chartURL,
-		ChartVersion:  installer.HelmChart.Version,
+		ChartVersion:  chartInfo.Version,
 		module:        module,
 	}
 	return &Reconciler{
 		Component: &component,
 	}
+}
+
+func copyOverrides(overrides []modulesv1beta2.Overrides) []v1beta1.Overrides {
+	var copy []v1beta1.Overrides
+	for _, override := range overrides {
+		copy = append(copy, v1beta1.Overrides{
+			ConfigMapRef: override.ConfigMapRef,
+			SecretRef:    override.SecretRef,
+			Values:       override.Values,
+		})
+	}
+	return copy
 }
 
 // Install installs the component using Helm

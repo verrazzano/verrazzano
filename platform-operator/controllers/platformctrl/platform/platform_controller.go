@@ -9,7 +9,7 @@ import (
 	vzcontroller "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	platformapi "github.com/verrazzano/verrazzano/platform-operator/apis/platform/v1alpha1"
+	installv1beta2 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,7 +33,7 @@ const finalizerName = "platform.verrazzano.io"
 func (r *PlatformReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	var err error
 	r.Controller, err = ctrl.NewControllerManagedBy(mgr).
-		For(&platformapi.Platform{}).Build(r)
+		For(&installv1beta2.Platform{}).Build(r)
 	return err
 }
 
@@ -44,7 +44,7 @@ func (r *PlatformReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	// TODO: Metrics setup
 
-	platformInstance := &platformapi.Platform{}
+	platformInstance := &installv1beta2.Platform{}
 	if err := r.Get(ctx, req.NamespacedName, platformInstance); err != nil {
 		// TODO: errorCounterMetricObject.Inc()
 		// If the resource is not found, that means all the finalizers have been removed,
@@ -103,7 +103,7 @@ func (r *PlatformReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	return ctrl.Result{}, nil
 }
 
-func (r *PlatformReconciler) doReconcile(_ vzlog.VerrazzanoLogger, _ *platformapi.Platform) error {
+func (r *PlatformReconciler) doReconcile(_ vzlog.VerrazzanoLogger, _ *installv1beta2.Platform) error {
 	return nil
 }
 

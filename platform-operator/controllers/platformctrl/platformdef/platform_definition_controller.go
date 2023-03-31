@@ -4,14 +4,12 @@ package platformdef
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/common"
-	"k8s.io/apimachinery/pkg/types"
 	"time"
 
 	vzcontroller "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	platformapi "github.com/verrazzano/verrazzano/platform-operator/apis/platform/v1alpha1"
+	installv1beta2 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -35,7 +33,7 @@ const finalizerName = "platformdef.verrazzano.io"
 func (r *PlatformDefinitionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	var err error
 	r.Controller, err = ctrl.NewControllerManagedBy(mgr).
-		For(&platformapi.PlatformDefinition{}).Build(r)
+		For(&installv1beta2.PlatformDefinition{}).Build(r)
 	return err
 }
 
@@ -46,7 +44,7 @@ func (r *PlatformDefinitionReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	// TODO: Metrics setup
 
-	platformDef := &platformapi.PlatformDefinition{}
+	platformDef := &installv1beta2.PlatformDefinition{}
 	if err := r.Get(ctx, req.NamespacedName, platformDef); err != nil {
 		// TODO: errorCounterMetricObject.Inc()
 		// If the resource is not found, that means all the finalizers have been removed,
@@ -105,39 +103,39 @@ func (r *PlatformDefinitionReconciler) Reconcile(ctx context.Context, req ctrl.R
 	return ctrl.Result{}, nil
 }
 
-func (r *PlatformDefinitionReconciler) doReconcile(log vzlog.VerrazzanoLogger, pd *platformapi.PlatformDefinition) error {
-	moduleList := &platformapi.ModuleList{}
-	if err := r.List(context.TODO(), moduleList); err != nil {
-		return err
-	}
-
-	platformInstance := &platformapi.Platform{}
-	if err := r.Get(context.TODO(), types.NamespacedName{Name: pd.Name, Namespace: pd.Namespace}, platformInstance); err != nil {
-		log.ErrorfThrottled("Error getting platform instance %s/%s for platform definition", pd.Namespace, pd.Name)
-		return err
-	}
-	for _, module := range moduleList.Items {
-		pdModuleVersion, found := common.FindPlatformModuleVersion(log, module, pd)
-		if !found {
-			log.Progressf("Module %s/%s not found in PlatformDefinition %s/%s, ignoring", module.Namespace, module.Name, pd.Namespace, pd.Name)
-			continue
-		}
-		if module.Spec.Source.Name != platformInstance.Name || module.Spec.Source.Namespace != platformInstance.Namespace {
-			continue
-		}
-		if module.Status.Version != pdModuleVersion {
-			module.Spec.Version = pdModuleVersion
-			log.Progressf("Newer version %s detected for module %s/%s, upgrading", pdModuleVersion, module.Namespace, module.Name)
-			updateModule := &platformapi.Module{}
-			if err := r.Get(context.TODO(), types.NamespacedName{Namespace: module.Namespace, Name: module.Name}, updateModule); err != nil {
-				return err
-			}
-			updateModule.Spec.Version = pdModuleVersion
-			if err := r.Update(context.TODO(), updateModule); err != nil {
-				return err
-			}
-		}
-	}
+func (r *PlatformDefinitionReconciler) doReconcile(log vzlog.VerrazzanoLogger, pd *installv1beta2.PlatformDefinition) error {
+	//moduleList := &installv1beta2.ModuleList{}
+	//if err := r.List(context.TODO(), moduleList); err != nil {
+	//	return err
+	//}
+	//
+	//platformInstance := &installv1beta2.Platform{}
+	//if err := r.Get(context.TODO(), types.NamespacedName{Name: pd.Name, Namespace: pd.Namespace}, platformInstance); err != nil {
+	//	log.ErrorfThrottled("Error getting platform instance %s/%s for platform definition", pd.Namespace, pd.Name)
+	//	return err
+	//}
+	//for _, module := range moduleList.Items {
+	//	pdModuleVersion, found := common.FindPlatformModuleVersion(log, module, pd)
+	//	if !found {
+	//		log.Progressf("Module %s/%s not found in PlatformDefinition %s/%s, ignoring", module.Namespace, module.Name, pd.Namespace, pd.Name)
+	//		continue
+	//	}
+	//	if module.Spec.Source.SourceRef.Name != platformInstance.Name || module.Spec.Source.Namespace != platformInstance.Namespace {
+	//		continue
+	//	}
+	//	if module.Status.Version != pdModuleVersion {
+	//		module.Spec.Version = pdModuleVersion
+	//		log.Progressf("Newer version %s detected for module %s/%s, upgrading", pdModuleVersion, module.Namespace, module.Name)
+	//		updateModule := &installv1beta2.Module{}
+	//		if err := r.Get(context.TODO(), types.NamespacedName{Namespace: module.Namespace, Name: module.Name}, updateModule); err != nil {
+	//			return err
+	//		}
+	//		updateModule.Spec.Version = pdModuleVersion
+	//		if err := r.Update(context.TODO(), updateModule); err != nil {
+	//			return err
+	//		}
+	//	}
+	//}
 	return nil
 }
 

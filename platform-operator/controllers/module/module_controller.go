@@ -9,8 +9,8 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	controller2 "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	modulesv1beta2 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
 	modules2 "github.com/verrazzano/verrazzano/platform-operator/controllers/module/modules"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/reconciler"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -23,7 +23,7 @@ import (
 	"time"
 )
 
-var delegates = map[string]func(*modulesv1alpha1.Module) modules2.DelegateReconciler{
+var delegates = map[string]func(*modulesv1beta2.ModuleLifecycle) modules2.DelegateReconciler{
 	//keycloak.ComponentName:  keycloak.NewComponent,
 	//coherence.ComponentName: coherence.NewComponent,
 	//weblogic.ComponentName:  weblogic.NewComponent,
@@ -37,7 +37,7 @@ type Reconciler struct {
 
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&modulesv1alpha1.Module{}).
+		For(&modulesv1beta2.ModuleLifecycle{}).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 10,
 		}).
@@ -59,7 +59,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// Get the module for the request
-	module := &modulesv1alpha1.Module{}
+	module := &modulesv1beta2.ModuleLifecycle{}
 	if err := r.Get(ctx, req.NamespacedName, module); err != nil {
 		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -102,7 +102,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) createComponentContext(log vzlog.VerrazzanoLogger, verrazzanos *vzapi.VerrazzanoList, module *modulesv1alpha1.Module) (spi.ComponentContext, error) {
+func (r *Reconciler) createComponentContext(log vzlog.VerrazzanoLogger, verrazzanos *vzapi.VerrazzanoList, module *modulesv1beta2.ModuleLifecycle) (spi.ComponentContext, error) {
 	var moduleCtx spi.ComponentContext
 	var err error
 	//if len(verrazzanos.Items) > 0 {
@@ -116,7 +116,7 @@ func (r *Reconciler) createComponentContext(log vzlog.VerrazzanoLogger, verrazza
 	return moduleCtx, err
 }
 
-func getDelegateController(module *modulesv1alpha1.Module) modules2.DelegateReconciler {
+func getDelegateController(module *modulesv1beta2.ModuleLifecycle) modules2.DelegateReconciler {
 	newDelegate := delegates[module.ObjectMeta.Labels[modules2.ControllerLabel]]
 	if newDelegate == nil {
 		// If an existing delegate does not exist, wrap it in a Helm adapter to just do helm stuff

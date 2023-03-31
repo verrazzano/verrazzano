@@ -14,9 +14,9 @@ const (
 	ValidateModulesWebhooksPath = "/validate-modules-v1beta2-install-verrazzano-io"
 )
 
-type WebhookV1alpha1 struct{}
+type WebhookV1Beta2 struct{}
 
-func (v *WebhookV1alpha1) Handle(_ context.Context, _ admission.Request) admission.Response {
+func (v *WebhookV1Beta2) Handle(_ context.Context, _ admission.Request) admission.Response {
 	zap.S().Infof("Handled module admission request")
 	return admission.Allowed("")
 }
