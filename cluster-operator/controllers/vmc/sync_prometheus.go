@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vmc
@@ -6,7 +6,6 @@ package vmc
 import (
 	"context"
 	"fmt"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"strings"
 
 	"github.com/Jeffail/gabs/v2"
@@ -200,15 +199,11 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx c
 		},
 		Data: map[string][]byte{},
 	}
-	result, err := controllerruntime.CreateOrUpdate(ctx, r.Client, &secret, func() error {
+	if _, err := controllerruntime.CreateOrUpdate(ctx, r.Client, &secret, func() error {
 		secret.Data[constants.PromAdditionalScrapeConfigsSecretKey] = bytes
 		return nil
-	})
-	if err != nil {
+	}); err != nil {
 		return err
-	}
-	if result != controllerutil.OperationResultNone {
-		r.log.Infof("The Prometheus additional scrape config Secret %s has been modified for VMC %s", secret.Name, vmc.Name)
 	}
 
 	return nil

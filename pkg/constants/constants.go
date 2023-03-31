@@ -181,9 +181,6 @@ const ArgoCDClusterRancherSecretName = "verrazzano-argocd-secret"
 // ArgoCDClusterRancherUsername is the username in Rancher used to identify the Verrazzano Argo CD cluster user
 const ArgoCDClusterRancherUsername = "vz-argoCD-reg"
 
-// DefaultRancherIngressHost is the default host used for Rancher API requests
-const DefaultRancherIngressHost = "ingress-controller-ingress-nginx-controller.ingress-nginx"
-
 // Components Names
 const (
 	Istio                 = "istio"
