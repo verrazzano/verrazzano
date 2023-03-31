@@ -15,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"helm.sh/helm/v3/pkg/release"
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -217,18 +218,18 @@ func buildFakeClient(cm corev1.ConfigMap) client.Client {
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, _ bool, _ bool, overrides []helmcli.HelmOverrides) (err error) {
+func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, _ bool, _ bool, overrides []helmcli.HelmOverrides) (*release.Release, error) {
 	if releaseName != "test-component" {
-		return fmt.Errorf("Incorrect  releaseName, expecting test-component, got %s", releaseName)
+		return nil, fmt.Errorf("Incorrect  releaseName, expecting test-component, got %s", releaseName)
 	}
 	if chartDir != "/verrazzano/platform-operator/thirdparty/charts/test-component" {
-		return fmt.Errorf("Incorrect  releaseName, expecting test-component, got %s", chartDir)
+		return nil, fmt.Errorf("Incorrect  releaseName, expecting test-component, got %s", chartDir)
 	}
 	if namespace != constants.VerrazzanoSystemNamespace {
-		return fmt.Errorf("Incorrect release namespace, expecting verrazzano-system, got %s", namespace)
+		return nil, fmt.Errorf("Incorrect release namespace, expecting verrazzano-system, got %s", namespace)
 	}
 	if len(overrides) != 2 {
-		return fmt.Errorf("Incorrect number of overrides, expecting 2, got %d", len(overrides))
+		return nil, fmt.Errorf("Incorrect number of overrides, expecting 2, got %d", len(overrides))
 	}
-	return nil
+	return nil, nil
 }

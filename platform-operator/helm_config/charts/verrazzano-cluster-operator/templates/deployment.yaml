@@ -16,6 +16,7 @@ spec:
     metadata:
       labels:
         app: {{ .Values.name }}
+        sidecar.istio.io/inject: 'false'
       annotations:
         verrazzano.io/checksum: {{ tpl (toYaml .Values) . | sha256sum }}
     spec:
@@ -98,6 +99,7 @@ spec:
       labels:
         app: {{ .Values.name }}-webhook
         app.kubernetes.io/version: {{ .Chart.Version }}
+        sidecar.istio.io/inject: 'false'
     spec:
       terminationGracePeriodSeconds: 0
       {{- if .Values.webhookAffinity }}

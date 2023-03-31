@@ -5,11 +5,12 @@ package scenario
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/manifest"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	"os"
-	"path/filepath"
 )
 
 var UpdateUpgradeFunc = helmcli.Upgrade
@@ -65,7 +66,7 @@ func (m ScenarioMananger) doHelmUpgrade(manifestMan manifest.ManifestManager, sc
 	if m.Verbose {
 		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Updating use case %s for Helm release %s/%s\n", hr.Usecase.UsecasePath, hr.Namespace, hr.Name))
 	}
-	err = UpdateUpgradeFunc(m.Log, hr.Name, m.Namespace, manifestMan.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
+	_, err = UpdateUpgradeFunc(m.Log, hr.Name, m.Namespace, manifestMan.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
 	if err != nil {
 		return err.Error(), err
 	}
