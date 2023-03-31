@@ -297,7 +297,7 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 
 // Validate the Istio envoy stats for the pods in the namespaces defined in envoyStatsNamespaces
 func verifyEnvoyStats(metricName string) bool {
-	envoyStatsMetric, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, getClusterNameMetricLabel(), getClusterNameForPromQuery())
+	envoyStatsMetric, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, getClusterNameMetricLabel(), getClusterNameForPromQuery(), pkg.QueryThanosMetric)
 	if err != nil {
 		return false
 	}
@@ -383,7 +383,7 @@ func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 func metricsContainLabels(metricName string, kv map[string]string) bool {
 	clusterNameValue := getClusterNameForPromQuery()
 	t.Logs.Debugf("Looking for metric name %s with label %s = %s", metricName, getClusterNameMetricLabel(), clusterNameValue)
-	compMetrics, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, getClusterNameMetricLabel(), clusterNameValue)
+	compMetrics, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, getClusterNameMetricLabel(), clusterNameValue, pkg.QueryThanosMetric)
 	if err != nil {
 		return false
 	}

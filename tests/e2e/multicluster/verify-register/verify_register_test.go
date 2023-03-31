@@ -250,7 +250,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			clusterNameMetricsLabel := getClusterNameMetricLabel(adminKubeconfig)
 			pkg.Log(pkg.Info, fmt.Sprintf("Looking for metric with label %s with value %s", clusterNameMetricsLabel, managedClusterName))
 			Eventually(func() bool {
-				return pkg.MetricsExist("up", clusterNameMetricsLabel, managedClusterName)
+				return pkg.ThanosMetricsExist("up", clusterNameMetricsLabel, managedClusterName)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find metrics from managed cluster")
 		})
 

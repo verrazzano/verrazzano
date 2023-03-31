@@ -613,6 +613,10 @@ func (c *Cluster) GetPrometheusIngress() string {
 	return pkg.GetPrometheusIngressHost(c.KubeConfigPath)
 }
 
+func (c *Cluster) GetThanosIngress() string {
+	return pkg.GetThanosQueryIngressHost(c.KubeConfigPath)
+}
+
 func newCluster(name, kubeCfgPath string) *Cluster {
 	server := serverFromDockerInspect(name)
 	if server == "" {

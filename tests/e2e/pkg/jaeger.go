@@ -200,7 +200,7 @@ func GetJaegerSpanIndexName(kubeconfigPath string) (string, error) {
 
 // IsJaegerMetricFound validates if the given jaeger metrics contain the labels with values specified as key-value pairs of the map
 func IsJaegerMetricFound(kubeconfigPath, metricName, clusterName string, kv map[string]string) bool {
-	compMetrics, err := QueryMetricWithLabel(metricName, kubeconfigPath, jaegerClusterNameLabel, clusterName)
+	compMetrics, err := QueryMetricWithLabel(metricName, kubeconfigPath, jaegerClusterNameLabel, clusterName, QueryMetric)
 	if err != nil {
 		return false
 	}
