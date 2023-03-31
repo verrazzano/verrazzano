@@ -64,7 +64,7 @@ func TestRestartIstioProxy(t *testing.T) {
 			pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", proxyImage, "")},
 			expectRestart: false,
 		},
-		// No restart, NS has injection enabled, proxy image current, pod injection disabled
+		// No restart, NS has injection enabled, proxy image current, pod injection true
 		{
 			name:          "norestart-proxy-current-pod-inject-true",
 			namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
@@ -78,7 +78,7 @@ func TestRestartIstioProxy(t *testing.T) {
 			pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", proxyImage, "true")},
 			expectRestart: false,
 		},
-		// No restart, NS has injection enabled, proxy image old, pod injection disabled
+		// No restart, NS has injection enabled, proxy image old, pod injection false
 		{
 			name:          "norestart-proxy-old-pod-inject-false",
 			namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
@@ -92,7 +92,7 @@ func TestRestartIstioProxy(t *testing.T) {
 			pods:          []*v1.Pod{initFakePodWithIstioInject("pod1", someImage, "false")},
 			expectRestart: false,
 		},
-		// Restart, NS has injection enabled, proxy image old, pod injection enabled
+		// Restart, NS has injection enabled, proxy image old, pod injection true
 		{
 			name:          "restart-proxy-old-pod-inject-true",
 			namespace:     initNamespace(constants.VerrazzanoSystemNamespace, true),
