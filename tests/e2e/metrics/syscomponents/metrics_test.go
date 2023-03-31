@@ -297,7 +297,19 @@ var _ = t.Describe("Thanos Metrics", Label("f:observability.monitoring.prom"), f
 
 // Validate the Istio envoy stats for the pods in the namespaces defined in envoyStatsNamespaces
 func verifyEnvoyStats(metricName string) bool {
-	envoyStatsMetric, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, getClusterNameMetricLabel(), getClusterNameForPromQuery(), pkg.QueryThanosMetric)
+	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(adminKubeConfig)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get Verrazzano resource from the cluster: %v", err))
+		return false
+	}
+	queryFunc := pkg.QueryMetric
+	host := pkg.GetPrometheusIngressHost(adminKubeConfig)
+	if vzcr.IsThanosEnabled(vz) {
+		queryFunc = pkg.QueryThanosMetric
+		host = pkg.GetThanosQueryIngressHost(adminKubeConfig)
+	}
+
+	envoyStatsMetric, err := pkg.QueryMetricWithLabelByHost(metricName, adminKubeConfig, getClusterNameMetricLabel(), getClusterNameForPromQuery(), queryFunc, host)
 	if err != nil {
 		return false
 	}
@@ -390,11 +402,13 @@ func metricsContainLabels(metricName string, kv map[string]string) bool {
 		return false
 	}
 	queryFunc := pkg.QueryMetric
+	host := pkg.GetPrometheusIngressHost(adminKubeConfig)
 	if vzcr.IsThanosEnabled(vz) {
 		queryFunc = pkg.QueryThanosMetric
+		host = pkg.GetThanosQueryIngressHost(adminKubeConfig)
 	}
 
-	compMetrics, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, getClusterNameMetricLabel(), clusterNameValue, queryFunc)
+	compMetrics, err := pkg.QueryMetricWithLabelByHost(metricName, adminKubeConfig, getClusterNameMetricLabel(), clusterNameValue, queryFunc, host)
 	if err != nil {
 		return false
 	}

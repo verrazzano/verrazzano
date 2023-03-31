@@ -20,12 +20,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// QueryMetricWithLabel queries a metric using a label from the given query function, derived from the kubeconfig
-func QueryMetricWithLabel(metricsName string, kubeconfigPath string, label string, labelValue string, queryFunc func(string, string) (string, error)) (string, error) {
+// QueryMetricWithLabelByHost queries a metric using a label from the given query function, derived from the kubeconfig
+func QueryMetricWithLabelByHost(metricsName string, kubeconfigPath string, label string, labelValue string, queryFunc func(string, string) (string, error), host string) (string, error) {
 	if len(labelValue) == 0 {
 		return queryFunc(metricsName, kubeconfigPath)
 	}
-	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s{%s=\"%s\"}", GetPrometheusIngressHost(kubeconfigPath), metricsName,
+	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s{%s=\"%s\"}", host, metricsName,
 		label, labelValue)
 
 	password, err := GetVerrazzanoPasswordInCluster(kubeconfigPath)
