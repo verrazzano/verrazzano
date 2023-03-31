@@ -4,12 +4,13 @@
 package helm
 
 import (
+	"testing"
+
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/time"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -124,7 +125,7 @@ func TestUpgrade(t *testing.T) {
 	})
 	defer SetDefaultLoadChartFunction()
 
-	err := Upgrade(vzlog.DefaultLogger(), helmRelease, ns, chartdir, false, false, overrides)
+	_, err := Upgrade(vzlog.DefaultLogger(), helmRelease, ns, chartdir, false, false, overrides)
 	assertion.NoError(err, "Upgrade returned an error")
 }
 
@@ -141,7 +142,7 @@ func TestUpgradeFail(t *testing.T) {
 	defer SetDefaultActionConfigFunction()
 	// no chart load function should generate an error
 
-	err := Upgrade(vzlog.DefaultLogger(), helmRelease, ns, "", false, false, overrides)
+	_, err := Upgrade(vzlog.DefaultLogger(), helmRelease, ns, "", false, false, overrides)
 	assertion.Error(err, "Upgrade should have returned an error")
 }
 
