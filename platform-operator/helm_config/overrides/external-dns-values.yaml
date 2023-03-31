@@ -32,3 +32,6 @@ podSecurityContext:
   runAsNonRoot: true
   seccompProfile:
     type: RuntimeDefault
+
+podLabels:
+  sidecar.istio.io/inject: "false"
