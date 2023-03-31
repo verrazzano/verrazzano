@@ -123,10 +123,10 @@ func TestSyncThanosQuery(t *testing.T) {
 		clusterShouldExistInCM bool
 		prometheusConfig       *v1.Secret
 	}{
-		{"VMC status empty", nil, 0, 1, 1, false, nil},
+		{"VMC status empty", nil, 1, 1, 1, false, nil},
 		{"VMC status has no Thanos host",
 			&clustersv1alpha1.VerrazzanoManagedClusterStatus{APIUrl: "someurl"},
-			0,
+			1,
 			1,
 			1,
 			false,
@@ -147,40 +147,6 @@ func TestSyncThanosQuery(t *testing.T) {
 			3,
 			true, // new host should be added to query endpoints configmap
 			nil,
-		},
-		{"VMC deletes existing Prometheus Scrape",
-			&clustersv1alpha1.VerrazzanoManagedClusterStatus{APIUrl: "someurl", ThanosHost: hostName},
-			3,
-			2,
-			3,
-			true, // new host should be added to query endpoints configmap
-			&v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      vzconst.PromAdditionalScrapeConfigsSecretName,
-					Namespace: constants.VerrazzanoMonitoringNamespace,
-				},
-				Data: map[string][]byte{
-					vzconst.PromAdditionalScrapeConfigsSecretKey: []byte(fmt.Sprintf("- %s: %s", vzconst.PrometheusJobNameKey, fmt.Sprintf("%s3", vmcPrefix))),
-				},
-			},
-		},
-		{"VMC deletes existing Prometheus Scrape of multiple jobs",
-			&clustersv1alpha1.VerrazzanoManagedClusterStatus{APIUrl: "someurl", ThanosHost: hostName},
-			3,
-			2,
-			3,
-			true, // new host should be added to query endpoints configmap
-			&v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      vzconst.PromAdditionalScrapeConfigsSecretName,
-					Namespace: constants.VerrazzanoMonitoringNamespace,
-				},
-				Data: map[string][]byte{
-					vzconst.PromAdditionalScrapeConfigsSecretKey: []byte(
-						fmt.Sprintf("- %s: %s\n- %s: %s", vzconst.PrometheusJobNameKey, fmt.Sprintf("%s3", vmcPrefix), vzconst.PrometheusJobNameKey, "fakejob"),
-					),
-				},
-			},
 		},
 	}
 	for _, tt := range tests {

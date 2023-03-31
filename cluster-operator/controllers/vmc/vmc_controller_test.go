@@ -127,6 +127,7 @@ func doTestCreateVMC(t *testing.T, rancherEnabled bool) {
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
+	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
@@ -207,6 +208,7 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
+	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
@@ -282,6 +284,7 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
+	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, "", func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.Empty(configMap.Data["ca-test"], "Cert entry found")
@@ -359,6 +362,7 @@ func TestCreateVMCNoCACert(t *testing.T) {
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
+	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", false, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
@@ -435,6 +439,7 @@ func TestCreateVMCFetchCACertFromManagedCluster(t *testing.T) {
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
+	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
@@ -519,6 +524,7 @@ scrape_configs:
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
+	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, jobs, true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 
 		// check for the modified entry
@@ -606,6 +612,7 @@ scrape_configs:
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
+	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, jobs, true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 
 		asserts.Len(configMap.Data, 2, "no data found")
@@ -683,6 +690,7 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
+	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
@@ -835,6 +843,14 @@ func TestDeleteVMC(t *testing.T) {
 			return nil
 		})
 
+	mock.EXPECT().
+		List(gomock.Any(), &v1beta1.VerrazzanoList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, list *v1beta1.VerrazzanoList, opts ...client.ListOption) error {
+			vz := v1beta1.Verrazzano{}
+			list.Items = append(list.Items, vz)
+			return nil
+		})
+
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
@@ -901,6 +917,14 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 			return nil
 		})
 
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, list *v1beta1.VerrazzanoList, opts ...client.ListOption) error {
+			vz := v1beta1.Verrazzano{}
+			list.Items = append(list.Items, vz)
+			return nil
+		})
+
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
@@ -949,6 +973,14 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.Equal(v1alpha1.DeleteFailed, vmc.Status.RancherRegistration.Status)
 			asserts.Equal("Failed deleting cluster", vmc.Status.RancherRegistration.Message)
+			return nil
+		})
+
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, list *v1beta1.VerrazzanoList, opts ...client.ListOption) error {
+			vz := v1beta1.Verrazzano{}
+			list.Items = append(list.Items, vz)
 			return nil
 		})
 
@@ -1860,7 +1892,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			}
 			list.Items = append(list.Items, vz)
 			return nil
-		}).Times(4)
+		}).Times(5)
 
 	// Expect a call to get the tls ingress and return the ingress.
 	if !externalES {
@@ -2281,13 +2313,6 @@ func expectRancherGetAdminTokenHTTPCall(t *testing.T, requestSenderMock *mocks.M
 }
 
 func expectThanosDelete(t *testing.T, mock *mocks.MockClient) {
-	// Expect a call to get the Thanos configmap
-	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: ThanosManagedClusterEndpointsConfigMap}), gomock.AssignableToTypeOf(&corev1.ConfigMap{})).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, cm *corev1.ConfigMap) error {
-			return nil
-		})
-
 	// Expect a call to get the Istio CRDs
 	mock.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Name: destinationRuleCRDName}), gomock.AssignableToTypeOf(&apiv1.CustomResourceDefinition{})).
