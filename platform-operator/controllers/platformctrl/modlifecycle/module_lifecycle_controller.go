@@ -9,11 +9,9 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	controller2 "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	modulesv1beta2 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/modlifecycle/delegates"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/modlifecycle/reconciler"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"go.uber.org/zap"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -49,14 +47,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		ctx = context.Background()
 	}
 
-	verrazzanos := &vzapi.VerrazzanoList{}
-	if err := r.List(ctx, verrazzanos); err != nil {
-		if k8serrors.IsNotFound(err) {
-			return ctrl.Result{}, nil
-		}
-		zap.S().Errorf("Failed to get Verrazzanos %s/%s", req.Namespace, req.Name)
-		return clusters.NewRequeueWithDelay(), err
-	}
+	//verrazzanos := &vzapi.VerrazzanoList{}
+	//if err := r.List(ctx, verrazzanos); err != nil {
+	//	if k8serrors.IsNotFound(err) {
+	//		return ctrl.Result{}, nil
+	//	}
+	//	zap.S().Errorf("Failed to get Verrazzanos %s/%s", req.Namespace, req.Name)
+	//	return clusters.NewRequeueWithDelay(), err
+	//}
 
 	// Get the module for the request
 	module := &modulesv1beta2.ModuleLifecycle{}
@@ -73,10 +71,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		Namespace:      module.Namespace,
 		ID:             string(module.UID),
 		Generation:     module.Generation,
-		ControllerName: "verrazzano",
+		ControllerName: "module-lifecycle",
 	})
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for Module controller: %v", err)
+		zap.S().Errorf("Failed to create controller logger for ModuleLifecycle controller: %v", err)
 		return clusters.NewRequeueWithDelay(), err
 	}
 
@@ -85,38 +83,28 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
+	// TODO: in reality this may perhaps be broken out into separate operators/controllers, but then the lifecycle
+	//   CRs would need to be potentially extensible, or the operators/controllers would distinguish ownership of a
+	//   ModuleLifecycle instance by field/labels/annotations, which seems likeß a controller anti-pattern
 	// Unknown module controller cannot be handled
-	delegate := getDelegateController(module)
+	delegate := getDelegateLifecycleController(module)
 	if delegate == nil {
 		return ctrl.Result{}, fmt.Errorf("No delegate found for module %s/%s", module.Namespace, module.Name)
 	}
-	moduleCtx, err := r.createComponentContext(log, verrazzanos, module)
+	// TODO: Shim layer
+	//moduleCtx, err := r.createComponentContext(log, verrazzanos, module)
 	if err != nil {
 		return controller2.NewRequeueWithDelay(2, 5, time.Second), err
 	}
 
 	delegate.SetStatusWriter(r.Status())
-	if err := delegate.ReconcileModule(moduleCtx); err != nil {
-		return handleError(moduleCtx, err)
+	if err := delegate.ReconcileModule(log, r.Client, module); err != nil {
+		return handleError(log, module, err)
 	}
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) createComponentContext(log vzlog.VerrazzanoLogger, verrazzanos *vzapi.VerrazzanoList, module *modulesv1beta2.ModuleLifecycle) (spi.ComponentContext, error) {
-	var moduleCtx spi.ComponentContext
-	var err error
-	//if len(verrazzanos.Items) > 0 {
-	//	moduleCtx, err = spi.NewModuleContext(log, r.Client, &verrazzanos.Items[0], module, false)
-	//} else {
-	//	moduleCtx, err = spi.NewMinimalModuleContext(r.Client, log, module, false)
-	//}
-	//if err != nil {
-	//	log.Errorf("Failed to create module context: %v", err)
-	//}
-	return moduleCtx, err
-}
-
-func getDelegateController(module *modulesv1beta2.ModuleLifecycle) delegates.DelegateReconciler {
+func getDelegateLifecycleController(module *modulesv1beta2.ModuleLifecycle) delegates.DelegateReconciler {
 	newDelegate := delegateReconcilersMap[module.ObjectMeta.Labels[delegates.ControllerLabel]]
 	if newDelegate == nil {
 		// If an existing delegate does not exist, wrap it in a Helm adapter to just do helm stuff
@@ -125,17 +113,14 @@ func getDelegateController(module *modulesv1beta2.ModuleLifecycle) delegates.Del
 	return newDelegate(module)
 }
 
-func handleError(ctx spi.ComponentContext, err error) (ctrl.Result, error) {
-	//log := ctx.Log()
-	//module := ctx.Module()
-	//if k8serrors.IsConflict(err) {
-	//	log.Debugf("Conflict resolving module %s", module.Name)
-	//} else if modules2.IsNotReadyError(err) {
-	//	log.Progressf("Module %s is not ready yet", module.Name)
-	//} else {
-	//	log.Errorf("Failed to reconcile module %s/%s: %v", module.Name, module.Namespace, err)
-	//	return clusters.NewRequeueWithDelay(), err
-	//}
-	//return clusters.NewRequeueWithDelay(), nil
-	return ctrl.Result{}, nil
+func handleError(log vzlog.VerrazzanoLogger, mlc *modulesv1beta2.ModuleLifecycle, err error) (ctrl.Result, error) {
+	if k8serrors.IsConflict(err) {
+		log.Debugf("Conflict resolving module %s", mlc.Name)
+	} else if delegates.IsNotReadyError(err) {
+		log.Progressf("Module %s is not ready yet", mlc.Name)
+	} else {
+		log.Errorf("Failed to reconcile module %s/%s: %v", mlc.Name, mlc.Namespace, err)
+		return clusters.NewRequeueWithDelay(), err
+	}
+	return clusters.NewRequeueWithDelay(), nil
 }

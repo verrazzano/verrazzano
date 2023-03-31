@@ -148,7 +148,7 @@ func (h helmComponentAdapter) IsReady(context spi.ComponentContext) bool {
 }
 
 // TODO: provide override here when we add Enabled hooks to v1beta2 Module
-//// IsEnabled Indicates whether a component is enabled for installation
-//func (h helmComponentAdapter) IsEnabled(effectiveCR runtime.Object) bool {
-//	return true
-//}
+// // IsEnabled Indicates whether a component is enabled for installation
+func (h helmComponentAdapter) IsEnabled(_ runtime.Object) bool {
+	return true
+}
