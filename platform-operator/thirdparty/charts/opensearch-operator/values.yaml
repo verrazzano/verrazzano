@@ -118,11 +118,10 @@ OpenSearchClusterSpec:
   nodePools:
     - component: masters
       replicas: 3
+      diskSize: "1Gi"
       resources:
         requests:
           memory: "1Gi"
       roles:
         - "data"
         - "cluster_manager"
-      persistence:
-        emptyDir: { }

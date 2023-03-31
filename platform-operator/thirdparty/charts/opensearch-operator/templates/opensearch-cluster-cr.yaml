@@ -35,7 +35,7 @@ spec:
 {{- end }}
     httpPort: {{ .Values.OpenSearchClusterSpec.general.httpPort }}
     vendor: opensearch
-    serviceName: {{ .Release.Name }}
+    serviceName: {{ .Values.OpenSearchClusterSpec.general.serviceName }}
 {{- if .Values.OpenSearchClusterSpec.general.pluginsList }}
     pluginsList:
 {{ toYaml .Values.OpenSearchClusterSpec.general.pluginsList | indent 6 }}
