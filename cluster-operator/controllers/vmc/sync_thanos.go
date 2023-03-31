@@ -5,8 +5,10 @@ package vmc
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
+	appsv1 "k8s.io/api/apps/v1"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -27,7 +29,14 @@ import (
 const (
 	serviceEntryCRDName    = "serviceentries.networking.istio.io"
 	destinationRuleCRDName = "destinationrules.networking.istio.io"
+	verrazzanoManagedLabel = "verrazzano_cluster"
+	thanosQueryDeployName  = "thanos-query"
 	thanosGrpcIngressPort  = 443
+
+	istioVolumeAnnotation      = "sidecar.istio.io/userVolume"
+	istioVolumeMountAnnotation = "sidecar.istio.io/userVolumeMount"
+	istioVolumeName            = "managed-certs"
+	istioCertPath              = "/etc/certs"
 )
 
 // thanosServiceDiscovery represents one element in the Thanos service discovery YAML. The YAML
@@ -54,7 +63,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncThanosQuery(ctx context.Context
 	if err := r.syncThanosQueryEndpoint(ctx, vmc); err != nil {
 		return err
 	}
-
+	if err := r.createOrUpdateCACertVolume(vmc.Name)
 	if err := r.createOrUpdateServiceEntry(vmc.Name, vmc.Status.ThanosHost, thanosGrpcIngressPort); err != nil {
 		return err
 	}
@@ -228,6 +237,24 @@ func toGrpcTarget(hostname string) string {
 	return fmt.Sprintf("%s:%d", hostname, thanosGrpcIngressPort)
 }
 
+// createOrUpdateCACertVolume updates a volume on the Istio Proxy sidecar on the Thanos Deployment to supply CA certs from managed clusters
+// This CA cert will be applied to the Destination rule to allow TLS communication to managed cluster query endpoints
+func (r *VerrazzanoManagedClusterReconciler) createOrUpdateCACertVolume(vmcName string) error {
+	var queryDeploy appsv1.Deployment
+	err := r.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoMonitoringNamespace, Name: thanosQueryDeployName}, &queryDeploy)
+	if err != nil {
+		return r.log.ErrorfNewErr("Failed to get the Thanos Query Deployment %s/%s from the cluster: %v", constants.VerrazzanoMonitoringNamespace, thanosQueryDeployName, err)
+	}
+
+	istioVolume, err := r.unmarshalIstioVolumeAnnotation(queryDeploy)
+	if err != nil {
+		return err
+	}
+
+	addCAVolumeEntry(&istioVolume, vmcName)
+	return r.createCAVolumeMount(&queryDeploy)
+}
+
 // createOrUpdateServiceEntry ensures that an Istio ServiceEntry exists for a managed cluster Thanos endpoint. The ServiceEntry is
 // used along with a DestinationRule to initiate TLS to the managed cluster ingress. Skip processing if the ServiceEntry CRD
 // does not exist in the cluster.
@@ -377,4 +404,66 @@ func (r *VerrazzanoManagedClusterReconciler) deleteDestinationRule(name string) 
 	dr := &istioclinet.DestinationRule{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: constants.VerrazzanoMonitoringNamespace}}
 	err = r.Client.Delete(context.TODO(), dr)
 	return client.IgnoreNotFound(err)
+}
+
+func (r *VerrazzanoManagedClusterReconciler) createCAVolumeMount(deployment *appsv1.Deployment) error {
+	if _, ok := deployment.Spec.Template.Annotations[istioVolumeMountAnnotation]; !ok {
+		volumeMount := v1.VolumeMount{
+			Name: istioVolumeName,
+			MountPath: istioCertPath,
+		}
+		volumeMountJSON, err := json.Marshal(volumeMount)
+		if err != nil {
+			return r.log.ErrorfNewErr("Failed to marshal VolumeMount object for Volume %s Istio Annotation: %v", istioVolumeName, err)
+		}
+		deployment.Spec.Template.Annotations[istioVolumeMountAnnotation] = string(volumeMountJSON)
+	}
+	return nil
+}
+
+// unmarshalIstioVolumeAnnotations returns the Volume and VolumeMount pod annotations from a deployment object
+func (r *VerrazzanoManagedClusterReconciler) unmarshalIstioVolumeAnnotation(deployment appsv1.Deployment) (v1.Volume, error) {
+	istioVolume := v1.Volume{
+		Name: istioVolumeName,
+	}
+	podAnnotations := deployment.Spec.Template.ObjectMeta.Annotations
+	if volumeJSON, volumeOk := podAnnotations[istioVolumeAnnotation]; volumeOk {
+		err := json.Unmarshal([]byte(volumeJSON), &istioVolume)
+		if err != nil {
+			return istioVolume, r.log.ErrorfNewErr("Failed to unmarshal the Istio volume annotation: %v", err)
+		}
+	}
+	return istioVolume, nil
+}
+
+// addCAVolumeEntry adds the CA mount given a Volume object from the Istio annotations
+func addCAVolumeEntry(volume *v1.Volume, vmcName string) {
+	projectionEntry := v1.VolumeProjection{
+		Secret: &v1.SecretProjection{
+			LocalObjectReference: v1.LocalObjectReference{
+				Name: getCASecretName(vmcName),
+			},
+			Items: []v1.KeyToPath{
+				{
+					Key: caCertSecretKey,
+					Path: getCAFileName(vmcName),
+				},
+			},
+		},
+	}
+
+	if volume.Projected == nil {
+		volume.Projected = &v1.ProjectedVolumeSource{
+			Sources: []v1.VolumeProjection{
+				projectionEntry,
+			},
+		}
+		return
+	}
+	volume.Projected.Sources = append(volume.Projected.Sources, projectionEntry)
+}
+
+// getCAFileName gets the name of the CA file mounted on the Istio Proxy pod
+func getCAFileName(vmcName string) string {
+	return fmt.Sprintf("ca-%s.crt", vmcName)
 }
