@@ -173,7 +173,6 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compTra
 			compTracker.installState = compStateInstallWaitReady
 
 		case compStateInstallWaitReady:
-
 			if !comp.IsReady(compContext) {
 				compLog.Progressf("Component %s has been installed. Waiting for the component to be ready", compName)
 				return ctrl.Result{Requeue: true}
