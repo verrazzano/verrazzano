@@ -29,7 +29,6 @@ import (
 const (
 	serviceEntryCRDName    = "serviceentries.networking.istio.io"
 	destinationRuleCRDName = "destinationrules.networking.istio.io"
-	verrazzanoManagedLabel = "verrazzano_cluster"
 	thanosQueryDeployName  = "thanos-query"
 	thanosGrpcIngressPort  = 443
 
@@ -242,19 +241,33 @@ func toGrpcTarget(hostname string) string {
 // createOrUpdateCACertVolume updates a volume on the Istio Proxy sidecar on the Thanos Deployment to supply CA certs from managed clusters
 // This CA cert will be applied to the Destination rule to allow TLS communication to managed cluster query endpoints
 func (r *VerrazzanoManagedClusterReconciler) createOrUpdateCACertVolume(vmcName string) error {
-	var queryDeploy appsv1.Deployment
+	queryDeploy := appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoMonitoringNamespace,
+			Name:      thanosQueryDeployName,
+		},
+	}
 	_, err := controllerruntime.CreateOrUpdate(context.TODO(), r.Client, &queryDeploy, func() error {
-		istioVolume, err := r.unmarshalIstioVolumeAnnotation(queryDeploy)
-		if err != nil {
-			return err
-		}
-
-		if err := r.createCAVolumeEntry(&queryDeploy, istioVolume, vmcName); err != nil {
-			return err
-		}
-		return r.createCAVolumeMount(&queryDeploy)
+		return r.mutateThanosQueryDeployment(&queryDeploy, vmcName)
 	})
 	return err
+}
+
+func (r *VerrazzanoManagedClusterReconciler) mutateThanosQueryDeployment(queryDeploy *appsv1.Deployment, vmcName string) error {
+	if queryDeploy.Spec.Template.ObjectMeta.Annotations == nil {
+		queryDeploy.Spec.Template.ObjectMeta.Annotations = map[string]string{}
+	}
+	istioVolume, err := r.unmarshalIstioVolumesAnnotation(*queryDeploy)
+	if err != nil {
+		// Clear the Volume annotation because it has been corrupted
+		delete(queryDeploy.Spec.Template.ObjectMeta.Annotations, istioVolumeAnnotation)
+		return nil
+	}
+
+	if err := r.createCAVolumeEntry(queryDeploy, istioVolume, vmcName); err != nil {
+		return err
+	}
+	return r.createCAVolumeMount(queryDeploy)
 }
 
 // createOrUpdateServiceEntry ensures that an Istio ServiceEntry exists for a managed cluster Thanos endpoint. The ServiceEntry is
@@ -412,9 +425,11 @@ func (r *VerrazzanoManagedClusterReconciler) deleteDestinationRule(name string) 
 // createCAVolumeMount Adds the CA Volume mount as an Istio annotation to the deployment if it does not exist
 func (r *VerrazzanoManagedClusterReconciler) createCAVolumeMount(deployment *appsv1.Deployment) error {
 	if _, ok := deployment.Spec.Template.Annotations[istioVolumeMountAnnotation]; !ok {
-		volumeMount := v1.VolumeMount{
-			Name:      istioVolumeName,
-			MountPath: istioCertPath,
+		volumeMount := []v1.VolumeMount{
+			{
+				Name:      istioVolumeName,
+				MountPath: istioCertPath,
+			},
 		}
 		volumeMountJSON, err := json.Marshal(volumeMount)
 		if err != nil {
@@ -425,25 +440,23 @@ func (r *VerrazzanoManagedClusterReconciler) createCAVolumeMount(deployment *app
 	return nil
 }
 
-// unmarshalIstioVolumeAnnotations returns the Volume and VolumeMount pod annotations from a deployment object
-func (r *VerrazzanoManagedClusterReconciler) unmarshalIstioVolumeAnnotation(deployment appsv1.Deployment) (v1.Volume, error) {
-	istioVolume := v1.Volume{
-		Name: istioVolumeName,
-	}
+// unmarshalIstioVolumesAnnotations returns the Volumes pod annotations from a deployment object
+func (r *VerrazzanoManagedClusterReconciler) unmarshalIstioVolumesAnnotation(deployment appsv1.Deployment) (v1.Volume, error) {
+	istioVolume := []v1.Volume{{Name: istioVolumeName}}
 	podAnnotations := deployment.Spec.Template.ObjectMeta.Annotations
 	if volumeJSON, volumeOk := podAnnotations[istioVolumeAnnotation]; volumeOk {
 		err := json.Unmarshal([]byte(volumeJSON), &istioVolume)
 		if err != nil {
-			return istioVolume, r.log.ErrorfNewErr("Failed to unmarshal the Istio volume annotation: %v", err)
+			return istioVolume[0], r.log.ErrorfNewErr("Failed to unmarshal the Istio volume annotation, clearing the volume annotations due to corruption: %v", err)
 		}
 	}
-	return istioVolume, nil
+	return istioVolume[0], nil
 }
 
 // createCAVolumeEntry adds the CA mount given a Volume object from the Istio annotations and creates the annotation on the deployment
 func (r *VerrazzanoManagedClusterReconciler) createCAVolumeEntry(deployment *appsv1.Deployment, volume v1.Volume, vmcName string) error {
 	updateVolumeSource(&volume, vmcName)
-	volumeJSON, err := json.Marshal(volume)
+	volumeJSON, err := json.Marshal([]v1.Volume{volume})
 	if err != nil {
 		return r.log.ErrorfNewErr("Failed to marshal Volume %s Istio Annotation: %v", istioVolumeName, err)
 	}

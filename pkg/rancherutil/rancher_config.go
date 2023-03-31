@@ -41,7 +41,7 @@ const (
 	tokensPath = "/v3/tokens" //nolint:gosec
 
 	// this host resolves to the cluster IP
-	nginxIngressHostName = "ingress-controller-ingress-nginx-controller.ingress-nginx"
+	nginxIngressHostName = "rancher.default.172.18.0.231.nip.io"
 )
 
 type RancherConfig struct {
