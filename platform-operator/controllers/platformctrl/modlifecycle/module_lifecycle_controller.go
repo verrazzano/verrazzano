@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package module
+package modlifecycle
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	modulesv1beta2 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
-	modules2 "github.com/verrazzano/verrazzano/platform-operator/controllers/module/modules"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/reconciler"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/modlifecycle/delegates"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/modlifecycle/reconciler"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"go.uber.org/zap"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -23,7 +23,7 @@ import (
 	"time"
 )
 
-var delegates = map[string]func(*modulesv1beta2.ModuleLifecycle) modules2.DelegateReconciler{
+var delegateReconcilersMap = map[string]func(*modulesv1beta2.ModuleLifecycle) delegates.DelegateReconciler{
 	//keycloak.ComponentName:  keycloak.NewComponent,
 	//coherence.ComponentName: coherence.NewComponent,
 	//weblogic.ComponentName:  weblogic.NewComponent,
@@ -116,8 +116,8 @@ func (r *Reconciler) createComponentContext(log vzlog.VerrazzanoLogger, verrazza
 	return moduleCtx, err
 }
 
-func getDelegateController(module *modulesv1beta2.ModuleLifecycle) modules2.DelegateReconciler {
-	newDelegate := delegates[module.ObjectMeta.Labels[modules2.ControllerLabel]]
+func getDelegateController(module *modulesv1beta2.ModuleLifecycle) delegates.DelegateReconciler {
+	newDelegate := delegateReconcilersMap[module.ObjectMeta.Labels[delegates.ControllerLabel]]
 	if newDelegate == nil {
 		// If an existing delegate does not exist, wrap it in a Helm adapter to just do helm stuff
 		return reconciler.NewHelmAdapter(module)

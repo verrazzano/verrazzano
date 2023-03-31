@@ -4,6 +4,7 @@
 package operatorinit
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/modlifecycle"
 	"os"
 	"sync"
 	"time"
@@ -13,7 +14,6 @@ import (
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
-	modulepoc "github.com/verrazzano/verrazzano/platform-operator/controllers/module"
 	modulectrl "github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/module"
 	platformctrl "github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/platform"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/platformdef"
@@ -98,11 +98,11 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 	if config.ExperimentalModules {
 		log.Infof("Experimental Modules API enabled, starting controllers")
 
-		if err = (&modulepoc.Reconciler{
+		if err = (&modlifecycle.Reconciler{
 			Client: mgr.GetClient(),
 			Scheme: mgr.GetScheme(),
 		}).SetupWithManager(mgr); err != nil {
-			log.Error(err, "Failed to setup controller", vzlog.FieldController, "ModulesController")
+			log.Error(err, "Failed to setup controller", vzlog.FieldController, "ModuleLifecycleController")
 			os.Exit(1)
 		}
 

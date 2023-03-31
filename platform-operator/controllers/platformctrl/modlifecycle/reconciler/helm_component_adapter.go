@@ -9,7 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	modulesv1beta2 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	modules2 "github.com/verrazzano/verrazzano/platform-operator/controllers/module/modules"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/modlifecycle/delegates"
 	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -44,7 +44,7 @@ func SetDefaultUpgradeFunc() {
 	upgradeFunc = helm.UpgradeRelease
 }
 
-func NewHelmAdapter(module *modulesv1beta2.ModuleLifecycle) modules2.DelegateReconciler {
+func NewHelmAdapter(module *modulesv1beta2.ModuleLifecycle) delegates.DelegateReconciler {
 	installer := module.Spec.Installer
 	chartInfo := installer.HelmRelease.ChartInfo
 	chartURL := fmt.Sprintf("%s/%s", installer.HelmRelease.Repository.URI, chartInfo.Path)
@@ -90,9 +90,9 @@ func copyOverrides(overrides []modulesv1beta2.Overrides) []v1beta1.Overrides {
 	var copy []v1beta1.Overrides
 	for _, override := range overrides {
 		copy = append(copy, v1beta1.Overrides{
-			ConfigMapRef: override.ConfigMapRef,
-			SecretRef:    override.SecretRef,
-			Values:       override.Values,
+			ConfigMapRef: override.ConfigMapRef.DeepCopy(),
+			SecretRef:    override.SecretRef.DeepCopy(),
+			Values:       override.Values.DeepCopy(),
 		})
 	}
 	return copy
