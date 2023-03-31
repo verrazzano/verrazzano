@@ -25,6 +25,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
+	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -132,7 +133,7 @@ type getInstallOverridesSig func(object runtime.Object) interface{}
 type resolveNamespaceSig func(ns string) string
 
 // upgradeFuncSig is a function needed for unit test override
-type upgradeFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (err error)
+type upgradeFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (*release.Release, error)
 
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
@@ -319,7 +320,7 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 	}
 
 	// Perform an install using the helm upgrade --install command
-	err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, h.WaitForInstall, context.IsDryRun(), overrides)
+	_, err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, h.WaitForInstall, context.IsDryRun(), overrides)
 	return err
 }
 
@@ -490,7 +491,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	// Generate a list of override files making helm get values overrides first
 	overrides = append([]helm.HelmOverrides{{FileOverride: tmpFile.Name()}}, overrides...)
 
-	err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, true, context.IsDryRun(), overrides)
+	_, err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, true, context.IsDryRun(), overrides)
 	return err
 }
 
@@ -666,6 +667,60 @@ func (h HelmComponent) preInstallUpgrade(ctx spi.ComponentContext) error {
 		cleanupLatestSecret(ctx, h, true)
 	}
 	return nil
+}
+
+// GetComputedValues returns the computed Helm values for the component. Install is run with the dry run flag
+// which will compute the Helm values without actually installing the component.
+func (h HelmComponent) GetComputedValues(context spi.ComponentContext) (chartutil.Values, error) {
+	// Resolve the namespace
+	resolvedNamespace := h.resolveNamespace(context)
+
+	// check for global image pull secret
+	var kvs []bom.KeyValue
+	kvs, err := secret.AddGlobalImagePullSecretHelmOverride(context.Log(), context.Client(), resolvedNamespace, kvs, h.ImagePullSecretKeyname)
+	if err != nil {
+		return nil, err
+	}
+
+	overrides, err := h.buildCustomHelmOverrides(context, resolvedNamespace, kvs...)
+	defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), `helm-overrides.*\.yaml`)
+	if err != nil {
+		return nil, err
+	}
+
+	// If there is already a Helm installation, then get the current values and add them to the overrides
+	found, err := helm.IsReleaseInstalled(h.ReleaseName, resolvedNamespace)
+	if err != nil {
+		return nil, err
+	}
+	if found {
+		stdout, err := helm.GetValues(context.Log(), h.ReleaseName, resolvedNamespace)
+		if err != nil {
+			return nil, err
+		}
+
+		tmpFile, err := vzos.CreateTempFile("helm-overrides-values-*.yaml", stdout)
+		if err != nil {
+			return nil, err
+		}
+
+		// The existing values are first so any component and user overrides take precedence
+		overrides = append([]helm.HelmOverrides{{FileOverride: tmpFile.Name()}}, overrides...)
+	}
+
+	// Run the install passing true for the dry run flag - this won't install the release but will compute
+	// the Helm values
+	rel, err := upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, true, true, overrides)
+	if err != nil {
+		return nil, err
+	}
+
+	vals, err := chartutil.CoalesceValues(rel.Chart, rel.Config)
+	if err != nil {
+		return nil, err
+	}
+
+	return vals, nil
 }
 
 // Get the image overrides from the BOM
