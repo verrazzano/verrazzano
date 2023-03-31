@@ -506,12 +506,7 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 
 // activateDrivers activates the nodeDriver oci and oraclecontainerengine kontainerDriver
 func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
-	err := activateOCIDriver(log, c)
-	if err != nil {
-		return err
-	}
-
-	err = activatOKEDriver(log, c)
+	err := activatOKEDriver(log, c)
 	if err != nil {
 		return err
 	}
