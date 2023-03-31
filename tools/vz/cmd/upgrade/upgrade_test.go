@@ -84,7 +84,7 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
-	if !helpers.CheckBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal("cannot find bug report file in current directory")
 	}
 }
@@ -121,7 +121,7 @@ func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
 	// Bug report must not exists
-	if helpers.CheckBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal("found bug report file in current directory")
 	}
 }

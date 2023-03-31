@@ -17,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/manifest"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/scenario"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
+	"helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -82,12 +83,12 @@ Usecases:
 	}
 
 	defer func() { scenario.UpdateUpgradeFunc = helmcli.Upgrade }()
-	scenario.UpdateUpgradeFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (err error) {
+	scenario.UpdateUpgradeFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (*release.Release, error) {
 		assert.Equal(t, 3, len(overrides))
 		assert.Equal(t, "psr-ops-s1-writelogs-0", releaseName)
 		assert.Equal(t, "psr", namespace)
 		assert.Contains(t, chartDir, "manifests/charts/worker")
-		return nil
+		return nil, nil
 	}
 
 	// Send the command output to a byte buffer

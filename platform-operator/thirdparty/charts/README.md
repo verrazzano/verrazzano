@@ -174,7 +174,7 @@ The `jaegertracing/jaeger-operator` folder was created by running the following 
 
 ```shell
 export JAEGER_OPERATOR_CHART_REPO=https://jaegertracing.github.io/helm-charts
-export JAEGER_OPERATOR_CHART_VERSION=2.35.0
+export JAEGER_OPERATOR_CHART_VERSION=2.41.0
 rm -rf jaegertracing/jaeger-operator
 mkdir -p jaegertracing
 cd jaegertracing

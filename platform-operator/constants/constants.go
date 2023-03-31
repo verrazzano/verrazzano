@@ -259,3 +259,9 @@ const ServiceMonitorNameKubelet = "prometheus-operator-kube-p-kubelet"
 
 // ServiceMonitorNameKubeStateMetrics indicates the name of serviceMonitor resource for kube-state-metrics monitoring
 const ServiceMonitorNameKubeStateMetrics = "kube-state-metrics"
+
+// ThanosInternalUserSecretName is the name of the secret used to store the VZ internal Thanos user credentials
+const ThanosInternalUserSecretName = "verrazzano-thanos-internal" //nolint:gosec //#gosec G101
+
+// ThanosInternalUserName is the name of the VZ internal Thanos user
+const ThanosInternalUserName = "verrazzano-thanos-internal"

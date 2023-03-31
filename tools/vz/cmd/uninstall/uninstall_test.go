@@ -158,7 +158,7 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	// since the Verrazzano resource gets deleted almost instantaneously
 	assert.Equal(t, "Error: Failed to uninstall Verrazzano: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
 	ensureResourcesNotDeleted(t, c)
-	if !helpers.CheckBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -201,7 +201,7 @@ func TestUninstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	assert.Equal(t, "Error: Failed to uninstall Verrazzano: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
 	ensureResourcesNotDeleted(t, c)
 	// Bug Report must not exist
-	if helpers.CheckBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal("found bug report file in current directory")
 	}
 }
@@ -297,7 +297,7 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, VzVpoFailureError)
 	assert.Contains(t, errBuf.String(), VzVpoFailureError)
-	if !helpers.CheckBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -338,7 +338,7 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, PodNotFoundError)
 	assert.Contains(t, errBuf.String(), PodNotFoundError)
-	if !helpers.CheckBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -347,7 +347,7 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 // GIVEN a CLI uninstall command with all defaults and no vz resource found
 //
 //	WHEN I call cmd.Execute for uninstall
-//	THEN the CLI uninstall command fails
+//	THEN the CLI uninstall command fails and bug report should be generated
 func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).Build()
 
@@ -367,6 +367,9 @@ func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Verrazzano is not installed: Failed to find any Verrazzano resources")
 	assert.Contains(t, errBuf.String(), "Verrazzano is not installed: Failed to find any Verrazzano resources")
+	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+		t.Fatal(BugReportNotExist)
+	}
 }
 
 func createNamespace() *corev1.Namespace {
