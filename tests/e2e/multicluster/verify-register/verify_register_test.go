@@ -6,6 +6,7 @@ package register_test
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"os"
 	"time"
 
@@ -249,8 +250,15 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			}
 			clusterNameMetricsLabel := getClusterNameMetricLabel(adminKubeconfig)
 			pkg.Log(pkg.Info, fmt.Sprintf("Looking for metric with label %s with value %s", clusterNameMetricsLabel, managedClusterName))
-			Eventually(func() bool {
-				return pkg.ThanosMetricsExist("up", clusterNameMetricsLabel, managedClusterName)
+			Eventually(func() (bool, error) {
+				vz, err := pkg.GetVerrazzano()
+				if err != nil {
+					return false, err
+				}
+				if vzcr.IsThanosEnabled(vz) {
+					return pkg.ThanosMetricsExist("up", clusterNameMetricsLabel, managedClusterName), nil
+				}
+				return pkg.MetricsExist("up", clusterNameMetricsLabel, managedClusterName), nil
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find metrics from managed cluster")
 		})
 
