@@ -109,9 +109,9 @@ func verifyThanosStore() {
 			}
 			managedIng := managedCluster.GetThanosIngress()
 			for _, store := range queryStores {
-				storeMap := store.(map[string]string)
+				storeMap := store.(map[string]interface{})
 				name, ok := storeMap["name"]
-				if ok && name == managedIng {
+				if ok && name.(string) == managedIng {
 					return true, nil
 				}
 			}
