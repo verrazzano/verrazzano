@@ -176,9 +176,8 @@ func (s *Syncer) updateVMCStatus() error {
 	if err != nil {
 		return fmt.Errorf("Failed to get Thanos query URL to update VMC %s: %v", vmcName, err)
 	}
-	if thanosAPIHost != "" {
-		vmc.Status.ThanosHost = thanosAPIHost
-	}
+	// If Thanos is disabled, we want to empty the host so Prometheus federation returns
+	vmc.Status.ThanosHost = thanosAPIHost
 
 	// update status of VMC
 	return s.AdminClient.Status().Update(s.Context, &vmc)
