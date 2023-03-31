@@ -111,12 +111,15 @@ func verifyThanosStore() {
 			for _, store := range queryStores {
 				storeMap := store.(map[string]interface{})
 				name, ok := storeMap["name"]
+				if ok {
+					t.Logs.Infof("Found store in Thanos %s", name.(string))
+				}
 				if ok && name.(string) == managedIng {
 					return true, nil
 				}
 			}
 			return false, nil
-		}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("scrape target of %s is not ready", managedCluster.Name))
+		}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("store of %s is not ready", managedCluster.Name))
 	}
 }
 
