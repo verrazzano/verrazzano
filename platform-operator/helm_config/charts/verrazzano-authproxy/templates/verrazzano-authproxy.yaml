@@ -111,6 +111,7 @@ spec:
           value: "20210501"
         ports:
         - containerPort: {{ .Values.port }}
+        - containerPort: {{ .Values.grpcPort }}
         livenessProbe:
           initialDelaySeconds: 30
           periodSeconds: 5
@@ -192,6 +193,10 @@ spec:
     port: {{ .Values.port }}
     protocol: TCP
     targetPort: {{ .Values.port }}
+  - name: grpc
+    port: {{ .Values.grpcPort }}
+    protocol: TCP
+    targetPort: {{ .Values.grpcPort }}
   selector:
     app: {{ .Values.name }}
 ---

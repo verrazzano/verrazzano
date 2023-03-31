@@ -4197,7 +4197,7 @@ spec:
                     type: string
                   rancherUrl:
                     type: string
-                  thanosQueryFrontendURL:
+                  thanosQueryUrl:
                     type: string
                 type: object
               state:
@@ -7136,7 +7136,7 @@ spec:
                     type: string
                   rancherUrl:
                     type: string
-                  thanosQueryFrontendURL:
+                  thanosQueryUrl:
                     type: string
                 type: object
               state:

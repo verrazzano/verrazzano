@@ -19,6 +19,8 @@ const (
 	Dev ProfileType = "dev"
 	// Prod identifies the production install profile
 	Prod ProfileType = "prod"
+	// None identifies a profile with all components disabled
+	None ProfileType = "none"
 	// ManagedCluster identifies the production managed-cluster install profile
 	ManagedCluster ProfileType = "managed-cluster"
 )
@@ -137,8 +139,9 @@ type InstanceInfo struct {
 	PrometheusURL *string `json:"prometheusUrl,omitempty"`
 	// The Rancher URL for this Verrazzano installation.
 	RancherURL *string `json:"rancherUrl,omitempty"`
-	// The Thanos Query Frontend URL for this Verrazzano installation.
-	ThanosQueryFrontendURL *string `json:"thanosQueryFrontendURL,omitempty"`
+	// The Thanos Query URL for this Verrazzano installation.
+	// The Thanos Query ingress gets forwarded to the Thanos Query Frontend service.
+	ThanosQueryURL *string `json:"thanosQueryUrl,omitempty"`
 }
 
 // VerrazzanoStatus defines the observed state of a Verrazzano resource.
@@ -1086,12 +1089,18 @@ type InstallOverrides struct {
 // Overrides identifies overrides for a component.
 type Overrides struct {
 	// Selector for ConfigMap containing override data.
+	// For sample usage, see
+	// <a href="../../../../docs/customize/installationoverrides/#configmap">ConfigMapRef</a>.
 	// +optional
 	ConfigMapRef *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
 	// Selector for Secret containing override data.
+	// For sample usage, see
+	// <a href="../../../../docs/customize/installationoverrides/#secret">SecretRef</a>.
 	// +optional
 	SecretRef *corev1.SecretKeySelector `json:"secretRef,omitempty"`
 	// Configure overrides using inline YAML.
+	// For sample usage, see
+	// <a href="../../../../docs/customize/installationoverrides/#values">Values</a>.
 	// +optional
 	Values *apiextensionsv1.JSON `json:"values,omitempty"`
 }

@@ -180,7 +180,7 @@ func SetDefaultIstioUninstallFunction() {
 	istioUninstallFunc = istio.Uninstall
 }
 
-type helmUninstallFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
+type helmUninstallFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (err error)
 
 var helmUninstallFunction helmUninstallFuncSig = helm.Uninstall
 
@@ -497,7 +497,7 @@ func deleteIstioCoreDNS(context spi.ComponentContext) error {
 		return context.Log().ErrorfNewErr("Failed searching for release: %v", err)
 	}
 	if found {
-		_, _, err = helmUninstallFunction(context.Log(), IstioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
+		err = helmUninstallFunction(context.Log(), IstioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
 		if err != nil {
 			return context.Log().ErrorfNewErr("Failed trying to uninstall istiocoredns: %v", err)
 		}
@@ -522,7 +522,7 @@ func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
 		if secret.Type == HelmScrtType && !strings.Contains(secretName, IstioCoreDNSReleaseName) {
 			err = client.Delete(context.TODO(), secret)
 			if err != nil {
-				if ctrlerrors.ShouldLogKubenetesAPIError(err) {
+				if ctrlerrors.ShouldLogKubernetesAPIError(err) {
 					compContext.Log().Errorf("Error deleting helm secret %s: %v", secretName, err)
 				}
 				return err

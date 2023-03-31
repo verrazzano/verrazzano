@@ -6,10 +6,6 @@ package reconcile
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	networkingv1 "k8s.io/api/networking/v1"
-	"k8s.io/client-go/dynamic"
 	"reflect"
 	"sync"
 	"testing"
@@ -17,14 +13,24 @@ import (
 
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	constants3 "github.com/verrazzano/verrazzano/pkg/constants"
-	vzos "github.com/verrazzano/verrazzano/pkg/os"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	vzContext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
-	v1 "k8s.io/api/batch/v1"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	time2 "helm.sh/helm/v3/pkg/time"
+	batchv1 "k8s.io/api/batch/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	"k8s.io/client-go/dynamic"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/golang/mock/gomock"
 	"github.com/prometheus/client_golang/prometheus/testutil"
@@ -263,11 +269,23 @@ func TestInstallInitComponents(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
+	defer helm.SetDefaultActionConfigFunction()
+	helm.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helm.CreateActionConfig(true, name, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			now := time2.Now()
+			return &release.Release{
+				Name:      name,
+				Namespace: namespace,
+				Info: &release.Info{
+					FirstDeployed: now,
+					LastDeployed:  now,
+					Status:        releaseStatus,
+					Description:   "Named Release Stub",
+				},
+				Version: 1,
+			}
+		})
 	})
-	defer helm.SetDefaultChartStatusFunction()
 
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -420,10 +438,23 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 		config.SetDefaultBomFilePath("")
 	}()
 	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
+	defer helm.SetDefaultActionConfigFunction()
+	helm.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helm.CreateActionConfig(true, name, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			now := time2.Now()
+			return &release.Release{
+				Name:      name,
+				Namespace: namespace,
+				Info: &release.Info{
+					FirstDeployed: now,
+					LastDeployed:  now,
+					Status:        releaseStatus,
+					Description:   "Named Release Stub",
+				},
+				Version: 1,
+			}
+		})
 	})
-	defer helm.SetDefaultChartStatusFunction()
 
 	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
@@ -1443,7 +1474,7 @@ func TestUninstallJobCleanup(t *testing.T) {
 	asserts := assert.New(t)
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&v1.Job{
+		&batchv1.Job{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.VerrazzanoInstallNamespace,
 				Name:      "uninstall-201321",
@@ -1458,7 +1489,7 @@ func TestUninstallJobCleanup(t *testing.T) {
 	reconciler := newVerrazzanoReconciler(c)
 	err := reconciler.cleanupUninstallJob("uninstall-201321", constants.VerrazzanoInstallNamespace, vzlog.DefaultLogger())
 	asserts.Nil(err)
-	job := &v1.Job{}
+	job := &batchv1.Job{}
 	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
 	asserts.NotNil(err)
 	asserts.True(errors.IsNotFound(err))
@@ -1472,7 +1503,7 @@ func TestMysqlBackupJobCleanup(t *testing.T) {
 	asserts := assert.New(t)
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&v1.Job{
+		&batchv1.Job{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.KeycloakNamespace,
 				Name:      "one-off-backup-20221018-201321",
@@ -1500,7 +1531,7 @@ func TestMysqlBackupJobCleanup(t *testing.T) {
 	reconciler := newVerrazzanoReconciler(c)
 	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
 	asserts.Nil(err)
-	job := &v1.Job{}
+	job := &batchv1.Job{}
 	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
 	asserts.NotNil(err)
 	asserts.True(errors.IsNotFound(err))
@@ -1514,20 +1545,20 @@ func TestMysqlScheduledBackupJobCleanup(t *testing.T) {
 	asserts := assert.New(t)
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&v1.Job{
+		&batchv1.Job{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "one-off-backup-schedule20221018-201321",
 				Namespace: constants.KeycloakNamespace,
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: "batch/v1",
+						APIVersion: "batch/batchv1",
 						Kind:       "CronJob",
 						Name:       "one-off-backup-schedule-20221018-201321",
 					},
 				},
 			},
 		},
-		&v1.CronJob{
+		&batchv1.CronJob{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.KeycloakNamespace,
 				Name:      "one-off-backup-schedule-20221018-201321",
@@ -1555,11 +1586,11 @@ func TestMysqlScheduledBackupJobCleanup(t *testing.T) {
 	reconciler := newVerrazzanoReconciler(c)
 	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
 	asserts.Nil(err)
-	job := &v1.Job{}
+	job := &batchv1.Job{}
 	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
 	asserts.NotNil(err)
 	asserts.True(errors.IsNotFound(err))
-	cronJob := &v1.CronJob{}
+	cronJob := &batchv1.CronJob{}
 	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-schedule-20221018-201321", Namespace: constants.KeycloakNamespace}, cronJob)
 	asserts.Nil(err)
 }
@@ -1572,7 +1603,7 @@ func TestInProgressMysqlBackupJobCleanup(t *testing.T) {
 	asserts := assert.New(t)
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&v1.Job{
+		&batchv1.Job{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.KeycloakNamespace,
 				Name:      "one-off-backup-20221018-201321",
@@ -1598,7 +1629,7 @@ func TestInProgressMysqlBackupJobCleanup(t *testing.T) {
 	reconciler := newVerrazzanoReconciler(c)
 	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
 	asserts.NotNil(err)
-	job := &v1.Job{}
+	job := &batchv1.Job{}
 	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
 	asserts.Nil(err)
 	asserts.NotNil(job)
@@ -1612,7 +1643,7 @@ func TestFailedMysqlBackupJobCleanup(t *testing.T) {
 	asserts := assert.New(t)
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&v1.Job{
+		&batchv1.Job{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.KeycloakNamespace,
 				Name:      "one-off-backup-20221018-201321",
@@ -1640,7 +1671,7 @@ func TestFailedMysqlBackupJobCleanup(t *testing.T) {
 	reconciler := newVerrazzanoReconciler(c)
 	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
 	asserts.NotNil(err)
-	job := &v1.Job{}
+	job := &batchv1.Job{}
 	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
 	asserts.Nil(err)
 	asserts.NotNil(job)
@@ -1678,7 +1709,7 @@ func TestMysqlOperatorJobPredicateWrongNamespace(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	reconciler := newVerrazzanoReconciler(c)
-	job := &v1.Job{
+	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "WrongNamespace",
 			Name:      "one-off-backup-20221018-201321",
@@ -1697,7 +1728,7 @@ func TestMysqlOperatorJobPredicateOwnedByOperatorCronJob(t *testing.T) {
 	asserts := assert.New(t)
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&v1.CronJob{
+		&batchv1.CronJob{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.KeycloakNamespace,
 				Name:      "one-off-backup-schedule-20221018-201321",
@@ -1706,13 +1737,13 @@ func TestMysqlOperatorJobPredicateOwnedByOperatorCronJob(t *testing.T) {
 		},
 	).Build()
 	reconciler := newVerrazzanoReconciler(c)
-	job := &v1.Job{
+	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: mysql.ComponentNamespace,
 			Name:      "one-off-backup-20221018-201321",
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion: "batch/v1",
+					APIVersion: "batch/batchv1",
 					Kind:       "CronJob",
 					Name:       "one-off-backup-schedule-20221018-201321",
 				},
@@ -1732,7 +1763,7 @@ func TestMysqlOperatorJobPredicateValidBackupJob(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	reconciler := newVerrazzanoReconciler(c)
-	job := &v1.Job{
+	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: mysql.ComponentNamespace,
 			Name:      "one-off-backup-20221018-201321",
@@ -1751,6 +1782,9 @@ func TestReconcilerInitForVzResource(t *testing.T) {
 	}
 	logger := vzlog.DefaultLogger()
 	mocker := gomock.NewController(t)
+	podKind := &source.Kind{Type: &corev1.Pod{}}
+	jobKind := &source.Kind{Type: &batchv1.Job{}}
+	secretKind := &source.Kind{Type: &corev1.Secret{}}
 	getNoErrorMock := func() client.Client {
 		mockClient := mocks.NewMockClient(mocker)
 		mockClient.EXPECT().Delete(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil).AnyTimes()
@@ -1774,12 +1808,34 @@ func TestReconcilerInitForVzResource(t *testing.T) {
 	}
 	setMockControllerNoErr := func(reconciler *Reconciler) {
 		controller := mocks.NewMockController(mocker)
-		controller.EXPECT().Watch(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		controller.EXPECT().Watch(gomock.Eq(podKind), gomock.Any(), gomock.Any()).Return(nil)
+		controller.EXPECT().Watch(gomock.Eq(jobKind), gomock.Any(), gomock.Any()).Return(nil)
+		// watches 2 secrets - managed cluster registration and Thanos internal user
+		controller.EXPECT().Watch(gomock.Eq(secretKind), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 		reconciler.Controller = controller
 	}
-	setMockControllerErr := func(reconciler *Reconciler) {
+	setMockControllerPodWatchErr := func(reconciler *Reconciler) {
 		controller := mocks.NewMockController(mocker)
-		controller.EXPECT().Watch(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf(unExpectedError))
+		controller.EXPECT().Watch(gomock.Eq(podKind), gomock.Any(), gomock.Any()).Return(fmt.Errorf(unExpectedError))
+		reconciler.Controller = controller
+	}
+	setMockControllerJobWatchErr := func(reconciler *Reconciler) {
+		controller := mocks.NewMockController(mocker)
+		// pod watch succeeds, job watch fails
+		controller.EXPECT().Watch(gomock.Eq(podKind), gomock.Any(), gomock.Any()).Return(nil)
+		controller.EXPECT().Watch(gomock.Eq(jobKind), gomock.Any(), gomock.Any()).Return(fmt.Errorf(unExpectedError))
+		reconciler.Controller = controller
+	}
+	setMockControllerSecretWatchErr := func(reconciler *Reconciler) {
+		controller := mocks.NewMockController(mocker)
+		// pod and job watch succeeds, first secret watch fails
+		// TODO find a way to know which secret is being watched and fail each one selectively
+		controller.EXPECT().Watch(gomock.Eq(podKind), gomock.Any(), gomock.Any()).Return(nil)
+		controller.EXPECT().Watch(gomock.Eq(jobKind), gomock.Any(), gomock.Any()).Return(nil)
+		controller.EXPECT().Watch(gomock.Eq(secretKind), gomock.Any(), gomock.Any()).DoAndReturn(
+			func(kind *source.Kind, handler handler.EventHandler, funcs predicate.Funcs) error {
+				return fmt.Errorf(unExpectedError)
+			})
 		reconciler.Controller = controller
 	}
 	vzName := "vzTestName"
@@ -1881,10 +1937,30 @@ func TestReconcilerInitForVzResource(t *testing.T) {
 		// GIVEN Verrazzano CR
 		// WHEN initForVzResource is called and error occurs while watching pods
 		// THEN error is returned with result for requeue with delay
-		{"TestReconcilerInitForVzResource when watching for pods get failed",
+		{"TestReconcilerInitForVzResource when watching for pods failed",
 			argWithFinalizer,
 			getNoErrorMock,
-			setMockControllerErr,
+			setMockControllerPodWatchErr,
+			newRequeueWithDelay(),
+			true,
+		},
+		// GIVEN Verrazzano CR
+		// WHEN initForVzResource is called and error occurs while watching Jobs
+		// THEN error is returned with result for requeue with delay
+		{"TestReconcilerInitForVzResource when watching for jobs failed",
+			argWithFinalizer,
+			getNoErrorMock,
+			setMockControllerJobWatchErr,
+			newRequeueWithDelay(),
+			true,
+		},
+		// GIVEN Verrazzano CR
+		// WHEN initForVzResource is called and error occurs while watching Jobs
+		// THEN error is returned with result for requeue with delay
+		{"TestReconcilerInitForVzResource when watching for registration secret failed",
+			argWithFinalizer,
+			getNoErrorMock,
+			setMockControllerSecretWatchErr,
 			newRequeueWithDelay(),
 			true,
 		},
@@ -1947,6 +2023,37 @@ func TestIsManagedClusterRegistrationSecret(t *testing.T) {
 	secret := corev1.Secret{}
 	asserts.True(reconciler.isManagedClusterRegistrationSecret(&vzSecret))
 	asserts.False(reconciler.isManagedClusterRegistrationSecret(&secret))
+}
+
+// TestIsThanosInternalUserSecret tests isThanosInternalUserSecret
+// GIVEN Secret resource
+// WHEN isThanosInternalUserSecret is called
+// THEN true is returned if secret is the Thanos internal user secret
+// THEN false is returned if secret is not the Thanos internal user secret
+func TestIsThanosInternalUserSecret(t *testing.T) {
+	asserts := assert.New(t)
+	reconciler := newVerrazzanoReconciler(nil)
+	thanosSecret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.ThanosInternalUserSecretName,
+			Namespace: constants.VerrazzanoMonitoringNamespace,
+		},
+	}
+	secretSameNS := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "some-other-secret",
+			Namespace: constants.VerrazzanoMonitoringNamespace,
+		},
+	}
+	secretSameNameDiffNS := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.ThanosInternalUserSecretName,
+			Namespace: constants.VerrazzanoSystemNamespace,
+		},
+	}
+	asserts.True(reconciler.isThanosInternalUserSecret(&thanosSecret))
+	asserts.False(reconciler.isThanosInternalUserSecret(&secretSameNS))
+	asserts.False(reconciler.isThanosInternalUserSecret(&secretSameNameDiffNS))
 }
 
 // TestReconcile tests Reconcile
@@ -2025,7 +2132,7 @@ func TestReconcile(t *testing.T) {
 // THEN false is returned if no error occurs
 func TestPersistJobLog(t *testing.T) {
 	type args struct {
-		backupJob v1.Job
+		backupJob batchv1.Job
 		jobPod    *corev1.Pod
 		log       vzlog.VerrazzanoLogger
 	}
@@ -2036,7 +2143,7 @@ func TestPersistJobLog(t *testing.T) {
 	}{
 		{
 			"TestPersistJobLog",
-			args{v1.Job{ObjectMeta: metav1.ObjectMeta{
+			args{batchv1.Job{ObjectMeta: metav1.ObjectMeta{
 				Name: "test-schedule-1",
 			}}, &corev1.Pod{}, vzlog.DefaultLogger()},
 			false,
@@ -2061,6 +2168,29 @@ func (s *statusUpdater) Patch(ctx context.Context, obj client.Object, patch clie
 	return nil
 }
 
+func createRelease(name string, status release.Status) *release.Release {
+	now := time2.Now()
+	return &release.Release{
+		Name:      rancher.ComponentName,
+		Namespace: rancher.ComponentNamespace,
+		Info: &release.Info{
+			FirstDeployed: now,
+			LastDeployed:  now,
+			Status:        status,
+			Description:   "Named Release Stub",
+		},
+		Version: 1,
+	}
+}
+
+func testActionConfigWithInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return helm.CreateActionConfig(true, rancher.ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
+}
+
+func testActionConfigWithoutInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return helm.CreateActionConfig(false, rancher.ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
+}
+
 // TestReconcilerProcReadyState tests ProcReadyState
 func TestReconcilerProcReadyState(t *testing.T) {
 	temp := unitTesting
@@ -2069,11 +2199,7 @@ func TestReconcilerProcReadyState(t *testing.T) {
 	}()
 	unitTesting = false
 	helmOverrideNoErr := func() {
-		helm.SetCmdRunner(vzos.GenericTestRunner{
-			StdOut: []byte(""),
-			StdErr: []byte(""),
-			Err:    nil,
-		})
+		helm.SetActionConfigFunction(testActionConfigWithInstallation)
 	}
 
 	k8sClient := fakes.NewClientBuilder().WithScheme(newScheme()).Build()
@@ -2165,7 +2291,7 @@ func TestReconcilerProcReadyState(t *testing.T) {
 	}
 	defer func() { config.TestProfilesDir = "" }()
 	defer registry.ResetGetComponentsFn()
-	defer helm.SetDefaultRunner()
+	defer helm.SetDefaultActionConfigFunction()
 	for _, tt := range tests {
 		registry.OverrideGetComponentsFn(getCompFunc)
 		t.Run(tt.name, func(t *testing.T) {

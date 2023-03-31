@@ -16,7 +16,7 @@ metadata:
     control-plane: coherence
     app.kubernetes.io/name: coherence-operator
     app.kubernetes.io/instance: coherence-operator-manager
-    app.kubernetes.io/version: "3.2.9"
+    app.kubernetes.io/version: "3.2.10"
     app.kubernetes.io/component: webhook
     app.kubernetes.io/part-of: coherence-operator
     app.kubernetes.io/managed-by: helm
@@ -28,7 +28,7 @@ spec:
   selector:
     app.kubernetes.io/name: coherence-operator
     app.kubernetes.io/instance: coherence-operator-manager
-    app.kubernetes.io/version: "3.2.9"
+    app.kubernetes.io/version: "3.2.10"
     app.kubernetes.io/component: manager
 ---
 apiVersion: v1
@@ -40,7 +40,7 @@ metadata:
     control-plane: coherence
     app.kubernetes.io/name: coherence-operator
     app.kubernetes.io/instance: coherence-operator-rest
-    app.kubernetes.io/version: "3.2.9"
+    app.kubernetes.io/version: "3.2.10"
     app.kubernetes.io/component: rest
     app.kubernetes.io/part-of: coherence-operator
     app.kubernetes.io/managed-by: helm
@@ -52,7 +52,7 @@ spec:
   selector:
     app.kubernetes.io/name: coherence-operator
     app.kubernetes.io/instance: coherence-operator-manager
-    app.kubernetes.io/version: "3.2.9"
+    app.kubernetes.io/version: "3.2.10"
     app.kubernetes.io/component: manager
 ---
 apiVersion: apps/v1
@@ -64,7 +64,7 @@ metadata:
     control-plane: coherence
     app.kubernetes.io/name: coherence-operator
     app.kubernetes.io/instance: coherence-operator-manager
-    app.kubernetes.io/version: "3.2.9"
+    app.kubernetes.io/version: "3.2.10"
     app.kubernetes.io/component: manager
     app.kubernetes.io/part-of: coherence-operator
     app.kubernetes.io/managed-by: helm
@@ -77,16 +77,21 @@ spec:
   template:
     metadata:
       labels:
+        sidecar.istio.io/inject: 'false'
         control-plane: coherence
         app.kubernetes.io/name: coherence-operator
         app.kubernetes.io/instance: coherence-operator-manager
-        app.kubernetes.io/version: "3.2.9"
+        app.kubernetes.io/version: "3.2.10"
         app.kubernetes.io/component: manager
         app.kubernetes.io/part-of: coherence-operator
         app.kubernetes.io/managed-by: helm
         app.kubernetes.io/created-by: controller-manager
     spec:
       serviceAccountName: {{ default "coherence-operator" .Values.serviceAccountName }}
+{{- if .Values.podSecurityContext }}
+      securityContext:
+{{ toYaml .Values.podSecurityContext | indent 8 }}
+{{- end }}
       containers:
       - name: manager
         args:
@@ -95,6 +100,10 @@ spec:
 {{- if (eq .Values.clusterRoles false) }}
         - --enable-webhook=false
         - --install-crd=false
+{{- else }}
+{{- if (eq .Values.webhooks false) }}
+        - --enable-webhook=false
+{{- end }}
 {{- end }}
         command:
         - "/files/runner"
@@ -124,10 +133,14 @@ spec:
         - name: OPERATOR_IMAGE
           value: {{ .Values.defaultCoherenceUtilsImage | quote }}
         - name: WATCH_NAMESPACE
-{{- if .Values.clusterRoles }}
-          value: {{ .Values.watchNamespaces | quote }}
-{{- else }}
+{{- if .Values.onlySameNamespace }}
           value: {{ .Release.Namespace | quote }}
+{{- else }}
+{{-   if .Values.clusterRoles }}
+          value: {{ .Values.watchNamespaces | quote }}
+{{-   else }}
+          value: {{ .Release.Namespace | quote }}
+{{-   end }}
 {{- end }}
         image: {{ .Values.image }}
         ports:
@@ -196,7 +209,7 @@ spec:
                     control-plane: coherence
                     app.kubernetes.io/name: coherence-operator
                     app.kubernetes.io/instance: coherence-operator-manager
-                    app.kubernetes.io/version: "3.2.9"
+                    app.kubernetes.io/version: "3.2.10"
               weight: 50
             - podAffinityTerm:
                 topologyKey: "oci.oraclecloud.com/fault-domain"
@@ -205,7 +218,7 @@ spec:
                     control-plane: coherence
                     app.kubernetes.io/name: coherence-operator
                     app.kubernetes.io/instance: coherence-operator-manager
-                    app.kubernetes.io/version: "3.2.9"
+                    app.kubernetes.io/version: "3.2.10"
               weight: 10
             - podAffinityTerm:
                 topologyKey: "kubernetes.io/hostname"
@@ -214,7 +227,7 @@ spec:
                     control-plane: coherence
                     app.kubernetes.io/name: coherence-operator
                     app.kubernetes.io/instance: coherence-operator-manager
-                    app.kubernetes.io/version: "3.2.9"
+                    app.kubernetes.io/version: "3.2.10"
               weight: 1
 {{- end }}
       volumes:

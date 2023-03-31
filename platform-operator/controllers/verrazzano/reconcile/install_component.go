@@ -138,14 +138,14 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compTra
 				compLog.ErrorfThrottled("Error writing component Installing state to the status: %v", err)
 				return ctrl.Result{Requeue: true}
 			}
-			compLog.Oncef("CR.generation: %v reset component %s state: %v generation: %v to state: %v generation: %v ",
-				spiCtx.ActualCR().Generation, compName, oldState, oldGen, componentStatus.State, componentStatus.ReconcilingGeneration)
-
+			if oldGen != 0 {
+				compLog.Oncef("CR.generation: %v reset component %s state: %v generation: %v to state: %v generation: %v ",
+					spiCtx.ActualCR().Generation, compName, oldState, oldGen, componentStatus.State, componentStatus.ReconcilingGeneration)
+			}
 			compTracker.installState = compStatePreInstall
 
 		case compStatePreInstall:
 			if !registry.ComponentDependenciesMet(comp, compContext) {
-				compLog.Progressf("Component %s waiting for dependencies %v to be ready", comp.Name(), comp.GetDependencies())
 				return ctrl.Result{Requeue: true}
 			}
 			compLog.Progressf("Component %s pre-install is running ", compName)

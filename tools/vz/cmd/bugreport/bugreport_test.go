@@ -6,6 +6,7 @@ package bugreport
 import (
 	"context"
 	"fmt"
+	"github.com/spf13/cobra"
 	"os"
 	"testing"
 
@@ -25,7 +26,8 @@ import (
 )
 
 const (
-	captureVerrazzanoErrMsg = "Capturing Verrazzano resource"
+	testKubeConfig = "kubeconfig"
+	testK8sContext = "testcontext"
 
 // captureResourceErrMsg   = "Capturing resources from the cluster"
 // sensitiveDataErrMsg     = "WARNING: Please examine the contents of the bug report for any sensitive data"
@@ -60,13 +62,7 @@ func TestBugReportHelp(t *testing.T) {
 // WHEN I call cmd.Execute for bug-report
 // THEN expect an error
 func TestBugReportExistingReportFile(t *testing.T) {
-	stdoutFile, stderrFile := createStdTempFiles(t)
-	defer os.Remove(stdoutFile.Name())
-	defer os.Remove(stderrFile.Name())
-
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
-	cmd := NewCmdBugReport(rc)
-	assert.NotNil(t, cmd)
+	cmd := setUpandVerifyResources(t)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -79,11 +75,12 @@ func TestBugReportExistingReportFile(t *testing.T) {
 	}
 	defer cleanupFile(t, bugRepFile)
 
+	setUpGlobalFlags(cmd)
 	err = cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile.Name())
 	assert.NoError(t, err)
 	err = cmd.Execute()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), fmt.Sprintf("%s already exists", reportFile))
+	assert.Contains(t, err.Error(), "file exists")
 }
 
 // TestBugReportExistingDir
@@ -91,13 +88,7 @@ func TestBugReportExistingReportFile(t *testing.T) {
 // WHEN I call cmd.Execute for bug-report
 // THEN expect an error
 func TestBugReportExistingDir(t *testing.T) {
-	stdoutFile, stderrFile := createStdTempFiles(t)
-	defer os.Remove(stdoutFile.Name())
-	defer os.Remove(stderrFile.Name())
-
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
-	cmd := NewCmdBugReport(rc)
-	assert.NotNil(t, cmd)
+	cmd := setUpandVerifyResources(t)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -107,11 +98,12 @@ func TestBugReportExistingDir(t *testing.T) {
 		assert.Error(t, err)
 	}
 
+	setUpGlobalFlags(cmd)
 	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, reportDir)
 	assert.NoError(t, err)
 	err = cmd.Execute()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "test-report is an existing directory")
+	assert.Contains(t, err.Error(), "file exists")
 }
 
 // TestBugReportNonExistingFileDir
@@ -119,13 +111,7 @@ func TestBugReportExistingDir(t *testing.T) {
 // WHEN I call cmd.Execute for bug-report
 // THEN expect an error
 func TestBugReportNonExistingFileDir(t *testing.T) {
-	stdoutFile, stderrFile := createStdTempFiles(t)
-	defer os.Remove(stdoutFile.Name())
-	defer os.Remove(stderrFile.Name())
-
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
-	cmd := NewCmdBugReport(rc)
-	assert.NotNil(t, cmd)
+	cmd := setUpandVerifyResources(t)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -133,11 +119,12 @@ func TestBugReportNonExistingFileDir(t *testing.T) {
 	reportDir := tmpDir + string(os.PathSeparator) + "test-report"
 	reportFile := reportDir + string(os.PathSeparator) + string(os.PathSeparator) + "bug-report.tgz"
 
+	setUpGlobalFlags(cmd)
 	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, reportFile)
 	assert.NoError(t, err)
 	err = cmd.Execute()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "test-report: no such file or directory")
+	assert.Contains(t, err.Error(), "no such file or directory")
 }
 
 // TestBugReportFileNoPermission
@@ -145,13 +132,7 @@ func TestBugReportNonExistingFileDir(t *testing.T) {
 // WHEN I call cmd.Execute for bug-report
 // THEN expect an error
 func TestBugReportFileNoPermission(t *testing.T) {
-	stdoutFile, stderrFile := createStdTempFiles(t)
-	defer os.Remove(stdoutFile.Name())
-	defer os.Remove(stderrFile.Name())
-
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
-	cmd := NewCmdBugReport(rc)
-	assert.NotNil(t, cmd)
+	cmd := setUpandVerifyResources(t)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -162,18 +143,44 @@ func TestBugReportFileNoPermission(t *testing.T) {
 		assert.Error(t, err)
 	}
 	reportFile := reportDir + string(os.PathSeparator) + "bug-report.tgz"
+	setUpGlobalFlags(cmd)
 	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, reportFile)
 	assert.NoError(t, err)
 	err = cmd.Execute()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "permission denied to create the bug report")
+	assert.Contains(t, err.Error(), "permission denied")
 }
 
 // TestBugReportSuccess
-// GIVEN a CLI bug-report command
+// GIVEN a CLI bug-report command with multiple flags
 // WHEN I call cmd.Execute
 // THEN expect the command to show the resources captured in the standard output and create the bug report file
 func TestBugReportSuccess(t *testing.T) {
+	cmd := setUpandVerifyResources(t)
+
+	tmpDir, _ := os.MkdirTemp("", "bug-report")
+	defer cleanupTempDir(t, tmpDir)
+
+	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
+	setUpGlobalFlags(cmd)
+	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
+	assert.NoError(t, err)
+	err = cmd.PersistentFlags().Set(constants.BugReportIncludeNSFlagName, "dummy,verrazzano-install,default")
+	assert.NoError(t, err)
+	err = cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
+	assert.NoError(t, err)
+	err = cmd.Execute()
+	if err != nil {
+		assert.Error(t, err)
+	}
+	assert.NoError(t, err)
+}
+
+// TestDefaultBugReportSuccess
+// GIVEN a CLI bug-report command with no flags (default)
+// WHEN I call cmd.Execute from user permissive directory
+// THEN expect the command to show the resources captured in the standard output and create the bug report file in current dir
+func TestDefaultBugReportSuccess(t *testing.T) {
 	c := getClientWithVZWatch()
 
 	// Verify the vz resource is as expected
@@ -189,64 +196,58 @@ func TestBugReportSuccess(t *testing.T) {
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
-
-	tmpDir, _ := os.MkdirTemp("", "bug-report")
-	defer cleanupTempDir(t, tmpDir)
-
-	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
-	assert.NoError(t, err)
-	err = cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
-	assert.NoError(t, err)
-	err = cmd.PersistentFlags().Set(constants.BugReportIncludeNSFlagName, "dummy,verrazzano-install,default")
-	assert.NoError(t, err)
-	err = cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
-	assert.NoError(t, err)
+	setUpGlobalFlags(cmd)
 	err = cmd.Execute()
-	if err != nil {
-		assert.Error(t, err)
+	assert.Nil(t, err)
+
+	if !pkghelper.CheckAndRemoveBugReportExistsInDir("") {
+		t.Fatal("cannot find bug report file in current directory")
 	}
+}
 
+// TestDefaultBugReportSuccess
+// GIVEN a CLI bug-report command with no flags (default)
+// WHEN I call cmd.Execute from read only directory
+// THEN expect the command to show the resources captured in the standard output and create the bug report file in tmp dir
+func TestDefaultBugReportReadOnlySuccess(t *testing.T) {
+	c := getClientWithVZWatch()
+
+	// Verify the vz resource is as expected
+	vz := v1beta1.Verrazzano{}
+	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
-	// Commenting the assertions due to intermittent failures
-	// assert.Contains(t, buf.String(), captureResourceErrMsg)
-	// assert.Contains(t, buf.String(), captureVerrazzanoErrMsg)
-	// assert.Contains(t, buf.String(), captureLogErrMsg)
-	// assert.Contains(t, buf.String(), sensitiveDataErrMsg)
-	// assert.Contains(t, buf.String(), dummyNamespaceErrMsg)
 
-	// assert.FileExists(t, bugRepFile)
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer os.Remove(stdoutFile.Name())
+	defer os.Remove(stderrFile.Name())
 
-	//Validate the fact that --verbose is disabled by default
-	// buf = new(bytes.Buffer)
-	// errBuf = new(bytes.Buffer)
-	// rc = helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	// rc.SetClient(c)
-	// bugRepFile = tmpDir + string(os.PathSeparator) + "bug-report-verbose-false.tgz"
-	// cmd = NewCmdBugReport(rc)
-	// err = cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
-	// assert.NoError(t, err)
-	// err = cmd.Execute()
-	// if err != nil {
-	//	assert.Error(t, err)
-	// }
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc.SetClient(c)
+	cmd := NewCmdBugReport(rc)
+	assert.NotNil(t, cmd)
+	setUpGlobalFlags(cmd)
+	pwd, err := os.Getwd()
+	assert.Nil(t, err)
+	assert.Nil(t, os.Chdir("/"))
+	defer os.Chdir(pwd)
 
-	// assert.NoError(t, err)
-	// assert.Contains(t, buf.String(), captureResourceErrMsg)
-	// assert.Contains(t, buf.String(), sensitiveDataErrMsg)
-	// assert.NotContains(t, buf.String(), captureVerrazzanoErrMsg)
-	// assert.NotContains(t, buf.String(), captureLogErrMsg)
-	// assert.FileExists(t, bugRepFile)
+	err = cmd.Execute()
+	assert.Nil(t, err)
+
+	if !pkghelper.CheckAndRemoveBugReportExistsInDir(os.TempDir() + "/") {
+		t.Fatal("cannot find bug report file in temp directory")
+	}
 }
 
 // TestBugReportDefaultReportFile
 // GIVEN a CLI bug-report command
 // WHEN I call cmd.Execute, without specifying --report-file
-// THEN expect the command to create the report bug-report.tar.gz under the current directory
+// THEN expect the command to create the report vz-bug-report-*.tar.gz under the current directory
 func TestBugReportDefaultReportFile(t *testing.T) {
 	// clean up the bugreport file that is generated
 	defer func(t *testing.T) {
-		if err := os.Remove(constants.BugReportFileDefaultValue); err != nil {
-			t.Fatal(err.Error())
+		if !pkghelper.CheckAndRemoveBugReportExistsInDir("") {
+			t.Fatal("cannot find and delete bug report file in current directory")
 		}
 	}(t)
 
@@ -269,25 +270,20 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	err = cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
+	setUpGlobalFlags(cmd)
 	assert.NoError(t, err)
 	assert.NotNil(t, cmd)
 	err = cmd.Execute()
 	assert.NoError(t, err)
 
-	buf, err := os.ReadFile(stdoutFile.Name())
+	_, err = os.ReadFile(stdoutFile.Name())
 	assert.NoError(t, err)
-
-	assert.Contains(t, string(buf), captureVerrazzanoErrMsg)
-	// Commenting the assertions due to intermittent failures
-	// assert.Contains(t, buf.String(), captureLogErrMsg)
-	// assert.Contains(t, buf.String(), "Created bug report")
-	// assert.Contains(t, buf.String(), sensitiveDataErrMsg)
 }
 
 // TestBugReportNoVerrazzano
 // GIVEN a CLI bug-report command
 // WHEN I call cmd.Execute without Verrazzano installed
-// THEN expect the command to display a message indicating Verrazzano is not installed
+// THEN expect the command to generate bug report
 func TestBugReportNoVerrazzano(t *testing.T) {
 	c := getClientWithWatch()
 	stdoutFile, stderrFile := createStdTempFiles(t)
@@ -303,6 +299,7 @@ func TestBugReportNoVerrazzano(t *testing.T) {
 	defer cleanupTempDir(t, tmpDir)
 
 	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
+	setUpGlobalFlags(cmd)
 	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
 	assert.NoError(t, err)
 	err = cmd.PersistentFlags().Set(constants.BugReportIncludeNSFlagName, "dummy,verrazzano-install")
@@ -314,7 +311,8 @@ func TestBugReportNoVerrazzano(t *testing.T) {
 
 	errBuf, err := os.ReadFile(stderrFile.Name())
 	assert.NoError(t, err)
-	assert.Contains(t, string(errBuf), "Verrazzano is not installed")
+	assert.NotContains(t, string(errBuf), "Verrazzano is not installed")
+	assert.FileExists(t, bugRepFile)
 }
 
 // TestBugReportFailureUsingInvalidClient
@@ -336,6 +334,7 @@ func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 	defer cleanupTempDir(t, tmpDir)
 
 	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
+	setUpGlobalFlags(cmd)
 	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
 	assert.NoError(t, err)
 	err = cmd.PersistentFlags().Set(constants.BugReportIncludeNSFlagName, "dummy,verrazzano-install")
@@ -347,8 +346,8 @@ func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 
 	errBuf, err := os.ReadFile(stderrFile.Name())
 	assert.NoError(t, err)
-	assert.Contains(t, string(errBuf), "Verrazzano is not installed")
-	assert.NoFileExists(t, bugRepFile)
+	assert.NotContains(t, string(errBuf), "Verrazzano is not installed")
+	assert.FileExists(t, bugRepFile)
 }
 
 // getClientWithWatch returns a client containing all VPO objects
@@ -468,28 +467,14 @@ func createStdTempFiles(t *testing.T) (*os.File, *os.File) {
 // WHEN I call cmd.Execute with include logs of  additional namespace and duration
 // THEN expect the command to show the resources captured in the standard output and create the bug report file
 func TestBugReportSuccessWithDuration(t *testing.T) {
-	c := getClientWithVZWatch()
-
-	// Verify the vz resource is as expected
-	vz := v1beta1.Verrazzano{}
-	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
-	assert.NoError(t, err)
-
-	stdoutFile, stderrFile := createStdTempFiles(t)
-	defer os.Remove(stdoutFile.Name())
-	defer os.Remove(stderrFile.Name())
-
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
-	rc.SetClient(c)
-	cmd := NewCmdBugReport(rc)
-	assert.NotNil(t, cmd)
+	cmd := setUpandVerifyResources(t)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
 
 	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
-	assert.NoError(t, err)
-	err = cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
+	setUpGlobalFlags(cmd)
+	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
 	assert.NoError(t, err)
 	err = cmd.PersistentFlags().Set(constants.BugReportIncludeNSFlagName, "dummy,verrazzano-install,default,test")
 	assert.NoError(t, err)
@@ -507,6 +492,31 @@ func TestBugReportSuccessWithDuration(t *testing.T) {
 	if err != nil {
 		assert.Error(t, err)
 	}
-
 	assert.NoError(t, err)
+}
+
+func setUpGlobalFlags(cmd *cobra.Command) {
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
+}
+
+func setUpandVerifyResources(t *testing.T) *cobra.Command {
+	c := getClientWithVZWatch()
+
+	// Verify the vz resource is as expected
+	vz := v1beta1.Verrazzano{}
+	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+	assert.NoError(t, err)
+
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer os.Remove(stdoutFile.Name())
+	defer os.Remove(stderrFile.Name())
+
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc.SetClient(c)
+	cmd := NewCmdBugReport(rc)
+	assert.NotNil(t, cmd)
+
+	return cmd
 }

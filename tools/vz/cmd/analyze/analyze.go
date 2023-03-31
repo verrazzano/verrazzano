@@ -5,7 +5,6 @@ package analyze
 
 import (
 	"fmt"
-	"github.com/go-errors/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
@@ -36,7 +35,7 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 		return validateReportFormat(cmd)
 	}
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return runCmdAnalyze(cmd, vzHelper)
+		return RunCmdAnalyze(cmd, vzHelper, true)
 	}
 
 	cmd.Example = helpExample
@@ -85,10 +84,11 @@ func analyzeLiveCluster(cmd *cobra.Command, vzHelper helpers.VZHelper, directory
 		IsPodLog: true,
 		Duration: int64(0),
 	}
-	return vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, reportDirectory, moreNS, vzHelper, podLogs)
+	clusterSnapshotCtx := helpers.ClusterSnapshotCtx{BugReportDir: reportDirectory, MoreNS: moreNS, PrintReportToConsole: true}
+	return vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, vzHelper, podLogs, clusterSnapshotCtx)
 }
 
-func runCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToConsole bool) error {
 	directoryFlag := cmd.PersistentFlags().Lookup(constants.DirectoryFlagName)
 	if err := setVzK8sVersion(directoryFlag, vzHelper, cmd); err == nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), helpers.GetVersionOut())
@@ -122,7 +122,7 @@ func runCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
 		}
 	}
-	return analysis.AnalysisMain(vzHelper, directory, reportFileName, reportFormat)
+	return analysis.AnalysisMain(vzHelper, directory, reportFileName, reportFormat, printReportToConsole)
 }
 
 // setVzK8sVersion sets vz and k8s version
@@ -144,7 +144,7 @@ func setVzK8sVersion(directoryFlag *pflag.Flag, vzHelper helpers.VZHelper, cmd *
 		// print k8s and vz version on console stdout
 		return nil
 	}
-	return errors.New("cannot set vz and k8s version")
+	return fmt.Errorf("cannot set vz and k8s version")
 }
 
 // validateReportFormat validates the value specified for flag report-format

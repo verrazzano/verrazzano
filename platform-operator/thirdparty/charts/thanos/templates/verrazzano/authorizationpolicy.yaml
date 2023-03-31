@@ -1,5 +1,4 @@
 # Copyright (c) 2023, Oracle and/or its affiliates.
-# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 {{ if .Capabilities.APIVersions.Has "security.istio.io/v1beta1" -}}
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
@@ -17,6 +16,7 @@ spec:
       to:
         - operation:
             ports:
+              - "10901"
               - "10902"
   selector:
     matchLabels:
@@ -40,6 +40,17 @@ spec:
         - operation:
             ports:
               - "10902"
+    # allow query to talk to store-gateway
+    - from:
+        - source:
+            namespaces:
+              - verrazzano-monitoring
+            principals:
+              - cluster.local/ns/verrazzano-monitoring/sa/thanos-query
+      to:
+        - operation:
+            ports:
+              - "10901"
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}
