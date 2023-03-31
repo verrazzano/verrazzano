@@ -135,7 +135,7 @@ func TestWebLogicStopStart(t *testing.T) {
 				"app.oam.dev/component": wlName,
 				"app.oam.dev/name":      appConfigName}
 
-			clientSet := fake.NewSimpleClientset(initFakePodWithLabels("testpod", test.image, podLabels), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet())
+			clientSet := fake.NewSimpleClientset(initFakePodWithLabels("testpod", []string{test.image}, podLabels), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet())
 			k8sutil.SetFakeClient(clientSet)
 
 			conf := testAppConfigInfo{
@@ -255,7 +255,7 @@ func TestHelidonStopStart(t *testing.T) {
 				podNamespace.Labels["istio-injection"] = "disabled"
 			}
 
-			clientSet := fake.NewSimpleClientset(initFakePodWithLabels("testpod", test.image, podLabels), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet(), podNamespace)
+			clientSet := fake.NewSimpleClientset(initFakePodWithLabels("testpod", []string{test.image}, podLabels), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet(), podNamespace)
 			k8sutil.SetFakeClient(clientSet)
 
 			conf := testAppConfigInfo{

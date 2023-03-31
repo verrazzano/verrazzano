@@ -78,9 +78,9 @@ func (o *OutdatedSidecarPodMatcher) Matches(log vzlog.VerrazzanoLogger, podList 
 			if isImageOutOfDate(log, fluentdImageName, c.Image, o.fluentdImage, workloadType, workloadName) == OutOfDate {
 				return true
 			}
-			if isNewIstioProxyNeeded(log, goClient, &podList.Items[i], c.Image, o.istioProxyImage) {
-				return true
-			}
+		}
+		if isNewIstioProxyNeeded(log, goClient, &podList.Items[i], o.istioProxyImage) {
+			return true
 		}
 	}
 	return false
@@ -188,29 +188,30 @@ func (a *AppPodMatcher) Matches(log vzlog.VerrazzanoLogger, podList *v1.PodList,
 }
 
 // isNewIstioProxyNeeded returns true when a pod has a missing outdated istiod/proxyv2 image
-func isNewIstioProxyNeeded(log vzlog.VerrazzanoLogger, goClient kubernetes.Interface, pod *v1.Pod, actualImage string, expectedImage string) bool {
+func isNewIstioProxyNeeded(log vzlog.VerrazzanoLogger, goClient kubernetes.Interface, pod *v1.Pod, expectedImage string) bool {
 	enabled, _ := isNameSpaceIstioInjectionEnabled(log, goClient, pod.GetNamespace())
 	if !enabled {
 		return false
 	}
-
 	if isProxyInjectionDisabled(pod) {
 		return false
 	}
 
-	istioImageStatus := isImageOutOfDate(log, proxyv2ImageName, actualImage, expectedImage, pod.Namespace, pod.Name)
-	switch istioImageStatus {
-	case UpToDate:
-		return false
-	case OutOfDate:
-		return true
-	case NotFound:
-		// The istio sidecar should have been found but was not, meaning it must not have been injected
-		// To be safe, return true so the pod gets restarted.
-		return true
-	default:
-		return true
+	for _, c := range pod.Spec.Containers {
+		istioImageStatus := isImageOutOfDate(log, proxyv2ImageName, c.Image, expectedImage, pod.Namespace, pod.Name)
+		switch istioImageStatus {
+		case UpToDate:
+			return false
+		case OutOfDate:
+			return true
+		default:
+			continue
+		}
 	}
+
+	// The istio sidecar should have been found but was not, meaning it must not have been injected
+	// To be safe, return true so the pod gets restarted.
+	return true
 }
 
 func isNameSpaceIstioInjectionEnabled(log vzlog.VerrazzanoLogger, goClient kubernetes.Interface, namespace string) (bool, error) {

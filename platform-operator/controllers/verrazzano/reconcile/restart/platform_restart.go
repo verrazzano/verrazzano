@@ -94,8 +94,8 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 			return err
 		}
 		// Check if any pods contain the old Istio proxy image
-		found := podMatcher.Matches(log, podList, "StatefulSet", sts.Name)
-		if !found {
+		needsNewProxy := podMatcher.Matches(log, podList, "StatefulSet", sts.Name)
+		if !needsNewProxy {
 			continue
 		}
 		if sts.Spec.Template.ObjectMeta.Annotations == nil {
@@ -128,8 +128,8 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 			return err
 		}
 		// Check if any pods contain the old Istio proxy image
-		found := podMatcher.Matches(log, podList, "DaemonSet", daemonSet.Name)
-		if !found {
+		needsNewProxy := podMatcher.Matches(log, podList, "DaemonSet", daemonSet.Name)
+		if !needsNewProxy {
 			continue
 		}
 
