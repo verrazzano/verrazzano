@@ -93,6 +93,16 @@ func (r *VerrazzanoManagedClusterReconciler) getJaegerOpenSearchConfig(vzList *v
 		if err != nil {
 			return jc, r.log.ErrorfNewErr("Failed to get the CA bundle used by Verrazzano ingress %v", err)
 		}
+	} else if jsc.OSURL == vzconstants.DefaultOperatorJaegerOSURL {
+		jc.URL, err = r.getOperatorOSURL()
+		if err != nil {
+			return jc, err
+		}
+		// Get the CA bundle needed to connect to the admin keycloak
+		jc.CA, err = r.getAdminCaBundle()
+		if err != nil {
+			return jc, r.log.ErrorfNewErr("Failed to get the CA bundle used by Verrazzano ingress %v", err)
+		}
 	} else {
 		jc.URL = jsc.OSURL
 		jc.CA = jaegerSecret.Data[jsc.CAFileName]

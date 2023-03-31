@@ -134,6 +134,12 @@ const TestPrometheusScrapeJob = "test_job"
 // Default OpenSearch URL
 const DefaultOpensearchURL = "http://verrazzano-authproxy-opensearch:8775"
 
+// Default OpenSearch URL for Operator OS
+const DefaultOperatorOSURL = "http://verrazzano-authproxy-opensearch-logging:8775"
+
+// Default Jaeger OpenSearch URL for Operator OS
+const DefaultOperatorJaegerOSURL = "http://verrazzano-authproxy-opensearch-logging.verrazzano-system:8775"
+
 // Default Jaeger OpenSearch URL
 const DefaultJaegerOSURL = "http://verrazzano-authproxy-opensearch.verrazzano-system:8775"
 

@@ -91,6 +91,11 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 		if err != nil {
 			return err
 		}
+	} else if esURL == constants.DefaultOperatorOSURL {
+		esURL, err = r.getOperatorOSURL()
+		if err != nil {
+			return err
+		}
 	}
 
 	// Get the CA bundle needed to connect to the admin keycloak
