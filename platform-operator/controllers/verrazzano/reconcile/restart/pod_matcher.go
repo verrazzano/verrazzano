@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"strings"
 )
 
 const (
@@ -235,13 +236,13 @@ func isNameSpaceIstioInjectionEnabled(log vzlog.VerrazzanoLogger, goClient kuber
 func isProxyInjectionDisabled(pod *v1.Pod) bool {
 	if pod.Labels != nil {
 		v := pod.Labels[podIstioInjectLabel]
-		if v == "false" {
+		if strings.Contains(v, "false") {
 			return true
 		}
 	}
 	if pod.Annotations != nil {
 		v := pod.Annotations[podIstioInjectLabel]
-		if v == "false" {
+		if strings.Contains(v, "false") {
 			return true
 		}
 	}
