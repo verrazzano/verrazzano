@@ -426,7 +426,7 @@ func TestUpdateDestinationRule(t *testing.T) {
 	// WHEN  the createOrUpdateDestinationRule function is called
 	// THEN  the call does not return an error and the DestinationRule is updated
 	dr := &istioclinet.DestinationRule{ObjectMeta: metav1.ObjectMeta{Name: managedClusterName, Namespace: constants.VerrazzanoMonitoringNamespace}}
-	populateDestinationRule(dr, "bad-bad-host", port)
+	populateDestinationRule(dr, "bad-bad-host", port, managedClusterName)
 
 	cli := fake.NewClientBuilder().WithScheme(makeThanosTestScheme()).WithRuntimeObjects(
 		&k8sapiext.CustomResourceDefinition{
@@ -471,7 +471,7 @@ func TestDeleteDestinationRule(t *testing.T) {
 	// WHEN  the deleteDestinationRule function is called
 	// THEN  the call does not return an error and the DestinationRule is deleted
 	dr := &istioclinet.DestinationRule{ObjectMeta: metav1.ObjectMeta{Name: managedClusterName, Namespace: constants.VerrazzanoMonitoringNamespace}}
-	populateDestinationRule(dr, host, port)
+	populateDestinationRule(dr, host, port, managedClusterName)
 
 	cli = fake.NewClientBuilder().WithScheme(makeThanosTestScheme()).WithRuntimeObjects(
 		&k8sapiext.CustomResourceDefinition{

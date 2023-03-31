@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	appsv1 "k8s.io/api/apps/v1"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -17,6 +16,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	istionet "istio.io/api/networking/v1beta1"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -63,7 +63,9 @@ func (r *VerrazzanoManagedClusterReconciler) syncThanosQuery(ctx context.Context
 	if err := r.syncThanosQueryEndpoint(ctx, vmc); err != nil {
 		return err
 	}
-	if err := r.createOrUpdateCACertVolume(vmc.Name)
+	if err := r.createOrUpdateCACertVolume(vmc.Name); err != nil {
+		return err
+	}
 	if err := r.createOrUpdateServiceEntry(vmc.Name, vmc.Status.ThanosHost, thanosGrpcIngressPort); err != nil {
 		return err
 	}
@@ -241,18 +243,18 @@ func toGrpcTarget(hostname string) string {
 // This CA cert will be applied to the Destination rule to allow TLS communication to managed cluster query endpoints
 func (r *VerrazzanoManagedClusterReconciler) createOrUpdateCACertVolume(vmcName string) error {
 	var queryDeploy appsv1.Deployment
-	err := r.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoMonitoringNamespace, Name: thanosQueryDeployName}, &queryDeploy)
-	if err != nil {
-		return r.log.ErrorfNewErr("Failed to get the Thanos Query Deployment %s/%s from the cluster: %v", constants.VerrazzanoMonitoringNamespace, thanosQueryDeployName, err)
-	}
+	_, err := controllerruntime.CreateOrUpdate(context.TODO(), r.Client, &queryDeploy, func() error {
+		istioVolume, err := r.unmarshalIstioVolumeAnnotation(queryDeploy)
+		if err != nil {
+			return err
+		}
 
-	istioVolume, err := r.unmarshalIstioVolumeAnnotation(queryDeploy)
-	if err != nil {
-		return err
-	}
-
-	addCAVolumeEntry(&istioVolume, vmcName)
-	return r.createCAVolumeMount(&queryDeploy)
+		if err := r.createCAVolumeEntry(&queryDeploy, istioVolume, vmcName); err != nil {
+			return err
+		}
+		return r.createCAVolumeMount(&queryDeploy)
+	})
+	return err
 }
 
 // createOrUpdateServiceEntry ensures that an Istio ServiceEntry exists for a managed cluster Thanos endpoint. The ServiceEntry is
@@ -330,14 +332,14 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateDestinationRule(name,
 	}
 	if err == nil {
 		// we should do some basic fields checks and only update if there are changes, but for now this will have to do
-		populateDestinationRule(dr, host, port)
+		populateDestinationRule(dr, host, port, name)
 		if err = r.Client.Update(context.TODO(), dr); err != nil {
 			return r.log.ErrorfNewErr("Unable to update DestinationRule %s/%s: %v", constants.VerrazzanoMonitoringNamespace, name, err)
 		}
 		return nil
 	}
 
-	populateDestinationRule(dr, host, port)
+	populateDestinationRule(dr, host, port, name)
 	if err = r.Client.Create(context.TODO(), dr); err != nil {
 		return r.log.ErrorfNewErr("Unable to create DestinationRule %s/%s: %v", constants.VerrazzanoMonitoringNamespace, name, err)
 	}
@@ -345,7 +347,7 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateDestinationRule(name,
 	return nil
 }
 
-func populateDestinationRule(dr *istioclinet.DestinationRule, host string, port uint32) {
+func populateDestinationRule(dr *istioclinet.DestinationRule, host string, port uint32, vmcName string) {
 	dr.Spec.Host = host
 	dr.Spec.TrafficPolicy = &istionet.TrafficPolicy{
 		PortLevelSettings: []*istionet.TrafficPolicy_PortTrafficPolicy{
@@ -355,7 +357,8 @@ func populateDestinationRule(dr *istioclinet.DestinationRule, host string, port 
 				},
 				Tls: &istionet.ClientTLSSettings{
 					Mode:               istionet.ClientTLSSettings_SIMPLE,
-					InsecureSkipVerify: wrapperspb.Bool(true), // this will be replaced with false when we support managed cluster CA cert checking
+					InsecureSkipVerify: wrapperspb.Bool(false),
+					CaCertificates:     fmt.Sprintf("%s/%s", istioCertPath, getCAFileName(vmcName)),
 				},
 			},
 		},
@@ -406,10 +409,11 @@ func (r *VerrazzanoManagedClusterReconciler) deleteDestinationRule(name string) 
 	return client.IgnoreNotFound(err)
 }
 
+// createCAVolumeMount Adds the CA Volume mount as an Istio annotation to the deployment if it does not exist
 func (r *VerrazzanoManagedClusterReconciler) createCAVolumeMount(deployment *appsv1.Deployment) error {
 	if _, ok := deployment.Spec.Template.Annotations[istioVolumeMountAnnotation]; !ok {
 		volumeMount := v1.VolumeMount{
-			Name: istioVolumeName,
+			Name:      istioVolumeName,
 			MountPath: istioCertPath,
 		}
 		volumeMountJSON, err := json.Marshal(volumeMount)
@@ -436,8 +440,19 @@ func (r *VerrazzanoManagedClusterReconciler) unmarshalIstioVolumeAnnotation(depl
 	return istioVolume, nil
 }
 
-// addCAVolumeEntry adds the CA mount given a Volume object from the Istio annotations
-func addCAVolumeEntry(volume *v1.Volume, vmcName string) {
+// createCAVolumeEntry adds the CA mount given a Volume object from the Istio annotations and creates the annotation on the deployment
+func (r *VerrazzanoManagedClusterReconciler) createCAVolumeEntry(deployment *appsv1.Deployment, volume v1.Volume, vmcName string) error {
+	updateVolumeSource(&volume, vmcName)
+	volumeJSON, err := json.Marshal(volume)
+	if err != nil {
+		return r.log.ErrorfNewErr("Failed to marshal Volume %s Istio Annotation: %v", istioVolumeName, err)
+	}
+	deployment.Spec.Template.Annotations[istioVolumeAnnotation] = string(volumeJSON)
+	return nil
+}
+
+// updateVolumeSource adds the Volume projection to the Volume if it does not exist
+func updateVolumeSource(volume *v1.Volume, vmcName string) {
 	projectionEntry := v1.VolumeProjection{
 		Secret: &v1.SecretProjection{
 			LocalObjectReference: v1.LocalObjectReference{
@@ -445,7 +460,7 @@ func addCAVolumeEntry(volume *v1.Volume, vmcName string) {
 			},
 			Items: []v1.KeyToPath{
 				{
-					Key: caCertSecretKey,
+					Key:  caCertSecretKey,
 					Path: getCAFileName(vmcName),
 				},
 			},
@@ -459,6 +474,13 @@ func addCAVolumeEntry(volume *v1.Volume, vmcName string) {
 			},
 		}
 		return
+	}
+
+	// Verify if the source exists. If not, add it to the sources
+	for _, source := range volume.Projected.Sources {
+		if source.Secret != nil && source.Secret.Name == getCASecretName(vmcName) {
+			return
+		}
 	}
 	volume.Projected.Sources = append(volume.Projected.Sources, projectionEntry)
 }
