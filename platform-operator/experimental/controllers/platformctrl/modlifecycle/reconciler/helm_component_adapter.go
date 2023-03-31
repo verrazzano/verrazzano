@@ -9,9 +9,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	modulesv1beta2 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/modlifecycle/delegates"
 	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/platformctrl/modlifecycle/delegates"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 

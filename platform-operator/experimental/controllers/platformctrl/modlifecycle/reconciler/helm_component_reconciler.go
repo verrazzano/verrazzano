@@ -10,8 +10,8 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	modulesv1beta2 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/modlifecycle/delegates"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/platformctrl/modlifecycle/delegates"
 	"go.uber.org/zap"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

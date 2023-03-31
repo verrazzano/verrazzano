@@ -106,6 +106,10 @@ go-install:
 
 .PHONY: manifests
 manifests: platform-manifests
+	@echo Moving experimental CRDs
+	mv -v helm_config/charts/verrazzano-platform-operator/crds/install.verrazzano.io_module* /tmp
+	mv -v helm_config/charts/verrazzano-platform-operator/crds/install.verrazzano.io_*definitions.yaml /tmp
+	mv -v helm_config/charts/verrazzano-platform-operator/crds/install.verrazzano.io_platforms.yaml /tmp
 
 # Generate mocks
 .PHONY: mock-gen

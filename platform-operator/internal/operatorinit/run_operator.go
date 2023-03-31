@@ -4,7 +4,6 @@
 package operatorinit
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/modlifecycle"
 	"os"
 	"sync"
 	"time"
@@ -14,13 +13,14 @@ import (
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
-	modulectrl "github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/module"
-	platformctrl "github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/platform"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/platformctrl/platformdef"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/platformctrl/modlifecycle"
+	modulectrl "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/platformctrl/module"
+	platformctrl "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/platformctrl/platform"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/platformctrl/platformdef"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
