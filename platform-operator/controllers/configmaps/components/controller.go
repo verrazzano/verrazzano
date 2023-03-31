@@ -6,14 +6,11 @@ package components
 import (
 	"context"
 	"fmt"
-	"time"
-
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -25,7 +22,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"time"
 )
+
+var shimComponents = map[string]spi.Component{}
 
 type ComponentConfigMapReconciler struct {
 	client.Client
@@ -33,7 +33,14 @@ type ComponentConfigMapReconciler struct {
 	DryRun bool
 }
 
+func initShimComponentList() {
+	// Add any shim components here that you want to test.
+	// For example, to add a shim component to test a new CAPI component
+	//	shimComponents[capi.ComponentName] = capi.NewComponent()
+}
+
 func (r *ComponentConfigMapReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	initShimComponentList()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1.ConfigMap{}).
 		WithEventFilter(r.createComponentConfigMapPredicate()).
@@ -111,18 +118,18 @@ func (r *ComponentConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return newRequeueWithDelay(), err
 	}
 
-	if configMap.Labels[devComponentConfigMapKindLabel] != devComponentConfigMapKindHelmComponent {
-		err = fmt.Errorf("%s is not a support configmap-kind, %s is the only configmap-kind supported",
-			configMap.Labels[devComponentConfigMapKindLabel], devComponentConfigMapKindHelmComponent)
-		log.Error(err)
-		return ctrl.Result{}, err
+	var comp spi.Component
+	if configMap.Labels[devComponentConfigMapKindLabel] == devComponentConfigMapKindHelmComponent {
+		comp, err = newDevHelmComponent(configMap)
+	} else if configMap.Labels[devComponentConfigMapKindLabel] == devComponentConfigMapKindShimComponent {
+		comp, err = newDevShimComponent(configMap)
+	} else {
+		err = fmt.Errorf("%s is not a support configmap-kind, %s and %s are the only configmap-kind supported",
+			configMap.Labels[devComponentConfigMapKindLabel], devComponentConfigMapKindHelmComponent, devComponentConfigMapKindShimComponent)
 	}
 
-	comp, err := newDevHelmComponent(configMap)
 	if err != nil {
-		log.Errorf("Failed to read component %s data from configmap %s/%s: %v", configMap.GetName(), configMap.GetNamespace(), err)
-		// don't requeue if the data is invalid
-		// once the data is updated to be correct it will trigger another reconcile
+		log.Errorf("Invalid configmap %s/%s: %v", configMap.GetNamespace(), configMap.GetName(), err)
 		return ctrl.Result{}, err
 	}
 
@@ -135,24 +142,24 @@ func (r *ComponentConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.R
 	return r.processComponent(compCtx, comp, configMap)
 }
 
-func (r *ComponentConfigMapReconciler) processComponent(ctx spi.ComponentContext, comp devComponent, configMap *v1.ConfigMap) (ctrl.Result, error) {
+func (r *ComponentConfigMapReconciler) processComponent(ctx spi.ComponentContext, comp spi.Component, configMap *v1.ConfigMap) (ctrl.Result, error) {
 	// check if component is being deleted
 	if !configMap.DeletionTimestamp.IsZero() {
 		// uninstall component
-		if err := comp.doUninstall(ctx); err != nil {
-			ctx.Log().Errorf("Error uninstalling dev component %s: %v", comp.ReleaseName, err)
+		if err := doUninstall(ctx, comp); err != nil {
+			ctx.Log().Errorf("Error uninstalling dev component %s: %v", comp.Name(), err)
 			return newRequeueWithDelay(), err
 		}
-		ctx.Log().Infof("Successfully uninstalled dev component %s", comp.ReleaseName)
+		ctx.Log().Infof("Successfully uninstalled dev component %s", comp.Name())
 
 		// remove finalizer to delete the component
 		controllerutil.RemoveFinalizer(configMap, constants.DevComponentFinalizer)
 		err := r.Update(context.TODO(), configMap)
 		if err != nil {
-			ctx.Log().Errorf("Error removing finalizer %s for dev component %s: %v", constants.DevComponentFinalizer, comp.ReleaseName, err)
+			ctx.Log().Errorf("Error removing finalizer %s for dev component %s: %v", constants.DevComponentFinalizer, comp.Name(), err)
 			return newRequeueWithDelay(), err
 		}
-		ctx.Log().Infof("dev component %s has been successfully uninstalled", comp.ReleaseName)
+		ctx.Log().Infof("dev component %s has been successfully uninstalled", comp.Name())
 		return reconcile.Result{Requeue: true}, nil
 	}
 
@@ -161,10 +168,10 @@ func (r *ComponentConfigMapReconciler) processComponent(ctx spi.ComponentContext
 		configMap.Finalizers = append(configMap.Finalizers, constants.DevComponentFinalizer)
 		err := r.Update(context.TODO(), configMap)
 		if err != nil {
-			ctx.Log().Errorf("Error adding finalizer %s for dev component %s: %v", constants.DevComponentFinalizer, comp.ReleaseName, err)
+			ctx.Log().Errorf("Error adding finalizer %s for dev component %s: %v", constants.DevComponentFinalizer, comp.Name(), err)
 			return newRequeueWithDelay(), err
 		}
-		ctx.Log().Infof("Successfully added finalizer %s to configmap %s for dev component", constants.DevComponentFinalizer, configMap.Name, comp.ReleaseName)
+		ctx.Log().Infof("Successfully added finalizer %s to configmap %s for dev component", constants.DevComponentFinalizer, configMap.Name, comp.Name())
 		// adding finalizer to ConfigMap will trigger a requeue so no need to requeue here
 		return reconcile.Result{}, nil
 	}
@@ -172,29 +179,67 @@ func (r *ComponentConfigMapReconciler) processComponent(ctx spi.ComponentContext
 	// if the release has not been installed, install it
 	installed, err := comp.IsInstalled(ctx)
 	if err != nil {
-		ctx.Log().Errorf("Error checking release status for release %s: %v", comp.ReleaseName, err)
+		ctx.Log().Errorf("Error checking release status for release %s: %v", comp.Name(), err)
 		return newRequeueWithDelay(), err
 	}
 	if !installed {
-		if err = comp.doInstall(ctx); err != nil {
-			ctx.Log().Errorf("Error installing dev component %s: %v", comp.ReleaseName, err)
+		if err = doInstall(ctx, comp); err != nil {
+			ctx.Log().Errorf("Error installing dev component %s: %v", comp.Name(), err)
 			return newRequeueWithDelay(), err
 		}
-		ctx.Log().Infof("dev component %s has been successfully installed", comp.ReleaseName)
+		ctx.Log().Infof("dev component %s has been successfully installed", comp.Name())
 		return reconcile.Result{}, nil
 	}
 
 	// if the release has already been installed, upgrade it
-	if err = comp.doUpgrade(ctx); err != nil {
-		ctx.Log().Errorf("Error upgrading dev component %s: %v", comp.ReleaseName, err)
+	if err = doUpgrade(ctx, comp); err != nil {
+		ctx.Log().Errorf("Error upgrading dev component %s: %v", comp.Name(), err)
 		return newRequeueWithDelay(), err
 	}
-	ctx.Log().Infof("dev component %s has been successfully upgraded", comp.ReleaseName)
+	ctx.Log().Infof("dev component %s has been successfully upgraded", comp.Name())
 	return reconcile.Result{}, nil
 
 }
 
-// Create a new Result that will cause a reconcile requeue after a short delay
+// Create a new Result that will cause reconcile to requeue after a short delay
 func newRequeueWithDelay() ctrl.Result {
 	return vzctrl.NewRequeueWithDelay(3, 5, time.Second)
+}
+
+func doInstall(ctx spi.ComponentContext, comp spi.Component) error {
+	if err := comp.PreInstall(ctx); err != nil {
+		return err
+	}
+	if err := comp.Install(ctx); err != nil {
+		return err
+	}
+	for {
+		if !comp.IsReady(ctx) {
+			ctx.Log().Progressf("Component %s has been installed. Waiting for the component to be ready", comp.Name())
+			time.Sleep(time.Second * 5)
+		} else {
+			break
+		}
+	}
+	return comp.PostInstall(ctx)
+}
+
+func doUpgrade(ctx spi.ComponentContext, comp spi.Component) error {
+	if err := comp.PreUpgrade(ctx); err != nil {
+		return err
+	}
+	if err := comp.Upgrade(ctx); err != nil {
+		return err
+	}
+	return comp.PostUpgrade(ctx)
+}
+
+func doUninstall(ctx spi.ComponentContext, comp spi.Component) error {
+	if err := comp.PreUninstall(ctx); err != nil {
+		return err
+	}
+	if err := comp.Uninstall(ctx); err != nil {
+		return err
+	}
+	return comp.PostUninstall(ctx)
 }
