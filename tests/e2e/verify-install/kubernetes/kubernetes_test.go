@@ -22,8 +22,7 @@ const shortTimeout = 5 * time.Minute
 
 var t = framework.NewTestFramework("kubernetes")
 
-var expectedPodsCattleSystem = []string{
-	"rancher"}
+//var expectedPodsCattleSystem = []string{ "rancher"}
 
 var expectedPodsKeycloak = []string{
 	"mysql",
