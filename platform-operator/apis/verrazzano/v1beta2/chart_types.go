@@ -20,6 +20,7 @@ const (
 // +kubebuilder:resource:path=operatordefinitions,scope=Cluster,shortName=opdef;opdefs
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
+// +genclient
 // +genclient:nonNamespaced
 
 // OperatorDefinition specifies a metadata about an operator chart type.
@@ -65,6 +66,7 @@ type OperatorDefinitionStatus struct {
 // +kubebuilder:resource:path=moduledefinitions,scope=Cluster,shortName=moddef;moddefs
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
+// +genclient
 // +genclient:nonNamespaced
 
 // ModuleDefinition specifies a metadata about a module chart type.

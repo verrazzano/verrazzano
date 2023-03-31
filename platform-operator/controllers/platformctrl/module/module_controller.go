@@ -176,37 +176,37 @@ func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, mod
 func (r *VerrazzanoModuleReconciler) getModuleDependencies(log vzlog.VerrazzanoLogger, moduleInstance *v1beta2.Module, moduleChartType v1beta2.ChartType, sourceURI string, err error) ([]v1beta2.ChartDependency, []v1beta2.ChartDependency) {
 	var crdDeps []v1beta2.ChartDependency
 	var opDeps []v1beta2.ChartDependency
-	//// Look up definition in cluster
-	//clientset, err := getVPOClientset()
-	//if err != nil {
-	//	return nil, nil
-	//}
-	//switch moduleChartType {
-	//case v1beta2.ModuleChartType:
-	//	// Look up definition in cluster
-	//	moduleDef, err := clientset.VerrazzanoV1beta2().ModuleDefinitions().Get(context.TODO(), moduleInstance.Name, metav1.GetOptions{})
-	//	if err != nil {
-	//		return nil, nil
-	//	}
-	//	// FIXME: controllerruntime cache is interfering with these lookups
-	//	//moduleDef := &v1beta2.ModuleDefinition{}
-	//	//if err := r.Get(context.TODO(), types.NamespacedName{Name: moduleInstance.Name}, moduleDef); err != nil {
-	//	//	return ctrl.Result{}, err
-	//	//}
-	//	crdDeps = moduleDef.Spec.CRDDependencies
-	//	opDeps = moduleDef.Spec.OperatorDependencies
-	//case v1beta2.OperatorChartType:
-	//	operatorDef, err := clientset.VerrazzanoV1beta2().OperatorDefinitions().Get(context.TODO(), moduleInstance.Name, metav1.GetOptions{})
-	//	if err != nil {
-	//		return nil, nil
-	//	}
-	//	//operatorDef := &v1beta2.OperatorDefinition{}
-	//	//if err := r.Get(context.TODO(), types.NamespacedName{Name: moduleInstance.Name, Namespace: namespace}, operatorDef); err != nil {
-	//	//	return ctrl.Result{}, err
-	//	//}
-	//	crdDeps = operatorDef.Spec.CRDDependencies
-	//	opDeps = operatorDef.Spec.OperatorDependencies
-	//}
+	// Look up definition in cluster
+	clientset, err := getVPOClientset()
+	if err != nil {
+		return nil, nil
+	}
+	switch moduleChartType {
+	case v1beta2.ModuleChartType:
+		// Look up definition in cluster
+		moduleDef, err := clientset.VerrazzanoV1beta2().ModuleDefinitions().Get(context.TODO(), moduleInstance.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, nil
+		}
+		// FIXME: controllerruntime cache is interfering with these lookups
+		//moduleDef := &v1beta2.ModuleDefinition{}
+		//if err := r.Get(context.TODO(), types.NamespacedName{Name: moduleInstance.Name}, moduleDef); err != nil {
+		//	return ctrl.Result{}, err
+		//}
+		crdDeps = moduleDef.Spec.CRDDependencies
+		opDeps = moduleDef.Spec.OperatorDependencies
+	case v1beta2.OperatorChartType:
+		operatorDef, err := clientset.VerrazzanoV1beta2().OperatorDefinitions().Get(context.TODO(), moduleInstance.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, nil
+		}
+		//operatorDef := &v1beta2.OperatorDefinition{}
+		//if err := r.Get(context.TODO(), types.NamespacedName{Name: moduleInstance.Name, Namespace: namespace}, operatorDef); err != nil {
+		//	return ctrl.Result{}, err
+		//}
+		crdDeps = operatorDef.Spec.CRDDependencies
+		opDeps = operatorDef.Spec.OperatorDependencies
+	}
 	return crdDeps, opDeps
 }
 

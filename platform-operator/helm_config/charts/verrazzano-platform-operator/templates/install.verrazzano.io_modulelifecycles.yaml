@@ -92,7 +92,7 @@ spec:
                         properties:
                           credentialsSecret:
                             type: string
-                          url:
+                          uri:
                             type: string
                         type: object
                     required:
