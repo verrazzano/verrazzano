@@ -79,7 +79,7 @@ fi
 echo "PATH in get_branch_scan_results.sh ${PATH}"
 
 command -v gh >/dev/null 2>&1 || {
-  echo "Github CLI not in PATH"
+  echo "Github CLI is not in PATH"
   exit 1
 }
 
