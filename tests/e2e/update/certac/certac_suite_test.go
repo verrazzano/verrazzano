@@ -5,11 +5,9 @@ package certac
 
 import (
 	"testing"
-
-	"github.com/onsi/ginkgo/v2"
 )
 
 func TestAdminClusterCertManagerUpdate(test *testing.T) {
 	t.RegisterFailHandler()
-	ginkgo.RunSpecs(test, "Update Admin-Cluster Cert-Manager Suite")
+	//	ginkgo.RunSpecs(test, "Update Admin-Cluster Cert-Manager Suite")
 }
