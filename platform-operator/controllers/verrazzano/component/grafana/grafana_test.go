@@ -383,7 +383,7 @@ func TestIsThanosQueryFrontendEnabled(t *testing.T) {
 			expectEnabled: true,
 		},
 		{
-			name:          "Thanos is enabled, Query Frontend is explicity disabled",
+			name:          "Thanos is enabled, Query Frontend is explicitly disabled",
 			ctx:           spi.NewFakeContext(client, thanosQueryFrontendDisabledCR, nil, false),
 			expectEnabled: false,
 		},
