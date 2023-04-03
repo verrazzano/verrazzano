@@ -138,6 +138,9 @@ func GetQueryStoreIngressHost(kubeconfigPath string) string {
 		return ""
 	}
 	ingress, err := clientset.NetworkingV1().Ingresses("verrazzano-system").Get(context.TODO(), "thanos-grpc", metav1.GetOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get Ingress thanos-grpc from the cluster: %v", err))
+	}
 	return ingress.Spec.Rules[0].Host
 }
 
