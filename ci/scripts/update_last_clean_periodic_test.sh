@@ -20,8 +20,8 @@ if [ -z "$2" ]; then
 fi
 SHORT_COMMIT_HASH_ENV="$2"
 
-if [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$CLEAN_BRANCH_NAME" ] || [ -z "$BRANCH_NAME" ] || [ -z "$OCI_OS_REGION" ] || [ -z "$GIT_COMMIT_USED" ]; then
-  echo "This script requires environment variables - CLEAN_BRANCH_NAME, OCI_OS_BUCKET, OCI_OS_NAMESPACE, OCI_OS_REGION, GIT_COMMIT_USED, and WORKSPACE"
+if [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$OCI_OS_COMMIT_BUCKET" ] || [ -z "$CLEAN_BRANCH_NAME" ] || [ -z "$BRANCH_NAME" ] || [ -z "$OCI_OS_REGION" ] || [ -z "$GIT_COMMIT_USED" ]; then
+  echo "This script requires environment variables - CLEAN_BRANCH_NAME, OCI_OS_BUCKET, OCI_OS_COMMIT_BUCKET, OCI_OS_NAMESPACE, OCI_OS_REGION, GIT_COMMIT_USED, and WORKSPACE"
   exit 1
 fi
 
