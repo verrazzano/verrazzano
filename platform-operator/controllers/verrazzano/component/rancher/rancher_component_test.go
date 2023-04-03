@@ -7,6 +7,8 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/golang/mock/gomock"
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
@@ -14,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"sigs.k8s.io/yaml"
 	"strings"
 	"testing"
 
@@ -582,6 +585,111 @@ func TestInstall(t *testing.T) {
 				assert.Equal(t, deployment.Spec.Template.Spec.Containers[0].SecurityContext.Capabilities.Add[0], corev1.Capability("MKNOD"))
 			} else {
 				assert.ErrorContains(t, err, tt.errContains)
+			}
+		})
+	}
+}
+
+func TestCreateAdminCloudCredentialSecret(t *testing.T) {
+	//userList.SetGroupVersionKind(schema.GroupVersionKind{
+	//	Group:   APIGroupRancherManagement,
+	//	Version: APIGroupVersionRancherManagement,
+	//	Kind:    UserListKind,
+	//})
+	userListYaml := `
+apiVersion: v1
+items:
+- apiVersion: management.cattle.io/v3
+  description: ""
+  displayName: Default Admin
+  kind: User
+  metadata:
+    labels:
+      authz.management.cattle.io/bootstrapping: admin-user
+    name: user-admin
+  password: password
+  username: admin
+kind: List
+metadata:
+  resourceVersion: ""
+`
+	userListMap := make(map[string]interface{})
+	err := yaml.Unmarshal([]byte(userListYaml), &userListMap)
+	assert.NoError(t, err)
+	userList := &unstructured.UnstructuredList{}
+	userList.SetUnstructuredContent(userListMap)
+
+	// NOTE: Had to resort to leveraging mocks since deep in the reflection layers of the fake client creation the
+	// processing of unstructured lists was failing (could not locate an "Items" parameter of the list)
+
+	tests := []struct {
+		name        string
+		users       *unstructured.UnstructuredList
+		wantListErr bool
+	}{
+		{
+			name:        "successful create",
+			users:       userList,
+			wantListErr: false,
+		},
+		{
+			name:        "unsuccessful user lookup",
+			users:       &unstructured.UnstructuredList{},
+			wantListErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mocker := gomock.NewController(t)
+			mock := mocks.NewMockClient(mocker)
+			// Expect a call to get the capi secret
+			mock.EXPECT().
+				Get(gomock.Any(), types.NamespacedName{Namespace: CAPIProviderOCISystemNamespace, Name: CAPIProviderOCIAuthConfigSecret}, gomock.Not(gomock.Nil())).
+				DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+					secret.ObjectMeta = metav1.ObjectMeta{
+						Name:      CAPIProviderOCIAuthConfigSecret,
+						Namespace: CAPIProviderOCISystemNamespace,
+					}
+					secret.Data = map[string][]byte{
+						"fingerprint": []byte("abcdefg"),
+						"key":         []byte("some-key"),
+						"tenancy":     []byte("tenancy-ocid"),
+						"user":        []byte("user-admin"),
+					}
+					return nil
+				})
+			// Expect a call to get the list of users
+			mock.EXPECT().
+				List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
+					list.Object = tt.users.Object
+					list.Items = tt.users.Items
+					return nil
+				})
+			if !tt.wantListErr {
+				// Expect a call to get the secret in cattle global data namespace
+				mock.EXPECT().
+					Get(gomock.Any(), types.NamespacedName{Namespace: CattleGlobalDataNamespace, Name: "user-admin"}, gomock.Not(gomock.Nil())).
+					DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+						return errors.NewNotFound(schema.ParseGroupResource("Secret"), "user-admin")
+					})
+				// Expect a call to create the secret in cattle global data
+				mock.EXPECT().
+					Create(gomock.Any(), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
+						// TODO:  add tests for values in the created secret
+						assert.Equal(t, "abcdefg", string(secret.Data["ocicredentialConfig-fingerprint"]))
+						assert.Equal(t, "some-key", string(secret.Data["ocicredentialConfig-privateKeyContents"]))
+						assert.Equal(t, "tenancy-ocid", string(secret.Data["ocicredentialConfig-tenancyId"]))
+						assert.Equal(t, "user-admin", string(secret.Data["ocicredentialConfig-userId"]))
+						return nil
+					})
+			}
+
+			ctx := spi.NewFakeContext(mock, nil, nil, false)
+			err = createAdminCloudCredentialSecret(ctx)
+			if !tt.wantListErr {
+				assert.NoError(t, err)
 			}
 		})
 	}
