@@ -108,13 +108,14 @@ func verifyThanosStore() {
 				return false, err
 			}
 			managedIng := managedCluster.GetThanosIngress()
+			expectedName := fmt.Sprintf("%s:443", managedIng)
 			for _, store := range queryStores {
 				storeMap := store.(map[string]interface{})
 				name, ok := storeMap["name"]
 				if ok {
-					t.Logs.Infof("Found store in Thanos %s", name.(string))
+					t.Logs.Infof("Found store in Thanos %s, want is equal to %s", name.(string), expectedName)
 				}
-				if ok && name.(string) == managedIng {
+				if ok && name.(string) == expectedName {
 					return true, nil
 				}
 			}
