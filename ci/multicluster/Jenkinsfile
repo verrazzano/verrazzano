@@ -868,7 +868,7 @@ def uninstallVerrazzanoOnCluster(count, verrazzanoConfig) {
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 echo "Deleting \\$verrazzanoConfig"
-                time ${VZ_COMMAND} uninstall --timeout 45m
+                time ${VZ_COMMAND} uninstall -y --timeout 45m
             """
         }
     }
