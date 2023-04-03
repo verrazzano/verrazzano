@@ -149,6 +149,10 @@ pipeline {
         stage('Check last clean periodic') {
             steps {
                 sh """
+                    BOM_FILE=${WORKSPACE}/verrazzano-bom.json
+                    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE} --file ${BOM_FILE}
+                    oci --region ${OCI_OS_REGION} os object delete --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE}
+                    echo "successfully deleted from object store"
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${STABLE_COMMIT_OS_LOCATION} --file ${STABLE_COMMIT_LOCATION}
                 """
 
