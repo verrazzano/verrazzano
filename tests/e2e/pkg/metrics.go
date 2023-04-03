@@ -308,10 +308,16 @@ func ThanosQueryStores() ([]interface{}, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("error retrieving targets %d", resp.StatusCode)
 	}
-	// Log(Info, fmt.Sprintf("targets: %s", string(resp.Body)))
+
 	var result map[string]interface{}
-	json.Unmarshal(resp.Body, &result)
-	queryStores := Jq(result, "data", "query").([]interface{})
+	err = json.Unmarshal(resp.Body, &result)
+	if err != nil {
+		return nil, err
+	}
+	queryStores, ok := Jq(result, "data", "query").([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("error finding query store in the Thanos store list")
+	}
 	return queryStores, nil
 }
 

@@ -109,12 +109,25 @@ func verifyThanosStore() {
 			}
 			expectedName := fmt.Sprintf("%s:443", managedCluster.GetQueryIngress())
 			for _, store := range queryStores {
-				storeMap := store.(map[string]interface{})
-				name, ok := storeMap["name"]
-				if ok {
-					t.Logs.Infof("Found store in Thanos %s, want is equal to %s", name.(string), expectedName)
+				storeMap, ok := store.(map[string]interface{})
+				if !ok {
+					t.Logs.Infof("Thanos store empty, skipping entry")
+					continue
 				}
-				if ok && name.(string) == expectedName {
+				name, ok := storeMap["name"]
+				if !ok {
+					t.Logs.Infof("Name not found for store, skipping entry")
+					continue
+				}
+				nameString, nameOk := name.(string)
+				if !nameOk {
+					t.Logs.Infof("Name not valid format, skipping entry")
+					continue
+				}
+				if ok {
+					t.Logs.Infof("Found store in Thanos %s, want is equal to %s", nameString, expectedName)
+				}
+				if ok && nameString == expectedName {
 					return true, nil
 				}
 			}
