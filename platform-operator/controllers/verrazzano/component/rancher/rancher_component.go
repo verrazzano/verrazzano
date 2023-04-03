@@ -122,22 +122,22 @@ func NewComponent() spi.Component {
 						Name:      ComponentName,
 						Namespace: ComponentNamespace,
 					},
-					//{
-					//	Name:      rancherWebhookDeployment,
-					//	Namespace: ComponentNamespace,
-					//},
-					//{
-					//	Name:      fleetAgentDeployment,
-					//	Namespace: FleetLocalSystemNamespace,
-					//},
-					//{
-					//	Name:      fleetControllerDeployment,
-					//	Namespace: FleetSystemNamespace,
-					//},
-					//{
-					//	Name:      gitjobDeployment,
-					//	Namespace: FleetSystemNamespace,
-					//},
+					{
+						Name:      rancherWebhookDeployment,
+						Namespace: ComponentNamespace,
+					},
+					{
+						Name:      fleetAgentDeployment,
+						Namespace: FleetLocalSystemNamespace,
+					},
+					{
+						Name:      fleetControllerDeployment,
+						Namespace: FleetSystemNamespace,
+					},
+					{
+						Name:      gitjobDeployment,
+						Namespace: FleetSystemNamespace,
+					},
 				},
 			},
 			IngressNames: []types.NamespacedName{
