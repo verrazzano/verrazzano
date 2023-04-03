@@ -546,22 +546,20 @@ func failedToUninstallErr(err error) error {
 }
 
 func continueUninstall(confirmUninstall bool) (bool, error) {
-	var response string
-	scanner := bufio.NewScanner(os.Stdin)
 	if confirmUninstall {
 		return true, nil
 	}
-	for {
-		fmt.Print("Are you sure you want to uninstall Verrazzano? [Y/n]: ")
-		if scanner.Scan() {
-			response = scanner.Text()
-		}
-		if err := scanner.Err(); err != nil {
-			return false, err
-		}
-		if response == "y" || response == "Y" {
-			return true, nil
-		}
-		return false, nil
+	var response string
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Print("Are you sure you want to uninstall Verrazzano? [Y/n]: ")
+	if scanner.Scan() {
+		response = scanner.Text()
 	}
+	if err := scanner.Err(); err != nil {
+		return false, err
+	}
+	if response == "y" || response == "Y" {
+		return true, nil
+	}
+	return false, nil
 }
