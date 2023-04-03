@@ -67,13 +67,11 @@ var _ = AfterSuite(afterSuite)
 var _ = t.Describe("Update admin-cluster cert-manager", Label("f:platform-lcm.update"), func() {
 	t.Describe("multicluster cert-manager verify", Label("f:platform-lcm.multicluster-verify"), func() {
 		t.It("admin-cluster cert-manager custom CA", func() {
-			// Disable failing test
-			///---------------------
-			//start := time.Now()
-			//oldIngressCaCrt := updateAdminClusterCA()
-			//verifyCaSync(oldIngressCaCrt)
-			//// verify new logs are flowing after updating admin cert
-			//verifyManagedFluentd(start)
+			start := time.Now()
+			oldIngressCaCrt := updateAdminClusterCA()
+			verifyCaSync(oldIngressCaCrt)
+			// verify new logs are flowing after updating admin cert
+			verifyManagedFluentd(start)
 		})
 	})
 	t.Describe("multicluster cert-manager verify cleanup", Label("f:platform-lcm.multicluster-verify"), func() {
@@ -86,17 +84,17 @@ var _ = t.Describe("Update admin-cluster cert-manager", Label("f:platform-lcm.up
 	})
 })
 
-//func updateAdminClusterCA() string {
-//	oldIngressCaCrt := adminCluster.
-//		GetSecretDataAsString(constants.VerrazzanoSystemNamespace, pocnst.VerrazzanoIngressSecret, mcconstants.CaCrtKey)
-//	genCA := adminCluster.GenerateCA()
-//	newCM := &vzapi.CertManagerComponent{
-//		Certificate: vzapi.Certificate{CA: vzapi.CA{SecretName: genCA, ClusterResourceNamespace: constants.CertManagerNamespace}},
-//	}
-//	m := &CertModifier{CertManager: newCM}
-//	update.RetryUpdate(m, adminCluster.KubeConfigPath, true, pollingInterval, waitTimeout)
-//	return oldIngressCaCrt
-//}
+func updateAdminClusterCA() string {
+	oldIngressCaCrt := adminCluster.
+		GetSecretDataAsString(constants.VerrazzanoSystemNamespace, pocnst.VerrazzanoIngressSecret, mcconstants.CaCrtKey)
+	genCA := adminCluster.GenerateCA()
+	newCM := &vzapi.CertManagerComponent{
+		Certificate: vzapi.Certificate{CA: vzapi.CA{SecretName: genCA, ClusterResourceNamespace: constants.CertManagerNamespace}},
+	}
+	m := &CertModifier{CertManager: newCM}
+	update.RetryUpdate(m, adminCluster.KubeConfigPath, true, pollingInterval, waitTimeout)
+	return oldIngressCaCrt
+}
 
 func isDefaultCM(cm *vzapi.CertManagerComponent) bool {
 	return cm == nil || reflect.DeepEqual(*cm, vzapi.CertManagerComponent{})
