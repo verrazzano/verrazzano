@@ -339,21 +339,21 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 			Eventually(promStackPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		//WhenPromStackInstalledIt("should have the correct Prometheus Operator CRDs", func() {
-		//	verifyCRDList := func() (bool, error) {
-		//		if vzcr.IsPrometheusOperatorEnabled(vz) {
-		//			for _, crd := range promOperatorCrds {
-		//				exists, err := pkg.DoesCRDExist(crd)
-		//				if err != nil || !exists {
-		//					return exists, err
-		//				}
-		//			}
-		//			return true, nil
-		//		}
-		//		return true, nil
-		//	}
-		//	Eventually(verifyCRDList, waitTimeout, pollingInterval).Should(BeTrue())
-		//})
+		WhenPromStackInstalledIt("should have the correct Prometheus Operator CRDs", func() {
+			verifyCRDList := func() (bool, error) {
+				if vzcr.IsPrometheusOperatorEnabled(vz) {
+					for _, crd := range promOperatorCrds {
+						exists, err := pkg.DoesCRDExist(crd)
+						if err != nil || !exists {
+							return exists, err
+						}
+					}
+					return true, nil
+				}
+				return true, nil
+			}
+			Eventually(verifyCRDList, waitTimeout, pollingInterval).Should(BeTrue())
+		})
 
 		// GIVEN the Prometheus stack is installed
 		// WHEN the Prometheus Instance has Thanos enabled
@@ -373,7 +373,7 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		t.It("has affinity configured on prometheus pods", func() {
+		WhenPromStackInstalledIt("has affinity configured on prometheus pods", func() {
 			if isMinVersion140 {
 				var pods []corev1.Pod
 				Eventually(func() error {
@@ -400,7 +400,7 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 			}
 		})
 
-		t.It("should have scrape targets healthy for installed components", func() {
+		WhenPromStackInstalledIt("should have scrape targets healthy for installed components", func() {
 			if isMinVersion140 && !pkg.IsManagedClusterProfile() {
 				verifyScrapeTargets := func() (bool, error) {
 					var targets []string
