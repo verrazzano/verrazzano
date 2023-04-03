@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -10,8 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -112,80 +110,4 @@ func TestPatchRancherIngressNotFound(t *testing.T) {
 	err := patchRancherIngress(c, &vzAcmeDev)
 	assert.NotNil(t, err)
 	assert.True(t, apierrors.IsNotFound(err))
-}
-
-// TestPatchRancherDeploymentNotFound should fail to find the deployment
-// GIVEN no Rancher Deployment
-//
-//	WHEN patchRancherDeployment is called
-//	THEN patchRancherDeployment should fail to patch the deployment
-func TestPatchRancherDeploymentNotFound(t *testing.T) {
-	c := fake.NewClientBuilder().WithScheme(getScheme()).Build()
-	err := patchRancherDeployment(c)
-	assert.NotNil(t, err)
-	assert.True(t, apierrors.IsNotFound(err))
-}
-
-// TestPatchRancherDeploymentNotFound verified patching deployment capabilities
-// GIVEN a Rancher Deployment with a Rancher container
-//
-//	WHEN patchRancherDeployment is called
-//	THEN patchRancherDeployment should add the MKNOD capability to the deployment
-func TestPatchRancherDeployment(t *testing.T) {
-	var tests = []struct {
-		testName   string
-		deployment *appsv1.Deployment
-		isError    bool
-	}{
-		{
-			"rancherContainer",
-			&appsv1.Deployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: common.CattleSystem,
-					Name:      common.RancherName,
-				},
-				Spec: appsv1.DeploymentSpec{
-					Template: v1.PodTemplateSpec{
-						Spec: v1.PodSpec{
-							Containers: []v1.Container{
-								{Name: common.RancherName},
-							},
-						},
-					},
-				},
-			},
-			false,
-		},
-		{
-			"noRancher",
-			&appsv1.Deployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: common.CattleSystem,
-					Name:      common.RancherName,
-				},
-				Spec: appsv1.DeploymentSpec{
-					Template: v1.PodTemplateSpec{
-						Spec: v1.PodSpec{
-							Containers: []v1.Container{
-								{Name: "foobar"},
-								{Name: "barfoo"},
-							},
-						},
-					},
-				},
-			},
-			true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.testName, func(t *testing.T) {
-			c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(tt.deployment).Build()
-			err := patchRancherDeployment(c)
-			if tt.isError {
-				assert.NotNil(t, err)
-			} else {
-				assert.Nil(t, err)
-			}
-		})
-	}
 }
