@@ -5,6 +5,12 @@ package helm
 
 import (
 	"fmt"
+	"io"
+	"net/url"
+	"os"
+	"regexp"
+	"strings"
+
 	yaml2 "github.com/verrazzano/verrazzano/pkg/yaml"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -13,12 +19,7 @@ import (
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/strvals"
-	"io"
-	"net/url"
-	"os"
-	"regexp"
 	"sigs.k8s.io/yaml"
-	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
@@ -103,27 +104,27 @@ func GetValues(log vzlog.VerrazzanoLogger, releaseName string, namespace string)
 
 // Upgrade will upgrade a Helm helmRelease with the specified charts.  The override files array
 // are in order with the first files in the array have lower precedence than latter files.
-func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []HelmOverrides) (e error) {
+func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []HelmOverrides) (*release.Release, error) {
 	settings := cli.New()
 	settings.SetNamespace(namespace)
 	actionConfig, err := actionConfigFn(log, settings, namespace)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	p := getter.All(settings)
 	vals, err := mergeValues(overrides, p)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// load chart from the path
 	chart, err := loadChartFn(chartDir)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	installed, err := IsReleaseInstalled(releaseName, namespace)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var rel *release.Release
@@ -138,7 +139,7 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 		if err != nil {
 			log.Errorf("Failed running Helm command for release %s",
 				releaseName)
-			return err
+			return nil, err
 		}
 	} else {
 		log.Infof("Starting Helm installation of release %s in namespace %s with overrides: %v", releaseName, namespace, overrides)
@@ -152,13 +153,13 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 		if err != nil {
 			log.Errorf("Failed running Helm command for release %s",
 				releaseName)
-			return err
+			return nil, err
 		}
 	}
 
 	log.Infof("Helm upgraded/installed %s in namespace %s", rel.Name, rel.Namespace)
 
-	return nil
+	return rel, nil
 }
 
 // Uninstall will uninstall the helmRelease in the specified namespace  using helm uninstall
