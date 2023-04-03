@@ -71,7 +71,16 @@ func QueryMetricRange(metricsName string, start *time.Time, end *time.Time, step
 
 // QueryMetric queries a metric from the Prometheus host, derived from the kubeconfig
 func QueryMetric(metricsName string, kubeconfigPath string) (string, error) {
-	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", GetPrometheusIngressHost(kubeconfigPath), metricsName)
+	return QueryMetricByHost(metricsName, kubeconfigPath, GetPrometheusIngressHost(kubeconfigPath))
+}
+
+// QueryThanosMetric queries a metric from the Thanos host, derived from the kubeconfig
+func QueryThanosMetric(metricsName string, kubeconfigPath string) (string, error) {
+	return QueryMetricByHost(metricsName, kubeconfigPath, GetThanosQueryIngressHost(kubeconfigPath))
+}
+
+func QueryMetricByHost(metricsName, kubeconfigPath, host string) (string, error) {
+	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", host, metricsName)
 	password, err := GetVerrazzanoPasswordInCluster(kubeconfigPath)
 	if err != nil {
 		return "", err
@@ -87,7 +96,7 @@ func QueryMetric(metricsName string, kubeconfigPath string) (string, error) {
 	return string(resp.Body), nil
 }
 
-// GetPrometheusIngressHost gest the host used for ingress to the system Prometheus in the given cluster
+// GetPrometheusIngressHost gets the host used for ingress to the system Prometheus in the given cluster
 func GetPrometheusIngressHost(kubeconfigPath string) string {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
@@ -104,9 +113,39 @@ func GetPrometheusIngressHost(kubeconfigPath string) string {
 	return ""
 }
 
+// GetThanosQueryIngressHost gets the host used for ingress to Thanos Query in the given cluster
+func GetThanosQueryIngressHost(kubeconfigPath string) string {
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
+		return ""
+	}
+	ingressList, _ := clientset.NetworkingV1().Ingresses("verrazzano-system").List(context.TODO(), metav1.ListOptions{})
+	for _, ingress := range ingressList.Items {
+		if ingress.Name == "thanos-query-frontend" {
+			Log(Info, fmt.Sprintf("Found Ingress %v", ingress.Name))
+			return ingress.Spec.Rules[0].Host
+		}
+	}
+	return ""
+}
+
 // MetricsExistInCluster validates the availability of a given metric in the given cluster
 func MetricsExistInCluster(metricsName string, keyMap map[string]string, kubeconfigPath string) bool {
 	metric, err := QueryMetric(metricsName, kubeconfigPath)
+	if err != nil {
+		return false
+	}
+	metrics := JTq(metric, "data", "result").([]interface{})
+	if metrics != nil {
+		return FindMetric(metrics, keyMap)
+	}
+	return false
+}
+
+// ThanosMetricsExistInCluster validates the availability of a given metric in the given cluster in Thanos
+func ThanosMetricsExistInCluster(metricsName string, keyMap map[string]string, kubeconfigPath string) bool {
+	metric, err := QueryThanosMetric(metricsName, kubeconfigPath)
 	if err != nil {
 		return false
 	}

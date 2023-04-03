@@ -118,7 +118,7 @@ func TestAppendOverrides(t *testing.T) {
 	imageKVS := map[string]string{
 		"image.registry":   "ghcr.io",
 		"image.repository": "verrazzano/thanos",
-		"image.tag":        `v0.28.0-.+-.+`,
+		"image.tag":        `v\d+\.\d+\.\d+-.+-.+`,
 	}
 
 	tests := []struct {

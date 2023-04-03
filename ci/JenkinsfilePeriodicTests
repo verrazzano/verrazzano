@@ -586,7 +586,7 @@ pipeline {
                     steps {
                         script {
                             sh """
-                                ci/scripts/update_last_clean_periodic_test.sh ${VERRAZZANO_DEV_VERSION}
+                                ci/scripts/update_last_clean_periodic_test.sh ${VERRAZZANO_DEV_VERSION} ${SHORT_COMMIT_HASH}
                             """
                         }
                     }

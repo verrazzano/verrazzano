@@ -155,6 +155,11 @@ spec:
             port: 80
           initialDelaySeconds: 5
           periodSeconds: 30
+        # CRI-O does not deliver MKNOD by default so we need to add it
+        securityContext:
+          capabilities:
+            add:
+            - MKNOD
         resources:
 {{ toYaml .Values.resources | indent 10 }}
         volumeMounts:

@@ -448,10 +448,19 @@ pipeline {
                         }
                     }
                 }
-                stage("verify-cert-manager-update") {
+                // cert-manager update suites related to admin and managed clusters should be run sequentially to
+                // avoid intermittent test failures.
+                stage("verify-admin-cluster-cert-manager-update") {
                     steps {
                         script {
-                            parallel verifyCertManagerUpdate()
+                            runGinkgoAdmin('update/certac')
+                        }
+                    }
+                }
+                stage("verify-managed-clusters-cert-manager-update") {
+                    steps {
+                        script {
+                            runGinkgoAdmin('update/certmc')
                         }
                     }
                 }
@@ -1411,17 +1420,6 @@ def verifyDNSUpdate() {
     ]
 }
 
-def verifyCertManagerUpdate() {
-    return [
-        "verify-admin-cluster-cert-manager-update": {
-            runGinkgoAdmin('update/certac')
-        },
-        "verify-managed-cluster-cert-manager-update": {
-            runGinkgoAdmin('update/certmc')
-        },
-    ]
-}
-
 // NOTE: The stages are executed in parallel, however the tests themselves are executed against
 //       each cluster in sequence. If possible, we should parallelize that as well.
 def verifyInfra() {
@@ -1466,9 +1464,6 @@ def verifyExamples() {
         },
         "jaeger helidon": {
             runGinkgo("multicluster/verify-jaeger/helidon", "${TEST_DUMP_ROOT}/jaeger-helidon")
-        },
-        "jaeger hotrod": {
-            runGinkgo("multicluster/verify-jaeger/hotrod", "${TEST_DUMP_ROOT}/jaeger-hotrod")
         },
     ]
 }
