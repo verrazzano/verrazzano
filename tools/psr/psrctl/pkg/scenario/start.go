@@ -5,13 +5,13 @@ package scenario
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"os"
 	"path/filepath"
 	"strings"
 
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/manifest"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
 )
@@ -68,7 +68,7 @@ func (m ScenarioMananger) StartScenario(manifestMan manifest.ManifestManager, sc
 		if m.Verbose {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Installing use case %s as Helm release %s/%s\n", uc.UsecasePath, m.Namespace, relname)
 		}
-		err = StartUpgradeFunc(m.Log, relname, m.Namespace, manifestMan.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
+		_, err = StartUpgradeFunc(m.Log, relname, m.Namespace, manifestMan.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
 		if err != nil {
 			return err.Error(), err
 		}

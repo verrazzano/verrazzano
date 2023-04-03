@@ -5,14 +5,15 @@ package helm
 
 import (
 	"fmt"
+	"os"
+	"reflect"
+	"testing"
+
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/time"
-	"os"
-	"reflect"
-	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -37,9 +38,6 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
-
-// Needed for unit tests
-var fakeOverrides []string
 
 const (
 	testBomFilePath     = "../../testdata/test_bom.json"
@@ -93,6 +91,10 @@ func getChart() *chart.Chart {
 }
 
 func createRelease(name string, status release.Status) *release.Release {
+	helmValues := make(map[string]interface{})
+	nestedValue := map[string]int{"replicas": 3}
+	helmValues["deployment"] = nestedValue
+
 	now := time.Now()
 	return &release.Release{
 		Name:      releaseName,
@@ -105,6 +107,7 @@ func createRelease(name string, status release.Status) *release.Release {
 		},
 		Chart:   getChart(),
 		Version: 1,
+		Config:  helmValues,
 	}
 }
 
@@ -152,12 +155,6 @@ func TestUpgrade(t *testing.T) {
 		IgnoreNamespaceOverride: true,
 		ImagePullSecretKeyname:  "imagePullSecrets",
 		PreUpgradeFunc:          fakePreUpgrade,
-	}
-
-	// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
-	fakeOverrides = []string{
-		"rancherImage=ghcr.io/verrazzano/rancher",
-		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
 	}
 
 	config.SetDefaultBomFilePath(testBomFilePath)
@@ -230,13 +227,6 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 	_ = os.Setenv(constants.ImageRepoOverrideEnvVar, "myrepo")
 	defer func() { _ = os.Unsetenv(constants.ImageRepoOverrideEnvVar) }()
 
-	// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
-	fakeOverrides = []string{
-		"rancherImage=myreg.io/myrepo/verrazzano/rancher",
-		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
-		"global.hub=myreg.io/myrepo/verrazzano",
-	}
-
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer helm.SetDefaultActionConfigFunction()
 	defer helm.SetDefaultLoadChartFunction()
@@ -266,12 +256,6 @@ func TestInstall(t *testing.T) {
 	}
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-
-	// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
-	fakeOverrides = []string{
-		"rancherImage=ghcr.io/verrazzano/rancher",
-		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
-	}
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
@@ -309,12 +293,6 @@ func TestInstallWithAllOverride(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
-	// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
-	fakeOverrides = []string{
-		"rancherImage=ghcr.io/verrazzano/rancher",
-		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
-	}
-
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
 	defer helm.SetDefaultActionConfigFunction()
@@ -345,12 +323,6 @@ func TestInstallPreviousFailure(t *testing.T) {
 	}
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-
-	// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
-	fakeOverrides = []string{
-		"rancherImage=ghcr.io/verrazzano/rancher",
-		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
-	}
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
@@ -1747,4 +1719,72 @@ func TestHelmComponentUpgrade(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestGetComputedValuesForInstall tests the GetComputedValues function for a new installation.
+// GIVEN a new Helm component installation
+// WHEN the GetComputedValues function is called
+// THEN we can fetch a computed Helm value that was set during installation
+func TestGetComputedValuesForInstall(t *testing.T) {
+	a := assert.New(t)
+
+	comp := HelmComponent{
+		ReleaseName:             "rancher",
+		ChartDir:                "ChartDir",
+		ChartNamespace:          "chartNS",
+		IgnoreNamespaceOverride: true,
+		PreUpgradeFunc:          fakePreUpgrade,
+	}
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+	helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
+	defer helm.SetDefaultActionConfigFunction()
+	helm.SetLoadChartFunction(func(chartDir string) (*chart.Chart, error) {
+		return getChart(), nil
+	})
+	defer helm.SetDefaultLoadChartFunction()
+
+	vals, err := comp.GetComputedValues(spi.NewFakeContext(newFakeClient(), &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false))
+	a.NoError(err, "GetComputedValues returned an error")
+	a.NotNil(vals)
+
+	// check one of the values set from image overrides from the BOM
+	image, err := vals.PathValue("rancherImage")
+	a.NoError(err, "Unable to find Helm key in computed values")
+	a.Equal("ghcr.io/verrazzano/rancher", image)
+}
+
+// TestGetComputedValuesForInstall tests the GetComputedValues function for an upgraded installation.
+// GIVEN a Helm component is being upgraded
+// WHEN the GetComputedValues function is called
+// THEN we can fetch a computed Helm value from the originally installed release
+func TestGetComputedValuesForUpgrade(t *testing.T) {
+	a := assert.New(t)
+
+	comp := HelmComponent{
+		ReleaseName:             releaseName,
+		ChartDir:                "ChartDir",
+		ChartNamespace:          "chartNS",
+		IgnoreNamespaceOverride: true,
+		ImagePullSecretKeyname:  "imagePullSecrets",
+		PreUpgradeFunc:          fakePreUpgrade,
+	}
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer helm.SetDefaultActionConfigFunction()
+	defer helm.SetDefaultLoadChartFunction()
+
+	helm.SetActionConfigFunction(testActionConfigWithInstallation)
+	helm.SetLoadChartFunction(func(chartDir string) (*chart.Chart, error) {
+		return getChart(), nil
+	})
+
+	vals, err := comp.GetComputedValues(spi.NewFakeContext(newFakeClient(), &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false))
+	a.NoError(err, "GetComputedValues returned an error")
+	a.NotNil(vals)
+
+	// check the Helm value from the initial release (this is set up in the createRelease func)
+	replicas, err := vals.PathValue("deployment.replicas")
+	a.NoError(err, "Unable to find Helm key in computed values")
+	a.Equal(float64(3), replicas)
 }
