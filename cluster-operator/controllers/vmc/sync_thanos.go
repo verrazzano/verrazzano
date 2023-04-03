@@ -62,7 +62,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncThanosQuery(ctx context.Context
 	if err := r.syncThanosQueryEndpoint(ctx, vmc); err != nil {
 		return err
 	}
-	if err := r.createOrUpdateCACertVolume(vmc, r.addCACertToDeployment); err != nil {
+	if err := r.createOrUpdateCACertVolume(vmc, r.removeCACertFromDeployment); err != nil {
 		return err
 	}
 	if err := r.createOrUpdateServiceEntry(vmc.Name, vmc.Status.ThanosHost, thanosGrpcIngressPort); err != nil {
@@ -480,6 +480,13 @@ func (r *VerrazzanoManagedClusterReconciler) removeCAVolume(deployment *appsv1.D
 		}
 	} else if index := keyToPathKeyIndex(volume.Secret.Items, vmcKey); index > -1 {
 		volume.Secret.Items = append(volume.Secret.Items[:index], volume.Secret.Items[index+1:]...)
+	}
+
+	// Remove the volume and volume mount if there are no more data sources
+	if len(volume.Secret.Items) == 0 {
+		delete(deployment.Spec.Template.Annotations, istioVolumeAnnotation)
+		delete(deployment.Spec.Template.Annotations, istioVolumeMountAnnotation)
+		return nil
 	}
 
 	volumeJSON, err := json.Marshal([]v1.Volume{volume})
