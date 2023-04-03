@@ -149,7 +149,7 @@ pipeline {
         stage('Check last clean periodic') {
             steps {
                 sh """
-                    cat "test file" >> ./test.txt
+                    echo "test file" >> ./test.txt
                     oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/test --file ./test.txt
                     oci --region ${OCI_OS_REGION} os object delete --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/test
                     rm ./test.txt
