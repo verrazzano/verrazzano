@@ -523,11 +523,6 @@ func TestInstall(t *testing.T) {
 }
 
 func TestCreateAdminCloudCredentialSecret(t *testing.T) {
-	//userList.SetGroupVersionKind(schema.GroupVersionKind{
-	//	Group:   APIGroupRancherManagement,
-	//	Version: APIGroupVersionRancherManagement,
-	//	Kind:    UserListKind,
-	//})
 	userListYaml := `
 apiVersion: v1
 items:
