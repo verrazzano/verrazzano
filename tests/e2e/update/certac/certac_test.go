@@ -86,17 +86,17 @@ var _ = t.Describe("Update admin-cluster cert-manager", Label("f:platform-lcm.up
 	})
 })
 
-func updateAdminClusterCA() string {
-	oldIngressCaCrt := adminCluster.
-		GetSecretDataAsString(constants.VerrazzanoSystemNamespace, pocnst.VerrazzanoIngressSecret, mcconstants.CaCrtKey)
-	genCA := adminCluster.GenerateCA()
-	newCM := &vzapi.CertManagerComponent{
-		Certificate: vzapi.Certificate{CA: vzapi.CA{SecretName: genCA, ClusterResourceNamespace: constants.CertManagerNamespace}},
-	}
-	m := &CertModifier{CertManager: newCM}
-	update.RetryUpdate(m, adminCluster.KubeConfigPath, true, pollingInterval, waitTimeout)
-	return oldIngressCaCrt
-}
+//func updateAdminClusterCA() string {
+//	oldIngressCaCrt := adminCluster.
+//		GetSecretDataAsString(constants.VerrazzanoSystemNamespace, pocnst.VerrazzanoIngressSecret, mcconstants.CaCrtKey)
+//	genCA := adminCluster.GenerateCA()
+//	newCM := &vzapi.CertManagerComponent{
+//		Certificate: vzapi.Certificate{CA: vzapi.CA{SecretName: genCA, ClusterResourceNamespace: constants.CertManagerNamespace}},
+//	}
+//	m := &CertModifier{CertManager: newCM}
+//	update.RetryUpdate(m, adminCluster.KubeConfigPath, true, pollingInterval, waitTimeout)
+//	return oldIngressCaCrt
+//}
 
 func isDefaultCM(cm *vzapi.CertManagerComponent) bool {
 	return cm == nil || reflect.DeepEqual(*cm, vzapi.CertManagerComponent{})
