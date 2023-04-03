@@ -210,11 +210,8 @@ type datasources struct {
 	Datasources []datasource `json:"datasources"`
 }
 
+// TestApplyDatasourcesConfigmap tests the applyDatasourcesConfigmap function.
 func TestApplyDatasourcesConfigmap(t *testing.T) {
-
-	// Thanos and Prom enabled
-	// Thanos disabled, Prom enabled
-	// Both disabled
 	oldConfig := config.Get()
 	defer config.Set(oldConfig)
 	config.Set(config.OperatorConfig{
@@ -260,18 +257,27 @@ func TestApplyDatasourcesConfigmap(t *testing.T) {
 		expectPromDatasource   bool
 		expectThanosDatasource bool
 	}{
+		// GIVEN Thanos is disabled and Prometheus is enabled
+		// WHEN the applyDatasourcesConfigmap function is called
+		// THEN the Grafana datasources configmap contains Prometheus as the only datasource
 		{
 			name:                   "Thanos is disabled (by default)",
 			vzCR:                   &vzapi.Verrazzano{},
 			expectPromDatasource:   true,
 			expectThanosDatasource: false,
 		},
+		// GIVEN Thanos is enabled and Prometheus is enabled
+		// WHEN the applyDatasourcesConfigmap function is called
+		// THEN the Grafana datasources configmap contains Thanos and Prometheus datasources and Thanos is the default
 		{
 			name:                   "Thanos is enabled, Query Frontend is enabled by default",
 			vzCR:                   thanosEnabledCR,
 			expectPromDatasource:   true,
 			expectThanosDatasource: true,
 		},
+		// GIVEN Thanos and Prometheus are both disabled
+		// WHEN the applyDatasourcesConfigmap function is called
+		// THEN the Grafana datasources configmap contains no datasources
 		{
 			name:                   "Thanos and Prometheus both disabled",
 			vzCR:                   thanosAndPrometheusDisabledCR,
@@ -316,6 +322,7 @@ func TestApplyDatasourcesConfigmap(t *testing.T) {
 	}
 }
 
+// TestIsThanosQueryFrontendEnabled tests the isThanosQueryFrontendEnabled function.
 func TestIsThanosQueryFrontendEnabled(t *testing.T) {
 	oldConfig := config.Get()
 	defer config.Set(oldConfig)
@@ -372,16 +379,25 @@ func TestIsThanosQueryFrontendEnabled(t *testing.T) {
 		ctx           spi.ComponentContext
 		expectEnabled bool
 	}{
+		// GIVEN Thanos is disabled
+		// WHEN the isThanosQueryFrontendEnabled function is called
+		// THEN the function should return false
 		{
 			name:          "Thanos is disabled (by default)",
 			ctx:           spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false),
 			expectEnabled: false,
 		},
+		// GIVEN Thanos is enabled
+		// WHEN the isThanosQueryFrontendEnabled function is called
+		// THEN the function should return true
 		{
 			name:          "Thanos is enabled, Query Frontend is enabled by default",
 			ctx:           spi.NewFakeContext(client, thanosEnabledCR, nil, false),
 			expectEnabled: true,
 		},
+		// GIVEN Thanos is enabled but the Query Frontend is disabled
+		// WHEN the isThanosQueryFrontendEnabled function is called
+		// THEN the function should return false
 		{
 			name:          "Thanos is enabled, Query Frontend is explicitly disabled",
 			ctx:           spi.NewFakeContext(client, thanosQueryFrontendDisabledCR, nil, false),
