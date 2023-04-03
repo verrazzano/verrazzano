@@ -16,11 +16,7 @@ import (
 type VerrazzanoV1beta2Interface interface {
 	RESTClient() rest.Interface
 	ModulesGetter
-	ModuleDefinitionsGetter
 	ModuleLifecyclesGetter
-	OperatorDefinitionsGetter
-	PlatformsGetter
-	PlatformDefinitionsGetter
 }
 
 // VerrazzanoV1beta2Client is used to interact with features provided by the verrazzano group.
@@ -32,24 +28,8 @@ func (c *VerrazzanoV1beta2Client) Modules(namespace string) ModuleInterface {
 	return newModules(c, namespace)
 }
 
-func (c *VerrazzanoV1beta2Client) ModuleDefinitions() ModuleDefinitionInterface {
-	return newModuleDefinitions(c)
-}
-
 func (c *VerrazzanoV1beta2Client) ModuleLifecycles(namespace string) ModuleLifecycleInterface {
 	return newModuleLifecycles(c, namespace)
-}
-
-func (c *VerrazzanoV1beta2Client) OperatorDefinitions() OperatorDefinitionInterface {
-	return newOperatorDefinitions(c)
-}
-
-func (c *VerrazzanoV1beta2Client) Platforms(namespace string) PlatformInterface {
-	return newPlatforms(c, namespace)
-}
-
-func (c *VerrazzanoV1beta2Client) PlatformDefinitions(namespace string) PlatformDefinitionInterface {
-	return newPlatformDefinitions(c, namespace)
 }
 
 // NewForConfig creates a new VerrazzanoV1beta2Client for the given config.

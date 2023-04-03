@@ -19,24 +19,8 @@ func (c *FakeVerrazzanoV1beta2) Modules(namespace string) v1beta2.ModuleInterfac
 	return &FakeModules{c, namespace}
 }
 
-func (c *FakeVerrazzanoV1beta2) ModuleDefinitions() v1beta2.ModuleDefinitionInterface {
-	return &FakeModuleDefinitions{c}
-}
-
 func (c *FakeVerrazzanoV1beta2) ModuleLifecycles(namespace string) v1beta2.ModuleLifecycleInterface {
 	return &FakeModuleLifecycles{c, namespace}
-}
-
-func (c *FakeVerrazzanoV1beta2) OperatorDefinitions() v1beta2.OperatorDefinitionInterface {
-	return &FakeOperatorDefinitions{c}
-}
-
-func (c *FakeVerrazzanoV1beta2) Platforms(namespace string) v1beta2.PlatformInterface {
-	return &FakePlatforms{c, namespace}
-}
-
-func (c *FakeVerrazzanoV1beta2) PlatformDefinitions(namespace string) v1beta2.PlatformDefinitionInterface {
-	return &FakePlatformDefinitions{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

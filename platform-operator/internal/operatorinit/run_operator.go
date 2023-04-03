@@ -19,8 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/platformctrl/modlifecycle"
 	modulectrl "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/platformctrl/module"
-	platformctrl "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/platformctrl/platform"
-	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/platformctrl/platformdef"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
@@ -103,24 +101,6 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 			Scheme: mgr.GetScheme(),
 		}).SetupWithManager(mgr); err != nil {
 			log.Error(err, "Failed to setup controller", vzlog.FieldController, "ModuleLifecycleController")
-			os.Exit(1)
-		}
-
-		// v1beta2 PlatformDefinition controller
-		if err = (&platformdef.PlatformDefinitionReconciler{
-			Client: mgr.GetClient(),
-			Scheme: mgr.GetScheme(),
-		}).SetupWithManager(mgr); err != nil {
-			log.Error(err, "Failed to setup controller", vzlog.FieldController, "PlatformDefinitionController")
-			os.Exit(1)
-		}
-
-		// v1beta2 Platform controller
-		if err = (&platformctrl.PlatformReconciler{
-			Client: mgr.GetClient(),
-			Scheme: mgr.GetScheme(),
-		}).SetupWithManager(mgr); err != nil {
-			log.Error(err, "Failed to setup controller", vzlog.FieldController, "PlatformController")
 			os.Exit(1)
 		}
 

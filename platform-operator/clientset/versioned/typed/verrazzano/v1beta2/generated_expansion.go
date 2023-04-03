@@ -7,12 +7,4 @@ package v1beta2
 
 type ModuleExpansion interface{}
 
-type ModuleDefinitionExpansion interface{}
-
 type ModuleLifecycleExpansion interface{}
-
-type OperatorDefinitionExpansion interface{}
-
-type PlatformExpansion interface{}
-
-type PlatformDefinitionExpansion interface{}

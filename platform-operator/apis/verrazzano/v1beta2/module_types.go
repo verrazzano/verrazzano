@@ -90,6 +90,25 @@ type ModuleCondition struct {
 	Type ModuleConditionType `json:"type"`
 }
 
+type ChartVersion struct {
+	Name              string `json:"name"`
+	DefaultVersion    string `json:"defaultVersion,omitempty"`
+	SupportedVersions string `json:"supportedVersions,omitempty"`
+}
+
+type HelmChartRepository struct {
+	URI               string `json:"uri,omitempty"`
+	CredentialsSecret string `json:"credentialsSecret,omitempty"`
+}
+
+type ModuleSourceRef struct {
+}
+
+type ModuleSource struct {
+	ChartRepo *HelmChartRepository `json:"repo,omitempty"`
+	SourceRef *ModuleSourceRef     `json:"sourceRef,omitempty"`
+}
+
 func init() {
 	SchemeBuilder.Register(&Module{}, &ModuleList{})
 }
