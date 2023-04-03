@@ -105,12 +105,7 @@ go-install:
 	$(GO) install ./...
 
 manifests: export EXPERIMENTAL_CRD_PATH ?= /tmp/verrazzano-platform-operator/crds
-manifests: export EXPERIMENTAL_CRDS = install.verrazzano.io_moduledefinitions.yaml \
-	install.verrazzano.io_modulelifecycles.yaml \
-	install.verrazzano.io_modules.yaml \
-	install.verrazzano.io_operatordefinitions.yaml \
-	install.verrazzano.io_platformdefinitions.yaml \
-	install.verrazzano.io_platforms.yaml
+manifests: export EXPERIMENTAL_CRDS = install.verrazzano.io_modulelifecycles.yaml install.verrazzano.io_modules.yaml
 .PHONY: manifests
 manifests: platform-manifests
 
