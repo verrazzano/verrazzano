@@ -3,6 +3,10 @@ Fixed:
 
 - Disabled the startupapicheck job in cert-manager startup.
 
+Features:
+
+- For vz CLI uninstall command, a prompt is now displayed to confirm continuing with uninstall. The prompt can be overridden using the flag --skip-confirmation or shorthanded as -y.
+
 ### v1.5.2
 Component version updates:
 
