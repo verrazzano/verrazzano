@@ -60,7 +60,7 @@ const ComponentJSONName = "rancher"
 const CAPIProviderOCISystemNamespace = "cluster-api-provider-oci-system"
 
 // CAPIProviderOCIAuthConfigSecret is the CAPI OCI system auth secret
-const CAPIProviderOCIAuthConfigSecret = "capoci-auth-config"
+const CAPIProviderOCIAuthConfigSecret = "capoci-auth-config" //nolint:gosec //#gosec G101
 
 // CAPIProviderOCISystemNamespace is the multi-cluster namespace for verrazzano
 const CattleGlobalDataNamespace = "cattle-global-data"
@@ -79,7 +79,6 @@ const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
 const APIGroupRancherManagement = "management.cattle.io"
 const APIGroupVersionRancherManagement = "v3"
 const UserListKind = "UserList"
-const UserUsernameAttribute = "username"
 const RancherBootstrappingLabel = "authz.management.cattle.io/bootstrapping"
 const RancherAdminUser = "admin-user"
 
