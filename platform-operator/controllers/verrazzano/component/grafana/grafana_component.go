@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package grafana
@@ -169,6 +169,9 @@ func (g grafanaComponent) PreInstall(ctx spi.ComponentContext) error {
 
 // Install performs Grafana install processing
 func (g grafanaComponent) Install(ctx spi.ComponentContext) error {
+	if err := applyDatasourcesConfigmap(ctx); err != nil {
+		return err
+	}
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
 }
 
@@ -207,6 +210,9 @@ func (g grafanaComponent) PreUpgrade(ctx spi.ComponentContext) error {
 
 // Install performs Grafana upgrade processing
 func (g grafanaComponent) Upgrade(ctx spi.ComponentContext) error {
+	if err := applyDatasourcesConfigmap(ctx); err != nil {
+		return err
+	}
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
 }
 

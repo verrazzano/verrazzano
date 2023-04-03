@@ -12,6 +12,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
 
+const datasourcesConfigMapName = "vmi-system-datasource"
+
 // updateFunc mutates the VMI struct and ensures the Grafana component is configured properly
 func updateFunc(ctx spi.ComponentContext, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error {
 	vmi.Spec.Grafana = newGrafana(ctx.EffectiveCR(), storage, existingVMI, ctx.Log())
@@ -27,7 +29,7 @@ func newGrafana(cr *vzapi.Verrazzano, storage *common.ResourceRequestValues, exi
 	grafana := vmov1.Grafana{
 		Enabled:              grafanaSpec.Enabled != nil && *grafanaSpec.Enabled,
 		DashboardsConfigMap:  "verrazzano-dashboard-provider",
-		DatasourcesConfigMap: "vmi-system-datasource",
+		DatasourcesConfigMap: datasourcesConfigMapName,
 		Resources: vmov1.Resources{
 			RequestMemory: "48Mi",
 		},
