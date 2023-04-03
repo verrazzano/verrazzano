@@ -199,3 +199,9 @@ const (
 	Fluentd               = "fluentd"
 	MySQLOperator         = "mysql-operator"
 )
+
+// ThanosQueryIngress is the name of the ingress for the Thanos Query
+const ThanosQueryIngress = "thanos-query-frontend"
+
+// ThanosQueryStoreIngress is the name of the ingress for the Thanos Query Store API
+const ThanosQueryStoreIngress = "thanos-grpc"

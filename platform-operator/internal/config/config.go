@@ -82,6 +82,9 @@ type OperatorConfig struct {
 
 	// DryRun Run installs in a dry-run mode
 	DryRun bool
+
+	// ExperimentalModules toggles the VPO to use the experimental modules feature
+	ExperimentalModules bool
 }
 
 // The singleton instance of the operator config
@@ -98,6 +101,7 @@ var instance = OperatorConfig{
 	HealthCheckPeriodSeconds:       60,
 	MySQLCheckPeriodSeconds:        60,
 	MySQLRepairTimeoutSeconds:      120,
+	ExperimentalModules:            false,
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests

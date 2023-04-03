@@ -23,9 +23,8 @@ import (
 )
 
 const (
-	testKubeConfig    = "/tmp/kubeconfig"
-	testK8sContext    = "testcontext"
-	bugReportFilePath = "bug-report.tar.gz"
+	testKubeConfig = "kubeconfig"
+	testK8sContext = "testcontext"
 )
 
 // TestUpgradeCmdDefaultNoWait
@@ -73,18 +72,21 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
-	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
+	defer os.RemoveAll(tempKubeConfigPath.Name())
 
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
-	assert.FileExists(t, bugReportFilePath)
-	os.Remove(bugReportFilePath)
+	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+		t.Fatal("cannot find bug report file in current directory")
+	}
 }
 
 // TestUpgradeCmdDefaultTimeoutNoBugReport
@@ -106,17 +108,22 @@ func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 	cmd.PersistentFlags().Set(constants.AutoBugReportFlag, "false")
-	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
+	defer os.RemoveAll(tempKubeConfigPath.Name())
 
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
-	assert.NoFileExists(t, bugReportFilePath)
+	// Bug report must not exists
+	if helpers.CheckAndRemoveBugReportExistsInDir("") {
+		t.Fatal("found bug report file in current directory")
+	}
 }
 
 // TestUpgradeCmdDefaultNoVPO

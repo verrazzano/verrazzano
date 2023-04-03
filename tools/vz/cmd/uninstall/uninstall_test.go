@@ -30,11 +30,11 @@ import (
 )
 
 const (
-	testKubeConfig    = "/tmp/kubeconfig"
+	testKubeConfig    = "kubeconfig"
 	testK8sContext    = "testcontext"
-	bugReportFilePath = "bug-report.tar.gz"
 	VzVpoFailureError = "Failed to find the Verrazzano platform operator in namespace verrazzano-install"
 	PodNotFoundError  = "Waiting for verrazzano-uninstall-verrazzano, verrazzano-uninstall-verrazzano pod not found in namespace verrazzano-install"
+	BugReportNotExist = "cannot find bug report file in current directory"
 )
 
 // TestUninstallCmd
@@ -145,9 +145,11 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
-	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	_ = cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
+	defer os.RemoveAll(tempKubeConfigPath.Name())
 
 	// Run upgrade command
 	err := cmd.Execute()
@@ -155,10 +157,10 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	// This must be less than the 1 second polling delay to pass
 	// since the Verrazzano resource gets deleted almost instantaneously
 	assert.Equal(t, "Error: Failed to uninstall Verrazzano: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
-	assert.FileExists(t, bugReportFilePath)
-	os.Remove(bugReportFilePath)
-
 	ensureResourcesNotDeleted(t, c)
+	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+		t.Fatal(BugReportNotExist)
+	}
 }
 
 // TestUninstallCmdDefaultTimeoutNoBugReport
@@ -197,9 +199,11 @@ func TestUninstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	// This must be less than the 1 second polling delay to pass
 	// since the Verrazzano resource gets deleted almost instantaneously
 	assert.Equal(t, "Error: Failed to uninstall Verrazzano: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
-	assert.NoFileExists(t, bugReportFilePath)
-
 	ensureResourcesNotDeleted(t, c)
+	// Bug Report must not exist
+	if helpers.CheckAndRemoveBugReportExistsInDir("") {
+		t.Fatal("found bug report file in current directory")
+	}
 }
 
 // TestUninstallCmdDefaultNoWait
@@ -283,16 +287,19 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
-	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
+	defer os.RemoveAll(tempKubeConfigPath.Name())
 
 	// Run uninstall command
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, VzVpoFailureError)
 	assert.Contains(t, errBuf.String(), VzVpoFailureError)
-	assert.FileExists(t, bugReportFilePath)
-	os.Remove(bugReportFilePath)
+	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+		t.Fatal(BugReportNotExist)
+	}
 }
 
 // TestUninstallCmdDefaultNoUninstallJob
@@ -318,26 +325,29 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "simple")
-	cmd.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 
 	setWaitRetries(1)
 	defer resetWaitRetries()
+	defer os.RemoveAll(tempKubeConfigPath.Name())
 
 	// Run uninstall command
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, PodNotFoundError)
 	assert.Contains(t, errBuf.String(), PodNotFoundError)
-	assert.FileExists(t, bugReportFilePath)
-	os.Remove(bugReportFilePath)
+	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+		t.Fatal(BugReportNotExist)
+	}
 }
 
 // TestUninstallCmdDefaultNoVzResource
 // GIVEN a CLI uninstall command with all defaults and no vz resource found
 //
 //	WHEN I call cmd.Execute for uninstall
-//	THEN the CLI uninstall command fails
+//	THEN the CLI uninstall command fails and bug report should be generated
 func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).Build()
 
@@ -347,6 +357,9 @@ func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdUninstall(rc)
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	assert.NotNil(t, cmd)
 
 	// Run uninstall command
@@ -354,6 +367,9 @@ func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Verrazzano is not installed: Failed to find any Verrazzano resources")
 	assert.Contains(t, errBuf.String(), "Verrazzano is not installed: Failed to find any Verrazzano resources")
+	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+		t.Fatal(BugReportNotExist)
+	}
 }
 
 func createNamespace() *corev1.Namespace {

@@ -155,7 +155,21 @@ func TestAppendOverrides(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer config.SetDefaultBomFilePath(oldBomPath)
 
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{Name: constants.NGINXControllerServiceName, Namespace: vzconst.IngressNamespace},
+		Spec: corev1.ServiceSpec{
+			Type: corev1.ServiceTypeLoadBalancer,
+		},
+		Status: corev1.ServiceStatus{
+			LoadBalancer: corev1.LoadBalancerStatus{
+				Ingress: []corev1.LoadBalancerIngress{
+					{IP: "11.22.33.44"},
+				},
+			},
+		},
+	}
+
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(service).Build()
 	kvs := make([]bom.KeyValue, 0)
 
 	// GIVEN a Verrazzano CR with the CertManager component enabled
