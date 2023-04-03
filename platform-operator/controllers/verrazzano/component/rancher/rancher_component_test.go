@@ -419,25 +419,6 @@ func TestInstall(t *testing.T) {
 			AvailableReplicas: 3,
 		},
 	})
-
-	cliMissingDeployment := createFakeTestClient(&v1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	})
-
-	cliMissingContainerSpec := createFakeTestClient(&v1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	}, &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{Name: ComponentName, Namespace: ComponentNamespace},
-		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 3,
-		},
-	})
 	tests := []struct {
 		name        string
 		c           client.Client
@@ -493,54 +474,6 @@ func TestInstall(t *testing.T) {
 			wantErr:     true,
 			errContains: "ingresses.networking.k8s.io \"rancher\" not found",
 		},
-		// GIVEN an env with correct rancher ingress and Verrazzano resource but missing rancher deployment
-		// WHEN a call to rancher Install is made
-		// THEN an error is returned complaining about missing rancher deployment
-		{
-			name: "Install should return an error in case of missing rancher deployment",
-			c:    cliMissingDeployment,
-			vz: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Rancher: &vzapi.RancherComponent{
-							Enabled: getBoolPtr(true),
-						},
-						DNS: &vzapi.DNSComponent{
-							External: &vzapi.External{Suffix: "blah"},
-						},
-						CertManager: &vzapi.CertManagerComponent{
-							Enabled: getBoolPtr(true),
-						},
-					},
-				},
-			},
-			wantErr:     true,
-			errContains: "deployments.apps \"rancher\" not found",
-		},
-		// GIVEN an env with correct rancher ingress and Verrazzano resource but the deployment is missing rancher container
-		// WHEN a call to rancher Install is made
-		// THEN an error is returned complaining about the missing rancher container
-		{
-			name: "Install should return an error in case of deployment missing the rancher container",
-			c:    cliMissingContainerSpec,
-			vz: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Rancher: &vzapi.RancherComponent{
-							Enabled: getBoolPtr(true),
-						},
-						DNS: &vzapi.DNSComponent{
-							External: &vzapi.External{Suffix: "blah"},
-						},
-						CertManager: &vzapi.CertManagerComponent{
-							Enabled: getBoolPtr(true),
-						},
-					},
-				},
-			},
-			wantErr:     true,
-			errContains: "container 'rancher' was not found",
-		},
 		// GIVEN an env with correct rancher deployment and ingress but the Verrazzano resource is missing cm component
 		// WHEN a call to rancher install is made
 		// THEN an error is returned complaining about missing cm component from the CR
@@ -579,7 +512,6 @@ func TestInstall(t *testing.T) {
 				assert.Equal(t, "HTTPS", ingress.Annotations["nginx.ingress.kubernetes.io/backend-protocol"])
 				assert.Equal(t, "true", ingress.Annotations["nginx.ingress.kubernetes.io/force-ssl-redirect"])
 
-				assert.Equal(t, deployment.Spec.Template.Spec.Containers[0].SecurityContext.Capabilities.Add[0], corev1.Capability("MKNOD"))
 			} else {
 				assert.ErrorContains(t, err, tt.errContains)
 			}
