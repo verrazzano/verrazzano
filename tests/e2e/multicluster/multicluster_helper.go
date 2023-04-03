@@ -617,6 +617,10 @@ func (c *Cluster) GetThanosIngress() string {
 	return pkg.GetThanosQueryIngressHost(c.KubeConfigPath)
 }
 
+func (c *Cluster) GetQueryIngress() string {
+	return pkg.GetQueryStoreIngressHost(c.KubeConfigPath)
+}
+
 func newCluster(name, kubeCfgPath string) *Cluster {
 	server := serverFromDockerInspect(name)
 	if server == "" {

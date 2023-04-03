@@ -130,6 +130,17 @@ func GetThanosQueryIngressHost(kubeconfigPath string) string {
 	return ""
 }
 
+// GetQueryStoreIngressHost gets the host used for ingress to Thanos Query Store in the given cluster
+func GetQueryStoreIngressHost(kubeconfigPath string) string {
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
+		return ""
+	}
+	ingress, err := clientset.NetworkingV1().Ingresses("verrazzano-system").Get(context.TODO(), "thanos-grpc", metav1.GetOptions{})
+	return ingress.Spec.Rules[0].Host
+}
+
 // MetricsExistInCluster validates the availability of a given metric in the given cluster
 func MetricsExistInCluster(metricsName string, keyMap map[string]string, kubeconfigPath string) bool {
 	metric, err := QueryMetric(metricsName, kubeconfigPath)

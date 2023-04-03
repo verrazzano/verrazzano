@@ -107,8 +107,7 @@ func verifyThanosStore() {
 			if err != nil {
 				return false, err
 			}
-			managedIng := managedCluster.GetThanosIngress()
-			expectedName := fmt.Sprintf("%s:443", managedIng)
+			expectedName := fmt.Sprintf("%s:443", managedCluster.GetQueryIngress())
 			for _, store := range queryStores {
 				storeMap := store.(map[string]interface{})
 				name, ok := storeMap["name"]
