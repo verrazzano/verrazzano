@@ -62,7 +62,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncThanosQuery(ctx context.Context
 	if err := r.syncThanosQueryEndpoint(ctx, vmc); err != nil {
 		return err
 	}
-	if err := r.createOrUpdateCACertVolume(vmc, r.removeCACertFromDeployment); err != nil {
+	if err := r.createOrUpdateCACertVolume(vmc, r.addCACertToDeployment); err != nil {
 		return err
 	}
 	if err := r.createOrUpdateServiceEntry(vmc.Name, vmc.Status.ThanosHost, thanosGrpcIngressPort); err != nil {
