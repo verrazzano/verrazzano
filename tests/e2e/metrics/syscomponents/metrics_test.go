@@ -291,7 +291,7 @@ func verifyEnvoyStats(metricName string) bool {
 			t.Logs.Errorf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err)
 			return false
 		}
-		var labels map[string]string
+		labels := map[string]string{}
 		for _, pod := range pods.Items {
 			if ns == istioSystemNamespace && excludePods(pod.Name, excludePodsIstio) ||
 				ns == verrazzanoSystemNamespace && excludePods(pod.Name, excludePodsVS) {

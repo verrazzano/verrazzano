@@ -36,30 +36,26 @@ func NewMetricsTest(kubeconfigs []string, kubeconfigPath string, defaultLabels m
 		DefaultLabels: defaultLabels,
 	}
 
-	cli, err := GetKubernetesClientsetForCluster(kubeconfigPath)
-	if err != nil {
-		return MetricsTest{}, err
-	}
-	msr := metricSourceBase{
-		kubeconfigPath: kubeconfigPath,
-		client:         cli,
-	}
-
 	for _, kc := range kubeconfigs {
 		vz, err := GetVerrazzanoInstallResourceInCluster(kc)
 		if err != nil {
 			return MetricsTest{}, err
 		}
 		if !vzcr.IsThanosEnabled(vz) {
-			mt.Source = PrometheusSource{
-				metricSourceBase: msr,
+			source, err := NewPrometheusSource(kubeconfigPath)
+			if err != nil {
+				return MetricsTest{}, err
 			}
+			mt.Source = source
 			return mt, nil
 		}
 	}
-	mt.Source = ThanosSource{
-		metricSourceBase: msr,
+
+	source, err := NewThanosSource(kubeconfigPath)
+	if err != nil {
+		return MetricsTest{}, err
 	}
+	mt.Source = source
 	return mt, nil
 }
 

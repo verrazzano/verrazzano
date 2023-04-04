@@ -41,6 +41,24 @@ type PrometheusSource struct {
 var _ MetricSource = ThanosSource{}
 var _ MetricSource = PrometheusSource{}
 
+func newMetricsSourceBase(kubeconfigPath string) (metricSourceBase, error) {
+	cli, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	return metricSourceBase{
+		kubeconfigPath: kubeconfigPath,
+		client:         cli,
+	}, err
+}
+
+func NewThanosSource(kubeconfigPath string) (ThanosSource, error) {
+	msb, err := newMetricsSourceBase(kubeconfigPath)
+	return ThanosSource{metricSourceBase: msb}, err
+}
+
+func NewPrometheusSource(kubeconfigPath string) (PrometheusSource, error) {
+	msb, err := newMetricsSourceBase(kubeconfigPath)
+	return PrometheusSource{metricSourceBase: msb}, err
+}
+
 func (m metricSourceBase) getKubeConfigPath() string {
 	return m.kubeconfigPath
 }
