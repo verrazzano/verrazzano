@@ -557,9 +557,10 @@ func createAdminCloudCredentialSecret(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorNewErr("No Rancher admin user found")
 	}
 
+	username := fmt.Sprintf("%v", rancherAdminUser.Object["username"])
 	cloudCredSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      rancherAdminUser.GetName(),
+			Name:      fmt.Sprintf("%s-creds", username),
 			Namespace: CattleGlobalDataNamespace,
 		},
 	}
@@ -585,9 +586,12 @@ func createAdminCloudCredentialSecret(ctx spi.ComponentContext) error {
 		if _, exists := capiSecret.Data["passphrase"]; exists {
 			cloudCredSecret.Data["ocicredentialConfig-passphrase"] = capiSecret.Data["passphrase"]
 		}
+		if _, exists := capiSecret.Data["region"]; exists {
+			cloudCredSecret.Data["ocicredentialConfig-region"] = capiSecret.Data["region"]
+		}
 
 		cloudCredSecret.Annotations[cattleCreatorIdAnnotation] = rancherAdminUser.GetName()
-		cloudCredSecret.Annotations[cattleNameAnnotation] = fmt.Sprintf("%v", rancherAdminUser.Object["username"])
+		cloudCredSecret.Annotations[cattleNameAnnotation] = username
 		cloudCredSecret.Annotations[cattleProvisioningDriverAnnotation] = "oracle"
 
 		return nil

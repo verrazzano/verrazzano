@@ -551,6 +551,7 @@ username: admin
 			"key":         []byte("some-key"),
 			"tenancy":     []byte("tenancy-ocid"),
 			"user":        []byte("user-admin"),
+			"region":      []byte("us-ashburn-1"),
 		},
 	}
 
@@ -580,12 +581,13 @@ username: admin
 				assert.Error(t, err, "Should have generated error")
 			} else {
 				createdSecret := &corev1.Secret{}
-				err := tt.client.Get(context.TODO(), types.NamespacedName{Namespace: CattleGlobalDataNamespace, Name: "user-admin"}, createdSecret)
+				err := tt.client.Get(context.TODO(), types.NamespacedName{Namespace: CattleGlobalDataNamespace, Name: "admin-creds"}, createdSecret)
 				assert.NoError(t, err)
 				assert.Equal(t, "abcdefg", string(createdSecret.Data["ocicredentialConfig-fingerprint"]))
 				assert.Equal(t, "some-key", string(createdSecret.Data["ocicredentialConfig-privateKeyContents"]))
 				assert.Equal(t, "tenancy-ocid", string(createdSecret.Data["ocicredentialConfig-tenancyId"]))
 				assert.Equal(t, "user-admin", string(createdSecret.Data["ocicredentialConfig-userId"]))
+				assert.Equal(t, "us-ashburn-1", string(createdSecret.Data["ocicredentialConfig-region"]))
 				assert.Equal(t, "admin", createdSecret.Annotations[cattleNameAnnotation])
 				assert.Equal(t, "user-admin", createdSecret.Annotations[cattleCreatorIdAnnotation])
 			}
