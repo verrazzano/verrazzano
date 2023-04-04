@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"sigs.k8s.io/yaml"
 	"strings"
 	"testing"
 
@@ -514,6 +515,81 @@ func TestInstall(t *testing.T) {
 
 			} else {
 				assert.ErrorContains(t, err, tt.errContains)
+			}
+		})
+	}
+}
+
+func TestCreateAdminCloudCredentialSecret(t *testing.T) {
+	userYaml := `
+apiVersion: management.cattle.io/v3
+description: ""
+displayName: Default Admin
+kind: User
+metadata:
+  labels:
+    authz.management.cattle.io/bootstrapping: admin-user
+  name: user-admin
+password: password
+username: admin
+`
+	user := make(map[string]interface{})
+	err := yaml.Unmarshal([]byte(userYaml), &user)
+	assert.NoError(t, err)
+	userObj := &unstructured.Unstructured{}
+	userObj.SetUnstructuredContent(user)
+
+	// NOTE: Had to resort to leveraging mocks since deep in the reflection layers of the fake client creation the
+	// processing of unstructured lists was failing (could not locate an "Items" parameter of the list)
+	capiSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      CAPIProviderOCIAuthConfigSecret,
+			Namespace: CAPIProviderOCISystemNamespace,
+		},
+		Data: map[string][]byte{
+			"fingerprint": []byte("abcdefg"),
+			"key":         []byte("some-key"),
+			"tenancy":     []byte("tenancy-ocid"),
+			"user":        []byte("user-admin"),
+			"region":      []byte("us-ashburn-1"),
+		},
+	}
+
+	cli := createFakeTestClient(userObj, capiSecret)
+	cliErr := createFakeTestClient(capiSecret)
+	tests := []struct {
+		name    string
+		client  client.Client
+		wantErr bool
+	}{
+		{
+			name:    "successful create",
+			client:  cli,
+			wantErr: false,
+		},
+		{
+			name:    "unsuccessful user lookup",
+			client:  cliErr,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.client, nil, nil, false)
+			err = createAdminCloudCredentialSecret(ctx)
+			if tt.wantErr {
+				assert.Error(t, err, "Should have generated error")
+			} else {
+				createdSecret := &corev1.Secret{}
+				err := tt.client.Get(context.TODO(), types.NamespacedName{Namespace: CattleGlobalDataNamespace, Name: "admin-creds"}, createdSecret)
+				assert.NoError(t, err)
+				assert.Equal(t, "abcdefg", string(createdSecret.Data["ocicredentialConfig-fingerprint"]))
+				assert.Equal(t, "some-key", string(createdSecret.Data["ocicredentialConfig-privateKeyContents"]))
+				assert.Equal(t, "tenancy-ocid", string(createdSecret.Data["ocicredentialConfig-tenancyId"]))
+				assert.Equal(t, "user-admin", string(createdSecret.Data["ocicredentialConfig-userId"]))
+				assert.Equal(t, "us-ashburn-1", string(createdSecret.Data["ocicredentialConfig-region"]))
+				assert.Equal(t, "admin", createdSecret.Annotations[cattleNameAnnotation])
+				assert.Equal(t, "user-admin", createdSecret.Annotations[cattleCreatorIDAnnotation])
 			}
 		})
 	}
