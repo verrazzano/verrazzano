@@ -14,9 +14,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// BuildHelmOverrides Builds the helm overrides for a release, including image and file, and custom overrides
+// ConvertToHelmOverrides Builds the helm overrides for a release, including image and file, and custom overrides
 // - returns an error and a HelmOverride struct with the field populated
-func BuildHelmOverrides(log vzlog.VerrazzanoLogger, client client.Client, releaseName string, namespace string, modOverrides []v1beta2.Overrides) ([]helm.HelmOverrides, error) {
+func ConvertToHelmOverrides(log vzlog.VerrazzanoLogger, client client.Client, releaseName string, namespace string, modOverrides []v1beta2.Overrides) ([]helm.HelmOverrides, error) {
 	var kvs []bom.KeyValue
 	var err error
 	var overrides []helm.HelmOverrides

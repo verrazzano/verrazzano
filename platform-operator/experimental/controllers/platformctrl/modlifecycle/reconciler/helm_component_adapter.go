@@ -92,7 +92,7 @@ func newHelmAdapter(module *modulesv1beta2.ModuleLifecycle, sw client.StatusWrit
 // Install installs the component using Helm
 func (h helmComponentAdapter) Install(context spi.ComponentContext) error {
 	// Perform a Helm install using the helm upgrade --install command
-	helmOverrides, err := common.BuildHelmOverrides(context.Log(), context.Client(), h.ReleaseName, h.ChartNamespace, h.module.Spec.Installer.HelmRelease.Overrides)
+	helmOverrides, err := common.ConvertToHelmOverrides(context.Log(), context.Client(), h.ReleaseName, h.ChartNamespace, h.module.Spec.Installer.HelmRelease.Overrides)
 	if err != nil {
 		return err
 	}
