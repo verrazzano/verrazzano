@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package grafana
@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -736,6 +737,12 @@ func TestUpgrade(t *testing.T) {
 
 // testInstallOrUpgrade tests both the Grafana component Install and Update functions
 func testInstallOrUpgrade(t *testing.T, installOrUpgradeFunc func(spi.ComponentContext) error) {
+	oldConfig := config.Get()
+	defer config.Set(oldConfig)
+	config.Set(config.OperatorConfig{
+		VerrazzanoRootDir: "../../../../..",
+	})
+
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
