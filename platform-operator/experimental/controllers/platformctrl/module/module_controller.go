@@ -26,12 +26,9 @@ type VerrazzanoModuleReconciler struct {
 	Controller controller.Controller
 }
 
-// Name of finalizer
 const (
-	finalizerName = "vzmodule.verrazzano.io"
-
-	//defaultSourceURI  = "http://localhost:9080/vz/stable"
-	//defaultSourceName = "vz-stable"
+	// Name of finalizer
+	finalizerName = "modules.verrazzano.io"
 )
 
 //var (
@@ -51,8 +48,8 @@ func (r *VerrazzanoModuleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 // Reconcile the Module CR
-// +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanomodules,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanomodules/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=install.verrazzano.io,resources=modules,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=install.verrazzano.io,resources=modules/status,verbs=get;update;patch
 func (r *VerrazzanoModuleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	// TODO: Metrics setup
