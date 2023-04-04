@@ -124,7 +124,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		Fail(err.Error())
 	}
 
-	var defaultLabels map[string]string
+	defaultLabels := map[string]string{}
 	if isManagedClusterProfile {
 		defaultLabels[getClusterNameMetricLabel()] = os.Getenv("CLUSTER_NAME")
 	} else if isMinVersion110 {
