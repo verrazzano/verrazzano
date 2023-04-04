@@ -40,13 +40,13 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	adminCluster = multicluster.AdminCluster()
 	managedClusters = multicluster.ManagedClusters()
 	verifyRegistration()
-	verifyThanosStore()
+	verifyScrapeTargets()
 })
 
 var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
-	verifyThanosStore()
+	verifyScrapeTargets()
 })
 
 var _ = AfterSuite(afterSuite)
@@ -56,7 +56,7 @@ var _ = t.Describe("Update managed-cluster cert-manager", Label("f:platform-lcm.
 		t.It("managed-cluster cert-manager custom CA", func() {
 			updateCustomCA()
 			verifyCaSync()
-			verifyThanosStore()
+			verifyScrapeTargets()
 		})
 	})
 	t.Describe("multicluster cert-manager verify", Label("f:platform-lcm.multicluster-verify"), func() {
@@ -137,39 +137,29 @@ func verifyCaSync() {
 	}
 }
 
-func verifyThanosStore() {
+func verifyScrapeTargets() {
 	for _, managedCluster := range managedClusters {
-		gomega.Eventually(func() (bool, error) {
-			queryStores, err := pkg.ThanosQueryStores()
+		start := time.Now()
+		gomega.Eventually(func() bool {
+			targets, err := pkg.ScrapeTargets()
 			if err != nil {
-				return false, err
+				return false
 			}
-			expectedName := fmt.Sprintf("%s:443", managedCluster.GetQueryIngress())
-			for _, store := range queryStores {
-				storeMap, ok := store.(map[string]interface{})
-				if !ok {
-					t.Logs.Infof("Thanos store empty, skipping entry")
-					continue
-				}
-				name, ok := storeMap["name"]
-				if !ok {
-					t.Logs.Infof("Name not found for store, skipping entry")
-					continue
-				}
-				nameString, nameOk := name.(string)
-				if !nameOk {
-					t.Logs.Infof("Name not valid format, skipping entry")
-					continue
-				}
-				if ok {
-					t.Logs.Infof("Found store in Thanos %s, want is equal to %s", nameString, expectedName)
-				}
-				if ok && nameString == expectedName {
-					return true, nil
+			var target map[string]interface{}
+			for _, item := range targets {
+				t := item.(map[string]interface{})
+				scrapePool := t["scrapePool"].(string)
+				if scrapePool == managedCluster.Name {
+					target = t
 				}
 			}
-			return false, nil
-		}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("store of %s is not ready", managedCluster.Name))
+			health, ok := target["health"]
+			if ok {
+				pkg.Log(pkg.Error, fmt.Sprintf("ScrapeTargets:%v health:%v ok:%v time:%v \n", len(target), health, ok, time.Since(start)))
+				return health.(string) == "up"
+			}
+			return false
+		}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("scrape target of %s is not ready", managedCluster.Name))
 	}
 }
 

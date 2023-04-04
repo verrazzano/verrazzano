@@ -1,27 +1,29 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcweblogic
 
 import (
-	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"net/http"
 	"os"
 	"strconv"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/tests/e2e/multicluster"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/weblogic"
 	m1 "k8s.io/api/core/v1"
+
+	"fmt"
+	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+
+	"github.com/verrazzano/verrazzano/tests/e2e/multicluster"
 )
 
 const (
@@ -80,7 +82,6 @@ var (
 	clusterName       = os.Getenv("MANAGED_CLUSTER_NAME")
 	adminKubeconfig   = os.Getenv("ADMIN_KUBECONFIG")
 	managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
-	metricsFunc       = pkg.MetricsExistInCluster
 	failed            = false
 	beforeSuitePassed = false
 )
@@ -127,14 +128,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	Eventually(func() error {
 		return multicluster.DeployAppResource(appConfiguration, appNamespace, adminKubeconfig)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
-
-	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(adminKubeconfig)
-	if err != nil {
-		AbortSuite("Failed to get the Verrazzano resource from the cluster")
-	}
-	if vzcr.IsThanosEnabled(vz) {
-		metricsFunc = pkg.ThanosMetricsExistInCluster
-	}
 
 	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
@@ -313,7 +306,7 @@ var _ = t.Describe("In Multi-cluster, verify WebLogic application", Label("f:mul
 						m := make(map[string]string)
 						m[ns] = appNamespace
 						m[clusterNameMetricsLabel] = clusterName
-						return metricsFunc(scrapeDuration, m, adminKubeconfig)
+						return pkg.MetricsExistInCluster(scrapeDuration, m, adminKubeconfig)
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
@@ -333,7 +326,7 @@ var _ = t.Describe("In Multi-cluster, verify WebLogic application", Label("f:mul
 						m[ns] = appNamespace
 						m[clusterNameMetricsLabel] = clusterName
 						m[labelDomainName] = wlDomain
-						return metricsFunc(cpuLoad, m, adminKubeconfig)
+						return pkg.MetricsExistInCluster(cpuLoad, m, adminKubeconfig)
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 			)
@@ -348,7 +341,7 @@ var _ = t.Describe("In Multi-cluster, verify WebLogic application", Label("f:mul
 						m[ns] = appNamespace
 						m[clusterNameMetricsLabel] = clusterName
 						m[labelPodName] = adminServerPod
-						return metricsFunc(pendingSendBytes, m, adminKubeconfig)
+						return pkg.MetricsExistInCluster(pendingSendBytes, m, adminKubeconfig)
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
@@ -358,7 +351,7 @@ var _ = t.Describe("In Multi-cluster, verify WebLogic application", Label("f:mul
 						m[ns] = appNamespace
 						m[clusterNameMetricsLabel] = clusterName
 						m["destination_canonical_service"] = componentName
-						return metricsFunc(receivedBytes, m, adminKubeconfig)
+						return pkg.MetricsExistInCluster(receivedBytes, m, adminKubeconfig)
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 			)

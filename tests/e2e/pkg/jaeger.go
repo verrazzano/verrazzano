@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package pkg
@@ -199,8 +199,8 @@ func GetJaegerSpanIndexName(kubeconfigPath string) (string, error) {
 }
 
 // IsJaegerMetricFound validates if the given jaeger metrics contain the labels with values specified as key-value pairs of the map
-func IsJaegerMetricFound(kubeconfigPath, metricName, clusterName string, kv map[string]string, queryFunc func(string, string) (string, error)) bool {
-	compMetrics, err := QueryMetricWithLabelByHost(metricName, kubeconfigPath, jaegerClusterNameLabel, clusterName, queryFunc, GetPrometheusIngressHost(kubeconfigPath))
+func IsJaegerMetricFound(kubeconfigPath, metricName, clusterName string, kv map[string]string) bool {
+	compMetrics, err := QueryMetricWithLabel(metricName, kubeconfigPath, jaegerClusterNameLabel, clusterName)
 	if err != nil {
 		return false
 	}
@@ -372,46 +372,46 @@ func GetJaegerSystemServicesInAdminCluster() []string {
 }
 
 // ValidateJaegerOperatorMetricFunc returns a function that validates if metrics of Jaeger operator is scraped by prometheus.
-func ValidateJaegerOperatorMetricFunc(queryFunc func(string, string) (string, error)) func() bool {
+func ValidateJaegerOperatorMetricFunc() func() bool {
 	return func() bool {
 		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 		if err != nil {
 			return false
 		}
-		return IsJaegerMetricFound(kubeconfigPath, jaegerOperatorSampleMetric, adminClusterName, nil, queryFunc)
+		return IsJaegerMetricFound(kubeconfigPath, jaegerOperatorSampleMetric, adminClusterName, nil)
 	}
 }
 
 // ValidateJaegerCollectorMetricFunc returns a function that validates if metrics of Jaeger collector is scraped by prometheus.
-func ValidateJaegerCollectorMetricFunc(queryFunc func(string, string) (string, error)) func() bool {
+func ValidateJaegerCollectorMetricFunc() func() bool {
 	return func() bool {
 		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 		if err != nil {
 			return false
 		}
-		return IsJaegerMetricFound(kubeconfigPath, jaegerCollectorSampleMetric, adminClusterName, nil, queryFunc)
+		return IsJaegerMetricFound(kubeconfigPath, jaegerCollectorSampleMetric, adminClusterName, nil)
 	}
 }
 
 // ValidateJaegerQueryMetricFunc returns a function that validates if metrics of Jaeger query is scraped by prometheus.
-func ValidateJaegerQueryMetricFunc(queryFunc func(string, string) (string, error)) func() bool {
+func ValidateJaegerQueryMetricFunc() func() bool {
 	return func() bool {
 		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 		if err != nil {
 			return false
 		}
-		return IsJaegerMetricFound(kubeconfigPath, jaegerQuerySampleMetric, adminClusterName, nil, queryFunc)
+		return IsJaegerMetricFound(kubeconfigPath, jaegerQuerySampleMetric, adminClusterName, nil)
 	}
 }
 
 // ValidateJaegerAgentMetricFunc returns a function that validates if metrics of Jaeger agent is scraped by prometheus.
-func ValidateJaegerAgentMetricFunc(queryFunc func(string, string) (string, error)) func() bool {
+func ValidateJaegerAgentMetricFunc() func() bool {
 	return func() bool {
 		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 		if err != nil {
 			return false
 		}
-		return IsJaegerMetricFound(kubeconfigPath, jaegerAgentSampleMetric, adminClusterName, nil, queryFunc)
+		return IsJaegerMetricFound(kubeconfigPath, jaegerAgentSampleMetric, adminClusterName, nil)
 	}
 }
 

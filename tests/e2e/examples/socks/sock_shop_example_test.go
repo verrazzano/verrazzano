@@ -52,7 +52,6 @@ var (
 	generatedNamespace = pkg.GenerateNamespace("sockshop")
 	clusterDump        = dump.NewClusterDumpWrapper(t, generatedNamespace)
 	host               = ""
-	metricsTest        pkg.MetricsTest
 )
 
 // creates the sockshop namespace and applies the components and application yaml
@@ -146,16 +145,6 @@ var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
 		host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 		return host, err
 	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Sock Shop Application Failed to Deploy: Gateway is not ready")
-
-	kubeconfig, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to get the Kubeconfig location for the cluster: %v", err))
-	}
-	metricsTest, err = pkg.NewMetricsTest([]string{kubeconfig}, kubeconfig, map[string]string{})
-	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
-	}
-
 	metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 
 })
@@ -512,31 +501,31 @@ var _ = AfterSuite(afterSuite)
 
 // appMetricExists checks whether app related metrics are available
 func appMetricExists() bool {
-	return metricsTest.MetricsExist("base_jvm_uptime_seconds", map[string]string{"app": "carts-coh"})
+	return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "carts-coh")
 }
 
 func coherenceMetricExists() bool {
-	return metricsTest.MetricsExist("vendor:coherence_service_messages_local", map[string]string{"role": "Orders"})
+	return pkg.MetricsExist("vendor:coherence_service_messages_local", "role", "Orders")
 }
 
 // appComponentMetricExists checks whether component related metrics are available
 func appComponentMetricExists() bool {
-	return metricsTest.MetricsExist("vendor_requests_count_total", map[string]string{"app_oam_dev_name": sockshopAppName})
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", sockshopAppName)
 }
 
 // appConfigMetricExists checks whether config metrics are available
 func appConfigMetricExists() bool {
-	return metricsTest.MetricsExist("vendor_requests_count_total", map[string]string{"app_oam_dev_component": "orders"})
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "orders")
 }
 
 // springMetricExists checks whether sample Spring metrics is available for a given component
 func springMetricExists(comp string) bool {
-	return metricsTest.MetricsExist(sampleSpringMetric, map[string]string{oamComponent: comp})
+	return pkg.MetricsExist(sampleSpringMetric, oamComponent, comp)
 }
 
 // micronautMetricExists checks whether sample Micronaut metrics is available for a given component
 func micronautMetricExists(comp string) bool {
-	return metricsTest.MetricsExist(sampleMicronautMetric, map[string]string{oamComponent: comp})
+	return pkg.MetricsExist(sampleMicronautMetric, oamComponent, comp)
 }
 
 // getVariant returns the variant of the sock shop application being tested

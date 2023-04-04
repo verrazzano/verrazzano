@@ -34,8 +34,6 @@ var (
 	t                  = framework.NewTestFramework("helidonmetrics")
 	generatedNamespace = pkg.GenerateNamespace("helidon-metrics")
 	host               = ""
-	kubeconfig         string
-	metricsTest        pkg.MetricsTest
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -102,16 +100,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 		return host, err
 	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Helidon Example: Gateway is not ready")
-
-	kubeconfig, err = k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to get the Kubeconfig location for the cluster: %v", err))
-	}
-	metricsTest, err = pkg.NewMetricsTest([]string{kubeconfig}, kubeconfig, map[string]string{})
-	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
-	}
-
 	metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 
 })
@@ -249,17 +237,7 @@ func serviceMonitorExists() bool {
 }
 
 func scrapeTargetExists() bool {
-	promSource, err := pkg.NewPrometheusSource(kubeconfig)
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to produce a Prometheus source: %v", err))
-		return false
-	}
-	targets, err := promSource.GetTargets()
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get Prometheus targets from the cluster: %v", err))
-		return false
-	}
-
+	targets, _ := pkg.ScrapeTargets()
 	for _, t := range targets {
 		m := t.(map[string]interface{})
 		scrapePool := m["scrapePool"].(string)

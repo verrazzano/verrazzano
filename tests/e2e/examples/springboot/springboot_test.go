@@ -34,7 +34,6 @@ var (
 	generatedNamespace        = pkg.GenerateNamespace("springboot")
 	expectedPodsSpringBootApp = []string{"springboot-workload"}
 	host                      = ""
-	metricsTest               pkg.MetricsTest
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -88,16 +87,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 		return host, err
 	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Spring Boot Application Failed to Deploy: Gateway is not ready")
-
-	kubeconfig, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to get the Kubeconfig location for the cluster: %v", err))
-	}
-	metricsTest, err = pkg.NewMetricsTest([]string{kubeconfig}, kubeconfig, map[string]string{})
-	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
-	}
-
 	metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 
 	beforeSuitePassed = true
@@ -191,12 +180,12 @@ var _ = t.Describe("Spring Boot test", Label("f:app-lcm.oam",
 	t.Context("for metrics.", Label("f:observability.monitoring.prom"), func() {
 		t.It("Retrieve Prometheus scraped metrics for App Component", func() {
 			Eventually(func() bool {
-				return metricsTest.MetricsExist("http_server_requests_seconds_count", map[string]string{"app_oam_dev_name": "springboot-appconf"})
+				return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "springboot-appconf")
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for App Component.")
 		})
 		t.It("Retrieve Prometheus scraped metrics for App Config", func() {
 			Eventually(func() bool {
-				return metricsTest.MetricsExist("tomcat_sessions_created_sessions_total", map[string]string{"app_oam_dev_component": "springboot-component"})
+				return pkg.MetricsExist("tomcat_sessions_created_sessions_total", "app_oam_dev_component", "springboot-component")
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for App Config.")
 		})
 	})

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package system
@@ -56,7 +56,7 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 		// WHEN we query for metrics related to Jaeger operator
 		// THEN we see that the metrics are present in prometheus
 		whenJaegerOperatorEnabledIt("metrics of jaeger operator are available in prometheus", func() {
-			validatorFn := pkg.ValidateJaegerOperatorMetricFunc(pkg.QueryMetric)
+			validatorFn := pkg.ValidateJaegerOperatorMetricFunc()
 			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 
@@ -64,7 +64,7 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 		// WHEN we query for metrics related to Jaeger collector
 		// THEN we see that the metrics are present in prometheus
 		whenJaegerOperatorEnabledIt("metrics of jaeger collector are available in prometheus", func() {
-			validatorFn := pkg.ValidateJaegerCollectorMetricFunc(pkg.QueryMetric)
+			validatorFn := pkg.ValidateJaegerCollectorMetricFunc()
 			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 
@@ -72,7 +72,7 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 		// WHEN we query for metrics related to Jaeger collector
 		// THEN we see that the metrics are present in prometheus
 		whenJaegerOperatorEnabledIt("metrics of jaeger query are available in prometheus", func() {
-			validatorFn := pkg.ValidateJaegerQueryMetricFunc(pkg.QueryMetric)
+			validatorFn := pkg.ValidateJaegerQueryMetricFunc()
 			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 
@@ -80,7 +80,7 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 		// WHEN we query for metrics related to Jaeger collector
 		// THEN we see that the metrics are present in prometheus
 		whenJaegerOperatorEnabledIt("metrics of jaeger agent are available in prometheus", func() {
-			validatorFn := pkg.ValidateJaegerAgentMetricFunc(pkg.QueryMetric)
+			validatorFn := pkg.ValidateJaegerAgentMetricFunc()
 			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 	})

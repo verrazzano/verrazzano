@@ -33,10 +33,10 @@ const (
 )
 
 var (
-	t                        = framework.NewTestFramework("helidon")
-	generatedNamespace       = pkg.GenerateNamespace(helloHelidon)
+	t                  = framework.NewTestFramework("helidon")
+	generatedNamespace = pkg.GenerateNamespace(helloHelidon)
+	//yamlApplier              = k8sutil.YAMLApplier{}
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
-	metricsTest              pkg.MetricsTest
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -56,16 +56,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipVerify {
 		Eventually(helloHelidonPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
 	}
-
-	kubeconfig, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to get the Kubeconfig location for the cluster: %v", err))
-	}
-	metricsTest, err = pkg.NewMetricsTest([]string{kubeconfig}, kubeconfig, map[string]string{})
-	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
-	}
-
 	beforeSuitePassed = true
 })
 
@@ -286,21 +276,21 @@ func appEndpointAccess(url string, hostname string, token string, requestShouldS
 }
 
 func appMetricsExists() bool {
-	return metricsTest.MetricsExist("base_jvm_uptime_seconds", map[string]string{"app": helloHelidon})
+	return pkg.MetricsExist("base_jvm_uptime_seconds", "app", helloHelidon)
 }
 
 func appComponentMetricsExists() bool {
-	return metricsTest.MetricsExist("vendor_requests_count_total", map[string]string{"app_oam_dev_name": helloHelidon})
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", helloHelidon)
 }
 
 func appConfigMetricsExists() bool {
-	return metricsTest.MetricsExist("vendor_requests_count_total", map[string]string{"app_oam_dev_component": "hello-helidon-component"})
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "hello-helidon-component")
 }
 
 func nodeExporterProcsRunning() bool {
-	return metricsTest.MetricsExist("node_procs_running", map[string]string{"job": nodeExporterJobName})
+	return pkg.MetricsExist("node_procs_running", "job", nodeExporterJobName)
 }
 
 func nodeExporterDiskIoNow() bool {
-	return metricsTest.MetricsExist("node_disk_io_now", map[string]string{"job": nodeExporterJobName})
+	return pkg.MetricsExist("node_disk_io_now", "job", nodeExporterJobName)
 }
