@@ -89,7 +89,6 @@ var (
 		{target: "serviceMonitor/verrazzano-monitoring/prometheus-node-exporter", enabledFunc: pkg.IsPrometheusNodeExporterEnabled},
 		{target: "serviceMonitor/verrazzano-monitoring/prometheus-operator-kube-p-apiserver", enabledFunc: pkg.IsPrometheusOperatorEnabled},
 		{target: "serviceMonitor/verrazzano-monitoring/prometheus-operator-kube-p-coredns", enabledFunc: pkg.IsPrometheusOperatorEnabled},
-		{target: "serviceMonitor/verrazzano-monitoring/prometheus-operator-kube-p-kube-proxy", enabledFunc: pkg.IsPrometheusOperatorEnabled},
 		{target: "serviceMonitor/verrazzano-monitoring/prometheus-operator-kube-p-kubelet", enabledFunc: pkg.IsPrometheusOperatorEnabled},
 		{target: "serviceMonitor/verrazzano-monitoring/prometheus-operator-kube-p-operator", enabledFunc: pkg.IsPrometheusOperatorEnabled},
 		{target: "serviceMonitor/verrazzano-monitoring/prometheus-operator-kube-p-prometheus", enabledFunc: pkg.IsPrometheusEnabled},
