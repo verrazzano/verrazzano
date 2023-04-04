@@ -1785,6 +1785,7 @@ func TestReconcilerInitForVzResource(t *testing.T) {
 	podKind := &source.Kind{Type: &corev1.Pod{}}
 	jobKind := &source.Kind{Type: &batchv1.Job{}}
 	secretKind := &source.Kind{Type: &corev1.Secret{}}
+	namespaceKind := &source.Kind{Type: &corev1.Namespace{}}
 	getNoErrorMock := func() client.Client {
 		mockClient := mocks.NewMockClient(mocker)
 		mockClient.EXPECT().Delete(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil).AnyTimes()
@@ -1812,6 +1813,7 @@ func TestReconcilerInitForVzResource(t *testing.T) {
 		controller.EXPECT().Watch(gomock.Eq(jobKind), gomock.Any(), gomock.Any()).Return(nil)
 		// watches 2 secrets - managed cluster registration and Thanos internal user
 		controller.EXPECT().Watch(gomock.Eq(secretKind), gomock.Any(), gomock.Any()).Return(nil).Times(2)
+		controller.EXPECT().Watch(gomock.Eq(namespaceKind), gomock.Any(), gomock.Any()).Return(nil)
 		reconciler.Controller = controller
 	}
 	setMockControllerPodWatchErr := func(reconciler *Reconciler) {
@@ -1833,6 +1835,19 @@ func TestReconcilerInitForVzResource(t *testing.T) {
 		controller.EXPECT().Watch(gomock.Eq(podKind), gomock.Any(), gomock.Any()).Return(nil)
 		controller.EXPECT().Watch(gomock.Eq(jobKind), gomock.Any(), gomock.Any()).Return(nil)
 		controller.EXPECT().Watch(gomock.Eq(secretKind), gomock.Any(), gomock.Any()).DoAndReturn(
+			func(kind *source.Kind, handler handler.EventHandler, funcs predicate.Funcs) error {
+				return fmt.Errorf(unExpectedError)
+			})
+		reconciler.Controller = controller
+	}
+	setMockControllerNamespaceWatchErr := func(reconciler *Reconciler) {
+		controller := mocks.NewMockController(mocker)
+		// pod and job watch succeeds, first secret watch fails
+		// TODO find a way to know which secret is being watched and fail each one selectively
+		controller.EXPECT().Watch(gomock.Eq(podKind), gomock.Any(), gomock.Any()).Return(nil)
+		controller.EXPECT().Watch(gomock.Eq(jobKind), gomock.Any(), gomock.Any()).Return(nil)
+		controller.EXPECT().Watch(gomock.Eq(secretKind), gomock.Any(), gomock.Any()).Return(nil).Times(2)
+		controller.EXPECT().Watch(gomock.Eq(namespaceKind), gomock.Any(), gomock.Any()).DoAndReturn(
 			func(kind *source.Kind, handler handler.EventHandler, funcs predicate.Funcs) error {
 				return fmt.Errorf(unExpectedError)
 			})
@@ -1955,12 +1970,22 @@ func TestReconcilerInitForVzResource(t *testing.T) {
 			true,
 		},
 		// GIVEN Verrazzano CR
-		// WHEN initForVzResource is called and error occurs while watching Jobs
+		// WHEN initForVzResource is called and error occurs while watching Secrets
 		// THEN error is returned with result for requeue with delay
 		{"TestReconcilerInitForVzResource when watching for registration secret failed",
 			argWithFinalizer,
 			getNoErrorMock,
 			setMockControllerSecretWatchErr,
+			newRequeueWithDelay(),
+			true,
+		},
+		// GIVEN Verrazzano CR
+		// WHEN initForVzResource is called and error occurs while watching a namespace creation/update
+		// THEN error is returned with result for requeue with delay
+		{"TestReconcilerInitForVzResource when watching for namespace creation failed",
+			argWithFinalizer,
+			getNoErrorMock,
+			setMockControllerNamespaceWatchErr,
 			newRequeueWithDelay(),
 			true,
 		},
@@ -2054,6 +2079,28 @@ func TestIsThanosInternalUserSecret(t *testing.T) {
 	asserts.True(reconciler.isThanosInternalUserSecret(&thanosSecret))
 	asserts.False(reconciler.isThanosInternalUserSecret(&secretSameNS))
 	asserts.False(reconciler.isThanosInternalUserSecret(&secretSameNameDiffNS))
+}
+
+// TestIsCattleGlobalDataNamespace tests isCattleGlobalDataNamespace
+// GIVEN Namespace resource
+// WHEN isCattleGlobalDataNamespace is called
+// THEN true is returned if namespace is the cattle global data namespace
+// THEN false is returned if namespace is not the cattle global data namespace
+func TestIsCattleGlobalDataNamespace(t *testing.T) {
+	asserts := assert.New(t)
+	reconciler := newVerrazzanoReconciler(nil)
+	globalDataNamesapce := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: rancher.CattleGlobalDataNamespace,
+		},
+	}
+	otherNS := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "some-other-ns",
+		},
+	}
+	asserts.True(reconciler.isCattleGlobalDataNamespace(&globalDataNamesapce))
+	asserts.False(reconciler.isCattleGlobalDataNamespace(&otherNS))
 }
 
 // TestReconcile tests Reconcile
