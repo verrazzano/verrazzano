@@ -16,7 +16,10 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 	"time"
 )
 
@@ -36,6 +39,7 @@ type CertificateRotationManagerReconciler struct {
 	TargetNamespace  string
 	TargetDeployment string
 	CompareWindow    time.Duration // should be in no of hours
+	lastReconcile    *time.Time
 }
 
 // SetupWithManager creates a new controller and adds it to the manager
@@ -51,6 +55,11 @@ func (r *CertificateRotationManagerReconciler) SetupWithManager(mgr ctrl.Manager
 
 // Reconcile the Certificate Secret
 func (r *CertificateRotationManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	lastReconcile := time.Now()
+	if r.lastReconcile != nil {
+		r.log.Infof("Reconciling %v, time between reconciles: %v", req.NamespacedName, lastReconcile.Sub(*r.lastReconcile))
+	}
+	r.lastReconcile = &lastReconcile
 	if ctx == nil {
 		ctx = context.TODO()
 	}
@@ -163,4 +172,13 @@ func (r *CertificateRotationManagerReconciler) createComponentCertificatePredica
 func (r *CertificateRotationManagerReconciler) isComponentNamespace(o clipkg.Object) bool {
 	secret := o.(*corev1.Secret)
 	return secret.Namespace == r.WatchNamespace
+}
+
+func (r *CertificateRotationManagerReconciler) SetupWithManager1(mgr ctrl.Manager) error {
+	manager := ctrl.NewControllerManagedBy(mgr).
+		For(&r.str, WithPredicates(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.AnnotationChangedPredicate{}))).
+		manager = manager.Watches(&source.Kind{Type: &corev1.Secret{}}, handler.EnqueueRequestsFromMapFunc(func(a client.Object) []reconcile.Request {
+		return r.SecretRequests.FindForSecret(a.GetNamespace(), a.GetName())
+	}))
+	return manager.Complete(r)
 }
