@@ -7,8 +7,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/golang/mock/gomock"
-	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
@@ -523,100 +521,73 @@ func TestInstall(t *testing.T) {
 }
 
 func TestCreateAdminCloudCredentialSecret(t *testing.T) {
-	userListYaml := `
-apiVersion: v1
-items:
-- apiVersion: management.cattle.io/v3
-  description: ""
-  displayName: Default Admin
-  kind: User
-  metadata:
-    labels:
-      authz.management.cattle.io/bootstrapping: admin-user
-    name: user-admin
-  password: password
-  username: admin
-kind: List
+	userYaml := `
+apiVersion: management.cattle.io/v3
+description: ""
+displayName: Default Admin
+kind: User
 metadata:
-  resourceVersion: ""
+  labels:
+    authz.management.cattle.io/bootstrapping: admin-user
+  name: user-admin
+password: password
+username: admin
 `
-	userListMap := make(map[string]interface{})
-	err := yaml.Unmarshal([]byte(userListYaml), &userListMap)
+	user := make(map[string]interface{})
+	err := yaml.Unmarshal([]byte(userYaml), &user)
 	assert.NoError(t, err)
-	userList := &unstructured.UnstructuredList{}
-	userList.SetUnstructuredContent(userListMap)
+	userObj := &unstructured.Unstructured{}
+	userObj.SetUnstructuredContent(user)
 
 	// NOTE: Had to resort to leveraging mocks since deep in the reflection layers of the fake client creation the
 	// processing of unstructured lists was failing (could not locate an "Items" parameter of the list)
+	capiSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      CAPIProviderOCIAuthConfigSecret,
+			Namespace: CAPIProviderOCISystemNamespace,
+		},
+		Data: map[string][]byte{
+			"fingerprint": []byte("abcdefg"),
+			"key":         []byte("some-key"),
+			"tenancy":     []byte("tenancy-ocid"),
+			"user":        []byte("user-admin"),
+		},
+	}
 
+	cli := createFakeTestClient(userObj, capiSecret)
+	cliErr := createFakeTestClient(capiSecret)
 	tests := []struct {
-		name        string
-		users       *unstructured.UnstructuredList
-		wantListErr bool
+		name    string
+		client  client.Client
+		wantErr bool
 	}{
 		{
-			name:        "successful create",
-			users:       userList,
-			wantListErr: false,
+			name:    "successful create",
+			client:  cli,
+			wantErr: false,
 		},
 		{
-			name:        "unsuccessful user lookup",
-			users:       &unstructured.UnstructuredList{},
-			wantListErr: true,
+			name:    "unsuccessful user lookup",
+			client:  cliErr,
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mocker := gomock.NewController(t)
-			mock := mocks.NewMockClient(mocker)
-			// Expect a call to get the capi secret
-			mock.EXPECT().
-				Get(gomock.Any(), types.NamespacedName{Namespace: CAPIProviderOCISystemNamespace, Name: CAPIProviderOCIAuthConfigSecret}, gomock.Not(gomock.Nil())).
-				DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-					secret.ObjectMeta = metav1.ObjectMeta{
-						Name:      CAPIProviderOCIAuthConfigSecret,
-						Namespace: CAPIProviderOCISystemNamespace,
-					}
-					secret.Data = map[string][]byte{
-						"fingerprint": []byte("abcdefg"),
-						"key":         []byte("some-key"),
-						"tenancy":     []byte("tenancy-ocid"),
-						"user":        []byte("user-admin"),
-					}
-					return nil
-				})
-			// Expect a call to get the list of users
-			mock.EXPECT().
-				List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-				DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-					list.Object = tt.users.Object
-					list.Items = tt.users.Items
-					return nil
-				})
-			if !tt.wantListErr {
-				// Expect a call to get the secret in cattle global data namespace
-				mock.EXPECT().
-					Get(gomock.Any(), types.NamespacedName{Namespace: CattleGlobalDataNamespace, Name: "user-admin"}, gomock.Not(gomock.Nil())).
-					DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-						return errors.NewNotFound(schema.ParseGroupResource("Secret"), "user-admin")
-					})
-				// Expect a call to create the secret in cattle global data
-				mock.EXPECT().
-					Create(gomock.Any(), gomock.Any(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
-						// TODO:  add tests for values in the created secret
-						assert.Equal(t, "abcdefg", string(secret.Data["ocicredentialConfig-fingerprint"]))
-						assert.Equal(t, "some-key", string(secret.Data["ocicredentialConfig-privateKeyContents"]))
-						assert.Equal(t, "tenancy-ocid", string(secret.Data["ocicredentialConfig-tenancyId"]))
-						assert.Equal(t, "user-admin", string(secret.Data["ocicredentialConfig-userId"]))
-						return nil
-					})
-			}
-
-			ctx := spi.NewFakeContext(mock, nil, nil, false)
+			ctx := spi.NewFakeContext(tt.client, nil, nil, false)
 			err = createAdminCloudCredentialSecret(ctx)
-			if !tt.wantListErr {
+			if tt.wantErr {
+				assert.Error(t, err, "Should have generated error")
+			} else {
+				createdSecret := &corev1.Secret{}
+				err := tt.client.Get(context.TODO(), types.NamespacedName{Namespace: CattleGlobalDataNamespace, Name: "user-admin"}, createdSecret)
 				assert.NoError(t, err)
+				assert.Equal(t, "abcdefg", string(createdSecret.Data["ocicredentialConfig-fingerprint"]))
+				assert.Equal(t, "some-key", string(createdSecret.Data["ocicredentialConfig-privateKeyContents"]))
+				assert.Equal(t, "tenancy-ocid", string(createdSecret.Data["ocicredentialConfig-tenancyId"]))
+				assert.Equal(t, "user-admin", string(createdSecret.Data["ocicredentialConfig-userId"]))
+				assert.Equal(t, "admin", createdSecret.Annotations[cattleNameAnnotation])
+				assert.Equal(t, "user-admin", createdSecret.Annotations[cattleCreatorIdAnnotation])
 			}
 		})
 	}

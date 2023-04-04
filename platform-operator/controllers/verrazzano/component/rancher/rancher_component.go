@@ -81,6 +81,9 @@ const APIGroupVersionRancherManagement = "v3"
 const UserListKind = "UserList"
 const RancherBootstrappingLabel = "authz.management.cattle.io/bootstrapping"
 const RancherAdminUser = "admin-user"
+const cattleCreatorIdAnnotation = "field.cattle.io/creatorId"
+const cattleNameAnnotation = "field.cattle.io/name"
+const cattleProvisioningDriverAnnotation = "provisioning.cattle.io/driver"
 
 // Environment variables for the Rancher images
 // format: imageName: baseEnvVar
@@ -546,19 +549,26 @@ func createAdminCloudCredentialSecret(ctx spi.ComponentContext) error {
 	if capiSecret.Data == nil {
 		return nil
 	}
-	adminUserName, err := getRancherAdminUsername(ctx)
+	rancherAdminUser, err := getRancherAdminUsername(ctx)
 	if err != nil {
 		return err
 	}
+	if rancherAdminUser == nil {
+		return ctx.Log().ErrorNewErr("No Rancher admin user found")
+	}
+
 	cloudCredSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      adminUserName,
+			Name:      rancherAdminUser.GetName(),
 			Namespace: CattleGlobalDataNamespace,
 		},
 	}
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), cloudCredSecret, func() error {
 		if cloudCredSecret.Data == nil {
 			cloudCredSecret.Data = make(map[string][]byte)
+		}
+		if cloudCredSecret.Annotations == nil {
+			cloudCredSecret.Annotations = make(map[string]string)
 		}
 		if _, exists := capiSecret.Data["fingerprint"]; exists {
 			cloudCredSecret.Data["ocicredentialConfig-fingerprint"] = capiSecret.Data["fingerprint"]
@@ -575,17 +585,22 @@ func createAdminCloudCredentialSecret(ctx spi.ComponentContext) error {
 		if _, exists := capiSecret.Data["passphrase"]; exists {
 			cloudCredSecret.Data["ocicredentialConfig-passphrase"] = capiSecret.Data["passphrase"]
 		}
+
+		cloudCredSecret.Annotations[cattleCreatorIdAnnotation] = rancherAdminUser.GetName()
+		cloudCredSecret.Annotations[cattleNameAnnotation] = fmt.Sprintf("%v", rancherAdminUser.Object["username"])
+		cloudCredSecret.Annotations[cattleProvisioningDriverAnnotation] = "oracle"
+
 		return nil
 	}); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to create or update the %s cloud credential secret: %v",
-			adminUserName, err)
+			rancherAdminUser.GetName(), err)
 	}
 
 	return nil
 }
 
 // getRancherAdminUsername returns the Rancher admin username
-func getRancherAdminUsername(ctx spi.ComponentContext) (string, error) {
+func getRancherAdminUsername(ctx spi.ComponentContext) (*unstructured.Unstructured, error) {
 	labels := &metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			RancherBootstrappingLabel: RancherAdminUser,
@@ -593,7 +608,7 @@ func getRancherAdminUsername(ctx spi.ComponentContext) (string, error) {
 	}
 	selector, err := metav1.LabelSelectorAsSelector(labels)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	usersList := unstructured.UnstructuredList{}
 	usersList.SetGroupVersionKind(schema.GroupVersionKind{
@@ -604,13 +619,13 @@ func getRancherAdminUsername(ctx spi.ComponentContext) (string, error) {
 	listOptions := &client.ListOptions{LabelSelector: selector}
 	err = ctx.Client().List(context.TODO(), &usersList, listOptions)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	// there should be just one item returned
 	if len(usersList.Items) < 1 {
-		return "", ctx.Log().ErrorNewErr("More than one Rancher admin user found")
+		return nil, ctx.Log().ErrorNewErr("More than one Rancher admin user found")
 	}
-	return usersList.Items[0].GetName(), nil
+	return &usersList.Items[0], nil
 }
 
 // activateDrivers activates the nodeDriver oci and oraclecontainerengine kontainerDriver
