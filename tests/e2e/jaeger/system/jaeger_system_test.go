@@ -56,7 +56,7 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 		// WHEN we query for metrics related to Jaeger operator
 		// THEN we see that the metrics are present in prometheus
 		whenJaegerOperatorEnabledIt("metrics of jaeger operator are available in prometheus", func() {
-			validatorFn := pkg.ValidateJaegerOperatorMetricFunc()
+			validatorFn := pkg.ValidateJaegerOperatorMetricFunc(pkg.QueryMetric)
 			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 
@@ -64,7 +64,7 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 		// WHEN we query for metrics related to Jaeger collector
 		// THEN we see that the metrics are present in prometheus
 		whenJaegerOperatorEnabledIt("metrics of jaeger collector are available in prometheus", func() {
-			validatorFn := pkg.ValidateJaegerCollectorMetricFunc()
+			validatorFn := pkg.ValidateJaegerCollectorMetricFunc(pkg.QueryMetric)
 			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 
@@ -72,7 +72,7 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 		// WHEN we query for metrics related to Jaeger collector
 		// THEN we see that the metrics are present in prometheus
 		whenJaegerOperatorEnabledIt("metrics of jaeger query are available in prometheus", func() {
-			validatorFn := pkg.ValidateJaegerQueryMetricFunc()
+			validatorFn := pkg.ValidateJaegerQueryMetricFunc(pkg.QueryMetric)
 			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 
@@ -80,7 +80,7 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 		// WHEN we query for metrics related to Jaeger collector
 		// THEN we see that the metrics are present in prometheus
 		whenJaegerOperatorEnabledIt("metrics of jaeger agent are available in prometheus", func() {
-			validatorFn := pkg.ValidateJaegerAgentMetricFunc()
+			validatorFn := pkg.ValidateJaegerAgentMetricFunc(pkg.QueryMetric)
 			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 	})
