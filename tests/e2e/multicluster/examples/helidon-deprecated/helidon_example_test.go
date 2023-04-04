@@ -5,6 +5,7 @@ package mchelidon
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"os"
 	"strconv"
@@ -41,6 +42,7 @@ const (
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
+var metricsFunc = pkg.MetricsExistInCluster
 
 // failed indicates whether any of the tests has failed
 var failed = false
@@ -87,6 +89,15 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		}
 		return resource.CreateOrUpdateResourceFromFileInCluster(file, adminKubeconfig)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+
+	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(adminKubeconfig)
+	if err != nil {
+		AbortSuite("Failed to get the Verrazzano resource from the cluster")
+	}
+	if vzcr.IsThanosEnabled(vz) {
+		metricsFunc = pkg.ThanosMetricsExistInCluster
+	}
+
 	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
@@ -211,7 +222,7 @@ var _ = t.Describe("Multi-cluster verify hello-helidon", func() {
 			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
 			Eventually(func() bool {
 				var m = map[string]string{clusterNameMetricsLabel: clusterName}
-				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
+				return metricsFunc("base_jvm_uptime_seconds", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})

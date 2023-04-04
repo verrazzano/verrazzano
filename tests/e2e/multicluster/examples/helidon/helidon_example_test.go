@@ -5,6 +5,7 @@ package mchelidon
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"os"
 	"strconv"
@@ -37,6 +38,7 @@ const (
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
+var metricsFunc = pkg.MetricsExistInCluster
 
 // failed indicates whether any of the tests has failed
 var failed = false
@@ -66,6 +68,13 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 			return examples.DeployHelloHelidonApp(adminKubeconfig, sourceDir)
 		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
+	}
+	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(adminKubeconfig)
+	if err != nil {
+		AbortSuite("Failed to get the Verrazzano resource from the cluster")
+	}
+	if vzcr.IsThanosEnabled(vz) {
+		metricsFunc = pkg.ThanosMetricsExistInCluster
 	}
 	beforeSuitePassed = true
 })
@@ -199,7 +208,7 @@ var _ = t.Describe("In Multi-cluster, verify hello-helidon", Label("f:multiclust
 				m := make(map[string]string)
 				m["app"] = testApp
 				m[clusterNameMetricsLabel] = clusterName
-				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
+				return metricsFunc("base_jvm_uptime_seconds", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find base_jvm_uptime_seconds metric")
 		})
 
@@ -212,7 +221,7 @@ var _ = t.Describe("In Multi-cluster, verify hello-helidon", Label("f:multiclust
 				m := make(map[string]string)
 				m["cluster"] = testNamespace
 				m[clusterNameMetricsLabel] = "DNE"
-				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
+				return metricsFunc("base_jvm_uptime_seconds", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Not expected to find base_jvm_uptime_seconds metric")
 		})
 
@@ -225,7 +234,7 @@ var _ = t.Describe("In Multi-cluster, verify hello-helidon", Label("f:multiclust
 				m := make(map[string]string)
 				m["app"] = testApp
 				m[clusterNameMetricsLabel] = clusterName
-				return pkg.MetricsExistInCluster("vendor_requests_count_total", m, adminKubeconfig)
+				return metricsFunc("vendor_requests_count_total", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find vendor_requests_count_total metric")
 		})
 
@@ -238,7 +247,7 @@ var _ = t.Describe("In Multi-cluster, verify hello-helidon", Label("f:multiclust
 				m := make(map[string]string)
 				m["namespace"] = testNamespace
 				m[clusterNameMetricsLabel] = clusterName
-				return pkg.MetricsExistInCluster("container_cpu_cfs_periods_total", m, adminKubeconfig)
+				return metricsFunc("container_cpu_cfs_periods_total", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find container_cpu_cfs_periods_total metric")
 		})
 	})
