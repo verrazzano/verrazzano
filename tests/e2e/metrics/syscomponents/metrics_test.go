@@ -125,10 +125,8 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	}
 
 	defaultLabels := map[string]string{}
-	if isManagedClusterProfile {
-		defaultLabels[getClusterNameMetricLabel()] = os.Getenv("CLUSTER_NAME")
-	} else if isMinVersion110 {
-		defaultLabels[getClusterNameMetricLabel()] = "local"
+	if clusterLabelVal := getClusterNameForPromQuery(); clusterLabelVal != "" {
+		defaultLabels[getClusterNameMetricLabel()] = clusterLabelVal
 	}
 	metricsTest, err = pkg.NewMetricsTest([]string{adminKubeConfig}, adminKubeConfig, defaultLabels)
 	if err != nil {

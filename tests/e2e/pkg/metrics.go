@@ -101,7 +101,7 @@ func (m MetricsTest) appendLabels(query string, labels map[string]string) string
 	for k, v := range labels {
 		labelStrings = append(labelStrings, fmt.Sprintf(`%s="%s"`, k, v))
 	}
-	return fmt.Sprintf("{%s}", strings.Join(labelStrings, ","))
+	return fmt.Sprintf("%s{%s}", query, strings.Join(labelStrings, ","))
 }
 
 // QueryMetricWithLabelByHost queries a metric using a label from the given query function, derived from the kubeconfig
