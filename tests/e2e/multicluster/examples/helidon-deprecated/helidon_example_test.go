@@ -13,7 +13,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster/examples"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
@@ -39,7 +38,7 @@ const (
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
-var metricsFunc = pkg.MetricsExistInCluster
+var metricsTest pkg.MetricsTest
 
 // failed indicates whether any of the tests has failed
 var failed = false
@@ -87,12 +86,10 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return resource.CreateOrUpdateResourceFromFileInCluster(file, adminKubeconfig)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
-	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(adminKubeconfig)
+	var err error
+	metricsTest, err = pkg.NewMetricsTest([]string{adminKubeconfig, managedKubeconfig}, adminKubeconfig, map[string]string{})
 	if err != nil {
-		AbortSuite("Failed to get the Verrazzano resource from the cluster")
-	}
-	if vzcr.IsThanosEnabled(vz) {
-		metricsFunc = pkg.ThanosMetricsExistInCluster
+		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
 	}
 
 	beforeSuitePassed = true
@@ -219,7 +216,7 @@ var _ = t.Describe("Multi-cluster verify hello-helidon", func() {
 			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
 			Eventually(func() bool {
 				var m = map[string]string{clusterNameMetricsLabel: clusterName}
-				return metricsFunc("base_jvm_uptime_seconds", m, adminKubeconfig)
+				return metricsTest.MetricsExist("base_jvm_uptime_seconds", m)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
