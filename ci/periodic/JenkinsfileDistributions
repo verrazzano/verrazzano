@@ -44,7 +44,7 @@ pipeline {
     }
 
     environment {
-    IS_PERIODIC_PIPELINE = "true"
+        IS_PERIODIC_PIPELINE = "true"
         NETRC_FILE = credentials('netrc')
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
