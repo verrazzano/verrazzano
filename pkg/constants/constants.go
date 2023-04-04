@@ -77,6 +77,9 @@ const PrometheusOperatorNamespace = "verrazzano-monitoring"
 // ArgoCDNamespace - the Argocd namespace
 const ArgoCDNamespace = "argocd"
 
+// CAPISystemNamespace - the CAPI system namespace
+const CAPISystemNamespace = "capi-system"
+
 // LabelIstioInjection - constant for a Kubernetes label that is applied by Verrazzano
 const LabelIstioInjection = "istio-injection"
 

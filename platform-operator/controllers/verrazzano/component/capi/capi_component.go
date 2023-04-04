@@ -4,11 +4,16 @@
 package capi
 
 import (
+	"context"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -17,10 +22,14 @@ import (
 const ComponentName = "verrazzano-capi"
 
 // ComponentNamespace is the namespace of the component
-const ComponentNamespace = constants.VerrazzanoSystemNamespace
+const ComponentNamespace = vzconst.CAPISystemNamespace
 
 // ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "verrazzano-capi"
+
+const (
+	capiControllerManagerDeployment = "capi-controller-manager"
+)
 
 var capiDeployments = []types.NamespacedName{}
 
@@ -48,7 +57,7 @@ func (c capiComponent) ShouldInstallBeforeUpgrade() bool {
 
 // GetDependencies returns the dependencies of this component.
 func (c capiComponent) GetDependencies() []string {
-	return []string{}
+	return []string{certmanager.ComponentName}
 }
 
 // IsReady indicates whether a component is Ready for dependency components.
@@ -120,9 +129,18 @@ func (c capiComponent) IsOperatorInstallSupported() bool {
 	return true
 }
 
-func (c capiComponent) IsInstalled(_ spi.ComponentContext) (bool, error) {
-	// TODO: how do we check if capi is installed
-	return false, nil
+// IsInstalled checks to see if CAPI is installed
+func (c capiComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
+	daemonSet := &appsv1.Deployment{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: capiControllerManagerDeployment}, daemonSet)
+	if errors.IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil {
+		ctx.Log().Errorf("Failed to get %s/%s deployment: %v", ComponentNamespace, capiControllerManagerDeployment, err)
+		return false, err
+	}
+	return true, nil
 }
 
 func (c capiComponent) PreInstall(_ spi.ComponentContext) error {
