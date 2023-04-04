@@ -16,10 +16,7 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 	"time"
 )
 
@@ -45,8 +42,7 @@ type CertificateRotationManagerReconciler struct {
 // SetupWithManager creates a new controller and adds it to the manager
 func (r *CertificateRotationManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&corev1.Secret{}).
-		WithEventFilter(r.createComponentCertificatePredicate()).
+		For(&corev1.Secret{}).WithEventFilter(r.createComponentCertificatePredicate()).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 1,
 		}).
@@ -69,11 +65,20 @@ func (r *CertificateRotationManagerReconciler) Reconcile(ctx context.Context, re
 	// If no error during certification checks, then next reconcile will happen
 	// every alternative day.
 	// else in case of error it will happen after 5 mintues.
-	err := r.CheckCertificateExpiration(ctx)
+	certList, err := r.getCertSecretList(ctx)
 	if err != nil {
-		return newRequeueWithDelay(3, 5, time.Minute), nil
+		r.log.Info("Skipping the Reconciling %v", req.NamespacedName)
+		return ctrl.Result{}, err
 	}
-	return newRequeueWithDelay(3, 24, time.Hour), err
+	err = r.CheckCertificateExpiration(ctx, certList)
+	if err != nil {
+		result := newRequeueWithDelay(5, 10, time.Minute)
+		r.log.Infof("Delay: %v", result.RequeueAfter)
+		return result, err
+	}
+	result := newRequeueWithDelay(5, 24, time.Hour)
+	r.log.Infof("Delay: %v", result.RequeueAfter)
+	return result, nil
 
 }
 
@@ -100,13 +105,13 @@ func newRequeueWithDelay(min, max int, unit time.Duration) ctrl.Result {
 	return vzctrl.NewRequeueWithDelay(min, max, unit)
 }
 
-func (r *CertificateRotationManagerReconciler) CheckCertificateExpiration(ctx context.Context) error {
+func (r *CertificateRotationManagerReconciler) CheckCertificateExpiration(ctx context.Context, certsList []string) error {
 	mustRotate := false
 	var err error
-	var certsList []string
-	if certsList, err = r.getCertSecretList(ctx); err != nil {
-		return err
-	}
+	//var certsList []string
+	//if certsList, err = r.getCertSecretList(ctx); err != nil {
+	//	return err
+	//}
 	for i := range certsList {
 		secret := certsList[i]
 		r.log.Debugf("secret/certificate found %v", secret)
@@ -155,30 +160,20 @@ func (r *CertificateRotationManagerReconciler) getCertSecretList(ctx context.Con
 func (r *CertificateRotationManagerReconciler) createComponentCertificatePredicate() predicate.Predicate {
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			return r.isComponentNamespace(e.Object)
+			namespace := e.Object.GetNamespace()
+			return r.WatchNamespace == namespace
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return r.isComponentNamespace(e.Object)
+			namespace := e.Object.GetNamespace()
+			return r.WatchNamespace == namespace
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return r.isComponentNamespace(e.ObjectNew)
+			namespace := e.ObjectOld.GetNamespace()
+			return r.WatchNamespace == namespace
 		},
 		GenericFunc: func(genericEvent event.GenericEvent) bool {
-			return r.isComponentNamespace(genericEvent.Object)
+			namespace := genericEvent.Object.GetNamespace()
+			return r.WatchNamespace == namespace
 		},
 	}
-}
-
-func (r *CertificateRotationManagerReconciler) isComponentNamespace(o clipkg.Object) bool {
-	secret := o.(*corev1.Secret)
-	return secret.Namespace == r.WatchNamespace
-}
-
-func (r *CertificateRotationManagerReconciler) SetupWithManager1(mgr ctrl.Manager) error {
-	manager := ctrl.NewControllerManagedBy(mgr).
-		For(&r.str, WithPredicates(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.AnnotationChangedPredicate{}))).
-		manager = manager.Watches(&source.Kind{Type: &corev1.Secret{}}, handler.EnqueueRequestsFromMapFunc(func(a client.Object) []reconcile.Request {
-		return r.SecretRequests.FindForSecret(a.GetNamespace(), a.GetName())
-	}))
-	return manager.Complete(r)
 }
