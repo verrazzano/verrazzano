@@ -589,7 +589,7 @@ username: admin
 				assert.Equal(t, "user-admin", string(createdSecret.Data["ocicredentialConfig-userId"]))
 				assert.Equal(t, "us-ashburn-1", string(createdSecret.Data["ocicredentialConfig-region"]))
 				assert.Equal(t, "admin", createdSecret.Annotations[cattleNameAnnotation])
-				assert.Equal(t, "user-admin", createdSecret.Annotations[cattleCreatorIdAnnotation])
+				assert.Equal(t, "user-admin", createdSecret.Annotations[cattleCreatorIDAnnotation])
 			}
 		})
 	}

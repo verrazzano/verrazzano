@@ -81,7 +81,7 @@ const APIGroupVersionRancherManagement = "v3"
 const UserListKind = "UserList"
 const RancherBootstrappingLabel = "authz.management.cattle.io/bootstrapping"
 const RancherAdminUser = "admin-user"
-const cattleCreatorIdAnnotation = "field.cattle.io/creatorId"
+const cattleCreatorIDAnnotation = "field.cattle.io/creatorId"
 const cattleNameAnnotation = "field.cattle.io/name"
 const cattleProvisioningDriverAnnotation = "provisioning.cattle.io/driver"
 
@@ -590,7 +590,7 @@ func createAdminCloudCredentialSecret(ctx spi.ComponentContext) error {
 			cloudCredSecret.Data["ocicredentialConfig-region"] = capiSecret.Data["region"]
 		}
 
-		cloudCredSecret.Annotations[cattleCreatorIdAnnotation] = rancherAdminUser.GetName()
+		cloudCredSecret.Annotations[cattleCreatorIDAnnotation] = rancherAdminUser.GetName()
 		cloudCredSecret.Annotations[cattleNameAnnotation] = username
 		cloudCredSecret.Annotations[cattleProvisioningDriverAnnotation] = "oracle"
 
