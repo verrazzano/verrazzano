@@ -46,14 +46,14 @@ func SetDefaultUpgradeFunc() {
 	upgradeFunc = helm.UpgradeRelease
 }
 
-func newHelmAdapter(module *modulesv1beta2.ModuleLifecycle, sw client.StatusWriter) delegates.DelegateLifecycleReconciler {
-	installer := module.Spec.Installer
+func newHelmAdapter(mlc *modulesv1beta2.ModuleLifecycle, sw client.StatusWriter) delegates.DelegateLifecycleReconciler {
+	installer := mlc.Spec.Installer
 	chartInfo := installer.HelmRelease.ChartInfo
 	chartURL := fmt.Sprintf("%s/%s", installer.HelmRelease.Repository.URI, chartInfo.Path)
 	hc := helmcomp.HelmComponent{
-		ReleaseName:             module.Name,
+		ReleaseName:             mlc.Name,
 		ChartDir:                chartInfo.Path,
-		ChartNamespace:          module.ChartNamespace(),
+		ChartNamespace:          mlc.ChartNamespace(),
 		IgnoreNamespaceOverride: true,
 
 		//GetInstallOverridesFunc: func(object runtime.Object) interface{} {
@@ -81,7 +81,7 @@ func newHelmAdapter(module *modulesv1beta2.ModuleLifecycle, sw client.StatusWrit
 		HelmComponent: hc,
 		RepositoryURL: chartURL,
 		ChartVersion:  chartInfo.Version,
-		module:        module,
+		module:        mlc,
 	}
 	return &helmDelegateReconciler{
 		StatusWriter: sw,
@@ -92,16 +92,17 @@ func newHelmAdapter(module *modulesv1beta2.ModuleLifecycle, sw client.StatusWrit
 // Install installs the component using Helm
 func (h helmComponentAdapter) Install(context spi.ComponentContext) error {
 	// Perform a Helm install using the helm upgrade --install command
-	helmOverrides, err := common.ConvertToHelmOverrides(context.Log(), context.Client(), h.ReleaseName, h.ChartNamespace, h.module.Spec.Installer.HelmRelease.Overrides)
+	helmRelease := h.module.Spec.Installer.HelmRelease
+	helmOverrides, err := common.ConvertToHelmOverrides(context.Log(), context.Client(), helmRelease.Name, helmRelease.Namespace, helmRelease.Overrides)
 	if err != nil {
 		return err
 	}
 	var opts = &helm.HelmReleaseOpts{
-		RepoURL:      h.RepositoryURL,
-		ReleaseName:  h.ReleaseName,
-		Namespace:    h.ChartNamespace,
-		ChartPath:    h.ChartDir,
-		ChartVersion: h.ChartVersion,
+		RepoURL:      helmRelease.Repository.URI,
+		ReleaseName:  helmRelease.Name,
+		Namespace:    h.module.ChartNamespace(),
+		ChartPath:    helmRelease.ChartInfo.Name,
+		ChartVersion: helmRelease.ChartInfo.Version,
 		Overrides:    helmOverrides,
 		//Username:     "",
 		//Password:     "",
@@ -123,18 +124,36 @@ func (h helmComponentAdapter) IsReady(context spi.ComponentContext) bool {
 	}
 
 	// TODO: see if we need any of this nonsense below
-	releaseAppVersion, err := helm.GetReleaseAppVersion(h.ReleaseName, h.ChartNamespace)
-	if err != nil {
-		return false
-	}
-	if h.ChartVersion != releaseAppVersion {
-		return false
-	}
+	//releaseAppVersion, err := helm.GetReleaseAppVersion(h.ReleaseName, h.ChartNamespace)
+	//if err != nil {
+	//	return false
+	//}
+	//if h.ChartVersion != releaseAppVersion {
+	//	return false
+	//}
 
-	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, h.ChartNamespace); deployed {
+	if deployed, _ := helm.IsReleaseDeployed(h.module.Spec.Installer.HelmRelease.Name, h.ChartNamespace); deployed {
 		return true
 	}
 	return false
+}
+
+func (h helmComponentAdapter) Uninstall(context spi.ComponentContext) error {
+	releaseName := h.module.Spec.Installer.HelmRelease.Name
+	deployed, err := helm.IsReleaseDeployed(releaseName, h.ChartNamespace)
+	if err != nil {
+		return err
+	}
+	if !deployed {
+		context.Log().Infof("%s already uninstalled", h.Name())
+		return nil
+	}
+	err = helm.Uninstall(context.Log(), releaseName, h.ChartNamespace, context.IsDryRun())
+	if err != nil {
+		context.Log().Errorf("Error uninstalling %s/%s, error: %s", h.ChartNamespace, h.Name(), err.Error())
+		return err
+	}
+	return nil
 }
 
 // IsEnabled ModuleLifecycle objects are always enabled; if a Module is disabled the ModuleLifecycle resource doesn't exist

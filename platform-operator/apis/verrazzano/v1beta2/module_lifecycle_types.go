@@ -91,7 +91,10 @@ func (m *ModuleLifecycle) ChartNamespace() string {
 	if m.Spec.Installer.HelmRelease == nil {
 		return m.Namespace
 	}
-	return m.Spec.Installer.HelmRelease.Namespace
+	if m.Spec.Installer.HelmRelease != nil && len(m.Spec.Installer.HelmRelease.Namespace) > 0 {
+		return m.Spec.Installer.HelmRelease.Namespace
+	}
+	return "default"
 }
 
 func (m *ModuleLifecycle) IsBeingDeleted() bool {

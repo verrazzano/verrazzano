@@ -102,11 +102,6 @@ func GetValues(log vzlog.VerrazzanoLogger, releaseName string, namespace string)
 	return yamlValues, nil
 }
 
-// Upgrade or install a local chart
-//func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []HelmOverrides) (err error) {
-//	return UpgradeRelease(log, "", releaseName, namespace, chartDir, "", wait, dryRun, overrides)
-//}
-
 type HelmReleaseOpts struct {
 	RepoURL      string
 	ReleaseName  string
