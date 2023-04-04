@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	modulesv1beta2 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/platformctrl/common"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/platformctrl/modlifecycle/delegates"
+	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -29,7 +30,7 @@ type helmComponentAdapter struct {
 }
 
 // upgradeFuncSig is a function needed for unit test override
-type upgradeFuncSig func(log vzlog.VerrazzanoLogger, repoURL string, releaseName string, namespace string, chartDirOrName string, chartVersion string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (err error)
+type upgradeFuncSig func(log vzlog.VerrazzanoLogger, releaseOpts *helm.HelmReleaseOpts, wait bool, dryRun bool) (*release.Release, error)
 
 var (
 	_ spi.Component = helmComponentAdapter{}
@@ -55,11 +56,11 @@ func newHelmAdapter(module *modulesv1beta2.ModuleLifecycle, sw client.StatusWrit
 		ChartNamespace:          module.ChartNamespace(),
 		IgnoreNamespaceOverride: true,
 
-		GetInstallOverridesFunc: func(object runtime.Object) interface{} {
-			return v1beta1.InstallOverrides{
-				ValueOverrides: copyOverrides(installer.HelmRelease.Overrides),
-			}
-		},
+		//GetInstallOverridesFunc: func(object runtime.Object) interface{} {
+		//	return v1beta1.InstallOverrides{
+		//		ValueOverrides: copyOverrides(installer.HelmRelease.Overrides),
+		//	}
+		//},
 
 		ImagePullSecretKeyname: constants.GlobalImagePullSecName,
 
@@ -88,48 +89,30 @@ func newHelmAdapter(module *modulesv1beta2.ModuleLifecycle, sw client.StatusWrit
 	}
 }
 
-func copyOverrides(overrides []modulesv1beta2.Overrides) []v1beta1.Overrides {
-	var copy []v1beta1.Overrides
-	for _, override := range overrides {
-		copy = append(copy, v1beta1.Overrides{
-			ConfigMapRef: override.ConfigMapRef.DeepCopy(),
-			SecretRef:    override.SecretRef.DeepCopy(),
-			Values:       override.Values.DeepCopy(),
-		})
-	}
-	return copy
-}
-
 // Install installs the component using Helm
 func (h helmComponentAdapter) Install(context spi.ComponentContext) error {
-
-	//var kvs []bom.KeyValue
-	// check for global image pull secret
-	//kvs, err := secret.AddGlobalImagePullSecretHelmOverride(context.Log(), context.Client(), h.ChartNamespace, kvs, h.ImagePullSecretKeyname)
-	//if err != nil {
-	//	return err
-	//}
-
-	// TODO: utilize overrides hooks
-	// vz-specific chart overrides file
-	//overrides, err := h.buildCustomHelmOverrides(context, h.ChartNamespace, kvs...)
-	//defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), `helm-overrides.*\.yaml`)
-	//if err != nil {
-	//	return err
-	//}
-
-	// Perform an install using the helm upgrade --install command
-	return upgradeFunc(context.Log(), h.RepositoryURL, h.ReleaseName, h.ChartNamespace, h.ChartDir, h.ChartVersion, h.WaitForInstall, context.IsDryRun(), []helm.HelmOverrides{})
+	// Perform a Helm install using the helm upgrade --install command
+	helmOverrides, err := common.BuildHelmOverrides(context.Log(), context.Client(), h.ReleaseName, h.ChartNamespace, h.module.Spec.Installer.HelmRelease.Overrides)
+	if err != nil {
+		return err
+	}
+	var opts = &helm.HelmReleaseOpts{
+		RepoURL:      h.RepositoryURL,
+		ReleaseName:  h.ReleaseName,
+		Namespace:    h.ChartNamespace,
+		ChartPath:    h.ChartDir,
+		ChartVersion: h.ChartVersion,
+		Overrides:    helmOverrides,
+		//Username:     "",
+		//Password:     "",
+	}
+	_, err = upgradeFunc(context.Log(), opts, h.WaitForInstall, context.IsDryRun())
+	return err
 }
 
 func (h helmComponentAdapter) Upgrade(context spi.ComponentContext) error {
 	// TODO: examine HelmComponent.Upgrade() to see what kind of hooks are missing/required
 	return h.Install(context)
-}
-
-func (h helmComponentAdapter) Uninstall(context spi.ComponentContext) error {
-	// TODO: remove stub when we can
-	return nil
 }
 
 // IsReady Indicates whether a component is available and ready
@@ -140,25 +123,21 @@ func (h helmComponentAdapter) IsReady(context spi.ComponentContext) bool {
 	}
 
 	// TODO: see if we need any of this nonsense below
-	//releaseAppVersion, err := helm.GetReleaseAppVersion(h.ReleaseName, h.ChartNamespace)
-	//if err != nil {
-	//	return false
-	//}
-	//if h.ChartVersion != releaseAppVersion {
-	//	return false
-	//}
+	releaseAppVersion, err := helm.GetReleaseAppVersion(h.ReleaseName, h.ChartNamespace)
+	if err != nil {
+		return false
+	}
+	if h.ChartVersion != releaseAppVersion {
+		return false
+	}
 
-	//if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, h.ChartNamespace); deployed {
-	//	return true
-	//}
-	//return false
-
-	// TODO: stubbed for now
-	return true
+	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, h.ChartNamespace); deployed {
+		return true
+	}
+	return false
 }
 
-// TODO: provide override here when we add Enabled hooks to v1beta2 Module
-// // IsEnabled Indicates whether a component is enabled for installation
+// IsEnabled ModuleLifecycle objects are always enabled; if a Module is disabled the ModuleLifecycle resource doesn't exist
 func (h helmComponentAdapter) IsEnabled(_ runtime.Object) bool {
 	return true
 }
