@@ -101,3 +101,11 @@ receive:
     capabilities:
       drop:
         - ALL
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: prometheus-operator
+    namespace: verrazzano-monitoring
