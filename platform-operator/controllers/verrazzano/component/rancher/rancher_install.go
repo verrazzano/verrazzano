@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -11,39 +11,10 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-// patchRancherDeployment CRI-O does not deliver MKNOD by default, until https://github.com/rancher/rancher/pull/27582 is merged we must add the capability
-func patchRancherDeployment(c client.Client) error {
-	deployment := appsv1.Deployment{}
-	namespacedName := types.NamespacedName{Name: common.RancherName, Namespace: common.CattleSystem}
-	if err := c.Get(context.TODO(), namespacedName, &deployment); err != nil {
-		return err
-	}
-	deploymentMerge := client.MergeFrom(deployment.DeepCopy())
-	ok := false
-	for i, container := range deployment.Spec.Template.Spec.Containers {
-		if container.Name == common.RancherName {
-			container.SecurityContext = &v1.SecurityContext{
-				Capabilities: &v1.Capabilities{
-					Add: []v1.Capability{"MKNOD"},
-				},
-			}
-			ok = true
-			deployment.Spec.Template.Spec.Containers[i] = container
-		}
-	}
-	if !ok {
-		return errors.New("container 'rancher' was not found")
-	}
-
-	return c.Patch(context.TODO(), &deployment, deploymentMerge)
-}
 
 // patchRancherIngress annotates the Rancher ingress with environment specific values
 func patchRancherIngress(c client.Client, vz *vzapi.Verrazzano) error {
