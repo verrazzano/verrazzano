@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/platformctrl/modlifecycle/delegates"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type helmComponentAdapter struct {
@@ -44,7 +45,7 @@ func SetDefaultUpgradeFunc() {
 	upgradeFunc = helm.UpgradeRelease
 }
 
-func NewHelmAdapter(module *modulesv1beta2.ModuleLifecycle) delegates.DelegateReconciler {
+func newHelmAdapter(module *modulesv1beta2.ModuleLifecycle, sw client.StatusWriter) delegates.DelegateLifecycleReconciler {
 	installer := module.Spec.Installer
 	chartInfo := installer.HelmRelease.ChartInfo
 	chartURL := fmt.Sprintf("%s/%s", installer.HelmRelease.Repository.URI, chartInfo.Path)
@@ -81,8 +82,9 @@ func NewHelmAdapter(module *modulesv1beta2.ModuleLifecycle) delegates.DelegateRe
 		ChartVersion:  chartInfo.Version,
 		module:        module,
 	}
-	return &Reconciler{
-		Component: &component,
+	return &helmDelegateReconciler{
+		StatusWriter: sw,
+		comp:         &component,
 	}
 }
 
@@ -125,6 +127,11 @@ func (h helmComponentAdapter) Upgrade(context spi.ComponentContext) error {
 	return h.Install(context)
 }
 
+func (h helmComponentAdapter) Uninstall(context spi.ComponentContext) error {
+	// TODO: remove stub when we can
+	return nil
+}
+
 // IsReady Indicates whether a component is available and ready
 func (h helmComponentAdapter) IsReady(context spi.ComponentContext) bool {
 	if context.IsDryRun() {
@@ -141,10 +148,13 @@ func (h helmComponentAdapter) IsReady(context spi.ComponentContext) bool {
 	//	return false
 	//}
 
-	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, h.ChartNamespace); deployed {
-		return true
-	}
-	return false
+	//if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, h.ChartNamespace); deployed {
+	//	return true
+	//}
+	//return false
+
+	// TODO: stubbed for now
+	return true
 }
 
 // TODO: provide override here when we add Enabled hooks to v1beta2 Module

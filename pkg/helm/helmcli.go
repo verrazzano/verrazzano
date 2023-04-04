@@ -108,7 +108,8 @@ func GetValues(log vzlog.VerrazzanoLogger, releaseName string, namespace string)
 //}
 
 func UpgradeRelease(log vzlog.VerrazzanoLogger, repoURL string, releaseName string, namespace string, chartDirOrName string, chartVersion string, wait bool, dryRun bool, overrides []HelmOverrides) (e error) {
-	return log.ErrorfThrottledNewErr("Not implemented")
+	log.Infof("Upgrading release %s in namespace %s, chart %s, version %s, repoURL %s", releaseName, namespace, chartDirOrName, chartVersion, repoURL)
+	return nil
 }
 
 // Upgrade will upgrade a Helm helmRelease with the specified charts.  The override files array

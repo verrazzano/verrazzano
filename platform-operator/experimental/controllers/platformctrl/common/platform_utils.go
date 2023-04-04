@@ -2,6 +2,11 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package common
 
+import (
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+)
+
 //func FindPlatformModuleVersion(log vzlog.VerrazzanoLogger, module installv1beta2.Module, pd *installv1beta2.PlatformDefinition) (string, bool) {
 //	moduleInfo, ok := FindModuleInfo(module.Name, pd)
 //	if ok {
@@ -28,3 +33,10 @@ package common
 //	}
 //	return installv1beta2.ChartVersion{}, false
 //}
+
+func GetNamespacedName(meta v1.ObjectMeta) types.NamespacedName {
+	return types.NamespacedName{
+		Namespace: meta.Namespace,
+		Name:      meta.Name,
+	}
+}

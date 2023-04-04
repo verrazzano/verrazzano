@@ -6,6 +6,9 @@ package modlifecycle
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/platformctrl/common"
+	"time"
+
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	controller2 "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -18,14 +21,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"time"
 )
-
-var delegateReconcilersMap = map[string]func(*modulesv1beta2.ModuleLifecycle) delegates.DelegateReconciler{
-	//keycloak.ComponentName:  keycloak.NewComponent,
-	//coherence.ComponentName: coherence.NewComponent,
-	//weblogic.ComponentName:  weblogic.NewComponent,
-}
 
 type Reconciler struct {
 	client.Client
@@ -47,9 +43,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		ctx = context.Background()
 	}
 
-	// Get the module for the request
-	module := &modulesv1beta2.ModuleLifecycle{}
-	if err := r.Get(ctx, req.NamespacedName, module); err != nil {
+	// Get the mlc for the request
+	mlc := &modulesv1beta2.ModuleLifecycle{}
+	if err := r.Get(ctx, req.NamespacedName, mlc); err != nil {
 		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
@@ -58,59 +54,48 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
-		Name:           module.Name,
-		Namespace:      module.Namespace,
-		ID:             string(module.UID),
-		Generation:     module.Generation,
-		ControllerName: "module-lifecycle",
+		Name:           mlc.Name,
+		Namespace:      mlc.Namespace,
+		ID:             string(mlc.UID),
+		Generation:     mlc.Generation,
+		ControllerName: "mlc-lifecycle",
 	})
 	if err != nil {
 		zap.S().Errorf("Failed to create controller logger for ModuleLifecycle controller: %v", err)
 		return clusters.NewRequeueWithDelay(), err
 	}
 
-	if module.Generation == module.Status.ObservedGeneration {
-		log.Debugf("Skipping module %s reconcile, observed generation has not change", module.Name)
-		return ctrl.Result{}, nil
-	}
-
 	// TODO: in reality this may perhaps be broken out into separate operators/controllers, but then the lifecycle
 	//   CRs would need to be potentially extensible, or the operators/controllers would distinguish ownership of a
 	//   ModuleLifecycle instance by field/labels/annotations, which seems likeß a controller anti-pattern
-	// Unknown module controller cannot be handled
-	delegate := getDelegateLifecycleController(module)
-	if delegate == nil {
-		return ctrl.Result{}, fmt.Errorf("No delegate found for module %s/%s", module.Namespace, module.Name)
+	delegate, err := reconciler.New(mlc, r.Status())
+	if err != nil {
+		// Unknown mlc controller cannot be handled; no need to re-reconcile until the resource is updated
+		log.Errorf("Error retrieving delegate lifecycle reconciler: %v", err.Error())
+		return ctrl.Result{}, err
 	}
-	// TODO: Shim layer
-	//moduleCtx, err := r.createComponentContext(log, verrazzanos, module)
+
+	if delegate == nil {
+		return ctrl.Result{}, fmt.Errorf("No delegate found for mlc %s/%s", mlc.Namespace, mlc.Name)
+	}
 	if err != nil {
 		return controller2.NewRequeueWithDelay(2, 5, time.Second), err
 	}
 
-	delegate.SetStatusWriter(r.Status())
-	if err := delegate.ReconcileModule(log, r.Client, module); err != nil {
-		return handleError(log, module, err)
+	result, err := delegate.Reconcile(log, r.Client, mlc)
+	if err != nil {
+		return handleError(log, mlc, err)
 	}
-	return ctrl.Result{}, nil
-}
-
-func getDelegateLifecycleController(module *modulesv1beta2.ModuleLifecycle) delegates.DelegateReconciler {
-	newDelegate := delegateReconcilersMap[module.ObjectMeta.Labels[delegates.ControllerLabel]]
-	if newDelegate == nil {
-		// If an existing delegate does not exist, wrap it in a Helm adapter to just do helm stuff
-		return reconciler.NewHelmAdapter(module)
-	}
-	return newDelegate(module)
+	return result, nil
 }
 
 func handleError(log vzlog.VerrazzanoLogger, mlc *modulesv1beta2.ModuleLifecycle, err error) (ctrl.Result, error) {
 	if k8serrors.IsConflict(err) {
-		log.Debugf("Conflict resolving module %s", mlc.Name)
+		log.Debugf("Conflict resolving module lifecycle %s", common.GetNamespacedName(mlc.ObjectMeta))
 	} else if delegates.IsNotReadyError(err) {
-		log.Progressf("Module %s is not ready yet", mlc.Name)
+		log.Progressf("Module lifecycle %s is not ready yet", common.GetNamespacedName(mlc.ObjectMeta))
 	} else {
-		log.Errorf("Failed to reconcile module %s/%s: %v", mlc.Name, mlc.Namespace, err)
+		log.Errorf("failed to reconcile module %s: %v", common.GetNamespacedName(mlc.ObjectMeta), err)
 		return clusters.NewRequeueWithDelay(), err
 	}
 	return clusters.NewRequeueWithDelay(), nil
