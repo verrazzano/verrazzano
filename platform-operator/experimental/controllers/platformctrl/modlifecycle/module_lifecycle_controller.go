@@ -7,9 +7,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/platformctrl/common"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"time"
 
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	controller2 "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	modulesv1beta2 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
@@ -50,7 +50,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return ctrl.Result{}, nil
 		}
 		zap.S().Errorf("Failed to get Module %s/%s", req.Namespace, req.Name)
-		return clusters.NewRequeueWithDelay(), err
+		return newRequeueWithDelay(), err
 	}
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
@@ -62,16 +62,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	})
 	if err != nil {
 		zap.S().Errorf("Failed to create controller logger for ModuleLifecycle controller: %v", err)
-		return clusters.NewRequeueWithDelay(), err
+		return newRequeueWithDelay(), err
 	}
 
-	// TODO: in reality this may perhaps be broken out into separate operators/controllers, but then the lifecycle
-	//   CRs would need to be potentially extensible, or the operators/controllers would distinguish ownership of a
-	//   ModuleLifecycle instance by field/labels/annotations, which seems likeß a controller anti-pattern
+	// TODO: Perhaps be broken out into separate lifecycle operators?
 	delegate, err := reconciler.New(mlc, r.Status())
 	if err != nil {
 		// Unknown mlc controller cannot be handled; no need to re-reconcile until the resource is updated
-		log.Errorf("Error retrieving delegate lifecycle reconciler: %v", err.Error())
+		msg := fmt.Sprintf("Error retrieving delegate lifecycle reconciler: %v", err.Error())
+		if err := reconciler.UpdateStatus(r.Client, mlc, msg, modulesv1beta2.CondFailed); err != nil {
+			return newRequeueWithDelay(), err
+		}
 		return ctrl.Result{}, err
 	}
 
@@ -96,7 +97,11 @@ func handleError(log vzlog.VerrazzanoLogger, mlc *modulesv1beta2.ModuleLifecycle
 		log.Progressf("Module lifecycle %s is not ready yet", common.GetNamespacedName(mlc.ObjectMeta))
 	} else {
 		log.Errorf("failed to reconcile module %s: %v", common.GetNamespacedName(mlc.ObjectMeta), err)
-		return clusters.NewRequeueWithDelay(), err
+		return newRequeueWithDelay(), err
 	}
-	return clusters.NewRequeueWithDelay(), nil
+	return newRequeueWithDelay(), nil
+}
+
+func newRequeueWithDelay() reconcile.Result {
+	return controller2.NewRequeueWithDelay(2, 3, time.Second)
 }

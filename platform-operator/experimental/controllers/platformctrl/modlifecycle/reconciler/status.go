@@ -9,20 +9,20 @@ import (
 	"time"
 
 	modulesv1beta2 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // UpdateStatus configures the Module's status based on the passed in state and then updates the Module on the cluster
-func (r *helmDelegateReconciler) UpdateStatus(ctx spi.ComponentContext, mlc *modulesv1beta2.ModuleLifecycle, condition modulesv1beta2.LifecycleCondition) error {
+func UpdateStatus(client client.Client, mlc *modulesv1beta2.ModuleLifecycle, msg string, condition modulesv1beta2.LifecycleCondition) error {
 	state := modulesv1beta2.LifecycleState(condition)
 	// Update the Module's State
 	mlc.SetState(state)
 	// Append a new condition, if applicable
-	appendCondition(mlc, string(state), condition)
+	AppendCondition(mlc, msg, condition)
 
 	// Update the module lifecycle status
-	return ctx.Client().Status().Update(context.TODO(), mlc)
+	return client.Status().Update(context.TODO(), mlc)
 }
 
 func needsReconcile(mlc *modulesv1beta2.ModuleLifecycle) bool {
@@ -41,7 +41,7 @@ func NewCondition(message string, condition modulesv1beta2.LifecycleCondition) m
 	}
 }
 
-func appendCondition(module *modulesv1beta2.ModuleLifecycle, message string, condition modulesv1beta2.LifecycleCondition) {
+func AppendCondition(module *modulesv1beta2.ModuleLifecycle, message string, condition modulesv1beta2.LifecycleCondition) {
 	conditions := module.Status.Conditions
 	newCondition := NewCondition(message, condition)
 	var lastCondition modulesv1beta2.ModuleLifecycleCondition

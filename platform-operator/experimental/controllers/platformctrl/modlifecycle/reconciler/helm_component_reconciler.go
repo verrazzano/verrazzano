@@ -36,7 +36,7 @@ func (r *helmDelegateReconciler) Reconcile(log vzlog.VerrazzanoLogger, client cl
 	}
 	// Delete underlying resources if it is being deleted
 	if mlc.IsBeingDeleted() {
-		if err := r.UpdateStatus(ctx, mlc, modulesv1beta2.CondUninstall); err != nil {
+		if err := UpdateStatus(ctx.Client(), mlc, string(modulesv1beta2.CondUninstall), modulesv1beta2.CondUninstall); err != nil {
 			return ctrl.Result{}, err
 		}
 		if err := r.Uninstall(ctx); err != nil {
@@ -78,7 +78,7 @@ func (r *helmDelegateReconciler) doReconcile(ctx spi.ComponentContext, mlc *modu
 		if err := r.comp.Install(ctx); err != nil {
 			return err
 		}
-		return r.UpdateStatus(ctx, mlc, modulesv1beta2.CondInstallStarted)
+		return UpdateStatus(ctx.Client(), mlc, string(modulesv1beta2.CondInstallStarted), modulesv1beta2.CondInstallStarted)
 	case modulesv1beta2.CondInstallStarted:
 		if r.comp.IsReady(ctx) {
 			log.Progressf("Post-install for %s is running", common.GetNamespacedName(mlc.ObjectMeta))
@@ -87,7 +87,7 @@ func (r *helmDelegateReconciler) doReconcile(ctx spi.ComponentContext, mlc *modu
 			}
 			mlc.Status.ObservedGeneration = mlc.Generation
 			ctx.Log().Infof("%s is ready", common.GetNamespacedName(mlc.ObjectMeta))
-			return r.UpdateStatus(ctx, mlc, modulesv1beta2.CondInstallComplete)
+			return UpdateStatus(ctx.Client(), mlc, string(modulesv1beta2.CondInstallComplete), modulesv1beta2.CondInstallComplete)
 		}
 		return delegates.NotReadyErrorf("Install for %s is not ready", common.GetNamespacedName(mlc.ObjectMeta))
 	case modulesv1beta2.CondPreUpgrade:
@@ -98,7 +98,7 @@ func (r *helmDelegateReconciler) doReconcile(ctx spi.ComponentContext, mlc *modu
 		if err := r.comp.Upgrade(ctx); err != nil {
 			return err
 		}
-		return r.UpdateStatus(ctx, mlc, modulesv1beta2.CondUpgradeStarted)
+		return UpdateStatus(ctx.Client(), mlc, string(modulesv1beta2.CondUpgradeStarted), modulesv1beta2.CondUpgradeStarted)
 	case modulesv1beta2.CondInstallComplete, modulesv1beta2.CondUpgradeComplete:
 		return r.ReadyState(ctx, mlc)
 	case modulesv1beta2.CondUpgradeStarted:
@@ -108,7 +108,7 @@ func (r *helmDelegateReconciler) doReconcile(ctx spi.ComponentContext, mlc *modu
 				return err
 			}
 			mlc.Status.ObservedGeneration = mlc.Generation
-			return r.UpdateStatus(ctx, mlc, modulesv1beta2.CondUpgradeComplete)
+			return UpdateStatus(ctx.Client(), mlc, string(modulesv1beta2.CondUpgradeComplete), modulesv1beta2.CondUpgradeComplete)
 		}
 		return delegates.NotReadyErrorf("Upgrade for %s is not ready", common.GetNamespacedName(mlc.ObjectMeta))
 	}
@@ -118,7 +118,7 @@ func (r *helmDelegateReconciler) doReconcile(ctx spi.ComponentContext, mlc *modu
 // ReadyState reconciles put the Module back to pending state if the generation has changed
 func (r *helmDelegateReconciler) ReadyState(ctx spi.ComponentContext, mlc *modulesv1beta2.ModuleLifecycle) error {
 	if needsReconcile(mlc) {
-		return r.UpdateStatus(ctx, nil, modulesv1beta2.CondPreUpgrade)
+		return UpdateStatus(ctx.Client(), mlc, string(modulesv1beta2.CondPreUpgrade), modulesv1beta2.CondPreUpgrade)
 	}
 	return nil
 }

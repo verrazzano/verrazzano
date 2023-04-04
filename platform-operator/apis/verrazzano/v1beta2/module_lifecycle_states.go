@@ -13,6 +13,7 @@ const (
 	StateReady        ModuleLifecycleState = "Ready"
 	StatePreUpgrade   ModuleLifecycleState = "PreUpgrading"
 	StateUpgrading    ModuleLifecycleState = "Upgrading"
+	StateFailed       ModuleLifecycleState = "Failed"
 )
 
 type LifecycleCondition string
@@ -27,6 +28,7 @@ const (
 	CondPreUpgrade      LifecycleCondition = "PreUpgrade"
 	CondUpgradeStarted  LifecycleCondition = "UpgradeStarted"
 	CondUpgradeComplete LifecycleCondition = "UpgradeComplete"
+	CondFailed          LifecycleCondition = "Failed"
 )
 
 func (m *ModuleLifecycle) SetState(state ModuleLifecycleState) {
@@ -45,6 +47,8 @@ func LifecycleState(condition LifecycleCondition) ModuleLifecycleState {
 		return StatePreUpgrade
 	case CondUpgradeStarted:
 		return StateUpgrading
+	case CondFailed:
+		return StateFailed
 	default: // CondUpgradeComplete, CondInstallComplete
 		return StateReady
 	}
