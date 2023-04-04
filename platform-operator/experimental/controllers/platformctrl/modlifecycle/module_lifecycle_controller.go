@@ -47,15 +47,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		ctx = context.Background()
 	}
 
-	//verrazzanos := &vzapi.VerrazzanoList{}
-	//if err := r.List(ctx, verrazzanos); err != nil {
-	//	if k8serrors.IsNotFound(err) {
-	//		return ctrl.Result{}, nil
-	//	}
-	//	zap.S().Errorf("Failed to get Verrazzanos %s/%s", req.Namespace, req.Name)
-	//	return clusters.NewRequeueWithDelay(), err
-	//}
-
 	// Get the module for the request
 	module := &modulesv1beta2.ModuleLifecycle{}
 	if err := r.Get(ctx, req.NamespacedName, module); err != nil {

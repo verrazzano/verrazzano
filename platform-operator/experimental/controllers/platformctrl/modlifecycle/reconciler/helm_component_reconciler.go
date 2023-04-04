@@ -169,6 +169,16 @@ func needsFinalizerRemoval(mlc *modulesv1beta2.ModuleLifecycle) bool {
 	return !needsFinalizer(mlc)
 }
 
+// TODO: Possibly create a dedicated shim controller for existing components; associate with a VZ instance
+//verrazzanos := &vzapi.VerrazzanoList{}
+//if err := r.List(ctx, verrazzanos); err != nil {
+//	if k8serrors.IsNotFound(err) {
+//		return ctrl.Result{}, nil
+//	}
+//	zap.S().Errorf("Failed to get Verrazzanos %s/%s", req.Namespace, req.Name)
+//	return clusters.NewRequeueWithDelay(), err
+//}
+
 // TODO: Needed for shim layer to v1 components
 //func (r *Reconciler) createComponentContext(log vzlog.VerrazzanoLogger, verrazzanos *vzapi.VerrazzanoList, module *modulesv1beta2.ModuleLifecycle) (spi.ComponentContext, error) {
 //	var moduleCtx spi.ComponentContext
