@@ -90,10 +90,15 @@ if [[ -z "${SCANNER_PATH}" ]]; then
 else
   export PATH="${SCANNER_PATH}:${PATH}"
 fi
-echo "PATH in get_branch_scan_results.sh ${PATH}"
 
+# The script uses Github CLI and OCI CLI, check whether the CLIs are in PATH
 command -v gh >/dev/null 2>&1 || {
   echo "Github CLI is not in PATH"
+  exit 1
+}
+
+command -v oci >/dev/null 2>&1 || {
+  echo "OCI CLI is not in PATH"
   exit 1
 }
 
