@@ -310,6 +310,7 @@ function analyze_dump() {
                   $GO_REPO_PATH/vz analyze --capture-dir $FULL_PATH_CAPTURE_DIR || true
               else
                   echo "Warning: VZ tool is not available. Pleaes download and configured" $GO_REPO_PATH
+              fi
             else
               if [[ -x $GOPATH/bin/vz ]]; then
                   $GOPATH/vz analyze --capture-dir $FULL_PATH_CAPTURE_DIR --report-format detailed --report-file $SAVE_DIR/$REPORT_FILE || true
