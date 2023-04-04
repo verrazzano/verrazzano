@@ -185,6 +185,70 @@ func TestSyncThanosQuery(t *testing.T) {
 	}
 }
 
+// TestDeleteClusterThanosEndpoint tests the deleteClusterThanosEndpoint function.
+func TestDeleteClusterThanosEndpoint(t *testing.T) {
+	const managedClusterName = "managed1"
+	const hostName = "thanos-query.example.com"
+	host := toGrpcTarget(hostName)
+
+	vmcStatus := clustersv1alpha1.VerrazzanoManagedClusterStatus{APIUrl: "someurl", ThanosHost: hostName}
+	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{Name: managedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace},
+		Status:     vmcStatus,
+	}
+	cli := fake.NewClientBuilder().WithScheme(makeThanosTestScheme()).WithRuntimeObjects(
+		makeThanosConfigMapWithExistingHosts(t, []string{host}, true),
+		makeThanosEnabledVerrazzano(),
+		&k8sapiext.CustomResourceDefinition{ObjectMeta: metav1.ObjectMeta{Name: serviceEntryCRDName}},
+		&k8sapiext.CustomResourceDefinition{ObjectMeta: metav1.ObjectMeta{Name: destinationRuleCRDName}},
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.PromManagedClusterCACertsSecretName,
+				Namespace: constants.VerrazzanoMonitoringNamespace,
+			},
+			Data: map[string][]byte{
+				"ca-" + managedClusterName:      []byte("ca-cert-1"),
+				"ca-some-other-managed-cluster": []byte("ca-cert-2"),
+			},
+		},
+	).Build()
+
+	r := &VerrazzanoManagedClusterReconciler{
+		Client: cli,
+		log:    vzlog.DefaultLogger(),
+	}
+
+	// first sync to update endpoint configmap, add CA cert volume and volume mount, create ServiceEntry and
+	// DestinationRule
+	err := r.syncThanosQuery(context.TODO(), vmc)
+	assert.NoError(t, err)
+
+	assertThanosServiceEntry(t, r, vmc.Name, hostName, thanosGrpcIngressPort)
+	assertThanosDestinationRule(t, r, vmc.Name, hostName, thanosGrpcIngressPort)
+
+	// GIVEN we have sync'ed a managed cluster Thanos endpoint
+	// WHEN we call deleteClusterThanosEndpoint
+	// THEN the resources we created during sync are cleaned up
+	err = r.deleteClusterThanosEndpoint(context.TODO(), vmc)
+	assert.NoError(t, err)
+
+	// ServiceEntry and DestinationRule should be gone
+	se := &istioclinet.ServiceEntry{}
+	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: managedClusterName}, se)
+	assert.True(t, k8serrors.IsNotFound(err))
+
+	dr := &istioclinet.DestinationRule{}
+	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: managedClusterName}, dr)
+	assert.True(t, k8serrors.IsNotFound(err))
+
+	// istio volume and mount annotations should be gone
+	deployment := &appsv1.Deployment{}
+	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: thanosQueryDeployName}, deployment)
+	assert.NoError(t, err)
+	assert.NotContains(t, deployment.Spec.Template.ObjectMeta.Annotations, istioVolumeAnnotation)
+	assert.NotContains(t, deployment.Spec.Template.ObjectMeta.Annotations, istioVolumeMountAnnotation)
+}
+
 func makeThanosTestScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	v1beta1.AddToScheme(scheme)
@@ -534,4 +598,5 @@ func assertThanosDestinationRule(t *testing.T, r *VerrazzanoManagedClusterReconc
 	assert.Equal(t, dr.Spec.Host, hostName)
 	assert.Equal(t, dr.Spec.TrafficPolicy.PortLevelSettings[0].Port.Number, portNum)
 	assert.Equal(t, dr.Spec.TrafficPolicy.PortLevelSettings[0].Tls.Mode, istionet.ClientTLSSettings_SIMPLE)
+	assert.Equal(t, dr.Spec.TrafficPolicy.PortLevelSettings[0].Tls.Sni, hostName)
 }
