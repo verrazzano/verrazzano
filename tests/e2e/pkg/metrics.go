@@ -14,18 +14,98 @@ import (
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vaoClient "github.com/verrazzano/verrazzano/application-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// QueryMetricWithLabel queries a metric using a label from the Prometheus host, derived from the kubeconfig
-func QueryMetricWithLabel(metricsName string, kubeconfigPath string, label string, labelValue string) (string, error) {
-	if len(labelValue) == 0 {
-		return QueryMetric(metricsName, kubeconfigPath)
+type MetricsTest struct {
+	Source        MetricSource
+	DefaultLabels map[string]string
+}
+
+// NewMetricsTest returns a metric test object with which to query metrics
+// Parameters:
+// kubeconfigs 		a list of kubeconfigs from all clusters
+// kubeconfigPath 	this is the kubeconfigPath for the cluster we want to search metrics from
+// defaultLabels    the default labels will be added to the test metric when the query begins
+func NewMetricsTest(kubeconfigs []string, kubeconfigPath string, defaultLabels map[string]string) (MetricsTest, error) {
+	mt := MetricsTest{
+		DefaultLabels: defaultLabels,
 	}
-	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s{%s=\"%s\"}", GetPrometheusIngressHost(kubeconfigPath), metricsName,
+
+	for _, kc := range kubeconfigs {
+		vz, err := GetVerrazzanoInstallResourceInCluster(kc)
+		if err != nil {
+			return MetricsTest{}, err
+		}
+		if !vzcr.IsThanosEnabled(vz) {
+			source, err := NewPrometheusSource(kubeconfigPath)
+			if err != nil {
+				return MetricsTest{}, err
+			}
+			mt.Source = source
+			return mt, nil
+		}
+	}
+
+	source, err := NewThanosSource(kubeconfigPath)
+	if err != nil {
+		return MetricsTest{}, err
+	}
+	mt.Source = source
+	return mt, nil
+}
+
+func (m MetricsTest) QueryMetric(metricName string, labels map[string]string) (string, error) {
+	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", m.Source.GetHost(), metricName)
+	metricsURL = m.appendLabels(metricsURL, labels)
+	password, err := GetVerrazzanoPasswordInCluster(m.Source.getKubeConfigPath())
+	if err != nil {
+		return "", err
+	}
+	resp, err := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", password, m.Source.getKubeConfigPath())
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("error retrieving metric %s, status %d", metricName, resp.StatusCode)
+	}
+	Log(Info, fmt.Sprintf("metric: %s", resp.Body))
+	return string(resp.Body), nil
+}
+
+func (m MetricsTest) MetricsExist(metricName string, labels map[string]string) bool {
+	metric, err := m.QueryMetric(metricName, labels)
+	if err != nil {
+		return false
+	}
+	return metric != ""
+}
+
+func (m MetricsTest) appendLabels(query string, labels map[string]string) string {
+	if len(labels) == 0 && len(m.DefaultLabels) == 0 {
+		return query
+	}
+
+	var labelStrings []string
+	for k, v := range m.DefaultLabels {
+		labelStrings = append(labelStrings, fmt.Sprintf(`%s="%s"`, k, v))
+	}
+	for k, v := range labels {
+		labelStrings = append(labelStrings, fmt.Sprintf(`%s="%s"`, k, v))
+	}
+	return fmt.Sprintf("%s{%s}", query, strings.Join(labelStrings, ","))
+}
+
+// QueryMetricWithLabelByHost queries a metric using a label from the given query function, derived from the kubeconfig
+func QueryMetricWithLabelByHost(metricsName string, kubeconfigPath string, label string, labelValue string, queryFunc func(string, string) (string, error), host string) (string, error) {
+	if len(labelValue) == 0 {
+		return queryFunc(metricsName, kubeconfigPath)
+	}
+	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s{%s=\"%s\"}", host, metricsName,
 		label, labelValue)
 
 	password, err := GetVerrazzanoPasswordInCluster(kubeconfigPath)
@@ -130,6 +210,20 @@ func GetThanosQueryIngressHost(kubeconfigPath string) string {
 	return ""
 }
 
+// GetQueryStoreIngressHost gets the host used for ingress to Thanos Query Store in the given cluster
+func GetQueryStoreIngressHost(kubeconfigPath string) string {
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
+		return ""
+	}
+	ingress, err := clientset.NetworkingV1().Ingresses("verrazzano-system").Get(context.TODO(), "thanos-grpc", metav1.GetOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get Ingress thanos-grpc from the cluster: %v", err))
+	}
+	return ingress.Spec.Rules[0].Host
+}
+
 // MetricsExistInCluster validates the availability of a given metric in the given cluster
 func MetricsExistInCluster(metricsName string, keyMap map[string]string, kubeconfigPath string) bool {
 	metric, err := QueryMetric(metricsName, kubeconfigPath)
@@ -218,6 +312,21 @@ func MetricsExist(metricsName, key, value string) bool {
 	return MetricsExistInCluster(metricsName, m, kubeconfigPath)
 }
 
+// ThanosMetricsExist is identical to ThanosMetricsExistInCluster, except that it uses the cluster specified in the environment
+func ThanosMetricsExist(metricsName, key, value string) bool {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false
+	}
+
+	// map with single key-value pair
+	m := make(map[string]string)
+	m[key] = value
+
+	return ThanosMetricsExistInCluster(metricsName, m, kubeconfigPath)
+}
+
 // ListUnhealthyScrapeTargets lists all the scrape targets that are unhealthy
 func ListUnhealthyScrapeTargets() {
 	targets, err := ScrapeTargets()
@@ -257,6 +366,39 @@ func ScrapeTargets() ([]interface{}, error) {
 	json.Unmarshal(resp.Body, &result)
 	activeTargets := Jq(result, "data", "activeTargets").([]interface{})
 	return activeTargets, nil
+}
+
+// ThanosQueryStores queries Thanos API /api/v1/stores to list query stores
+func ThanosQueryStores() ([]interface{}, error) {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return nil, err
+	}
+
+	metricsURL := fmt.Sprintf("https://%s/api/v1/stores", GetThanosQueryIngressHost(kubeconfigPath))
+	password, err := GetVerrazzanoPasswordInCluster(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", password, kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error retrieving targets %d", resp.StatusCode)
+	}
+
+	var result map[string]interface{}
+	err = json.Unmarshal(resp.Body, &result)
+	if err != nil {
+		return nil, err
+	}
+	queryStores, ok := Jq(result, "data", "query").([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("error finding query store in the Thanos store list")
+	}
+	return queryStores, nil
 }
 
 // Jq queries JSON nodes with a JSON path

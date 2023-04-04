@@ -1,16 +1,17 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package system
 
 import (
-	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
 
@@ -30,6 +31,7 @@ var t = framework.NewTestFramework("jaeger_mc_system_test")
 var (
 	adminKubeConfigPath = os.Getenv("ADMIN_KUBECONFIG")
 	clusterName         = os.Getenv("CLUSTER_NAME")
+	queryFunc           = pkg.QueryMetric
 	failed              = false
 )
 
@@ -38,6 +40,13 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	start = time.Now().Add(-3 * time.Hour)
 	if adminKubeConfigPath == "" {
 		AbortSuite("Required env variable ADMIN_KUBECONFIG not set.")
+	}
+	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(adminKubeConfigPath)
+	if err != nil {
+		AbortSuite("Failed to get the Verrazzano resource from the cluster")
+	}
+	if vzcr.IsThanosEnabled(vz) {
+		queryFunc = pkg.QueryThanosMetric
 	}
 })
 
@@ -74,7 +83,7 @@ var _ = t.Describe("Multi Cluster Jaeger Validation", Label("f:platform-lcm.inst
 	//      from the prometheus service running admin cluster.
 	t.It("metrics of jaeger operator running in managed cluster are available in prometheus of admin cluster", func() {
 		Eventually(func() bool {
-			return pkg.IsJaegerMetricFound(adminKubeConfigPath, jaegerOperatorSampleMetric, getClusterName(), nil)
+			return pkg.IsJaegerMetricFound(adminKubeConfigPath, jaegerOperatorSampleMetric, getClusterName(), nil, queryFunc)
 		}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
 
@@ -84,7 +93,7 @@ var _ = t.Describe("Multi Cluster Jaeger Validation", Label("f:platform-lcm.inst
 	//      from the prometheus service running admin cluster.
 	t.It("metrics of jaeger collector running in managed cluster are available in prometheus of admin cluster", func() {
 		Eventually(func() bool {
-			return pkg.IsJaegerMetricFound(adminKubeConfigPath, jaegerCollectorSampleMetric, getClusterName(), nil)
+			return pkg.IsJaegerMetricFound(adminKubeConfigPath, jaegerCollectorSampleMetric, getClusterName(), nil, queryFunc)
 		}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
 })
