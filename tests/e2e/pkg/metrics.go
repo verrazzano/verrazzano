@@ -14,11 +14,95 @@ import (
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vaoClient "github.com/verrazzano/verrazzano/application-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+type MetricsTest struct {
+	Source        MetricSource
+	DefaultLabels map[string]string
+}
+
+// NewMetricsTest returns a metric test object with which to query metrics
+// Parameters:
+// kubeconfigs 		a list of kubeconfigs from all clusters
+// kubeconfigPath 	this is the kubeconfigPath for the cluster we want to search metrics from
+// defaultLabels    the default labels will be added to the test metric when the query begins
+func NewMetricsTest(kubeconfigs []string, kubeconfigPath string, defaultLabels map[string]string) (MetricsTest, error) {
+	mt := MetricsTest{
+		DefaultLabels: defaultLabels,
+	}
+
+	cli, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		return MetricsTest{}, err
+	}
+	msr := metricSourceBase{
+		kubeconfigPath: kubeconfigPath,
+		client:         cli,
+	}
+
+	for _, kc := range kubeconfigs {
+		vz, err := GetVerrazzanoInstallResourceInCluster(kc)
+		if err != nil {
+			return MetricsTest{}, err
+		}
+		if !vzcr.IsThanosEnabled(vz) {
+			mt.Source = PrometheusSource{
+				metricSourceBase: msr,
+			}
+			return mt, nil
+		}
+	}
+	mt.Source = ThanosSource{
+		metricSourceBase: msr,
+	}
+	return mt, nil
+}
+
+func (m MetricsTest) QueryMetric(metricName string, labels map[string]string) (string, error) {
+	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", m.Source.GetHost(), metricName)
+	metricsURL = m.appendLabels(metricsURL, labels)
+	password, err := GetVerrazzanoPasswordInCluster(m.Source.getKubeConfigPath())
+	if err != nil {
+		return "", err
+	}
+	resp, err := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", password, m.Source.getKubeConfigPath())
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("error retrieving metric %s, status %d", metricName, resp.StatusCode)
+	}
+	Log(Info, fmt.Sprintf("metric: %s", resp.Body))
+	return string(resp.Body), nil
+}
+
+func (m MetricsTest) MetricsExist(metricName string, labels map[string]string) bool {
+	metric, err := m.QueryMetric(metricName, labels)
+	if err != nil {
+		return false
+	}
+	return metric != ""
+}
+
+func (m MetricsTest) appendLabels(query string, labels map[string]string) string {
+	if len(labels) == 0 && len(m.DefaultLabels) == 0 {
+		return query
+	}
+
+	var labelStrings []string
+	for k, v := range m.DefaultLabels {
+		labelStrings = append(labelStrings, fmt.Sprintf(`%s="%s"`, k, v))
+	}
+	for k, v := range labels {
+		labelStrings = append(labelStrings, fmt.Sprintf(`%s="%s"`, k, v))
+	}
+	return fmt.Sprintf("{%s}", strings.Join(labelStrings, ","))
+}
 
 // QueryMetricWithLabelByHost queries a metric using a label from the given query function, derived from the kubeconfig
 func QueryMetricWithLabelByHost(metricsName string, kubeconfigPath string, label string, labelValue string, queryFunc func(string, string) (string, error), host string) (string, error) {
