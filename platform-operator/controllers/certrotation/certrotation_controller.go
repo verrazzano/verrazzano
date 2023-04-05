@@ -7,6 +7,7 @@ import (
 	"context"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	string2 "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"go.uber.org/zap"
@@ -33,6 +34,7 @@ type CertificateRotationManagerReconciler struct {
 	StatusUpdater    vzstatus.Updater
 	log              vzlog.VerrazzanoLogger
 	WatchNamespace   string
+	CertificatesList []string
 	TargetNamespace  string
 	TargetDeployment string
 	CompareWindow    time.Duration // should be in no of hours
@@ -62,14 +64,20 @@ func (r *CertificateRotationManagerReconciler) Reconcile(ctx context.Context, re
 	if result, err := r.initLogger(componentNamespace); err != nil {
 		return result, err
 	}
+
 	// If no error during certification checks, then next reconcile will happen
 	// every alternative day.
 	// else in case of error it will happen after 5 mintues.
 	certList, err := r.getCertSecretList(ctx)
 	if err != nil {
-		r.log.Info("Skipping the Reconciling %v", req.NamespacedName)
-		return ctrl.Result{}, err
+		r.log.Debugf("Error listing certificate secrets, skipping reconcile for %v, error: %s", req.NamespacedName, err.Error())
+		return newRequeueWithDelay(10, 20, time.Second), err
 	}
+	if len(certList) == 0 {
+		r.log.Debugf("No matching certificate secrets found, requeue")
+		return newRequeueWithDelay(5, 10, time.Minute), nil
+	}
+
 	err = r.CheckCertificateExpiration(ctx, certList)
 	if err != nil {
 		result := newRequeueWithDelay(5, 10, time.Minute)
@@ -154,26 +162,31 @@ func (r *CertificateRotationManagerReconciler) getCertSecretList(ctx context.Con
 	if len(certificates) > 0 {
 		return certificates, nil
 	}
-	return nil, r.log.ErrorfNewErr("no certificate found in namespace %v", r.WatchNamespace)
+	r.log.Infof("No certificates found in namespace %v", r.WatchNamespace)
+	return certificates, nil
 }
 
 func (r *CertificateRotationManagerReconciler) createComponentCertificatePredicate() predicate.Predicate {
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			namespace := e.Object.GetNamespace()
-			return r.WatchNamespace == namespace
+			return r.isCertificateSecret(e.Object)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			namespace := e.Object.GetNamespace()
-			return r.WatchNamespace == namespace
+			return r.isCertificateSecret(e.Object)
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			namespace := e.ObjectOld.GetNamespace()
-			return r.WatchNamespace == namespace
+			return r.isCertificateSecret(e.ObjectOld)
 		},
 		GenericFunc: func(genericEvent event.GenericEvent) bool {
 			namespace := genericEvent.Object.GetNamespace()
 			return r.WatchNamespace == namespace
 		},
 	}
+}
+
+func (r *CertificateRotationManagerReconciler) isCertificateSecret(o clipkg.Object) bool {
+	if o == nil {
+		return false
+	}
+	return r.WatchNamespace == o.GetNamespace() && string2.SliceContainsString(r.CertificatesList, o.GetName())
 }
