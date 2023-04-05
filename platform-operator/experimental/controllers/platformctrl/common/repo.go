@@ -7,7 +7,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/semver"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
@@ -225,7 +224,7 @@ func findSupportingChartVersion(log vzlog.VerrazzanoLogger, indexFile *repo.Inde
 	for _, version := range chartVersions {
 		supportedVzVersionsConstraint, ok := version.Annotations[SupportedVersionsAnnotation]
 		if ok {
-			matches, err := semver.MatchesConstraint(forPlatformVersion, supportedVzVersionsConstraint)
+			matches, err := MatchesConstraint(forPlatformVersion, supportedVzVersionsConstraint)
 			if err != nil {
 				return nil, err
 			}
