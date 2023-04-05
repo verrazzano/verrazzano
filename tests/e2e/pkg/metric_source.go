@@ -90,7 +90,7 @@ func (m metricSourceBase) getTargetsByHostAndPath(host, path string, jsonPath []
 	if err != nil {
 		return nil, err
 	}
-	resp, err := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", password, host)
+	resp, err := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", password, m.kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
