@@ -261,11 +261,14 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				Expect(vz.Status.VerrazzanoInstance.KibanaURL).ToNot(BeNil())
 			})
 		} else {
-			Eventually(func() (bool, error) {
-				return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-osd"})
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-			Expect(ingressURLs).NotTo(HaveKey(osdIngress), fmt.Sprintf("Ingress %s should not exist", osdIngress))
-			Expect(vz.Status.VerrazzanoInstance.KibanaURL).To(BeNil())
+			t.It("is not running", func() {
+
+				Eventually(func() (bool, error) {
+					return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-osd"})
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+				Expect(ingressURLs).NotTo(HaveKey(osdIngress), fmt.Sprintf("Ingress %s should not exist", osdIngress))
+				Expect(vz.Status.VerrazzanoInstance.KibanaURL).To(BeNil())
+			})
 		}
 	})
 
@@ -300,11 +303,13 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				Expect(vz.Status.VerrazzanoInstance.PrometheusURL).ToNot(BeNil())
 			})
 		} else {
-			Eventually(func() (bool, error) {
-				return pkg.PodsNotRunning(verrazzanoNamespace, []string{stsName})
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-			Expect(ingressURLs).NotTo(HaveKey(prometheusIngress), fmt.Sprintf("Ingress %s should not exist", prometheusIngress))
-			Expect(vz.Status.VerrazzanoInstance.PrometheusURL).To(BeNil())
+			t.It("is not running", func() {
+				Eventually(func() (bool, error) {
+					return pkg.PodsNotRunning(verrazzanoNamespace, []string{stsName})
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+				Expect(ingressURLs).NotTo(HaveKey(prometheusIngress), fmt.Sprintf("Ingress %s should not exist", prometheusIngress))
+				Expect(vz.Status.VerrazzanoInstance.PrometheusURL).To(BeNil())
+			})
 		}
 	})
 
