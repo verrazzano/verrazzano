@@ -240,13 +240,6 @@ func TestDeleteClusterThanosEndpoint(t *testing.T) {
 	dr := &istioclinet.DestinationRule{}
 	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: managedClusterName}, dr)
 	assert.True(t, k8serrors.IsNotFound(err))
-
-	// istio volume and mount annotations should be gone
-	deployment := &appsv1.Deployment{}
-	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: thanosQueryDeployName}, deployment)
-	assert.NoError(t, err)
-	assert.NotContains(t, deployment.Spec.Template.ObjectMeta.Annotations, istioVolumeAnnotation)
-	assert.NotContains(t, deployment.Spec.Template.ObjectMeta.Annotations, istioVolumeMountAnnotation)
 }
 
 func makeThanosTestScheme() *runtime.Scheme {
