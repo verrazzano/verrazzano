@@ -62,6 +62,17 @@ spec:
         - operation:
             ports:
               - "10902"
+    # allow Prometheus to scrape metrics from all Thanos components
+    - from:
+        - source:
+            namespaces:
+              - verrazzano-system
+            principals:
+              - cluster.local/ns/verrazzano-monitoring/sa/prometheus-operator-kube-p-prometheus
+      to:
+        - operation:
+            ports:
+              - "10902"
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}

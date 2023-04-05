@@ -59,7 +59,18 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 	kvs = append(kvs, image...)
 
+	kvs = appendVerrazzanoOverrides(ctx, kvs)
+
 	return appendIngressOverrides(ctx, kvs)
+}
+
+func appendVerrazzanoOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) []bom.KeyValue {
+	istio := ctx.EffectiveCR().Spec.Components.Istio
+	enabled := istio != nil && istio.IsInjectionEnabled()
+	// isIstioEnabled is used to determine whether the Thanos service monitors should use
+	// Istio TLS config
+	kvs = append(kvs, bom.KeyValue{Key: "verrazzano.isIstioEnabled", Value: strconv.FormatBool(enabled)})
+	return kvs
 }
 
 // preInstallUpgrade handles pre-install and pre-upgrade processing for the Thanos Component
