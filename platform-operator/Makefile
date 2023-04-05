@@ -57,7 +57,7 @@ DIST_DIR:=dist
 GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
 
-export CRD_PATH=helm_config/charts/verrazzano-platform-operator/crds
+CRD_PATH=helm_config/charts/verrazzano-platform-operator/crds
 
 SHELL = bash
 
@@ -104,8 +104,7 @@ go-build-linux-debug:
 go-install:
 	$(GO) install ./...
 
-manifests: export EXPERIMENTAL_CRD_PATH ?= /tmp/verrazzano-platform-operator/crds
-manifests: export EXPERIMENTAL_CRDS = install.verrazzano.io_modulelifecycles.yaml install.verrazzano.io_modules.yaml
+manifests: export EXP_CRD_PATH ?= experimental/crds
 .PHONY: manifests
 manifests: platform-manifests
 
