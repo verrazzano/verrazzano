@@ -7,6 +7,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"io"
 	"net/http"
 	"os"
@@ -39,8 +44,14 @@ const (
 	esData2             = esData + "-2"
 )
 
+var (
+	opensearchIngress = "vmi-system-os-ingest"
+	osdIngress        = "vmi-system-osd"
+	prometheusIngress = "vmi-system-prometheus"
+	grafanaIngress    = "vmi-system-grafana"
+)
+
 var t = framework.NewTestFramework("vmi")
-var isMinVersion150 bool
 
 func vmiIngressURLs() (map[string]string, error) {
 	clientset, err := k8sutil.GetKubernetesClientset()
@@ -108,14 +119,6 @@ var (
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		t.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-	}
-	isMinVersion150, err = pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
-	if err != nil {
-		t.Fail(err.Error())
-	}
 
 	Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
 		vzCRD, err = verrazzanoInstallerCRD()
@@ -151,257 +154,292 @@ var _ = BeforeSuite(beforeSuite)
 var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
-	kubeconfig, err := k8sutil.GetKubeConfigLocation()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
-	isManagedClusterProfile := pkg.IsManagedClusterProfile()
-	if isManagedClusterProfile {
-		t.It("Elasticsearch should NOT be present", func() {
-			// Verify ES not present
-			Eventually(func() (bool, error) {
-				return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-es"})
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-			Expect(elasticTLSSecret()).To(BeTrue())
-			Expect(elastic.CheckIngress()).To(BeFalse())
-			Expect(ingressURLs).NotTo(HaveKey("vmi-system-os-ingest"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
+	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to get installed Verrazzano resource in the cluster: %v", err))
+	}
 
-			// Verify Kibana not present
-			Eventually(func() (bool, error) {
-				return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-osd"})
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-			Expect(ingressURLs).NotTo(HaveKey("vmi-system-kibana"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
-
-			// Verify Grafana not present
-			Eventually(func() (bool, error) {
-				return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-grafana"})
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-			Expect(ingressURLs).NotTo(HaveKey("vmi-system-grafana"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
-		})
-	} else {
-		t.It("Elasticsearch endpoint should be accessible", Label("f:mesh.ingress"), func() {
-			elasticPodsRunning := func() bool {
-				result, err := pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-es-master"})
-				if err != nil {
-					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", "vmi-system-es-master", verrazzanoNamespace, err))
+	t.Context("Check that OpenSearch", func() {
+		if vzcr.IsComponentStatusEnabled(vz, opensearch.ComponentName) {
+			t.It("endpoint is accessible", Label("f:mesh.ingress"), func() {
+				elasticPodsRunning := func() bool {
+					result, err := pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-es-master"})
+					if err != nil {
+						AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", "vmi-system-es-master", verrazzanoNamespace, err))
+					}
+					return result
 				}
-				return result
-			}
-			Eventually(elasticPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "pods did not all show up")
-			Eventually(elasticTLSSecret, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "tls-secret did not show up")
-			// Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "certificate did not show up")
-			Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "ingress did not show up")
-			Expect(ingressURLs).To(HaveKey("vmi-system-os-ingest"), "Ingress vmi-system-os-ingest not found")
-			assertOidcIngressByName("vmi-system-os-ingest")
-			Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "never connected")
-			Eventually(elasticIndicesCreated, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices never created")
-		})
+				Eventually(elasticPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "pods did not all show up")
+				Eventually(elasticTLSSecret, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "tls-secret did not show up")
+				// Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "certificate did not show up")
+				Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "ingress did not show up")
+				Expect(ingressURLs).To(HaveKey(opensearchIngress), "Ingress vmi-system-os-ingest not found")
+				assertOidcIngressByName(opensearchIngress)
+				Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "never connected")
+				Eventually(elasticIndicesCreated, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices never created")
+				Expect(vz.Status.VerrazzanoInstance.ElasticURL).ToNot(BeNil())
 
-		t.It("Elasticsearch verrazzano-system Index should be accessible", Label("f:observability.logging.es"),
-			func() {
-				if os.Getenv("TEST_ENV") != "LRE" {
-					indexName, err := pkg.GetOpenSearchSystemIndex(verrazzanoNamespace)
+			})
+
+			t.It("verrazzano-system Index is accessible", Label("f:observability.logging.es"),
+				func() {
+					if os.Getenv("TEST_ENV") != "LRE" {
+						indexName, err := pkg.GetOpenSearchSystemIndex(verrazzanoNamespace)
+						Expect(err).To(BeNil())
+						pkg.Concurrently(
+							func() {
+								Eventually(func() bool {
+									return pkg.FindLog(indexName,
+										[]pkg.Match{
+											{Key: "kubernetes.container_name", Value: "verrazzano-monitoring-operator"},
+											{Key: "cluster_name", Value: constants.MCLocalCluster}},
+										[]pkg.Match{})
+								}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-monitoring-operator log record")
+							},
+							func() {
+								Eventually(func() bool {
+									return pkg.FindLog(indexName,
+										[]pkg.Match{
+											{Key: "kubernetes.container_name", Value: "verrazzano-application-operator"},
+											{Key: "cluster_name", Value: constants.MCLocalCluster}},
+										[]pkg.Match{})
+								}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-application-operator log record")
+							},
+						)
+					}
+				})
+
+			t.It("health is green", func() {
+				Eventually(elasticHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "cluster health status not green")
+				Eventually(elasticIndicesHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices health status not green")
+			})
+
+			t.It("systemd journal Index is accessible", Label("f:observability.logging.es"),
+				func() {
+					indexName, err := pkg.GetOpenSearchSystemIndex("systemd-journal")
 					Expect(err).To(BeNil())
-					pkg.Concurrently(
-						func() {
-							Eventually(func() bool {
-								return pkg.FindLog(indexName,
-									[]pkg.Match{
-										{Key: "kubernetes.container_name", Value: "verrazzano-monitoring-operator"},
-										{Key: "cluster_name", Value: constants.MCLocalCluster}},
-									[]pkg.Match{})
-							}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-monitoring-operator log record")
-						},
-						func() {
-							Eventually(func() bool {
-								return pkg.FindLog(indexName,
-									[]pkg.Match{
-										{Key: "kubernetes.container_name", Value: "verrazzano-application-operator"},
-										{Key: "cluster_name", Value: constants.MCLocalCluster}},
-									[]pkg.Match{})
-							}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-application-operator log record")
-						},
-					)
-				}
+					Eventually(func() bool {
+						return pkg.FindAnyLog(indexName,
+							[]pkg.Match{
+								{Key: "tag", Value: "systemd"},
+								{Key: "TRANSPORT", Value: "journal"},
+								{Key: "cluster_name", Value: constants.MCLocalCluster}},
+							[]pkg.Match{})
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a systemd log record")
+				})
+		} else {
+			t.It("is not running", func() {
+				// Verify ES not present
+				Eventually(func() (bool, error) {
+					return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-es"})
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+				Expect(elasticTLSSecret()).To(BeTrue())
+				Expect(elastic.CheckIngress()).To(BeFalse())
+				Expect(ingressURLs).NotTo(HaveKey(opensearchIngress), fmt.Sprintf("Ingress %s should not exist", opensearchIngress))
+				Expect(vz.Status.VerrazzanoInstance.ElasticURL).To(BeNil())
 			})
-
-		t.It("Elasticsearch health should be green", func() {
-			Eventually(elasticHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "cluster health status not green")
-			Eventually(elasticIndicesHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices health status not green")
-		})
-
-		t.It("Elasticsearch systemd journal Index should be accessible", Label("f:observability.logging.es"),
-			func() {
-				indexName, err := pkg.GetOpenSearchSystemIndex("systemd-journal")
-				Expect(err).To(BeNil())
-				Eventually(func() bool {
-					return pkg.FindAnyLog(indexName,
-						[]pkg.Match{
-							{Key: "tag", Value: "systemd"},
-							{Key: "TRANSPORT", Value: "journal"},
-							{Key: "cluster_name", Value: constants.MCLocalCluster}},
-						[]pkg.Match{})
-				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a systemd log record")
-			})
-
-		t.It("Kibana endpoint should be accessible", Label("f:mesh.ingress",
-			"f:observability.logging.kibana"), func() {
-			kibanaPodsRunning := func() bool {
-				result, err := pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-osd"})
-				if err != nil {
-					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", "vmi-system-osd", verrazzanoNamespace, err))
-				}
-				return result
-			}
-			Eventually(kibanaPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "kibana pods did not all show up")
-			Expect(ingressURLs).To(HaveKey("vmi-system-osd"), "Ingress vmi-system-osd not found")
-			assertOidcIngressByName("vmi-system-osd")
-		})
-
-		t.It("Prometheus helm override for replicas is in effect", Label("f:observability.monitoring.prom"), func() {
-			const stsName = "prometheus-prometheus-operator-kube-p-prometheus"
-
-			expectedReplicas, err := getExpectedPrometheusReplicaCount(kubeconfig)
-			Expect(err).ToNot(HaveOccurred())
-
-			// expect Prometheus statefulset to be configured for the expected number of replicas
-			sts, err := pkg.GetStatefulSet(constants.VerrazzanoMonitoringNamespace, stsName)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(sts.Spec.Replicas).ToNot(BeNil())
-			Expect(*sts.Spec.Replicas).To(Equal(expectedReplicas))
-
-			// expect the replicas to be ready
-			Eventually(func() (int32, error) {
-				sts, err := pkg.GetStatefulSet(constants.VerrazzanoMonitoringNamespace, stsName)
-				if err != nil {
-					return 0, err
-				}
-				return sts.Status.ReadyReplicas, nil
-			}, waitTimeout, pollingInterval).Should(Equal(expectedReplicas),
-				fmt.Sprintf("Statefulset %s in namespace %s does not have the expected number of ready replicas", stsName, constants.VerrazzanoMonitoringNamespace))
-		})
-
-		t.It("Prometheus endpoint should be accessible", Label("f:mesh.ingress",
-			"f:observability.monitoring.prom"), func() {
-			assertOidcIngressByName("vmi-system-prometheus")
-		})
-
-		t.It("Grafana endpoint should be accessible", Label("f:mesh.ingress",
-			"f:observability.monitoring.graf"), func() {
-			Expect(ingressURLs).To(HaveKey("vmi-system-grafana"), "Ingress vmi-system-grafana not found")
-			assertOidcIngressByName("vmi-system-grafana")
-		})
-
-		t.It("Default dashboard should be installed in System Grafana for shared VMI",
-			Label("f:observability.monitoring.graf"), func() {
-				pkg.Concurrently(
-					func() { assertDashboard("WebLogic%20Server%20Dashboard") },
-					func() { assertDashboard("Coherence%20Elastic%20Data%20Summary%20Dashboard") },
-					func() { assertDashboard("Coherence%20Persistence%20Summary%20Dashboard") },
-					func() { assertDashboard("Coherence%20Cache%20Details%20Dashboard") },
-					func() { assertDashboard("Coherence%20Members%20Summary%20Dashboard") },
-					func() { assertDashboard("Coherence%20Kubernetes%20Summary%20Dashboard") },
-					func() { assertDashboard("Coherence%20Dashboard%20Main") },
-					func() { assertDashboard("Coherence%20Caches%20Summary%20Dashboard") },
-					func() { assertDashboard("Coherence%20Service%20Details%20Dashboard") },
-					func() { assertDashboard("Coherence%20Proxy%20Servers%20Summary%20Dashboard") },
-					func() { assertDashboard("Coherence%20Federation%20Details%20Dashboard") },
-					func() { assertDashboard("Coherence%20Federation%20Summary%20Dashboard") },
-					func() { assertDashboard("Coherence%20Services%20Summary%20Dashboard") },
-					func() { assertDashboard("Coherence%20HTTP%20Servers%20Summary%20Dashboard") },
-					func() { assertDashboard("Coherence%20Proxy%20Server%20Detail%20Dashboard") },
-					func() { assertDashboard("Coherence%20Alerts%20Dashboard") },
-					func() { assertDashboard("Coherence%20Member%20Details%20Dashboard") },
-					func() { assertDashboard("Coherence%20Machines%20Summary%20Dashboard") },
-				)
-			})
-
-		t.ItMinimumVersion("Grafana should have the verrazzano user with admin privileges", "1.3.0", kubeconfig, func() {
-			vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfig)
-			if err != nil {
-				t.Logs.Errorf("Error getting Verrazzano resource: %v", err)
-				Fail(err.Error())
-			}
-			if vz.Spec.Version != "" {
-				t.Logs.Info("Skipping test because Verrazzano has been upgraded %s")
-			} else {
-				Eventually(assertAdminRole, waitTimeout, pollingInterval).Should(BeTrue())
-			}
-		})
-	}
-
-	t.It("Verify the instance info endpoint URLs", Label("f:mesh.ingress"), func() {
-		if !isManagedClusterProfile {
-			assertInstanceInfoURLs()
 		}
 	})
 
-	size := "50Gi"
-	// If there are persistence overrides at the global level, that will cause persistent
-	// volumes to be created for the VMI components that use them (ES, Kibana, and Prometheus)
-	// At some point we may need to check for individual VMI overrides.
-	kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
-	override, _ := pkg.GetEffectiveVMIPersistenceOverride(kubeconfigPath)
-	if override != nil {
-		size = override.Spec.Resources.Requests.Storage().String()
-	}
+	t.Context("Check that OpenSearch-Dashboards", func() {
+		if vzcr.IsComponentStatusEnabled(vz, opensearchdashboards.ComponentName) {
+			t.It("endpoint is accessible", Label("f:mesh.ingress",
+				"f:observability.logging.kibana"), func() {
+				osdPodsRunning := func() bool {
+					result, err := pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-osd"})
+					if err != nil {
+						AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", "vmi-system-osd", verrazzanoNamespace, err))
+					}
+					return result
+				}
+				Eventually(osdPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "osd pods did not all show up")
+				Expect(ingressURLs).To(HaveKey("vmi-system-osd"), "Ingress vmi-system-osd not found")
+				assertOidcIngressByName(osdIngress)
+				Expect(vz.Status.VerrazzanoInstance.KibanaURL).ToNot(BeNil())
+			})
+		} else {
+			Eventually(func() (bool, error) {
+				return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-osd"})
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+			Expect(ingressURLs).NotTo(HaveKey(osdIngress), fmt.Sprintf("Ingress %s should not exist", osdIngress))
+			Expect(vz.Status.VerrazzanoInstance.KibanaURL).To(BeNil())
+		}
+	})
 
-	minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfig)
-	Expect(err).ToNot(HaveOccurred())
+	t.Context("Check that Prometheus", func() {
+		const stsName = "prometheus-prometheus-operator-kube-p-prometheus"
+		if vzcr.IsComponentStatusEnabled(vz, operator.ComponentName) {
+			t.It("helm override for replicas is in effect", Label("f:observability.monitoring.prom"), func() {
+				expectedReplicas, err := getExpectedPrometheusReplicaCount(kubeconfigPath)
+				Expect(err).ToNot(HaveOccurred())
 
-	expectedPromReplicas, err := getExpectedPrometheusReplicaCount(kubeconfig)
-	Expect(err).ToNot(HaveOccurred())
+				// expect Prometheus statefulset to be configured for the expected number of replicas
+				sts, err := pkg.GetStatefulSet(constants.VerrazzanoMonitoringNamespace, stsName)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(sts.Spec.Replicas).ToNot(BeNil())
+				Expect(*sts.Spec.Replicas).To(Equal(expectedReplicas))
 
-	if pkg.IsDevProfile() {
-		t.It("Check persistent volumes for dev profile", func() {
-			if override != nil {
+				// expect the replicas to be ready
+				Eventually(func() (int32, error) {
+					sts, err := pkg.GetStatefulSet(constants.VerrazzanoMonitoringNamespace, stsName)
+					if err != nil {
+						return 0, err
+					}
+					return sts.Status.ReadyReplicas, nil
+				}, waitTimeout, pollingInterval).Should(Equal(expectedReplicas),
+					fmt.Sprintf("Statefulset %s in namespace %s does not have the expected number of ready replicas", stsName, constants.VerrazzanoMonitoringNamespace))
+				Expect(vz.Status.VerrazzanoInstance.PrometheusURL).ToNot(BeNil())
+			})
+
+			t.It("endpoint is accessible", Label("f:mesh.ingress",
+				"f:observability.monitoring.prom"), func() {
+				assertOidcIngressByName(prometheusIngress)
+				Expect(vz.Status.VerrazzanoInstance.PrometheusURL).ToNot(BeNil())
+			})
+		} else {
+			Eventually(func() (bool, error) {
+				return pkg.PodsNotRunning(verrazzanoNamespace, []string{stsName})
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+			Expect(ingressURLs).NotTo(HaveKey(prometheusIngress), fmt.Sprintf("Ingress %s should not exist", prometheusIngress))
+			Expect(vz.Status.VerrazzanoInstance.PrometheusURL).To(BeNil())
+		}
+	})
+
+	t.Context("Check that Grafana", func() {
+		if vzcr.IsComponentStatusEnabled(vz, grafana.ComponentName) {
+			t.It("Grafana endpoint should be accessible", Label("f:mesh.ingress",
+				"f:observability.monitoring.graf"), func() {
+				Expect(ingressURLs).To(HaveKey("vmi-system-grafana"), "Ingress vmi-system-grafana not found")
+				assertOidcIngressByName("vmi-system-grafana")
+				Expect(vz.Status.VerrazzanoInstance.GrafanaURL).ToNot(BeNil())
+			})
+
+			t.It("Default dashboard should be installed in System Grafana for shared VMI",
+				Label("f:observability.monitoring.graf"), func() {
+					pkg.Concurrently(
+						func() { assertDashboard("WebLogic%20Server%20Dashboard") },
+						func() { assertDashboard("Coherence%20Elastic%20Data%20Summary%20Dashboard") },
+						func() { assertDashboard("Coherence%20Persistence%20Summary%20Dashboard") },
+						func() { assertDashboard("Coherence%20Cache%20Details%20Dashboard") },
+						func() { assertDashboard("Coherence%20Members%20Summary%20Dashboard") },
+						func() { assertDashboard("Coherence%20Kubernetes%20Summary%20Dashboard") },
+						func() { assertDashboard("Coherence%20Dashboard%20Main") },
+						func() { assertDashboard("Coherence%20Caches%20Summary%20Dashboard") },
+						func() { assertDashboard("Coherence%20Service%20Details%20Dashboard") },
+						func() { assertDashboard("Coherence%20Proxy%20Servers%20Summary%20Dashboard") },
+						func() { assertDashboard("Coherence%20Federation%20Details%20Dashboard") },
+						func() { assertDashboard("Coherence%20Federation%20Summary%20Dashboard") },
+						func() { assertDashboard("Coherence%20Services%20Summary%20Dashboard") },
+						func() { assertDashboard("Coherence%20HTTP%20Servers%20Summary%20Dashboard") },
+						func() { assertDashboard("Coherence%20Proxy%20Server%20Detail%20Dashboard") },
+						func() { assertDashboard("Coherence%20Alerts%20Dashboard") },
+						func() { assertDashboard("Coherence%20Member%20Details%20Dashboard") },
+						func() { assertDashboard("Coherence%20Machines%20Summary%20Dashboard") },
+					)
+				})
+
+			t.ItMinimumVersion("Grafana should have the verrazzano user with admin privileges", "1.3.0", kubeconfigPath, func() {
+				vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+				if err != nil {
+					t.Logs.Errorf("Error getting Verrazzano resource: %v", err)
+					Fail(err.Error())
+				}
+				if vz.Spec.Version != "" {
+					t.Logs.Info("Skipping test because Verrazzano has been upgraded %s")
+				} else {
+					Eventually(assertAdminRole, waitTimeout, pollingInterval).Should(BeTrue())
+				}
+			})
+		} else {
+			t.It("is not running", func() {
+				Eventually(func() (bool, error) {
+					return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-grafana"})
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+				Expect(ingressURLs).NotTo(HaveKey(grafanaIngress), fmt.Sprintf("Ingress %s should not exist", grafanaIngress))
+				Expect(vz.Status.VerrazzanoInstance.GrafanaURL).To(BeNil())
+			})
+		}
+	})
+
+	t.Context("Check Storage", func() {
+		size := "50Gi"
+		// If there are persistence overrides at the global level, that will cause persistent
+		// volumes to be created for the VMI components that use them (ES, Kibana, and Prometheus)
+		// At some point we may need to check for individual VMI overrides.
+		override, _ := pkg.GetEffectiveVMIPersistenceOverride(kubeconfigPath)
+		if override != nil {
+			size = override.Spec.Resources.Requests.Storage().String()
+		}
+		if pkg.IsDevProfile() {
+			t.It("Check persistent volumes for dev profile", func() {
+				if override != nil {
+					minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+					Expect(err).ToNot(HaveOccurred())
+
+					expectedPromReplicas, err := getExpectedPrometheusReplicaCount(kubeconfigPath)
+					Expect(err).ToNot(HaveOccurred())
+					if minVer14 {
+						Expect(len(volumeClaims)).To(Equal(2))
+						assertPersistentVolume("vmi-system-grafana", size)
+						assertPersistentVolume(esMaster0, size)
+
+						Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(expectedPromReplicas)))
+						assertPrometheusVolume(size)
+					} else {
+						Expect(len(volumeClaims)).To(Equal(3))
+						assertPersistentVolume("vmi-system-prometheus", size)
+						assertPersistentVolume("vmi-system-grafana", size)
+						assertPersistentVolume(esMaster0, size)
+					}
+				} else {
+					Expect(len(volumeClaims)).To(Equal(0))
+				}
+			})
+		} else if pkg.IsManagedClusterProfile() {
+			t.It("Check persistent volumes for managed cluster profile", func() {
+				minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+				Expect(err).ToNot(HaveOccurred())
+
+				expectedPromReplicas, err := getExpectedPrometheusReplicaCount(kubeconfigPath)
+				Expect(err).ToNot(HaveOccurred())
 				if minVer14 {
-					Expect(len(volumeClaims)).To(Equal(2))
-					assertPersistentVolume("vmi-system-grafana", size)
-					assertPersistentVolume(esMaster0, size)
-
+					Expect(len(volumeClaims)).To(Equal(0))
 					Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(expectedPromReplicas)))
 					assertPrometheusVolume(size)
 				} else {
-					Expect(len(volumeClaims)).To(Equal(3))
+					Expect(len(volumeClaims)).To(Equal(1))
 					assertPersistentVolume("vmi-system-prometheus", size)
-					assertPersistentVolume("vmi-system-grafana", size)
-					assertPersistentVolume(esMaster0, size)
 				}
-			} else {
-				Expect(len(volumeClaims)).To(Equal(0))
-			}
-		})
-	} else if isManagedClusterProfile {
-		t.It("Check persistent volumes for managed cluster profile", func() {
-			if minVer14 {
-				Expect(len(volumeClaims)).To(Equal(0))
-				Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(expectedPromReplicas)))
-				assertPrometheusVolume(size)
-			} else {
-				Expect(len(volumeClaims)).To(Equal(1))
-				assertPersistentVolume("vmi-system-prometheus", size)
-			}
-		})
-	} else if pkg.IsProdProfile() {
-		t.It("Check persistent volumes for prod cluster profile", func() {
-			if minVer14 {
-				Expect(len(volumeClaims)).To(Equal(7))
-				Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(expectedPromReplicas)))
-				assertPrometheusVolume(size)
-			} else {
-				Expect(len(volumeClaims)).To(Equal(8))
-				assertPersistentVolume("vmi-system-prometheus", size)
-			}
-			assertPersistentVolume("vmi-system-grafana", size)
-			assertPersistentVolume(esMaster0, size)
-			assertPersistentVolume(esMaster1, size)
-			assertPersistentVolume(esMaster2, size)
-			assertPersistentVolume(esData, size)
-			assertPersistentVolume(esData1, size)
-			assertPersistentVolume(esData2, size)
-		})
-	}
+			})
+		} else if pkg.IsProdProfile() {
+			t.It("Check persistent volumes for prod cluster profile", func() {
+				minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+				Expect(err).ToNot(HaveOccurred())
+
+				expectedPromReplicas, err := getExpectedPrometheusReplicaCount(kubeconfigPath)
+				Expect(err).ToNot(HaveOccurred())
+				if minVer14 {
+					Expect(len(volumeClaims)).To(Equal(7))
+					Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(expectedPromReplicas)))
+					assertPrometheusVolume(size)
+				} else {
+					Expect(len(volumeClaims)).To(Equal(8))
+					assertPersistentVolume("vmi-system-prometheus", size)
+				}
+				assertPersistentVolume("vmi-system-grafana", size)
+				assertPersistentVolume(esMaster0, size)
+				assertPersistentVolume(esMaster1, size)
+				assertPersistentVolume(esMaster2, size)
+				assertPersistentVolume(esData, size)
+				assertPersistentVolume(esData1, size)
+				assertPersistentVolume(esData2, size)
+			})
+		}
+	})
 })
 
 func assertPersistentVolume(key string, size string) {
