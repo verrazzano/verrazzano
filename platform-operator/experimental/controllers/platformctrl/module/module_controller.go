@@ -145,18 +145,6 @@ func (r *VerrazzanoModuleReconciler) reconcileModule(log vzlog.VerrazzanoLogger,
 	return lifecycleResource, err
 }
 
-func (r *VerrazzanoModuleReconciler) checkInstallerDependencies(log vzlog.VerrazzanoLogger, installers []*v1beta2.Module) bool {
-	allDependenciesMet := true
-	for _, installer := range installers {
-		installerState := installer.Status.State
-		if installerState != v1beta2.ModuleStateReady {
-			log.Progressf("CRD dependency %s/%s not ready, state: %s", installer.Namespace, installer.Name, installerState)
-			allDependenciesMet = false
-		}
-	}
-	return allDependenciesMet
-}
-
 func (r *VerrazzanoModuleReconciler) createLifecycleResource(sourceName string, sourceURI string, chartName string, chartNamespace string, chartVersion string, overrides v1beta2.Overrides, ownerRef *metav1.OwnerReference) (*v1beta2.ModuleLifecycle, error) {
 
 	// Create a CR to manage the module installation
