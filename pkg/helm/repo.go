@@ -101,6 +101,19 @@ func ApplyModuleDefsYaml(log vzlog.VerrazzanoLogger, c client.Client, chartDir s
 	return yamlApplier.ApplyD(path)
 }
 
+// FindLatestChartVersion Finds the most recent ChartVersion
+func FindLatestChartVersion(log vzlog.VerrazzanoLogger, chartName, repoName, repoURI string) (string, error) {
+	indexFile, err := loadAndSortRepoIndexFile(repoName, repoURI)
+	if err != nil {
+		return "", err
+	}
+	version, err := findMostRecentChartVersion(log, indexFile, chartName)
+	if err != nil {
+		return "", err
+	}
+	return version.Version, nil
+}
+
 // FindNearestSupportingChartVersion Finds the most recent ChartVersion that meets the platform version specified
 func FindNearestSupportingChartVersion(log vzlog.VerrazzanoLogger, chartName, repoName, repoURI, forPlatformVersion string) (string, error) {
 	indexFile, err := loadAndSortRepoIndexFile(repoName, repoURI)
@@ -132,6 +145,16 @@ func findSupportingChartVersion(log vzlog.VerrazzanoLogger, indexFile *repo.Inde
 	}
 	log.Infof("No compatible version for chart %s found in repo for platform version %s", chartName, forPlatformVersion)
 	return nil, nil
+}
+
+// findMostRecentChartVersion Finds the most recent ChartVersion that
+func findMostRecentChartVersion(log vzlog.VerrazzanoLogger, indexFile *repo.IndexFile, chartName string) (*repo.ChartVersion, error) {
+	// The indexFile is already sorted in descending order for each chart
+	chartVersions := findChartEntry(indexFile, chartName)
+	if len(chartVersions) == 0 {
+		return nil, fmt.Errorf("no entries found for chart %s in repo", chartName)
+	}
+	return chartVersions[0], nil
 }
 
 func findChartEntry(index *repo.IndexFile, chartName string) repo.ChartVersions {

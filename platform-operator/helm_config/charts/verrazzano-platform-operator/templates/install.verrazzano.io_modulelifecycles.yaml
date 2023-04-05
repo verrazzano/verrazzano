@@ -92,8 +92,13 @@ spec:
                         properties:
                           credentialsSecret:
                             type: string
+                          name:
+                            type: string
                           uri:
                             type: string
+                        required:
+                        - name
+                        - uri
                         type: object
                     required:
                     - name
