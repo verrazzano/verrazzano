@@ -59,25 +59,34 @@ pipeline {
     }
 
     triggers {
-        URLTrigger(
-            cronTabSpec: branchSpecificSchedule,
-            entries: [
-                URLTriggerEntry(
-                    url: "https://objectstorage.${ociOsRegion}.oraclecloud.com/n/${OS_NAMESPACE_URL_TRIGGER}/b/${ociOsBucket}/o/${urlTriggerBranchName}/${lastStableCommitFile}",
-                    checkETag: false,
-                    checkStatus: true,
-                    statusCode: 403,
-                    checkLastModificationDate: true,
-                    timeout: 200,
-                    requestHeaders: [
-                        RequestHeader( headerName: "Accept" , headerValue: "application/json" )
-                    ],
-                    contentTypes: [
-                        MD5Sum()
-                    ]
-                )
-            ]
-        )
+        cron(branchSpecificSchedule)
+
+    // There is an issue with URLTrigger for backend tests where the polling URL maintains a global state that does not work with specific jobs.
+    // Therefore, the below code is disabled until the global state issue is fixed.
+    // Ex: - Each job has an URL Trigger poll cron schedule
+    //      - When a job’s cron triggers, it checks the state of whether the specific URL X has changed or not.
+    //      - If it has changed, then it triggers only the job whose cron schedule fired off (no other jobs that look for that URL X will trigger)
+    //      - Any other jobs that wake up and poll on URL X will not see it as changing unless it actually changed again since this time
+
+    //        URLTrigger(
+    //            cronTabSpec: branchSpecificSchedule,
+    //            entries: [
+    //                URLTriggerEntry(
+    //                    url: "https://objectstorage.${ociOsRegion}.oraclecloud.com/n/${OS_NAMESPACE_URL_TRIGGER}/b/${ociOsBucket}/o/${urlTriggerBranchName}/${lastStableCommitFile}",
+    //                    checkETag: false,
+    //                    checkStatus: true,
+    //                    statusCode: 403,
+    //                    checkLastModificationDate: true,
+    //                    timeout: 200,
+    //                    requestHeaders: [
+    //                        RequestHeader( headerName: "Accept" , headerValue: "application/json" )
+    //                    ],
+    //                   contentTypes: [
+    //                        MD5Sum()
+    //                    ]
+    //                )
+    //            ]
+    //        )
     }
 
     parameters {
