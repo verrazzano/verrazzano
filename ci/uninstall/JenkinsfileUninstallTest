@@ -468,7 +468,7 @@ def uninstallVerrazzano(vpoLogsDir) {
         // Delete VZ in the background
         while (true) {
             echo "Deleting the Verrazzano resource..."
-            result = sh(returnStatus: true, script: "${VZ_COMMAND} uninstall --timeout=60m")
+            result = sh(returnStatus: true, script: "${VZ_COMMAND} uninstall -y --timeout=60m")
             if (result == 0) {
                 break
             }

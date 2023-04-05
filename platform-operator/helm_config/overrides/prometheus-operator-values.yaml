@@ -731,3 +731,5 @@ kubeScheduler:
       - action: replace
         targetLabel: verrazzano_cluster
         replacement: local
+
+  sidecar.istio.io/inject: "false"

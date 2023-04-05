@@ -85,6 +85,23 @@ SCAN_RESULTS_BASE_DIR=${WORKSPACE}/scan-results
 export SCAN_RESULTS_DIR=${SCAN_RESULTS_BASE_DIR}/latest
 mkdir -p ${SCAN_RESULTS_DIR}
 
+if [[ -z "${SCANNER_PATH}" ]]; then
+  echo "Environment variable SCANNER_PATH is not set"
+else
+  export PATH="${SCANNER_PATH}:${PATH}"
+fi
+
+# The script uses Github CLI and OCI CLI, check whether the CLIs are in PATH
+command -v gh >/dev/null 2>&1 || {
+  echo "Github CLI is not in PATH"
+  exit 1
+}
+
+command -v oci >/dev/null 2>&1 || {
+  echo "OCI CLI is not in PATH"
+  exit 1
+}
+
 # Where the results are kept for the branch depend on what kind of branch it is and where the updated bom is stored:
 #    master, release-* branches are regularly updated using the periodic pipelines only
 #
