@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package uninstall
@@ -6,9 +6,6 @@ package uninstall
 import (
 	"bytes"
 	"context"
-	"os"
-	"testing"
-
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -24,8 +21,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"os"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"strings"
+	"testing"
 )
 
 // TestUninstallCmd
@@ -50,6 +50,9 @@ func TestUninstallCmd(t *testing.T) {
 	rc.SetClient(c)
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
+
+	// Suppressing uninstall prompt
+	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
 
 	// Run uninstall command, check for the expected status results to be displayed
 	err := cmd.Execute()
@@ -99,6 +102,9 @@ func TestUninstallCmdUninstallJob(t *testing.T) {
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
 
+	// Suppressing uninstall prompt
+	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
+
 	// Run uninstall command, check for the expected status results to be displayed
 	err := cmd.Execute()
 	assert.NoError(t, err)
@@ -132,6 +138,9 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
 	_ = cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
+
+	// Suppressing uninstall prompt
+	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
 
 	// Run upgrade command
 	err := cmd.Execute()
@@ -168,6 +177,9 @@ func TestUninstallCmdDefaultNoWait(t *testing.T) {
 	assert.NotNil(t, cmd)
 	_ = cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 
+	// Suppressing uninstall prompt
+	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
+
 	// Run uninstall command
 	err := cmd.Execute()
 	assert.NoError(t, err)
@@ -197,6 +209,9 @@ func TestUninstallCmdJsonLogFormat(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "json")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 
+	// Suppressing uninstall prompt
+	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
+
 	// Run uninstall command
 	err := cmd.Execute()
 	assert.NoError(t, err)
@@ -220,6 +235,9 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	rc.SetClient(c)
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
+
+	// Suppressing uninstall prompt
+	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
 
 	// Run uninstall command
 	err := cmd.Execute()
@@ -250,6 +268,9 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	setWaitRetries(1)
 	defer resetWaitRetries()
 
+	// Suppressing uninstall prompt
+	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
+
 	// Run uninstall command
 	err := cmd.Execute()
 	assert.Error(t, err)
@@ -273,11 +294,88 @@ func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
 
+	// Suppressing uninstall prompt
+	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
+
 	// Run uninstall command
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Verrazzano is not installed: Failed to find any Verrazzano resources")
 	assert.Contains(t, errBuf.String(), "Error: Verrazzano is not installed: Failed to find any Verrazzano resources")
+}
+
+// TestUninstallWithConfirmUninstallFlag
+// Given the "--skip-confirmation or -y" flag the Verrazzano Uninstall prompt will be suppressed
+// any other input to the command-line other than Y or y will kill the uninstall process
+func TestUninstallWithConfirmUninstallFlag(t *testing.T) {
+	type fields struct {
+		cmdLineInput  string
+		doesUninstall bool
+	}
+	tests := []struct {
+		name   string
+		fields fields
+	}{
+		{"Suppress Uninstall prompt with --skip-confirmation=true", fields{cmdLineInput: "", doesUninstall: true}},
+		{"Proceed with Uninstall, Y", fields{cmdLineInput: "Y", doesUninstall: true}},
+		{"Proceed with Uninstall, y", fields{cmdLineInput: "y", doesUninstall: true}},
+		{"Halt with Uninstall, n", fields{cmdLineInput: "n", doesUninstall: false}},
+		{"Garbage input passed on cmdLine", fields{cmdLineInput: "GARBAGE", doesUninstall: false}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
+			vpo := createVpoPod()
+			namespace := createNamespace()
+			validatingWebhookConfig := createWebhook()
+			clusterRoleBinding := createClusterRoleBinding()
+			clusterRole := createClusterRole()
+			vz := createVz()
+			c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(
+				deployment, vpo, vz, namespace, validatingWebhookConfig, clusterRoleBinding, clusterRole).Build()
+
+			if tt.fields.cmdLineInput != "" {
+				content := []byte(tt.fields.cmdLineInput)
+				tempfile, err := os.CreateTemp("", "test-input.txt")
+				if err != nil {
+					assert.Error(t, err)
+				}
+				// clean up tempfile
+				defer os.Remove(tempfile.Name())
+				if _, err := tempfile.Write(content); err != nil {
+					assert.Error(t, err)
+				}
+				if _, err := tempfile.Seek(0, 0); err != nil {
+					assert.Error(t, err)
+				}
+				oldStdin := os.Stdin
+				// Restore original Stdin
+				defer func() { os.Stdin = oldStdin }()
+				os.Stdin = tempfile
+			}
+
+			// Send stdout stderr to a byte bufferF
+			buf := new(bytes.Buffer)
+			errBuf := new(bytes.Buffer)
+			rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+			rc.SetClient(c)
+			cmd := NewCmdUninstall(rc)
+
+			if tt.fields.doesUninstall {
+				if strings.Contains(tt.name, "skip-confirmation") {
+					// Suppressing uninstall prompt
+					cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
+				}
+				err := cmd.Execute()
+				assert.NoError(t, err)
+				ensureResourcesDeleted(t, c)
+			} else if !tt.fields.doesUninstall {
+				err := cmd.Execute()
+				assert.NoError(t, err)
+				ensureResourcesNotDeleted(t, c)
+			}
+		})
+	}
 }
 
 func createNamespace() *corev1.Namespace {
