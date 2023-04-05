@@ -8,11 +8,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"io"
+	"k8s.io/apimachinery/pkg/runtime"
 	"net/http"
 	"os"
 	"strings"
@@ -117,7 +120,17 @@ var (
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
-	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		t.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		t.Fail(fmt.Sprintf("Failed to get installed Verrazzano resource in the cluster: %v", err))
+	}
+	if vzcr.IsComponentStatusEnabled(vz, nginx.ComponentName) && vzcr.IsComponentStatusEnabled(vz, certmanager.ComponentName) {
+		httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
+	}
 
 	Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
 		vzCRD, err = verrazzanoInstallerCRD()
@@ -177,7 +190,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				// Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "certificate did not show up")
 				Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "ingress did not show up")
 				Expect(ingressURLs).To(HaveKey(opensearchIngress), "Ingress vmi-system-os-ingest not found")
-				assertOidcIngressByName(opensearchIngress)
+				assertOidcIngressByName(opensearchIngress, vz, opensearch.ComponentName)
 				Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "never connected")
 				Eventually(elasticIndicesCreated, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices never created")
 				Expect(vz.Status.VerrazzanoInstance.ElasticURL).ToNot(BeNil())
@@ -257,7 +270,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				}
 				Eventually(osdPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "osd pods did not all show up")
 				Expect(ingressURLs).To(HaveKey("vmi-system-osd"), "Ingress vmi-system-osd not found")
-				assertOidcIngressByName(osdIngress)
+				assertOidcIngressByName(osdIngress, vz, opensearchdashboards.ComponentName)
 				Expect(vz.Status.VerrazzanoInstance.KibanaURL).ToNot(BeNil())
 			})
 		} else {
@@ -299,7 +312,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 
 			t.It("endpoint is accessible", Label("f:mesh.ingress",
 				"f:observability.monitoring.prom"), func() {
-				assertOidcIngressByName(prometheusIngress)
+				assertOidcIngressByName(prometheusIngress, vz, operator.ComponentName)
 				Expect(vz.Status.VerrazzanoInstance.PrometheusURL).ToNot(BeNil())
 			})
 		} else {
@@ -318,33 +331,37 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 			t.It("Grafana endpoint should be accessible", Label("f:mesh.ingress",
 				"f:observability.monitoring.graf"), func() {
 				Expect(ingressURLs).To(HaveKey("vmi-system-grafana"), "Ingress vmi-system-grafana not found")
-				assertOidcIngressByName("vmi-system-grafana")
+				assertOidcIngressByName(grafanaIngress, vz, grafana.ComponentName)
 				Expect(vz.Status.VerrazzanoInstance.GrafanaURL).ToNot(BeNil())
 			})
 
-			t.It("Default dashboard should be installed in System Grafana for shared VMI",
-				Label("f:observability.monitoring.graf"), func() {
-					pkg.Concurrently(
-						func() { assertDashboard("WebLogic%20Server%20Dashboard") },
-						func() { assertDashboard("Coherence%20Elastic%20Data%20Summary%20Dashboard") },
-						func() { assertDashboard("Coherence%20Persistence%20Summary%20Dashboard") },
-						func() { assertDashboard("Coherence%20Cache%20Details%20Dashboard") },
-						func() { assertDashboard("Coherence%20Members%20Summary%20Dashboard") },
-						func() { assertDashboard("Coherence%20Kubernetes%20Summary%20Dashboard") },
-						func() { assertDashboard("Coherence%20Dashboard%20Main") },
-						func() { assertDashboard("Coherence%20Caches%20Summary%20Dashboard") },
-						func() { assertDashboard("Coherence%20Service%20Details%20Dashboard") },
-						func() { assertDashboard("Coherence%20Proxy%20Servers%20Summary%20Dashboard") },
-						func() { assertDashboard("Coherence%20Federation%20Details%20Dashboard") },
-						func() { assertDashboard("Coherence%20Federation%20Summary%20Dashboard") },
-						func() { assertDashboard("Coherence%20Services%20Summary%20Dashboard") },
-						func() { assertDashboard("Coherence%20HTTP%20Servers%20Summary%20Dashboard") },
-						func() { assertDashboard("Coherence%20Proxy%20Server%20Detail%20Dashboard") },
-						func() { assertDashboard("Coherence%20Alerts%20Dashboard") },
-						func() { assertDashboard("Coherence%20Member%20Details%20Dashboard") },
-						func() { assertDashboard("Coherence%20Machines%20Summary%20Dashboard") },
-					)
-				})
+			if vzcr.IsComponentStatusEnabled(vz, nginx.ComponentName) && vzcr.IsComponentStatusEnabled(vz, certmanager.ComponentName) {
+				t.It("Default dashboard should be installed in System Grafana for shared VMI",
+					Label("f:observability.monitoring.graf"), func() {
+						pkg.Concurrently(
+							func() { assertDashboard("WebLogic%20Server%20Dashboard") },
+							func() { assertDashboard("Coherence%20Elastic%20Data%20Summary%20Dashboard") },
+							func() { assertDashboard("Coherence%20Persistence%20Summary%20Dashboard") },
+							func() { assertDashboard("Coherence%20Cache%20Details%20Dashboard") },
+							func() { assertDashboard("Coherence%20Members%20Summary%20Dashboard") },
+							func() { assertDashboard("Coherence%20Kubernetes%20Summary%20Dashboard") },
+							func() { assertDashboard("Coherence%20Dashboard%20Main") },
+							func() { assertDashboard("Coherence%20Caches%20Summary%20Dashboard") },
+							func() { assertDashboard("Coherence%20Service%20Details%20Dashboard") },
+							func() { assertDashboard("Coherence%20Proxy%20Servers%20Summary%20Dashboard") },
+							func() { assertDashboard("Coherence%20Federation%20Details%20Dashboard") },
+							func() { assertDashboard("Coherence%20Federation%20Summary%20Dashboard") },
+							func() { assertDashboard("Coherence%20Services%20Summary%20Dashboard") },
+							func() { assertDashboard("Coherence%20HTTP%20Servers%20Summary%20Dashboard") },
+							func() { assertDashboard("Coherence%20Proxy%20Server%20Detail%20Dashboard") },
+							func() { assertDashboard("Coherence%20Alerts%20Dashboard") },
+							func() { assertDashboard("Coherence%20Member%20Details%20Dashboard") },
+							func() { assertDashboard("Coherence%20Machines%20Summary%20Dashboard") },
+						)
+					})
+			} else {
+				t.Logs.Infof("Skipping checking Grafana dashboards because ingress-nginx or cert-manager is not enabled")
+			}
 
 			t.ItMinimumVersion("Grafana should have the verrazzano user with admin privileges", "1.3.0", kubeconfigPath, func() {
 				vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
@@ -354,6 +371,8 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				}
 				if vz.Spec.Version != "" {
 					t.Logs.Info("Skipping test because Verrazzano has been upgraded %s")
+				} else if !vzcr.IsComponentStatusEnabled(vz, nginx.ComponentName) || !vzcr.IsComponentStatusEnabled(vz, certmanager.ComponentName) {
+					t.Logs.Infof("Skipping checking Grafana dashboards because ingress-nginx or cert-manager is not enabled")
 				} else {
 					Eventually(assertAdminRole, waitTimeout, pollingInterval).Should(BeTrue())
 				}
@@ -463,10 +482,15 @@ func assertPrometheusVolume(size string) {
 	Fail("Expected to find Prometheus persistent volume claim")
 }
 
-func assertOidcIngressByName(key string) {
-	Expect(ingressURLs).To(HaveKey(key), fmt.Sprintf("Ingress %s not found", key))
-	url := ingressURLs[key]
-	assertOidcIngress(url)
+func assertOidcIngressByName(key string, vz runtime.Object, componentName string) {
+	if vzcr.IsComponentStatusEnabled(vz, nginx.ComponentName) && vzcr.IsComponentStatusEnabled(vz, certmanager.ComponentName) {
+		Expect(ingressURLs).To(HaveKey(key), fmt.Sprintf("Ingress %s not found", key))
+		url := ingressURLs[key]
+		assertOidcIngress(url)
+	} else {
+		t.Logs.Infof("Skipping checking ingress %s because ingress-nginx or cert-manager is not installed", key)
+	}
+
 }
 
 func assertOidcIngress(url string) {
