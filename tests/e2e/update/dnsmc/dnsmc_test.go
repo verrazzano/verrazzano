@@ -103,10 +103,16 @@ func verifyThanosIngress() {
 func verifyThanosStore() {
 	for _, managedCluster := range managedClusters {
 		gomega.Eventually(func() (bool, error) {
-			queryStores, err := pkg.ThanosQueryStores()
+			metricsTest, err := pkg.NewMetricsTest([]string{managedCluster.KubeConfigPath}, managedCluster.KubeConfigPath, map[string]string{})
 			if err != nil {
 				return false, err
 			}
+
+			queryStores, err := metricsTest.Source.GetTargets()
+			if err != nil {
+				return false, err
+			}
+
 			expectedName := fmt.Sprintf("%s:443", managedCluster.GetQueryIngress())
 			for _, store := range queryStores {
 				storeMap, ok := store.(map[string]interface{})

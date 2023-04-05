@@ -198,26 +198,6 @@ func GetJaegerSpanIndexName(kubeconfigPath string) (string, error) {
 	return "", fmt.Errorf("Jaeger Span index not found")
 }
 
-// IsJaegerMetricFound validates if the given jaeger metrics contain the labels with values specified as key-value pairs of the map
-func IsJaegerMetricFound(kubeconfigPath, metricName, clusterName string, kv map[string]string, queryFunc func(string, string) (string, error)) bool {
-	compMetrics, err := QueryMetricWithLabelByHost(metricName, kubeconfigPath, jaegerClusterNameLabel, clusterName, queryFunc, GetPrometheusIngressHost(kubeconfigPath))
-	if err != nil {
-		return false
-	}
-	metrics := JTq(compMetrics, "data", "result").([]interface{})
-	for _, metric := range metrics {
-		metricFound := true
-		for key, value := range kv {
-			if Jq(metric, "metric", key) != value {
-				metricFound = false
-				break
-			}
-		}
-		return metricFound
-	}
-	return false
-}
-
 // ListJaegerTracesWithTags lists all trace ids for a given service with the given tags
 func ListJaegerTracesWithTags(kubeconfigPath string, start time.Time, serviceName string, tags map[string]string) []string {
 	var traces []string
@@ -372,46 +352,30 @@ func GetJaegerSystemServicesInAdminCluster() []string {
 }
 
 // ValidateJaegerOperatorMetricFunc returns a function that validates if metrics of Jaeger operator is scraped by prometheus.
-func ValidateJaegerOperatorMetricFunc(queryFunc func(string, string) (string, error)) func() bool {
+func ValidateJaegerOperatorMetricFunc(metricsTest MetricsTest) func() bool {
 	return func() bool {
-		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-		if err != nil {
-			return false
-		}
-		return IsJaegerMetricFound(kubeconfigPath, jaegerOperatorSampleMetric, adminClusterName, nil, queryFunc)
+		return metricsTest.MetricsExist(jaegerOperatorSampleMetric, map[string]string{})
 	}
 }
 
 // ValidateJaegerCollectorMetricFunc returns a function that validates if metrics of Jaeger collector is scraped by prometheus.
-func ValidateJaegerCollectorMetricFunc(queryFunc func(string, string) (string, error)) func() bool {
+func ValidateJaegerCollectorMetricFunc(metricsTest MetricsTest) func() bool {
 	return func() bool {
-		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-		if err != nil {
-			return false
-		}
-		return IsJaegerMetricFound(kubeconfigPath, jaegerCollectorSampleMetric, adminClusterName, nil, queryFunc)
+		return metricsTest.MetricsExist(jaegerCollectorSampleMetric, map[string]string{})
 	}
 }
 
 // ValidateJaegerQueryMetricFunc returns a function that validates if metrics of Jaeger query is scraped by prometheus.
-func ValidateJaegerQueryMetricFunc(queryFunc func(string, string) (string, error)) func() bool {
+func ValidateJaegerQueryMetricFunc(metricsTest MetricsTest) func() bool {
 	return func() bool {
-		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-		if err != nil {
-			return false
-		}
-		return IsJaegerMetricFound(kubeconfigPath, jaegerQuerySampleMetric, adminClusterName, nil, queryFunc)
+		return metricsTest.MetricsExist(jaegerQuerySampleMetric, map[string]string{})
 	}
 }
 
 // ValidateJaegerAgentMetricFunc returns a function that validates if metrics of Jaeger agent is scraped by prometheus.
-func ValidateJaegerAgentMetricFunc(queryFunc func(string, string) (string, error)) func() bool {
+func ValidateJaegerAgentMetricFunc(metricsTest MetricsTest) func() bool {
 	return func() bool {
-		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-		if err != nil {
-			return false
-		}
-		return IsJaegerMetricFound(kubeconfigPath, jaegerAgentSampleMetric, adminClusterName, nil, queryFunc)
+		return metricsTest.MetricsExist(jaegerAgentSampleMetric, map[string]string{})
 	}
 }
 
