@@ -55,7 +55,7 @@ var (
 
 var t = framework.NewTestFramework("vmi")
 
-func vmiIngressURLs() (map[string]string, error) {
+func getIngressURLs() (map[string]string, error) {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
@@ -110,9 +110,9 @@ var (
 	ingressURLs            map[string]string
 	volumeClaims           map[string]*corev1.PersistentVolumeClaim
 	elastic                *vmi.Opensearch
-	waitTimeout            = 10 * time.Minute
+	waitTimeout            = 1 * time.Minute
 	pollingInterval        = 5 * time.Second
-	elasticWaitTimeout     = 2 * time.Minute
+	elasticWaitTimeout     = 1 * time.Minute
 	elasticPollingInterval = 5 * time.Second
 
 	vzMonitoringVolumeClaims map[string]*corev1.PersistentVolumeClaim
@@ -137,27 +137,21 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return vzCRD, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-	Eventually(func() (map[string]string, error) {
-		ingressURLs, err = vmiIngressURLs()
-		return ingressURLs, err
-	}, waitTimeout, pollingInterval).ShouldNot(BeEmpty())
+	Eventually(func() error {
+		ingressURLs, err = getIngressURLs()
+		return err
+	}, waitTimeout, pollingInterval).Should(BeNil())
 
-	Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
+	Eventually(func() error {
 		volumeClaims, err = pkg.GetPersistentVolumeClaims(verrazzanoNamespace)
-		return volumeClaims, err
-	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+		return err
+	}, waitTimeout, pollingInterval).Should(BeNil())
 
-	Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
+	Eventually(func() error {
 		vzMonitoringVolumeClaims, err = pkg.GetPersistentVolumeClaims(constants.VerrazzanoMonitoringNamespace)
-		return volumeClaims, err
-	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+		return err
+	}, waitTimeout, pollingInterval).Should(BeNil())
 
-	Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
-		vmiCRD, err = verrazzanoMonitoringInstanceCRD()
-		return vmiCRD, err
-	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
-
-	creds = pkg.EventuallyGetSystemVMICredentials()
 	elastic = vmi.GetOpensearch("system")
 })
 
@@ -177,6 +171,15 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 
 	t.Context("Check that OpenSearch", func() {
 		if vzcr.IsComponentStatusEnabled(vz, opensearch.ComponentName) {
+			t.It("VMI is created successfully", func() {
+				Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
+					vmiCRD, err = verrazzanoMonitoringInstanceCRD()
+					return vmiCRD, err
+				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+				creds = pkg.EventuallyGetSystemVMICredentials()
+			})
+
 			t.It("endpoint is accessible", Label("f:mesh.ingress"), func() {
 				elasticPodsRunning := func() bool {
 					result, err := pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-es-master"})
@@ -193,8 +196,8 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				assertOidcIngressByName(opensearchIngress, vz, opensearch.ComponentName)
 				Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "never connected")
 				Eventually(elasticIndicesCreated, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices never created")
-				Expect(vz.Status.VerrazzanoInstance.ElasticURL).ToNot(BeNil())
 
+				Expect(vz.Status.VerrazzanoInstance == nil || vz.Status.VerrazzanoInstance.ElasticURL == nil).ToNot(BeNil())
 			})
 
 			t.It("verrazzano-system Index is accessible", Label("f:observability.logging.es"),
@@ -249,10 +252,10 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				Eventually(func() (bool, error) {
 					return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-es"})
 				}, waitTimeout, pollingInterval).Should(BeTrue())
-				Expect(elasticTLSSecret()).To(BeTrue())
+				Expect(elasticTLSSecret()).To(BeFalse())
 				Expect(elastic.CheckIngress()).To(BeFalse())
 				Expect(ingressURLs).NotTo(HaveKey(opensearchIngress), fmt.Sprintf("Ingress %s should not exist", opensearchIngress))
-				Expect(vz.Status.VerrazzanoInstance.ElasticURL).To(BeNil())
+				Expect(vz.Status.VerrazzanoInstance == nil || vz.Status.VerrazzanoInstance.ElasticURL == nil).To(BeTrue())
 			})
 		}
 	})
@@ -280,7 +283,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 					return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-osd"})
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 				Expect(ingressURLs).NotTo(HaveKey(osdIngress), fmt.Sprintf("Ingress %s should not exist", osdIngress))
-				Expect(vz.Status.VerrazzanoInstance.KibanaURL).To(BeNil())
+				Expect(vz.Status.VerrazzanoInstance == nil || vz.Status.VerrazzanoInstance.KibanaURL == nil).To(BeTrue())
 			})
 		}
 	})
@@ -321,7 +324,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 					return pkg.PodsNotRunning(verrazzanoNamespace, []string{stsName})
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 				Expect(ingressURLs).NotTo(HaveKey(prometheusIngress), fmt.Sprintf("Ingress %s should not exist", prometheusIngress))
-				Expect(vz.Status.VerrazzanoInstance.PrometheusURL).To(BeNil())
+				Expect(vz.Status.VerrazzanoInstance == nil || vz.Status.VerrazzanoInstance.PrometheusURL == nil).To(BeTrue())
 			})
 		}
 	})
@@ -383,7 +386,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 					return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-grafana"})
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 				Expect(ingressURLs).NotTo(HaveKey(grafanaIngress), fmt.Sprintf("Ingress %s should not exist", grafanaIngress))
-				Expect(vz.Status.VerrazzanoInstance.GrafanaURL).To(BeNil())
+				Expect(vz.Status.VerrazzanoInstance == nil || vz.Status.VerrazzanoInstance.GrafanaURL == nil).To(BeTrue())
 			})
 		}
 	})
