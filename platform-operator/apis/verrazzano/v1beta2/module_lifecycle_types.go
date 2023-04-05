@@ -97,6 +97,14 @@ func (m *ModuleLifecycle) ChartNamespace() string {
 	return "default"
 }
 
+func (m *ModuleLifecycle) GetReleaseName() string {
+	helmRelease := m.Spec.Installer.HelmRelease
+	if helmRelease != nil && len(helmRelease.Name) > 0 {
+		return helmRelease.Name
+	}
+	return m.Name
+}
+
 func (m *ModuleLifecycle) IsBeingDeleted() bool {
 	return m != nil && m.GetDeletionTimestamp() != nil
 }

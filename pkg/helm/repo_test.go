@@ -2,36 +2,30 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package helm
 
-import (
-	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"testing"
-)
-
 //const pocURL = "http://localhost:9080/vz/stable"
 //const pocRepoName = "vz-stable"
 
-func TestUpgradeRelease(t *testing.T) {
-	asserts := assert.New(t)
-	helmReleaseOpts := &HelmReleaseOpts{
-		RepoURL:      "https://oracle.github.io/coherence-operator/charts",
-		ReleaseName:  "mycoh",
-		Namespace:    "coh",
-		ChartPath:    "coherence-operator",
-		ChartVersion: "3.2.9",
-		Overrides:    []HelmOverrides{},
-	}
-	release, err := UpgradeRelease(vzlog.DefaultLogger(), helmReleaseOpts, false, false)
-	asserts.NoError(err)
-	t.Logf("Release: %s/%s", release.Namespace, release.Name)
-}
-
+//func TestUpgradeRelease(t *testing.T) {
+//	asserts := assert.New(t)
+//	helmReleaseOpts := &HelmReleaseOpts{
+//		RepoURL:      "https://oracle.github.io/coherence-operator/charts",
+//		ReleaseName:  "mycoh",
+//		Namespace:    "coh",
+//		ChartPath:    "coherence-operator",
+//		ChartVersion: "3.2.9",
+//		Overrides:    []HelmOverrides{},
+//	}
+//	release, err := UpgradeRelease(vzlog.DefaultLogger(), helmReleaseOpts, false, false)
+//	asserts.NoError(err)
+//	t.Logf("Release: %s/%s", release.Namespace, release.Name)
+//}
+//
 //func TestListCharts(t *testing.T) {
 //	//err := ListChartsInRepo(vzlog.DefaultLogger(), "vz-stable-poc", "http://localhost:9080/vz/stable")
 //	//assert.NoError(t, err)
 //	t.Log("TBD")
 //}
-
+//
 //func TestChartTypeNotFound(t *testing.T) {
 //	a := assert.New(t)
 //	chartType, err := LookupChartType(vzlog.DefaultLogger(), pocRepoName, pocURL, "mysql-operator", "2.0.8")

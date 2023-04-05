@@ -51,31 +51,11 @@ func newHelmAdapter(mlc *modulesv1beta2.ModuleLifecycle, sw client.StatusWriter)
 	chartInfo := installer.HelmRelease.ChartInfo
 	chartURL := fmt.Sprintf("%s/%s", installer.HelmRelease.Repository.URI, chartInfo.Path)
 	hc := helmcomp.HelmComponent{
-		ReleaseName:             mlc.Name,
+		ReleaseName:             mlc.GetReleaseName(),
 		ChartDir:                chartInfo.Path,
 		ChartNamespace:          mlc.ChartNamespace(),
 		IgnoreNamespaceOverride: true,
-
-		//GetInstallOverridesFunc: func(object runtime.Object) interface{} {
-		//	return v1beta1.InstallOverrides{
-		//		ValueOverrides: copyOverrides(installer.HelmRelease.Overrides),
-		//	}
-		//},
-
-		ImagePullSecretKeyname: constants.GlobalImagePullSecName,
-
-		//Dependencies:           nil,
-		//PreUpgradeFunc:            nil,
-		//AppendOverridesFunc:       nil,
-		//ResolveNamespaceFunc:      nil,
-		//SupportsOperatorInstall:   false,
-		//SupportsOperatorUninstall: false,
-		//WaitForInstall:            false,
-		//SkipUpgrade:               false,
-		//MinVerrazzanoVersion:      "",
-		//IngressNames:              nil,
-		//Certificates:              nil,
-		//AvailabilityObjects:       nil,
+		ImagePullSecretKeyname:  constants.GlobalImagePullSecName,
 	}
 	component := helmComponentAdapter{
 		HelmComponent: hc,
@@ -98,12 +78,13 @@ func (h helmComponentAdapter) Install(context spi.ComponentContext) error {
 		return err
 	}
 	var opts = &helm.HelmReleaseOpts{
-		RepoURL:      helmRelease.Repository.URI,
-		ReleaseName:  helmRelease.Name,
-		Namespace:    h.module.ChartNamespace(),
+		RepoURL:      h.RepositoryURL,
+		ReleaseName:  h.ReleaseName,
+		Namespace:    h.ChartNamespace,
 		ChartPath:    helmRelease.ChartInfo.Name,
 		ChartVersion: helmRelease.ChartInfo.Version,
 		Overrides:    helmOverrides,
+		// TBD -- pull from a secret ref?
 		//Username:     "",
 		//Password:     "",
 	}
@@ -112,7 +93,6 @@ func (h helmComponentAdapter) Install(context spi.ComponentContext) error {
 }
 
 func (h helmComponentAdapter) Upgrade(context spi.ComponentContext) error {
-	// TODO: examine HelmComponent.Upgrade() to see what kind of hooks are missing/required
 	return h.Install(context)
 }
 
@@ -123,23 +103,29 @@ func (h helmComponentAdapter) IsReady(context spi.ComponentContext) bool {
 		return true
 	}
 
-	// TODO: see if we need any of this nonsense below
-	//releaseAppVersion, err := helm.GetReleaseAppVersion(h.ReleaseName, h.ChartNamespace)
-	//if err != nil {
-	//	return false
-	//}
-	//if h.ChartVersion != releaseAppVersion {
-	//	return false
-	//}
-
-	if deployed, _ := helm.IsReleaseDeployed(h.module.Spec.Installer.HelmRelease.Name, h.ChartNamespace); deployed {
-		return true
+	deployed, err := helm.IsReleaseDeployed(h.ReleaseName, h.ChartNamespace)
+	if err != nil {
+		context.Log().ErrorfThrottled("Error occurred checking release deloyment: %v", err.Error())
+		return false
 	}
-	return false
+
+	releaseMatches := h.releaseVersionMatches(context.Log())
+
+	// The helm release exists and is at the correct version
+	return deployed && releaseMatches
+}
+
+func (h helmComponentAdapter) releaseVersionMatches(log vzlog.VerrazzanoLogger) bool {
+	releaseChartVersion, err := helm.GetReleaseChartVersion(h.ReleaseName, h.ChartNamespace)
+	if err != nil {
+		log.ErrorfThrottled("Error occurred getting release chart version: %v", err.Error())
+		return false
+	}
+	return h.ChartVersion == releaseChartVersion
 }
 
 func (h helmComponentAdapter) Uninstall(context spi.ComponentContext) error {
-	releaseName := h.module.Spec.Installer.HelmRelease.Name
+	releaseName := h.module.GetReleaseName()
 	deployed, err := helm.IsReleaseDeployed(releaseName, h.ChartNamespace)
 	if err != nil {
 		return err

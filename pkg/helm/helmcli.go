@@ -376,6 +376,27 @@ func GetReleaseValues(log vzlog.VerrazzanoLogger, valueKeys []string, releaseNam
 	return values, nil
 }
 
+// GetReleaseChartVersion extracts the chart version from a deployed helm release
+func GetReleaseChartVersion(releaseName string, namespace string) (string, error) {
+	releases, err := getReleases(namespace)
+	if err != nil {
+		if err.Error() == ChartNotFound {
+			return ChartNotFound, nil
+		}
+		return "", err
+	}
+
+	var version string
+	for _, info := range releases {
+		release := info.Name
+		if release == releaseName {
+			version = info.Chart.Metadata.Version
+			break
+		}
+	}
+	return strings.TrimSpace(version), nil
+}
+
 // getReleaseAppVersion extracts the helmRelease app_version from a "ls -o json" command for a specific helmRelease/namespace
 func getReleaseAppVersion(releaseName string, namespace string) (string, error) {
 	releases, err := getReleases(namespace)
