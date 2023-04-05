@@ -140,7 +140,7 @@ func verifyCaSync() {
 func verifyThanosStore() {
 	for _, managedCluster := range managedClusters {
 		gomega.Eventually(func() (bool, error) {
-			metricsTest, err := pkg.NewMetricsTest([]string{managedCluster.KubeConfigPath}, managedCluster.KubeConfigPath, map[string]string{})
+			metricsTest, err := pkg.NewMetricsTest([]string{adminCluster.KubeConfigPath, managedCluster.KubeConfigPath}, adminCluster.KubeConfigPath, map[string]string{})
 			if err != nil {
 				return false, err
 			}
