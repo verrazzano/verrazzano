@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	vzalpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
@@ -15,7 +16,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"io"
-	"k8s.io/apimachinery/pkg/runtime"
 	"net/http"
 	"os"
 	"strings"
@@ -128,7 +128,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		t.Fail(fmt.Sprintf("Failed to get installed Verrazzano resource in the cluster: %v", err))
 	}
-	if vzcr.IsComponentStatusEnabled(vz, nginx.ComponentName) && vzcr.IsComponentStatusEnabled(vz, certmanager.ComponentName) {
+	if ingressEnabled(vz) {
 		httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	}
 
@@ -180,72 +180,73 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				creds = pkg.EventuallyGetSystemVMICredentials()
 			})
 
-			t.It("endpoint is accessible", Label("f:mesh.ingress"), func() {
-				elasticPodsRunning := func() bool {
-					result, err := pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-es-master"})
-					if err != nil {
-						AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", "vmi-system-es-master", verrazzanoNamespace, err))
+			if ingressEnabled(vz) {
+				t.It("endpoint is accessible", Label("f:mesh.ingress"), func() {
+					elasticPodsRunning := func() bool {
+						result, err := pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-es-master"})
+						if err != nil {
+							AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", "vmi-system-es-master", verrazzanoNamespace, err))
+						}
+						return result
 					}
-					return result
-				}
-				Eventually(elasticPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "pods did not all show up")
-				Eventually(elasticTLSSecret, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "tls-secret did not show up")
-				// Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "certificate did not show up")
-				Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "ingress did not show up")
-				Expect(ingressURLs).To(HaveKey(opensearchIngress), "Ingress vmi-system-os-ingest not found")
-				assertOidcIngressByName(opensearchIngress, vz, opensearch.ComponentName)
-				Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "never connected")
-				Eventually(elasticIndicesCreated, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices never created")
+					Eventually(elasticPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "pods did not all show up")
+					Eventually(elasticTLSSecret, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "tls-secret did not show up")
+					// Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "certificate did not show up")
+					Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "ingress did not show up")
+					Expect(ingressURLs).To(HaveKey(opensearchIngress), "Ingress vmi-system-os-ingest not found")
+					Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "never connected")
+					Eventually(elasticIndicesCreated, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices never created")
+					assertOidcIngressByName(opensearchIngress, vz, opensearch.ComponentName)
+					Expect(vz.Status.VerrazzanoInstance.ElasticURL).ToNot(BeNil())
+				})
 
-				Expect(vz.Status.VerrazzanoInstance == nil || vz.Status.VerrazzanoInstance.ElasticURL == nil).ToNot(BeNil())
-			})
+				t.It("verrazzano-system Index is accessible", Label("f:observability.logging.es"),
+					func() {
+						if os.Getenv("TEST_ENV") != "LRE" {
+							indexName, err := pkg.GetOpenSearchSystemIndex(verrazzanoNamespace)
+							Expect(err).To(BeNil())
+							pkg.Concurrently(
+								func() {
+									Eventually(func() bool {
+										return pkg.FindLog(indexName,
+											[]pkg.Match{
+												{Key: "kubernetes.container_name", Value: "verrazzano-monitoring-operator"},
+												{Key: "cluster_name", Value: constants.MCLocalCluster}},
+											[]pkg.Match{})
+									}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-monitoring-operator log record")
+								},
+								func() {
+									Eventually(func() bool {
+										return pkg.FindLog(indexName,
+											[]pkg.Match{
+												{Key: "kubernetes.container_name", Value: "verrazzano-application-operator"},
+												{Key: "cluster_name", Value: constants.MCLocalCluster}},
+											[]pkg.Match{})
+									}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-application-operator log record")
+								},
+							)
+						}
+					})
 
-			t.It("verrazzano-system Index is accessible", Label("f:observability.logging.es"),
-				func() {
-					if os.Getenv("TEST_ENV") != "LRE" {
-						indexName, err := pkg.GetOpenSearchSystemIndex(verrazzanoNamespace)
+				t.It("health is green", func() {
+					Eventually(elasticHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "cluster health status not green")
+					Eventually(elasticIndicesHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices health status not green")
+				})
+
+				t.It("systemd journal Index is accessible", Label("f:observability.logging.es"),
+					func() {
+						indexName, err := pkg.GetOpenSearchSystemIndex("systemd-journal")
 						Expect(err).To(BeNil())
-						pkg.Concurrently(
-							func() {
-								Eventually(func() bool {
-									return pkg.FindLog(indexName,
-										[]pkg.Match{
-											{Key: "kubernetes.container_name", Value: "verrazzano-monitoring-operator"},
-											{Key: "cluster_name", Value: constants.MCLocalCluster}},
-										[]pkg.Match{})
-								}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-monitoring-operator log record")
-							},
-							func() {
-								Eventually(func() bool {
-									return pkg.FindLog(indexName,
-										[]pkg.Match{
-											{Key: "kubernetes.container_name", Value: "verrazzano-application-operator"},
-											{Key: "cluster_name", Value: constants.MCLocalCluster}},
-										[]pkg.Match{})
-								}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-application-operator log record")
-							},
-						)
-					}
-				})
-
-			t.It("health is green", func() {
-				Eventually(elasticHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "cluster health status not green")
-				Eventually(elasticIndicesHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices health status not green")
-			})
-
-			t.It("systemd journal Index is accessible", Label("f:observability.logging.es"),
-				func() {
-					indexName, err := pkg.GetOpenSearchSystemIndex("systemd-journal")
-					Expect(err).To(BeNil())
-					Eventually(func() bool {
-						return pkg.FindAnyLog(indexName,
-							[]pkg.Match{
-								{Key: "tag", Value: "systemd"},
-								{Key: "TRANSPORT", Value: "journal"},
-								{Key: "cluster_name", Value: constants.MCLocalCluster}},
-							[]pkg.Match{})
-					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a systemd log record")
-				})
+						Eventually(func() bool {
+							return pkg.FindAnyLog(indexName,
+								[]pkg.Match{
+									{Key: "tag", Value: "systemd"},
+									{Key: "TRANSPORT", Value: "journal"},
+									{Key: "cluster_name", Value: constants.MCLocalCluster}},
+								[]pkg.Match{})
+						}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a systemd log record")
+					})
+			}
 		} else {
 			t.It("is not running", func() {
 				// Verify ES not present
@@ -262,20 +263,22 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 
 	t.Context("Check that OpenSearch-Dashboards", func() {
 		if vzcr.IsComponentStatusEnabled(vz, opensearchdashboards.ComponentName) {
-			t.It("endpoint is accessible", Label("f:mesh.ingress",
-				"f:observability.logging.kibana"), func() {
-				osdPodsRunning := func() bool {
-					result, err := pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-osd"})
-					if err != nil {
-						AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", "vmi-system-osd", verrazzanoNamespace, err))
+			if ingressEnabled(vz) {
+				t.It("endpoint is accessible", Label("f:mesh.ingress",
+					"f:observability.logging.kibana"), func() {
+					osdPodsRunning := func() bool {
+						result, err := pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-osd"})
+						if err != nil {
+							AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", "vmi-system-osd", verrazzanoNamespace, err))
+						}
+						return result
 					}
-					return result
-				}
-				Eventually(osdPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "osd pods did not all show up")
-				Expect(ingressURLs).To(HaveKey("vmi-system-osd"), "Ingress vmi-system-osd not found")
-				assertOidcIngressByName(osdIngress, vz, opensearchdashboards.ComponentName)
-				Expect(vz.Status.VerrazzanoInstance.KibanaURL).ToNot(BeNil())
-			})
+					Eventually(osdPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "osd pods did not all show up")
+					Expect(ingressURLs).To(HaveKey("vmi-system-osd"), "Ingress vmi-system-osd not found")
+					assertOidcIngressByName(osdIngress, vz, opensearchdashboards.ComponentName)
+					Expect(vz.Status.VerrazzanoInstance.KibanaURL).ToNot(BeNil())
+				})
+			}
 		} else {
 			t.It("is not running", func() {
 
@@ -310,14 +313,15 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 					return sts.Status.ReadyReplicas, nil
 				}, waitTimeout, pollingInterval).Should(Equal(expectedReplicas),
 					fmt.Sprintf("Statefulset %s in namespace %s does not have the expected number of ready replicas", stsName, constants.VerrazzanoMonitoringNamespace))
-				Expect(vz.Status.VerrazzanoInstance.PrometheusURL).ToNot(BeNil())
 			})
+			if ingressEnabled(vz) {
+				t.It("endpoint is accessible", Label("f:mesh.ingress",
+					"f:observability.monitoring.prom"), func() {
+					assertOidcIngressByName(prometheusIngress, vz, operator.ComponentName)
+					Expect(vz.Status.VerrazzanoInstance.PrometheusURL).ToNot(BeNil())
+				})
+			}
 
-			t.It("endpoint is accessible", Label("f:mesh.ingress",
-				"f:observability.monitoring.prom"), func() {
-				assertOidcIngressByName(prometheusIngress, vz, operator.ComponentName)
-				Expect(vz.Status.VerrazzanoInstance.PrometheusURL).ToNot(BeNil())
-			})
 		} else {
 			t.It("is not running", func() {
 				Eventually(func() (bool, error) {
@@ -331,14 +335,12 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 
 	t.Context("Check that Grafana", func() {
 		if vzcr.IsComponentStatusEnabled(vz, grafana.ComponentName) {
-			t.It("Grafana endpoint should be accessible", Label("f:mesh.ingress",
-				"f:observability.monitoring.graf"), func() {
-				Expect(ingressURLs).To(HaveKey("vmi-system-grafana"), "Ingress vmi-system-grafana not found")
-				assertOidcIngressByName(grafanaIngress, vz, grafana.ComponentName)
-				Expect(vz.Status.VerrazzanoInstance.GrafanaURL).ToNot(BeNil())
-			})
-
-			if vzcr.IsComponentStatusEnabled(vz, nginx.ComponentName) && vzcr.IsComponentStatusEnabled(vz, certmanager.ComponentName) {
+			if ingressEnabled(vz) {
+				t.It("Grafana endpoint should be accessible", Label("f:mesh.ingress",
+					"f:observability.monitoring.graf"), func() {
+					Expect(ingressURLs).To(HaveKey("vmi-system-grafana"), "Ingress vmi-system-grafana not found")
+					Expect(vz.Status.VerrazzanoInstance.GrafanaURL).ToNot(BeNil())
+				})
 				t.It("Default dashboard should be installed in System Grafana for shared VMI",
 					Label("f:observability.monitoring.graf"), func() {
 						pkg.Concurrently(
@@ -362,24 +364,20 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 							func() { assertDashboard("Coherence%20Machines%20Summary%20Dashboard") },
 						)
 					})
-			} else {
-				t.Logs.Infof("Skipping checking Grafana dashboards because ingress-nginx or cert-manager is not enabled")
+				t.ItMinimumVersion("Grafana should have the verrazzano user with admin privileges", "1.3.0", kubeconfigPath, func() {
+					vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+					if err != nil {
+						t.Logs.Errorf("Error getting Verrazzano resource: %v", err)
+						Fail(err.Error())
+					}
+					if vz.Spec.Version != "" {
+						t.Logs.Info("Skipping test because Verrazzano has been upgraded %s")
+					} else {
+						Eventually(assertAdminRole, waitTimeout, pollingInterval).Should(BeTrue())
+					}
+				})
 			}
 
-			t.ItMinimumVersion("Grafana should have the verrazzano user with admin privileges", "1.3.0", kubeconfigPath, func() {
-				vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
-				if err != nil {
-					t.Logs.Errorf("Error getting Verrazzano resource: %v", err)
-					Fail(err.Error())
-				}
-				if vz.Spec.Version != "" {
-					t.Logs.Info("Skipping test because Verrazzano has been upgraded %s")
-				} else if !vzcr.IsComponentStatusEnabled(vz, nginx.ComponentName) || !vzcr.IsComponentStatusEnabled(vz, certmanager.ComponentName) {
-					t.Logs.Infof("Skipping checking Grafana dashboards because ingress-nginx or cert-manager is not enabled")
-				} else {
-					Eventually(assertAdminRole, waitTimeout, pollingInterval).Should(BeTrue())
-				}
-			})
 		} else {
 			t.It("is not running", func() {
 				Eventually(func() (bool, error) {
@@ -485,8 +483,8 @@ func assertPrometheusVolume(size string) {
 	Fail("Expected to find Prometheus persistent volume claim")
 }
 
-func assertOidcIngressByName(key string, vz runtime.Object, componentName string) {
-	if vzcr.IsComponentStatusEnabled(vz, nginx.ComponentName) && vzcr.IsComponentStatusEnabled(vz, certmanager.ComponentName) {
+func assertOidcIngressByName(key string, vz *vzalpha1.Verrazzano, componentName string) {
+	if ingressEnabled(vz) {
 		Expect(ingressURLs).To(HaveKey(key), fmt.Sprintf("Ingress %s not found", key))
 		url := ingressURLs[key]
 		assertOidcIngress(url)
@@ -670,4 +668,8 @@ func getExpectedPrometheusReplicaCount(kubeconfig string) (int32, error) {
 	}
 
 	return expectedReplicas, nil
+}
+
+func ingressEnabled(vz *vzalpha1.Verrazzano) bool {
+	return vzcr.IsComponentStatusEnabled(vz, nginx.ComponentName) && vzcr.IsComponentStatusEnabled(vz, certmanager.ComponentName)
 }
