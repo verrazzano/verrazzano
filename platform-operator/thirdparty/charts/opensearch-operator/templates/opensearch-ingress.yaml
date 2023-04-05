@@ -25,6 +25,10 @@ spec:
                 name: verrazzano-authproxy
                 port:
                   number: 8775
+  tls:
+    - hosts:
+      - "opensearch.logging.default.172.18.0.231.nip.io"
+      secretName: tls-opensearch-ingress
 
 ---
 {{- if eq (.Values.OpenSearchClusterSpec.dashboards.enable | toString | default "false") "true" }}
@@ -55,5 +59,9 @@ spec:
                 name: verrazzano-authproxy
                 port:
                   number: 8775
+  tls:
+    - hosts:
+      - "osd.logging.default.172.18.0.231.nip.io"
+      secretName: tls-osd-ingress
 {{- end }}
 ---
