@@ -23,7 +23,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
@@ -607,37 +606,6 @@ func assertAdminRole() bool {
 	}
 	t.Logs.Infof("Grafana users: %s", response)
 	return response[0]["login"] == "verrazzano" && response[0]["isAdmin"] == true
-}
-
-func assertInstanceInfoURLs() {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	Expect(err).To(BeNil())
-	cr, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
-	Expect(err).To(BeNil())
-	instanceInfo := cr.Status.VerrazzanoInstance
-	switch cr.Spec.Profile {
-	case v1alpha1.ManagedCluster:
-		Expect(instanceInfo.GrafanaURL).To(BeNil())
-		Expect(instanceInfo.ElasticURL).To(BeNil())
-		Expect(instanceInfo.KibanaURL).To(BeNil())
-	default:
-		Expect(instanceInfo.GrafanaURL).NotTo(BeNil())
-		Expect(instanceInfo.ElasticURL).NotTo(BeNil())
-		Expect(instanceInfo.KibanaURL).NotTo(BeNil())
-		if instanceInfo.ElasticURL != nil {
-			assertOidcIngress(*instanceInfo.ElasticURL)
-		}
-		if instanceInfo.KibanaURL != nil {
-			assertOidcIngress(*instanceInfo.KibanaURL)
-		}
-		if instanceInfo.GrafanaURL != nil {
-			assertOidcIngress(*instanceInfo.GrafanaURL)
-		}
-	}
-	Expect(instanceInfo.PrometheusURL).NotTo(BeNil())
-	if instanceInfo.PrometheusURL != nil {
-		assertOidcIngress(*instanceInfo.PrometheusURL)
-	}
 }
 
 // getExpectedPrometheusReplicaCount returns the Prometheus replicas in the values overrides from the
