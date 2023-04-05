@@ -1,9 +1,10 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-package helm
+package common
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -29,7 +30,7 @@ type HelmReleaseOpts struct {
 	Namespace    string
 	ChartPath    string
 	ChartVersion string
-	Overrides    []HelmOverrides
+	Overrides    []helm.HelmOverrides
 
 	Username string
 	Password string
@@ -53,15 +54,15 @@ func UpgradeRelease(log vzlog.VerrazzanoLogger, releaseOpts *HelmReleaseOpts, wa
 		return nil, err
 	}
 
-	return Upgrade(log, releaseOpts.ReleaseName, releaseOpts.Namespace, chartPath, wait, dryRun, releaseOpts.Overrides)
+	return helm.Upgrade(log, releaseOpts.ReleaseName, releaseOpts.Namespace, chartPath, wait, dryRun, releaseOpts.Overrides)
 }
 
 // GetReleaseChartVersion extracts the chart version from a deployed helm release
 func GetReleaseChartVersion(releaseName string, namespace string) (string, error) {
-	releases, err := getReleases(namespace)
+	releases, err := helm.GetReleases(namespace)
 	if err != nil {
-		if err.Error() == ChartNotFound {
-			return ChartNotFound, nil
+		if err.Error() == helm.ChartNotFound {
+			return helm.ChartNotFound, nil
 		}
 		return "", err
 	}

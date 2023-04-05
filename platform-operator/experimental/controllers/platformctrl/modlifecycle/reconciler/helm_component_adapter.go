@@ -30,12 +30,12 @@ type helmComponentAdapter struct {
 }
 
 // upgradeFuncSig is a function needed for unit test override
-type upgradeFuncSig func(log vzlog.VerrazzanoLogger, releaseOpts *helm.HelmReleaseOpts, wait bool, dryRun bool) (*release.Release, error)
+type upgradeFuncSig func(log vzlog.VerrazzanoLogger, releaseOpts *common.HelmReleaseOpts, wait bool, dryRun bool) (*release.Release, error)
 
 var (
 	_ spi.Component = helmComponentAdapter{}
 
-	upgradeFunc upgradeFuncSig = helm.UpgradeRelease
+	upgradeFunc upgradeFuncSig = common.UpgradeRelease
 )
 
 func SetUpgradeFunc(f upgradeFuncSig) {
@@ -43,7 +43,7 @@ func SetUpgradeFunc(f upgradeFuncSig) {
 }
 
 func SetDefaultUpgradeFunc() {
-	upgradeFunc = helm.UpgradeRelease
+	upgradeFunc = common.UpgradeRelease
 }
 
 func newHelmAdapter(mlc *modulesv1beta2.ModuleLifecycle, sw client.StatusWriter) delegates.DelegateLifecycleReconciler {
@@ -77,7 +77,7 @@ func (h helmComponentAdapter) Install(context spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	var opts = &helm.HelmReleaseOpts{
+	var opts = &common.HelmReleaseOpts{
 		RepoURL:      h.RepositoryURL,
 		ReleaseName:  h.ReleaseName,
 		Namespace:    h.ChartNamespace,
@@ -116,7 +116,7 @@ func (h helmComponentAdapter) IsReady(context spi.ComponentContext) bool {
 }
 
 func (h helmComponentAdapter) releaseVersionMatches(log vzlog.VerrazzanoLogger) bool {
-	releaseChartVersion, err := helm.GetReleaseChartVersion(h.ReleaseName, h.ChartNamespace)
+	releaseChartVersion, err := common.GetReleaseChartVersion(h.ReleaseName, h.ChartNamespace)
 	if err != nil {
 		log.ErrorfThrottled("Error occurred getting release chart version: %v", err.Error())
 		return false

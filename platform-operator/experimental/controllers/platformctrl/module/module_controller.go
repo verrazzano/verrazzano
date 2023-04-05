@@ -4,7 +4,6 @@ package module
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/platformctrl/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -226,7 +225,7 @@ func (r *VerrazzanoModuleReconciler) lookupModuleVersion(log vzlog.VerrazzanoLog
 		return moduleInstance.Spec.Version, nil
 	}
 	// - find the most recent module version in the repo
-	modVersion, err := helm.FindLatestChartVersion(log, chartName, repoName, repoURI)
+	modVersion, err := common.FindLatestChartVersion(log, chartName, repoName, repoURI)
 	if err != nil {
 		return "", err
 	}
