@@ -75,11 +75,16 @@ func (m MetricsTest) QueryMetric(metricName string, labels map[string]string) (s
 }
 
 func (m MetricsTest) MetricsExist(metricName string, labels map[string]string) bool {
-	metric, err := m.QueryMetric(metricName, labels)
+	result, err := m.QueryMetric(metricName, labels)
 	if err != nil {
 		return false
 	}
-	return metric != ""
+
+	metricList, ok := Jq(result, "data", "result").([]interface{})
+	if !ok {
+		Log(Error, "error extracting metric result, format is not a list type")
+	}
+	return ok && len(metricList) > 0
 }
 
 func (m MetricsTest) appendLabels(query string, labels map[string]string) string {

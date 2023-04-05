@@ -108,6 +108,9 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	}
 
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to find Kubeconfig location: %v", err))
+	}
 	metricsTest, err = pkg.NewMetricsTest([]string{kubeconfigPath}, kubeconfigPath, map[string]string{})
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
