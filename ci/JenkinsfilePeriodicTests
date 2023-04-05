@@ -95,7 +95,6 @@ pipeline {
     }
 
     parameters {
-        booleanParam (description: 'Skip tests to private registry stage, useful for testing out private registry testing, support and push to OCIR', name: 'SKIP_TO_PRIVATE_REGISTRY', defaultValue: false)
         string (name: 'TAGGED_TESTS',
                 defaultValue: '',
                 description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
@@ -171,12 +170,10 @@ pipeline {
                 }
             }
         }
-
         stage ('Periodic Test Suites') {
             when {
                 allOf {
                     expression { return runTests() }
-                    expression { params.SKIP_TO_PRIVATE_REGISTRY == false }
                 }
             }
             parallel {
@@ -342,7 +339,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Kind Acceptance Tests on 1.24 Non-Calico') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
@@ -488,114 +484,44 @@ pipeline {
                         }
                     }
                 }
+                stage('Verrazzano Distribution and Private Registry') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-distributions-testing/${CLEAN_BRANCH_NAME}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                    string(name: 'RUN_TESTS', value: env.IS_PERIODIC_PIPELINE),
+                                ], wait: true
+                        }
+                    }
+                }
             }
         }
-
-        stage("Private Registry") {
-            when {
-                allOf {
-                    expression { return runTests() }
-                    expression { TESTS_FAILED == false }
+        stage('Release Candidate Validation Checks') {
+            steps {
+                script {
+                    releaseValidationChecks()
                 }
             }
-            stages {
-                stage("Build Release Distributions") {
-                    steps {
-                        sh """
-                            ci/scripts/build_distribution.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${VERRAZZANO_DEV_VERSION}
-                        """
-                    }
+        }
+        stage('Update Last Clean Periodic Test') {
+            environment {
+                GIT_COMMIT_USED = "${env.GIT_COMMIT}"
+            }
+            steps {
+                script {
+                    sh """
+                        ci/scripts/update_last_clean_periodic_test.sh ${VERRAZZANO_DEV_VERSION} ${SHORT_COMMIT_HASH}
+                    """
                 }
-
-                stage('Private Registry Tests - OCIR') {
-                    when {
-                        allOf {
-                            not { buildingTag() }
-                            anyOf {
-                                branch 'master';
-                                branch 'release-*';
-                            }
-                        }
-                    }
-                    parallel {
-                        stage('Private Registry - Lite Distribution') {
-                            steps {
-                                retry(count: JOB_PROMOTION_RETRIES) {
-                                    script {
-                                        build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
-                                            parameters: [
-                                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                                string(name: 'DISTRIBUTION_VARIANT', value: 'Lite'),
-                                                string(name: 'ZIPFILE_LOCATION', value: liteBundle)
-                                            ], wait: true
-                                    }
-                                }
-                            }
-                        }
-                        stage('Private Registry - Full Distribution') {
-                            steps {
-                                retry(count: JOB_PROMOTION_RETRIES) {
-                                    script {
-                                        build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
-                                            parameters: [
-                                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                                string(name: 'DISTRIBUTION_VARIANT', value: 'Full'),
-                                                string(name: 'ZIPFILE_LOCATION', value: fullBundle)
-                                            ], wait: true
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                stage('Push to OCIR') {
-                    environment {
-                        OCI_CLI_AUTH="api_key"
-                        OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
-                        OCI_CLI_USER = credentials('oci-dev-user-ocid')
-                        OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
-                        OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
-                        OCI_CLI_REGION = "us-ashburn-1"
-                        OCI_REGION = "${env.OCI_CLI_REGION}"
-                        // Directory containing the Verrazzano image tar files
-                        VERRAZZANO_IMAGES_DIRECTORY = "${WORKSPACE}/vz-full/verrazzano-${VERRAZZANO_DEV_VERSION}/images"
-                    }
-                    steps {
-                        script {
-                            sh """
-                                echo "Pushing images to OCIR, these are treated as the latest scan results for ${CLEAN_BRANCH_NAME}"
-                                ci/scripts/push_to_ocir.sh
-                            """
-                        }
-                    }
-                }
-
-                stage('Release Candidate Validation Checks') {
-                    steps {
-                        script {
-                            releaseValidationChecks()
-                        }
-                    }
-                }
-
-                stage('Update Last Clean Periodic Test') {
-                    environment {
-                        GIT_COMMIT_USED = "${env.GIT_COMMIT}"
-                    }
-                    steps {
-                        script {
-                            sh """
-                                ci/scripts/update_last_clean_periodic_test.sh ${VERRAZZANO_DEV_VERSION} ${SHORT_COMMIT_HASH}
-                            """
-                        }
-                    }
-                    post {
-                        success {
-                            script {
-                                captureDistributionURLs()
-                            }
-                        }
+            }
+            post {
+                success {
+                    script {
+                        captureDistributionURLs()
                     }
                 }
             }
