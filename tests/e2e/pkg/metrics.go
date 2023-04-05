@@ -80,7 +80,7 @@ func (m MetricsTest) MetricsExist(metricName string, labels map[string]string) b
 		return false
 	}
 
-	metricList, ok := Jq(result, "data", "result").([]interface{})
+	metricList, ok := JTq(result, "data", "result").([]interface{})
 	if !ok {
 		Log(Error, "error extracting metric result, format is not a list type")
 	}
