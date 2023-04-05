@@ -7,18 +7,108 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
+	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
+	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/repo"
 	"os"
 	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 )
 
 const (
 	SupportedVersionsAnnotation = "verrazzano.io/supported-versions"
 	ModuleTypeAnnotation        = "verrazzano.io/module-type"
 )
+
+type HelmReleaseOpts struct {
+	RepoURL      string
+	ReleaseName  string
+	Namespace    string
+	ChartPath    string
+	ChartVersion string
+	Overrides    []HelmOverrides
+
+	Username string
+	Password string
+}
+
+func UpgradeRelease(log vzlog.VerrazzanoLogger, releaseOpts *HelmReleaseOpts, wait bool, dryRun bool) (*release.Release, error) {
+	log.Infof("Upgrading release %s in namespace %s, chart %s, version %s, repoURL %s", releaseOpts.ReleaseName,
+		releaseOpts.Namespace, releaseOpts.ChartPath, releaseOpts.ChartVersion, releaseOpts.RepoURL)
+	settings := cli.New()
+	settings.SetNamespace(releaseOpts.Namespace)
+
+	chartOptions := action.ChartPathOptions{
+		RepoURL:  releaseOpts.RepoURL,
+		Version:  releaseOpts.ChartVersion,
+		Password: releaseOpts.Username,
+		Username: releaseOpts.Password,
+	}
+
+	chartPath, err := chartOptions.LocateChart(releaseOpts.ChartPath, settings)
+	if err != nil {
+		return nil, err
+	}
+
+	return Upgrade(log, releaseOpts.ReleaseName, releaseOpts.Namespace, chartPath, wait, dryRun, releaseOpts.Overrides)
+}
+
+// GetReleaseChartVersion extracts the chart version from a deployed helm release
+func GetReleaseChartVersion(releaseName string, namespace string) (string, error) {
+	releases, err := getReleases(namespace)
+	if err != nil {
+		if err.Error() == ChartNotFound {
+			return ChartNotFound, nil
+		}
+		return "", err
+	}
+
+	var version string
+	for _, info := range releases {
+		release := info.Name
+		if release == releaseName {
+			version = info.Chart.Metadata.Version
+			break
+		}
+	}
+	return strings.TrimSpace(version), nil
+}
+
+// Pull will upgrade a Helm release with the specified charts.  The override files array
+// are in order with the first files in the array have lower precedence than latter files.
+func Pull(log vzlog.VerrazzanoLogger, repoURL string, chartName string, chartVersion string, downloadDir string, untar bool) error {
+	// Helm upgrade command will apply the new chart, but use all the existing
+	// overrides that we used during the installation.
+	//args := []string{"pull", chartName}
+	//if len(repoURL) > 0 {
+	//	args = append(args, fmt.Sprintf("%s=%s", "--repo", repoURL))
+	//}
+	//
+	//if len(chartVersion) > 0 {
+	//	args = append(args, fmt.Sprintf("%s=%s", "--version", chartVersion))
+	//}
+	//
+	//if len(downloadDir) > 0 {
+	//	args = append(args, fmt.Sprintf("--untardir=%s", downloadDir))
+	//}
+	//
+	//if untar {
+	//	args = append(args, "--untar")
+	//}
+	//
+	//cmd := exec.Command("helm", args...)
+	//_, stderr, err := runner.Run(cmd)
+	//if err != nil {
+	//	if strings.Contains(string(stderr), "not found") {
+	//		return nil
+	//	}
+	//	return fmt.Errorf("helm pull for chart %s:%s failed with stderr: %s", chartName, chartVersion, string(stderr))
+	//}
+	return nil
+}
 
 // TODO: One possible option for these impls is to create our own (internal) Helm plugin and using that with the Helm CLI for applying
 //   our own chart conventions, version lookups, etc
