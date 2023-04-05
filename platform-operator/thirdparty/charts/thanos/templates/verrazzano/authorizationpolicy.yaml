@@ -51,6 +51,17 @@ spec:
         - operation:
             ports:
               - "10901"
+    # allow grafana to talk to query-frontend
+    - from:
+        - source:
+            namespaces:
+              - verrazzano-system
+            principals:
+              - cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator
+      to:
+        - operation:
+            ports:
+              - "10902"
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}
