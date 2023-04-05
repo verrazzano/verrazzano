@@ -142,11 +142,13 @@ func verifyThanosStore() {
 		gomega.Eventually(func() (bool, error) {
 			metricsTest, err := pkg.NewMetricsTest([]string{adminCluster.KubeConfigPath, managedCluster.KubeConfigPath}, adminCluster.KubeConfigPath, map[string]string{})
 			if err != nil {
+				t.Logs.Errorf("Failed to create metrics test object for cluster: %v", err)
 				return false, err
 			}
 
 			queryStores, err := metricsTest.Source.GetTargets()
 			if err != nil {
+				t.Logs.Errorf("Failed to create get metrics target source: %v", err)
 				return false, err
 			}
 
