@@ -226,6 +226,14 @@ func TestDeleteClusterThanosEndpoint(t *testing.T) {
 	assertThanosServiceEntry(t, r, vmc.Name, hostName, thanosGrpcIngressPort)
 	assertThanosDestinationRule(t, r, vmc.Name, hostName, thanosGrpcIngressPort)
 
+	// make sure the volume annotations have been added to the deployment
+	queryDeploy := &appsv1.Deployment{}
+	err = cli.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: thanosQueryDeployName}, queryDeploy)
+	assert.NoError(t, err)
+
+	assert.Contains(t, queryDeploy.Spec.Template.ObjectMeta.Annotations, istioVolumeAnnotation)
+	assert.Contains(t, queryDeploy.Spec.Template.ObjectMeta.Annotations, istioVolumeMountAnnotation)
+
 	// GIVEN we have sync'ed a managed cluster Thanos endpoint
 	// WHEN we call deleteClusterThanosEndpoint
 	// THEN the resources we created during sync are cleaned up
