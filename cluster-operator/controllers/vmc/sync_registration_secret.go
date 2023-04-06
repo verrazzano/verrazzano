@@ -6,6 +6,7 @@ package vmc
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 
 	clusterapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -79,7 +80,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	// If the fluentd OPENSEARCH_URL is not the default, meaning it is a custom ES, use the external ES URL.
 	esURL := fluentdESURL
 	if esURL == constants.DefaultOpensearchURL {
-		esURL, err = r.getVmiESURL()
+		esURL, err = r.getVmiESURL(nil)
 		if err != nil {
 			return err
 		}
@@ -171,7 +172,13 @@ func (r *VerrazzanoManagedClusterReconciler) getVzESURLSecret(vzList *vzapi.Verr
 }
 
 // Get the VMI opensearch URL.
-func (r *VerrazzanoManagedClusterReconciler) getVmiESURL() (URL string, err error) {
+func (r *VerrazzanoManagedClusterReconciler) getVmiESURL(vzList *vzapi.VerrazzanoList) (URL string, err error) {
+	if vzList == nil || len(vzList.Items) == 0 {
+		return "", nil
+	}
+	if !vzcr.IsOpenSearchEnabled(&vzList.Items[0]) {
+		return "", nil
+	}
 	var Ingress k8net.Ingress
 	nsn := types.NamespacedName{
 		Namespace: constants.VerrazzanoSystemNamespace,
