@@ -5,8 +5,28 @@
 #
 
 function create-kubeconfig {
-    # Get the name of the secret containing the certificate for accessing the cluster
-    secret=$(kubectl get serviceAccount verrazzano-platform-operator -n verrazzano-install -o=jsonpath='{.secrets[0].name}')
+    # Get the version of the Kubernetes server
+    version=$(kubectl version -o json | jq -rj '.serverVersion|.major,".",.minor')
+
+    # Secret does not exist for a serviceAccount starting with Kubernetes 1.24 so we create one.
+    # The secret contains a certificate and token we need for accessing the cluster.
+    if [[ "$version" > "1.23" ]]
+    then
+      kubectl apply -f - << EOF
+ apiVersion: v1
+ kind: Secret
+ type: kubernetes.io/service-account-token
+ metadata:
+   name: verrazzano-platform-operator
+   namespace: verrazzano-install
+   annotations:
+     kubernetes.io/service-account.name: "verrazzano-platform-operator"
+EOF
+      secret="verrazzano-platform-operator"
+    else
+      # Get the name of secret from the serviceAccount.
+      secret=$(kubectl get serviceAccount verrazzano-platform-operator -n verrazzano-install -o=jsonpath='{.secrets[0].name}')
+    fi
 
     # Get the certificate for accessing the kubernetes cluster
     ca=$(kubectl get secret $secret -n verrazzano-install -o=jsonpath='{.data.ca\.crt}')
