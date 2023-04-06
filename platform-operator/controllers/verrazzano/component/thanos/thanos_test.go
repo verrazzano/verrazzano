@@ -287,13 +287,12 @@ func TestAppendOverrides(t *testing.T) {
 	}
 }
 
-func mergeMaps(startWithMap map[string]string, overlayMaps ...map[string]string) map[string]string {
+// mergeMaps merges the contents of the given maps, starting from the first, and treating the
+// rest as overlays on top of the first.
+func mergeMaps(mapsToMerge ...map[string]string) map[string]string {
 	mergedMap := map[string]string{}
-	for k, v := range startWithMap {
-		mergedMap[k] = v
-	}
-	for _, eachOverlayMap := range overlayMaps {
-		for k, v := range eachOverlayMap {
+	for _, eachMap := range mapsToMerge {
+		for k, v := range eachMap {
 			mergedMap[k] = v
 		}
 	}

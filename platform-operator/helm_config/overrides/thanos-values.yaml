@@ -108,4 +108,3 @@ metrics:
     enabled: true
     labels:
       release: prometheus-operator
-    namespace: verrazzano-monitoring
