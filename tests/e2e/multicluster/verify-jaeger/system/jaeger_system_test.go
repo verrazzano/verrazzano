@@ -29,11 +29,10 @@ var start time.Time
 var t = framework.NewTestFramework("jaeger_mc_system_test")
 
 var (
-	adminKubeConfigPath   = os.Getenv("ADMIN_KUBECONFIG")
-	managedKubeConfigPath = os.Getenv("MANAGED_KUBECONFIG")
-	clusterName           = os.Getenv("CLUSTER_NAME")
-	metricsTest           pkg.MetricsTest
-	failed                = false
+	adminKubeConfigPath = os.Getenv("ADMIN_KUBECONFIG")
+	clusterName         = os.Getenv("CLUSTER_NAME")
+	metricsTest         pkg.MetricsTest
+	failed              = false
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -41,9 +40,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	start = time.Now().Add(-3 * time.Hour)
 	if adminKubeConfigPath == "" {
 		AbortSuite("Required env variable ADMIN_KUBECONFIG not set.")
-	}
-	if managedKubeConfigPath == "" {
-		AbortSuite("Required env variable MANAGED_KUBECONFIG not set.")
 	}
 
 	clusterNameMetricsLabel, err := pkg.GetClusterNameMetricLabel(adminKubeConfigPath)
@@ -53,7 +49,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	m := make(map[string]string)
 	m[clusterNameMetricsLabel] = clusterName
 
-	metricsTest, err = pkg.NewMetricsTest([]string{adminKubeConfigPath, managedKubeConfigPath}, adminKubeConfigPath, m)
+	metricsTest, err = pkg.NewMetricsTest([]string{adminKubeConfigPath}, adminKubeConfigPath, m)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
 	}
