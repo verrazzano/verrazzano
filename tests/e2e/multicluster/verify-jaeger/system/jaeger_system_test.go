@@ -42,14 +42,8 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		AbortSuite("Required env variable ADMIN_KUBECONFIG not set.")
 	}
 
-	clusterNameMetricsLabel, err := pkg.GetClusterNameMetricLabel(adminKubeConfigPath)
-	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to get Cluster Name Metric Label: %v", err))
-	}
-	m := make(map[string]string)
-	m[clusterNameMetricsLabel] = clusterName
-
-	metricsTest, err = pkg.NewMetricsTest([]string{adminKubeConfigPath}, adminKubeConfigPath, m)
+	var err error
+	metricsTest, err = pkg.NewMetricsTest([]string{adminKubeConfigPath}, adminKubeConfigPath, map[string]string{})
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
 	}
