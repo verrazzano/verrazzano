@@ -319,16 +319,12 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		}
 
 		// Append the Istio Annotations for Prometheus
-		if vzcr.IsIstioEnabled(ctx.EffectiveCR()) {
-			kvs, err = appendIstioOverrides("prometheus.prometheusSpec.podMetadata.annotations",
-				"prometheus.prometheusSpec.volumeMounts",
-				"prometheus.prometheusSpec.volumes",
-				kvs)
-			if err != nil {
-				return kvs, ctx.Log().ErrorfNewErr("Failed applying the Istio Overrides for Prometheus")
-			}
-		} else {
-			kvs = append(kvs, bom.KeyValue{Key: "prometheusOperator.tls.enabled", Value: "false"})
+		kvs, err = appendIstioOverrides("prometheus.prometheusSpec.podMetadata.annotations",
+			"prometheus.prometheusSpec.volumeMounts",
+			"prometheus.prometheusSpec.volumes",
+			kvs)
+		if err != nil {
+			return kvs, ctx.Log().ErrorfNewErr("Failed applying the Istio Overrides for Prometheus")
 		}
 
 		kvs, err = appendAdditionalVolumeOverrides(ctx,
@@ -350,6 +346,11 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 
 	// Add label to the Prometheus Operator pod to avoid a sidecar injection
 	kvs = append(kvs, bom.KeyValue{Key: `prometheusOperator.podAnnotations.sidecar\.istio\.io/inject`, Value: `"false"`})
+
+	// disable tls if Istio is not enabled
+	if !vzcr.IsIstioEnabled(ctx.EffectiveCR()) {
+		kvs = append(kvs, bom.KeyValue{Key: "prometheusOperator.tls.enabled", Value: "false"})
+	}
 
 	return kvs, nil
 }
