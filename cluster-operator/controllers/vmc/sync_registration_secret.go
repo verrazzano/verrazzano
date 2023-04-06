@@ -80,7 +80,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	// If the fluentd OPENSEARCH_URL is not the default, meaning it is a custom ES, use the external ES URL.
 	esURL := fluentdESURL
 	if esURL == constants.DefaultOpensearchURL {
-		esURL, err = r.getVmiESURL(nil)
+		esURL, err = r.getVmiESURL(vzList)
 		if err != nil {
 			return err
 		}
@@ -172,8 +172,8 @@ func (r *VerrazzanoManagedClusterReconciler) getVzESURLSecret(vzList *vzapi.Verr
 }
 
 // Get the VMI opensearch URL.
-func (r *VerrazzanoManagedClusterReconciler) getVmiESURL(vzList *vzapi.VerrazzanoList) (URL string, err error) {
-	if vzList == nil || len(vzList.Items) == 0 {
+func (r *VerrazzanoManagedClusterReconciler) getVmiESURL(vzList vzapi.VerrazzanoList) (URL string, err error) {
+	if len(vzList.Items) == 0 {
 		return "", nil
 	}
 	if !vzcr.IsOpenSearchEnabled(&vzList.Items[0]) {
