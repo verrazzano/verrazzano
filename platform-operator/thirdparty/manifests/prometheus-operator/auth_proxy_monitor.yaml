@@ -14,12 +14,16 @@ spec:
   selector: {}
   endpoints:
     - path: /metrics
+      {{ if .isIstioEnabled }}
       scheme: https
       tlsConfig:
         caFile: /etc/istio-certs/root-cert.pem
         certFile: /etc/istio-certs/cert-chain.pem
         keyFile: /etc/istio-certs/key.pem
         insecureSkipVerify: true
+      {{ else }}
+      scheme: http
+      {{ end }}
       enableHttp2: false
       relabelings:
       - action: replace
