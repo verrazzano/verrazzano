@@ -6,6 +6,7 @@ package capi
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -34,11 +35,32 @@ const ComponentNamespace = vzconst.CAPISystemNamespace
 const ComponentJSONName = "verrazzano-capi"
 
 const (
-	ociDefaultSecret                = "oci"
-	capiControllerManagerDeployment = "capi-controller-manager"
+	ociDefaultSecret                    = "oci"
+	capiCMDeployment                    = "capi-controller-manager"
+	capiKubeadmBootstrapCMDeployment    = "capi-kubeadm-bootstrap-controller-manager"
+	capiKubeadmControlPlaneCMDeployment = "capi-kubeadm-control-plane-controller-manager"
+	capiociCMDeployment                 = "capoci-controller-manager"
 )
 
-var capiDeployments = []types.NamespacedName{}
+var capiDeployments = []types.NamespacedName{
+	// TODO: add OLCNE deployments
+	{
+		Name:      capiCMDeployment,
+		Namespace: ComponentNamespace,
+	},
+	{
+		Name:      capiKubeadmBootstrapCMDeployment,
+		Namespace: ComponentNamespace,
+	},
+	{
+		Name:      capiKubeadmControlPlaneCMDeployment,
+		Namespace: ComponentNamespace,
+	},
+	{
+		Name:      capiociCMDeployment,
+		Namespace: ComponentNamespace,
+	},
+}
 
 // AuthenticationType for auth
 type AuthenticationType string
@@ -94,8 +116,9 @@ func (c capiComponent) GetDependencies() []string {
 }
 
 // IsReady indicates whether a component is Ready for dependency components.
-func (c capiComponent) IsReady(context spi.ComponentContext) bool {
-	return true
+func (c capiComponent) IsReady(ctx spi.ComponentContext) bool {
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), capiDeployments, 1, prefix)
 }
 
 // IsAvailable indicates whether a component is Available for end users.
@@ -165,12 +188,12 @@ func (c capiComponent) IsOperatorInstallSupported() bool {
 // IsInstalled checks to see if CAPI is installed
 func (c capiComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	daemonSet := &appsv1.Deployment{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: capiControllerManagerDeployment}, daemonSet)
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: capiCMDeployment}, daemonSet)
 	if errors.IsNotFound(err) {
 		return false, nil
 	}
 	if err != nil {
-		ctx.Log().Errorf("Failed to get %s/%s deployment: %v", ComponentNamespace, capiControllerManagerDeployment, err)
+		ctx.Log().Errorf("Failed to get %s/%s deployment: %v", ComponentNamespace, capiCMDeployment, err)
 		return false, err
 	}
 	return true, nil
@@ -223,13 +246,16 @@ func (c capiComponent) Install(_ spi.ComponentContext) error {
 		return err
 	}
 
-	// TODO: version of OCI provider should come from the BOM
-	_, err = capiClient.Init(clusterapi.InitOptions{
-		BootstrapProviders:      []string{"ocne", "kubeadm"},
-		ControlPlaneProviders:   []string{"ocne", "kubeadm"},
+	// Set up the init options for the CAPI init.
+	initOptions := clusterapi.InitOptions{
+		BootstrapProviders:      []string{"kubeadm"},
+		ControlPlaneProviders:   []string{"kubeadm"},
 		InfrastructureProviders: []string{"oci:v0.8.0"},
 		TargetNamespace:         ComponentNamespace,
-	})
+	}
+
+	// TODO: version of OCI provider should come from the BOM
+	_, err = capiClient.Init(initOptions)
 	return err
 }
 

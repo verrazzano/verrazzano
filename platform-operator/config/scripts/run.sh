@@ -5,12 +5,24 @@
 #
 
 function create-kubeconfig {
-  # Create a kubeconfig file for the pod. The kubeconfig is needed by the Rancher uninstall tool so we create a
-  # bare minimum kubeconfig to satisfy Rancher.
+    # Get the name of the secret containing the certificate for accessing the cluster
+    secret=$(kubectl get serviceAccount verrazzano-platform-operator -n verrazzano-install -o=jsonpath='{.secrets[0].name}')
+
+    # Get the certificate for accessing the kubernetes cluster
+    ca=$(kubectl get secret $secret -n verrazzano-install -o=jsonpath='{.data.ca\.crt}')
+
+    # Get the user token
+    token=$(kubectl get secret $secret -n verrazzano-install -o=jsonpath='{.data.token}' | base64 --decode)
+
+    # Get the endpoint for the kubernetes API server
+    # The sed command is to strip out color escape sequences
+    server=$(kubectl cluster-info | grep "control plane" | awk '{ print $7 }' | sed $'s/\e\\[[0-9;:]*[a-zA-Z]//g' )
+
+  # Create a kubeconfig file for the pod.
   cp /verrazzano/config/kubeconfig-template $VERRAZZANO_KUBECONFIG
+  sed -i -e "s|CA|$ca|g" -e "s|SERVER|$server|g" -e "s|TOKEN|$token|g" $VERRAZZANO_KUBECONFIG
   export KUBECONFIG=$VERRAZZANO_KUBECONFIG
   chmod 600 ${KUBECONFIG}
-  ls -l ${KUBECONFIG}
 }
 
 if [ -n "${VERRAZZANO_KUBECONFIG}" ]; then
