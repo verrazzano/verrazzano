@@ -7,15 +7,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"strings"
+
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 )
 
 type MetricsTest struct {

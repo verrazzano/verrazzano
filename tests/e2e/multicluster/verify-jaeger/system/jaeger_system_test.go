@@ -31,6 +31,7 @@ var t = framework.NewTestFramework("jaeger_mc_system_test")
 var (
 	adminKubeConfigPath = os.Getenv("ADMIN_KUBECONFIG")
 	clusterName         = os.Getenv("CLUSTER_NAME")
+	clusterNameLabel    string
 	metricsTest         pkg.MetricsTest
 	failed              = false
 )
@@ -43,7 +44,14 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	}
 
 	var err error
-	metricsTest, err = pkg.NewMetricsTest([]string{adminKubeConfigPath}, adminKubeConfigPath, map[string]string{})
+	clusterNameLabel, err = pkg.GetClusterNameMetricLabel(adminKubeConfigPath)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to get cluster label for metric collection: %v", err))
+	}
+
+	m := make(map[string]string)
+	m[clusterNameLabel] = getClusterName()
+	metricsTest, err = pkg.NewMetricsTest([]string{adminKubeConfigPath}, adminKubeConfigPath, m)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
 	}
