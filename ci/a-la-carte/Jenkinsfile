@@ -318,7 +318,7 @@ pipeline {
                     # Log the vz status to get the URLs
                     ${GO_REPO_PATH}/vz status
 
-                    kubectl get vz -A -o yaml
+                    kubectl get verrazzano -A -o yaml
                 """
             }
 
@@ -414,7 +414,7 @@ pipeline {
             post {
                 failure {
                     archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
-                    dumpK8sCluster('app-stack-installation-failure-dump')
+                    dumpK8sCluster('none-installation-failure-dump')
                 }
                 always {
                     archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
@@ -443,7 +443,7 @@ pipeline {
             }         
             post {
                 failure {
-                    dumpK8sCluster('verify-install-post-app-stack-installation-failure-dump')
+                    dumpK8sCluster('verify-install-post-none-installation-failure-dump')
                 }
                 always {
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/*cluster-snapshot*/**', allowEmptyArchive: true
