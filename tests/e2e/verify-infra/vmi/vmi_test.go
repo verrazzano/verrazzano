@@ -11,6 +11,7 @@ import (
 	vzalpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
@@ -153,6 +154,10 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	}, waitTimeout, pollingInterval).Should(BeNil())
 
 	elastic = vmi.GetOpensearch("system")
+	if verrazzanoSecretRequired(vz) {
+		creds = pkg.EventuallyGetSystemVMICredentials()
+	}
+
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -176,8 +181,6 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 					vmiCRD, err = verrazzanoMonitoringInstanceCRD()
 					return vmiCRD, err
 				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
-
-				creds = pkg.EventuallyGetSystemVMICredentials()
 			})
 
 			if ingressEnabled(vz) {
@@ -672,4 +675,12 @@ func getExpectedPrometheusReplicaCount(kubeconfig string) (int32, error) {
 
 func ingressEnabled(vz *vzalpha1.Verrazzano) bool {
 	return vzcr.IsComponentStatusEnabled(vz, nginx.ComponentName) && vzcr.IsComponentStatusEnabled(vz, certmanager.ComponentName)
+}
+
+func verrazzanoSecretRequired(vz *vzalpha1.Verrazzano) bool {
+	return vzcr.IsComponentStatusEnabled(vz, opensearch.ComponentName) ||
+		vzcr.IsComponentStatusEnabled(vz, opensearchdashboards.ComponentName) ||
+		vzcr.IsComponentStatusEnabled(vz, operator.ComponentName) ||
+		vzcr.IsComponentStatusEnabled(vz, grafana.ComponentName) ||
+		vzcr.IsComponentStatusEnabled(vz, kiali.ComponentName)
 }

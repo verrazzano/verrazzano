@@ -308,8 +308,6 @@ pipeline {
                     yq -i eval '.spec.components.verrazzano.enabled = true' ${WORKSPACE}/appstack.yaml
                     yq -i eval '.spec.components.jaegerOperator.enabled = true' ${WORKSPACE}/appstack.yaml
 
-                    cat ${WORKSPACE}/appstack.yaml
-
                     kubectl apply -f ${WORKSPACE}/appstack.yaml
 
                     # wait for Verrazzano install to complete
@@ -317,8 +315,6 @@ pipeline {
 
                     # Log the vz status to get the URLs
                     ${GO_REPO_PATH}/vz status
-
-                    kubectl get verrazzano -A -o yaml
                 """
             }
 
