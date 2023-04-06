@@ -347,7 +347,7 @@ pipeline {
         stage('Uninstall Verrazzano') {
             steps {
                 sh """
-                    ${GO_REPO_PATH}/vz uninstall --timeout 60m
+                    ${GO_REPO_PATH}/vz uninstall -y --timeout 60m
                 """
             }
             post {

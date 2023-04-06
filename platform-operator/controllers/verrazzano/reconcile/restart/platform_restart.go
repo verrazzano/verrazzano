@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package restart
@@ -27,7 +27,7 @@ const (
 )
 
 // RestartComponents restarts all the deployments, StatefulSets, and DaemonSets
-// in all of the Istio injected system namespaces
+// in all the Istio injected system namespaces
 func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generation int64, podMatcher PodMatcher) error {
 	if err := podMatcher.ReInit(); err != nil {
 		return err
@@ -39,7 +39,6 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 	}
 
 	// Restart all the deployments in the injected system namespaces
-	log.Oncef("Restarting system Deployments to pickup latest Istio proxy sidecar")
 	deploymentList, err := goClient.AppsV1().Deployments("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -51,16 +50,15 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 		if !vzString.SliceContainsString(namespaces, deployment.Namespace) {
 			continue
 		}
-		log.Oncef("Checking sidecars for Deployment %s", deployment.Name)
 
 		// Get the pods for this deployment
 		podList, err := getPodsForSelector(log, goClient, deployment.Namespace, deployment.Spec.Selector)
 		if err != nil {
 			return err
 		}
-		// Check if any pods contain the old Istio proxy image
-		found := podMatcher.Matches(log, podList, "Deployment", deployment.Name)
-		if !found {
+		// Check if any pods need the new Istio image injected
+		needsNewProxy := podMatcher.Matches(log, podList, "Deployment", deployment.Name)
+		if !needsNewProxy {
 			continue
 		}
 		// Annotate the deployment to do a restart of the pods
@@ -74,11 +72,10 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 		if _, err := goClient.AppsV1().Deployments(deployment.Namespace).Update(context.TODO(), deployment, metav1.UpdateOptions{}); err != nil {
 			return log.ErrorfNewErr("Failed, error updating Deployment %s annotation to force a pod restart", deployment.Name)
 		}
-	}
-	log.Oncef("Finished restarting system Deployments to pick up new sidecars")
+		log.Oncef("Finished restarting deployment %s/%s to pick up new sidecars", deployment.Namespace, deployment.Name)
 
+	}
 	// Restart all the StatefulSets in the injected system namespaces
-	log.Oncef("Restarting system StatefulSets to pickup latest sidecars")
 	statefulSetList, err := goClient.AppsV1().StatefulSets("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -90,7 +87,6 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 		if !vzString.SliceContainsString(namespaces, sts.Namespace) {
 			continue
 		}
-		log.Oncef("Checking sidecars for StatefulSet %s", sts.Name)
 
 		// Get the pods for this StatefulSet
 		podList, err := getPodsForSelector(log, goClient, sts.Namespace, sts.Spec.Selector)
@@ -98,8 +94,8 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 			return err
 		}
 		// Check if any pods contain the old Istio proxy image
-		found := podMatcher.Matches(log, podList, "StatefulSet", sts.Name)
-		if !found {
+		needsNewProxy := podMatcher.Matches(log, podList, "StatefulSet", sts.Name)
+		if !needsNewProxy {
 			continue
 		}
 		if sts.Spec.Template.ObjectMeta.Annotations == nil {
@@ -109,11 +105,11 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 		if _, err := goClient.AppsV1().StatefulSets(sts.Namespace).Update(context.TODO(), sts, metav1.UpdateOptions{}); err != nil {
 			return log.ErrorfNewErr("Failed, error updating StatefulSet %s annotation to force a pod restart", sts.Name)
 		}
+		log.Oncef("Finished restarting statefulSet %s/%s to pick up new sidecars", sts.Namespace, sts.Name)
+
 	}
-	log.Oncef("Finished restarting system Statefulsets to pick up latest sidecars")
 
 	// Restart all the DaemonSets in the injected system namespaces
-	log.Oncef("Restarting system DaemonSets to pickup latest sidecars")
 	daemonSetList, err := goClient.AppsV1().DaemonSets("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -125,7 +121,6 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 		if !vzString.SliceContainsString(namespaces, daemonSet.Namespace) {
 			continue
 		}
-		log.Oncef("Checking sidecars for DaemonSet %s", daemonSet.Name)
 
 		// Get the pods for this DaemonSet
 		podList, err := getPodsForSelector(log, goClient, daemonSet.Namespace, daemonSet.Spec.Selector)
@@ -133,8 +128,8 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 			return err
 		}
 		// Check if any pods contain the old Istio proxy image
-		found := podMatcher.Matches(log, podList, "DaemonSet", daemonSet.Name)
-		if !found {
+		needsNewProxy := podMatcher.Matches(log, podList, "DaemonSet", daemonSet.Name)
+		if !needsNewProxy {
 			continue
 		}
 
@@ -145,8 +140,8 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 		if _, err := goClient.AppsV1().DaemonSets(daemonSet.Namespace).Update(context.TODO(), daemonSet, metav1.UpdateOptions{}); err != nil {
 			return log.ErrorfNewErr("Failed, error updating DaemonSet %s annotation to force a pod restart", daemonSet.Name)
 		}
+		log.Oncef("Finished restarting daemonSet %s/%s to pick up new sidecars", daemonSet.Namespace, daemonSet.Name)
 	}
-	log.Oncef("Finished restarting system DaemonSets to pick up latest sidecars")
 	return nil
 }
 
@@ -193,7 +188,6 @@ func buildRestartAnnotationString(generation int64) string {
 func isImageOutOfDate(log vzlog.VerrazzanoLogger, imageName, actualImage, expectedImage, workloadType, workloadName string) ImageCheckResult {
 	if strings.Contains(actualImage, imageName) {
 		if 0 != strings.Compare(actualImage, expectedImage) {
-			log.Oncef("Restarting %s %s which has a pod with an old Istio proxy %s", workloadType, workloadName, actualImage)
 			return OutOfDate
 		}
 		return UpToDate

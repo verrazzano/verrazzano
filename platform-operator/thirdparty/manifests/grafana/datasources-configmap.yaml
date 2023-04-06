@@ -1,0 +1,31 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .name }}
+  namespace: {{ .namespace }}
+data:
+  datasource.yaml: |2-
+    apiVersion: 1
+    datasources:
+{{ if .isThanosQueryEnabled }}
+    - name: Thanos
+      type: prometheus
+      orgId: 1
+      access: proxy
+      url: {{ .thanosQueryURL }}:{{ .thanosQueryPort }}
+      isDefault: true
+{{ end }}
+{{ if .isPrometheusEnabled }}
+    - name: Prometheus
+      type: prometheus
+      orgId: 1
+      access: proxy
+      url: {{ .prometheusURL }}:{{ .prometheusPort }}
+{{ if .isThanosQueryEnabled }}
+      isDefault: false
+{{ else }}
+      isDefault: true
+{{ end }}
+{{ end }}

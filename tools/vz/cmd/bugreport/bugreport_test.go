@@ -200,7 +200,7 @@ func TestDefaultBugReportSuccess(t *testing.T) {
 	err = cmd.Execute()
 	assert.Nil(t, err)
 
-	if !pkghelper.CheckBugReportExistsInDir("") {
+	if !pkghelper.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal("cannot find bug report file in current directory")
 	}
 }
@@ -234,7 +234,7 @@ func TestDefaultBugReportReadOnlySuccess(t *testing.T) {
 	err = cmd.Execute()
 	assert.Nil(t, err)
 
-	if !pkghelper.CheckBugReportExistsInDir(os.TempDir() + "/") {
+	if !pkghelper.CheckAndRemoveBugReportExistsInDir(os.TempDir() + "/") {
 		t.Fatal("cannot find bug report file in temp directory")
 	}
 }
@@ -246,7 +246,7 @@ func TestDefaultBugReportReadOnlySuccess(t *testing.T) {
 func TestBugReportDefaultReportFile(t *testing.T) {
 	// clean up the bugreport file that is generated
 	defer func(t *testing.T) {
-		if !pkghelper.CheckBugReportExistsInDir("") {
+		if !pkghelper.CheckAndRemoveBugReportExistsInDir("") {
 			t.Fatal("cannot find and delete bug report file in current directory")
 		}
 	}(t)
@@ -283,7 +283,7 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 // TestBugReportNoVerrazzano
 // GIVEN a CLI bug-report command
 // WHEN I call cmd.Execute without Verrazzano installed
-// THEN expect the command to display a message indicating Verrazzano is not installed
+// THEN expect the command to generate bug report
 func TestBugReportNoVerrazzano(t *testing.T) {
 	c := getClientWithWatch()
 	stdoutFile, stderrFile := createStdTempFiles(t)
@@ -311,7 +311,8 @@ func TestBugReportNoVerrazzano(t *testing.T) {
 
 	errBuf, err := os.ReadFile(stderrFile.Name())
 	assert.NoError(t, err)
-	assert.Contains(t, string(errBuf), "Verrazzano is not installed")
+	assert.NotContains(t, string(errBuf), "Verrazzano is not installed")
+	assert.FileExists(t, bugRepFile)
 }
 
 // TestBugReportFailureUsingInvalidClient
@@ -345,8 +346,8 @@ func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 
 	errBuf, err := os.ReadFile(stderrFile.Name())
 	assert.NoError(t, err)
-	assert.Contains(t, string(errBuf), "Verrazzano is not installed")
-	assert.NoFileExists(t, bugRepFile)
+	assert.NotContains(t, string(errBuf), "Verrazzano is not installed")
+	assert.FileExists(t, bugRepFile)
 }
 
 // getClientWithWatch returns a client containing all VPO objects

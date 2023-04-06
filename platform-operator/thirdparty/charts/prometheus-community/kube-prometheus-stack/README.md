@@ -705,3 +705,7 @@ metadata:
   name: kube-proxy
   namespace: kube-system
 ```
+### Modifications by the Verrazzano team
+
+1. The job-createSecret.yaml and job-patchWebhook.yaml pod templates in prometheus-operator have been changed to 
+add a new label, `sidecar.istio.io/inject: "false"`.

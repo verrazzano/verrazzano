@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.7.1-20230314213852-9771f453e",
+              "tag": "v2.7.1-20230404232005-67b976f5e",
               "dashboard": "v2.7.1-20230314212735-270d0ef83",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.1-20230314213852-9771f453e"
+              "tag": "v2.7.1-20230404232005-67b976f5e"
             }
           ]
         },
@@ -147,27 +147,27 @@
           "images": [
             {
               "image": "rancher-shell",
-              "tag": "v0.1.18-20230208201620-c659571"
+              "tag": "v0.1.18-20230403204343-4124528"
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.2.6-20230208201837-b7fc3c3"
+              "tag": "v0.2.6-20230403210635-b6c499e"
             },
             {
               "image": "rancher-fleet-agent",
-              "tag": "v0.3.11-20230208201743-7400667"
+              "tag": "v0.3.11-20230403202924-a3d42f2"
             },
             {
               "image": "rancher-fleet",
-              "tag": "v0.3.11-20230208201743-7400667"
+              "tag": "v0.3.11-20230403202924-a3d42f2"
             },
             {
               "image": "rancher-gitjob",
-              "tag": "v0.1.30-20230208185411-8e24107"
+              "tag": "v0.1.30-20230403204344-17d2d2f"
             },
             {
               "image": "rancher-cleanup",
-              "tag": "v1.0.0-20230314141611-1802619"
+              "tag": "v1.0.0-20230403191516-fa35c50"
             }
           ]
         }
@@ -597,7 +597,7 @@
     },
     {
       "name": "jaeger",
-      "version": "1.37.0",
+      "version": "1.42.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -605,7 +605,7 @@
           "images": [
             {
               "image": "jaeger-operator",
-              "tag": "1.37.0-20230209065122-0760c0d3",
+              "tag": "1.42.0-20230327230723-9970d003",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -617,7 +617,7 @@
           "images": [
             {
               "image": "jaeger-agent",
-              "tag": "1.37.0-20230209101805-55f6b454",
+              "tag": "1.42.0-20230327232727-cd357656",
               "helmFullImageKey": "jaegerAgentImage"
             }
           ]
@@ -628,7 +628,7 @@
           "images": [
             {
               "image": "jaeger-collector",
-              "tag": "1.37.0-20230209101805-55f6b454",
+              "tag": "1.42.0-20230327232727-cd357656",
               "helmFullImageKey": "jaegerCollectorImage"
             }
           ]
@@ -639,7 +639,7 @@
           "images": [
             {
               "image": "jaeger-query",
-              "tag": "1.37.0-20230209101805-55f6b454",
+              "tag": "1.42.0-20230327232727-cd357656",
               "helmFullImageKey": "jaegerQueryImage"
             }
           ]
@@ -650,7 +650,7 @@
           "images": [
             {
               "image": "jaeger-ingester",
-              "tag": "1.37.0-20230209101805-55f6b454",
+              "tag": "1.42.0-20230327232727-cd357656",
               "helmFullImageKey": "jaegerIngesterImage"
             }
           ]
@@ -661,7 +661,7 @@
           "images": [
             {
               "image": "jaeger-es-index-cleaner",
-              "tag": "1.37.0-20230209101805-55f6b454",
+              "tag": "1.42.0-20230327232727-cd357656",
               "helmFullImageKey": "jaegerESIndexCleanerImage"
             }
           ]
@@ -672,7 +672,7 @@
           "images": [
             {
               "image": "jaeger-es-rollover",
-              "tag": "1.37.0-20230209101805-55f6b454",
+              "tag": "1.42.0-20230327232727-cd357656",
               "helmFullImageKey": "jaegerESRolloverImage"
             }
           ]
@@ -683,7 +683,7 @@
           "images": [
             {
               "image": "jaeger-all-in-one",
-              "tag": "1.37.0-20230209101805-55f6b454",
+              "tag": "1.42.0-20230327232727-cd357656",
               "helmFullImageKey": "jaegerAllInOneImage"
             }
           ]
