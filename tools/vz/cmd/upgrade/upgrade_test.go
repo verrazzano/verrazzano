@@ -234,13 +234,20 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 			sa := corev1.ServiceAccount{}
 			err = c.Get(context.TODO(), types.NamespacedName{Namespace: vpoconst.VerrazzanoInstallNamespace, Name: constants.VerrazzanoPlatformOperator}, &sa)
 			assert.NoError(t, err)
+			expectedLastAppliedConfigAnnotation := "{\"apiVersion\":\"v1\",\"kind\":\"ServiceAccount\",\"metadata\":{\"annotations\":{},\"name\":\"verrazzano-platform-operator\",\"namespace\":\"verrazzano-install\"}}\n"
+			testhelpers.VerifyLastAppliedConfigAnnotation(t, sa.ObjectMeta, expectedLastAppliedConfigAnnotation)
 
 			ns := corev1.Namespace{}
 			err = c.Get(context.TODO(), types.NamespacedName{Name: "verrazzano-install"}, &ns)
 			assert.NoError(t, err)
+			expectedLastAppliedConfigAnnotation = "{\"apiVersion\":\"v1\",\"kind\":\"Namespace\",\"metadata\":{\"annotations\":{},\"name\":\"verrazzano-install\"}}\n"
+			testhelpers.VerifyLastAppliedConfigAnnotation(t, ns.ObjectMeta, expectedLastAppliedConfigAnnotation)
+
 			svc := corev1.Service{}
 			err = c.Get(context.TODO(), types.NamespacedName{Namespace: vpoconst.VerrazzanoInstallNamespace, Name: constants.VerrazzanoPlatformOperator}, &svc)
 			assert.NoError(t, err)
+			expectedLastAppliedConfigAnnotation = "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"verrazzano-platform-operator\"},\"name\":\"verrazzano-platform-operator\",\"namespace\":\"verrazzano-install\"},\"spec\":{\"ports\":[{\"name\":\"webhook\",\"port\":443,\"targetPort\":9443}],\"selector\":{\"app\":\"verrazzano-platform-operator\"}}}\n"
+			testhelpers.VerifyLastAppliedConfigAnnotation(t, svc.ObjectMeta, expectedLastAppliedConfigAnnotation)
 
 			// Verify the version got updated
 			err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, vz)
