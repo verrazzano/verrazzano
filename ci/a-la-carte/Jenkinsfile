@@ -317,6 +317,8 @@ pipeline {
 
                     # Log the vz status to get the URLs
                     ${GO_REPO_PATH}/vz status
+
+                    kubectl get vz -A -o yaml
                 """
             }
 
