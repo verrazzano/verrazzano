@@ -121,10 +121,6 @@ func listDisabledComponents() []string {
 	return disabledPods
 }
 
-func isPrometheusOperatorEnabled() bool {
-	return pkg.IsPrometheusOperatorEnabled(getKubeConfigOrAbort())
-}
-
 // areOverridesEnabled - return true if the override value prometheusOperator.podAnnotations.override
 // is present and set to "true"
 func areOverridesEnabled() bool {
