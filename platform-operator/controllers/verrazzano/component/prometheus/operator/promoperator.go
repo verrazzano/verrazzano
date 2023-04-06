@@ -319,12 +319,16 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		}
 
 		// Append the Istio Annotations for Prometheus
-		kvs, err = appendIstioOverrides("prometheus.prometheusSpec.podMetadata.annotations",
-			"prometheus.prometheusSpec.volumeMounts",
-			"prometheus.prometheusSpec.volumes",
-			kvs)
-		if err != nil {
-			return kvs, ctx.Log().ErrorfNewErr("Failed applying the Istio Overrides for Prometheus")
+		if vzcr.IsIstioEnabled(ctx.EffectiveCR()) {
+			kvs, err = appendIstioOverrides("prometheus.prometheusSpec.podMetadata.annotations",
+				"prometheus.prometheusSpec.volumeMounts",
+				"prometheus.prometheusSpec.volumes",
+				kvs)
+			if err != nil {
+				return kvs, ctx.Log().ErrorfNewErr("Failed applying the Istio Overrides for Prometheus")
+			}
+		} else {
+			kvs = append(kvs, bom.KeyValue{Key: "prometheusOperator.tls.enabled", Value: "false"})
 		}
 
 		kvs, err = appendAdditionalVolumeOverrides(ctx,
@@ -465,7 +469,6 @@ func appendIstioOverrides(annotationsKey, volumeMountKey, volumeKey string, kvs 
 	}
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].name", volumeKey), Value: vol.Name})
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].emptyDir.medium", volumeKey), Value: string(vol.VolumeSource.EmptyDir.Medium)})
-
 	return kvs, nil
 }
 
