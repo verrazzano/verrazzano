@@ -454,31 +454,17 @@ func (r *VerrazzanoManagedClusterReconciler) unmarshalIstioVolumesAnnotation(dep
 	return istioVolume[0], nil
 }
 
-// createCAVolumeEntry adds the CA mount given a Volume object from the Istio annotations and creates the annotation on the deployment
+// createCAVolume adds the CA mount given a Volume object from the Istio annotations and creates the annotation on the deployment
 func (r *VerrazzanoManagedClusterReconciler) createCAVolume(deployment *appsv1.Deployment, volume v1.Volume, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-	if err := r.populateCAVolumeSecret(&volume, vmc); err != nil {
-		return err
+	if volume.Secret == nil {
+		volume.Secret = &v1.SecretVolumeSource{
+			SecretName: constants.PromManagedClusterCACertsSecretName,
+		}
 	}
 	volumeJSON, err := json.Marshal([]v1.Volume{volume})
 	if err != nil {
 		return r.log.ErrorfNewErr("Failed to marshal Volume %s Istio Annotation: %v", istioVolumeName, err)
 	}
 	deployment.Spec.Template.Annotations[istioVolumeAnnotation] = string(volumeJSON)
-	return nil
-}
-
-func (r *VerrazzanoManagedClusterReconciler) populateCAVolumeSecret(volume *v1.Volume, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-	var mgdCASecret v1.Secret
-	err := r.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoMonitoringNamespace, Name: constants.PromManagedClusterCACertsSecretName}, &mgdCASecret)
-	if err != nil {
-		return r.log.ErrorfNewErr("Failed to get the managed CA secret %s/%s from the cluster: %v", constants.VerrazzanoMonitoringNamespace, constants.PromManagedClusterCACertsSecretName, err)
-	}
-
-	if volume.Secret == nil {
-		volume.Secret = &v1.SecretVolumeSource{
-			SecretName: constants.PromManagedClusterCACertsSecretName,
-		}
-	}
-
 	return nil
 }
