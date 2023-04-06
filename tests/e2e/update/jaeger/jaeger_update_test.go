@@ -1,9 +1,10 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package jaeger
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -30,6 +31,8 @@ var (
 )
 
 var whenJaegerOperatorEnabledIt = t.WhenMeetsConditionFunc(jaeger.OperatorCondition, jaeger.IsJaegerEnabled)
+var kubeconfigPath string
+var metricsTest pkg.MetricsTest
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	m := JaegerOperatorEnabledModifier{}
@@ -41,6 +44,16 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	update.ValidatePods(jaegerOperatorLabelValue, jaegerComponentLabel, constants.VerrazzanoMonitoringNamespace, 1, false)
 	update.ValidatePods(jaegerCollectorLabelValue, jaegerComponentLabel, constants.VerrazzanoMonitoringNamespace, 1, false)
 	update.ValidatePods(jaegerQueryLabelValue, jaegerComponentLabel, constants.VerrazzanoMonitoringNamespace, 1, false)
+
+	var err error
+	kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to find Kubeconfig location: %v", err))
+	}
+	metricsTest, err = pkg.NewMetricsTest([]string{kubeconfigPath}, kubeconfigPath, map[string]string{})
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
+	}
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -59,10 +72,6 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	// WHEN Jaeger operator is enabled,
 	// THEN we are able to get the traces
 	whenJaegerOperatorEnabledIt("traces from verrazzano system components should be available when queried from Jaeger", func() {
-		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-		if err != nil {
-			Fail(err.Error())
-		}
 		validatorFn := pkg.ValidateSystemTracesFuncInCluster(kubeconfigPath, start, "local")
 		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
@@ -79,7 +88,7 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	// WHEN Jaeger operator is enabled,
 	// THEN we see that the metrics of Jaeger operator are present in prometheus
 	whenJaegerOperatorEnabledIt("metrics of jaeger operator are available in prometheus", func() {
-		validatorFn := pkg.ValidateJaegerOperatorMetricFunc()
+		validatorFn := pkg.ValidateJaegerOperatorMetricFunc(metricsTest)
 		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
 
@@ -87,7 +96,7 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	// WHEN Jaeger operator is enabled,
 	// THEN we see that the metrics of Jaeger collector are present in prometheus
 	whenJaegerOperatorEnabledIt("metrics of jaeger collector are available in prometheus", func() {
-		validatorFn := pkg.ValidateJaegerCollectorMetricFunc()
+		validatorFn := pkg.ValidateJaegerCollectorMetricFunc(metricsTest)
 		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
 
@@ -95,7 +104,7 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	// WHEN Jaeger operator is enabled,
 	// THEN we see that the metrics of Jaeger query are present in prometheus
 	whenJaegerOperatorEnabledIt("metrics of jaeger query are available in prometheus", func() {
-		validatorFn := pkg.ValidateJaegerQueryMetricFunc()
+		validatorFn := pkg.ValidateJaegerQueryMetricFunc(metricsTest)
 		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
 
@@ -103,7 +112,7 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	// WHEN Jaeger operator is enabled,
 	// THEN we see that the metrics of Jaeger agent are present in prometheus
 	whenJaegerOperatorEnabledIt("metrics of jaeger agent are available in prometheus", func() {
-		validatorFn := pkg.ValidateJaegerAgentMetricFunc()
+		validatorFn := pkg.ValidateJaegerAgentMetricFunc(metricsTest)
 		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
 
