@@ -466,13 +466,17 @@ func IsComponentStatusEnabled(cr runtime.Object, componentName string) bool {
 	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil &&
 			vzv1alpha1.Status.Components[componentName] != nil &&
-			vzv1alpha1.Status.Components[componentName].State != installv1alpha1.CompStateDisabled {
+			!(vzv1alpha1.Status.Components[componentName].State == installv1alpha1.CompStateDisabled ||
+				vzv1alpha1.Status.Components[componentName].State == installv1alpha1.CompStateUninstalled ||
+				vzv1alpha1.Status.Components[componentName].State == installv1alpha1.CompStateUninstalling) {
 			return true
 		}
 	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
 		if vzv1beta1 != nil &&
 			vzv1beta1.Status.Components[componentName] != nil &&
-			vzv1beta1.Status.Components[componentName].State != installv1beta1.CompStateDisabled {
+			!(vzv1beta1.Status.Components[componentName].State == installv1beta1.CompStateDisabled ||
+				vzv1beta1.Status.Components[componentName].State == installv1beta1.CompStateUninstalled ||
+				vzv1beta1.Status.Components[componentName].State == installv1beta1.CompStateUninstalling) {
 			return true
 		}
 	}
