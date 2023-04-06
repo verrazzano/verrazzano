@@ -65,10 +65,9 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 }
 
 func appendVerrazzanoOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) []bom.KeyValue {
-	istio := ctx.EffectiveCR().Spec.Components.Istio
-	enabled := istio != nil && istio.IsInjectionEnabled()
-	// isIstioEnabled is used to determine whether the Thanos service monitors should use
-	// Istio TLS config
+	enabled := vzcr.IsIstioInjectionEnabled(ctx.EffectiveCR())
+	// isIstioEnabled is used in the Helm chart to determine whether the Thanos service monitors
+	// should use Istio TLS config
 	kvs = append(kvs, bom.KeyValue{Key: "verrazzano.isIstioEnabled", Value: strconv.FormatBool(enabled)})
 	return kvs
 }
