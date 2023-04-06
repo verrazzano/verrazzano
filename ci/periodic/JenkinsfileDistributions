@@ -1,6 +1,10 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+import groovy.transform.Field
+
+@Field def verrazzanoPrefix="verrazzano-"
+
 pipeline {
     options {
         timeout(time: 4, unit: 'HOURS')
@@ -75,74 +79,7 @@ pipeline {
     stages {
         stage('Clean workspace and checkout') {
             steps {
-                script {
-                    if (params.GIT_COMMIT_TO_USE == "NONE") {
-                        echo "Specific GIT commit was not specified, use current head"
-                        def scmInfo = checkout scm
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                    } else {
-                        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
-                        def scmInfo = checkout([
-                            $class: 'GitSCM',
-                            branches: [[name: params.GIT_COMMIT_TO_USE]],
-                            doGenerateSubmoduleConfigurations: false,
-                            extensions: [],
-                            submoduleCfg: [],
-                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                        // If the commit we were handed is not what the SCM says we are using, fail
-                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
-                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
-                            exit 1
-                        }
-                    }
-                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
-                }
-
-                sh """
-                    cp -f "${NETRC_FILE}" $HOME/.netrc
-                    chmod 600 $HOME/.netrc
-                """
-
-                script {
-                    try {
-                        sh """
-                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                            """
-                        }
-                    }
-                }
-
-                sh """
-                    rm -rf ${GO_REPO_PATH}/verrazzano
-                    mkdir -p ${GO_REPO_PATH}/verrazzano
-                    tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
-                    cd ${GO_REPO_PATH}/verrazzano
-                    git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
-                    git config --global user.name $DOCKER_CREDS_USR
-                    git config --global user.email "${DOCKER_EMAIL}"
-                    git checkout -b ${env.BRANCH_NAME}
-                """
-
-                script {
-                    def props = readProperties file: '.verrazzano-development-version'
-                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
-                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                    DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
-                    // update the description with some meaningful info
-                    setDisplayName()
-                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
-                }
+                cleanWorkspaceAndCheckout()
             }
         }
 
@@ -185,8 +122,8 @@ pipeline {
                                 build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                            string(name: 'DISTRIBUTION_VARIANT', value: 'Full'),
-                                                string(name: 'ZIPFILE_LOCATION', value: fullBundle)
+                                        string(name: 'DISTRIBUTION_VARIANT', value: 'Full'),
+                                        string(name: 'ZIPFILE_LOCATION', value: fullBundle)
                                     ], wait: true
                             }
                         }
@@ -235,4 +172,99 @@ def setDisplayName() {
          }
     }
     echo "End setDisplayName"
+}
+
+def dockerLogins() {
+    try {
+        sh """
+            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
+        """
+    } catch(error) {
+        echo "docker login failed, retrying after sleep"
+        retry(4) {
+            sleep(30)
+            sh """
+            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
+            """
+        }
+    }
+    if (!(env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-1."))) {
+        try {
+            sh """
+                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+            """
+        } catch(error) {
+            echo "docker login failed, retrying after sleep"
+            retry(4) {
+                sleep(30)
+                sh """
+                    echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                """
+            }
+        }
+    }
+}
+
+def scmCheckout() {
+    if (params.GIT_COMMIT_TO_USE == "NONE") {
+        echo "Specific GIT commit was not specified, use current head"
+        def scmInfo = checkout scm
+        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+    } else {
+        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
+        def scmInfo = checkout([
+        $class: 'GitSCM',
+        branches: [[name: params.GIT_COMMIT_TO_USE]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [],
+        submoduleCfg: [],
+        userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+        // If the commit we were handed is not what the SCM says we are using, fail
+        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
+            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+            exit 1
+        }
+    }
+    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+}
+
+def cleanWorkspaceAndCheckout() {
+    scmCheckout()
+
+    sh """
+        cp -f "${NETRC_FILE}" $HOME/.netrc
+        chmod 600 $HOME/.netrc
+    """
+
+    dockerLogins()
+
+    sh """
+        rm -rf ${GO_REPO_PATH}/verrazzano
+        mkdir -p ${GO_REPO_PATH}/verrazzano
+        tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+        cd ${GO_REPO_PATH}/verrazzano
+        git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
+        git config --global user.name $DOCKER_CREDS_USR
+        git config --global user.email "${DOCKER_EMAIL}"
+        git checkout -b ${env.BRANCH_NAME}
+    """
+
+    def props = readProperties file: '.verrazzano-development-version'
+    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+
+    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+    DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
+
+    // update the description with some meaningful info
+    setDisplayName()
+    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+
+    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+    storeLocation="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+    fullBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
+    liteBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
 }
