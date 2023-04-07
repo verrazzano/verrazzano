@@ -171,7 +171,7 @@ func (r *ComponentConfigMapReconciler) processComponent(ctx spi.ComponentContext
 			ctx.Log().Errorf("Error adding finalizer %s for dev component %s: %v", constants.DevComponentFinalizer, comp.Name(), err)
 			return newRequeueWithDelay(), err
 		}
-		ctx.Log().Infof("Successfully added finalizer %s to configmap %s for dev component", constants.DevComponentFinalizer, configMap.Name, comp.Name())
+		ctx.Log().Infof("Successfully added finalizer %s to configmap %s for dev component %s", constants.DevComponentFinalizer, configMap.Name, comp.Name())
 		// adding finalizer to ConfigMap will trigger a requeue so no need to requeue here
 		return reconcile.Result{}, nil
 	}

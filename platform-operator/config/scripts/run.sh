@@ -5,38 +5,29 @@
 #
 
 function create-kubeconfig {
-    # Get the version of the Kubernetes server
-    version=$(kubectl version -o json | jq -rj '.serverVersion|.major,".",.minor')
+  # Get the version of the Kubernetes server
+  version=$(kubectl version -o json | jq -rj '.serverVersion|.major,".",.minor')
 
-    # Secret does not exist for a serviceAccount starting with Kubernetes 1.24 so we create one.
-    # The secret contains a certificate and token we need for accessing the cluster.
-    if [[ "$version" > "1.23" ]]
-    then
-      kubectl apply -f - << EOF
- apiVersion: v1
- kind: Secret
- type: kubernetes.io/service-account-token
- metadata:
-   name: verrazzano-platform-operator
-   namespace: verrazzano-install
-   annotations:
-     kubernetes.io/service-account.name: "verrazzano-platform-operator"
-EOF
-      secret="verrazzano-platform-operator"
-    else
-      # Get the name of secret from the serviceAccount.
-      secret=$(kubectl get serviceAccount verrazzano-platform-operator -n verrazzano-install -o=jsonpath='{.secrets[0].name}')
-    fi
+  # Secret does not exist for a serviceAccount starting with Kubernetes 1.24 so we create one.
+  # The secret contains a certificate and token we need for accessing the cluster.
+  if [[ "$version" > "1.23" ]]
+  then
+    kubectl apply -f /verrazzano/platform-operator/scripts/install/vpo-secret.yaml > /dev/null
+    secret="verrazzano-platform-operator"
+  else
+    # Get the name of secret from the serviceAccount.
+    secret=$(kubectl get serviceAccount verrazzano-platform-operator -n verrazzano-install -o=jsonpath='{.secrets[0].name}')
+  fi
 
-    # Get the certificate for accessing the kubernetes cluster
-    ca=$(kubectl get secret $secret -n verrazzano-install -o=jsonpath='{.data.ca\.crt}')
+  # Get the certificate for accessing the kubernetes cluster
+  ca=$(kubectl get secret $secret -n verrazzano-install -o=jsonpath='{.data.ca\.crt}')
 
-    # Get the user token
-    token=$(kubectl get secret $secret -n verrazzano-install -o=jsonpath='{.data.token}' | base64 --decode)
+  # Get the user token
+  token=$(kubectl get secret $secret -n verrazzano-install -o=jsonpath='{.data.token}' | base64 --decode)
 
-    # Get the endpoint for the kubernetes API server
-    # The sed command is to strip out color escape sequences
-    server=$(kubectl cluster-info | grep "control plane" | awk '{ print $7 }' | sed $'s/\e\\[[0-9;:]*[a-zA-Z]//g' )
+  # Get the endpoint for the kubernetes API server
+  # The sed command is to strip out color escape sequences
+  server=$(kubectl cluster-info | grep "control plane" | awk '{ print $7 }' | sed $'s/\e\\[[0-9;:]*[a-zA-Z]//g' )
 
   # Create a kubeconfig file for the pod.
   cp /verrazzano/config/kubeconfig-template $VERRAZZANO_KUBECONFIG

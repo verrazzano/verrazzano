@@ -39,11 +39,12 @@ const (
 	capiCMDeployment                    = "capi-controller-manager"
 	capiKubeadmBootstrapCMDeployment    = "capi-kubeadm-bootstrap-controller-manager"
 	capiKubeadmControlPlaneCMDeployment = "capi-kubeadm-control-plane-controller-manager"
+	capiOcneBootstrapCMDeployment       = "capi-ocne-bootstrap-controller-manager"
+	capiOcneControlPlaneCMDeployment    = "capi-ocne-control-plane-controller-manager"
 	capiociCMDeployment                 = "capoci-controller-manager"
 )
 
-var capiDeployments = []types.NamespacedName{
-	// TODO: add OLCNE deployments
+var capiDeployments = []types.NamespacedName{ // TODO: add OLCNE deployments
 	{
 		Name:      capiCMDeployment,
 		Namespace: ComponentNamespace,
@@ -54,6 +55,14 @@ var capiDeployments = []types.NamespacedName{
 	},
 	{
 		Name:      capiKubeadmControlPlaneCMDeployment,
+		Namespace: ComponentNamespace,
+	},
+	{
+		Name:      capiOcneBootstrapCMDeployment,
+		Namespace: ComponentNamespace,
+	},
+	{
+		Name:      capiOcneControlPlaneCMDeployment,
 		Namespace: ComponentNamespace,
 	},
 	{
@@ -246,15 +255,15 @@ func (c capiComponent) Install(_ spi.ComponentContext) error {
 		return err
 	}
 
+	// TODO: version of OCI provider should come from the BOM. Is kubeadm optional?
 	// Set up the init options for the CAPI init.
 	initOptions := clusterapi.InitOptions{
-		BootstrapProviders:      []string{"kubeadm"},
-		ControlPlaneProviders:   []string{"kubeadm"},
+		BootstrapProviders:      []string{"ocne", "kubeadm"},
+		ControlPlaneProviders:   []string{"ocne", "kubeadm"},
 		InfrastructureProviders: []string{"oci:v0.8.0"},
 		TargetNamespace:         ComponentNamespace,
 	}
 
-	// TODO: version of OCI provider should come from the BOM
 	_, err = capiClient.Init(initOptions)
 	return err
 }
@@ -272,7 +281,17 @@ func (c capiComponent) PreUninstall(_ spi.ComponentContext) error {
 }
 
 func (c capiComponent) Uninstall(_ spi.ComponentContext) error {
-	return nil
+	capiClient, err := clusterapi.New("")
+	if err != nil {
+		return err
+	}
+
+	// Set up the init options for the CAPI init.
+	deleteOptions := clusterapi.DeleteOptions{
+		DeleteAll:        true,
+		IncludeNamespace: true,
+	}
+	return capiClient.Delete(deleteOptions)
 }
 
 func (c capiComponent) PostUninstall(_ spi.ComponentContext) error {
