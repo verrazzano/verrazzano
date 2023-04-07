@@ -87,7 +87,7 @@ var (
 		{target: "serviceMonitor/verrazzano-monitoring/prometheus-operator-kube-p-coredns", componentName: prometheusOperator.ComponentName},
 		{target: "serviceMonitor/verrazzano-monitoring/prometheus-operator-kube-p-kubelet", componentName: prometheusOperator.ComponentName},
 		{target: "serviceMonitor/verrazzano-monitoring/prometheus-operator-kube-p-operator", componentName: prometheusOperator.ComponentName},
-		{target: "serviceMonitor/verrazzano-monitoring/prometheus-operator-kube-p-prometheus", componentName: prometheusOperator.ComponentName},
+		//{target: "serviceMonitor/verrazzano-monitoring/prometheus-operator-kube-p-prometheus", componentName: prometheusOperator.ComponentName},
 		{target: "serviceMonitor/verrazzano-monitoring/authproxy", componentName: authproxy.ComponentName},
 		{target: "serviceMonitor/verrazzano-monitoring/fluentd", componentName: fluentd.ComponentName},
 		{target: "serviceMonitor/verrazzano-monitoring/kube-state-metrics", componentName: kubestatemetrics.ComponentName},
