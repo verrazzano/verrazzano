@@ -64,6 +64,8 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	return appendIngressOverrides(ctx, kvs)
 }
 
+// appendVerrazzanoOverrides appends overrides that are specific to Verrazzano
+// i.e. .Values.verrazzano.*. To start with, there is just one (verrazzano.isIstioEnabled)
 func appendVerrazzanoOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) []bom.KeyValue {
 	enabled := vzcr.IsIstioInjectionEnabled(ctx.EffectiveCR())
 	// isIstioEnabled is used in the Helm chart to determine whether the Thanos service monitors
