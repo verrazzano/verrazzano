@@ -936,7 +936,7 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
                 # Install Verrazzano
                 ${GO_REPO_PATH}/vz install --kubeconfig ${KUBECONFIG_DIR}/${count}/kube_config --filename ${verrazzanoConfig} --operator-file ${WORKSPACE}/acceptance-test-operator.yaml
 
-                if { [ ${params.INSTALLATION_METHOD_PREUPGRADE}' == $KUBECTL ]; }; then
+                if { [ ${params.INSTALLATION_METHOD_PREUPGRADE}' == '+KUBECTL+' ]; }; then
                     echo "Installing the Verrazzano Platform Operator"
                     kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
 
@@ -952,7 +952,7 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
 
                     # wait for Verrazzano install to complete
                     ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
-                else if { [ ${params.INSTALLATION_METHOD_PREUPGRADE}' == $VZ_CLI ]; }; then
+                else if { [ ${params.INSTALLATION_METHOD_PREUPGRADE}' == '+VZ_CLI+' ]; }; then
                     # Install Verrazzano
                     cd ${GO_REPO_PATH}/verrazzano/tools/vz
                     GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --kubeconfig ${KUBECONFIG_DIR}/${count}/kube_config --filename ${verrazzanoConfig} --operator-file ${WORKSPACE}/acceptance-test-operator.yaml
