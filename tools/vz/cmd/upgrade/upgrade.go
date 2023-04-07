@@ -12,6 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/semver"
+	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -149,6 +150,11 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 
 		// Wait for the platform operator to be ready before we update the verrazzano install resource
 		vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondUpgradeComplete)
+		if err != nil {
+			return err
+		}
+
+		err = kubectlutil.SetLastAppliedConfigurationAnnotation(vz)
 		if err != nil {
 			return err
 		}
