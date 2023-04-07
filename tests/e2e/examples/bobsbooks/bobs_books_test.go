@@ -46,7 +46,8 @@ var (
 		"bobbys-helidon-stock-application",
 		"robert-helidon",
 		"mysql"}
-	host = ""
+	host        = ""
+	metricsTest pkg.MetricsTest
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -121,6 +122,16 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 		return host, err
 	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Bobs Books Application Failed to Deploy: Gateway is not ready")
+
+	kubeconfig, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to get the Kubeconfig location for the cluster: %v", err))
+	}
+	metricsTest, err = pkg.NewMetricsTest([]string{kubeconfig}, kubeconfig, map[string]string{})
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
+	}
+
 	metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 
 	beforeSuitePassed = true
@@ -332,52 +343,52 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "bobbys-helidon-stock-application")
+						return metricsTest.MetricsExist("base_jvm_uptime_seconds", map[string]string{"app": "bobbys-helidon-stock-application"})
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "robert-helidon")
+						return metricsTest.MetricsExist("base_jvm_uptime_seconds", map[string]string{"app": "robert-helidon"})
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "bobby-helidon")
+						return metricsTest.MetricsExist("vendor_requests_count_total", map[string]string{"app_oam_dev_component": "bobby-helidon"})
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "robert-helidon")
+						return metricsTest.MetricsExist("vendor_requests_count_total", map[string]string{"app_oam_dev_component": "robert-helidon"})
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", "bobbys-front-end")
+						return metricsTest.MetricsExist("wls_jvm_process_cpu_load", map[string]string{"weblogic_domainName": "bobbys-front-end"})
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", "bobs-bookstore")
+						return metricsTest.MetricsExist("wls_jvm_process_cpu_load", map[string]string{"weblogic_domainName": "bobs-bookstore"})
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", "bobbys-front-end")
+						return metricsTest.MetricsExist("wls_scrape_mbeans_count_total", map[string]string{"weblogic_domainName": "bobbys-front-end"})
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", "bobs-bookstore")
+						return metricsTest.MetricsExist("wls_scrape_mbeans_count_total", map[string]string{"weblogic_domainName": "bobs-bookstore"})
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("vendor:coherence_cluster_size", "coherenceCluster", "bobbys-coherence")
+						return metricsTest.MetricsExist("vendor:coherence_cluster_size", map[string]string{"coherenceCluster": "bobbys-coherence"})
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("vendor:coherence_cluster_size", "coherenceCluster", "roberts-coherence")
+						return metricsTest.MetricsExist("vendor:coherence_cluster_size", map[string]string{"coherenceCluster": "roberts-coherence"})
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 			)
@@ -390,32 +401,32 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobbys-helidon-stock-application")
+						return metricsTest.MetricsExist("istio_tcp_received_bytes_total", map[string]string{"destination_canonical_service": "bobbys-helidon-stock-application"})
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "robert-helidon")
+						return metricsTest.MetricsExist("istio_tcp_received_bytes_total", map[string]string{"destination_canonical_service": "robert-helidon"})
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobbys-front-end")
+						return metricsTest.MetricsExist("istio_tcp_received_bytes_total", map[string]string{"destination_canonical_service": "bobbys-front-end"})
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobs-bookstore")
+						return metricsTest.MetricsExist("istio_tcp_received_bytes_total", map[string]string{"destination_canonical_service": "bobs-bookstore"})
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("envoy_cluster_http2_pending_send_bytes", "pod_name", "bobbys-front-end-adminserver")
+						return metricsTest.MetricsExist("envoy_cluster_http2_pending_send_bytes", map[string]string{"pod_name": "bobbys-front-end-adminserver"})
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("envoy_cluster_http2_pending_send_bytes", "pod_name", "bobs-bookstore-adminserver")
+						return metricsTest.MetricsExist("envoy_cluster_http2_pending_send_bytes", map[string]string{"pod_name": "bobs-bookstore-adminserver"})
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 			)
