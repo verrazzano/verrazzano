@@ -12,6 +12,13 @@ def dns_zone_ocid = 'dummy'
 def OKE_CLUSTER_PREFIX = ""
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 
+def KUBECTL = "kubectl"
+def VZ_CLI = "vz-cli"
+def installationMethodsPreupgrade = [ KUBECTL, VZ_CLI ]
+Collections.shuffle(installationMethodsPreupgrade)
+def installationMethodsUpgrade = [ KUBECTL, VZ_CLI ]
+Collections.shuffle(installationMethodsUpgrade)
+
 installerFileName = "install-verrazzano.yaml"
 
 pipeline {
@@ -41,6 +48,12 @@ pipeline {
         choice (description: 'OCI region to launch OKE clusters', name: 'OKE_CLUSTER_REGION',
                 // 1st choice is the default value
                 choices: availableRegions )
+        choice (description: 'Verrazzano pre-upgrade installation using either kubectl or vz cli ', name: 'INSTALLATION_METHOD_PREUPGRADE',
+                // 1st choice is the default value
+                choices: installationMethodsPreupgrade )
+        choice (description: 'Verrazzano upgrade installation using either kubectl or vz cli ', name: 'INSTALLATION_METHOD_UPGRADE',
+                // 1st choice is the default value
+                choices: installationMethodsUpgrade )
         choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
                 // 1st choice is the default value
                 choices: [ "VM.Standard.E3.Flex-4-2", "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2" ])
@@ -922,6 +935,28 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
 
                 # Install Verrazzano
                 ${GO_REPO_PATH}/vz install --kubeconfig ${KUBECONFIG_DIR}/${count}/kube_config --filename ${verrazzanoConfig} --operator-file ${WORKSPACE}/acceptance-test-operator.yaml
+
+                if { [ ${params.INSTALLATION_METHOD_PREUPGRADE}' == $KUBECTL ]; }; then
+                    echo "Installing the Verrazzano Platform Operator"
+                    kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
+
+                    # create secret in verrazzano-install ns
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+
+                    echo "Wait for Operator to be ready"
+                    cd ${GO_REPO_PATH}/verrazzano
+                    kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+
+                    echo "Applying \$verrazzanoConfig"
+                    kubectl apply -f ${verrazzanoConfig}
+
+                    # wait for Verrazzano install to complete
+                    ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+                else if { [ ${params.INSTALLATION_METHOD_PREUPGRADE}' == $VZ_CLI ]; }; then
+                    # Install Verrazzano
+                    cd ${GO_REPO_PATH}/verrazzano/tools/vz
+                    GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --kubeconfig ${KUBECONFIG_DIR}/${count}/kube_config --filename ${verrazzanoConfig} --operator-file ${WORKSPACE}/acceptance-test-operator.yaml
+                fi
             """
             RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/${count}/kube_config' && kubectl get verrazzano -o jsonpath='{.items[0].status.version}'").trim()
             echo "Verrazzano Version INSTALl : ${RUNNING_OPERATOR_VERSION}"
