@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package deploymetrics
@@ -38,6 +38,7 @@ const (
 var (
 	expectedPodsDeploymetricsApp = []string{"deploymetrics-workload"}
 	generatedNamespace           = pkg.GenerateNamespace("deploymetrics")
+	metricsTest                  pkg.MetricsTest
 
 	waitTimeout              = 10 * time.Minute
 	pollingInterval          = 30 * time.Second
@@ -90,6 +91,11 @@ var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
 			}
 			return nil
 		}, waitTimeout, pollingInterval).Should(BeNil(), "Expected to be able to create the metrics service")
+	}
+
+	metricsTest, err = pkg.NewMetricsTest([]string{kubeconfig}, kubeconfig, map[string]string{})
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
 	}
 })
 var _ = clusterDump.AfterEach(func() {})             // Dump cluster if spec fails
@@ -243,7 +249,7 @@ var _ = t.Describe("DeployMetrics Application test", Label("f:app-lcm.oam"), fun
 				clusterNameLabel:   clusterName,
 			}
 			Eventually(func() bool {
-				return pkg.MetricsExistInCluster("http_server_requests_seconds_count", metricLabels, kubeconfig)
+				return metricsTest.MetricsExist("http_server_requests_seconds_count", metricLabels)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for App Component.")
 		})
 		t.It("App Config", func() {
@@ -259,7 +265,7 @@ var _ = t.Describe("DeployMetrics Application test", Label("f:app-lcm.oam"), fun
 				clusterNameLabel:        clusterName,
 			}
 			Eventually(func() bool {
-				return pkg.MetricsExistInCluster("tomcat_sessions_created_sessions_total", metricLabels, kubeconfig)
+				return metricsTest.MetricsExist("tomcat_sessions_created_sessions_total", metricLabels)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for App Config.")
 		})
 	})

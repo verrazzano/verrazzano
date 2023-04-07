@@ -15,6 +15,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -173,6 +174,11 @@ func (y *YAMLApplier) applyAction(obj *unstructured.Unstructured) error {
 		}
 		cf.typeOf = reflect.TypeOf(fieldObj).String()
 		clientFields = append(clientFields, cf)
+	}
+
+	err = kubectlutil.SetLastAppliedConfigurationAnnotation(obj)
+	if err != nil {
+		return err
 	}
 
 	result, err := controllerruntime.CreateOrUpdate(context.TODO(), y.client, obj, func() error {

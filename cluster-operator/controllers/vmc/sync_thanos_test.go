@@ -15,7 +15,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/thanos"
 	istionet "istio.io/api/networking/v1beta1"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1beta1"
-	v1 "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -108,6 +109,8 @@ func TestSyncThanosQuery(t *testing.T) {
 	otherHost1 := toGrpcTarget("otherhost1")
 	otherHost2 := toGrpcTarget("otherhost2")
 	newHost := toGrpcTarget(newHostName)
+	managedClusterName := "somename"
+
 	tests := []struct {
 		name                   string
 		vmcStatus              *clustersv1alpha1.VerrazzanoManagedClusterStatus
@@ -148,7 +151,7 @@ func TestSyncThanosQuery(t *testing.T) {
 				vmcStatus = *tt.vmcStatus
 			}
 			vmc := &clustersv1alpha1.VerrazzanoManagedCluster{
-				ObjectMeta: metav1.ObjectMeta{Name: "somename", Namespace: constants.VerrazzanoMultiClusterNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: managedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace},
 				Status:     vmcStatus,
 			}
 			cli := fake.NewClientBuilder().WithScheme(makeThanosTestScheme()).WithRuntimeObjects(
@@ -156,6 +159,16 @@ func TestSyncThanosQuery(t *testing.T) {
 				makeThanosEnabledVerrazzano(),
 				&k8sapiext.CustomResourceDefinition{ObjectMeta: metav1.ObjectMeta{Name: serviceEntryCRDName}},
 				&k8sapiext.CustomResourceDefinition{ObjectMeta: metav1.ObjectMeta{Name: destinationRuleCRDName}},
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      constants.PromManagedClusterCACertsSecretName,
+						Namespace: constants.VerrazzanoMonitoringNamespace,
+					},
+					Data: map[string][]byte{
+						"ca-" + managedClusterName:      []byte("ca-cert-1"),
+						"ca-some-other-managed-cluster": []byte("ca-cert-2"),
+					},
+				},
 			).Build()
 			r := &VerrazzanoManagedClusterReconciler{
 				Client: cli,
@@ -172,10 +185,76 @@ func TestSyncThanosQuery(t *testing.T) {
 	}
 }
 
+// TestDeleteClusterThanosEndpoint tests the deleteClusterThanosEndpoint function.
+func TestDeleteClusterThanosEndpoint(t *testing.T) {
+	const managedClusterName = "managed1"
+	const hostName = "thanos-query.example.com"
+	host := toGrpcTarget(hostName)
+
+	vmcStatus := clustersv1alpha1.VerrazzanoManagedClusterStatus{APIUrl: "someurl", ThanosHost: hostName}
+	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{Name: managedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace},
+		Status:     vmcStatus,
+	}
+	cli := fake.NewClientBuilder().WithScheme(makeThanosTestScheme()).WithRuntimeObjects(
+		makeThanosConfigMapWithExistingHosts(t, []string{host}, true),
+		makeThanosEnabledVerrazzano(),
+		&k8sapiext.CustomResourceDefinition{ObjectMeta: metav1.ObjectMeta{Name: serviceEntryCRDName}},
+		&k8sapiext.CustomResourceDefinition{ObjectMeta: metav1.ObjectMeta{Name: destinationRuleCRDName}},
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.PromManagedClusterCACertsSecretName,
+				Namespace: constants.VerrazzanoMonitoringNamespace,
+			},
+			Data: map[string][]byte{
+				"ca-" + managedClusterName:      []byte("ca-cert-1"),
+				"ca-some-other-managed-cluster": []byte("ca-cert-2"),
+			},
+		},
+	).Build()
+
+	r := &VerrazzanoManagedClusterReconciler{
+		Client: cli,
+		log:    vzlog.DefaultLogger(),
+	}
+
+	// first sync to update endpoint configmap, add CA cert volume and volume mount, create ServiceEntry and
+	// DestinationRule
+	err := r.syncThanosQuery(context.TODO(), vmc)
+	assert.NoError(t, err)
+
+	assertThanosServiceEntry(t, r, vmc.Name, hostName, thanosGrpcIngressPort)
+	assertThanosDestinationRule(t, r, vmc.Name, hostName, thanosGrpcIngressPort)
+
+	// make sure the volume annotations have been added to the deployment
+	queryDeploy := &appsv1.Deployment{}
+	err = cli.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: thanosQueryDeployName}, queryDeploy)
+	assert.NoError(t, err)
+
+	assert.Contains(t, queryDeploy.Spec.Template.ObjectMeta.Annotations, istioVolumeAnnotation)
+	assert.Contains(t, queryDeploy.Spec.Template.ObjectMeta.Annotations, istioVolumeMountAnnotation)
+
+	// GIVEN we have sync'ed a managed cluster Thanos endpoint
+	// WHEN we call deleteClusterThanosEndpoint
+	// THEN the resources we created during sync are cleaned up
+	err = r.deleteClusterThanosEndpoint(context.TODO(), vmc)
+	assert.NoError(t, err)
+
+	// ServiceEntry and DestinationRule should be gone
+	se := &istioclinet.ServiceEntry{}
+	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: managedClusterName}, se)
+	assert.True(t, k8serrors.IsNotFound(err))
+
+	dr := &istioclinet.DestinationRule{}
+	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: managedClusterName}, dr)
+	assert.True(t, k8serrors.IsNotFound(err))
+}
+
 func makeThanosTestScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	_ = v1beta1.AddToScheme(scheme)
-	_ = v1.AddToScheme(scheme)
+	v1beta1.AddToScheme(scheme)
+	corev1.AddToScheme(scheme)
+	appsv1.AddToScheme(scheme)
 	istioclinet.AddToScheme(scheme)
 	k8sapiext.AddToScheme(scheme)
 	return scheme
@@ -192,7 +271,7 @@ func makeThanosEnabledVerrazzano() *v1beta1.Verrazzano {
 	}
 }
 
-func makeThanosConfigMapWithExistingHosts(t *testing.T, hosts []string, useValidConfigMap bool) *v1.ConfigMap {
+func makeThanosConfigMapWithExistingHosts(t *testing.T, hosts []string, useValidConfigMap bool) *corev1.ConfigMap {
 	var yamlExistingHostInfo []byte
 	var err error
 	if useValidConfigMap {
@@ -206,7 +285,7 @@ func makeThanosConfigMapWithExistingHosts(t *testing.T, hosts []string, useValid
 	} else {
 		yamlExistingHostInfo = []byte("- targets: garbledTextHere")
 	}
-	return &v1.ConfigMap{
+	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{Namespace: thanos.ComponentNamespace, Name: ThanosManagedClusterEndpointsConfigMap},
 		Data: map[string]string{
 			serviceDiscoveryKey: string(yamlExistingHostInfo),
@@ -215,7 +294,7 @@ func makeThanosConfigMapWithExistingHosts(t *testing.T, hosts []string, useValid
 }
 
 func assertThanosEndpointsConfigMap(ctx context.Context, t *testing.T, cli client.WithWatch, expectNumHosts int, host string, hostShoudExist bool) {
-	modifiedConfigMap := &v1.ConfigMap{}
+	modifiedConfigMap := &corev1.ConfigMap{}
 	err := cli.Get(ctx, types.NamespacedName{Namespace: thanos.ComponentNamespace, Name: ThanosManagedClusterEndpointsConfigMap}, modifiedConfigMap)
 	assert.NoError(t, err)
 	// make sure "targets" element is serialized in lower case in the config map
@@ -384,8 +463,9 @@ func TestCreateDestinationRule(t *testing.T) {
 		Client: cli,
 		log:    log,
 	}
+	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{ObjectMeta: metav1.ObjectMeta{Name: managedClusterName}}
 
-	err := r.createOrUpdateDestinationRule(managedClusterName, host, port)
+	err := r.createOrUpdateDestinationRule(vmc, host, port)
 	assert.NoError(t, err)
 
 	dr := &istioclinet.DestinationRule{}
@@ -408,7 +488,7 @@ func TestCreateDestinationRule(t *testing.T) {
 		log:    log,
 	}
 
-	err = r.createOrUpdateDestinationRule(managedClusterName, host, port)
+	err = r.createOrUpdateDestinationRule(vmc, host, port)
 	assert.NoError(t, err)
 
 	assertThanosDestinationRule(t, r, managedClusterName, host, port)
@@ -425,8 +505,9 @@ func TestUpdateDestinationRule(t *testing.T) {
 	// GIVEN the DestinationRule exists
 	// WHEN  the createOrUpdateDestinationRule function is called
 	// THEN  the call does not return an error and the DestinationRule is updated
+	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{ObjectMeta: metav1.ObjectMeta{Name: managedClusterName}}
 	dr := &istioclinet.DestinationRule{ObjectMeta: metav1.ObjectMeta{Name: managedClusterName, Namespace: constants.VerrazzanoMonitoringNamespace}}
-	populateDestinationRule(dr, "bad-bad-host", port)
+	populateDestinationRule(dr, "bad-bad-host", port, vmc)
 
 	cli := fake.NewClientBuilder().WithScheme(makeThanosTestScheme()).WithRuntimeObjects(
 		&k8sapiext.CustomResourceDefinition{
@@ -441,7 +522,7 @@ func TestUpdateDestinationRule(t *testing.T) {
 		log:    log,
 	}
 
-	err := r.createOrUpdateDestinationRule(managedClusterName, host, port)
+	err := r.createOrUpdateDestinationRule(vmc, host, port)
 	assert.NoError(t, err)
 
 	assertThanosDestinationRule(t, r, managedClusterName, host, port)
@@ -470,8 +551,9 @@ func TestDeleteDestinationRule(t *testing.T) {
 	// GIVEN the DestinationRule exists
 	// WHEN  the deleteDestinationRule function is called
 	// THEN  the call does not return an error and the DestinationRule is deleted
+	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{ObjectMeta: metav1.ObjectMeta{Name: managedClusterName}}
 	dr := &istioclinet.DestinationRule{ObjectMeta: metav1.ObjectMeta{Name: managedClusterName, Namespace: constants.VerrazzanoMonitoringNamespace}}
-	populateDestinationRule(dr, host, port)
+	populateDestinationRule(dr, host, port, vmc)
 
 	cli = fake.NewClientBuilder().WithScheme(makeThanosTestScheme()).WithRuntimeObjects(
 		&k8sapiext.CustomResourceDefinition{
@@ -517,4 +599,5 @@ func assertThanosDestinationRule(t *testing.T, r *VerrazzanoManagedClusterReconc
 	assert.Equal(t, dr.Spec.Host, hostName)
 	assert.Equal(t, dr.Spec.TrafficPolicy.PortLevelSettings[0].Port.Number, portNum)
 	assert.Equal(t, dr.Spec.TrafficPolicy.PortLevelSettings[0].Tls.Mode, istionet.ClientTLSSettings_SIMPLE)
+	assert.Equal(t, dr.Spec.TrafficPolicy.PortLevelSettings[0].Tls.Sni, hostName)
 }
