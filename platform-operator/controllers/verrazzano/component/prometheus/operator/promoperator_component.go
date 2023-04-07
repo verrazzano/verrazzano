@@ -45,8 +45,7 @@ const (
 	prometheusHostName        = "prometheus.vmi.system"
 	prometheusCertificateName = "system-tls-prometheus"
 
-	istioPrometheus         = "prometheus-server"
-	legacyPrometheusIngress = "vmi-systm-prometheus"
+	istioPrometheus = "prometheus-server"
 )
 
 type prometheusComponent struct {
