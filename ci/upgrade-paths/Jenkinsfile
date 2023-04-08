@@ -960,7 +960,8 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
                     kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
 
                     echo "Applying \$verrazzanoConfig"
-                    kubectl apply -f ${verrazzanoConfig}
+                    # validate is set to false since we are using newer Verrazzano CR yaml when installing an older pre-upgrade version
+                    kubectl apply --validate=false -f ${verrazzanoConfig}
 
                     # wait for Verrazzano install to complete
                     ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
