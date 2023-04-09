@@ -1113,7 +1113,7 @@ def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
                     # Do the upgrade
                     echo "Following is the verrazzano CR file with the new version:"
                     cat ${v8oUpgradeFile}
-                    kubectl patch verrazzano my-verrazzano -p '{"spec":{"version":"'${verrazzanoDevVersion}'"}}' --type=merge
+                    kubectl --kubeconfig=${kubeClusterConfig} patch verrazzano my-verrazzano -p '{"spec":{"version":"'${verrazzanoDevVersion}'"}}' --type=merge
                     # wait for the upgrade to complete
                     kubectl --kubeconfig=${kubeClusterConfig} wait --timeout=35m --for=condition=UpgradeComplete verrazzano/my-verrazzano
                 elif [ "${params.INSTALLATION_METHOD_UPGRADE}" == "vz cli" ]; then
