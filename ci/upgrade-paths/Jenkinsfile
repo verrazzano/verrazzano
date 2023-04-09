@@ -417,7 +417,7 @@ pipeline {
                     }
                 }
                 stage('upgrade-platform-operator using kubectl') {
-                    when { expression { return params.INSTALLATION_METHOD_PREUPGRADE == $KUBECTL } }
+                    when { expression { return params.INSTALLATION_METHOD_PREUPGRADE == "kubectl" } }
                     stages {
                         stage("upgrade-platform-operator") {
                             steps {
