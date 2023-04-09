@@ -14,9 +14,10 @@ def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 
 def KUBECTL = "kubectl"
 def VZ_CLI = "vz cli"
-def installationMethods = [ KUBECTL, VZ_CLI ]
-def installationMethodsPreupgrade = installationMethods.shuffled()
-def installationMethodsUpgrade = installationMethods.shuffled()
+def installationMethodsPreupgrade = [ KUBECTL, VZ_CLI ]
+Collections.shuffle(installationMethodsPreupgrade)
+def installationMethodsUpgrade = [ KUBECTL, VZ_CLI ]
+Collections.shuffle(installationMethodsUpgrade)
 
 installerFileName = "install-verrazzano.yaml"
 
