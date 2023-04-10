@@ -71,7 +71,7 @@ func IsIstioEnabled(cr runtime.Object) bool {
 //	Istio is explicitly disabled in the CR OR
 //	Istio is enabled but injection is explicitly disabled in the CR
 func IsIstioInjectionEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.Istio != nil && vzv1alpha1.Spec.Components.Istio.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.Istio.Enabled && (vzv1alpha1.Spec.Components.Istio.InjectionEnabled == nil || *vzv1alpha1.Spec.Components.Istio.InjectionEnabled)
 		}
