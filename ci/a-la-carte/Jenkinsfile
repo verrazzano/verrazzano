@@ -442,7 +442,7 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
                     }
                     steps {
-                        runGinkgo('examples/helidon')
+                        runGinkgoRandomize('examples/helidon')
                     }
                 }
             }
