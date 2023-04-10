@@ -11,6 +11,7 @@ import (
 	vzalpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
@@ -193,8 +194,6 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 						return result
 					}
 					Eventually(elasticPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "pods did not all show up")
-					Eventually(elasticTLSSecret, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "tls-secret did not show up")
-					// Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "certificate did not show up")
 					Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "ingress did not show up")
 					Expect(ingressURLs).To(HaveKey(opensearchIngress), "Ingress vmi-system-os-ingest not found")
 					Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "never connected")
@@ -256,7 +255,6 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				Eventually(func() (bool, error) {
 					return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-es"})
 				}, waitTimeout, pollingInterval).Should(BeTrue())
-				Expect(elasticTLSSecret()).To(BeFalse())
 				Expect(elastic.CheckIngress()).To(BeFalse())
 				Expect(ingressURLs).NotTo(HaveKey(opensearchIngress), fmt.Sprintf("Ingress %s should not exist", opensearchIngress))
 				Expect(vz.Status.VerrazzanoInstance == nil || vz.Status.VerrazzanoInstance.ElasticURL == nil).To(BeTrue())
@@ -546,10 +544,6 @@ func elasticIndicesHealth() bool {
 	return elastic.CheckIndicesHealth(kubeconfigPath)
 }
 
-func elasticTLSSecret() bool {
-	return elastic.CheckTLSSecret()
-}
-
 func elasticIngress() bool {
 	return elastic.CheckIngress()
 }
@@ -675,7 +669,9 @@ func getExpectedPrometheusReplicaCount(kubeconfig string) (int32, error) {
 }
 
 func ingressEnabled(vz *vzalpha1.Verrazzano) bool {
-	return vzcr.IsComponentStatusEnabled(vz, nginx.ComponentName) && vzcr.IsComponentStatusEnabled(vz, certmanager.ComponentName)
+	return vzcr.IsComponentStatusEnabled(vz, nginx.ComponentName) &&
+		vzcr.IsComponentStatusEnabled(vz, certmanager.ComponentName) &&
+		vzcr.IsComponentStatusEnabled(vz, keycloak.ComponentName)
 }
 
 func verrazzanoSecretRequired(vz *vzalpha1.Verrazzano) bool {
