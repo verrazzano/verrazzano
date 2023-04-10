@@ -242,8 +242,10 @@ func (c capiComponent) PreInstall(ctx spi.ComponentContext) error {
 		if len(cfg.Auth.Passphrase) != 0 {
 			os.Setenv("OCI_PASSPHRASE_B64", base64.StdEncoding.EncodeToString([]byte(cfg.Auth.Passphrase)))
 		}
-	} else {
+	} else if cfg.Auth.AuthType == InstancePrincipal {
 		os.Setenv("USE_INSTANCE_PRINCIPAL_B64", base64.StdEncoding.EncodeToString([]byte("true")))
+	} else {
+		return ctx.Log().ErrorfNewErr("Invalid authtype value %s found for oci.yaml in secret %s in the %s namespace", cfg.Auth.AuthType, ociDefaultSecret, constants.VerrazzanoInstallNamespace)
 	}
 
 	return nil
@@ -255,11 +257,11 @@ func (c capiComponent) Install(_ spi.ComponentContext) error {
 		return err
 	}
 
-	// TODO: version of OCI provider should come from the BOM. Is kubeadm optional?
+	// TODO: version of providers should come from the BOM. Is kubeadm optional?
 	// Set up the init options for the CAPI init.
 	initOptions := clusterapi.InitOptions{
-		BootstrapProviders:      []string{"ocne", "kubeadm"},
-		ControlPlaneProviders:   []string{"ocne", "kubeadm"},
+		BootstrapProviders:      []string{"ocne:v0.1.0", "kubeadm"},
+		ControlPlaneProviders:   []string{"ocne:v0.1.0", "kubeadm"},
 		InfrastructureProviders: []string{"oci:v0.8.0"},
 		TargetNamespace:         ComponentNamespace,
 	}
