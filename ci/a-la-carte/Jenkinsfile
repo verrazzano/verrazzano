@@ -309,6 +309,9 @@ pipeline {
                     yq -i eval '.spec.components.jaegerOperator.enabled = true' ${WORKSPACE}/appstack.yaml
                     kubectl apply -f ${WORKSPACE}/appstack.yaml
 
+                    # wait for Verrazzano install to start reconciling
+                    ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-reconciling.sh
+
                     # wait for Verrazzano install to complete
                     ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
 
@@ -399,6 +402,9 @@ pipeline {
                     yq -i eval '.spec.components.verrazzano.enabled = true' ${WORKSPACE}/appstack.yaml
                     yq -i eval '.spec.components.jaegerOperator.enabled = true' ${WORKSPACE}/appstack.yaml
                     kubectl apply -f ${WORKSPACE}/appstack.yaml
+
+                    # wait for Verrazzano install to start reconciling
+                    ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-reconciling.sh
 
                     # wait for Verrazzano install to complete
                     ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
