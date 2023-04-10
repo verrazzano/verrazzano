@@ -834,7 +834,7 @@ func IsOpenSearchEnabled(kubeconfigPath string) (bool, error) {
 	if vz != nil && vz.Spec.Components.Elasticsearch != nil && vz.Spec.Components.Elasticsearch.Enabled != nil {
 		return *vz.Spec.Components.Elasticsearch.Enabled, nil
 	}
-	return false, nil
+	return true, nil
 }
 
 // IsPrometheusAdapterEnabled returns false if the Prometheus Adapter component is not set, or the value of its Enabled field otherwise

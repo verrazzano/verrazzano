@@ -48,6 +48,28 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 		}
 	}
 
+	// Custom Code for checking ISM Policy...
+	MinimumVerrazzanoIt("If ISM already exists, then also default policy created.", func() {
+		Eventually(func() bool {
+			kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
+			isOSEnabled, err := pkg.IsOpenSearchEnabled(kubeconfigPath)
+			if err != nil {
+				pkg.Log(pkg.Error, err.Error())
+				return false
+			}
+			if isOSEnabled {
+				ismStatus, err := pkg.CheckISMPolicy()
+				if err != nil {
+					pkg.Log(pkg.Error, err.Error())
+					return false
+				}
+				return ismStatus
+
+			}
+			return true
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue(), "Expected not to find any old indices")
+	})
+
 	// GIVEN the OpenSearch pod
 	// WHEN the indices are retrieved
 	// THEN verify that they do not have the old indices
