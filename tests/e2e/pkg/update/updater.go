@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package update
@@ -189,6 +189,52 @@ func UpdateCRV1beta1(m CRModifierV1beta1) error {
 // update till it succeeds or timesout.
 func UpdateCRWithRetries(m CRModifier, pollingInterval, timeout time.Duration) {
 	RetryUpdate(m, "", true, pollingInterval, timeout)
+}
+
+// UpdateCRWithPlugins updates the CR with the given CRModifier.
+// update till it succeeds or timesout.
+func UpdateCRWithPlugins(m CRModifier, pollingInterval, timeout time.Duration) {
+	UpdatePlugins(m, "", true, pollingInterval, timeout)
+}
+
+// UpdatePlugins tries update with kubeconfigPath
+func UpdatePlugins(m CRModifier, kubeconfigPath string, waitForReady bool, pollingInterval, timeout time.Duration) {
+	gomega.Eventually(func() bool {
+		var err error
+		if kubeconfigPath == "" {
+			kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
+			if err != nil {
+				pkg.Log(pkg.Error, err.Error())
+				return false
+			}
+		}
+
+		cr, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+			return false
+		}
+		// Modify the CR
+		m.ModifyCR(cr)
+		config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+			return false
+		}
+		addWarningHandlerIfNecessary(m, config)
+		client, err := vpoClient.NewForConfig(config)
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+			return false
+		}
+		vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
+		_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+			return false
+		}
+		return true
+	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
 }
 
 // RetryUpdate tries update with kubeconfigPath
