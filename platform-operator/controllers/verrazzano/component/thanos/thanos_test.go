@@ -135,19 +135,19 @@ func TestAppendOverrides(t *testing.T) {
 		`queryFrontend.ingress.annotations.nginx\.ingress\.kubernetes\.io/session-cookie-name`: queryHostName,
 		"query.ingress.grpc.namespace":                                                         constants.VerrazzanoSystemNamespace,
 		"query.ingress.grpc.ingressClassName":                                                  "verrazzano-nginx",
-		"query.ingress.grpc.extraRules[0].host":                                                "query-store.default.11.22.33.44.nip.io",
+		"query.ingress.grpc.extraRules[0].host":                                                "thanos-query-store.default.11.22.33.44.nip.io",
 		"query.ingress.grpc.extraRules[0].http.paths[0].backend.service.name":                  constants.VerrazzanoAuthProxyServiceName,
 		"query.ingress.grpc.extraRules[0].http.paths[0].backend.service.port.number":           strconv.Itoa(constants.VerrazzanoAuthProxyGRPCServicePort),
 		"query.ingress.grpc.extraRules[0].http.paths[0].path":                                  "/",
 		"query.ingress.grpc.extraRules[0].http.paths[0].pathType":                              string(netv1.PathTypeImplementationSpecific),
-		"query.ingress.grpc.extraTls[0].hosts[0]":                                              "query-store.default.11.22.33.44.nip.io",
+		"query.ingress.grpc.extraTls[0].hosts[0]":                                              "thanos-query-store.default.11.22.33.44.nip.io",
 		"query.ingress.grpc.extraTls[0].secretName":                                            queryStoreCertificateName,
 	}
 	sslipioKVs := map[string]string{
 		"queryFrontend.ingress.extraRules[0].host":   "thanos-query.default.11.22.33.44.sslip.io",
 		"queryFrontend.ingress.extraTls[0].hosts[0]": "thanos-query.default.11.22.33.44.sslip.io",
-		"query.ingress.grpc.extraRules[0].host":      "query-store.default.11.22.33.44.sslip.io",
-		"query.ingress.grpc.extraTls[0].hosts[0]":    "query-store.default.11.22.33.44.sslip.io",
+		"query.ingress.grpc.extraRules[0].host":      "thanos-query-store.default.11.22.33.44.sslip.io",
+		"query.ingress.grpc.extraTls[0].hosts[0]":    "thanos-query-store.default.11.22.33.44.sslip.io",
 	}
 	istioEnabledKV := map[string]string{
 		"verrazzano.isIstioEnabled": "true",
@@ -162,8 +162,8 @@ func TestAppendOverrides(t *testing.T) {
 		"queryFrontend.ingress.extraTls[0].hosts[0]":                                   "thanos-query.default.mydomain.com",
 		`queryFrontend.ingress.annotations.external-dns\.alpha\.kubernetes\.io/target`: "verrazzano-ingress.default.mydomain.com",
 		`queryFrontend.ingress.annotations.external-dns\.alpha\.kubernetes\.io/ttl`:    "60",
-		"query.ingress.grpc.extraRules[0].host":                                        "query-store.default.mydomain.com",
-		"query.ingress.grpc.extraTls[0].hosts[0]":                                      "query-store.default.mydomain.com",
+		"query.ingress.grpc.extraRules[0].host":                                        "thanos-query-store.default.mydomain.com",
+		"query.ingress.grpc.extraTls[0].hosts[0]":                                      "thanos-query-store.default.mydomain.com",
 		`query.ingress.grpc.annotations.external-dns\.alpha\.kubernetes\.io/target`:    "verrazzano-ingress.default.mydomain.com",
 		`query.ingress.grpc.annotations.external-dns\.alpha\.kubernetes\.io/ttl`:       "60",
 	}
