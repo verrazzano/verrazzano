@@ -134,7 +134,7 @@ func getExpectedConsoleURLs(kubeConfig string) ([]string, error) {
 		// The Thanos Store API endpoints are not stored in the Verrazzano instance and can be ignored
 		if strings.HasPrefix(ingressHost, "elasticsearch") ||
 			strings.HasPrefix(ingressHost, "kibana") ||
-			strings.HasPrefix(ingressHost, "query-store") {
+			strings.HasPrefix(ingressHost, "thanos-query-store") {
 			continue
 		}
 		// Any verrazzano-managed ingresses in the Rancher namespace are created for managed clusters to be
