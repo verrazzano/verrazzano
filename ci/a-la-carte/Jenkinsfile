@@ -439,10 +439,10 @@ pipeline {
                 }
                 stage('examples helidon') {
                     environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra/vmi"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
                     }
                     steps {
-                        runGinkgoRandomize('verify-infra/vmi')
+                        runGinkgo('examples/helidon')
                     }
                 }
             }
