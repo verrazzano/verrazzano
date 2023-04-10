@@ -38,7 +38,7 @@ const (
 	capiociCMDeployment                 = "capoci-controller-manager"
 )
 
-var capiDeployments = []types.NamespacedName{ // TODO: add OLCNE deployments
+var capiDeployments = []types.NamespacedName{
 	{
 		Name:      capiCMDeployment,
 		Namespace: ComponentNamespace,
@@ -63,6 +63,20 @@ var capiDeployments = []types.NamespacedName{ // TODO: add OLCNE deployments
 		Name:      capiociCMDeployment,
 		Namespace: ComponentNamespace,
 	},
+}
+
+type CAPIInitFuncType = func(path string, options ...clusterapi.Option) (clusterapi.Client, error)
+
+var capiInitFunc = clusterapi.New
+
+// SetCAPIInitFunc For unit testing, override the CAPI init function
+func SetCAPIInitFunc(f CAPIInitFuncType) {
+	capiInitFunc = f
+}
+
+// ResetCAPIInitFunc For unit testing, reset the CAPI init function to its default
+func ResetCAPIInitFunc() {
+	capiInitFunc = clusterapi.New
 }
 
 type capiComponent struct {
@@ -181,7 +195,7 @@ func (c capiComponent) PreInstall(ctx spi.ComponentContext) error {
 }
 
 func (c capiComponent) Install(_ spi.ComponentContext) error {
-	capiClient, err := clusterapi.New("")
+	capiClient, err := capiInitFunc("")
 	if err != nil {
 		return err
 	}
@@ -212,7 +226,7 @@ func (c capiComponent) PreUninstall(_ spi.ComponentContext) error {
 }
 
 func (c capiComponent) Uninstall(_ spi.ComponentContext) error {
-	capiClient, err := clusterapi.New("")
+	capiClient, err := capiInitFunc("")
 	if err != nil {
 		return err
 	}
