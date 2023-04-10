@@ -40,7 +40,8 @@ var (
 	clusterDump        = dump.NewClusterDumpWrapper(t, generatedNamespace)
 	expectedPods       = []string{"mysql",
 		"tododomain-adminserver"}
-	host = ""
+	host        = ""
+	metricsTest pkg.MetricsTest
 )
 
 var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
@@ -102,6 +103,16 @@ var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
 		host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 		return host, err
 	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Todo List Application Failed to Deploy: Gateway is not ready")
+
+	kubeconfig, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to get the Kubeconfig location for the cluster: %v", err))
+	}
+	metricsTest, err = pkg.NewMetricsTest([]string{kubeconfig}, kubeconfig, map[string]string{})
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
+	}
+
 	metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 
 })
@@ -330,12 +341,12 @@ var _ = t.Describe("ToDo List test", Label("f:app-lcm.oam",
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("wls_jvm_process_cpu_load", "app_oam_dev_name", "todo-appconf")
+						return metricsTest.MetricsExist("wls_jvm_process_cpu_load", map[string]string{"app_oam_dev_name": "todo-appconf"})
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find metrics for todo-list")
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "app_oam_dev_name", "todo-appconf")
+						return metricsTest.MetricsExist("wls_scrape_mbeans_count_total", map[string]string{"app_oam_dev_name": "todo-appconf"})
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find metrics for todo-list")
 				},
 			)

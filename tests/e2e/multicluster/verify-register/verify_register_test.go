@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package register_test
@@ -9,15 +9,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vmcClient "github.com/verrazzano/verrazzano/cluster-operator/clientset/versioned"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
@@ -39,15 +38,23 @@ const multiclusterNamespace = "verrazzano-mc"
 const verrazzanoSystemNamespace = "verrazzano-system"
 
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
+var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 var vmiEsIngressURL = getVmiEsIngressURL()
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var externalEsURL = pkg.GetExternalOpenSearchURL(adminKubeconfig)
+var metricsTest pkg.MetricsTest
 
 var t = framework.NewTestFramework("register_test")
 
 var afterSuite = t.AfterSuiteFunc(func() {})
 var _ = AfterSuite(afterSuite)
-var beforeSuite = t.BeforeSuiteFunc(func() {})
+var beforeSuite = t.BeforeSuiteFunc(func() {
+	var err error
+	metricsTest, err = pkg.NewMetricsTest([]string{adminKubeconfig, managedKubeconfig}, adminKubeconfig, map[string]string{})
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
+	}
+})
 var _ = BeforeSuite(beforeSuite)
 var _ = t.AfterEach(func() {})
 
@@ -249,8 +256,8 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			}
 			clusterNameMetricsLabel := getClusterNameMetricLabel(adminKubeconfig)
 			pkg.Log(pkg.Info, fmt.Sprintf("Looking for metric with label %s with value %s", clusterNameMetricsLabel, managedClusterName))
-			Eventually(func() bool {
-				return pkg.MetricsExist("up", clusterNameMetricsLabel, managedClusterName)
+			Eventually(func() (bool, error) {
+				return metricsTest.MetricsExist("up", map[string]string{clusterNameMetricsLabel: managedClusterName}), nil
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find metrics from managed cluster")
 		})
 
@@ -282,7 +289,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 
 	t.Context("Managed Cluster", func() {
 		t.BeforeEach(func() {
-			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("MANAGED_KUBECONFIG"))
+			os.Setenv(k8sutil.EnvVarTestKubeConfig, managedKubeconfig)
 		})
 
 		t.It("has the expected secrets", func() {

@@ -1,16 +1,17 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package system
 
 import (
-	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
+	"fmt"
 	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
 
@@ -30,6 +31,8 @@ var t = framework.NewTestFramework("jaeger_mc_system_test")
 var (
 	adminKubeConfigPath = os.Getenv("ADMIN_KUBECONFIG")
 	clusterName         = os.Getenv("CLUSTER_NAME")
+	clusterNameLabel    string
+	metricsTest         pkg.MetricsTest
 	failed              = false
 )
 
@@ -39,6 +42,20 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if adminKubeConfigPath == "" {
 		AbortSuite("Required env variable ADMIN_KUBECONFIG not set.")
 	}
+
+	var err error
+	clusterNameLabel, err = pkg.GetClusterNameMetricLabel(adminKubeConfigPath)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to get cluster label for metric collection: %v", err))
+	}
+
+	m := make(map[string]string)
+	m[clusterNameLabel] = getClusterName()
+	metricsTest, err = pkg.NewMetricsTest([]string{adminKubeConfigPath}, adminKubeConfigPath, m)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
+	}
+
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -74,7 +91,7 @@ var _ = t.Describe("Multi Cluster Jaeger Validation", Label("f:platform-lcm.inst
 	//      from the prometheus service running admin cluster.
 	t.It("metrics of jaeger operator running in managed cluster are available in prometheus of admin cluster", func() {
 		Eventually(func() bool {
-			return pkg.IsJaegerMetricFound(adminKubeConfigPath, jaegerOperatorSampleMetric, getClusterName(), nil)
+			return metricsTest.MetricsExist(jaegerOperatorSampleMetric, map[string]string{})
 		}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
 
@@ -84,7 +101,7 @@ var _ = t.Describe("Multi Cluster Jaeger Validation", Label("f:platform-lcm.inst
 	//      from the prometheus service running admin cluster.
 	t.It("metrics of jaeger collector running in managed cluster are available in prometheus of admin cluster", func() {
 		Eventually(func() bool {
-			return pkg.IsJaegerMetricFound(adminKubeConfigPath, jaegerCollectorSampleMetric, getClusterName(), nil)
+			return metricsTest.MetricsExist(jaegerCollectorSampleMetric, map[string]string{})
 		}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
 })
