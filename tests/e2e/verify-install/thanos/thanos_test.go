@@ -88,7 +88,7 @@ var _ = t.Describe("Thanos", Label("f:platform-lcm.install"), func() {
 		// THEN we successfully find the ingresses in the cluster
 		WhenThanosInstalledIt("query store and query frontend ingresses exist", func() {
 			Eventually(func() (bool, error) {
-				ingresses := []string{"thanos-query-frontend", "thanos-grpc"}
+				ingresses := []string{"thanos-query-frontend", "thanos-query-store"}
 				return pkg.IngressesExist(inClusterVZ, constants.VerrazzanoSystemNamespace, ingresses)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected Thanos Ingresses should exist")
 		})

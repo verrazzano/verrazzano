@@ -37,7 +37,7 @@ var validSecret = corev1.Secret{
 }
 
 const testManagedPrometheusHost = "prometheus"
-const testManagedThanosQueryStoreAPIHost = "thanos-grpc.example.com"
+const testManagedThanosQueryStoreAPIHost = "thanos-query-store.example.com"
 
 // TestProcessAgentThreadNoProjects tests agent thread when no projects exist
 // GIVEN a request to process the agent loop
