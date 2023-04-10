@@ -4,6 +4,9 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
+vpo="verrazzano-platform-operator"
+namespace="verrazzano-install"
+
 function create-kubeconfig {
   # Get the version of the Kubernetes server
   version=$(kubectl version -o json | jq -rj '.serverVersion|.major,".",.minor')
@@ -13,17 +16,17 @@ function create-kubeconfig {
   if [[ "$version" > "1.23" ]]
   then
     kubectl apply -f /verrazzano/platform-operator/scripts/install/vpo-secret.yaml > /dev/null
-    secret="verrazzano-platform-operator"
+    secret=$vpo
   else
     # Get the name of secret from the serviceAccount.
-    secret=$(kubectl get serviceAccount verrazzano-platform-operator -n verrazzano-install -o=jsonpath='{.secrets[0].name}')
+    secret=$(kubectl get serviceAccount $vpo -n $namespace -o=jsonpath='{.secrets[0].name}')
   fi
 
   # Get the certificate for accessing the kubernetes cluster
-  ca=$(kubectl get secret $secret -n verrazzano-install -o=jsonpath='{.data.ca\.crt}')
+  ca=$(kubectl get secret $secret -n $namespace -o=jsonpath='{.data.ca\.crt}')
 
   # Get the user token
-  token=$(kubectl get secret $secret -n verrazzano-install -o=jsonpath='{.data.token}' | base64 --decode)
+  token=$(kubectl get secret $secret -n $namespace -o=jsonpath='{.data.token}' | base64 --decode)
 
   # Get the endpoint for the kubernetes API server
   # The sed command is to strip out color escape sequences
