@@ -369,7 +369,7 @@ pipeline {
         }
 
 
-        stage('Install Isito App stack') {
+        stage('Install Istio App stack') {
             environment {
                 KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
@@ -448,7 +448,7 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
                     }
                     steps {
-                        runGinkgoRandomize('examples/helidon')
+                        runGinkgo('examples/helidon')
                     }
                 }
             }
@@ -651,3 +651,13 @@ def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
         """
     }
 }
+
+def runGinkgo(testSuitePath) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
+    }
+}
+
