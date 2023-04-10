@@ -419,6 +419,9 @@ func (r *VerrazzanoManagedClusterReconciler) mutateManagedClusterCACertsSecret(c
 func (r *VerrazzanoManagedClusterReconciler) syncManagedMetrics(ctx context.Context, log vzlog.VerrazzanoLogger, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
 	// We need to sync the multicluster CA secret for Prometheus and Thanos
 	caSecret, err := r.syncMultiClusterCASecret(ctx, log, vmc)
+	if err != nil {
+		r.handleError(ctx, vmc, "Failed to sync the multicluster CA secret", err, log)
+	}
 
 	thanosEnabled, err := r.isThanosEnabled()
 	if err != nil {
