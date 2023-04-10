@@ -867,7 +867,7 @@ func IsIngressEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	if vz.Spec.Components.Ingress == nil || vz.Spec.Components.Ingress.Enabled == nil {
-		return vz.Spec.Profile != v1alpha1.None
+		return false
 	}
 	return *vz.Spec.Components.Ingress.Enabled
 }

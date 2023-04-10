@@ -141,17 +141,17 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	Eventually(func() error {
 		ingressURLs, err = getIngressURLs()
 		return err
-	}, waitTimeout, pollingInterval).Should(BeNil())
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
 		volumeClaims, err = pkg.GetPersistentVolumeClaims(verrazzanoNamespace)
 		return err
-	}, waitTimeout, pollingInterval).Should(BeNil())
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
 		vzMonitoringVolumeClaims, err = pkg.GetPersistentVolumeClaims(constants.VerrazzanoMonitoringNamespace)
 		return err
-	}, waitTimeout, pollingInterval).Should(BeNil())
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	elastic = vmi.GetOpensearch("system")
 	if verrazzanoSecretRequired(vz) {
@@ -207,7 +207,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 					func() {
 						if os.Getenv("TEST_ENV") != "LRE" {
 							indexName, err := pkg.GetOpenSearchSystemIndex(verrazzanoNamespace)
-							Expect(err).To(BeNil())
+							Expect(err).ShouldNot(HaveOccurred())
 							pkg.Concurrently(
 								func() {
 									Eventually(func() bool {
@@ -239,7 +239,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				t.It("systemd journal Index is accessible", Label("f:observability.logging.es"),
 					func() {
 						indexName, err := pkg.GetOpenSearchSystemIndex("systemd-journal")
-						Expect(err).To(BeNil())
+						Expect(err).ShouldNot(HaveOccurred())
 						Eventually(func() bool {
 							return pkg.FindAnyLog(indexName,
 								[]pkg.Match{
@@ -344,6 +344,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 					Expect(ingressURLs).To(HaveKey("vmi-system-grafana"), "Ingress vmi-system-grafana not found")
 					Expect(vz.Status.VerrazzanoInstance.GrafanaURL).ToNot(BeNil())
 				})
+
 				t.It("Default dashboard should be installed in System Grafana for shared VMI",
 					Label("f:observability.monitoring.graf"), func() {
 						pkg.Concurrently(

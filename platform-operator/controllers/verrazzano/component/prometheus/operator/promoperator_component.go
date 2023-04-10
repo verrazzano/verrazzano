@@ -76,19 +76,19 @@ func NewComponent() spi.Component {
 
 // IsEnabled returns true if the Prometheus Operator is enabled or if the component is not specified
 // in the Verrazzano CR.
-func (p prometheusComponent) IsEnabled(effectiveCR runtime.Object) bool {
+func (c prometheusComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzcr.IsPrometheusOperatorEnabled(effectiveCR)
 }
 
 // IsReady checks if the Prometheus Operator deployment is ready
-func (p prometheusComponent) IsReady(ctx spi.ComponentContext) bool {
-	if p.HelmComponent.IsReady(ctx) {
+func (c prometheusComponent) IsReady(ctx spi.ComponentContext) bool {
+	if c.HelmComponent.IsReady(ctx) {
 		return isPrometheusOperatorReady(ctx)
 	}
 	return false
 }
 
-func (p prometheusComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {
+func (c prometheusComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {
 	listOptions, err := prometheusOperatorListOptions()
 	if err != nil {
 		return err.Error(), vzapi.ComponentUnavailable
@@ -97,7 +97,7 @@ func (p prometheusComponent) IsAvailable(ctx spi.ComponentContext) (reason strin
 }
 
 // MonitorOverrides checks whether monitoring is enabled for install overrides sources
-func (p prometheusComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+func (c prometheusComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	if ctx.EffectiveCR().Spec.Components.PrometheusOperator == nil {
 		return false
 	}
@@ -108,48 +108,48 @@ func (p prometheusComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 }
 
 // PreInstall updates resources necessary for the Prometheus Operator Component installation
-func (p prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
+func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := preInstallUpgrade(ctx); err != nil {
 		return err
 	}
-	return p.HelmComponent.PreInstall(ctx)
+	return c.HelmComponent.PreInstall(ctx)
 }
 
 // PreUpgrade updates resources necessary for the Prometheus Operator Component installation
-func (p prometheusComponent) PreUpgrade(ctx spi.ComponentContext) error {
+func (c prometheusComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := deleteNetworkPolicy(ctx); err != nil {
 		return err
 	}
 	if err := preInstallUpgrade(ctx); err != nil {
 		return err
 	}
-	return p.HelmComponent.PreUpgrade(ctx)
+	return c.HelmComponent.PreUpgrade(ctx)
 }
 
 // PostInstall creates/updates associated resources after this component is installed
-func (p prometheusComponent) PostInstall(ctx spi.ComponentContext) error {
+func (c prometheusComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := postInstallUpgrade(ctx); err != nil {
 		return err
 	}
 
 	// these need to be set for helm component post install processing
-	p.IngressNames = p.GetIngressNames(ctx)
-	p.Certificates = p.GetCertificateNames(ctx)
+	c.IngressNames = c.GetIngressNames(ctx)
+	c.Certificates = c.GetCertificateNames(ctx)
 
-	return p.HelmComponent.PostInstall(ctx)
+	return c.HelmComponent.PostInstall(ctx)
 }
 
 // PostInstall creates/updates associated resources after this component is upgraded
-func (p prometheusComponent) PostUpgrade(ctx spi.ComponentContext) error {
+func (c prometheusComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := postInstallUpgrade(ctx); err != nil {
 		return err
 	}
 
-	return p.HelmComponent.PostUpgrade(ctx)
+	return c.HelmComponent.PostUpgrade(ctx)
 }
 
 // ValidateInstall verifies the installation of the Verrazzano object
-func (p prometheusComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+func (c prometheusComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	convertedVZ := installv1beta1.Verrazzano{}
 	if err := common.ConvertVerrazzanoCR(vz, &convertedVZ); err != nil {
 		return err
@@ -157,33 +157,33 @@ func (p prometheusComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	if err := checkExistingCNEPrometheus(vz); err != nil {
 		return err
 	}
-	return p.validatePrometheusOperator(&convertedVZ)
+	return c.validatePrometheusOperator(&convertedVZ)
 }
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
-func (p prometheusComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c prometheusComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	convertedVZ := installv1beta1.Verrazzano{}
 	if err := common.ConvertVerrazzanoCR(new, &convertedVZ); err != nil {
 		return err
 	}
-	return p.validatePrometheusOperator(&convertedVZ)
+	return c.validatePrometheusOperator(&convertedVZ)
 }
 
 // ValidateInstall verifies the installation of the Verrazzano object
-func (p prometheusComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+func (c prometheusComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
 	if err := checkExistingCNEPrometheus(vz); err != nil {
 		return err
 	}
-	return p.validatePrometheusOperator(vz)
+	return c.validatePrometheusOperator(vz)
 }
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
-func (p prometheusComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	return p.validatePrometheusOperator(new)
+func (c prometheusComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return c.validatePrometheusOperator(new)
 }
 
 // getIngressNames - gets the names of the ingresses associated with this component
-func (p prometheusComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
+func (c prometheusComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var ingressNames []types.NamespacedName
 	if !vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) || !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
 		return ingressNames
@@ -200,7 +200,7 @@ func (p prometheusComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 }
 
 // getCertificateNames - gets the names of the TLS ingress certificates associated with this component
-func (p prometheusComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
+func (c prometheusComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var certificateNames []types.NamespacedName
 
 	if !vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) || !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
@@ -232,7 +232,7 @@ func checkExistingCNEPrometheus(vz runtime.Object) error {
 }
 
 // PostUninstall is the Prometheus Operator PostInstall SPI function
-func (p prometheusComponent) PostUninstall(ctx spi.ComponentContext) error {
+func (c prometheusComponent) PostUninstall(ctx spi.ComponentContext) error {
 	// delete the legacy prometheus ingress
 	ingress := &networkv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
