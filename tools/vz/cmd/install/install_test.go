@@ -59,6 +59,9 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 	vz := v1alpha1.Verrazzano{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
+
+	expectedLastAppliedConfigAnnotation := "{\"apiVersion\":\"install.verrazzano.io/v1alpha1\",\"kind\":\"Verrazzano\",\"metadata\":{\"annotations\":{},\"name\":\"verrazzano\",\"namespace\":\"default\"}}\n"
+	testhelpers.VerifyLastAppliedConfigAnnotation(t, vz.ObjectMeta, expectedLastAppliedConfigAnnotation)
 }
 
 // TestInstallCmdDefaultTimeoutBugReport
@@ -83,7 +86,7 @@ func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for install to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
-	if !helpers.CheckBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -112,7 +115,7 @@ func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for install to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
 	// Bug report must not exist
-	if helpers.CheckBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal("found bug report file in current directory")
 	}
 }
@@ -121,7 +124,7 @@ func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 // GIVEN a CLI install command with all defaults and no VPO found
 //
 //	WHEN I call cmd.Execute for install
-//	THEN the CLI install command fails
+//	THEN the CLI install command fails and a bug report should be generated
 func TestInstallCmdDefaultNoVPO(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
@@ -137,13 +140,16 @@ func TestInstallCmdDefaultNoVPO(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
 	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
+	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+		t.Fatal(BugReportNotExist)
+	}
 }
 
 // TestInstallCmdDefaultMultipleVPO
 // GIVEN a CLI install command with all defaults and multiple VPOs found
 //
 //	WHEN I call cmd.Execute for install
-//	THEN the CLI install command fails
+//	THEN the CLI install command fails and a bug report should be generated
 func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator+"-2"))...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
@@ -159,6 +165,9 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
 	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
+	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+		t.Fatal(BugReportNotExist)
+	}
 }
 
 // TestInstallCmdJsonLogFormat
@@ -189,7 +198,7 @@ func TestInstallCmdJsonLogFormat(t *testing.T) {
 // GIVEN a CLI install command with defaults and --wait=false and --filename specified and multiple group versions in the filenames
 //
 //	WHEN I call cmd.Execute for install
-//	THEN the CLI install command is unsuccessful
+//	THEN the CLI install command is unsuccessful and a bug report should be generated
 func TestInstallCmdMultipleGroupVersions(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
@@ -204,6 +213,9 @@ func TestInstallCmdMultipleGroupVersions(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "cannot merge objects with different group versions")
+	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+		t.Fatal(BugReportNotExist)
+	}
 }
 
 func TestInstallCmdFilenamesV1Beta1(t *testing.T) {
@@ -392,7 +404,7 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 // GIVEN an install command
 //
 //	WHEN invalid command options exist
-//	THEN expect an error
+//	THEN expect an error and a bug report should be generated
 func TestInstallValidations(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
@@ -404,6 +416,9 @@ func TestInstallValidations(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), fmt.Sprintf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.OperatorFileFlag))
+	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+		t.Fatal(BugReportNotExist)
+	}
 }
 
 // TestGetWaitTimeoutDefault
@@ -589,7 +604,7 @@ func TestInstallCmdAlreadyInstalled(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Only one install of Verrazzano is allowed")
-	if !helpers.CheckBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -624,7 +639,7 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Unable to install version v1.3.1, install of version v1.3.2 is in progress")
-	if !helpers.CheckBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }

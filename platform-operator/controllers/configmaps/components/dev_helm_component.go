@@ -5,13 +5,11 @@ package components
 
 import (
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
@@ -20,6 +18,7 @@ import (
 const (
 	devComponentConfigMapKindLabel         = "experimental.verrazzano.io/configmap-kind"
 	devComponentConfigMapKindHelmComponent = "HelmComponent"
+	devComponentConfigMapKindShimComponent = "ShimComponent"
 	devComponentConfigMapAPIVersionLabel   = "experimental.verrazzano.io/configmap-apiversion"
 	devComponentConfigMapAPIVersionv1beta2 = "v1beta2"
 	componentNameKey                       = "name"
@@ -69,34 +68,4 @@ func newDevHelmComponent(cm *v1.ConfigMap) (devComponent, error) {
 			ImagePullSecretKeyname: constants.GlobalImagePullSecName,
 		},
 	}, nil
-}
-
-func (d devComponent) doInstall(ctx spi.ComponentContext) error {
-	if err := d.PreInstall(ctx); err != nil {
-		return err
-	}
-	if err := d.Install(ctx); err != nil {
-		return err
-	}
-	return d.PostInstall(ctx)
-}
-
-func (d devComponent) doUpgrade(ctx spi.ComponentContext) error {
-	if err := d.PreUpgrade(ctx); err != nil {
-		return err
-	}
-	if err := d.Upgrade(ctx); err != nil {
-		return err
-	}
-	return d.PostUpgrade(ctx)
-}
-
-func (d devComponent) doUninstall(ctx spi.ComponentContext) error {
-	if err := d.PreUninstall(ctx); err != nil {
-		return err
-	}
-	if err := d.Uninstall(ctx); err != nil {
-		return err
-	}
-	return d.PostUninstall(ctx)
 }

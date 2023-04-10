@@ -262,3 +262,9 @@ const ServiceMonitorNameKubeStateMetrics = "kube-state-metrics"
 
 // VerrazzanoPlatformOperatorWebhook indicate the name of VPO webhook deployment name
 const VerrazzanoPlatformOperatorWebhook = "verrazzano-platform-operator-webhook"
+
+// ThanosInternalUserSecretName is the name of the secret used to store the VZ internal Thanos user credentials
+const ThanosInternalUserSecretName = "verrazzano-thanos-internal" //nolint:gosec //#gosec G101
+
+// ThanosInternalUserName is the name of the VZ internal Thanos user
+const ThanosInternalUserName = "verrazzano-thanos-internal"

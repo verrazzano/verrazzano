@@ -10,3 +10,6 @@ podSecurityContext:
   runAsUser: 10001
   seccompProfile:
     type: RuntimeDefault
+
+customLabels:
+  sidecar.istio.io/inject: 'false'

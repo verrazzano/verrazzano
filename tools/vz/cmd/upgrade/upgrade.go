@@ -5,6 +5,7 @@ package upgrade
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	"time"
 
@@ -157,6 +158,11 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 
 		// Wait for the platform operator to be ready before we update the verrazzano install resource
 		_, err = cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondUpgradeComplete, vpoTimeout)
+		if err != nil {
+			return err
+		}
+
+		err = kubectlutil.SetLastAppliedConfigurationAnnotation(vz)
 		if err != nil {
 			return err
 		}

@@ -73,6 +73,8 @@ alertmanager:
         securityContext:
           privileged: false
 prometheusOperator:
+  labels:
+    sidecar.istio.io/inject: 'false'
   admissionWebhooks:
     enabled: true
     patch:
@@ -729,3 +731,5 @@ kubeScheduler:
       - action: replace
         targetLabel: verrazzano_cluster
         replacement: local
+
+  sidecar.istio.io/inject: "false"

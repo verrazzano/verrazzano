@@ -36,12 +36,12 @@ const (
 	frontendDeployment = "thanos-query-frontend"
 )
 
-type thanosComponent struct {
+type ThanosComponent struct {
 	helm.HelmComponent
 }
 
 func NewComponent() spi.Component {
-	return thanosComponent{
+	return ThanosComponent{
 		helm.HelmComponent{
 			ReleaseName:               ComponentName,
 			JSONName:                  ComponentJSONName,
@@ -72,23 +72,23 @@ func NewComponent() spi.Component {
 }
 
 // IsReady component check for Thanos
-func (t thanosComponent) IsReady(ctx spi.ComponentContext) bool {
+func (t ThanosComponent) IsReady(ctx spi.ComponentContext) bool {
 	return t.HelmComponent.IsReady(ctx) && t.isThanosReady(ctx)
 }
 
 // isThanosReady returns true if the availability objects have the minimum number of expected replicas
-func (t thanosComponent) isThanosReady(ctx spi.ComponentContext) bool {
+func (t ThanosComponent) isThanosReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), t.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
 // IsEnabled Thanos enabled check for installation
-func (t thanosComponent) IsEnabled(effectiveCR runtime.Object) bool {
+func (t ThanosComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzcr.IsThanosEnabled(effectiveCR)
 }
 
 // PreInstall handles the pre-install operations for the Thanos component
-func (t thanosComponent) PreInstall(ctx spi.ComponentContext) error {
+func (t ThanosComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := preInstallUpgrade(ctx); err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func (t thanosComponent) PreInstall(ctx spi.ComponentContext) error {
 }
 
 // PreUpgrade handles the pre-upgrade operations for the Thanos component
-func (t thanosComponent) PreUpgrade(ctx spi.ComponentContext) error {
+func (t ThanosComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := preInstallUpgrade(ctx); err != nil {
 		return err
 	}
@@ -106,7 +106,7 @@ func (t thanosComponent) PreUpgrade(ctx spi.ComponentContext) error {
 }
 
 // GetIngressNames returns the Thanos ingress names
-func (t thanosComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
+func (t ThanosComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var ingressNames []types.NamespacedName
 	if !vzcr.IsThanosEnabled(ctx.EffectiveCR()) || !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
 		return ingressNames
@@ -126,7 +126,7 @@ func (t thanosComponent) GetIngressNames(ctx spi.ComponentContext) []types.Names
 }
 
 // GetCertificateNames returns the TLS secret for the Thanos component
-func (t thanosComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
+func (t ThanosComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var certificateNames []types.NamespacedName
 
 	if !vzcr.IsThanosEnabled(ctx.EffectiveCR()) || !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {

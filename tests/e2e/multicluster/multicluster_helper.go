@@ -519,7 +519,6 @@ func (c *Cluster) GetCR(waitForReady bool) *vzapi.Verrazzano {
 				return err
 			}
 			if cr.Status.State != vzapi.VzStateReady {
-				pkg.Log(pkg.Error, fmt.Sprintf("CR resource not ready yet: %v", cr))
 				return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
 			}
 			return nil
@@ -612,6 +611,14 @@ func (c *Cluster) PodLogs(ns, podName, container string, lines int64) string {
 
 func (c *Cluster) GetPrometheusIngress() string {
 	return pkg.GetPrometheusIngressHost(c.KubeConfigPath)
+}
+
+func (c *Cluster) GetThanosIngress() string {
+	return pkg.GetThanosQueryIngressHost(c.KubeConfigPath)
+}
+
+func (c *Cluster) GetQueryIngress() string {
+	return pkg.GetQueryStoreIngressHost(c.KubeConfigPath)
 }
 
 func newCluster(name, kubeCfgPath string) *Cluster {

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # Scan images in a specified BOM
@@ -129,6 +129,8 @@ function verify_prerequisites() {
   command -v grype >/dev/null 2>&1 || {
     usage 1 "grype scanner is not installed"
   }
+  echo "Grype installation directory: $(which grype)"
+  echo "Trivy installation directory: $(which trivy)"
 }
 
 while getopts 'hb:a:o:n:r:p:x:' opt; do

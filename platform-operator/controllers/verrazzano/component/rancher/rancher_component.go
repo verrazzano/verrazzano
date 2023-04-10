@@ -377,7 +377,6 @@ func (r rancherComponent) PreUpgrade(ctx spi.ComponentContext) error {
 // Install
 /* Installs the Helm chart, and patches the resulting objects
 - ensure Helm chart is installed
-- Patch Rancher deployment with MKNOD capability
 - Patch Rancher ingress with NGINX/TLS annotations
 */
 func (r rancherComponent) Install(ctx spi.ComponentContext) error {
@@ -386,11 +385,6 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed retrieving Rancher install component: %s", err.Error())
 	}
 	c := ctx.Client()
-	// Set MKNOD Cap on Rancher deployment
-	if err := patchRancherDeployment(c); err != nil {
-		return log.ErrorfThrottledNewErr("Failed patching Rancher deployment: %s", err.Error())
-	}
-	log.Debugf("Patched Rancher deployment to support MKNOD")
 	// Annotate Rancher ingress for NGINX/TLS
 	if err := patchRancherIngress(c, ctx.EffectiveCR()); err != nil {
 		return log.ErrorfThrottledNewErr("Failed patching Rancher ingress: %s", err.Error())

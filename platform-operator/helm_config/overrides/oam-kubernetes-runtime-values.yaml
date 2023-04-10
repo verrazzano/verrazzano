@@ -20,3 +20,6 @@ securityContext:
   capabilities:
     drop:
       - ALL
+
+extraLabels:
+  sidecar.istio.io/inject: "false"

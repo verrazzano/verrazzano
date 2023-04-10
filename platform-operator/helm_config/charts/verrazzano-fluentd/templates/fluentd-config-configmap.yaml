@@ -747,6 +747,11 @@ data:
         </pattern>
         # Log patterns for Jaeger operator
         <pattern>
+          format /^(?<logtime>.*?) (?<level>\S+?) (?<message>[\s\S]*?)$/
+          time_key logtime
+          time_type float
+        </pattern>
+        <pattern>
           format /^(?<logtime>.*?) (?<level>\S+?) (?<component>[\.\S]+?) (?<message>[\s\S]*?)$/
           time_key logtime
           time_type float
@@ -755,6 +760,9 @@ data:
           format /^time=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z) level=(?<level>.*?) message=(?<message>[\s\S]*?) error=(?<error>[\s\S]*?) execution=(?<executiontime>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+ \+\d{3} \w+?) instance=(?<instance>[\s\S]*?) namespace=(?<namespace>[\s\S]*?)$/
           time_key logtime
           time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format none
         </pattern>
       </parse>
     </filter>
