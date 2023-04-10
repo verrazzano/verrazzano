@@ -15,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -52,7 +53,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			ImagePullSecretKeyname:    "image.pullSecrets[0]",
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "thanos-values.yaml"),
-			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, promoperator.ComponentName},
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
 			AvailabilityObjects: &ready.AvailabilityObjects{
