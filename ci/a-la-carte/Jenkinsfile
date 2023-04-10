@@ -378,7 +378,7 @@ pipeline {
                     cp ${env.INSTALL_CONFIG_FILE_KIND_TESTS} ${env.INSTALL_CONFIG_FILE_KIND}
                     cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/appstack.yaml
                     cd ${GO_REPO_PATH}/verrazzano
-                    yq -i eval '.spec.components.istio.enabled = false' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.istio.enabled = true' ${WORKSPACE}/appstack.yaml
                     yq -i eval '.spec.components.kubeStateMetrics.enabled = false' ${WORKSPACE}/appstack.yaml
                     yq -i eval '.spec.components.prometheus.enabled = true' ${WORKSPACE}/appstack.yaml
                     yq -i eval '.spec.components.prometheusOperator.enabled = true' ${WORKSPACE}/appstack.yaml
