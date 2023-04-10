@@ -220,7 +220,7 @@ rm -rf prometheus-community/prometheus-node-exporter
 helm fetch prometheus-community/prometheus-node-exporter --untar=true --version=${PROMETHEUS_NODE_EXPORTER_CHART_VERSION}
 ```
 
-### Opensearch Operator
+### OpenSearch Operator
 
 The `opensearch-operator` folder was created by running the following commands:
 
