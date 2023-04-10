@@ -68,7 +68,7 @@ var _ = t.Describe("Pre Upgrade OpenSearch", Label("f:observability.logging.es")
 	if err != nil {
 		Expect(err).To(BeNil(), fmt.Sprintf(pkg.KubeConfigErrorFmt, err))
 	}
-	t.ItMinimumVersion("Verify OpenSearch plugins have been installed", "1.5.2", kubeConfigPath, func() {
+	t.ItMinimumVersion("Verify OpenSearch plugins have been installed", "1.5.3", kubeConfigPath, func() {
 		pkg.TestOpenSearchPlugins(pollingInterval, waitTimeout)
 	})
 })
