@@ -12,7 +12,6 @@ query:
         - ALL
   ingress:
     grpc:
-      name: thanos-query-store
       enabled: true
       annotations:
         kubernetes.io/tls-acme: "true"
