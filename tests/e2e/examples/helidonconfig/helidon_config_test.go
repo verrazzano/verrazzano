@@ -35,6 +35,7 @@ var (
 	t                  = framework.NewTestFramework("helidonconfig")
 	generatedNamespace = pkg.GenerateNamespace("helidon-config")
 	host               = ""
+	metricsTest        pkg.MetricsTest
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -112,6 +113,14 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Helidon Config: Gateway is not ready")
 	metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 
+	kubeconfig, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to get the Kubeconfig location for the cluster: %v", err))
+	}
+	metricsTest, err = pkg.NewMetricsTest([]string{kubeconfig}, kubeconfig, map[string]string{})
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
+	}
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -273,13 +282,13 @@ func helidonConfigPodsRunning() bool {
 }
 
 func appMetricsExists() bool {
-	return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "helidon-config")
+	return metricsTest.MetricsExist("base_jvm_uptime_seconds", map[string]string{"app": "helidon-config"})
 }
 
 func appComponentMetricsExists() bool {
-	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", "helidon-config-appconf")
+	return metricsTest.MetricsExist("vendor_requests_count_total", map[string]string{"app_oam_dev_name": "helidon-config-appconf"})
 }
 
 func appConfigMetricsExists() bool {
-	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "helidon-config-component")
+	return metricsTest.MetricsExist("vendor_requests_count_total", map[string]string{"app_oam_dev_component": "helidon-config-component"})
 }

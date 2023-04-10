@@ -893,7 +893,7 @@ def installVerrazzano() {
 
 def deleteVerrazzano() {
     sh """
-        $VZ_COMMAND uninstall --wait
+        $VZ_COMMAND uninstall -y --wait
     """
 }
 

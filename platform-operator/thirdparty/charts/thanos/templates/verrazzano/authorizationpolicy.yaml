@@ -18,6 +18,17 @@ spec:
             ports:
               - "10901"
               - "10902"
+    # allow Prometheus to scrape metrics from Thanos query-frontend
+    - from:
+        - source:
+            namespaces:
+              - verrazzano-monitoring
+            principals:
+              - cluster.local/ns/verrazzano-monitoring/sa/prometheus-operator-kube-p-prometheus
+      to:
+        - operation:
+            ports:
+              - "10902"
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}
@@ -51,6 +62,28 @@ spec:
         - operation:
             ports:
               - "10901"
+    # allow grafana to talk to query-frontend
+    - from:
+        - source:
+            namespaces:
+              - verrazzano-system
+            principals:
+              - cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator
+      to:
+        - operation:
+            ports:
+              - "10902"
+    # allow Prometheus to scrape metrics from Thanos query
+    - from:
+        - source:
+            namespaces:
+              - verrazzano-monitoring
+            principals:
+              - cluster.local/ns/verrazzano-monitoring/sa/prometheus-operator-kube-p-prometheus
+      to:
+        - operation:
+            ports:
+              - "10902"
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}

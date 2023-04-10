@@ -66,6 +66,24 @@ func IsIstioEnabled(cr runtime.Object) bool {
 	return true
 }
 
+// IsIstioInjectionEnabled - Returns false if either:
+//
+//	Istio is explicitly disabled in the CR OR
+//	Istio is enabled but injection is explicitly disabled in the CR
+func IsIstioInjectionEnabled(cr runtime.Object) bool {
+	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.Istio != nil && vzv1alpha1.Spec.Components.Istio.Enabled != nil {
+			return *vzv1alpha1.Spec.Components.Istio.Enabled && (vzv1alpha1.Spec.Components.Istio.InjectionEnabled == nil || *vzv1alpha1.Spec.Components.Istio.InjectionEnabled)
+		}
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 != nil && vzv1beta1.Spec.Components.Istio != nil && vzv1beta1.Spec.Components.Istio.Enabled != nil {
+			return *vzv1beta1.Spec.Components.Istio.Enabled && (vzv1beta1.Spec.Components.Istio.InjectionEnabled == nil || *vzv1beta1.Spec.Components.Istio.InjectionEnabled)
+		}
+	}
+
+	return true
+}
+
 // IsCertManagerEnabled - Returns false only if CertManager is explicitly disabled by the user
 func IsCertManagerEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {

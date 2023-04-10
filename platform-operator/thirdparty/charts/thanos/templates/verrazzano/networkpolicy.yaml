@@ -24,6 +24,33 @@ spec:
         # web ui port
         - port: 10902
           protocol: TCP
+    # allow grafana to talk to thanos-query-frontend
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - system-grafana
+      ports:
+        # http api port
+        - port: 10902
+          protocol: TCP
+    # allow Prometheus to scrape metrics from Thanos query-frontend
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        # api port
+        - port: 10902
+          protocol: TCP
   podSelector:
     matchLabels:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}
@@ -55,6 +82,18 @@ spec:
           protocol: TCP
         # storegateway API endpoint
         - port: 10901
+          protocol: TCP
+    # allow Prometheus to scrape metrics from Thanos query
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        # api port
+        - port: 10902
           protocol: TCP
   podSelector:
     matchLabels:

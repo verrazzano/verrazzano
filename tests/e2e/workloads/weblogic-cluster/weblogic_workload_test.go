@@ -48,6 +48,7 @@ var (
 	generatedNamespace = pkg.GenerateNamespace("hello-wls")
 	expectedPods       = []string{wlsAdminServer, wlsManagedServer1}
 	host               = ""
+	metricsTest        pkg.MetricsTest
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -133,6 +134,12 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return host, err
 	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Failed to deploy the WebLogic Application: Gateway is not ready")
 	metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
+
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	metricsTest, err = pkg.NewMetricsTest([]string{kubeconfigPath}, kubeconfigPath, map[string]string{})
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
+	}
 
 	beforeSuitePassed = true
 })
@@ -272,17 +279,17 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", wlDomain)
+						return metricsTest.MetricsExist("wls_jvm_process_cpu_load", map[string]string{"weblogic_domainName": wlDomain})
 					}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", wlDomain)
+						return metricsTest.MetricsExist("wls_scrape_mbeans_count_total", map[string]string{"weblogic_domainName": wlDomain})
 					}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("wls_server_state_val", "weblogic_domainName", wlDomain)
+						return metricsTest.MetricsExist("wls_server_state_val", map[string]string{"weblogic_domainName": wlDomain})
 					}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 			)
@@ -297,17 +304,17 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 				pkg.Concurrently(
 					func() {
 						Eventually(func() bool {
-							return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "hello-domain")
+							return metricsTest.MetricsExist("istio_tcp_received_bytes_total", map[string]string{"destination_canonical_service": "hello-domain"})
 						}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 					},
 					func() {
 						Eventually(func() bool {
-							return pkg.MetricsExist("envoy_cluster_http2_pending_send_bytes", "pod_name", wlsAdminServer)
+							return metricsTest.MetricsExist("envoy_cluster_http2_pending_send_bytes", map[string]string{"pod_name": wlsAdminServer})
 						}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
 					},
 					func() {
 						Eventually(func() bool {
-							return pkg.MetricsExist("envoy_cluster_http2_pending_send_bytes", "pod_name", wlsManagedServer1)
+							return metricsTest.MetricsExist("envoy_cluster_http2_pending_send_bytes", map[string]string{"pod_name": wlsManagedServer1})
 						}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
 					},
 				)

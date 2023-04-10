@@ -603,6 +603,72 @@ func TestIsIstioEnabled(t *testing.T) {
 		}}))
 }
 
+// TestIsIstioInjectionEnabled tests the IsIstioInjectionEnabled function
+// GIVEN a call to IsIstioInjectionEnabled
+//
+//	THEN return false if either Istio is disabled OR Injection is disabled, true otherwise
+func TestIsIstioInjectionEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.True(IsIstioInjectionEnabled(nil))
+	asserts.True(IsIstioInjectionEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.True(IsIstioInjectionEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Istio: &vzapi.IstioComponent{},
+			},
+		}}))
+	asserts.True(IsIstioInjectionEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Istio: &vzapi.IstioComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsIstioInjectionEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Istio: &vzapi.IstioComponent{
+					Enabled:          &trueValue,
+					InjectionEnabled: &falseValue,
+				},
+			},
+		}}))
+	asserts.False(IsIstioInjectionEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Istio: &vzapi.IstioComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+	asserts.True(IsIstioInjectionEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Istio: &installv1beta1.IstioComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsIstioInjectionEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Istio: &installv1beta1.IstioComponent{
+					Enabled:          &trueValue,
+					InjectionEnabled: &falseValue,
+				},
+			},
+		}}))
+	asserts.False(IsIstioInjectionEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Istio: &installv1beta1.IstioComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}
+
 // TestIsNGINXEnabled tests the IsNGINXEnabled function
 // GIVEN a call to IsNGINXEnabled
 //
