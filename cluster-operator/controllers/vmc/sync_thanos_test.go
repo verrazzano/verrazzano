@@ -120,22 +120,22 @@ func TestSyncThanosQuery(t *testing.T) {
 		hostShouldExistInCM    bool
 	}{
 		{"VMC status empty", nil, 1, "", []string{otherHost1}, false},
-		{"VMC status has no Thanos host",
+		{"VMC status has no Thanos Query Store",
 			&clustersv1alpha1.VerrazzanoManagedClusterStatus{APIUrl: "someurl"},
 			1,
 			"",
 			[]string{otherHost1},
 			false,
 		},
-		{"VMC status has existing Thanos host",
-			&clustersv1alpha1.VerrazzanoManagedClusterStatus{APIUrl: "someurl", ThanosHost: newHostName},
+		{"VMC status has existing Thanos Query Store",
+			&clustersv1alpha1.VerrazzanoManagedClusterStatus{APIUrl: "someurl", ThanosQueryStore: newHostName},
 			2,
 			newHostName,
 			[]string{newHost, otherHost1},
 			true, // new host already exists in query endpoints configmap, should still exist
 		},
-		{"VMC status has non-existing Thanos host",
-			&clustersv1alpha1.VerrazzanoManagedClusterStatus{APIUrl: "someurl", ThanosHost: newHostName},
+		{"VMC status has non-existing Thanos Query Store",
+			&clustersv1alpha1.VerrazzanoManagedClusterStatus{APIUrl: "someurl", ThanosQueryStore: newHostName},
 			3,
 			newHostName,
 			[]string{otherHost1, otherHost2},
@@ -191,7 +191,7 @@ func TestDeleteClusterThanosEndpoint(t *testing.T) {
 	const hostName = "thanos-query.example.com"
 	host := toGrpcTarget(hostName)
 
-	vmcStatus := clustersv1alpha1.VerrazzanoManagedClusterStatus{APIUrl: "someurl", ThanosHost: hostName}
+	vmcStatus := clustersv1alpha1.VerrazzanoManagedClusterStatus{APIUrl: "someurl", ThanosQueryStore: hostName}
 	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{
 		ObjectMeta: metav1.ObjectMeta{Name: managedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace},
 		Status:     vmcStatus,

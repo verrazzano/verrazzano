@@ -54,8 +54,8 @@ const serviceDiscoveryKey = "servicediscovery.yml"
 func (r *VerrazzanoManagedClusterReconciler) syncThanosQuery(ctx context.Context,
 	vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
 
-	if vmc.Status.ThanosHost == "" {
-		r.log.Oncef("Managed cluster Thanos Host not found in VMC Status for VMC %s. Not updating Thanos endpoints", vmc.Name)
+	if vmc.Status.ThanosQueryStore == "" {
+		r.log.Oncef("Managed cluster Thanos Query Store not found in VMC Status for VMC %s. Not updating Thanos endpoints", vmc.Name)
 		return nil
 	}
 
@@ -65,10 +65,10 @@ func (r *VerrazzanoManagedClusterReconciler) syncThanosQuery(ctx context.Context
 	if err := r.createOrUpdateCACertVolume(vmc, r.addCACertToDeployment); err != nil {
 		return err
 	}
-	if err := r.createOrUpdateServiceEntry(vmc.Name, vmc.Status.ThanosHost, thanosGrpcIngressPort); err != nil {
+	if err := r.createOrUpdateServiceEntry(vmc.Name, vmc.Status.ThanosQueryStore, thanosGrpcIngressPort); err != nil {
 		return err
 	}
-	if err := r.createOrUpdateDestinationRule(vmc, vmc.Status.ThanosHost, thanosGrpcIngressPort); err != nil {
+	if err := r.createOrUpdateDestinationRule(vmc, vmc.Status.ThanosQueryStore, thanosGrpcIngressPort); err != nil {
 		return err
 	}
 	return nil
@@ -84,12 +84,12 @@ func (r *VerrazzanoManagedClusterReconciler) syncThanosQueryEndpoint(ctx context
 		return nil
 	}
 
-	return r.addThanosHostIfNotPresent(ctx, vmc.Status.ThanosHost)
+	return r.addThanosHostIfNotPresent(ctx, vmc.Status.ThanosQueryStore)
 }
 
 func (r *VerrazzanoManagedClusterReconciler) deleteClusterThanosEndpoint(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-	if vmc.Status.ThanosHost == "" {
-		r.log.Oncef("Managed cluster Thanos Host not found in VMC Status for VMC %s. No Thanos endpoint to be deleted", vmc.Name)
+	if vmc.Status.ThanosQueryStore == "" {
+		r.log.Oncef("Managed cluster Thanos Query Store not found in VMC Status for VMC %s. No Thanos endpoint to be deleted", vmc.Name)
 		return nil
 	}
 
@@ -98,7 +98,7 @@ func (r *VerrazzanoManagedClusterReconciler) deleteClusterThanosEndpoint(ctx con
 		return nil
 	}
 
-	if err := r.removeThanosHostFromConfigMap(ctx, vmc.Status.ThanosHost, r.log); err != nil {
+	if err := r.removeThanosHostFromConfigMap(ctx, vmc.Status.ThanosQueryStore, r.log); err != nil {
 		return err
 	}
 	if err := r.deleteDestinationRule(vmc.Name); err != nil {

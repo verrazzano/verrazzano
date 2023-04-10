@@ -177,7 +177,7 @@ func (s *Syncer) updateVMCStatus() error {
 		return fmt.Errorf("Failed to get Thanos query URL to update VMC %s: %v", vmcName, err)
 	}
 	if thanosAPIHost != "" {
-		vmc.Status.ThanosHost = thanosAPIHost
+		vmc.Status.ThanosQueryStore = thanosAPIHost
 	}
 
 	// update status of VMC
