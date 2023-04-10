@@ -357,6 +357,54 @@ func (r *VerrazzanoManagedClusterReconciler) syncManagedRoleBinding(vmc *cluster
 	})
 }
 
+// syncMultiClusterCASecret gets the CA secret in the VMC from the managed cluster and populates the CA secret for metrics scraping
+func (r *VerrazzanoManagedClusterReconciler) syncMultiClusterCASecret(ctx context.Context, log vzlog.VerrazzanoLogger, vmc *clustersv1alpha1.VerrazzanoManagedCluster) (corev1.Secret, error) {
+	var secret corev1.Secret
+
+	// read the configuration secret specified if it exists
+	if len(vmc.Spec.CASecret) > 0 {
+		secretNsn := types.NamespacedName{
+			Namespace: vmc.Namespace,
+			Name:      vmc.Spec.CASecret,
+		}
+
+		// validate secret if it exists
+		if err := r.Get(context.TODO(), secretNsn, &secret); err != nil {
+			return secret, log.ErrorfNewErr("failed to fetch the managed cluster CA secret %s/%s, %v", vmc.Namespace, vmc.Spec.CASecret, err)
+		}
+	}
+	if err := r.mutateManagedClusterCACertsSecret(ctx, vmc, &secret); err != nil {
+		return secret, log.ErrorfNewErr("Failed to sync the managed cluster CA certs for VMC %s: %v", vmc.Name, err)
+	}
+	return secret, nil
+}
+
+// mutateManagedClusterCACertsSecret adds and removes managed cluster CA certs to/from the managed cluster CA certs secret
+func (r *VerrazzanoManagedClusterReconciler) mutateManagedClusterCACertsSecret(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, cacrtSecret *corev1.Secret) error {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.PromManagedClusterCACertsSecretName,
+			Namespace: constants.VerrazzanoMonitoringNamespace,
+		},
+	}
+
+	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
+		if secret.Data == nil {
+			secret.Data = make(map[string][]byte)
+		}
+		if cacrtSecret != nil && cacrtSecret.Data != nil && len(cacrtSecret.Data["cacrt"]) > 0 {
+			secret.Data[getCAKey(vmc)] = cacrtSecret.Data["cacrt"]
+		} else {
+			delete(secret.Data, getCAKey(vmc))
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // syncManagedMetrics syncs the metrics federation for managed clusters
 // There are currently two ways of federating metrics from managed clusters:
 // 1. Creating a Scrape config for the managed cluster on the admin cluster Prometheus
@@ -369,6 +417,9 @@ func (r *VerrazzanoManagedClusterReconciler) syncManagedRoleBinding(vmc *cluster
 //
 // If these two conditions are not met, the Prometheus federation will be enabled
 func (r *VerrazzanoManagedClusterReconciler) syncManagedMetrics(ctx context.Context, log vzlog.VerrazzanoLogger, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	// We need to sync the multicluster CA secret for Prometheus and Thanos
+	caSecret, err := r.syncMultiClusterCASecret(ctx, log, vmc)
+
 	thanosEnabled, err := r.isThanosEnabled()
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to verify if Thanos is enabled", err, log)
@@ -401,13 +452,19 @@ func (r *VerrazzanoManagedClusterReconciler) syncManagedMetrics(ctx context.Cont
 
 	// If the Prometheus host is not populated, skip federation and do nothing
 	if vmc.Status.PrometheusHost == "" {
+		// If reached, the managed cluster metrics are not populated, so we should remove the CA cert from the secret
+		err := r.mutateManagedClusterCACertsSecret(ctx, vmc, nil)
+		if err != nil {
+			r.handleError(ctx, vmc, "Failed to delete the managed cluster CA cert from the secret", err, log)
+			return err
+		}
 		log.Oncef("Managed cluster Prometheus Host not found in VMC Status for VMC %s. Waiting for VMC to be registered...", vmc.Name)
 		return nil
 	}
 
 	// Sync the Prometheus Scraper if Thanos multicluster is disabled and the host is populated
 	log.Debugf("Syncing the prometheus scraper for VMC %s", vmc.Name)
-	err = r.syncPrometheusScraper(ctx, vmc)
+	err = r.syncPrometheusScraper(ctx, vmc, &caSecret)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to setup the prometheus scraper for managed cluster", err, log)
 		return err
@@ -457,6 +514,9 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileManagedClusterDelete(ctx c
 		return err
 	}
 	if err := r.syncThanosQueryEndpointDelete(ctx, vmc); err != nil {
+		return err
+	}
+	if err := r.mutateManagedClusterCACertsSecret(ctx, vmc, nil); err != nil {
 		return err
 	}
 	return r.deleteClusterFromRancher(ctx, vmc)
