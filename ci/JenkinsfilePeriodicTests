@@ -356,6 +356,7 @@ pipeline {
                         }
                     }
                 }
+                */
                 stage('Kind Acceptance Tests on 1.22 Non-Calico') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
