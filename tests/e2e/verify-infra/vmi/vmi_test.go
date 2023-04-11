@@ -725,7 +725,12 @@ func grafanaDatasourceExists(vz *vzalpha1.Verrazzano, name, kubeconfigPath strin
 			continue
 		}
 
-		if nameStr, ok := sourceName.(string); ok && nameStr == name {
+		nameStr, ok := sourceName.(string)
+		if !ok {
+			t.Logs.Errorf("Failed to convert name field to string")
+			continue
+		}
+		if nameStr == name {
 			return true, nil
 		}
 	}
