@@ -378,6 +378,19 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 						Eventually(assertAdminRole, waitTimeout, pollingInterval).Should(BeTrue())
 					}
 				})
+
+				t.It("Grafana should have a datasource present", func() {
+					vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+					if err != nil {
+						t.Logs.Errorf("Error getting Verrazzano resource: %v", err)
+						Fail(err.Error())
+					}
+					name := "Prometheus"
+					if vzcr.IsThanosEnabled(vz) {
+						name = "Thanos"
+					}
+					Eventually(grafanaDatasourceExists(vz, name, kubeconfigPath)).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(BeTrue())
+				})
 			}
 
 		} else {
@@ -680,4 +693,37 @@ func verrazzanoSecretRequired(vz *vzalpha1.Verrazzano) bool {
 		vzcr.IsComponentStatusEnabled(vz, operator.ComponentName) ||
 		vzcr.IsComponentStatusEnabled(vz, grafana.ComponentName) ||
 		vzcr.IsComponentStatusEnabled(vz, kiali.ComponentName)
+}
+
+func grafanaDatasourceExists(vz *vzalpha1.Verrazzano, name, kubeconfigPath string) (bool, error) {
+	password, err := pkg.GetVerrazzanoPasswordInCluster(kubeconfigPath)
+	if err != nil {
+		return false, err
+	}
+	if vz.Status.VerrazzanoInstance.GrafanaURL == nil {
+		t.Logs.Error("Grafana URL in the Verrazzano status is empty")
+		return false, nil
+	}
+	resp, err := pkg.GetWebPageWithBasicAuth(*vz.Status.VerrazzanoInstance.GrafanaURL+"/api/datasources", "", "verrazzano", password, kubeconfigPath)
+	datasources := pkg.Jq(resp.Body)
+
+	datasourceList, ok := datasources.([]interface{})
+	if !ok {
+		t.Logs.Error("Datasource list cannot be deconstructed into a list")
+	}
+
+	for _, source := range datasourceList {
+		sourceMap, ok := source.(map[string]string)
+		if !ok {
+			t.Logs.Error("Datasource cannot be converted to a map")
+			return false, nil
+		}
+
+		if sourceName, ok := sourceMap["name"]; ok && sourceName == name {
+			return true, nil
+		}
+	}
+
+	t.Logs.Errorf("Failed to find Grafana datasource %s", name)
+	return false, nil
 }
