@@ -180,7 +180,7 @@ webhooks:
       - v1beta1
       - v1
 ---
-{{ if .Values.experimental.modules }}
+{{ if .Values.experimentalFeatures.moduleAPI.enabled }}
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
@@ -188,7 +188,7 @@ metadata:
   labels:
     app: verrazzano-modules
 webhooks:
-  - name: validate-modules.verrazzano.io.v1alpha1
+  - name: validate-modules.verrazzano.io.v1beta2
     namespaceSelector:
       matchExpressions:
         - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
@@ -196,12 +196,12 @@ webhooks:
       service:
         name: {{ .Values.name }}-webhook
         namespace: {{ .Values.namespace }}
-        path: /validate-modules-v1alpha1-install-verrazzano-io
+        path: /validate-modules-v1beta2-install-verrazzano-io
     rules:
       - apiGroups:
           - install.verrazzano.io
         apiVersions:
-          - v1alpha1
+          - v1beta2
         operations:
           - CREATE
           - UPDATE
@@ -212,6 +212,7 @@ webhooks:
     matchPolicy: Exact
     timeoutSeconds: 30
     admissionReviewVersions:
+      - v1beta2
       - v1beta1
       - v1
 {{ end }}
