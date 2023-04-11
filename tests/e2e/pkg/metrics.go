@@ -30,12 +30,12 @@ type MetricsTest struct {
 // kubeconfigs 		a list of kubeconfigs from all clusters
 // kubeconfigPath 	this is the kubeconfigPath for the cluster we want to search metrics from
 // defaultLabels    the default labels will be added to the test metric when the query begins
-func NewMetricsTest(kubeconfigs []string, kubeconfigPath string, defaultLabels map[string]string) (MetricsTest, error) {
+func NewMetricsTest(kubeconfigPath string, defaultLabels map[string]string, extraKubeconfigs ...string) (MetricsTest, error) {
 	mt := MetricsTest{
 		DefaultLabels: defaultLabels,
 	}
 
-	for _, kc := range kubeconfigs {
+	for _, kc := range append(extraKubeconfigs, kubeconfigPath) {
 		vz, err := GetVerrazzanoInstallResourceInCluster(kc)
 		if err != nil {
 			return MetricsTest{}, err

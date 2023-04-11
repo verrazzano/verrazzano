@@ -128,7 +128,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if clusterLabelVal := getClusterNameForPromQuery(); clusterLabelVal != "" {
 		defaultLabels[getClusterNameMetricLabel()] = clusterLabelVal
 	}
-	metricsTest, err = pkg.NewMetricsTest([]string{adminKubeConfig}, adminKubeConfig, defaultLabels)
+	metricsTest, err = pkg.NewMetricsTest(adminKubeConfig, defaultLabels)
 	if err != nil {
 		Fail(err.Error())
 	}
