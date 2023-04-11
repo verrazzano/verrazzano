@@ -149,7 +149,7 @@ pipeline {
 
         OPERATOR_YAML_FILE = "${WORKSPACE}/acceptance-test-operator.yaml"
 
-        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-vz-prod-kind-upgrade.yaml"
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-vz-prod-kind-multicluster.yaml"
         INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-ocidns.yaml"
         INSTALL_CONFIG_FILE_NIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-nipio.yaml"
         OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
@@ -1489,7 +1489,7 @@ def verifyExamples() {
 
 def setVZCRDVersionForInstallation(){
     if(params.CRD_API_VERSION == "v1alpha1"){
-        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1alpha1/install-vz-prod-kind-upgrade.yaml"
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1alpha1/install-vz-prod-kind-multicluster.yaml"
         INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1alpha1/install-verrazzano-ocidns.yaml"
         INSTALL_CONFIG_FILE_NIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1alpha1/install-verrazzano-nipio.yaml"
     }
