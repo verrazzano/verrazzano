@@ -135,8 +135,11 @@ func (mc *MySQLChecker) RepairMySQLPodsWaitingReadinessGates() error {
 		return err
 	}
 	if podsWaiting {
+		mc.log.Progressf("MySQL pods are waiting for readiness gates")
+
 		// Start a timer the first time pods are waiting for readiness gates
 		if getLastTimeReadinessGateChecked().IsZero() {
+			mc.log.Infof("Resetting initial MySQL pod readiness check internal timer to 0")
 			setInitialTimeReadinessGateChecked(time.Now())
 			return nil
 		}
@@ -144,8 +147,10 @@ func (mc *MySQLChecker) RepairMySQLPodsWaitingReadinessGates() error {
 		// Initiate repair only if time to wait period has been exceeded
 		expiredTime := getLastTimeReadinessGateChecked().Add(mc.RepairTimeout)
 		if time.Now().After(expiredTime) {
+			mc.log.Infof("Time to restart MySQL Operator to fix the stuck readiness gates")
 			return restartMySQLOperator(mc.log, mc.client, "MySQL pods waiting for readiness gates")
 		}
+		return nil
 	}
 
 	// Clear the timer when no pods are waiting
