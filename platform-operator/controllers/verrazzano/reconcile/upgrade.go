@@ -130,7 +130,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			tracker.vzState = vzStateRestartApps
 
 		case vzStateRestartApps:
-			if vzcr.IsApplicationOperatorEnabled(cr) && vzcr.IsIstioEnabled(cr) {
+			if vzcr.IsApplicationOperatorEnabled(spiCtx.EffectiveCR()) && vzcr.IsIstioEnabled(spiCtx.EffectiveCR()) {
 				log.Once("Doing Verrazzano post-upgrade application restarts if needed")
 				err := restart.RestartApps(log, r.Client, cr.Generation)
 				if err != nil {

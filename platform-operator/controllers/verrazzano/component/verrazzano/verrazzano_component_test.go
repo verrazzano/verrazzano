@@ -423,7 +423,7 @@ func TestValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "disable-fluentd",
@@ -665,7 +665,7 @@ func TestValidateUpdateV1beta1(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "disable-fluentd",

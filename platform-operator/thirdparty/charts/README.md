@@ -106,7 +106,7 @@ The `wls-operator` folder was created by running the following commands:
 
 ```shell
 export WEBLOGIC_OPERATOR_CHART_REPO=https://oracle.github.io/weblogic-kubernetes-operator/charts
-export WEBLOGIC_OPERATOR_CHART_VERSION=4.0.5
+export WEBLOGIC_OPERATOR_CHART_VERSION=4.0.6
 rm -rf weblogic-operator
 helm repo add weblogic-operator ${WEBLOGIC_OPERATOR_CHART_REPO}
 helm repo update
@@ -220,3 +220,14 @@ rm -rf prometheus-community/prometheus-node-exporter
 helm fetch prometheus-community/prometheus-node-exporter --untar=true --version=${PROMETHEUS_NODE_EXPORTER_CHART_VERSION}
 ```
 
+### OpenSearch Operator
+
+The `opensearch-operator` folder was created by running the following commands:
+
+```shell
+export OPENSEARCH_OPERATOR_CHART_VERSION=2.2.0
+helm repo add opensearch-operator https://opster.github.io/opensearch-k8s-operator/
+helm repo update
+rm -rf opensearch-operator
+helm fetch opensearch-operator/opensearch-operator --untar=true --version=${OPENSEARCH_OPERATOR_CHART_VERSION}
+```

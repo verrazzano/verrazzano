@@ -37,7 +37,7 @@ var validSecret = corev1.Secret{
 }
 
 const testManagedPrometheusHost = "prometheus"
-const testManagedThanosQueryStoreAPIHost = "thanos-grpc.example.com"
+const testManagedThanosQueryStoreAPIHost = "thanos-query-store.example.com"
 
 // TestProcessAgentThreadNoProjects tests agent thread when no projects exist
 // GIVEN a request to process the agent loop
@@ -323,7 +323,7 @@ func expectAdminVMCStatusUpdateSuccess(adminMock *mocks.MockClient, vmcName type
 			assert.NotNil(vmc.Status.LastAgentConnectTime)
 			assert.NotNil(vmc.Status.APIUrl)
 			assert.Equal(testManagedPrometheusHost, vmc.Status.PrometheusHost)
-			assert.Equal(testManagedThanosQueryStoreAPIHost, vmc.Status.ThanosHost)
+			assert.Equal(testManagedThanosQueryStoreAPIHost, vmc.Status.ThanosQueryStore)
 			return nil
 		})
 }

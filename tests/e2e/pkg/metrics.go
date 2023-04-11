@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os/exec"
 	"strings"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -128,9 +129,9 @@ func GetQueryStoreIngressHost(kubeconfigPath string) string {
 		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
 		return ""
 	}
-	ingress, err := clientset.NetworkingV1().Ingresses("verrazzano-system").Get(context.TODO(), "thanos-grpc", metav1.GetOptions{})
+	ingress, err := clientset.NetworkingV1().Ingresses("verrazzano-system").Get(context.TODO(), "thanos-query-store", metav1.GetOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get Ingress thanos-grpc from the cluster: %v", err))
+		Log(Error, fmt.Sprintf("Failed to get Ingress thanos-query-store from the cluster: %v", err))
 	}
 	return ingress.Spec.Rules[0].Host
 }
@@ -178,10 +179,29 @@ func ScrapeTargets() ([]interface{}, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("error retrieving targets %d", resp.StatusCode)
 	}
-	// Log(Info, fmt.Sprintf("targets: %s", string(resp.Body)))
 	var result map[string]interface{}
-	json.Unmarshal(resp.Body, &result)
+	if err = json.Unmarshal(resp.Body, &result); err != nil {
+		return nil, err
+	}
 	activeTargets := Jq(result, "data", "activeTargets").([]interface{})
+	return activeTargets, nil
+}
+
+func ScrapeTargetsFromExec() ([]interface{}, error) {
+	metricsURL := "http://localhost:9090/api/v1/targets"
+	cmd := exec.Command("kubectl", "exec", "prometheus-prometheus-operator-kube-p-prometheus-0", "-n", "verrazzano-monitoring", "--", "curl", metricsURL)
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+	if len(string(out)) == 0 {
+		return nil, fmt.Errorf("prometheus scrape targets request returned no data")
+	}
+	var data map[string]interface{}
+	if err = json.Unmarshal(out, &data); err != nil {
+		return nil, err
+	}
+	activeTargets := Jq(data, "data", "activeTargets").([]interface{})
 	return activeTargets, nil
 }
 
@@ -260,9 +280,24 @@ func ScrapeTargetsHealthy(scrapePools []string) (bool, error) {
 		Log(Error, fmt.Sprintf("Error getting scrape targets: %v", err))
 		return false, err
 	}
+	return verifyScrapePoolsHealthy(targets, scrapePools)
+}
+
+// ScrapeTargetsHealthyFromExec validates the health of the scrape targets for the given scrapePools by execing into the prometheus pod
+func ScrapeTargetsHealthyFromExec(scrapePools []string) (bool, error) {
+	targets, err := ScrapeTargetsFromExec()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting scrape targets: %v", err))
+		return false, err
+	}
+	return verifyScrapePoolsHealthy(targets, scrapePools)
+}
+
+// verifyScrapePoolsHealthy iterates through the scrape pools and makes sure that it is present in the scrape targets
+func verifyScrapePoolsHealthy(scrapeTargets []interface{}, scrapePools []string) (bool, error) {
 	for _, scrapePool := range scrapePools {
 		found := false
-		for _, target := range targets {
+		for _, target := range scrapeTargets {
 			targetScrapePool := Jq(target, "scrapePool").(string)
 			if strings.Contains(targetScrapePool, scrapePool) {
 				found = true
