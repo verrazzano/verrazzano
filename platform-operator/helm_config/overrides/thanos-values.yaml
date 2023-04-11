@@ -101,3 +101,14 @@ receive:
     capabilities:
       drop:
         - ALL
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: prometheus-operator
+    relabelings:
+      - action: replace
+        targetLabel: verrazzano_cluster
+        replacement: local

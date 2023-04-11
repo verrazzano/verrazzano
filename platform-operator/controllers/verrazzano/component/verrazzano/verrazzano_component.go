@@ -218,9 +218,6 @@ func (c verrazzanoComponent) checkEnabled(old runtime.Object, new runtime.Object
 	if vzcr.IsConsoleEnabled(old) && !vzcr.IsConsoleEnabled(new) {
 		return fmt.Errorf("Disabling component console not allowed")
 	}
-	if vzcr.IsPrometheusEnabled(old) && !vzcr.IsPrometheusEnabled(new) {
-		return fmt.Errorf("Disabling component prometheus not allowed")
-	}
 	return nil
 }
 

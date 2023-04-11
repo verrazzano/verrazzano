@@ -131,13 +131,13 @@
             {
               "image": "rancher",
               "dashboard": "v2.7.1-20230314212735-270d0ef83",
-              "tag": "20230406214847-f57c74120",
+              "tag": "20230410172756-6e5a31d44",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "20230406214847-f57c74120"
+              "tag": "20230410172756-6e5a31d44"
             }
           ]
         },
@@ -331,7 +331,7 @@
     },
     {
       "name": "weblogic-operator",
-      "version": "4.0.5",
+      "version": "4.0.6",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -339,12 +339,12 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "4.0.5",
+              "tag": "4.0.6",
               "helmFullImageKey": "image"
             },
             {
               "image": "weblogic-monitoring-exporter",
-              "tag": "2.1.2",
+              "tag": "2.1.3",
               "helmFullImageKey": "weblogicMonitoringExporterImage"
             }
           ]
