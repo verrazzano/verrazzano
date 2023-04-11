@@ -10,7 +10,7 @@ import (
 )
 
 var componentShimDelegates = map[string]func(*modulesv1beta2.ModuleLifecycle, client.StatusWriter) delegates.DelegateLifecycleReconciler{
-	// TODO: component shim reconcilers
+	// NOTE: plugin point for component shim reconcilers; these will likely need their own adapter/wrapper
 	//keycloak.ComponentName:  keycloak.NewComponent,
 	//coherence.ComponentName: coherence.NewComponent,
 	//weblogic.ComponentName:  weblogic.NewComponent,

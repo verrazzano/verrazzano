@@ -65,7 +65,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return newRequeueWithDelay(), err
 	}
 
-	// TODO: Perhaps be broken out into separate lifecycle operators?
+	// NOTE: Need to see if these be broken out into separate lifecycle operators
 	delegate, err := reconciler.New(mlc, r.Status())
 	if err != nil {
 		// Unknown mlc controller cannot be handled; no need to re-reconcile until the resource is updated

@@ -109,8 +109,7 @@ func findChartEntry(index *repo.IndexFile, chartName string) repo.ChartVersions 
 func loadAndSortRepoIndexFile(repoName string, repoURL string) (*repo.IndexFile, error) {
 	// NOTES:
 	// - we'll need to allow defining credentials etc in the source lists for protected repos
-
-	// TODO: is this cached?
+	// - also we'll likely need better scaffolding around local repo management
 	cfg := &repo.Entry{
 		Name: repoName,
 		URL:  repoURL,

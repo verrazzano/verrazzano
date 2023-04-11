@@ -58,11 +58,11 @@ func (r *VerrazzanoModuleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=modules/status,verbs=get;update;patch
 func (r *VerrazzanoModuleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
-	// TODO: Metrics setup
+	// NOTE: Metrics setup
 
 	moduleInstance := &v1beta2.Module{}
 	if err := r.Get(ctx, req.NamespacedName, moduleInstance); err != nil {
-		// TODO: errorCounterMetricObject.Inc()
+		// NOTE: errorCounterMetricObject.Inc()
 		// If the resource is not found, that means all the finalizers have been removed,
 		// and the Verrazzano resource has been deleted, so there is nothing left to do.
 		if errors.IsNotFound(err) {
@@ -81,7 +81,7 @@ func (r *VerrazzanoModuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		ControllerName: "vzmodule",
 	})
 	if err != nil {
-		// TODO: errorCounterMetricObject.Inc()
+		// NOTE: errorCounterMetricObject.Inc()
 		zap.S().Errorf("Failed to create controller logger for Module controller: %v", err)
 	}
 

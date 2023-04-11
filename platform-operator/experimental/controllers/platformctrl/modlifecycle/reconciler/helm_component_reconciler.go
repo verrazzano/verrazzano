@@ -71,48 +71,64 @@ func (r *helmDelegateReconciler) doReconcile(ctx spi.ComponentContext, mlc *modu
 	condition := mlc.Status.Conditions[len(mlc.Status.Conditions)-1].Type
 	switch condition {
 	case modulesv1beta2.CondPreInstall:
-		log.Progressf("Pre-install for %s is running", common.GetNamespacedName(mlc.ObjectMeta))
-		if err := r.comp.PreInstall(ctx); err != nil {
-			return err
-		}
-		if err := r.comp.Install(ctx); err != nil {
-			return err
-		}
-		return UpdateStatus(ctx.Client(), mlc, string(modulesv1beta2.CondInstallStarted), modulesv1beta2.CondInstallStarted)
+		return r.handlePreInstall(ctx, mlc, log)
 	case modulesv1beta2.CondInstallStarted:
-		if r.comp.IsReady(ctx) {
-			log.Progressf("Post-install for %s is running", common.GetNamespacedName(mlc.ObjectMeta))
-			if err := r.comp.PostInstall(ctx); err != nil {
-				return err
-			}
-			mlc.Status.ObservedGeneration = mlc.Generation
-			ctx.Log().Infof("%s is ready", common.GetNamespacedName(mlc.ObjectMeta))
-			return UpdateStatus(ctx.Client(), mlc, string(modulesv1beta2.CondInstallComplete), modulesv1beta2.CondInstallComplete)
-		}
-		return delegates.NotReadyErrorf("Install for %s is not ready", common.GetNamespacedName(mlc.ObjectMeta))
+		return r.handleInstallStarted(ctx, mlc, log)
 	case modulesv1beta2.CondPreUpgrade:
-		log.Progressf("Pre-upgrade for %s is running", common.GetNamespacedName(mlc.ObjectMeta))
-		if err := r.comp.PreUpgrade(ctx); err != nil {
-			return err
-		}
-		if err := r.comp.Upgrade(ctx); err != nil {
-			return err
-		}
-		return UpdateStatus(ctx.Client(), mlc, string(modulesv1beta2.CondUpgradeStarted), modulesv1beta2.CondUpgradeStarted)
+		return r.handlePreUpgrade(ctx, mlc, log)
 	case modulesv1beta2.CondInstallComplete, modulesv1beta2.CondUpgradeComplete:
 		return r.ReadyState(ctx, mlc)
 	case modulesv1beta2.CondUpgradeStarted:
-		if r.comp.IsReady(ctx) {
-			log.Progressf("Post-upgrade for %s is running", common.GetNamespacedName(mlc.ObjectMeta))
-			if err := r.comp.PostUpgrade(ctx); err != nil {
-				return err
-			}
-			mlc.Status.ObservedGeneration = mlc.Generation
-			return UpdateStatus(ctx.Client(), mlc, string(modulesv1beta2.CondUpgradeComplete), modulesv1beta2.CondUpgradeComplete)
-		}
-		return delegates.NotReadyErrorf("Upgrade for %s is not ready", common.GetNamespacedName(mlc.ObjectMeta))
+		return r.handleUpgradeStarted(ctx, mlc, log)
 	}
 	return nil
+}
+
+func (r *helmDelegateReconciler) handleUpgradeStarted(ctx spi.ComponentContext, mlc *modulesv1beta2.ModuleLifecycle, log vzlog.VerrazzanoLogger) error {
+	if r.comp.IsReady(ctx) {
+		log.Progressf("Post-upgrade for %s is running", common.GetNamespacedName(mlc.ObjectMeta))
+		if err := r.comp.PostUpgrade(ctx); err != nil {
+			return err
+		}
+		mlc.Status.ObservedGeneration = mlc.Generation
+		return UpdateStatus(ctx.Client(), mlc, string(modulesv1beta2.CondUpgradeComplete), modulesv1beta2.CondUpgradeComplete)
+	}
+	return delegates.NotReadyErrorf("Upgrade for %s is not ready", common.GetNamespacedName(mlc.ObjectMeta))
+}
+
+func (r *helmDelegateReconciler) handlePreInstall(ctx spi.ComponentContext, mlc *modulesv1beta2.ModuleLifecycle, log vzlog.VerrazzanoLogger) error {
+	log.Progressf("Pre-install for %s is running", common.GetNamespacedName(mlc.ObjectMeta))
+	if err := r.comp.PreInstall(ctx); err != nil {
+		return err
+	}
+	if err := r.comp.Install(ctx); err != nil {
+		return err
+	}
+	return UpdateStatus(ctx.Client(), mlc, string(modulesv1beta2.CondInstallStarted), modulesv1beta2.CondInstallStarted)
+}
+
+func (r *helmDelegateReconciler) handlePreUpgrade(ctx spi.ComponentContext, mlc *modulesv1beta2.ModuleLifecycle, log vzlog.VerrazzanoLogger) error {
+	log.Progressf("Pre-upgrade for %s is running", common.GetNamespacedName(mlc.ObjectMeta))
+	if err := r.comp.PreUpgrade(ctx); err != nil {
+		return err
+	}
+	if err := r.comp.Upgrade(ctx); err != nil {
+		return err
+	}
+	return UpdateStatus(ctx.Client(), mlc, string(modulesv1beta2.CondUpgradeStarted), modulesv1beta2.CondUpgradeStarted)
+}
+
+func (r *helmDelegateReconciler) handleInstallStarted(ctx spi.ComponentContext, mlc *modulesv1beta2.ModuleLifecycle, log vzlog.VerrazzanoLogger) error {
+	if r.comp.IsReady(ctx) {
+		log.Progressf("Post-install for %s is running", common.GetNamespacedName(mlc.ObjectMeta))
+		if err := r.comp.PostInstall(ctx); err != nil {
+			return err
+		}
+		mlc.Status.ObservedGeneration = mlc.Generation
+		ctx.Log().Infof("%s is ready", common.GetNamespacedName(mlc.ObjectMeta))
+		return UpdateStatus(ctx.Client(), mlc, string(modulesv1beta2.CondInstallComplete), modulesv1beta2.CondInstallComplete)
+	}
+	return delegates.NotReadyErrorf("Install for %s is not ready", common.GetNamespacedName(mlc.ObjectMeta))
 }
 
 // ReadyState reconciles put the Module back to pending state if the generation has changed
