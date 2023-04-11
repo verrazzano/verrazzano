@@ -136,7 +136,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	metricsTest, err = pkg.NewMetricsTest([]string{kubeconfigPath}, kubeconfigPath, map[string]string{})
+	metricsTest, err = pkg.NewMetricsTest(kubeconfigPath, map[string]string{})
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
 	}
