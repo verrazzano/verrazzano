@@ -347,6 +347,11 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	// Add label to the Prometheus Operator pod to avoid a sidecar injection
 	kvs = append(kvs, bom.KeyValue{Key: `prometheusOperator.podAnnotations.sidecar\.istio\.io/inject`, Value: `"false"`})
 
+	// disable tls if Istio is not enabled
+	if !vzcr.IsIstioEnabled(ctx.EffectiveCR()) {
+		kvs = append(kvs, bom.KeyValue{Key: "prometheusOperator.tls.enabled", Value: "false"})
+	}
+
 	return kvs, nil
 }
 
@@ -420,7 +425,7 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 func (c prometheusComponent) validatePrometheusOperator(vz *installv1beta1.Verrazzano) error {
 	// Validate if Prometheus is enabled, Prometheus Operator should be enabled
 	if !c.IsEnabled(vz) && vzcr.IsPrometheusEnabled(vz) {
-		return fmt.Errorf("Prometheus cannot be enabled if the Prometheus Operator is disabled. Also disable the Prometheus component in order to disable Prometheus Operator")
+		return fmt.Errorf("Prometheus Operator must be enabled if Prometheus is enabled")
 	}
 	// Validate install overrides for v1beta1.Verrazzano
 	if vz.Spec.Components.PrometheusOperator != nil {
@@ -465,7 +470,6 @@ func appendIstioOverrides(annotationsKey, volumeMountKey, volumeKey string, kvs 
 	}
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].name", volumeKey), Value: vol.Name})
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].emptyDir.medium", volumeKey), Value: string(vol.VolumeSource.EmptyDir.Medium)})
-
 	return kvs, nil
 }
 

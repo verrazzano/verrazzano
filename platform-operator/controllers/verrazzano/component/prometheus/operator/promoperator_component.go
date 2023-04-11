@@ -4,7 +4,9 @@
 package operator
 
 import (
-	"fmt"
+	"context"
+	networkv1 "k8s.io/api/networking/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -160,9 +162,6 @@ func (c prometheusComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
 func (c prometheusComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
-	}
 	convertedVZ := installv1beta1.Verrazzano{}
 	if err := common.ConvertVerrazzanoCR(new, &convertedVZ); err != nil {
 		return err
@@ -180,9 +179,6 @@ func (c prometheusComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzan
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
 func (c prometheusComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
-	}
 	return c.validatePrometheusOperator(new)
 }
 
@@ -233,4 +229,20 @@ func checkExistingCNEPrometheus(vz runtime.Object) error {
 		return err
 	}
 	return nil
+}
+
+// PostUninstall is the Prometheus Operator PostInstall SPI function
+func (c prometheusComponent) PostUninstall(ctx spi.ComponentContext) error {
+	// delete the legacy prometheus ingress
+	ingress := &networkv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.PrometheusIngress,
+			Namespace: constants.VerrazzanoSystemNamespace,
+		},
+	}
+	err := ctx.Client().Delete(context.TODO(), ingress)
+	if err != nil {
+		ctx.Log().Errorf("Error deleting legacy Prometheus ingress %s, %v", constants.PrometheusIngress, err)
+	}
+	return err
 }

@@ -52,6 +52,11 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 	err := cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
+
+	// Verify the vz resource is as expected
+	vzResource := v1beta1.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vzResource)
+	assert.NoError(t, err)
 }
 
 // TestUpgradeCmdDefaultTimeoutBugReport
@@ -239,14 +244,20 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 	sa := corev1.ServiceAccount{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &sa)
 	assert.NoError(t, err)
+	expectedLastAppliedConfigAnnotation := "{\"apiVersion\":\"v1\",\"kind\":\"ServiceAccount\",\"metadata\":{\"annotations\":{},\"name\":\"verrazzano-platform-operator\",\"namespace\":\"verrazzano-install\"}}\n"
+	testhelpers.VerifyLastAppliedConfigAnnotation(t, sa.ObjectMeta, expectedLastAppliedConfigAnnotation)
 
 	ns := corev1.Namespace{}
 	err = c.Get(context.TODO(), types.NamespacedName{Name: "verrazzano-install"}, &ns)
 	assert.NoError(t, err)
+	expectedLastAppliedConfigAnnotation = "{\"apiVersion\":\"v1\",\"kind\":\"Namespace\",\"metadata\":{\"annotations\":{},\"name\":\"verrazzano-install\"}}\n"
+	testhelpers.VerifyLastAppliedConfigAnnotation(t, ns.ObjectMeta, expectedLastAppliedConfigAnnotation)
 
 	svc := corev1.Service{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &svc)
 	assert.NoError(t, err)
+	expectedLastAppliedConfigAnnotation = "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"verrazzano-platform-operator\"},\"name\":\"verrazzano-platform-operator\",\"namespace\":\"verrazzano-install\"},\"spec\":{\"ports\":[{\"name\":\"webhook\",\"port\":443,\"targetPort\":9443}],\"selector\":{\"app\":\"verrazzano-platform-operator\"}}}\n"
+	testhelpers.VerifyLastAppliedConfigAnnotation(t, svc.ObjectMeta, expectedLastAppliedConfigAnnotation)
 
 	// Verify the version got updated
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, vz)
