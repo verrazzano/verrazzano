@@ -16,6 +16,19 @@ import (
 	"testing"
 )
 
+const (
+	bootstrapKubeadmProvider    = "bootstrap-kubeadm"
+	bootstrapOcneProvider       = "bootstrap-ocne"
+	controlPlaneKubeadmProvider = "control-plane-kubeadm"
+	controlPlaneOcneProvider    = "control-plane-ocne"
+	clusterApiProvider          = "cluster-api"
+	infrastructureOciProvider   = "infrastructure-oci"
+
+	deploymentRevisionAnnotation = "deployment.kubernetes.io/revision"
+	podTemplateHashLabel         = "pod-template-hash"
+	providerLabel                = "cluster.x-k8s.io/provider"
+)
+
 func fakeCAPINew(_ string, _ ...client.Option) (client.Client, error) {
 	return &FakeCAPIClient{}, nil
 }
@@ -142,11 +155,11 @@ func getNotReadyDeployments() *fake.ClientBuilder {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      capiCMDeployment,
-				Labels:    map[string]string{"cluster.x-k8s.io/provider": "cluster-api"},
+				Labels:    map[string]string{providerLabel: clusterApiProvider},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"cluster.x-k8s.io/provider": "cluster-api"},
+					MatchLabels: map[string]string{providerLabel: clusterApiProvider},
 				},
 			},
 			Status: appsv1.DeploymentStatus{
@@ -157,18 +170,18 @@ func getNotReadyDeployments() *fake.ClientBuilder {
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      capiCMDeployment + "-95d8c5d96-m6mbr",
+				Name:      capiCMDeployment + "-95d8c5d97-m6mbr",
 				Labels: map[string]string{
-					"pod-template-hash":         "95d8c5d96",
-					"cluster.x-k8s.io/provider": "cluster-api",
+					podTemplateHashLabel: "95d8c5d97",
+					providerLabel:        clusterApiProvider,
 				},
 			},
 		},
 		&appsv1.ReplicaSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:   ComponentNamespace,
-				Name:        capiCMDeployment + "-95d8c5d96",
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Name:        capiCMDeployment + "-95d8c5d97",
+				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
 	)
@@ -180,11 +193,11 @@ func getReadyDeployments() *fake.ClientBuilder {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      capiCMDeployment,
-				Labels:    map[string]string{"cluster.x-k8s.io/provider": "cluster-api"},
+				Labels:    map[string]string{providerLabel: clusterApiProvider},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"cluster.x-k8s.io/provider": "cluster-api"},
+					MatchLabels: map[string]string{providerLabel: clusterApiProvider},
 				},
 			},
 			Status: appsv1.DeploymentStatus{
@@ -199,8 +212,8 @@ func getReadyDeployments() *fake.ClientBuilder {
 				Namespace: ComponentNamespace,
 				Name:      capiCMDeployment + "-95d8c5d96-m6mbr",
 				Labels: map[string]string{
-					"pod-template-hash":         "95d8c5d96",
-					"cluster.x-k8s.io/provider": "cluster-api",
+					podTemplateHashLabel: "95d8c5d96",
+					providerLabel:        clusterApiProvider,
 				},
 			},
 		},
@@ -208,7 +221,7 @@ func getReadyDeployments() *fake.ClientBuilder {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:   ComponentNamespace,
 				Name:        capiCMDeployment + "-95d8c5d96",
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
 
@@ -216,11 +229,11 @@ func getReadyDeployments() *fake.ClientBuilder {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      capiKubeadmBootstrapCMDeployment,
-				Labels:    map[string]string{"cluster.x-k8s.io/provider": "bootstrap-kubeadm"},
+				Labels:    map[string]string{providerLabel: bootstrapKubeadmProvider},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"cluster.x-k8s.io/provider": "bootstrap-kubeadm"},
+					MatchLabels: map[string]string{providerLabel: bootstrapKubeadmProvider},
 				},
 			},
 			Status: appsv1.DeploymentStatus{
@@ -233,18 +246,18 @@ func getReadyDeployments() *fake.ClientBuilder {
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      capiKubeadmBootstrapCMDeployment + "-95d8c5d96-m6mbr",
+				Name:      capiKubeadmBootstrapCMDeployment + "-95d8c5d95-m6mbr",
 				Labels: map[string]string{
-					"pod-template-hash":         "95d8c5d96",
-					"cluster.x-k8s.io/provider": "bootstrap-kubeadm",
+					podTemplateHashLabel: "95d8c5d95",
+					providerLabel:        bootstrapKubeadmProvider,
 				},
 			},
 		},
 		&appsv1.ReplicaSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:   ComponentNamespace,
-				Name:        capiKubeadmBootstrapCMDeployment + "-95d8c5d96",
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Name:        capiKubeadmBootstrapCMDeployment + "-95d8c5d95",
+				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
 
@@ -252,11 +265,11 @@ func getReadyDeployments() *fake.ClientBuilder {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      capiKubeadmControlPlaneCMDeployment,
-				Labels:    map[string]string{"cluster.x-k8s.io/provider": "control-plane-kubeadm"},
+				Labels:    map[string]string{providerLabel: controlPlaneKubeadmProvider},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"cluster.x-k8s.io/provider": "control-plane-kubeadm"},
+					MatchLabels: map[string]string{providerLabel: controlPlaneKubeadmProvider},
 				},
 			},
 			Status: appsv1.DeploymentStatus{
@@ -269,18 +282,18 @@ func getReadyDeployments() *fake.ClientBuilder {
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      capiKubeadmControlPlaneCMDeployment + "-95d8c5d96-m6mbr",
+				Name:      capiKubeadmControlPlaneCMDeployment + "-95d8c5d94-m6mbr",
 				Labels: map[string]string{
-					"pod-template-hash":         "95d8c5d96",
-					"cluster.x-k8s.io/provider": "control-plane-kubeadm",
+					podTemplateHashLabel: "95d8c5d94",
+					providerLabel:        controlPlaneKubeadmProvider,
 				},
 			},
 		},
 		&appsv1.ReplicaSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:   ComponentNamespace,
-				Name:        capiKubeadmControlPlaneCMDeployment + "-95d8c5d96",
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Name:        capiKubeadmControlPlaneCMDeployment + "-95d8c5d94",
+				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
 
@@ -288,11 +301,11 @@ func getReadyDeployments() *fake.ClientBuilder {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      capiOcneBootstrapCMDeployment,
-				Labels:    map[string]string{"cluster.x-k8s.io/provider": "bootstrap-ocne"},
+				Labels:    map[string]string{providerLabel: bootstrapOcneProvider},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"cluster.x-k8s.io/provider": "bootstrap-ocne"},
+					MatchLabels: map[string]string{providerLabel: bootstrapOcneProvider},
 				},
 			},
 			Status: appsv1.DeploymentStatus{
@@ -305,18 +318,18 @@ func getReadyDeployments() *fake.ClientBuilder {
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      capiOcneBootstrapCMDeployment + "-95d8c5d96-m6mbr",
+				Name:      capiOcneBootstrapCMDeployment + "-95d8c5d93-m6mbr",
 				Labels: map[string]string{
-					"pod-template-hash":         "95d8c5d96",
-					"cluster.x-k8s.io/provider": "bootstrap-ocne",
+					podTemplateHashLabel: "95d8c5d93",
+					providerLabel:        bootstrapOcneProvider,
 				},
 			},
 		},
 		&appsv1.ReplicaSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:   ComponentNamespace,
-				Name:        capiOcneBootstrapCMDeployment + "-95d8c5d96",
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Name:        capiOcneBootstrapCMDeployment + "-95d8c5d93",
+				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
 
@@ -324,11 +337,11 @@ func getReadyDeployments() *fake.ClientBuilder {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      capiOcneControlPlaneCMDeployment,
-				Labels:    map[string]string{"cluster.x-k8s.io/provider": "control-plane-ocne"},
+				Labels:    map[string]string{providerLabel: controlPlaneOcneProvider},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"cluster.x-k8s.io/provider": "control-plane-ocne"},
+					MatchLabels: map[string]string{providerLabel: controlPlaneOcneProvider},
 				},
 			},
 			Status: appsv1.DeploymentStatus{
@@ -341,18 +354,18 @@ func getReadyDeployments() *fake.ClientBuilder {
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      capiOcneControlPlaneCMDeployment + "-95d8c5d96-m6mbr",
+				Name:      capiOcneControlPlaneCMDeployment + "-95d8c5d92-m6mbr",
 				Labels: map[string]string{
-					"pod-template-hash":         "95d8c5d96",
-					"cluster.x-k8s.io/provider": "control-plane-ocne",
+					podTemplateHashLabel: "95d8c5d92",
+					providerLabel:        controlPlaneOcneProvider,
 				},
 			},
 		},
 		&appsv1.ReplicaSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:   ComponentNamespace,
-				Name:        capiOcneControlPlaneCMDeployment + "-95d8c5d96",
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Name:        capiOcneControlPlaneCMDeployment + "-95d8c5d92",
+				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
 
@@ -360,11 +373,11 @@ func getReadyDeployments() *fake.ClientBuilder {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      capiociCMDeployment,
-				Labels:    map[string]string{"cluster.x-k8s.io/provider": "infrastructure-oci"},
+				Labels:    map[string]string{providerLabel: infrastructureOciProvider},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"cluster.x-k8s.io/provider": "infrastructure-oci"},
+					MatchLabels: map[string]string{providerLabel: infrastructureOciProvider},
 				},
 			},
 			Status: appsv1.DeploymentStatus{
@@ -377,18 +390,18 @@ func getReadyDeployments() *fake.ClientBuilder {
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      capiociCMDeployment + "-95d8c5d96-m6mbr",
+				Name:      capiociCMDeployment + "-95d8c5d91-m6mbr",
 				Labels: map[string]string{
-					"pod-template-hash":         "95d8c5d96",
-					"cluster.x-k8s.io/provider": "infrastructure-oci",
+					podTemplateHashLabel: "95d8c5d91",
+					providerLabel:        infrastructureOciProvider,
 				},
 			},
 		},
 		&appsv1.ReplicaSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:   ComponentNamespace,
-				Name:        capiociCMDeployment + "-95d8c5d96",
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Name:        capiociCMDeployment + "-95d8c5d91",
+				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
 	)
