@@ -379,7 +379,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 					}
 				})
 
-				t.It("Grafana should have a datasource present", func() {
+				t.It("Grafana should have a default datasource present", func() {
 					vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 					if err != nil {
 						t.Logs.Errorf("Error getting Verrazzano resource: %v", err)
