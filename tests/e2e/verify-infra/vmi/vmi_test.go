@@ -390,7 +390,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 						name = "Thanos"
 					}
 					Eventually(func() (bool, error) {
-						return grafanaDatasourceExists(vz, name, kubeconfigPath)
+						return grafanaDefaultDatasourceExists(vz, name, kubeconfigPath)
 					}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(BeTrue())
 				})
 			}
