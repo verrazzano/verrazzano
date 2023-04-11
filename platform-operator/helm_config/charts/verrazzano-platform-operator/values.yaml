@@ -43,5 +43,8 @@ webhookAffinity:
 webhooks:
   resourceValidation: false
 
-experimental:
-  modules: false
+# Configuration for experimental features that are under active development
+experimentalFeatures:
+  # Experimental support for Module CRDs and controllers
+  moduleAPI:
+    enabled: false
