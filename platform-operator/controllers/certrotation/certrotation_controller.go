@@ -12,6 +12,7 @@ import (
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,7 +38,8 @@ type CertificateRotationManagerReconciler struct {
 	CertificatesList []string
 	TargetNamespace  string
 	TargetDeployment string
-	CompareWindow    time.Duration // should be in no of hours
+	CompareWindow    time.Duration // should be in no of Seconds
+	CheckPeriod      time.Duration
 	lastReconcile    *time.Time
 }
 
@@ -65,26 +67,49 @@ func (r *CertificateRotationManagerReconciler) Reconcile(ctx context.Context, re
 		return result, err
 	}
 
+	secret := &corev1.Secret{}
+	if err := r.Get(ctx, req.NamespacedName, secret); err != nil {
+		if errors.IsNotFound(err) {
+			r.log.Infof("Secret %v was deleted, restart deployment to regenerate certs", req.NamespacedName)
+			// certificate secret was deleted, rotate
+			r.RolloutRestartDeployment(ctx)
+			return ctrl.Result{}, nil
+		}
+		return newRequeueWithDelay(5, 10, time.Second), err
+	}
+	if !secret.GetDeletionTimestamp().IsZero() {
+		r.log.Infof("Secret %v was deleted, restart deployment to regenerate certs", req.NamespacedName)
+		// certificate secret was deleted, rotate
+		r.RolloutRestartDeployment(ctx)
+		return ctrl.Result{}, nil
+	}
+
 	// If no error during certification checks, then next reconcile will happen
 	// every alternative day.
 	// else in case of error it will happen after 5 mintues.
 	certList, err := r.getCertSecretList(ctx)
 	if err != nil {
-		r.log.Debugf("Error listing certificate secrets, skipping reconcile for %v, error: %s", req.NamespacedName, err.Error())
-		return newRequeueWithDelay(10, 20, time.Second), err
+		//r.log.Debugf("Error listing certificate secrets, skipping reconcile for %v, error: %s", req.NamespacedName, err.Error())
+		// An error occurred requeue and try again
+		return newRequeueWithDelay(5, 10, time.Second), err
 	}
 	if len(certList) == 0 {
-		r.log.Debugf("No matching certificate secrets found, requeue")
-		return newRequeueWithDelay(5, 10, time.Minute), nil
+		// If there are no matching certificates, we don't need to re-queue
+		r.log.Debugf("No matching certificate secrets found")
+		return ctrl.Result{}, nil
 	}
 
 	err = r.CheckCertificateExpiration(ctx, certList)
 	if err != nil {
-		result := newRequeueWithDelay(5, 10, time.Minute)
+		result := newRequeueWithDelay(5, 10, time.Second)
 		r.log.Infof("Delay: %v", result.RequeueAfter)
 		return result, err
 	}
-	result := newRequeueWithDelay(5, 24, time.Hour)
+
+	result := ctrl.Result{
+		Requeue:      true,
+		RequeueAfter: r.CheckPeriod, // Check period is in duration already
+	}
 	r.log.Infof("Delay: %v", result.RequeueAfter)
 	return result, nil
 
@@ -128,10 +153,11 @@ func (r *CertificateRotationManagerReconciler) CheckCertificateExpiration(ctx co
 			return r.log.ErrorfNewErr("an error occurred obtaining certificate data for %s", secret)
 		}
 		mustRotate, err = r.ValidateCertDate(secdata)
-		r.log.Debugf("cert data expiry status for secret %v is %v", secret, mustRotate)
 		if err != nil {
 			return r.log.ErrorfNewErr("an error while validating the certificate secret data")
 		}
+		r.log.Debugf("cert data expiry status for secret %v is %v", secret, mustRotate)
+
 		if mustRotate {
 			err = r.DeleteSecret(ctx, sec)
 			if err != nil {

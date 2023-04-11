@@ -7,6 +7,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"path/filepath"
+	"time"
 )
 
 const (
@@ -28,6 +29,9 @@ const (
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
+
+var DefaultExpiryWindow = 336 * time.Hour
+var DefaultCheckPeriod = 168 * time.Hour
 
 // Global override for the default BOM file path
 var bomFilePathOverride string
@@ -82,11 +86,11 @@ type OperatorConfig struct {
 	// DryRun Run installs in a dry-run mode
 	DryRun bool
 
-	// CertificateExpiryCheckPeriodHours period for CertificateRotator Interval expiration check period in hours.
-	CertificateExpiryCheckPeriodHours int64
+	// CertificateExpiryCheckPeriodHours period for CertificateRotator Interval expiration check period in seconds.
+	CertificateExpiryCheckPeriodDuration *time.Duration
 
-	// CertificateExpiryCheckWindow period for CertificateRotator window of time to rotate the webhook certificates before expiration in hours.
-	CertificateExpiryCheckWindow int64
+	// CertificateExpiryCheckWindowDuration period for CertificateRotator window of time to rotate the webhook certificates before expiration in seconds
+	CertificateExpiryCheckWindowDuration *time.Duration
 
 	// ExperimentalModules toggles the VPO to use the experimental modules feature
 	ExperimentalModules bool
@@ -94,21 +98,21 @@ type OperatorConfig struct {
 
 // The singleton instance of the operator config
 var instance = OperatorConfig{
-	CertDir:                           "/etc/webhook/certs",
-	MetricsAddr:                       ":8080",
-	LeaderElectionEnabled:             false,
-	VersionCheckEnabled:               true,
-	RunWebhookInit:                    false,
-	RunWebhooks:                       false,
-	ResourceRequirementsValidation:    false,
-	WebhookValidationEnabled:          true,
-	VerrazzanoRootDir:                 rootDir,
-	HealthCheckPeriodSeconds:          60,
-	MySQLCheckPeriodSeconds:           60,
-	MySQLRepairTimeoutSeconds:         120,
-	ExperimentalModules:               false,
-	CertificateExpiryCheckPeriodHours: 168, //run every week only to validate the certificates.
-	CertificateExpiryCheckWindow:      336, //expiry window of two weeks.
+	CertDir:                              "/etc/webhook/certs",
+	MetricsAddr:                          ":8080",
+	LeaderElectionEnabled:                false,
+	VersionCheckEnabled:                  true,
+	RunWebhookInit:                       false,
+	RunWebhooks:                          false,
+	ResourceRequirementsValidation:       false,
+	WebhookValidationEnabled:             true,
+	VerrazzanoRootDir:                    rootDir,
+	HealthCheckPeriodSeconds:             60,
+	MySQLCheckPeriodSeconds:              60,
+	MySQLRepairTimeoutSeconds:            120,
+	ExperimentalModules:                  false,
+	CertificateExpiryCheckPeriodDuration: &DefaultCheckPeriod,  //run every week only to validate the certificates.
+	CertificateExpiryCheckWindowDuration: &DefaultExpiryWindow, //expiry window of two weeks.
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests

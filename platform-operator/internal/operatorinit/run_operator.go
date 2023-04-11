@@ -98,7 +98,8 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 		CertificatesList: []string{"verrazzano-platform-operator-ca", "verrazzano-platform-operator-tls"},
 		TargetNamespace:  constants.VerrazzanoInstallNamespace,
 		TargetDeployment: constants.VerrazzanoPlatformOperatorWebhook,
-		CompareWindow:    time.Duration(config.CertificateExpiryCheckWindow),
+		CompareWindow:    *config.CertificateExpiryCheckWindowDuration,
+		CheckPeriod:      *config.CertificateExpiryCheckPeriodDuration,
 	}).SetupWithManager(mgr); err != nil {
 		return errors.Wrap(err, "Failed to setup controller CertificateRotationManager")
 	}

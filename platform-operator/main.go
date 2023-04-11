@@ -93,11 +93,13 @@ func main() {
 		"MySQL check period seconds; set to 0 to disable MySQL checks")
 	flag.Int64Var(&config.MySQLRepairTimeoutSeconds, "mysql-repair-timeout", config.MySQLRepairTimeoutSeconds,
 		"MySQL repair timeout seconds")
-	flag.Int64Var(&config.CertificateExpiryCheckPeriodHours, "cert-expiry-check-period", config.CertificateExpiryCheckPeriodHours,
-		"Webhook certificate expiration check period in hours")
-	flag.Int64Var(&config.CertificateExpiryCheckWindow, "cert-rotation-window", config.CertificateExpiryCheckWindow,
-		"The window of time to rotate the webhook certificates before expiration in hours")
 	flag.BoolVar(&config.ExperimentalModules, "experimental-modules", config.ExperimentalModules, "enable experimental modules")
+
+	// Certificate expiry check
+	config.CertificateExpiryCheckPeriodDuration = flag.Duration("cert-expiry-check-period", internalconfig.DefaultCheckPeriod,
+		"Webhook certificate expiration check period in seconds, default 168h (1 week)")
+	config.CertificateExpiryCheckWindowDuration = flag.Duration("cert-rotation-window", internalconfig.DefaultExpiryWindow,
+		"The window of time to rotate the webhook certificates before expiration in seconds, default 336h (2 weeks)")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}

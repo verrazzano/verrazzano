@@ -26,7 +26,7 @@ func (r *CertificateRotationManagerReconciler) ValidateCertDate(certContent []by
 	if err != nil {
 		return false, r.log.ErrorfNewErr(err.Error())
 	}
-	deadline := time.Now().Add(time.Hour * r.CompareWindow)
+	deadline := time.Now().Add(r.CompareWindow)
 	if deadline.After(certs.NotAfter) {
 		r.log.Progressf("certificate for %s expires in less than %s hours",
 			certs.Subject.CommonName,
