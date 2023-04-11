@@ -697,7 +697,7 @@ func verrazzanoSecretRequired(vz *vzalpha1.Verrazzano) bool {
 		vzcr.IsComponentStatusEnabled(vz, kiali.ComponentName)
 }
 
-func grafanaDatasourceExists(vz *vzalpha1.Verrazzano, name, kubeconfigPath string) (bool, error) {
+func grafanaDefaultDatasourceExists(vz *vzalpha1.Verrazzano, name, kubeconfigPath string) (bool, error) {
 	password, err := pkg.GetVerrazzanoPasswordInCluster(kubeconfigPath)
 	if err != nil {
 		t.Logs.Error("Failed to get the Verrazzano password from the cluster")
@@ -732,9 +732,21 @@ func grafanaDatasourceExists(vz *vzalpha1.Verrazzano, name, kubeconfigPath strin
 			t.Logs.Errorf("Failed to convert name field to string")
 			continue
 		}
-		if nameStr == name {
-			return true, nil
+		if nameStr != name {
+			continue
 		}
+
+		sourceDefault, ok := source["isDefault"]
+		if !ok {
+			t.Logs.Errorf("Failed to verify the datasource was the default")
+			continue
+		}
+		defaultBool, ok := sourceDefault.(bool)
+		if !ok {
+			t.Logs.Errorf("Failed to convert default to bool")
+			continue
+		}
+		return defaultBool, nil
 	}
 
 	t.Logs.Errorf("Failed to find Grafana datasource %s", name)
