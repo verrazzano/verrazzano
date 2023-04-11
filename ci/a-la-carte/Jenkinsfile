@@ -350,7 +350,7 @@ pipeline {
                         runGinkgoRandomize('verify-infra/vmi')
                     }
                 }
-            }         
+            }
             post {
                 failure {
                     dumpK8sCluster('verify-install-post-app-stack-installation-failure-dump')
@@ -368,7 +368,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Reinstall None') {
             environment {
                 KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
@@ -439,7 +439,7 @@ pipeline {
                         runGinkgoRandomize('verify-infra/vmi')
                     }
                 }
-            }         
+            }
             post {
                 failure {
                     dumpK8sCluster('verify-install-post-none-installation-failure-dump')
@@ -518,22 +518,6 @@ pipeline {
 
         stage('Verify Istio App Stack') {
             parallel {
-                stage('verify-install/promstack') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install/promstack"
-                    }
-                    steps {
-                        runGinkgoRandomize('verify-install/promstack')
-                    }
-                }
-                stage('verify-infra/vmi') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra/vmi"
-                    }
-                    steps {
-                        runGinkgoRandomize('verify-infra/vmi')
-                    }
-                }
                 stage('examples helidon') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
