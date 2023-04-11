@@ -705,21 +705,20 @@ func grafanaDatasourceExists(vz *vzalpha1.Verrazzano, name, kubeconfigPath strin
 		return false, nil
 	}
 	resp, err := pkg.GetWebPageWithBasicAuth(*vz.Status.VerrazzanoInstance.GrafanaURL+"/api/datasources", "", "verrazzano", password, kubeconfigPath)
-	datasources := pkg.Jq(resp.Body)
-
-	datasourceList, ok := datasources.([]interface{})
-	if !ok {
-		t.Logs.Error("Datasource list cannot be deconstructed into a list")
+	if err != nil {
+		t.Logs.Errorf("Failed to get Grafana datasources: %v", err)
+		return false, err
 	}
 
-	for _, source := range datasourceList {
-		sourceMap, ok := source.(map[string]string)
-		if !ok {
-			t.Logs.Error("Datasource cannot be converted to a map")
-			return false, nil
-		}
+	var datasources []map[string]string
+	err = json.Unmarshal(resp.Body, &datasources)
+	if err != nil {
+		t.Logs.Errorf("Failed to unmarshal Grafana datasources: %v", err)
+		return false, err
+	}
 
-		if sourceName, ok := sourceMap["name"]; ok && sourceName == name {
+	for _, source := range datasources {
+		if sourceName, ok := source["name"]; ok && sourceName == name {
 			return true, nil
 		}
 	}
