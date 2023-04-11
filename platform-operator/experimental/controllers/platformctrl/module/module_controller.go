@@ -120,7 +120,7 @@ func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, mod
 		return vzcontroller.NewRequeueWithDelay(5, 10, time.Second), err
 	}
 
-	if _, err := r.reconcileModule(log, moduleInstance, chartName, chartNamespace, targetModuleVersion, sourceName, sourceURI); err != nil {
+	if _, err := r.reconcileModule(moduleInstance, chartName, chartNamespace, targetModuleVersion, sourceName, sourceURI); err != nil {
 		return newRequeueWithDelay(), err
 	}
 	if moduleInstance.Status.State != v1beta2.ModuleStateReady {
@@ -132,7 +132,7 @@ func (r *VerrazzanoModuleReconciler) doReconcile(log vzlog.VerrazzanoLogger, mod
 	return ctrl.Result{}, nil
 }
 
-func (r *VerrazzanoModuleReconciler) reconcileModule(log vzlog.VerrazzanoLogger, mod *v1beta2.Module, chartName string, chartNamespace string, moduleVersion string, sourceName string, sourceURI string) (*v1beta2.ModuleLifecycle, error) {
+func (r *VerrazzanoModuleReconciler) reconcileModule(mod *v1beta2.Module, chartName string, chartNamespace string, moduleVersion string, sourceName string, sourceURI string) (*v1beta2.ModuleLifecycle, error) {
 	lifecycleResource, err := r.createLifecycleResource(sourceName, sourceURI, chartName, chartNamespace, moduleVersion,
 		v1beta2.Overrides{}, createOwnerRef(mod))
 	if err != nil {
@@ -161,7 +161,7 @@ func (r *VerrazzanoModuleReconciler) createLifecycleResource(sourceName string, 
 		moduleInstaller.Spec = v1beta2.ModuleLifecycleSpec{
 			Installer: v1beta2.ModuleInstaller{
 				HelmRelease: &v1beta2.HelmRelease{
-					Name:      chartName, // FIXME: should this be associated with the Module name?
+					Name:      chartName, // REVIEW: should this be associated with the Module name?
 					Namespace: chartNamespace,
 					Repository: v1beta2.HelmChartRepository{
 						Name: sourceName,

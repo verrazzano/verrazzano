@@ -53,7 +53,7 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 		StatusUpdater:     statusUpdater,
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
-		return errors.Wrap(err, "Failed to setup controller")
+		return errors.Wrap(err, "Failed to setup Verrazzano controller")
 	}
 	if config.HealthCheckPeriodSeconds > 0 {
 		healthCheck.Start()
@@ -100,7 +100,7 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 			Client: mgr.GetClient(),
 			Scheme: mgr.GetScheme(),
 		}).SetupWithManager(mgr); err != nil {
-			log.Error(err, "Failed to setup controller", vzlog.FieldController, "ModuleLifecycleController")
+			log.Error(err, "Failed to setup ModuleLifecycle controller", vzlog.FieldController, "ModuleLifecycleController")
 			os.Exit(1)
 		}
 
@@ -109,7 +109,7 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 			Client: mgr.GetClient(),
 			Scheme: mgr.GetScheme(),
 		}).SetupWithManager(mgr); err != nil {
-			log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoModuleController")
+			log.Error(err, "Failed to setup Verrazzano Module controller", vzlog.FieldController, "VerrazzanoModuleController")
 			os.Exit(1)
 		}
 	}
