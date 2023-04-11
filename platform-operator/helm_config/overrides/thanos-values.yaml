@@ -33,6 +33,7 @@ query:
   # Adds the Prometheus Thanos sidecar as a Store API endpoint to Query
   stores:
     - dnssrv+_grpc._tcp.prometheus-operator-kube-p-prometheus
+  replicaLabel: prometheus_replica
 
   # ConfigMap containing Verrazzano managed cluster Thanos endpoints that the admin cluster Thanos Query should use
   # This configmap is managed by the VMC controller
