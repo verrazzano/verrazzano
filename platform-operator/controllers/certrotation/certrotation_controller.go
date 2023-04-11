@@ -12,7 +12,6 @@ import (
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -67,22 +66,22 @@ func (r *CertificateRotationManagerReconciler) Reconcile(ctx context.Context, re
 		return result, err
 	}
 
-	secret := &corev1.Secret{}
-	if err := r.Get(ctx, req.NamespacedName, secret); err != nil {
-		if errors.IsNotFound(err) {
-			r.log.Infof("Secret %v was deleted, restart deployment to regenerate certs", req.NamespacedName)
-			// certificate secret was deleted, rotate
-			r.RolloutRestartDeployment(ctx)
-			return ctrl.Result{}, nil
-		}
-		return newRequeueWithDelay(5, 10, time.Second), err
-	}
-	if !secret.GetDeletionTimestamp().IsZero() {
-		r.log.Infof("Secret %v was deleted, restart deployment to regenerate certs", req.NamespacedName)
-		// certificate secret was deleted, rotate
-		r.RolloutRestartDeployment(ctx)
-		return ctrl.Result{}, nil
-	}
+	//secret := &corev1.Secret{}
+	//if err := r.Get(ctx, req.NamespacedName, secret); err != nil {
+	//	if errors.IsNotFound(err) {
+	//		r.log.Infof("Secret %v was deleted, restart deployment to regenerate certs", req.NamespacedName)
+	//		// certificate secret was deleted, rotate
+	//		r.RolloutRestartDeployment(ctx)
+	//		return ctrl.Result{}, nil
+	//	}
+	//	return newRequeueWithDelay(5, 10, time.Second), err
+	//}
+	//if !secret.GetDeletionTimestamp().IsZero() {
+	//	r.log.Infof("Secret %v was deleted, restart deployment to regenerate certs", req.NamespacedName)
+	//	// certificate secret was deleted, rotate
+	//	r.RolloutRestartDeployment(ctx)
+	//	return ctrl.Result{}, nil
+	//}
 
 	// If no error during certification checks, then next reconcile will happen
 	// every alternative day.
