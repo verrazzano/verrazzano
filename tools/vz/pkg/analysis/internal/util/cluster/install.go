@@ -7,6 +7,7 @@ package cluster
 import (
 	encjson "encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"io"
 	"os"
 	"regexp"
@@ -28,6 +29,7 @@ var installNGINXIngressControllerFailedRe = regexp.MustCompile(`Installing NGINX
 var noIPForIngressControllerRegExp = regexp.MustCompile(`Failed getting DNS suffix: No IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer`)
 var errorSettingRancherTokenRegExp = regexp.MustCompile(`Failed setting Rancher access token.*no such host`)
 var noIPForIstioIngressReqExp = regexp.MustCompile(`Ingress external IP pending for component istio: No IP found for service istio-ingressgateway with type *`)
+var compCertIssueReqExp = regexp.MustCompile(`Issuing certificate as Secret does not exist *`)
 var dbLoadJobFailedRe = regexp.MustCompile(`.*DB load job has failed.*`)
 var dbLoadJobCompletedRe = regexp.MustCompile(`.*Keycloak DB successfully migrated.*`)
 
@@ -62,6 +64,16 @@ const (
 	nginxIngressControllerFailed = "nginxIngressControllerFailed"
 	noIPForIngressController     = "noIPForIngressController"
 	errorSettingRancherToken     = "errorSettingRancherToken"
+	grafanaComponent             = "grafana"
+	keyCloakComponent            = "keycloak"
+	kialiComponent               = "kiali-server"
+	prometheus                   = "prometheus"
+	prometheusOperator           = "prometheus-operator"
+	argocd                       = "argocd"
+	rancher                      = "rancher"
+	opensearchDashboards         = "opensearch-dashboards"
+	opensearch                   = "opensearch"
+	verrazzano                   = "verrazzano"
 )
 
 var dispatchMatchMap = map[string]*regexp.Regexp{
@@ -129,6 +141,46 @@ func checkIfLoadJobFailed(vpoLog string, errorLogs []files.LogMessage, infoLogs 
 		files[1] = reportVpoLog
 
 		issueReporter.AddKnownIssueMessagesFiles(report.KeycloakDataMigrationFailure, clusterRoot, messages, files)
+	}
+}
+
+func analyzeComponentCertIssue(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter, allMessages []files.LogMessage, vpoLog string) {
+	certs, err := pkg.GetCertificateList("")
+	if err != nil {
+		return
+	}
+	issueVisited := make(map[string]bool)
+	certCompMap := map[string]string{
+		"system-tls-" + grafanaComponent:         grafanaComponent,
+		keyCloakComponent + "-tls":               keyCloakComponent,
+		"system-tls-" + kialiComponent:           kialiComponent,
+		"system-tls-" + prometheus:               prometheus,
+		"tls-" + argocd + "-ingress":             argocd,
+		"tls-" + rancher + "-ingress":            rancher,
+		"system-tls-osd":                         opensearchDashboards,
+		"system-tls-os-ingest":                   opensearch,
+		prometheusOperator + "-kube-p-root-cert": prometheusOperator,
+		prometheusOperator + "-kube-p-admission": prometheusOperator,
+		verrazzano + "-tls":                      verrazzano,
+	}
+
+	files := StringSlice{clusterRoot + "/" + verrazzanoResource, vpoLog}
+	if helpers.GetIsLiveCluster() {
+		files[0] = report.GetRelatedVZResourceMessage()
+		files[1] = report.GetRelatedLogFromPodMessage(vpoLog)
+	}
+
+	for _, msg := range allMessages {
+		if compCertIssueReqExp.MatchString(msg.Message) {
+			for _, item := range certs.Items {
+				// diagnosing cert issues indexed in certCompMap
+				if !issueVisited[item.Name] && msg.Component == certCompMap[item.Name] && item.Status.Conditions[0].Status != "True" {
+					issueVisited[item.Name] = true
+					issueReporter.AddKnownIssueMessagesFiles(report.CertFailure, clusterRoot, []string{msg.Message}, files)
+					issueReporter.Contribute(log, clusterRoot)
+				}
+			}
+		}
 	}
 }
 
@@ -430,6 +482,9 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 
 	// Go through all the components which did not reach Ready state
 	allMessages, _ := files.ConvertToLogMessage(vpoLog)
+
+	// diagnose & report issues under all the certs of the components
+	analyzeComponentCertIssue(log, clusterRoot, issueReporter, allMessages, vpoLog)
 
 	// Slice to hold the components without specific errors in platform operator log
 	var compsNoMessages []string

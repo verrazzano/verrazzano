@@ -118,6 +118,7 @@ const (
 	NginxIngressPrivateSubnet    = "NginxIngressPrivateSubnet"
 	ExternalDNSConfigureIssue    = "ExternalDNSConfigureIssue"
 	KeycloakDataMigrationFailure = "KeycloakDataMigrationFailure"
+	CertFailure                  = "CertFailure"
 )
 
 // NOTE: How we are handling the issues/actions/reporting is still very much evolving here. Currently supplying some
@@ -147,6 +148,7 @@ var knownIssues = map[string]Issue{
 	NginxIngressPrivateSubnet:    {Type: NginxIngressPrivateSubnet, Summary: "Failed to create LoadBalancer for Nginx Ingress Controller", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[NginxIngressPrivateSubnet]}},
 	ExternalDNSConfigureIssue:    {Type: ExternalDNSConfigureIssue, Summary: "Failed to setup DNS configuration", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ExternalDNSConfigureIssue]}},
 	KeycloakDataMigrationFailure: {Type: KeycloakDataMigrationFailure, Summary: "Failure(s) migrating Keycloak data during MySQL upgrade", Informational: true, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[KeycloakDataMigrationFailure]}},
+	CertFailure:                  {Type: CertFailure, Summary: "Failure(s) issuing component certificates as secret doesn't exist", Informational: true, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[CertFailure]}},
 }
 
 // NewKnownIssueSupportingData adds a known issue
