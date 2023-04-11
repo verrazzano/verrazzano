@@ -33,8 +33,9 @@ const ComponentJSONName = "thanos"
 
 // Availability Object Names
 const (
-	queryDeployment    = "thanos-query"
-	frontendDeployment = "thanos-query-frontend"
+	queryDeployment         = "thanos-query"
+	frontendDeployment      = "thanos-query-frontend"
+	storeGatewayStatefulset = "thanos-storegateway"
 )
 
 type ThanosComponent struct {
@@ -67,6 +68,12 @@ func NewComponent() spi.Component {
 						Namespace: ComponentNamespace,
 					},
 				},
+				StatefulsetNames: []types.NamespacedName{
+					{
+						Name:      storeGatewayStatefulset,
+						Namespace: ComponentNamespace,
+					},
+				},
 			},
 		},
 	}
@@ -77,10 +84,26 @@ func (t ThanosComponent) IsReady(ctx spi.ComponentContext) bool {
 	return t.HelmComponent.IsReady(ctx) && t.isThanosReady(ctx)
 }
 
-// isThanosReady returns true if the availability objects have the minimum number of expected replicas
+// isThanosReady returns true if the availability objects that exist, have the minimum number of expected replicas
 func (t ThanosComponent) isThanosReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), t.AvailabilityObjects.DeploymentNames, 1, prefix)
+	// If a Thanos subcomponent is enabled, the deployment or statefulset will definitely exist
+	// once the Helm install completes. For the Thanos deployments and statefulsets that exist,
+	// check if replicas are ready.
+	deploymentsToCheck := []types.NamespacedName{}
+	statefulsetsToCheck := []types.NamespacedName{}
+	for _, deploymentName := range t.AvailabilityObjects.DeploymentNames {
+		if exists, err := ready.DoesDeploymentExist(ctx.Client(), deploymentName); err == nil && exists {
+			deploymentsToCheck = append(deploymentsToCheck, deploymentName)
+		}
+	}
+	for _, stsName := range t.AvailabilityObjects.StatefulsetNames {
+		if exists, err := ready.DoesStatefulsetExist(ctx.Client(), stsName); err == nil && exists {
+			statefulsetsToCheck = append(statefulsetsToCheck, stsName)
+		}
+	}
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deploymentsToCheck, 1, prefix) &&
+		ready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulsetsToCheck, 1, prefix)
 }
 
 // IsEnabled Thanos enabled check for installation
