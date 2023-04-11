@@ -698,9 +698,10 @@ func verrazzanoSecretRequired(vz *vzalpha1.Verrazzano) bool {
 func grafanaDatasourceExists(vz *vzalpha1.Verrazzano, name, kubeconfigPath string) (bool, error) {
 	password, err := pkg.GetVerrazzanoPasswordInCluster(kubeconfigPath)
 	if err != nil {
+		t.Logs.Error("Failed to get the Verrazzano password from the cluster")
 		return false, err
 	}
-	if vz.Status.VerrazzanoInstance.GrafanaURL == nil {
+	if vz.Status.VerrazzanoInstance == nil || vz.Status.VerrazzanoInstance.GrafanaURL == nil {
 		t.Logs.Error("Grafana URL in the Verrazzano status is empty")
 		return false, nil
 	}
