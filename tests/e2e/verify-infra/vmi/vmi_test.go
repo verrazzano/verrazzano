@@ -389,7 +389,9 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 					if vzcr.IsThanosEnabled(vz) {
 						name = "Thanos"
 					}
-					Eventually(grafanaDatasourceExists(vz, name, kubeconfigPath)).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(BeTrue())
+					Eventually(func() (bool, error) {
+						return grafanaDatasourceExists(vz, name, kubeconfigPath)
+					}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(BeTrue())
 				})
 			}
 
