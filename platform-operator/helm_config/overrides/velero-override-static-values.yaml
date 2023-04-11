@@ -8,12 +8,6 @@ podAnnotations:
 restic:
   annotations:
     traffic.sidecar.istio.io/excludeOutboundPorts: "443"
-  containerSecurityContext:
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop: ["ALL"]
-      add: ["NET_BIND_SERVICE"]
-    readOnlyRootFilesystem: false
 metrics:
   serviceMonitor:
     enabled: true
