@@ -110,15 +110,13 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 
 var _ = BeforeSuite(beforeSuite)
 
-var _ = t.Describe("Update a la carte configuration", func() {
-	t.Context(fmt.Sprintf("to the %s", updateType), func() {
-		t.It("Peforming update and waiting for Verrazzano to become ready", func() {
-			modifier := getModifer(updateType)
-			if modifier == nil {
-				AbortSuite(fmt.Sprintf("Unsupported modifier %s", updateType))
-			}
-			update.UpdateCRWithRetries(modifier, pollingInterval, waitTimeout)
-		})
+var _ = t.Describe("Updating a la carte configuration", func() {
+	t.It(fmt.Sprintf("to the %s and waiting for Verrazzano to become ready", updateType), func() {
+		modifier := getModifer(updateType)
+		if modifier == nil {
+			AbortSuite(fmt.Sprintf("Unsupported modifier %s", updateType))
+		}
+		update.UpdateCRWithRetries(modifier, pollingInterval, waitTimeout)
 	})
 })
 
