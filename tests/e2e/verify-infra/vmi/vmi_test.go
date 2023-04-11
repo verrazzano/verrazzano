@@ -710,7 +710,7 @@ func grafanaDatasourceExists(vz *vzalpha1.Verrazzano, name, kubeconfigPath strin
 		return false, err
 	}
 
-	var datasources []map[string]string
+	var datasources []map[string]interface{}
 	err = json.Unmarshal(resp.Body, &datasources)
 	if err != nil {
 		t.Logs.Errorf("Failed to unmarshal Grafana datasources: %v", err)
@@ -718,7 +718,13 @@ func grafanaDatasourceExists(vz *vzalpha1.Verrazzano, name, kubeconfigPath strin
 	}
 
 	for _, source := range datasources {
-		if sourceName, ok := source["name"]; ok && sourceName == name {
+		sourceName, ok := source["name"]
+		if !ok {
+			t.Logs.Errorf("Failed to find name for Grafana datasource")
+			continue
+		}
+
+		if nameStr, ok := sourceName.(string); ok && nameStr == name {
 			return true, nil
 		}
 	}
