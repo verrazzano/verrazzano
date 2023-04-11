@@ -93,12 +93,12 @@ func (t ThanosComponent) isThanosReady(ctx spi.ComponentContext) bool {
 	deploymentsToCheck := []types.NamespacedName{}
 	statefulsetsToCheck := []types.NamespacedName{}
 	for _, deploymentName := range t.AvailabilityObjects.DeploymentNames {
-		if exists, err := ready.DoesDeploymentExist(ctx.Client(), deploymentName); err != nil && exists {
+		if exists, err := ready.DoesDeploymentExist(ctx.Client(), deploymentName); err == nil && exists {
 			deploymentsToCheck = append(deploymentsToCheck, deploymentName)
 		}
 	}
 	for _, stsName := range t.AvailabilityObjects.StatefulsetNames {
-		if exists, err := ready.DoesStatefulsetExist(ctx.Client(), stsName); err != nil && exists {
+		if exists, err := ready.DoesStatefulsetExist(ctx.Client(), stsName); err == nil && exists {
 			statefulsetsToCheck = append(statefulsetsToCheck, stsName)
 		}
 	}
