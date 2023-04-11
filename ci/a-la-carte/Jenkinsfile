@@ -440,7 +440,7 @@ pipeline {
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
             }
             steps {
-                runGinkgoUpdate('update/a-la-carte', 'cluster-management-stack')
+                runGinkgoUpdate('update/a-la-carte', 'none-profile')
             }
 
             post {
