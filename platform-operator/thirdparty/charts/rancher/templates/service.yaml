@@ -16,18 +16,3 @@ spec:
     name: https-internal
   selector:
     app: {{ template "rancher.fullname" . }}
----
-kind: Service
-apiVersion: v1
-metadata:
-  name: webhook-service
-  namespace: cattle-system
-  annotations:
-    need-a-cert.cattle.io/secret-name: rancher-webhook-tls
-spec:
-  ports:
-    - name: https
-      port: 443
-      targetPort: 8777
-  selector:
-    app: rancher-webhook
