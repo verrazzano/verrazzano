@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package ready
@@ -256,6 +256,54 @@ func TestStatefulsetReady(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.ready, StatefulSetsAreReady(vzlog.DefaultLogger(), tt.c, tt.n, tt.expected, ""))
+		})
+	}
+}
+
+func TestDoStatefulsetsExist(t *testing.T) {
+	tests := []struct {
+		name     string
+		stsNames []types.NamespacedName
+		want     bool
+	}{
+		{"no statefulset names provided", []types.NamespacedName{}, true},
+		{"statefulset exists", []types.NamespacedName{{Name: "foo", Namespace: "bar"}}, true},
+		{"all statefulsets exist", []types.NamespacedName{{Name: "foo", Namespace: "bar"}, {Name: "foo2", Namespace: "bar2"}}, true},
+		{"only some statefulsets exist", []types.NamespacedName{{Name: "foo", Namespace: "bar"}, {Name: "nonexist", Namespace: "bar"}}, false},
+		{"none of the statefulsets exist", []types.NamespacedName{{Name: "nofoo", Namespace: "nobar"}, {Name: "nofoo2", Namespace: "bar2"}}, false},
+		{"statefulset in different namespace", []types.NamespacedName{{Name: "foo", Namespace: "bar2"}}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			log := vzlog.DefaultLogger()
+			fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+				&appsv1.StatefulSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "bar",
+						Name:      "foo",
+					},
+					Spec: appsv1.StatefulSetSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								"app": "foo",
+							},
+						},
+					},
+				},
+				&appsv1.StatefulSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "bar2",
+						Name:      "foo2",
+					},
+					Spec: appsv1.StatefulSetSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								"app": "foo",
+							},
+						},
+					},
+				}).Build()
+			assert.Equalf(t, tt.want, DoStatefulSetsExist(log, fakeClient, tt.stsNames, 1, tt.name), "Expected %v for %s", tt.want, tt.name)
 		})
 	}
 }

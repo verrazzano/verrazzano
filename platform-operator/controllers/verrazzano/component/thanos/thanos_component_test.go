@@ -4,6 +4,7 @@
 package thanos
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,8 +14,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	cliruntime "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -366,5 +371,158 @@ func TestGetCertificateNames(t *testing.T) {
 			nsn := NewComponent().GetCertificateNames(ctx)
 			assert.Equal(t, test.ingNames, nsn)
 		})
+	}
+}
+
+// TestIsReady tests IsReady for the Thanos component
+func TestIsReady(t *testing.T) {
+	scheme := k8scheme.Scheme
+	var tests = []struct {
+		name                  string
+		queryDeployed         bool
+		queryFrontendDeployed bool
+		storegatewayDeployed  bool
+		queryReady            bool
+		queryFrontendReady    bool
+		storegatewayReady     bool
+		expect                bool
+	}{
+		// GIVEN a call to IsReady
+		// WHEN only the Thanos Query and Thanos Query frontend deployments exists and the pods are ready
+		// THEN returns true
+		{
+			name:                  "Thanos Query and Query Frontend are deployed and ready",
+			queryDeployed:         true,
+			queryFrontendDeployed: true,
+			storegatewayDeployed:  false,
+			queryReady:            true,
+			queryFrontendReady:    true,
+			storegatewayReady:     false,
+			expect:                true,
+		},
+		{
+			name:                  "Thanos Query and Query Frontend are deployed but one is not ready",
+			queryDeployed:         true,
+			queryFrontendDeployed: true,
+			storegatewayDeployed:  false,
+			queryReady:            true,
+			queryFrontendReady:    false,
+			storegatewayReady:     false,
+			expect:                false,
+		},
+		{
+			name:                  "Thanos Storegateway is also deployed but not ready",
+			queryDeployed:         true,
+			queryFrontendDeployed: true,
+			storegatewayDeployed:  true,
+			queryReady:            true,
+			queryFrontendReady:    true,
+			storegatewayReady:     false,
+			expect:                false,
+		},
+		{
+			name:                  "Thanos all components are deployed and ready",
+			queryDeployed:         true,
+			queryFrontendDeployed: true,
+			storegatewayDeployed:  true,
+			queryReady:            true,
+			queryFrontendReady:    true,
+			storegatewayReady:     true,
+			expect:                true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var objectsToCreate []cliruntime.Object
+			revisionHash := "12345"
+			controllerRevisionName := "crevname"
+			if test.queryDeployed {
+				objectsToCreate = []cliruntime.Object{makeDeployment(queryDeployment)}
+				objectsToCreate = append(objectsToCreate, makeReplicaset(queryDeployment, revisionHash))
+			}
+			if test.queryFrontendDeployed {
+				objectsToCreate = append(objectsToCreate, makeDeployment(frontendDeployment))
+				objectsToCreate = append(objectsToCreate, makeReplicaset(frontendDeployment, revisionHash))
+			}
+			if test.storegatewayDeployed {
+				objectsToCreate = append(objectsToCreate, makeStatefulset(storeGatewayStatefulset))
+				objectsToCreate = append(objectsToCreate, makeControllerRevision(controllerRevisionName))
+			}
+			if test.queryReady {
+				objectsToCreate = append(objectsToCreate, makePod(queryDeployment, map[string]string{
+					"app":               queryDeployment,
+					"pod-template-hash": revisionHash,
+				}))
+			}
+			if test.queryFrontendReady {
+				objectsToCreate = append(objectsToCreate, makePod(frontendDeployment, map[string]string{
+					"app":               frontendDeployment,
+					"pod-template-hash": revisionHash,
+				}))
+			}
+			if test.storegatewayReady {
+				objectsToCreate = append(objectsToCreate, makePod(storeGatewayStatefulset, map[string]string{
+					"app":                      storeGatewayStatefulset,
+					"controller-revision-hash": controllerRevisionName,
+				}))
+			}
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objectsToCreate...).Build()
+			ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, true)
+			assert.Equal(t, test.expect, NewComponent().IsReady(ctx))
+		})
+	}
+}
+
+func makeControllerRevision(name string) cliruntime.Object {
+	return &appsv1.ControllerRevision{
+		ObjectMeta: v1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      name,
+		},
+		Revision: 1,
+	}
+}
+
+func makeStatefulset(name string) cliruntime.Object {
+	return &appsv1.StatefulSet{
+		ObjectMeta: v1.ObjectMeta{Name: name, Namespace: ComponentNamespace},
+		Spec:       appsv1.StatefulSetSpec{Selector: &v1.LabelSelector{MatchLabels: map[string]string{"app": name}}},
+		Status:     appsv1.StatefulSetStatus{AvailableReplicas: 1, UpdatedReplicas: 1, ReadyReplicas: 1},
+	}
+}
+
+func makeDeployment(name string) cliruntime.Object {
+	return &appsv1.Deployment{
+		ObjectMeta: v1.ObjectMeta{Name: name, Namespace: ComponentNamespace},
+		Spec:       appsv1.DeploymentSpec{Selector: &v1.LabelSelector{MatchLabels: map[string]string{"app": name}}},
+		Status:     appsv1.DeploymentStatus{AvailableReplicas: 1, UpdatedReplicas: 1},
+	}
+}
+
+func makeReplicaset(name string, suffix string) cliruntime.Object {
+	return &appsv1.ReplicaSet{
+		ObjectMeta: v1.ObjectMeta{
+			Namespace:   ComponentNamespace,
+			Name:        fmt.Sprintf("%s-%s", name, suffix),
+			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+		},
+	}
+}
+
+func makePod(baseName string, labels map[string]string) cliruntime.Object {
+	return &corev1.Pod{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-1234", baseName),
+			Namespace: ComponentNamespace,
+			Labels:    labels,
+		},
+		Status: corev1.PodStatus{
+			Conditions: []corev1.PodCondition{
+				{
+					Type:   corev1.PodReady,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		},
 	}
 }

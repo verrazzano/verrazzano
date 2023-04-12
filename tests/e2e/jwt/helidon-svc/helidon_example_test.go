@@ -68,7 +68,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get the Kubeconfig location for the cluster: %v", err))
 	}
-	metricsTest, err = pkg.NewMetricsTest([]string{kubeconfig}, kubeconfig, map[string]string{})
+	metricsTest, err = pkg.NewMetricsTest(kubeconfig, map[string]string{})
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
 	}

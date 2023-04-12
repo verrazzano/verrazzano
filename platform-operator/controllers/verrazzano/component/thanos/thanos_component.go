@@ -15,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,8 +33,9 @@ const ComponentJSONName = "thanos"
 
 // Availability Object Names
 const (
-	queryDeployment    = "thanos-query"
-	frontendDeployment = "thanos-query-frontend"
+	queryDeployment         = "thanos-query"
+	frontendDeployment      = "thanos-query-frontend"
+	storeGatewayStatefulset = "thanos-storegateway"
 )
 
 type ThanosComponent struct {
@@ -52,7 +54,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			ImagePullSecretKeyname:    "image.pullSecrets[0]",
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "thanos-values.yaml"),
-			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, promoperator.ComponentName},
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
 			AvailabilityObjects: &ready.AvailabilityObjects{
@@ -66,6 +68,12 @@ func NewComponent() spi.Component {
 						Namespace: ComponentNamespace,
 					},
 				},
+				StatefulsetNames: []types.NamespacedName{
+					{
+						Name:      storeGatewayStatefulset,
+						Namespace: ComponentNamespace,
+					},
+				},
 			},
 		},
 	}
@@ -76,10 +84,26 @@ func (t ThanosComponent) IsReady(ctx spi.ComponentContext) bool {
 	return t.HelmComponent.IsReady(ctx) && t.isThanosReady(ctx)
 }
 
-// isThanosReady returns true if the availability objects have the minimum number of expected replicas
+// isThanosReady returns true if the availability objects that exist, have the minimum number of expected replicas
 func (t ThanosComponent) isThanosReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), t.AvailabilityObjects.DeploymentNames, 1, prefix)
+	// If a Thanos subcomponent is enabled, the deployment or statefulset will definitely exist
+	// once the Helm install completes. For the Thanos deployments and statefulsets that exist,
+	// check if replicas are ready.
+	deploymentsToCheck := []types.NamespacedName{}
+	statefulsetsToCheck := []types.NamespacedName{}
+	for _, deploymentName := range t.AvailabilityObjects.DeploymentNames {
+		if exists, err := ready.DoesDeploymentExist(ctx.Client(), deploymentName); err == nil && exists {
+			deploymentsToCheck = append(deploymentsToCheck, deploymentName)
+		}
+	}
+	for _, stsName := range t.AvailabilityObjects.StatefulsetNames {
+		if exists, err := ready.DoesStatefulsetExist(ctx.Client(), stsName); err == nil && exists {
+			statefulsetsToCheck = append(statefulsetsToCheck, stsName)
+		}
+	}
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deploymentsToCheck, 1, prefix) &&
+		ready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulsetsToCheck, 1, prefix)
 }
 
 // IsEnabled Thanos enabled check for installation

@@ -16,7 +16,6 @@ spec:
       to:
         - operation:
             ports:
-              - "10901"
               - "10902"
     # allow Prometheus to scrape metrics from Thanos query-frontend
     - from:
@@ -29,9 +28,21 @@ spec:
         - operation:
             ports:
               - "10902"
+    # allow grafana to talk to query-frontend
+    - from:
+        - source:
+            namespaces:
+              - verrazzano-system
+            principals:
+              - cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator
+      to:
+        - operation:
+            ports:
+              - "10902"
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}
+      app.kubernetes.io/component: query-frontend
 ---
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
@@ -51,6 +62,17 @@ spec:
         - operation:
             ports:
               - "10902"
+    # allow the authproxy requests to the gRPC endpoint
+    - from:
+        - source:
+            namespaces:
+              - verrazzano-system
+            principals:
+              - cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy
+      to:
+        - operation:
+            ports:
+              - "10901"
     # allow query to talk to store-gateway
     - from:
         - source:
@@ -62,17 +84,6 @@ spec:
         - operation:
             ports:
               - "10901"
-    # allow grafana to talk to query-frontend
-    - from:
-        - source:
-            namespaces:
-              - verrazzano-system
-            principals:
-              - cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator
-      to:
-        - operation:
-            ports:
-              - "10902"
     # allow Prometheus to scrape metrics from Thanos query
     - from:
         - source:
@@ -87,4 +98,5 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}
+      app.kubernetes.io/component: query
 {{end}}

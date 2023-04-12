@@ -378,6 +378,21 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 						Eventually(assertAdminRole, waitTimeout, pollingInterval).Should(BeTrue())
 					}
 				})
+
+				t.It("Grafana should have a default datasource present", func() {
+					vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+					if err != nil {
+						t.Logs.Errorf("Error getting Verrazzano resource: %v", err)
+						Fail(err.Error())
+					}
+					name := "Prometheus"
+					if vzcr.IsThanosEnabled(vz) {
+						name = "Thanos"
+					}
+					Eventually(func() (bool, error) {
+						return grafanaDefaultDatasourceExists(vz, name, kubeconfigPath)
+					}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(BeTrue())
+				})
 			}
 
 		} else {
@@ -680,4 +695,60 @@ func verrazzanoSecretRequired(vz *vzalpha1.Verrazzano) bool {
 		vzcr.IsComponentStatusEnabled(vz, operator.ComponentName) ||
 		vzcr.IsComponentStatusEnabled(vz, grafana.ComponentName) ||
 		vzcr.IsComponentStatusEnabled(vz, kiali.ComponentName)
+}
+
+func grafanaDefaultDatasourceExists(vz *vzalpha1.Verrazzano, name, kubeconfigPath string) (bool, error) {
+	password, err := pkg.GetVerrazzanoPasswordInCluster(kubeconfigPath)
+	if err != nil {
+		t.Logs.Error("Failed to get the Verrazzano password from the cluster")
+		return false, err
+	}
+	if vz == nil || vz.Status.VerrazzanoInstance == nil || vz.Status.VerrazzanoInstance.GrafanaURL == nil {
+		t.Logs.Error("Grafana URL in the Verrazzano status is empty")
+		return false, nil
+	}
+	resp, err := pkg.GetWebPageWithBasicAuth(*vz.Status.VerrazzanoInstance.GrafanaURL+"/api/datasources", "", "verrazzano", password, kubeconfigPath)
+	if err != nil {
+		t.Logs.Errorf("Failed to get Grafana datasources: %v", err)
+		return false, err
+	}
+
+	var datasources []map[string]interface{}
+	err = json.Unmarshal(resp.Body, &datasources)
+	if err != nil {
+		t.Logs.Errorf("Failed to unmarshal Grafana datasources: %v", err)
+		return false, err
+	}
+
+	for _, source := range datasources {
+		sourceName, ok := source["name"]
+		if !ok {
+			t.Logs.Errorf("Failed to find name for Grafana datasource")
+			continue
+		}
+
+		nameStr, ok := sourceName.(string)
+		if !ok {
+			t.Logs.Errorf("Failed to convert name field to string")
+			continue
+		}
+		if nameStr != name {
+			continue
+		}
+
+		sourceDefault, ok := source["isDefault"]
+		if !ok {
+			t.Logs.Errorf("Failed to verify the datasource was the default")
+			continue
+		}
+		defaultBool, ok := sourceDefault.(bool)
+		if !ok {
+			t.Logs.Errorf("Failed to convert default to bool")
+			continue
+		}
+		return defaultBool, nil
+	}
+
+	t.Logs.Errorf("Failed to find Grafana datasource %s", name)
+	return false, nil
 }

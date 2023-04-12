@@ -1,10 +1,12 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package ready
 
 import (
 	"context"
 	"fmt"
+	"strconv"
+
 	pkgConstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -14,7 +16,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"strconv"
 )
 
 var veleroPodSelector = &metav1.LabelSelector{
@@ -65,20 +66,32 @@ func DeploymentsAreReady(log vzlog.VerrazzanoLogger, client clipkg.Client, names
 	return true
 }
 
-// DoDeploymentsExist checks if the named deployments exist
+// DoDeploymentsExist checks if all the named deployments exist
 func DoDeploymentsExist(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedNames []types.NamespacedName, _ int32, prefix string) bool {
 	for _, namespacedName := range namespacedNames {
-		deployment := appsv1.Deployment{}
-		if err := client.Get(context.TODO(), namespacedName, &deployment); err != nil {
-			if errors.IsNotFound(err) {
-				logProgressf(log, "%s is waiting for deployment %v to exist", prefix, namespacedName)
-				return false
-			}
+		exists, err := DoesDeploymentExist(client, namespacedName)
+		if err != nil {
 			logErrorf(log, "%s failed getting deployment %v: %v", prefix, namespacedName, err)
+			return false
+		}
+		if !exists {
+			logProgressf(log, "%s is waiting for deployment %v to exist", prefix, namespacedName)
 			return false
 		}
 	}
 	return true
+}
+
+// DoesDeploymentsExist checks if the named deployment exists
+func DoesDeploymentExist(client clipkg.Client, namespacedName types.NamespacedName) (bool, error) {
+	deployment := appsv1.Deployment{}
+	if err := client.Get(context.TODO(), namespacedName, &deployment); err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 func deploymentFullyReady(log vzlog.VerrazzanoLogger, client clipkg.Client, deployment *appsv1.Deployment, namespacedName types.NamespacedName, expectedReplicas int32, prefix string) bool {
