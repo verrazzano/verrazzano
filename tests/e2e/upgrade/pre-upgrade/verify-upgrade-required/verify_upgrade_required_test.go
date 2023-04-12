@@ -24,6 +24,9 @@ import (
 
 var t = framework.NewTestFramework("verify-upgrade-required")
 
+var waitTimeout = 3 * time.Minute
+var pollingInterval = 10 * time.Second
+
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	start := time.Now()
 	beforeSuitePassed = true
@@ -73,9 +76,13 @@ var _ = t.Describe("Verify upgrade required when new version is available", Labe
 				return
 			}
 
-			vz, err := pkg.GetVerrazzano()
-			if err != nil {
-				t.Fail(fmt.Sprintf("Error getting Verrazzano instance: %s", err.Error()))
+			var vz *vzalpha1.Verrazzano
+			Eventually(func() error {
+				vz, err = pkg.GetVerrazzano()
+				return err
+			}, waitTimeout, pollingInterval).Should(BeNil())
+			if vz == nil {
+				t.Fail(fmt.Sprintf("Unable to get Verrazzano instance"))
 				return
 			}
 
