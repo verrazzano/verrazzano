@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package verify
@@ -82,7 +82,7 @@ var _ = t.Describe("Verify upgrade required when new version is available", Labe
 				return err
 			}, waitTimeout, pollingInterval).Should(BeNil())
 			if vz == nil {
-				t.Fail(fmt.Sprintf("Unable to get Verrazzano instance"))
+				t.Fail("Unable to get Verrazzano instance")
 				return
 			}
 
