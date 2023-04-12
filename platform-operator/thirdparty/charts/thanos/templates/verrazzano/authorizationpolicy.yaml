@@ -32,7 +32,6 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}
-      app.kubernetes.io/component: query-frontend
 ---
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
@@ -88,5 +87,4 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}
-      app.kubernetes.io/component: query
 {{end}}
