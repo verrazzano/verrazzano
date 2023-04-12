@@ -1,7 +1,8 @@
 ### v1.6.0
 Features:
 
-- Prometheus stack is now able to be dynamically enabled or disabled at any point during the Verrazzano installation lifecycle
+- The Prometheus components can now be enabled or disabled at any point in the Verrazzano lifecycle
+- Added a None profile that comes with all components disabled by default
 
 Component version updates:
 
