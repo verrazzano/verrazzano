@@ -10,6 +10,7 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -84,26 +85,49 @@ func (t ThanosComponent) IsReady(ctx spi.ComponentContext) bool {
 	return t.HelmComponent.IsReady(ctx) && t.isThanosReady(ctx)
 }
 
+// IsAvailable returns the component availability for ThanosComponent, also accounting for optional
+// subcomponents like store gateway
+func (t ThanosComponent) IsAvailable(ctx spi.ComponentContext) (string, v1alpha1.ComponentAvailability) {
+	deployments := t.getEnabledDeployments(ctx)
+	statefulsets := t.getEnabledStatefulsets(ctx)
+	actualAvailabilityObjects := ready.AvailabilityObjects{
+		DeploymentNames:  deployments,
+		StatefulsetNames: statefulsets,
+	}
+	return actualAvailabilityObjects.IsAvailable(ctx.Log(), ctx.Client())
+}
+
 // isThanosReady returns true if the availability objects that exist, have the minimum number of expected replicas
 func (t ThanosComponent) isThanosReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	// If a Thanos subcomponent is enabled, the deployment or statefulset will definitely exist
 	// once the Helm install completes. For the Thanos deployments and statefulsets that exist,
 	// check if replicas are ready.
-	deploymentsToCheck := []types.NamespacedName{}
-	statefulsetsToCheck := []types.NamespacedName{}
-	for _, deploymentName := range t.AvailabilityObjects.DeploymentNames {
-		if exists, err := ready.DoesDeploymentExist(ctx.Client(), deploymentName); err == nil && exists {
-			deploymentsToCheck = append(deploymentsToCheck, deploymentName)
-		}
-	}
-	for _, stsName := range t.AvailabilityObjects.StatefulsetNames {
-		if exists, err := ready.DoesStatefulsetExist(ctx.Client(), stsName); err == nil && exists {
-			statefulsetsToCheck = append(statefulsetsToCheck, stsName)
-		}
-	}
+	deploymentsToCheck := t.getEnabledDeployments(ctx)
+	statefulsetsToCheck := t.getEnabledStatefulsets(ctx)
+
 	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deploymentsToCheck, 1, prefix) &&
 		ready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulsetsToCheck, 1, prefix)
+}
+
+func (t ThanosComponent) getEnabledDeployments(ctx spi.ComponentContext) []types.NamespacedName {
+	enabledDeployments := []types.NamespacedName{}
+	for _, deploymentName := range t.AvailabilityObjects.DeploymentNames {
+		if exists, err := ready.DoesDeploymentExist(ctx.Client(), deploymentName); err == nil && exists {
+			enabledDeployments = append(enabledDeployments, deploymentName)
+		}
+	}
+	return enabledDeployments
+}
+
+func (t ThanosComponent) getEnabledStatefulsets(ctx spi.ComponentContext) []types.NamespacedName {
+	enabledStatefulsets := []types.NamespacedName{}
+	for _, stsName := range t.AvailabilityObjects.StatefulsetNames {
+		if exists, err := ready.DoesStatefulsetExist(ctx.Client(), stsName); err == nil && exists {
+			enabledStatefulsets = append(enabledStatefulsets, stsName)
+		}
+	}
+	return enabledStatefulsets
 }
 
 // IsEnabled Thanos enabled check for installation
