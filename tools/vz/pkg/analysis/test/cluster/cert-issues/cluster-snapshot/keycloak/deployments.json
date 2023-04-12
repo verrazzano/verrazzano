@@ -1,0 +1,531 @@
+{
+  "metadata": {
+    "resourceVersion": "34926"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "mysql",
+        "namespace": "keycloak",
+        "uid": "dee9d0db-6a9e-4311-b971-fac64db6ac63",
+        "resourceVersion": "4679",
+        "generation": 1,
+        "creationTimestamp": "2023-03-08T14:30:09Z",
+        "labels": {
+          "app": "mysql",
+          "app.kubernetes.io/managed-by": "Helm",
+          "chart": "mysql-1.6.9",
+          "heritage": "Helm",
+          "release": "mysql"
+        },
+        "annotations": {
+          "deployment.kubernetes.io/revision": "1",
+          "meta.helm.sh/release-name": "mysql",
+          "meta.helm.sh/release-namespace": "keycloak"
+        },
+        "managedFields": [
+          {
+            "manager": "helm",
+            "operation": "Update",
+            "apiVersion": "apps/v1",
+            "time": "2023-03-08T14:30:09Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app": {},
+                  "f:app.kubernetes.io/managed-by": {},
+                  "f:chart": {},
+                  "f:heritage": {},
+                  "f:release": {}
+                }
+              },
+              "f:spec": {
+                "f:progressDeadlineSeconds": {},
+                "f:replicas": {},
+                "f:revisionHistoryLimit": {},
+                "f:selector": {},
+                "f:strategy": {
+                  "f:type": {}
+                },
+                "f:template": {
+                  "f:metadata": {
+                    "f:labels": {
+                      ".": {},
+                      "f:app": {},
+                      "f:release": {}
+                    }
+                  },
+                  "f:spec": {
+                    "f:containers": {
+                      "k:{\"name\":\"mysql\"}": {
+                        ".": {},
+                        "f:env": {
+                          ".": {},
+                          "k:{\"name\":\"MYSQL_DATABASE\"}": {
+                            ".": {},
+                            "f:name": {}
+                          },
+                          "k:{\"name\":\"MYSQL_PASSWORD\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:valueFrom": {
+                              ".": {},
+                              "f:secretKeyRef": {}
+                            }
+                          },
+                          "k:{\"name\":\"MYSQL_ROOT_PASSWORD\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:valueFrom": {
+                              ".": {},
+                              "f:secretKeyRef": {}
+                            }
+                          },
+                          "k:{\"name\":\"MYSQL_USER\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          }
+                        },
+                        "f:image": {},
+                        "f:imagePullPolicy": {},
+                        "f:livenessProbe": {
+                          ".": {},
+                          "f:exec": {
+                            ".": {},
+                            "f:command": {}
+                          },
+                          "f:failureThreshold": {},
+                          "f:initialDelaySeconds": {},
+                          "f:periodSeconds": {},
+                          "f:successThreshold": {},
+                          "f:timeoutSeconds": {}
+                        },
+                        "f:name": {},
+                        "f:ports": {
+                          ".": {},
+                          "k:{\"containerPort\":3306,\"protocol\":\"TCP\"}": {
+                            ".": {},
+                            "f:containerPort": {},
+                            "f:name": {},
+                            "f:protocol": {}
+                          }
+                        },
+                        "f:readinessProbe": {
+                          ".": {},
+                          "f:exec": {
+                            ".": {},
+                            "f:command": {}
+                          },
+                          "f:failureThreshold": {},
+                          "f:initialDelaySeconds": {},
+                          "f:periodSeconds": {},
+                          "f:successThreshold": {},
+                          "f:timeoutSeconds": {}
+                        },
+                        "f:resources": {
+                          ".": {},
+                          "f:requests": {
+                            ".": {},
+                            "f:cpu": {},
+                            "f:memory": {}
+                          }
+                        },
+                        "f:terminationMessagePath": {},
+                        "f:terminationMessagePolicy": {},
+                        "f:volumeMounts": {
+                          ".": {},
+                          "k:{\"mountPath\":\"/docker-entrypoint-initdb.d\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {}
+                          },
+                          "k:{\"mountPath\":\"/etc/mysql/conf.d/mysql-hook.sh\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {},
+                            "f:subPath": {}
+                          },
+                          "k:{\"mountPath\":\"/var/lib/mysql\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {}
+                          }
+                        }
+                      }
+                    },
+                    "f:dnsPolicy": {},
+                    "f:imagePullSecrets": {
+                      ".": {},
+                      "k:{\"name\":\"verrazzano-container-registry\"}": {}
+                    },
+                    "f:initContainers": {
+                      ".": {},
+                      "k:{\"name\":\"chown-data-dir\"}": {
+                        ".": {},
+                        "f:command": {},
+                        "f:image": {},
+                        "f:imagePullPolicy": {},
+                        "f:name": {},
+                        "f:resources": {
+                          ".": {},
+                          "f:requests": {
+                            ".": {},
+                            "f:cpu": {},
+                            "f:memory": {}
+                          }
+                        },
+                        "f:terminationMessagePath": {},
+                        "f:terminationMessagePolicy": {},
+                        "f:volumeMounts": {
+                          ".": {},
+                          "k:{\"mountPath\":\"/var/lib/mysql\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {}
+                          }
+                        }
+                      },
+                      "k:{\"name\":\"remove-lost-found\"}": {
+                        ".": {},
+                        "f:command": {},
+                        "f:image": {},
+                        "f:imagePullPolicy": {},
+                        "f:name": {},
+                        "f:resources": {
+                          ".": {},
+                          "f:requests": {
+                            ".": {},
+                            "f:cpu": {},
+                            "f:memory": {}
+                          }
+                        },
+                        "f:terminationMessagePath": {},
+                        "f:terminationMessagePolicy": {},
+                        "f:volumeMounts": {
+                          ".": {},
+                          "k:{\"mountPath\":\"/var/lib/mysql\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {}
+                          }
+                        }
+                      }
+                    },
+                    "f:restartPolicy": {},
+                    "f:schedulerName": {},
+                    "f:securityContext": {},
+                    "f:serviceAccount": {},
+                    "f:serviceAccountName": {},
+                    "f:terminationGracePeriodSeconds": {},
+                    "f:volumes": {
+                      ".": {},
+                      "k:{\"name\":\"configurations\"}": {
+                        ".": {},
+                        "f:configMap": {
+                          ".": {},
+                          "f:defaultMode": {},
+                          "f:name": {}
+                        },
+                        "f:name": {}
+                      },
+                      "k:{\"name\":\"data\"}": {
+                        ".": {},
+                        "f:emptyDir": {},
+                        "f:name": {}
+                      },
+                      "k:{\"name\":\"migrations\"}": {
+                        ".": {},
+                        "f:configMap": {
+                          ".": {},
+                          "f:defaultMode": {},
+                          "f:name": {}
+                        },
+                        "f:name": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "apps/v1",
+            "time": "2023-03-08T14:31:20Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  "f:deployment.kubernetes.io/revision": {}
+                }
+              },
+              "f:status": {
+                "f:availableReplicas": {},
+                "f:conditions": {
+                  ".": {},
+                  "k:{\"type\":\"Available\"}": {
+                    ".": {},
+                    "f:lastTransitionTime": {},
+                    "f:lastUpdateTime": {},
+                    "f:message": {},
+                    "f:reason": {},
+                    "f:status": {},
+                    "f:type": {}
+                  },
+                  "k:{\"type\":\"Progressing\"}": {
+                    ".": {},
+                    "f:lastTransitionTime": {},
+                    "f:lastUpdateTime": {},
+                    "f:message": {},
+                    "f:reason": {},
+                    "f:status": {},
+                    "f:type": {}
+                  }
+                },
+                "f:observedGeneration": {},
+                "f:readyReplicas": {},
+                "f:replicas": {},
+                "f:updatedReplicas": {}
+              }
+            },
+            "subresource": "status"
+          }
+        ]
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "mysql",
+            "release": "mysql"
+          }
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "app": "mysql",
+              "release": "mysql"
+            }
+          },
+          "spec": {
+            "volumes": [
+              {
+                "name": "configurations",
+                "configMap": {
+                  "name": "mysql-configuration",
+                  "defaultMode": 420
+                }
+              },
+              {
+                "name": "migrations",
+                "configMap": {
+                  "name": "mysql-initialization",
+                  "defaultMode": 420
+                }
+              },
+              {
+                "name": "data",
+                "emptyDir": {}
+              }
+            ],
+            "initContainers": [
+              {
+                "name": "remove-lost-found",
+                "image": "ghcr.io/oracle/oraclelinux:7-slim",
+                "command": [
+                  "rm",
+                  "-fr",
+                  "/var/lib/mysql/lost+found"
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "10Mi"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "data",
+                    "mountPath": "/var/lib/mysql"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "imagePullPolicy": "IfNotPresent"
+              },
+              {
+                "name": "chown-data-dir",
+                "image": "ghcr.io/oracle/oraclelinux:7-slim",
+                "command": [
+                  "chown",
+                  "-R",
+                  "27:27",
+                  "/var/lib/mysql"
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "10Mi"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "data",
+                    "mountPath": "/var/lib/mysql"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "imagePullPolicy": "IfNotPresent"
+              }
+            ],
+            "containers": [
+              {
+                "name": "mysql",
+                "image": "ghcr.io/verrazzano/mysql:8.0.29",
+                "ports": [
+                  {
+                    "name": "mysql",
+                    "containerPort": 3306,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "MYSQL_ROOT_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "mysql",
+                        "key": "mysql-root-password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "mysql",
+                        "key": "mysql-password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_USER",
+                    "value": "keycloak"
+                  },
+                  {
+                    "name": "MYSQL_DATABASE"
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "256Mi"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "data",
+                    "mountPath": "/var/lib/mysql"
+                  },
+                  {
+                    "name": "configurations",
+                    "mountPath": "/etc/mysql/conf.d/mysql-hook.sh",
+                    "subPath": "mysql-hook.sh"
+                  },
+                  {
+                    "name": "migrations",
+                    "mountPath": "/docker-entrypoint-initdb.d"
+                  }
+                ],
+                "livenessProbe": {
+                  "exec": {
+                    "command": [
+                      "sh",
+                      "-c",
+                      "mysqladmin ping -u root -p${MYSQL_ROOT_PASSWORD}"
+                    ]
+                  },
+                  "initialDelaySeconds": 30,
+                  "timeoutSeconds": 5,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "failureThreshold": 3
+                },
+                "readinessProbe": {
+                  "exec": {
+                    "command": [
+                      "sh",
+                      "-c",
+                      "mysqladmin ping -u root -p${MYSQL_ROOT_PASSWORD}"
+                    ]
+                  },
+                  "initialDelaySeconds": 5,
+                  "timeoutSeconds": 1,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "failureThreshold": 3
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "imagePullPolicy": "IfNotPresent"
+              }
+            ],
+            "restartPolicy": "Always",
+            "terminationGracePeriodSeconds": 30,
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccountName": "default",
+            "serviceAccount": "default",
+            "securityContext": {},
+            "imagePullSecrets": [
+              {
+                "name": "verrazzano-container-registry"
+              }
+            ],
+            "schedulerName": "default-scheduler"
+          }
+        },
+        "strategy": {
+          "type": "Recreate"
+        },
+        "revisionHistoryLimit": 10,
+        "progressDeadlineSeconds": 600
+      },
+      "status": {
+        "observedGeneration": 1,
+        "replicas": 1,
+        "updatedReplicas": 1,
+        "readyReplicas": 1,
+        "availableReplicas": 1,
+        "conditions": [
+          {
+            "type": "Available",
+            "status": "True",
+            "lastUpdateTime": "2023-03-08T14:31:20Z",
+            "lastTransitionTime": "2023-03-08T14:31:20Z",
+            "reason": "MinimumReplicasAvailable",
+            "message": "Deployment has minimum availability."
+          },
+          {
+            "type": "Progressing",
+            "status": "True",
+            "lastUpdateTime": "2023-03-08T14:31:20Z",
+            "lastTransitionTime": "2023-03-08T14:30:09Z",
+            "reason": "NewReplicaSetAvailable",
+            "message": "ReplicaSet \"mysql-867cc9759b\" has successfully progressed."
+          }
+        ]
+      }
+    }
+  ]
+}

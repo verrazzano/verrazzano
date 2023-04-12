@@ -1,0 +1,1299 @@
+{
+  "metadata": {
+    "resourceVersion": "34992"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "istio-egressgateway-c6754d847-xfpm6.174a77fa84b7b43c",
+        "namespace": "istio-system",
+        "uid": "b6d577a4-8ad1-4b25-8fef-7908f42d320b",
+        "resourceVersion": "2951",
+        "creationTimestamp": "2023-03-08T14:28:49Z",
+        "managedFields": [
+          {
+            "manager": "kube-scheduler",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:49Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "istio-system",
+        "name": "istio-egressgateway-c6754d847-xfpm6",
+        "uid": "6f2aec50-a328-44e3-9c76-66940afc298d",
+        "apiVersion": "v1",
+        "resourceVersion": "2937"
+      },
+      "reason": "Scheduled",
+      "message": "Successfully assigned istio-system/istio-egressgateway-c6754d847-xfpm6 to 930a4b999959eb04a5520b52c29d09eadf66eac911a03183bfcb776385233c9c",
+      "source": {
+        "component": "default-scheduler"
+      },
+      "firstTimestamp": "2023-03-08T14:28:49Z",
+      "lastTimestamp": "2023-03-08T14:28:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istio-egressgateway-c6754d847-xfpm6.174a77faa6277211",
+        "namespace": "istio-system",
+        "uid": "50f41126-6281-472d-a5f9-28742b90ed52",
+        "resourceVersion": "2977",
+        "creationTimestamp": "2023-03-08T14:28:49Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:49Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "istio-system",
+        "name": "istio-egressgateway-c6754d847-xfpm6",
+        "uid": "6f2aec50-a328-44e3-9c76-66940afc298d",
+        "apiVersion": "v1",
+        "resourceVersion": "2945",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Pulling",
+      "message": "Pulling image \"ghcr.io/verrazzano/proxyv2:1.14.3-20221201192441-36fbb992\"",
+      "source": {
+        "component": "kubelet",
+        "host": "930a4b999959eb04a5520b52c29d09eadf66eac911a03183bfcb776385233c9c"
+      },
+      "firstTimestamp": "2023-03-08T14:28:49Z",
+      "lastTimestamp": "2023-03-08T14:28:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istio-egressgateway-c6754d847-xfpm6.174a77fdaa2dc4ad",
+        "namespace": "istio-system",
+        "uid": "1d313350-b005-4c8b-b86b-b1a8f0c9ddd7",
+        "resourceVersion": "3171",
+        "creationTimestamp": "2023-03-08T14:29:02Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:29:02Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "istio-system",
+        "name": "istio-egressgateway-c6754d847-xfpm6",
+        "uid": "6f2aec50-a328-44e3-9c76-66940afc298d",
+        "apiVersion": "v1",
+        "resourceVersion": "2945",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Pulled",
+      "message": "Successfully pulled image \"ghcr.io/verrazzano/proxyv2:1.14.3-20221201192441-36fbb992\" in 12.952379479s",
+      "source": {
+        "component": "kubelet",
+        "host": "930a4b999959eb04a5520b52c29d09eadf66eac911a03183bfcb776385233c9c"
+      },
+      "firstTimestamp": "2023-03-08T14:29:02Z",
+      "lastTimestamp": "2023-03-08T14:29:02Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istio-egressgateway-c6754d847-xfpm6.174a77fdafef8e4f",
+        "namespace": "istio-system",
+        "uid": "5bb40e7f-3676-4bd8-9f84-2773e61b5a2f",
+        "resourceVersion": "3172",
+        "creationTimestamp": "2023-03-08T14:29:02Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:29:02Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "istio-system",
+        "name": "istio-egressgateway-c6754d847-xfpm6",
+        "uid": "6f2aec50-a328-44e3-9c76-66940afc298d",
+        "apiVersion": "v1",
+        "resourceVersion": "2945",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Created",
+      "message": "Created container istio-proxy",
+      "source": {
+        "component": "kubelet",
+        "host": "930a4b999959eb04a5520b52c29d09eadf66eac911a03183bfcb776385233c9c"
+      },
+      "firstTimestamp": "2023-03-08T14:29:02Z",
+      "lastTimestamp": "2023-03-08T14:29:02Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istio-egressgateway-c6754d847-xfpm6.174a77fdb12ae24f",
+        "namespace": "istio-system",
+        "uid": "36b5cb47-a7e0-4d47-bd02-0e0c4a83bda1",
+        "resourceVersion": "3173",
+        "creationTimestamp": "2023-03-08T14:29:02Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:29:02Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "istio-system",
+        "name": "istio-egressgateway-c6754d847-xfpm6",
+        "uid": "6f2aec50-a328-44e3-9c76-66940afc298d",
+        "apiVersion": "v1",
+        "resourceVersion": "2945",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Started",
+      "message": "Started container istio-proxy",
+      "source": {
+        "component": "kubelet",
+        "host": "930a4b999959eb04a5520b52c29d09eadf66eac911a03183bfcb776385233c9c"
+      },
+      "firstTimestamp": "2023-03-08T14:29:02Z",
+      "lastTimestamp": "2023-03-08T14:29:02Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istio-egressgateway-c6754d847-xfpm6.174a77fdc7771eca",
+        "namespace": "istio-system",
+        "uid": "de1444bd-6981-43c0-b28d-4ec48968cfda",
+        "resourceVersion": "3181",
+        "creationTimestamp": "2023-03-08T14:29:02Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:29:02Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "istio-system",
+        "name": "istio-egressgateway-c6754d847-xfpm6",
+        "uid": "6f2aec50-a328-44e3-9c76-66940afc298d",
+        "apiVersion": "v1",
+        "resourceVersion": "2945",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Unhealthy",
+      "message": "Readiness probe failed: Get \"http://930a4b999959eb04a5520b52c29d09eadf66eac911a03183bfcb776385233c9c:15021/healthz/ready\": dial tcp 930a4b999959eb04a5520b52c29d09eadf66eac911a03183bfcb776385233c9c:15021: connect: connection refused",
+      "source": {
+        "component": "kubelet",
+        "host": "930a4b999959eb04a5520b52c29d09eadf66eac911a03183bfcb776385233c9c"
+      },
+      "firstTimestamp": "2023-03-08T14:29:03Z",
+      "lastTimestamp": "2023-03-08T14:29:03Z",
+      "count": 1,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istio-egressgateway-c6754d847.174a77fa81000348",
+        "namespace": "istio-system",
+        "uid": "e607a29d-983b-4421-84c3-552270371e79",
+        "resourceVersion": "2952",
+        "creationTimestamp": "2023-03-08T14:28:49Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:49Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "ReplicaSet",
+        "namespace": "istio-system",
+        "name": "istio-egressgateway-c6754d847",
+        "uid": "f2592dab-58f4-4a55-be20-4f4937c349dd",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "2908"
+      },
+      "reason": "SuccessfulCreate",
+      "message": "Created pod: istio-egressgateway-c6754d847-xfpm6",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "firstTimestamp": "2023-03-08T14:28:48Z",
+      "lastTimestamp": "2023-03-08T14:28:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istio-egressgateway.174a77fa745279ad",
+        "namespace": "istio-system",
+        "uid": "daac90fe-6ec9-43e3-8de9-cfcd97d43d76",
+        "resourceVersion": "2913",
+        "creationTimestamp": "2023-03-08T14:28:48Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:48Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Deployment",
+        "namespace": "istio-system",
+        "name": "istio-egressgateway",
+        "uid": "a9ad122d-29d9-41c5-b92c-74b2ddb0f7df",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "2896"
+      },
+      "reason": "ScalingReplicaSet",
+      "message": "Scaled up replica set istio-egressgateway-c6754d847 to 1",
+      "source": {
+        "component": "deployment-controller"
+      },
+      "firstTimestamp": "2023-03-08T14:28:48Z",
+      "lastTimestamp": "2023-03-08T14:28:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istio-ingressgateway-5575549d9d-57dhh.174a77fa815ee0d3",
+        "namespace": "istio-system",
+        "uid": "eb07d9a2-bc3d-4ecd-a285-3b93582eb578",
+        "resourceVersion": "2949",
+        "creationTimestamp": "2023-03-08T14:28:48Z",
+        "managedFields": [
+          {
+            "manager": "kube-scheduler",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:48Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "istio-system",
+        "name": "istio-ingressgateway-5575549d9d-57dhh",
+        "uid": "089d2649-26d1-47c4-9aeb-79b584a01627",
+        "apiVersion": "v1",
+        "resourceVersion": "2934"
+      },
+      "reason": "Scheduled",
+      "message": "Successfully assigned istio-system/istio-ingressgateway-5575549d9d-57dhh to 930a4b999959eb04a5520b52c29d09eadf66eac911a03183bfcb776385233c9c",
+      "source": {
+        "component": "default-scheduler"
+      },
+      "firstTimestamp": "2023-03-08T14:28:48Z",
+      "lastTimestamp": "2023-03-08T14:28:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istio-ingressgateway-5575549d9d-57dhh.174a77fafb4effe2",
+        "namespace": "istio-system",
+        "uid": "dffef7b1-469d-48b8-891c-2e46d27a1b1c",
+        "resourceVersion": "3035",
+        "creationTimestamp": "2023-03-08T14:28:50Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:50Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "istio-system",
+        "name": "istio-ingressgateway-5575549d9d-57dhh",
+        "uid": "089d2649-26d1-47c4-9aeb-79b584a01627",
+        "apiVersion": "v1",
+        "resourceVersion": "2936",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Pulling",
+      "message": "Pulling image \"ghcr.io/verrazzano/proxyv2:1.14.3-20221201192441-36fbb992\"",
+      "source": {
+        "component": "kubelet",
+        "host": "930a4b999959eb04a5520b52c29d09eadf66eac911a03183bfcb776385233c9c"
+      },
+      "firstTimestamp": "2023-03-08T14:28:50Z",
+      "lastTimestamp": "2023-03-08T14:28:50Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istio-ingressgateway-5575549d9d-57dhh.174a77fedb385060",
+        "namespace": "istio-system",
+        "uid": "8f2bb660-9662-4a39-8761-e554ddf81719",
+        "resourceVersion": "3221",
+        "creationTimestamp": "2023-03-08T14:29:07Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:29:07Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "istio-system",
+        "name": "istio-ingressgateway-5575549d9d-57dhh",
+        "uid": "089d2649-26d1-47c4-9aeb-79b584a01627",
+        "apiVersion": "v1",
+        "resourceVersion": "2936",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Pulled",
+      "message": "Successfully pulled image \"ghcr.io/verrazzano/proxyv2:1.14.3-20221201192441-36fbb992\" in 16.641486s",
+      "source": {
+        "component": "kubelet",
+        "host": "930a4b999959eb04a5520b52c29d09eadf66eac911a03183bfcb776385233c9c"
+      },
+      "firstTimestamp": "2023-03-08T14:29:07Z",
+      "lastTimestamp": "2023-03-08T14:29:07Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istio-ingressgateway-5575549d9d-57dhh.174a77fee2644bee",
+        "namespace": "istio-system",
+        "uid": "1f5aa553-6c1b-4d41-942a-b02c3e8964b8",
+        "resourceVersion": "3226",
+        "creationTimestamp": "2023-03-08T14:29:07Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:29:07Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "istio-system",
+        "name": "istio-ingressgateway-5575549d9d-57dhh",
+        "uid": "089d2649-26d1-47c4-9aeb-79b584a01627",
+        "apiVersion": "v1",
+        "resourceVersion": "2936",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Created",
+      "message": "Created container istio-proxy",
+      "source": {
+        "component": "kubelet",
+        "host": "930a4b999959eb04a5520b52c29d09eadf66eac911a03183bfcb776385233c9c"
+      },
+      "firstTimestamp": "2023-03-08T14:29:07Z",
+      "lastTimestamp": "2023-03-08T14:29:07Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istio-ingressgateway-5575549d9d-57dhh.174a77fee3b36c9c",
+        "namespace": "istio-system",
+        "uid": "e760298e-21e6-477f-a2d9-8f6e539ea543",
+        "resourceVersion": "3228",
+        "creationTimestamp": "2023-03-08T14:29:07Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:29:07Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "istio-system",
+        "name": "istio-ingressgateway-5575549d9d-57dhh",
+        "uid": "089d2649-26d1-47c4-9aeb-79b584a01627",
+        "apiVersion": "v1",
+        "resourceVersion": "2936",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Started",
+      "message": "Started container istio-proxy",
+      "source": {
+        "component": "kubelet",
+        "host": "930a4b999959eb04a5520b52c29d09eadf66eac911a03183bfcb776385233c9c"
+      },
+      "firstTimestamp": "2023-03-08T14:29:07Z",
+      "lastTimestamp": "2023-03-08T14:29:07Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istio-ingressgateway-5575549d9d.174a77fa7fcb1a72",
+        "namespace": "istio-system",
+        "uid": "41f73872-9b4d-4ec2-89f4-9d457f74c014",
+        "resourceVersion": "2941",
+        "creationTimestamp": "2023-03-08T14:28:48Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:48Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "ReplicaSet",
+        "namespace": "istio-system",
+        "name": "istio-ingressgateway-5575549d9d",
+        "uid": "92b3d35f-c801-44b1-a1d8-858935ebc043",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "2907"
+      },
+      "reason": "SuccessfulCreate",
+      "message": "Created pod: istio-ingressgateway-5575549d9d-57dhh",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "firstTimestamp": "2023-03-08T14:28:48Z",
+      "lastTimestamp": "2023-03-08T14:28:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istio-ingressgateway.174a77fa74544b22",
+        "namespace": "istio-system",
+        "uid": "1dec86ea-d07b-4e44-8403-9841ff4b442c",
+        "resourceVersion": "2918",
+        "creationTimestamp": "2023-03-08T14:28:48Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:48Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Deployment",
+        "namespace": "istio-system",
+        "name": "istio-ingressgateway",
+        "uid": "89a53217-d192-44f9-8650-cad395ad6e19",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "2897"
+      },
+      "reason": "ScalingReplicaSet",
+      "message": "Scaled up replica set istio-ingressgateway-5575549d9d to 1",
+      "source": {
+        "component": "deployment-controller"
+      },
+      "firstTimestamp": "2023-03-08T14:28:48Z",
+      "lastTimestamp": "2023-03-08T14:28:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istio-ingressgateway.174a77fa7a747320",
+        "namespace": "istio-system",
+        "uid": "f6341e21-e0c1-4b8c-829e-d6002642fc84",
+        "resourceVersion": "7410",
+        "creationTimestamp": "2023-03-08T14:28:48Z",
+        "managedFields": [
+          {
+            "manager": "cloud-provider-oci",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:48Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Service",
+        "namespace": "istio-system",
+        "name": "istio-ingressgateway",
+        "uid": "c5dd8e2a-9c17-4ede-939c-ee9b3be89840",
+        "apiVersion": "v1",
+        "resourceVersion": "2929"
+      },
+      "reason": "EnsuringLoadBalancer",
+      "message": "Ensuring load balancer",
+      "source": {
+        "component": "service-controller"
+      },
+      "firstTimestamp": "2023-03-08T14:28:48Z",
+      "lastTimestamp": "2023-03-08T14:33:42Z",
+      "count": 2,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istio-ingressgateway.174a78017041e2b9",
+        "namespace": "istio-system",
+        "uid": "662704a3-4d3f-4c01-8825-621e3b11343b",
+        "resourceVersion": "7505",
+        "creationTimestamp": "2023-03-08T14:29:18Z",
+        "managedFields": [
+          {
+            "manager": "cloud-provider-oci",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:29:18Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Service",
+        "namespace": "istio-system",
+        "name": "istio-ingressgateway",
+        "uid": "c5dd8e2a-9c17-4ede-939c-ee9b3be89840",
+        "apiVersion": "v1",
+        "resourceVersion": "2929"
+      },
+      "reason": "EnsuredLoadBalancer",
+      "message": "Ensured load balancer",
+      "source": {
+        "component": "service-controller"
+      },
+      "firstTimestamp": "2023-03-08T14:29:18Z",
+      "lastTimestamp": "2023-03-08T14:33:43Z",
+      "count": 2,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istiod-695dc57f65-4949d.174a77f81c071b4a",
+        "namespace": "istio-system",
+        "uid": "385e371b-5fb2-497c-bdbe-468bf4e61553",
+        "resourceVersion": "2678",
+        "creationTimestamp": "2023-03-08T14:28:38Z",
+        "managedFields": [
+          {
+            "manager": "kube-scheduler",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:38Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "istio-system",
+        "name": "istiod-695dc57f65-4949d",
+        "uid": "eefecd06-d322-4da7-80ae-a8f0e2c173bd",
+        "apiVersion": "v1",
+        "resourceVersion": "2673"
+      },
+      "reason": "Scheduled",
+      "message": "Successfully assigned istio-system/istiod-695dc57f65-4949d to 930a4b999959eb04a5520b52c29d09eadf66eac911a03183bfcb776385233c9c",
+      "source": {
+        "component": "default-scheduler"
+      },
+      "firstTimestamp": "2023-03-08T14:28:38Z",
+      "lastTimestamp": "2023-03-08T14:28:38Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istiod-695dc57f65-4949d.174a77f882126d08",
+        "namespace": "istio-system",
+        "uid": "e7c3c3f3-0ab2-4008-9d21-cd2ae5a611b4",
+        "resourceVersion": "2687",
+        "creationTimestamp": "2023-03-08T14:28:40Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:40Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "istio-system",
+        "name": "istiod-695dc57f65-4949d",
+        "uid": "eefecd06-d322-4da7-80ae-a8f0e2c173bd",
+        "apiVersion": "v1",
+        "resourceVersion": "2674",
+        "fieldPath": "spec.containers{discovery}"
+      },
+      "reason": "Pulling",
+      "message": "Pulling image \"ghcr.io/verrazzano/pilot:1.14.3-20221201192441-36fbb992\"",
+      "source": {
+        "component": "kubelet",
+        "host": "930a4b999959eb04a5520b52c29d09eadf66eac911a03183bfcb776385233c9c"
+      },
+      "firstTimestamp": "2023-03-08T14:28:40Z",
+      "lastTimestamp": "2023-03-08T14:28:40Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istiod-695dc57f65-4949d.174a77f9a024fe0d",
+        "namespace": "istio-system",
+        "uid": "d2c9577d-6074-4637-8c0a-c3d5ebdb0509",
+        "resourceVersion": "2804",
+        "creationTimestamp": "2023-03-08T14:28:45Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:45Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "istio-system",
+        "name": "istiod-695dc57f65-4949d",
+        "uid": "eefecd06-d322-4da7-80ae-a8f0e2c173bd",
+        "apiVersion": "v1",
+        "resourceVersion": "2674",
+        "fieldPath": "spec.containers{discovery}"
+      },
+      "reason": "Pulled",
+      "message": "Successfully pulled image \"ghcr.io/verrazzano/pilot:1.14.3-20221201192441-36fbb992\" in 4.79947513s",
+      "source": {
+        "component": "kubelet",
+        "host": "930a4b999959eb04a5520b52c29d09eadf66eac911a03183bfcb776385233c9c"
+      },
+      "firstTimestamp": "2023-03-08T14:28:45Z",
+      "lastTimestamp": "2023-03-08T14:28:45Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istiod-695dc57f65-4949d.174a77f9a64915b2",
+        "namespace": "istio-system",
+        "uid": "d04e77f0-839a-4cf0-9452-38a5cbee8fa6",
+        "resourceVersion": "2805",
+        "creationTimestamp": "2023-03-08T14:28:45Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:45Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "istio-system",
+        "name": "istiod-695dc57f65-4949d",
+        "uid": "eefecd06-d322-4da7-80ae-a8f0e2c173bd",
+        "apiVersion": "v1",
+        "resourceVersion": "2674",
+        "fieldPath": "spec.containers{discovery}"
+      },
+      "reason": "Created",
+      "message": "Created container discovery",
+      "source": {
+        "component": "kubelet",
+        "host": "930a4b999959eb04a5520b52c29d09eadf66eac911a03183bfcb776385233c9c"
+      },
+      "firstTimestamp": "2023-03-08T14:28:45Z",
+      "lastTimestamp": "2023-03-08T14:28:45Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istiod-695dc57f65-4949d.174a77f9a760dc27",
+        "namespace": "istio-system",
+        "uid": "6884836c-4f42-45a3-9ae0-6c3ac5cdf142",
+        "resourceVersion": "2806",
+        "creationTimestamp": "2023-03-08T14:28:45Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:45Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "istio-system",
+        "name": "istiod-695dc57f65-4949d",
+        "uid": "eefecd06-d322-4da7-80ae-a8f0e2c173bd",
+        "apiVersion": "v1",
+        "resourceVersion": "2674",
+        "fieldPath": "spec.containers{discovery}"
+      },
+      "reason": "Started",
+      "message": "Started container discovery",
+      "source": {
+        "component": "kubelet",
+        "host": "930a4b999959eb04a5520b52c29d09eadf66eac911a03183bfcb776385233c9c"
+      },
+      "firstTimestamp": "2023-03-08T14:28:45Z",
+      "lastTimestamp": "2023-03-08T14:28:45Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istiod-695dc57f65-4949d.174a77fa04a236d4",
+        "namespace": "istio-system",
+        "uid": "bfab1bc1-3a5e-4a9b-a829-615505a1537c",
+        "resourceVersion": "2828",
+        "creationTimestamp": "2023-03-08T14:28:46Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:46Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "istio-system",
+        "name": "istiod-695dc57f65-4949d",
+        "uid": "eefecd06-d322-4da7-80ae-a8f0e2c173bd",
+        "apiVersion": "v1",
+        "resourceVersion": "2674",
+        "fieldPath": "spec.containers{discovery}"
+      },
+      "reason": "Unhealthy",
+      "message": "Readiness probe failed: Get \"http://930a4b999959eb04a5520b52c29d09eadf66eac911a03183bfcb776385233c9c:8080/ready\": dial tcp 930a4b999959eb04a5520b52c29d09eadf66eac911a03183bfcb776385233c9c:8080: connect: connection refused",
+      "source": {
+        "component": "kubelet",
+        "host": "930a4b999959eb04a5520b52c29d09eadf66eac911a03183bfcb776385233c9c"
+      },
+      "firstTimestamp": "2023-03-08T14:28:46Z",
+      "lastTimestamp": "2023-03-08T14:28:46Z",
+      "count": 1,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istiod-695dc57f65.174a77f81b2e9f9c",
+        "namespace": "istio-system",
+        "uid": "242813a6-2460-44ce-bce3-192c826aabde",
+        "resourceVersion": "2677",
+        "creationTimestamp": "2023-03-08T14:28:38Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:38Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "ReplicaSet",
+        "namespace": "istio-system",
+        "name": "istiod-695dc57f65",
+        "uid": "784831c5-87ab-4556-80b0-78a75087c30f",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "2662"
+      },
+      "reason": "SuccessfulCreate",
+      "message": "Created pod: istiod-695dc57f65-4949d",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "firstTimestamp": "2023-03-08T14:28:38Z",
+      "lastTimestamp": "2023-03-08T14:28:38Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "istiod.174a77f813ab622b",
+        "namespace": "istio-system",
+        "uid": "c286b5fd-554c-4216-9615-5f283be865cc",
+        "resourceVersion": "2665",
+        "creationTimestamp": "2023-03-08T14:28:38Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:38Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Deployment",
+        "namespace": "istio-system",
+        "name": "istiod",
+        "uid": "c3e157a6-6ce7-43b7-aabf-929110c9a226",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "2660"
+      },
+      "reason": "ScalingReplicaSet",
+      "message": "Scaled up replica set istiod-695dc57f65 to 1",
+      "source": {
+        "component": "deployment-controller"
+      },
+      "firstTimestamp": "2023-03-08T14:28:38Z",
+      "lastTimestamp": "2023-03-08T14:28:38Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    }
+  ]
+}

@@ -1,0 +1,285 @@
+{
+  "metadata": {
+    "resourceVersion": "35002"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "cert-manager",
+        "namespace": "cert-manager",
+        "uid": "92c44d89-339a-4499-96ae-948601163095",
+        "resourceVersion": "2749",
+        "creationTimestamp": "2023-03-08T14:28:44Z",
+        "labels": {
+          "app": "cert-manager",
+          "app.kubernetes.io/component": "controller",
+          "app.kubernetes.io/instance": "cert-manager",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "cert-manager",
+          "app.kubernetes.io/version": "v1.7.1",
+          "helm.sh/chart": "cert-manager-v1.7.1"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "cert-manager",
+          "meta.helm.sh/release-namespace": "cert-manager"
+        },
+        "managedFields": [
+          {
+            "manager": "helm",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:44Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app": {},
+                  "f:app.kubernetes.io/component": {},
+                  "f:app.kubernetes.io/instance": {},
+                  "f:app.kubernetes.io/managed-by": {},
+                  "f:app.kubernetes.io/name": {},
+                  "f:app.kubernetes.io/version": {},
+                  "f:helm.sh/chart": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":9402,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "tcp-prometheus-servicemonitor",
+            "protocol": "TCP",
+            "port": 9402,
+            "targetPort": 9402
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/component": "controller",
+          "app.kubernetes.io/instance": "cert-manager",
+          "app.kubernetes.io/name": "cert-manager"
+        },
+        "clusterIP": "1b3f832597ca71225cbf7ba5b772e59b5676b4225c21f42812193169b7513f88",
+        "clusterIPs": [
+          "1b3f832597ca71225cbf7ba5b772e59b5676b4225c21f42812193169b7513f88"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "metadata": {
+        "name": "cert-manager-webhook",
+        "namespace": "cert-manager",
+        "uid": "7e800fdb-ebd6-41a0-a8af-79e30a3a4543",
+        "resourceVersion": "2747",
+        "creationTimestamp": "2023-03-08T14:28:44Z",
+        "labels": {
+          "app": "webhook",
+          "app.kubernetes.io/component": "webhook",
+          "app.kubernetes.io/instance": "cert-manager",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "webhook",
+          "app.kubernetes.io/version": "v1.7.1",
+          "helm.sh/chart": "cert-manager-v1.7.1"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "cert-manager",
+          "meta.helm.sh/release-namespace": "cert-manager"
+        },
+        "managedFields": [
+          {
+            "manager": "helm",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:44Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app": {},
+                  "f:app.kubernetes.io/component": {},
+                  "f:app.kubernetes.io/instance": {},
+                  "f:app.kubernetes.io/managed-by": {},
+                  "f:app.kubernetes.io/name": {},
+                  "f:app.kubernetes.io/version": {},
+                  "f:helm.sh/chart": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":443,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "https",
+            "protocol": "TCP",
+            "port": 443,
+            "targetPort": "https"
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/component": "webhook",
+          "app.kubernetes.io/instance": "cert-manager",
+          "app.kubernetes.io/name": "webhook"
+        },
+        "clusterIP": "1b3f832597ca71225cbf7ba5b772e59b5676b4225c21f42812193169b7513f88",
+        "clusterIPs": [
+          "1b3f832597ca71225cbf7ba5b772e59b5676b4225c21f42812193169b7513f88"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "metadata": {
+        "name": "external-dns",
+        "namespace": "cert-manager",
+        "uid": "d5b1f93a-02c6-4897-97bf-bd7685945717",
+        "resourceVersion": "2836",
+        "creationTimestamp": "2023-03-08T14:28:46Z",
+        "labels": {
+          "app.kubernetes.io/instance": "external-dns",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "external-dns",
+          "helm.sh/chart": "external-dns-2.20.0"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "external-dns",
+          "meta.helm.sh/release-namespace": "cert-manager"
+        },
+        "managedFields": [
+          {
+            "manager": "helm",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:46Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app.kubernetes.io/instance": {},
+                  "f:app.kubernetes.io/managed-by": {},
+                  "f:app.kubernetes.io/name": {},
+                  "f:helm.sh/chart": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":7979,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "http",
+            "protocol": "TCP",
+            "port": 7979,
+            "targetPort": "http"
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/instance": "external-dns",
+          "app.kubernetes.io/name": "external-dns"
+        },
+        "clusterIP": "1b3f832597ca71225cbf7ba5b772e59b5676b4225c21f42812193169b7513f88",
+        "clusterIPs": [
+          "1b3f832597ca71225cbf7ba5b772e59b5676b4225c21f42812193169b7513f88"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    }
+  ]
+}

@@ -63,9 +63,9 @@ const (
 	nginxIngressControllerFailed = "nginxIngressControllerFailed"
 	noIPForIngressController     = "noIPForIngressController"
 	errorSettingRancherToken     = "errorSettingRancherToken"
-	grafanaComponent             = "grafana"
-	keyCloakComponent            = "keycloak"
-	kialiComponent               = "kiali-server"
+	grafana                      = "grafana"
+	keyCloak                     = "keycloak"
+	kiali                        = "kiali-server"
 	prometheus                   = "prometheus"
 	prometheusOperator           = "prometheus-operator"
 	argocd                       = "argocd"
@@ -92,7 +92,6 @@ func AnalyzeVerrazzanoResource(log *zap.SugaredLogger, clusterRoot string, issue
 	if err != nil {
 		return err
 	}
-
 	if len(compsNotReady) > 0 {
 		reportInstallIssue(log, clusterRoot, compsNotReady, issueReporter)
 	}
@@ -150,9 +149,9 @@ func analyzeComponentCertIssue(log *zap.SugaredLogger, clusterRoot string, issue
 	}
 	issueVisited := make(map[string]bool)
 	certCompMap := map[string]string{
-		"system-tls-" + grafanaComponent:         grafanaComponent,
-		keyCloakComponent + "-tls":               keyCloakComponent,
-		"system-tls-" + kialiComponent:           kialiComponent,
+		"system-tls-" + grafana:                  grafana,
+		keyCloak + "-tls":                        keyCloak,
+		"system-tls-" + kiali:                    kiali,
 		"system-tls-" + prometheus:               prometheus,
 		"tls-" + argocd + "-ingress":             argocd,
 		"tls-" + rancher + "-ingress":            rancher,

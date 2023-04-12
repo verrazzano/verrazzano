@@ -1,0 +1,3659 @@
+{
+  "metadata": {
+    "resourceVersion": "34981"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "keycloak-0.174a78232eb61128",
+        "namespace": "keycloak",
+        "uid": "a50066a8-c466-4a21-a3e6-733894e0ad5c",
+        "resourceVersion": "4968",
+        "creationTimestamp": "2023-03-08T14:31:43Z",
+        "managedFields": [
+          {
+            "manager": "kube-scheduler",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:31:43Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "keycloak-0",
+        "uid": "c5c08943-5ff2-4ed3-be40-f47a38cf7109",
+        "apiVersion": "v1",
+        "resourceVersion": "4963"
+      },
+      "reason": "Scheduled",
+      "message": "Successfully assigned keycloak/keycloak-0 to a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7",
+      "source": {
+        "component": "default-scheduler"
+      },
+      "firstTimestamp": "2023-03-08T14:31:43Z",
+      "lastTimestamp": "2023-03-08T14:31:43Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-0.174a78255f2596df",
+        "namespace": "keycloak",
+        "uid": "e0134c82-7705-4f28-b475-8a44aae1bb48",
+        "resourceVersion": "5235",
+        "creationTimestamp": "2023-03-08T14:31:53Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:31:53Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "keycloak-0",
+        "uid": "c5c08943-5ff2-4ed3-be40-f47a38cf7109",
+        "apiVersion": "v1",
+        "resourceVersion": "4964",
+        "fieldPath": "spec.initContainers{theme-provider}"
+      },
+      "reason": "Pulling",
+      "message": "Pulling image \"ghcr.io/verrazzano/keycloak-oracle-theme:v1.4.0-20220803133014-7b829cf\"",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:31:53Z",
+      "lastTimestamp": "2023-03-08T14:31:53Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-0.174a7829b212077f",
+        "namespace": "keycloak",
+        "uid": "82098d88-b53a-408a-8ae9-5121c1241760",
+        "resourceVersion": "5436",
+        "creationTimestamp": "2023-03-08T14:32:11Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:32:11Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "keycloak-0",
+        "uid": "c5c08943-5ff2-4ed3-be40-f47a38cf7109",
+        "apiVersion": "v1",
+        "resourceVersion": "4964",
+        "fieldPath": "spec.initContainers{theme-provider}"
+      },
+      "reason": "Pulled",
+      "message": "Successfully pulled image \"ghcr.io/verrazzano/keycloak-oracle-theme:v1.4.0-20220803133014-7b829cf\" in 18.571064726s",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:32:11Z",
+      "lastTimestamp": "2023-03-08T14:32:11Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-0.174a7829c06f3392",
+        "namespace": "keycloak",
+        "uid": "fb76e6c8-1c29-4de6-b507-d2db99e19532",
+        "resourceVersion": "5448",
+        "creationTimestamp": "2023-03-08T14:32:11Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:32:11Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "keycloak-0",
+        "uid": "c5c08943-5ff2-4ed3-be40-f47a38cf7109",
+        "apiVersion": "v1",
+        "resourceVersion": "4964",
+        "fieldPath": "spec.initContainers{theme-provider}"
+      },
+      "reason": "Created",
+      "message": "Created container theme-provider",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:32:11Z",
+      "lastTimestamp": "2023-03-08T14:32:11Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-0.174a7829c24ab93f",
+        "namespace": "keycloak",
+        "uid": "0f77b1af-6688-49f9-9f67-a7fc9bfe930e",
+        "resourceVersion": "5450",
+        "creationTimestamp": "2023-03-08T14:32:11Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:32:11Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "keycloak-0",
+        "uid": "c5c08943-5ff2-4ed3-be40-f47a38cf7109",
+        "apiVersion": "v1",
+        "resourceVersion": "4964",
+        "fieldPath": "spec.initContainers{theme-provider}"
+      },
+      "reason": "Started",
+      "message": "Started container theme-provider",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:32:11Z",
+      "lastTimestamp": "2023-03-08T14:32:11Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-0.174a7829f192cfaf",
+        "namespace": "keycloak",
+        "uid": "2638aa31-e94b-46a1-a6db-3617670565fd",
+        "resourceVersion": "5462",
+        "creationTimestamp": "2023-03-08T14:32:12Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:32:12Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "keycloak-0",
+        "uid": "c5c08943-5ff2-4ed3-be40-f47a38cf7109",
+        "apiVersion": "v1",
+        "resourceVersion": "4964",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Pulled",
+      "message": "Container image \"ghcr.io/verrazzano/proxyv2:1.14.3-20221201192441-36fbb992\" already present on machine",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:32:12Z",
+      "lastTimestamp": "2023-03-08T14:32:12Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-0.174a7829fafab934",
+        "namespace": "keycloak",
+        "uid": "82d7d5ad-3a30-4c22-8143-71c4f861d3a2",
+        "resourceVersion": "5492",
+        "creationTimestamp": "2023-03-08T14:32:13Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:32:13Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "keycloak-0",
+        "uid": "c5c08943-5ff2-4ed3-be40-f47a38cf7109",
+        "apiVersion": "v1",
+        "resourceVersion": "4964",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Created",
+      "message": "Created container istio-init",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:32:12Z",
+      "lastTimestamp": "2023-03-08T14:32:12Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-0.174a7829fcdabfc4",
+        "namespace": "keycloak",
+        "uid": "48d14090-81b9-4bb0-9a68-40371a7c0eca",
+        "resourceVersion": "5494",
+        "creationTimestamp": "2023-03-08T14:32:13Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:32:13Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "keycloak-0",
+        "uid": "c5c08943-5ff2-4ed3-be40-f47a38cf7109",
+        "apiVersion": "v1",
+        "resourceVersion": "4964",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Started",
+      "message": "Started container istio-init",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:32:12Z",
+      "lastTimestamp": "2023-03-08T14:32:12Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-0.174a782a2da9b68f",
+        "namespace": "keycloak",
+        "uid": "e687375d-de97-40c6-adcb-8dd35a630986",
+        "resourceVersion": "5499",
+        "creationTimestamp": "2023-03-08T14:32:13Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:32:13Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "keycloak-0",
+        "uid": "c5c08943-5ff2-4ed3-be40-f47a38cf7109",
+        "apiVersion": "v1",
+        "resourceVersion": "4964",
+        "fieldPath": "spec.containers{keycloak}"
+      },
+      "reason": "Pulling",
+      "message": "Pulling image \"ghcr.io/verrazzano/keycloak:v15.0.2-20221214054602-c01654ffed\"",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:32:13Z",
+      "lastTimestamp": "2023-03-08T14:32:13Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-0.174a78402c86378f",
+        "namespace": "keycloak",
+        "uid": "9b9191d9-5371-4d7f-9aed-45fa6a9c9035",
+        "resourceVersion": "7825",
+        "creationTimestamp": "2023-03-08T14:33:49Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:33:49Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "keycloak-0",
+        "uid": "c5c08943-5ff2-4ed3-be40-f47a38cf7109",
+        "apiVersion": "v1",
+        "resourceVersion": "4964",
+        "fieldPath": "spec.containers{keycloak}"
+      },
+      "reason": "Pulled",
+      "message": "Successfully pulled image \"ghcr.io/verrazzano/keycloak:v15.0.2-20221214054602-c01654ffed\" in 1m34.470147688s",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:33:48Z",
+      "lastTimestamp": "2023-03-08T14:33:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-0.174a78404c9c6a69",
+        "namespace": "keycloak",
+        "uid": "706309a4-28da-4bdf-91e7-ce499f3d1847",
+        "resourceVersion": "7855",
+        "creationTimestamp": "2023-03-08T14:33:49Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:33:49Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "keycloak-0",
+        "uid": "c5c08943-5ff2-4ed3-be40-f47a38cf7109",
+        "apiVersion": "v1",
+        "resourceVersion": "4964",
+        "fieldPath": "spec.containers{keycloak}"
+      },
+      "reason": "Created",
+      "message": "Created container keycloak",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:33:48Z",
+      "lastTimestamp": "2023-03-08T14:33:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-0.174a78404e5244b6",
+        "namespace": "keycloak",
+        "uid": "4c1905b2-0a35-4eb6-bb6c-be0c95e7d6cf",
+        "resourceVersion": "7866",
+        "creationTimestamp": "2023-03-08T14:33:49Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:33:49Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "keycloak-0",
+        "uid": "c5c08943-5ff2-4ed3-be40-f47a38cf7109",
+        "apiVersion": "v1",
+        "resourceVersion": "4964",
+        "fieldPath": "spec.containers{keycloak}"
+      },
+      "reason": "Started",
+      "message": "Started container keycloak",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:33:48Z",
+      "lastTimestamp": "2023-03-08T14:33:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-0.174a78404e61aa2c",
+        "namespace": "keycloak",
+        "uid": "9d1a0239-5f5a-4ca8-9750-26e57f491db6",
+        "resourceVersion": "7870",
+        "creationTimestamp": "2023-03-08T14:33:49Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:33:49Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "keycloak-0",
+        "uid": "c5c08943-5ff2-4ed3-be40-f47a38cf7109",
+        "apiVersion": "v1",
+        "resourceVersion": "4964",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Pulled",
+      "message": "Container image \"ghcr.io/verrazzano/proxyv2:1.14.3-20221201192441-36fbb992\" already present on machine",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:33:48Z",
+      "lastTimestamp": "2023-03-08T14:33:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-0.174a784058d56b8a",
+        "namespace": "keycloak",
+        "uid": "364622df-b81b-43f5-a0d4-a8b81e3cb35a",
+        "resourceVersion": "7874",
+        "creationTimestamp": "2023-03-08T14:33:50Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:33:50Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "keycloak-0",
+        "uid": "c5c08943-5ff2-4ed3-be40-f47a38cf7109",
+        "apiVersion": "v1",
+        "resourceVersion": "4964",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Created",
+      "message": "Created container istio-proxy",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:33:48Z",
+      "lastTimestamp": "2023-03-08T14:33:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-0.174a78405b03a51c",
+        "namespace": "keycloak",
+        "uid": "87e69244-4d86-444c-832d-71662ac6f957",
+        "resourceVersion": "7880",
+        "creationTimestamp": "2023-03-08T14:33:50Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:33:50Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "keycloak-0",
+        "uid": "c5c08943-5ff2-4ed3-be40-f47a38cf7109",
+        "apiVersion": "v1",
+        "resourceVersion": "4964",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Started",
+      "message": "Started container istio-proxy",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:33:48Z",
+      "lastTimestamp": "2023-03-08T14:33:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-0.174a784086fce54f",
+        "namespace": "keycloak",
+        "uid": "0981377b-bda4-45c7-9684-268e0de9eec7",
+        "resourceVersion": "7949",
+        "creationTimestamp": "2023-03-08T14:33:50Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:33:50Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "keycloak-0",
+        "uid": "c5c08943-5ff2-4ed3-be40-f47a38cf7109",
+        "apiVersion": "v1",
+        "resourceVersion": "4964",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Unhealthy",
+      "message": "Readiness probe failed: Get \"http://a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7:15021/healthz/ready\": dial tcp a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7:15021: connect: connection refused",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:33:49Z",
+      "lastTimestamp": "2023-03-08T14:33:51Z",
+      "count": 4,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-0.174a7847831834c9",
+        "namespace": "keycloak",
+        "uid": "d48a4bb0-0185-417e-97fd-952bc2914fec",
+        "resourceVersion": "9680",
+        "creationTimestamp": "2023-03-08T14:34:19Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:34:19Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "keycloak-0",
+        "uid": "c5c08943-5ff2-4ed3-be40-f47a38cf7109",
+        "apiVersion": "v1",
+        "resourceVersion": "4964",
+        "fieldPath": "spec.containers{keycloak}"
+      },
+      "reason": "Unhealthy",
+      "message": "Startup probe failed: Get \"http://a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7:15020/app-health/keycloak/startupz\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:34:19Z",
+      "lastTimestamp": "2023-03-08T14:34:49Z",
+      "count": 7,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-54788-4098201588-439619418.174a787ac35d9108",
+        "namespace": "keycloak",
+        "uid": "1224ff70-75ff-4ddc-8e35-11c50d678c02",
+        "resourceVersion": "12958",
+        "creationTimestamp": "2023-03-08T14:37:59Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:37:59Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Challenge",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-54788-4098201588-439619418",
+        "uid": "e75128d7-9c53-4ff9-85b3-20d1e199313b",
+        "apiVersion": "acme.cert-manager.io/v1",
+        "resourceVersion": "11270"
+      },
+      "reason": "Started",
+      "message": "Challenge scheduled for processing",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:37:59Z",
+      "lastTimestamp": "2023-03-08T14:37:59Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-54788-4098201588-439619418.174a787bb36beb09",
+        "namespace": "keycloak",
+        "uid": "17c2c6ac-b9c1-4264-a4ed-15ea2565cfaa",
+        "resourceVersion": "13028",
+        "creationTimestamp": "2023-03-08T14:38:03Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:38:03Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Challenge",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-54788-4098201588-439619418",
+        "uid": "e75128d7-9c53-4ff9-85b3-20d1e199313b",
+        "apiVersion": "acme.cert-manager.io/v1",
+        "resourceVersion": "12982"
+      },
+      "reason": "Presented",
+      "message": "Presented challenge using DNS-01 challenge mechanism",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:38:03Z",
+      "lastTimestamp": "2023-03-08T14:38:03Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-54788-4098201588-439619418.174a789367b55497",
+        "namespace": "keycloak",
+        "uid": "b1f81dc3-a968-4653-9798-d47abf6c29c0",
+        "resourceVersion": "13947",
+        "creationTimestamp": "2023-03-08T14:39:45Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:39:45Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Challenge",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-54788-4098201588-439619418",
+        "uid": "e75128d7-9c53-4ff9-85b3-20d1e199313b",
+        "apiVersion": "acme.cert-manager.io/v1",
+        "resourceVersion": "12982"
+      },
+      "reason": "DomainVerified",
+      "message": "Domain \"keycloak.b521.zea2591.v8o.io\" verified with \"DNS-01\" validation",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:39:45Z",
+      "lastTimestamp": "2023-03-08T14:39:45Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-54788-4098201588.174a7862e4e380b2",
+        "namespace": "keycloak",
+        "uid": "3b7c7bce-b593-4277-b295-887baedd3f7f",
+        "resourceVersion": "11271",
+        "creationTimestamp": "2023-03-08T14:36:17Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:36:17Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Order",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-54788-4098201588",
+        "uid": "a730b334-13a4-443c-8958-9cb7ea7bf449",
+        "apiVersion": "acme.cert-manager.io/v1",
+        "resourceVersion": "11269"
+      },
+      "reason": "Created",
+      "message": "Created Challenge resource \"keycloak-tls-54788-4098201588-439619418\" for domain \"keycloak.b521.zea2591.v8o.io\"",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:36:17Z",
+      "lastTimestamp": "2023-03-08T14:36:17Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-54788-4098201588.174a7893c2441b46",
+        "namespace": "keycloak",
+        "uid": "eede1b1b-66f7-45b2-b15c-d155e14be2da",
+        "resourceVersion": "13965",
+        "creationTimestamp": "2023-03-08T14:39:47Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:39:47Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Order",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-54788-4098201588",
+        "uid": "a730b334-13a4-443c-8958-9cb7ea7bf449",
+        "apiVersion": "acme.cert-manager.io/v1",
+        "resourceVersion": "13952"
+      },
+      "reason": "Complete",
+      "message": "Order completed successfully",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:39:47Z",
+      "lastTimestamp": "2023-03-08T14:39:47Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-54788.174a7862cdb423cd",
+        "namespace": "keycloak",
+        "uid": "b73085b5-a9c5-4e41-a0d5-6d55b40ef2ba",
+        "resourceVersion": "11258",
+        "creationTimestamp": "2023-03-08T14:36:16Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:36:16Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "CertificateRequest",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-54788",
+        "uid": "d818b20b-b1a7-48ac-b47c-c7c185e9631b",
+        "apiVersion": "cert-manager.io/v1",
+        "resourceVersion": "11255"
+      },
+      "reason": "cert-manager.io",
+      "message": "Certificate request has been approved by cert-manager.io",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:36:16Z",
+      "lastTimestamp": "2023-03-08T14:36:16Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-54788.174a7862cee3e41f",
+        "namespace": "keycloak",
+        "uid": "9d5f84e1-3a2e-44c9-85c6-4a427a800981",
+        "resourceVersion": "11260",
+        "creationTimestamp": "2023-03-08T14:36:16Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:36:16Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "CertificateRequest",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-54788",
+        "uid": "d818b20b-b1a7-48ac-b47c-c7c185e9631b",
+        "apiVersion": "cert-manager.io/v1",
+        "resourceVersion": "11257"
+      },
+      "reason": "OrderCreated",
+      "message": "Created Order resource keycloak/keycloak-tls-54788-4098201588",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:36:16Z",
+      "lastTimestamp": "2023-03-08T14:36:16Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-54788.174a7862d0aaf005",
+        "namespace": "keycloak",
+        "uid": "ac2772a5-814d-414a-b4f0-27669b25952b",
+        "resourceVersion": "11262",
+        "creationTimestamp": "2023-03-08T14:36:16Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:36:16Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "CertificateRequest",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-54788",
+        "uid": "d818b20b-b1a7-48ac-b47c-c7c185e9631b",
+        "apiVersion": "cert-manager.io/v1",
+        "resourceVersion": "11257"
+      },
+      "reason": "OrderPending",
+      "message": "Waiting on certificate issuance from order keycloak/keycloak-tls-54788-4098201588: \"\"",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:36:16Z",
+      "lastTimestamp": "2023-03-08T14:36:16Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-54788.174a7893c46fe282",
+        "namespace": "keycloak",
+        "uid": "a01198c6-3850-4774-aa47-10c30a731224",
+        "resourceVersion": "13967",
+        "creationTimestamp": "2023-03-08T14:39:47Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:39:47Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "CertificateRequest",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-54788",
+        "uid": "d818b20b-b1a7-48ac-b47c-c7c185e9631b",
+        "apiVersion": "cert-manager.io/v1",
+        "resourceVersion": "13953"
+      },
+      "reason": "CertificateIssued",
+      "message": "Certificate fetched from issuer successfully",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:39:47Z",
+      "lastTimestamp": "2023-03-08T14:39:47Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-q2pfr-825871291-439619418.174a782397570fd4",
+        "namespace": "keycloak",
+        "uid": "1359493c-68a1-45bf-9584-41833198f99b",
+        "resourceVersion": "5015",
+        "creationTimestamp": "2023-03-08T14:31:45Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:31:45Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Challenge",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-q2pfr-825871291-439619418",
+        "uid": "096194a7-5d55-49b0-b9cb-2c3d07ea7447",
+        "apiVersion": "acme.cert-manager.io/v1",
+        "resourceVersion": "5010"
+      },
+      "reason": "Started",
+      "message": "Challenge scheduled for processing",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:31:45Z",
+      "lastTimestamp": "2023-03-08T14:31:45Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-q2pfr-825871291-439619418.174a78241be8342f",
+        "namespace": "keycloak",
+        "uid": "8056f2cb-3914-4a1e-85d7-7a2921ba3bf1",
+        "resourceVersion": "5097",
+        "creationTimestamp": "2023-03-08T14:31:47Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:31:47Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Challenge",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-q2pfr-825871291-439619418",
+        "uid": "096194a7-5d55-49b0-b9cb-2c3d07ea7447",
+        "apiVersion": "acme.cert-manager.io/v1",
+        "resourceVersion": "5021"
+      },
+      "reason": "PresentError",
+      "message": "Error presenting challenge: Service error:IncorrectState. The requested zone is currently locked by another operation.. http status code: 409. Opc request id: e6106b92306530a2c647796edbc8fe1e/1CAAFA30188F7879F2919173CFD8731E/DF5FC70E18F8238B96FD062E8DDCC66F",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:31:47Z",
+      "lastTimestamp": "2023-03-08T14:31:47Z",
+      "count": 1,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-q2pfr-825871291-439619418.174a7824910512dd",
+        "namespace": "keycloak",
+        "uid": "60f7fd31-6c14-475e-a5c7-d8d0a4c05f82",
+        "resourceVersion": "5125",
+        "creationTimestamp": "2023-03-08T14:31:49Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:31:49Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Challenge",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-q2pfr-825871291-439619418",
+        "uid": "096194a7-5d55-49b0-b9cb-2c3d07ea7447",
+        "apiVersion": "acme.cert-manager.io/v1",
+        "resourceVersion": "5098"
+      },
+      "reason": "PresentError",
+      "message": "Error presenting challenge: Service error:IncorrectState. The requested zone is currently locked by another operation.. http status code: 409. Opc request id: c36c99649ba4931586003701f1ff8d52/24FA142F2BA8BABBC63E64E74CA2A3DE/BC28B46A8FB247CDA245676523AA122F",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:31:49Z",
+      "lastTimestamp": "2023-03-08T14:31:49Z",
+      "count": 1,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-q2pfr-825871291-439619418.174a7825086108f6",
+        "namespace": "keycloak",
+        "uid": "3bffb4b4-ab02-4765-b813-5374b3b7380f",
+        "resourceVersion": "5206",
+        "creationTimestamp": "2023-03-08T14:31:51Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:31:51Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Challenge",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-q2pfr-825871291-439619418",
+        "uid": "096194a7-5d55-49b0-b9cb-2c3d07ea7447",
+        "apiVersion": "acme.cert-manager.io/v1",
+        "resourceVersion": "5124"
+      },
+      "reason": "PresentError",
+      "message": "Error presenting challenge: Service error:IncorrectState. The requested zone is currently locked by another operation.. http status code: 409. Opc request id: c9e975b8a96c43b3f9b556dc1fff0077/6080E8EE518A9DBAB07177FAD575B294/9FFD7C36008AADFE771BFF4813A30534",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:31:51Z",
+      "lastTimestamp": "2023-03-08T14:31:51Z",
+      "count": 1,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-q2pfr-825871291-439619418.174a78257c84e145",
+        "namespace": "keycloak",
+        "uid": "8c5da5fe-8d33-4b69-ab4f-539e6f1cc409",
+        "resourceVersion": "5245",
+        "creationTimestamp": "2023-03-08T14:31:53Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:31:53Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Challenge",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-q2pfr-825871291-439619418",
+        "uid": "096194a7-5d55-49b0-b9cb-2c3d07ea7447",
+        "apiVersion": "acme.cert-manager.io/v1",
+        "resourceVersion": "5205"
+      },
+      "reason": "PresentError",
+      "message": "Error presenting challenge: Service error:IncorrectState. The requested zone is currently locked by another operation.. http status code: 409. Opc request id: adff1c6668482e855e0ed36714b0aa7d/F9219E79EC2DF6ACC4F11FF3A86A3811/CBF77E2FE9F1EFA62CF7F8C9F8A38E8B",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:31:53Z",
+      "lastTimestamp": "2023-03-08T14:31:53Z",
+      "count": 1,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-q2pfr-825871291-439619418.174a782618144673",
+        "namespace": "keycloak",
+        "uid": "dcb6d222-2e25-4cd5-9df1-ec5214c4b3d3",
+        "resourceVersion": "5276",
+        "creationTimestamp": "2023-03-08T14:31:56Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:31:56Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Challenge",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-q2pfr-825871291-439619418",
+        "uid": "096194a7-5d55-49b0-b9cb-2c3d07ea7447",
+        "apiVersion": "acme.cert-manager.io/v1",
+        "resourceVersion": "5246"
+      },
+      "reason": "PresentError",
+      "message": "Error presenting challenge: Service error:IncorrectState. The requested zone is currently locked by another operation.. http status code: 409. Opc request id: bb808a616d95ee6cdf28e2998de227bf/5E8D219C7795442D0BD1543A2B042CBB/8731B310BACEC9DA6F939F4C890F991E",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:31:56Z",
+      "lastTimestamp": "2023-03-08T14:31:56Z",
+      "count": 1,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-q2pfr-825871291-439619418.174a7826c5ada1a6",
+        "namespace": "keycloak",
+        "uid": "792f522c-6f30-4454-bcb8-3123742fc825",
+        "resourceVersion": "5301",
+        "creationTimestamp": "2023-03-08T14:31:59Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:31:59Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Challenge",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-q2pfr-825871291-439619418",
+        "uid": "096194a7-5d55-49b0-b9cb-2c3d07ea7447",
+        "apiVersion": "acme.cert-manager.io/v1",
+        "resourceVersion": "5277"
+      },
+      "reason": "PresentError",
+      "message": "Error presenting challenge: Service error:IncorrectState. The requested zone is currently locked by another operation.. http status code: 409. Opc request id: c69cf999ceb6fecda10ee01137e5cf84/C6A2E0814FB48B13B42B054F974A1CDE/4B7B7CD620F807BFE5FF3972B618527C",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:31:59Z",
+      "lastTimestamp": "2023-03-08T14:31:59Z",
+      "count": 1,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-q2pfr-825871291-439619418.174a78275a86f06d",
+        "namespace": "keycloak",
+        "uid": "9d3ab5b1-15b1-4550-9186-de2ca46e4f26",
+        "resourceVersion": "5327",
+        "creationTimestamp": "2023-03-08T14:32:01Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:32:01Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Challenge",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-q2pfr-825871291-439619418",
+        "uid": "096194a7-5d55-49b0-b9cb-2c3d07ea7447",
+        "apiVersion": "acme.cert-manager.io/v1",
+        "resourceVersion": "5302"
+      },
+      "reason": "PresentError",
+      "message": "Error presenting challenge: Service error:IncorrectState. The requested zone is currently locked by another operation.. http status code: 409. Opc request id: 36f93b94842fb54e0e4f6d8967dcdfd2/45E20BBE503B8CC781F5DA37AE2E6816/EED2CCC3D44AA6B2E1711F84617D3E61",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:32:01Z",
+      "lastTimestamp": "2023-03-08T14:32:01Z",
+      "count": 1,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-q2pfr-825871291-439619418.174a7827d87642f9",
+        "namespace": "keycloak",
+        "uid": "8f09e84f-4f07-4790-baf7-8fae0bfdd31e",
+        "resourceVersion": "5350",
+        "creationTimestamp": "2023-03-08T14:32:03Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:32:03Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Challenge",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-q2pfr-825871291-439619418",
+        "uid": "096194a7-5d55-49b0-b9cb-2c3d07ea7447",
+        "apiVersion": "acme.cert-manager.io/v1",
+        "resourceVersion": "5328"
+      },
+      "reason": "PresentError",
+      "message": "Error presenting challenge: Service error:IncorrectState. The requested zone is currently locked by another operation.. http status code: 409. Opc request id: dd0d32b0d05767910e9d7f0b3356d333/EB61E26EB904A96C5600601339218EAF/E9BB506C7C88C015AC07A0C7AAE875F7",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:32:03Z",
+      "lastTimestamp": "2023-03-08T14:32:03Z",
+      "count": 1,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-q2pfr-825871291-439619418.174a78287dbcbcc5",
+        "namespace": "keycloak",
+        "uid": "faef3edc-cb2f-442f-9971-e69f6ada3ae0",
+        "resourceVersion": "5376",
+        "creationTimestamp": "2023-03-08T14:32:06Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:32:06Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Challenge",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-q2pfr-825871291-439619418",
+        "uid": "096194a7-5d55-49b0-b9cb-2c3d07ea7447",
+        "apiVersion": "acme.cert-manager.io/v1",
+        "resourceVersion": "5351"
+      },
+      "reason": "PresentError",
+      "message": "Error presenting challenge: Service error:IncorrectState. The requested zone is currently locked by another operation.. http status code: 409. Opc request id: e15383a7a59e85fefda53c336918b975/71FC2F34ABF98711FF83C6BC3FAEB72A/5AF9DFADB55FB84348A3CFDDD7141EC6",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:32:06Z",
+      "lastTimestamp": "2023-03-08T14:32:06Z",
+      "count": 1,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-q2pfr-825871291-439619418.174a7828f6e758ea",
+        "namespace": "keycloak",
+        "uid": "637bfd7d-7392-47a1-9509-d9e464df6e7c",
+        "resourceVersion": "5828",
+        "creationTimestamp": "2023-03-08T14:32:08Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:32:08Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Challenge",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-q2pfr-825871291-439619418",
+        "uid": "096194a7-5d55-49b0-b9cb-2c3d07ea7447",
+        "apiVersion": "acme.cert-manager.io/v1",
+        "resourceVersion": "5377"
+      },
+      "reason": "PresentError",
+      "message": "(combined from similar events): Error presenting challenge: Service error:TooManyRequests. Too Many Requests. http status code: 429. Opc request id: 8ff96fe5dc4a1e582f3f31c7c977d4f1/2B11E9DD210F1074DB17D6F18F5C8BF3/FFEF43019BB3069841CF126D8BAD7B1C",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:32:08Z",
+      "lastTimestamp": "2023-03-08T14:32:36Z",
+      "count": 15,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-q2pfr-825871291.174a7823829cfcfe",
+        "namespace": "keycloak",
+        "uid": "fd87d0fd-c87d-4061-b14c-53a9fbe3dc52",
+        "resourceVersion": "5011",
+        "creationTimestamp": "2023-03-08T14:31:45Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:31:45Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Order",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-q2pfr-825871291",
+        "uid": "16cbfae3-e05b-4aaf-84a3-4a46c4a15064",
+        "apiVersion": "acme.cert-manager.io/v1",
+        "resourceVersion": "5006"
+      },
+      "reason": "Created",
+      "message": "Created Challenge resource \"keycloak-tls-q2pfr-825871291-439619418\" for domain \"keycloak.b521.zea2591.v8o.io\"",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:31:45Z",
+      "lastTimestamp": "2023-03-08T14:31:45Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-q2pfr.174a78234549f46d",
+        "namespace": "keycloak",
+        "uid": "10ad30b5-45f1-4cce-962c-c218edc1ae53",
+        "resourceVersion": "4983",
+        "creationTimestamp": "2023-03-08T14:31:44Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:31:44Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "CertificateRequest",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-q2pfr",
+        "uid": "b8620902-0f71-450e-bd0e-1b19b928d15f",
+        "apiVersion": "cert-manager.io/v1",
+        "resourceVersion": "4975"
+      },
+      "reason": "cert-manager.io",
+      "message": "Certificate request has been approved by cert-manager.io",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:31:44Z",
+      "lastTimestamp": "2023-03-08T14:31:44Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls-q2pfr.174a782350f956bf",
+        "namespace": "keycloak",
+        "uid": "1daaa2d2-411d-4b0e-9b07-a8f62bb93ff2",
+        "resourceVersion": "4990",
+        "creationTimestamp": "2023-03-08T14:31:44Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:31:44Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "CertificateRequest",
+        "namespace": "keycloak",
+        "name": "keycloak-tls-q2pfr",
+        "uid": "b8620902-0f71-450e-bd0e-1b19b928d15f",
+        "apiVersion": "cert-manager.io/v1",
+        "resourceVersion": "4981"
+      },
+      "reason": "OrderCreated",
+      "message": "Created Order resource keycloak/keycloak-tls-q2pfr-825871291",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:31:44Z",
+      "lastTimestamp": "2023-03-08T14:31:44Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls.174a7823155fa739",
+        "namespace": "keycloak",
+        "uid": "f5df4d6c-461e-430f-aa61-43a06c2b117e",
+        "resourceVersion": "4958",
+        "creationTimestamp": "2023-03-08T14:31:43Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:31:43Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Certificate",
+        "namespace": "keycloak",
+        "name": "keycloak-tls",
+        "uid": "16e7d2cf-41a4-456c-991b-c2d742709d7f",
+        "apiVersion": "cert-manager.io/v1",
+        "resourceVersion": "4953"
+      },
+      "reason": "Issuing",
+      "message": "Issuing certificate as Secret does not exist",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:31:43Z",
+      "lastTimestamp": "2023-03-08T14:31:43Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls.174a7823331fd8ee",
+        "namespace": "keycloak",
+        "uid": "c9d17468-2bf9-4364-aca0-00a4494e37c8",
+        "resourceVersion": "4972",
+        "creationTimestamp": "2023-03-08T14:31:43Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:31:43Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Certificate",
+        "namespace": "keycloak",
+        "name": "keycloak-tls",
+        "uid": "16e7d2cf-41a4-456c-991b-c2d742709d7f",
+        "apiVersion": "cert-manager.io/v1",
+        "resourceVersion": "4955"
+      },
+      "reason": "Generated",
+      "message": "Stored new private key in temporary Secret resource \"keycloak-tls-wrppr\"",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:31:43Z",
+      "lastTimestamp": "2023-03-08T14:31:43Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls.174a7823366baf00",
+        "namespace": "keycloak",
+        "uid": "d65a5d3e-9e93-4c95-bc32-81f5d1114904",
+        "resourceVersion": "4976",
+        "creationTimestamp": "2023-03-08T14:31:43Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:31:43Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Certificate",
+        "namespace": "keycloak",
+        "name": "keycloak-tls",
+        "uid": "16e7d2cf-41a4-456c-991b-c2d742709d7f",
+        "apiVersion": "cert-manager.io/v1",
+        "resourceVersion": "4973"
+      },
+      "reason": "Requested",
+      "message": "Created new CertificateRequest resource \"keycloak-tls-q2pfr\"",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:31:43Z",
+      "lastTimestamp": "2023-03-08T14:31:43Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls.174a7862ca9378f5",
+        "namespace": "keycloak",
+        "uid": "aa48f0fe-cfd2-402e-9327-03e907844b4b",
+        "resourceVersion": "11256",
+        "creationTimestamp": "2023-03-08T14:36:16Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:36:16Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Certificate",
+        "namespace": "keycloak",
+        "name": "keycloak-tls",
+        "uid": "16e7d2cf-41a4-456c-991b-c2d742709d7f",
+        "apiVersion": "cert-manager.io/v1",
+        "resourceVersion": "11250"
+      },
+      "reason": "Requested",
+      "message": "Created new CertificateRequest resource \"keycloak-tls-54788\"",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:36:16Z",
+      "lastTimestamp": "2023-03-08T14:36:16Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak-tls.174a7893cc7a65d2",
+        "namespace": "keycloak",
+        "uid": "7af922d3-f87c-4acf-ba5a-7f46e34bad22",
+        "resourceVersion": "13974",
+        "creationTimestamp": "2023-03-08T14:39:47Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:39:47Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Certificate",
+        "namespace": "keycloak",
+        "name": "keycloak-tls",
+        "uid": "16e7d2cf-41a4-456c-991b-c2d742709d7f",
+        "apiVersion": "cert-manager.io/v1",
+        "resourceVersion": "11254"
+      },
+      "reason": "Issuing",
+      "message": "The certificate has been successfully issued",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:39:47Z",
+      "lastTimestamp": "2023-03-08T14:39:47Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak.174a78230e0edb35",
+        "namespace": "keycloak",
+        "uid": "2306e8e8-3d89-4239-ae54-79022a4e53a3",
+        "resourceVersion": "11251",
+        "creationTimestamp": "2023-03-08T14:31:43Z",
+        "managedFields": [
+          {
+            "manager": "nginx-ingress-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:31:43Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Ingress",
+        "namespace": "keycloak",
+        "name": "keycloak",
+        "uid": "6d971f57-4778-4887-9db3-7a5cab6671d0",
+        "apiVersion": "networking.k8s.io/v1",
+        "resourceVersion": "4941"
+      },
+      "reason": "Sync",
+      "message": "Scheduled for sync",
+      "source": {
+        "component": "nginx-ingress-controller"
+      },
+      "firstTimestamp": "2023-03-08T14:31:43Z",
+      "lastTimestamp": "2023-03-08T14:36:16Z",
+      "count": 4,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak.174a78231004e5f9",
+        "namespace": "keycloak",
+        "uid": "ec1a58ee-de03-4ad4-9a6a-8238ae063273",
+        "resourceVersion": "4951",
+        "creationTimestamp": "2023-03-08T14:31:43Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:31:43Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Ingress",
+        "namespace": "keycloak",
+        "name": "keycloak",
+        "uid": "6d971f57-4778-4887-9db3-7a5cab6671d0",
+        "apiVersion": "networking.k8s.io/v1",
+        "resourceVersion": "4941"
+      },
+      "reason": "CreateCertificate",
+      "message": "Successfully created Certificate \"keycloak-tls\"",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:31:43Z",
+      "lastTimestamp": "2023-03-08T14:31:43Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak.174a78232db3f90b",
+        "namespace": "keycloak",
+        "uid": "9e251b4b-6f7f-4d93-a4c9-8cdee3ac348e",
+        "resourceVersion": "4967",
+        "creationTimestamp": "2023-03-08T14:31:43Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:31:43Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "StatefulSet",
+        "namespace": "keycloak",
+        "name": "keycloak",
+        "uid": "d381a78b-1c03-4f6a-95a5-6c1e6d17de2d",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "4940"
+      },
+      "reason": "SuccessfulCreate",
+      "message": "create Pod keycloak-0 in StatefulSet keycloak successful",
+      "source": {
+        "component": "statefulset-controller"
+      },
+      "firstTimestamp": "2023-03-08T14:31:43Z",
+      "lastTimestamp": "2023-03-08T14:31:43Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "keycloak.174a7862c6e88d41",
+        "namespace": "keycloak",
+        "uid": "001c0035-ffdb-4966-9545-b603899d0698",
+        "resourceVersion": "11252",
+        "creationTimestamp": "2023-03-08T14:36:16Z",
+        "managedFields": [
+          {
+            "manager": "cert-manager-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:36:16Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Ingress",
+        "namespace": "keycloak",
+        "name": "keycloak",
+        "uid": "6d971f57-4778-4887-9db3-7a5cab6671d0",
+        "apiVersion": "networking.k8s.io/v1",
+        "resourceVersion": "11249"
+      },
+      "reason": "UpdateCertificate",
+      "message": "Successfully updated Certificate \"keycloak-tls\"",
+      "source": {
+        "component": "cert-manager"
+      },
+      "firstTimestamp": "2023-03-08T14:36:16Z",
+      "lastTimestamp": "2023-03-08T14:36:16Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql-867cc9759b-pntx5.174a780f3a43815e",
+        "namespace": "keycloak",
+        "uid": "83ab8498-91d8-4b76-bf0d-527a41c36769",
+        "resourceVersion": "3974",
+        "creationTimestamp": "2023-03-08T14:30:17Z",
+        "managedFields": [
+          {
+            "manager": "kube-scheduler",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:17Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "mysql-867cc9759b-pntx5",
+        "uid": "ee6ed330-b7f9-4d4b-beaf-6164ac5b9c1b",
+        "apiVersion": "v1",
+        "resourceVersion": "3964"
+      },
+      "reason": "Scheduled",
+      "message": "Successfully assigned keycloak/mysql-867cc9759b-pntx5 to a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7",
+      "source": {
+        "component": "default-scheduler"
+      },
+      "firstTimestamp": "2023-03-08T14:30:17Z",
+      "lastTimestamp": "2023-03-08T14:30:17Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql-867cc9759b-pntx5.174a780f81e2d952",
+        "namespace": "keycloak",
+        "uid": "01fa4d4b-f9b1-4b02-bdc3-18e3906a64a8",
+        "resourceVersion": "3981",
+        "creationTimestamp": "2023-03-08T14:30:19Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:19Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "mysql-867cc9759b-pntx5",
+        "uid": "ee6ed330-b7f9-4d4b-beaf-6164ac5b9c1b",
+        "apiVersion": "v1",
+        "resourceVersion": "3971",
+        "fieldPath": "spec.initContainers{remove-lost-found}"
+      },
+      "reason": "Pulling",
+      "message": "Pulling image \"ghcr.io/oracle/oraclelinux:7-slim\"",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:30:19Z",
+      "lastTimestamp": "2023-03-08T14:30:19Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql-867cc9759b-pntx5.174a781022c57f66",
+        "namespace": "keycloak",
+        "uid": "d8797b6b-c915-4a2f-8a00-e6a26cef07ac",
+        "resourceVersion": "4001",
+        "creationTimestamp": "2023-03-08T14:30:21Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:21Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "mysql-867cc9759b-pntx5",
+        "uid": "ee6ed330-b7f9-4d4b-beaf-6164ac5b9c1b",
+        "apiVersion": "v1",
+        "resourceVersion": "3971",
+        "fieldPath": "spec.initContainers{remove-lost-found}"
+      },
+      "reason": "Pulled",
+      "message": "Successfully pulled image \"ghcr.io/oracle/oraclelinux:7-slim\" in 2.699187121s",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:30:21Z",
+      "lastTimestamp": "2023-03-08T14:30:21Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql-867cc9759b-pntx5.174a7810288bfaa4",
+        "namespace": "keycloak",
+        "uid": "def8e5bc-208d-439d-852d-9104cee6dd10",
+        "resourceVersion": "4002",
+        "creationTimestamp": "2023-03-08T14:30:21Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:21Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "mysql-867cc9759b-pntx5",
+        "uid": "ee6ed330-b7f9-4d4b-beaf-6164ac5b9c1b",
+        "apiVersion": "v1",
+        "resourceVersion": "3971",
+        "fieldPath": "spec.initContainers{remove-lost-found}"
+      },
+      "reason": "Created",
+      "message": "Created container remove-lost-found",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:30:21Z",
+      "lastTimestamp": "2023-03-08T14:30:21Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql-867cc9759b-pntx5.174a78102afdc92e",
+        "namespace": "keycloak",
+        "uid": "1a0e791c-2fed-4a62-9813-eed210ab61bd",
+        "resourceVersion": "4005",
+        "creationTimestamp": "2023-03-08T14:30:21Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:21Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "mysql-867cc9759b-pntx5",
+        "uid": "ee6ed330-b7f9-4d4b-beaf-6164ac5b9c1b",
+        "apiVersion": "v1",
+        "resourceVersion": "3971",
+        "fieldPath": "spec.initContainers{remove-lost-found}"
+      },
+      "reason": "Started",
+      "message": "Started container remove-lost-found",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:30:21Z",
+      "lastTimestamp": "2023-03-08T14:30:21Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql-867cc9759b-pntx5.174a78105e0b3be9",
+        "namespace": "keycloak",
+        "uid": "c222bb44-4078-499c-b065-acece45719d0",
+        "resourceVersion": "4033",
+        "creationTimestamp": "2023-03-08T14:30:22Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:22Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "mysql-867cc9759b-pntx5",
+        "uid": "ee6ed330-b7f9-4d4b-beaf-6164ac5b9c1b",
+        "apiVersion": "v1",
+        "resourceVersion": "3971",
+        "fieldPath": "spec.initContainers{chown-data-dir}"
+      },
+      "reason": "Pulled",
+      "message": "Container image \"ghcr.io/oracle/oraclelinux:7-slim\" already present on machine",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:30:22Z",
+      "lastTimestamp": "2023-03-08T14:30:22Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql-867cc9759b-pntx5.174a78106abb7b23",
+        "namespace": "keycloak",
+        "uid": "68db3205-06ea-4916-bcf2-15ba0bc4f74d",
+        "resourceVersion": "4038",
+        "creationTimestamp": "2023-03-08T14:30:23Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:23Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "mysql-867cc9759b-pntx5",
+        "uid": "ee6ed330-b7f9-4d4b-beaf-6164ac5b9c1b",
+        "apiVersion": "v1",
+        "resourceVersion": "3971",
+        "fieldPath": "spec.initContainers{chown-data-dir}"
+      },
+      "reason": "Created",
+      "message": "Created container chown-data-dir",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:30:23Z",
+      "lastTimestamp": "2023-03-08T14:30:23Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql-867cc9759b-pntx5.174a78106cc2b5d8",
+        "namespace": "keycloak",
+        "uid": "0231a7e8-4cdf-4b9f-804b-302ab88533dc",
+        "resourceVersion": "4039",
+        "creationTimestamp": "2023-03-08T14:30:23Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:23Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "mysql-867cc9759b-pntx5",
+        "uid": "ee6ed330-b7f9-4d4b-beaf-6164ac5b9c1b",
+        "apiVersion": "v1",
+        "resourceVersion": "3971",
+        "fieldPath": "spec.initContainers{chown-data-dir}"
+      },
+      "reason": "Started",
+      "message": "Started container chown-data-dir",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:30:23Z",
+      "lastTimestamp": "2023-03-08T14:30:23Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql-867cc9759b-pntx5.174a781099d31064",
+        "namespace": "keycloak",
+        "uid": "e497c4a9-c429-4506-996a-d8c61344fb96",
+        "resourceVersion": "4049",
+        "creationTimestamp": "2023-03-08T14:30:23Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:23Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "mysql-867cc9759b-pntx5",
+        "uid": "ee6ed330-b7f9-4d4b-beaf-6164ac5b9c1b",
+        "apiVersion": "v1",
+        "resourceVersion": "3971",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Pulled",
+      "message": "Container image \"ghcr.io/verrazzano/proxyv2:1.14.3-20221201192441-36fbb992\" already present on machine",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:30:23Z",
+      "lastTimestamp": "2023-03-08T14:30:23Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql-867cc9759b-pntx5.174a7810a01b9e3e",
+        "namespace": "keycloak",
+        "uid": "2c1672fa-1113-4cc2-939d-04801d2963f7",
+        "resourceVersion": "4053",
+        "creationTimestamp": "2023-03-08T14:30:23Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:23Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "mysql-867cc9759b-pntx5",
+        "uid": "ee6ed330-b7f9-4d4b-beaf-6164ac5b9c1b",
+        "apiVersion": "v1",
+        "resourceVersion": "3971",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Created",
+      "message": "Created container istio-init",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:30:23Z",
+      "lastTimestamp": "2023-03-08T14:30:23Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql-867cc9759b-pntx5.174a7810a14b7ec2",
+        "namespace": "keycloak",
+        "uid": "5b121548-b248-4ce6-84b2-bb1a6a619baa",
+        "resourceVersion": "4054",
+        "creationTimestamp": "2023-03-08T14:30:23Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:23Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "mysql-867cc9759b-pntx5",
+        "uid": "ee6ed330-b7f9-4d4b-beaf-6164ac5b9c1b",
+        "apiVersion": "v1",
+        "resourceVersion": "3971",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Started",
+      "message": "Started container istio-init",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:30:23Z",
+      "lastTimestamp": "2023-03-08T14:30:23Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql-867cc9759b-pntx5.174a7810d5cb0349",
+        "namespace": "keycloak",
+        "uid": "94557824-261f-488b-a0a6-6299a64251cc",
+        "resourceVersion": "4071",
+        "creationTimestamp": "2023-03-08T14:30:24Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:24Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "mysql-867cc9759b-pntx5",
+        "uid": "ee6ed330-b7f9-4d4b-beaf-6164ac5b9c1b",
+        "apiVersion": "v1",
+        "resourceVersion": "3971",
+        "fieldPath": "spec.containers{mysql}"
+      },
+      "reason": "Pulling",
+      "message": "Pulling image \"ghcr.io/verrazzano/mysql:8.0.29\"",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:30:24Z",
+      "lastTimestamp": "2023-03-08T14:30:24Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql-867cc9759b-pntx5.174a7814a491187f",
+        "namespace": "keycloak",
+        "uid": "d6a0ca41-e351-42e9-836d-b2dcb59b03b9",
+        "resourceVersion": "4165",
+        "creationTimestamp": "2023-03-08T14:30:41Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:41Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "mysql-867cc9759b-pntx5",
+        "uid": "ee6ed330-b7f9-4d4b-beaf-6164ac5b9c1b",
+        "apiVersion": "v1",
+        "resourceVersion": "3971",
+        "fieldPath": "spec.containers{mysql}"
+      },
+      "reason": "Pulled",
+      "message": "Successfully pulled image \"ghcr.io/verrazzano/mysql:8.0.29\" in 16.353970678s",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:30:41Z",
+      "lastTimestamp": "2023-03-08T14:30:41Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql-867cc9759b-pntx5.174a7816630c01b3",
+        "namespace": "keycloak",
+        "uid": "a31d5319-270b-4017-987c-f1a77c06a409",
+        "resourceVersion": "4212",
+        "creationTimestamp": "2023-03-08T14:30:48Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:48Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "mysql-867cc9759b-pntx5",
+        "uid": "ee6ed330-b7f9-4d4b-beaf-6164ac5b9c1b",
+        "apiVersion": "v1",
+        "resourceVersion": "3971",
+        "fieldPath": "spec.containers{mysql}"
+      },
+      "reason": "Created",
+      "message": "Created container mysql",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:30:48Z",
+      "lastTimestamp": "2023-03-08T14:30:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql-867cc9759b-pntx5.174a781664844013",
+        "namespace": "keycloak",
+        "uid": "d3bba88a-0dbd-4ec6-a1a7-23926c9835df",
+        "resourceVersion": "4213",
+        "creationTimestamp": "2023-03-08T14:30:48Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:48Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "mysql-867cc9759b-pntx5",
+        "uid": "ee6ed330-b7f9-4d4b-beaf-6164ac5b9c1b",
+        "apiVersion": "v1",
+        "resourceVersion": "3971",
+        "fieldPath": "spec.containers{mysql}"
+      },
+      "reason": "Started",
+      "message": "Started container mysql",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:30:48Z",
+      "lastTimestamp": "2023-03-08T14:30:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql-867cc9759b-pntx5.174a7816649513f9",
+        "namespace": "keycloak",
+        "uid": "c600c91f-7e55-4a1b-a4ca-c3e2a566d0fb",
+        "resourceVersion": "4214",
+        "creationTimestamp": "2023-03-08T14:30:48Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:48Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "mysql-867cc9759b-pntx5",
+        "uid": "ee6ed330-b7f9-4d4b-beaf-6164ac5b9c1b",
+        "apiVersion": "v1",
+        "resourceVersion": "3971",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Pulled",
+      "message": "Container image \"ghcr.io/verrazzano/proxyv2:1.14.3-20221201192441-36fbb992\" already present on machine",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:30:48Z",
+      "lastTimestamp": "2023-03-08T14:30:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql-867cc9759b-pntx5.174a78166b5919d7",
+        "namespace": "keycloak",
+        "uid": "5d0b8b3d-0814-4409-b934-29ded6af6905",
+        "resourceVersion": "4218",
+        "creationTimestamp": "2023-03-08T14:30:48Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:48Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "mysql-867cc9759b-pntx5",
+        "uid": "ee6ed330-b7f9-4d4b-beaf-6164ac5b9c1b",
+        "apiVersion": "v1",
+        "resourceVersion": "3971",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Created",
+      "message": "Created container istio-proxy",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:30:48Z",
+      "lastTimestamp": "2023-03-08T14:30:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql-867cc9759b-pntx5.174a78166d0ad398",
+        "namespace": "keycloak",
+        "uid": "c6661517-0fed-40cb-b33e-f48e67cc30eb",
+        "resourceVersion": "4219",
+        "creationTimestamp": "2023-03-08T14:30:48Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:48Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "mysql-867cc9759b-pntx5",
+        "uid": "ee6ed330-b7f9-4d4b-beaf-6164ac5b9c1b",
+        "apiVersion": "v1",
+        "resourceVersion": "3971",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Started",
+      "message": "Started container istio-proxy",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:30:48Z",
+      "lastTimestamp": "2023-03-08T14:30:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql-867cc9759b-pntx5.174a7816ac93fcac",
+        "namespace": "keycloak",
+        "uid": "416af1b8-3b15-4ec6-9490-e48d09281e1f",
+        "resourceVersion": "4231",
+        "creationTimestamp": "2023-03-08T14:30:49Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:49Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "keycloak",
+        "name": "mysql-867cc9759b-pntx5",
+        "uid": "ee6ed330-b7f9-4d4b-beaf-6164ac5b9c1b",
+        "apiVersion": "v1",
+        "resourceVersion": "3971",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Unhealthy",
+      "message": "Readiness probe failed: Get \"http://a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7:15021/healthz/ready\": dial tcp a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7:15021: connect: connection refused",
+      "source": {
+        "component": "kubelet",
+        "host": "a17aa0180008a37ddd9d12d9f4a16a5c6670bdb304c14ba8785f59a4c741c2c7"
+      },
+      "firstTimestamp": "2023-03-08T14:30:49Z",
+      "lastTimestamp": "2023-03-08T14:30:49Z",
+      "count": 2,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql-867cc9759b.174a780d706b1cf4",
+        "namespace": "keycloak",
+        "uid": "2056ef7b-1f55-40f1-89e5-067bbe437c9c",
+        "resourceVersion": "3959",
+        "creationTimestamp": "2023-03-08T14:30:10Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:10Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "ReplicaSet",
+        "namespace": "keycloak",
+        "name": "mysql-867cc9759b",
+        "uid": "b8e5829b-0f8c-498f-bca5-67383e4b1751",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "3826"
+      },
+      "reason": "FailedCreate",
+      "message": "Error creating: Internal error occurred: failed calling webhook \"verrazzano-application-istio-defaulter.verrazzano.io\": failed to call webhook: Post \"https://verrazzano-application-operator.verrazzano-system.svc:443/istio-defaulter?timeout=30s\": EOF",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "firstTimestamp": "2023-03-08T14:30:10Z",
+      "lastTimestamp": "2023-03-08T14:30:17Z",
+      "count": 7,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql-867cc9759b.174a780f336f9fb9",
+        "namespace": "keycloak",
+        "uid": "09617296-f651-4cce-a689-1011c482bd42",
+        "resourceVersion": "3969",
+        "creationTimestamp": "2023-03-08T14:30:17Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:17Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "ReplicaSet",
+        "namespace": "keycloak",
+        "name": "mysql-867cc9759b",
+        "uid": "b8e5829b-0f8c-498f-bca5-67383e4b1751",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "3842"
+      },
+      "reason": "SuccessfulCreate",
+      "message": "Created pod: mysql-867cc9759b-pntx5",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "firstTimestamp": "2023-03-08T14:30:17Z",
+      "lastTimestamp": "2023-03-08T14:30:17Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "mysql.174a780d2cff9c2e",
+        "namespace": "keycloak",
+        "uid": "804e2447-145c-4c00-b01f-752ea8d0fd9e",
+        "resourceVersion": "3828",
+        "creationTimestamp": "2023-03-08T14:30:09Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:30:09Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Deployment",
+        "namespace": "keycloak",
+        "name": "mysql",
+        "uid": "dee9d0db-6a9e-4311-b971-fac64db6ac63",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "3823"
+      },
+      "reason": "ScalingReplicaSet",
+      "message": "Scaled up replica set mysql-867cc9759b to 1",
+      "source": {
+        "component": "deployment-controller"
+      },
+      "firstTimestamp": "2023-03-08T14:30:09Z",
+      "lastTimestamp": "2023-03-08T14:30:09Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    }
+  ]
+}

@@ -1,0 +1,167 @@
+{
+  "metadata": {
+    "resourceVersion": "34990"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "keycloak",
+        "namespace": "keycloak",
+        "uid": "6d971f57-4778-4887-9db3-7a5cab6671d0",
+        "resourceVersion": "11249",
+        "generation": 1,
+        "creationTimestamp": "2023-03-08T14:31:43Z",
+        "labels": {
+          "app.kubernetes.io/instance": "keycloak",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "keycloak",
+          "app.kubernetes.io/version": "v15.0.2-20221214054602-c01654ffed",
+          "helm.sh/chart": "keycloak-15.1.0"
+        },
+        "annotations": {
+          "cert-manager.io/common-name": "keycloak.b521.zea2591.v8o.io",
+          "external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.b521.zea2591.v8o.io",
+          "external-dns.alpha.kubernetes.io/ttl": "60",
+          "field.cattle.io/publicEndpoints": "[{\"addresses\":[\"3fd85284bb81b6e23be299183562d7cc3a7da317900c20044a01a68f13fecbb4\"],\"port\":443,\"protocol\":\"HTTPS\",\"serviceName\":\"keycloak:keycloak-http\",\"ingressName\":\"keycloak:keycloak\",\"hostname\":\"keycloak.b521.zea2591.v8o.io\",\"path\":\"/\",\"allNodes\":false}]",
+          "kubernetes.io/tls-acme": "true",
+          "meta.helm.sh/release-name": "keycloak",
+          "meta.helm.sh/release-namespace": "keycloak",
+          "nginx.ingress.kubernetes.io/affinity": "cookie",
+          "nginx.ingress.kubernetes.io/service-upstream": "true",
+          "nginx.ingress.kubernetes.io/session-cookie-conditional-samesite-none": "true",
+          "nginx.ingress.kubernetes.io/session-cookie-expires": "86400",
+          "nginx.ingress.kubernetes.io/session-cookie-max-age": "86400",
+          "nginx.ingress.kubernetes.io/session-cookie-name": "keycloak",
+          "nginx.ingress.kubernetes.io/session-cookie-samesite": "Strict",
+          "nginx.ingress.kubernetes.io/upstream-vhost": "keycloak-http.${namespace}.svc.cluster.local"
+        },
+        "managedFields": [
+          {
+            "manager": "helm",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2023-03-08T14:31:43Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:external-dns.alpha.kubernetes.io/ttl": {},
+                  "f:kubernetes.io/tls-acme": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {},
+                  "f:nginx.ingress.kubernetes.io/affinity": {},
+                  "f:nginx.ingress.kubernetes.io/service-upstream": {},
+                  "f:nginx.ingress.kubernetes.io/session-cookie-conditional-samesite-none": {},
+                  "f:nginx.ingress.kubernetes.io/session-cookie-expires": {},
+                  "f:nginx.ingress.kubernetes.io/session-cookie-max-age": {},
+                  "f:nginx.ingress.kubernetes.io/session-cookie-name": {},
+                  "f:nginx.ingress.kubernetes.io/session-cookie-samesite": {},
+                  "f:nginx.ingress.kubernetes.io/upstream-vhost": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app.kubernetes.io/instance": {},
+                  "f:app.kubernetes.io/managed-by": {},
+                  "f:app.kubernetes.io/name": {},
+                  "f:app.kubernetes.io/version": {},
+                  "f:helm.sh/chart": {}
+                }
+              },
+              "f:spec": {
+                "f:ingressClassName": {},
+                "f:rules": {},
+                "f:tls": {}
+              }
+            }
+          },
+          {
+            "manager": "nginx-ingress-controller",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2023-03-08T14:31:53Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:loadBalancer": {
+                  "f:ingress": {}
+                }
+              }
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "rancher",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2023-03-08T14:33:41Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  "f:field.cattle.io/publicEndpoints": {}
+                }
+              }
+            }
+          },
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2023-03-08T14:36:16Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  "f:cert-manager.io/common-name": {},
+                  "f:external-dns.alpha.kubernetes.io/target": {}
+                }
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ingressClassName": "verrazzano-nginx",
+        "tls": [
+          {
+            "hosts": [
+              "keycloak.b521.zea2591.v8o.io"
+            ],
+            "secretName": "keycloak-tls"
+          }
+        ],
+        "rules": [
+          {
+            "host": "keycloak.b521.zea2591.v8o.io",
+            "http": {
+              "paths": [
+                {
+                  "path": "/",
+                  "pathType": "ImplementationSpecific",
+                  "backend": {
+                    "service": {
+                      "name": "keycloak-http",
+                      "port": {
+                        "name": "http"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "loadBalancer": {
+          "ingress": [
+            {
+              "ip": "3fd85284bb81b6e23be299183562d7cc3a7da317900c20044a01a68f13fecbb4"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

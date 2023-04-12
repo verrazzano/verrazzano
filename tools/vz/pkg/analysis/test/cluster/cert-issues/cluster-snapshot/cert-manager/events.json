@@ -1,0 +1,1455 @@
+{
+  "metadata": {
+    "resourceVersion": "34985"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "cert-manager-84bf78566c-hvm57.174a77f99254676b",
+        "namespace": "cert-manager",
+        "uid": "db046265-2e8d-440d-a91a-e8f3b940801a",
+        "resourceVersion": "2784",
+        "creationTimestamp": "2023-03-08T14:28:44Z",
+        "managedFields": [
+          {
+            "manager": "kube-scheduler",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:44Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "cert-manager",
+        "name": "cert-manager-84bf78566c-hvm57",
+        "uid": "eaa2fd34-f028-4b16-b35c-72f8fd050525",
+        "apiVersion": "v1",
+        "resourceVersion": "2772"
+      },
+      "reason": "Scheduled",
+      "message": "Successfully assigned cert-manager/cert-manager-84bf78566c-hvm57 to bd5a722b78f4bd8df2828c30186f791913455ba9640aaf5a97ec21690b7b8e49",
+      "source": {
+        "component": "default-scheduler"
+      },
+      "firstTimestamp": "2023-03-08T14:28:44Z",
+      "lastTimestamp": "2023-03-08T14:28:44Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "cert-manager-84bf78566c-hvm57.174a77f9c2f1eed1",
+        "namespace": "cert-manager",
+        "uid": "4534364a-9626-438f-b9e4-5acacf07e93a",
+        "resourceVersion": "2808",
+        "creationTimestamp": "2023-03-08T14:28:45Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:45Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "cert-manager",
+        "name": "cert-manager-84bf78566c-hvm57",
+        "uid": "eaa2fd34-f028-4b16-b35c-72f8fd050525",
+        "apiVersion": "v1",
+        "resourceVersion": "2774",
+        "fieldPath": "spec.containers{cert-manager}"
+      },
+      "reason": "Pulling",
+      "message": "Pulling image \"ghcr.io/verrazzano/cert-manager-controller:v1.7.1-20221212223004-d7589309\"",
+      "source": {
+        "component": "kubelet",
+        "host": "bd5a722b78f4bd8df2828c30186f791913455ba9640aaf5a97ec21690b7b8e49"
+      },
+      "firstTimestamp": "2023-03-08T14:28:45Z",
+      "lastTimestamp": "2023-03-08T14:28:45Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "cert-manager-84bf78566c-hvm57.174a77faddca295b",
+        "namespace": "cert-manager",
+        "uid": "5a9f1699-7781-4a48-b4d9-46fc39c4dc3f",
+        "resourceVersion": "2999",
+        "creationTimestamp": "2023-03-08T14:28:50Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:50Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "cert-manager",
+        "name": "cert-manager-84bf78566c-hvm57",
+        "uid": "eaa2fd34-f028-4b16-b35c-72f8fd050525",
+        "apiVersion": "v1",
+        "resourceVersion": "2774",
+        "fieldPath": "spec.containers{cert-manager}"
+      },
+      "reason": "Pulled",
+      "message": "Successfully pulled image \"ghcr.io/verrazzano/cert-manager-controller:v1.7.1-20221212223004-d7589309\" in 4.745319974s",
+      "source": {
+        "component": "kubelet",
+        "host": "bd5a722b78f4bd8df2828c30186f791913455ba9640aaf5a97ec21690b7b8e49"
+      },
+      "firstTimestamp": "2023-03-08T14:28:50Z",
+      "lastTimestamp": "2023-03-08T14:28:50Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "cert-manager-84bf78566c-hvm57.174a77fafcdf3513",
+        "namespace": "cert-manager",
+        "uid": "2f636be6-552e-4c0b-935c-cf0131e859e1",
+        "resourceVersion": "3039",
+        "creationTimestamp": "2023-03-08T14:28:51Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:51Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "cert-manager",
+        "name": "cert-manager-84bf78566c-hvm57",
+        "uid": "eaa2fd34-f028-4b16-b35c-72f8fd050525",
+        "apiVersion": "v1",
+        "resourceVersion": "2774",
+        "fieldPath": "spec.containers{cert-manager}"
+      },
+      "reason": "Created",
+      "message": "Created container cert-manager",
+      "source": {
+        "component": "kubelet",
+        "host": "bd5a722b78f4bd8df2828c30186f791913455ba9640aaf5a97ec21690b7b8e49"
+      },
+      "firstTimestamp": "2023-03-08T14:28:51Z",
+      "lastTimestamp": "2023-03-08T14:28:51Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "cert-manager-84bf78566c-hvm57.174a77fafeca9cde",
+        "namespace": "cert-manager",
+        "uid": "2e8b46a1-4e64-4321-ad4d-81294807093a",
+        "resourceVersion": "3042",
+        "creationTimestamp": "2023-03-08T14:28:51Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:51Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "cert-manager",
+        "name": "cert-manager-84bf78566c-hvm57",
+        "uid": "eaa2fd34-f028-4b16-b35c-72f8fd050525",
+        "apiVersion": "v1",
+        "resourceVersion": "2774",
+        "fieldPath": "spec.containers{cert-manager}"
+      },
+      "reason": "Started",
+      "message": "Started container cert-manager",
+      "source": {
+        "component": "kubelet",
+        "host": "bd5a722b78f4bd8df2828c30186f791913455ba9640aaf5a97ec21690b7b8e49"
+      },
+      "firstTimestamp": "2023-03-08T14:28:51Z",
+      "lastTimestamp": "2023-03-08T14:28:51Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "cert-manager-84bf78566c.174a77f98f00aafc",
+        "namespace": "cert-manager",
+        "uid": "626ec814-9ee2-4f9b-ad20-47a96140a4c0",
+        "resourceVersion": "2776",
+        "creationTimestamp": "2023-03-08T14:28:44Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:44Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "ReplicaSet",
+        "namespace": "cert-manager",
+        "name": "cert-manager-84bf78566c",
+        "uid": "7c362ca8-30b0-459d-b6fb-4968cb0c0b76",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "2756"
+      },
+      "reason": "SuccessfulCreate",
+      "message": "Created pod: cert-manager-84bf78566c-hvm57",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "firstTimestamp": "2023-03-08T14:28:44Z",
+      "lastTimestamp": "2023-03-08T14:28:44Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "cert-manager-cainjector-7dd868c96c-ffkjj.174a77f996928be3",
+        "namespace": "cert-manager",
+        "uid": "4b96f34b-ca03-4034-8624-27d6520d6ec4",
+        "resourceVersion": "2797",
+        "creationTimestamp": "2023-03-08T14:28:45Z",
+        "managedFields": [
+          {
+            "manager": "kube-scheduler",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:45Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "cert-manager",
+        "name": "cert-manager-cainjector-7dd868c96c-ffkjj",
+        "uid": "54206f1f-8fa6-4ad7-8896-12a1729dad0d",
+        "apiVersion": "v1",
+        "resourceVersion": "2778"
+      },
+      "reason": "Scheduled",
+      "message": "Successfully assigned cert-manager/cert-manager-cainjector-7dd868c96c-ffkjj to bd5a722b78f4bd8df2828c30186f791913455ba9640aaf5a97ec21690b7b8e49",
+      "source": {
+        "component": "default-scheduler"
+      },
+      "firstTimestamp": "2023-03-08T14:28:45Z",
+      "lastTimestamp": "2023-03-08T14:28:45Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "cert-manager-cainjector-7dd868c96c-ffkjj.174a77f9ce75bb75",
+        "namespace": "cert-manager",
+        "uid": "d8e5f568-7949-4196-b166-0ab8180a92fa",
+        "resourceVersion": "2813",
+        "creationTimestamp": "2023-03-08T14:28:45Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:45Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "cert-manager",
+        "name": "cert-manager-cainjector-7dd868c96c-ffkjj",
+        "uid": "54206f1f-8fa6-4ad7-8896-12a1729dad0d",
+        "apiVersion": "v1",
+        "resourceVersion": "2785",
+        "fieldPath": "spec.containers{cert-manager}"
+      },
+      "reason": "Pulling",
+      "message": "Pulling image \"ghcr.io/verrazzano/cert-manager-cainjector:v1.7.1-20221212223004-d7589309\"",
+      "source": {
+        "component": "kubelet",
+        "host": "bd5a722b78f4bd8df2828c30186f791913455ba9640aaf5a97ec21690b7b8e49"
+      },
+      "firstTimestamp": "2023-03-08T14:28:45Z",
+      "lastTimestamp": "2023-03-08T14:28:45Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "cert-manager-cainjector-7dd868c96c-ffkjj.174a77fadd5cf561",
+        "namespace": "cert-manager",
+        "uid": "10d5cc1c-042c-4202-8925-54b6d13d938a",
+        "resourceVersion": "2998",
+        "creationTimestamp": "2023-03-08T14:28:50Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:50Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "cert-manager",
+        "name": "cert-manager-cainjector-7dd868c96c-ffkjj",
+        "uid": "54206f1f-8fa6-4ad7-8896-12a1729dad0d",
+        "apiVersion": "v1",
+        "resourceVersion": "2785",
+        "fieldPath": "spec.containers{cert-manager}"
+      },
+      "reason": "Pulled",
+      "message": "Successfully pulled image \"ghcr.io/verrazzano/cert-manager-cainjector:v1.7.1-20221212223004-d7589309\" in 4.544974913s",
+      "source": {
+        "component": "kubelet",
+        "host": "bd5a722b78f4bd8df2828c30186f791913455ba9640aaf5a97ec21690b7b8e49"
+      },
+      "firstTimestamp": "2023-03-08T14:28:50Z",
+      "lastTimestamp": "2023-03-08T14:28:50Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "cert-manager-cainjector-7dd868c96c-ffkjj.174a77fafbd05e31",
+        "namespace": "cert-manager",
+        "uid": "29b1dc3e-da59-4a68-9bd9-c7f6b058951a",
+        "resourceVersion": "3036",
+        "creationTimestamp": "2023-03-08T14:28:50Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:50Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "cert-manager",
+        "name": "cert-manager-cainjector-7dd868c96c-ffkjj",
+        "uid": "54206f1f-8fa6-4ad7-8896-12a1729dad0d",
+        "apiVersion": "v1",
+        "resourceVersion": "2785",
+        "fieldPath": "spec.containers{cert-manager}"
+      },
+      "reason": "Created",
+      "message": "Created container cert-manager",
+      "source": {
+        "component": "kubelet",
+        "host": "bd5a722b78f4bd8df2828c30186f791913455ba9640aaf5a97ec21690b7b8e49"
+      },
+      "firstTimestamp": "2023-03-08T14:28:50Z",
+      "lastTimestamp": "2023-03-08T14:28:50Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "cert-manager-cainjector-7dd868c96c-ffkjj.174a77fafd432ff8",
+        "namespace": "cert-manager",
+        "uid": "4a49e218-3c76-423a-aed0-b6441bfc3036",
+        "resourceVersion": "3040",
+        "creationTimestamp": "2023-03-08T14:28:51Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:51Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "cert-manager",
+        "name": "cert-manager-cainjector-7dd868c96c-ffkjj",
+        "uid": "54206f1f-8fa6-4ad7-8896-12a1729dad0d",
+        "apiVersion": "v1",
+        "resourceVersion": "2785",
+        "fieldPath": "spec.containers{cert-manager}"
+      },
+      "reason": "Started",
+      "message": "Started container cert-manager",
+      "source": {
+        "component": "kubelet",
+        "host": "bd5a722b78f4bd8df2828c30186f791913455ba9640aaf5a97ec21690b7b8e49"
+      },
+      "firstTimestamp": "2023-03-08T14:28:51Z",
+      "lastTimestamp": "2023-03-08T14:28:51Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "cert-manager-cainjector-7dd868c96c.174a77f995c4eb1b",
+        "namespace": "cert-manager",
+        "uid": "8c0f3ec3-c378-459d-a16d-05c3e843f177",
+        "resourceVersion": "2792",
+        "creationTimestamp": "2023-03-08T14:28:45Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:45Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "ReplicaSet",
+        "namespace": "cert-manager",
+        "name": "cert-manager-cainjector-7dd868c96c",
+        "uid": "d609206c-a2c8-4185-a734-aacf98ea9baa",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "2761"
+      },
+      "reason": "SuccessfulCreate",
+      "message": "Created pod: cert-manager-cainjector-7dd868c96c-ffkjj",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "firstTimestamp": "2023-03-08T14:28:44Z",
+      "lastTimestamp": "2023-03-08T14:28:44Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "cert-manager-cainjector.174a77f984216a01",
+        "namespace": "cert-manager",
+        "uid": "a07463b5-57c7-4c3a-b9b9-b30e7e80b646",
+        "resourceVersion": "2768",
+        "creationTimestamp": "2023-03-08T14:28:44Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:44Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Deployment",
+        "namespace": "cert-manager",
+        "name": "cert-manager-cainjector",
+        "uid": "fd120187-f627-4583-b8cd-5284969d1e37",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "2753"
+      },
+      "reason": "ScalingReplicaSet",
+      "message": "Scaled up replica set cert-manager-cainjector-7dd868c96c to 1",
+      "source": {
+        "component": "deployment-controller"
+      },
+      "firstTimestamp": "2023-03-08T14:28:44Z",
+      "lastTimestamp": "2023-03-08T14:28:44Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "cert-manager-webhook-7df747c4b7-pqfc4.174a77f99690cf72",
+        "namespace": "cert-manager",
+        "uid": "6ba869c2-7665-4569-b975-f27958ab7272",
+        "resourceVersion": "2794",
+        "creationTimestamp": "2023-03-08T14:28:45Z",
+        "managedFields": [
+          {
+            "manager": "kube-scheduler",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:45Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "cert-manager",
+        "name": "cert-manager-webhook-7df747c4b7-pqfc4",
+        "uid": "522be63d-d570-4ac9-91a7-58fdde9c772b",
+        "apiVersion": "v1",
+        "resourceVersion": "2773"
+      },
+      "reason": "Scheduled",
+      "message": "Successfully assigned cert-manager/cert-manager-webhook-7df747c4b7-pqfc4 to bd5a722b78f4bd8df2828c30186f791913455ba9640aaf5a97ec21690b7b8e49",
+      "source": {
+        "component": "default-scheduler"
+      },
+      "firstTimestamp": "2023-03-08T14:28:45Z",
+      "lastTimestamp": "2023-03-08T14:28:45Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "cert-manager-webhook-7df747c4b7-pqfc4.174a77f9ce75bb57",
+        "namespace": "cert-manager",
+        "uid": "57ba4fca-4007-4f86-ba46-32a4b5aa6f4a",
+        "resourceVersion": "2818",
+        "creationTimestamp": "2023-03-08T14:28:45Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:45Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "cert-manager",
+        "name": "cert-manager-webhook-7df747c4b7-pqfc4",
+        "uid": "522be63d-d570-4ac9-91a7-58fdde9c772b",
+        "apiVersion": "v1",
+        "resourceVersion": "2780",
+        "fieldPath": "spec.containers{cert-manager}"
+      },
+      "reason": "Pulling",
+      "message": "Pulling image \"ghcr.io/verrazzano/cert-manager-webhook:v1.7.1-20221212223004-d7589309\"",
+      "source": {
+        "component": "kubelet",
+        "host": "bd5a722b78f4bd8df2828c30186f791913455ba9640aaf5a97ec21690b7b8e49"
+      },
+      "firstTimestamp": "2023-03-08T14:28:45Z",
+      "lastTimestamp": "2023-03-08T14:28:45Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "cert-manager-webhook-7df747c4b7-pqfc4.174a77faddf7f212",
+        "namespace": "cert-manager",
+        "uid": "dbd8c238-ade7-41c0-bb63-11e3b952683a",
+        "resourceVersion": "3000",
+        "creationTimestamp": "2023-03-08T14:28:50Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:50Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "cert-manager",
+        "name": "cert-manager-webhook-7df747c4b7-pqfc4",
+        "uid": "522be63d-d570-4ac9-91a7-58fdde9c772b",
+        "apiVersion": "v1",
+        "resourceVersion": "2780",
+        "fieldPath": "spec.containers{cert-manager}"
+      },
+      "reason": "Pulled",
+      "message": "Successfully pulled image \"ghcr.io/verrazzano/cert-manager-webhook:v1.7.1-20221212223004-d7589309\" in 4.555135051s",
+      "source": {
+        "component": "kubelet",
+        "host": "bd5a722b78f4bd8df2828c30186f791913455ba9640aaf5a97ec21690b7b8e49"
+      },
+      "firstTimestamp": "2023-03-08T14:28:50Z",
+      "lastTimestamp": "2023-03-08T14:28:50Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "cert-manager-webhook-7df747c4b7-pqfc4.174a77fafe0a270d",
+        "namespace": "cert-manager",
+        "uid": "905de6e2-d195-4364-b6da-b8c79aafcfe2",
+        "resourceVersion": "3041",
+        "creationTimestamp": "2023-03-08T14:28:51Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:51Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "cert-manager",
+        "name": "cert-manager-webhook-7df747c4b7-pqfc4",
+        "uid": "522be63d-d570-4ac9-91a7-58fdde9c772b",
+        "apiVersion": "v1",
+        "resourceVersion": "2780",
+        "fieldPath": "spec.containers{cert-manager}"
+      },
+      "reason": "Created",
+      "message": "Created container cert-manager",
+      "source": {
+        "component": "kubelet",
+        "host": "bd5a722b78f4bd8df2828c30186f791913455ba9640aaf5a97ec21690b7b8e49"
+      },
+      "firstTimestamp": "2023-03-08T14:28:51Z",
+      "lastTimestamp": "2023-03-08T14:28:51Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "cert-manager-webhook-7df747c4b7-pqfc4.174a77faffaafee9",
+        "namespace": "cert-manager",
+        "uid": "ec4a9655-d678-4465-9d1f-a4fe4c97cd74",
+        "resourceVersion": "3044",
+        "creationTimestamp": "2023-03-08T14:28:51Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:51Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "cert-manager",
+        "name": "cert-manager-webhook-7df747c4b7-pqfc4",
+        "uid": "522be63d-d570-4ac9-91a7-58fdde9c772b",
+        "apiVersion": "v1",
+        "resourceVersion": "2780",
+        "fieldPath": "spec.containers{cert-manager}"
+      },
+      "reason": "Started",
+      "message": "Started container cert-manager",
+      "source": {
+        "component": "kubelet",
+        "host": "bd5a722b78f4bd8df2828c30186f791913455ba9640aaf5a97ec21690b7b8e49"
+      },
+      "firstTimestamp": "2023-03-08T14:28:51Z",
+      "lastTimestamp": "2023-03-08T14:28:51Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "cert-manager-webhook-7df747c4b7.174a77f991d7c2a3",
+        "namespace": "cert-manager",
+        "uid": "650c0b97-5f7a-462d-bac7-9ef0ca6e26d3",
+        "resourceVersion": "2782",
+        "creationTimestamp": "2023-03-08T14:28:44Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:44Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "ReplicaSet",
+        "namespace": "cert-manager",
+        "name": "cert-manager-webhook-7df747c4b7",
+        "uid": "8d694cd4-2376-41d7-976c-1fbb89c38b89",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "2758"
+      },
+      "reason": "SuccessfulCreate",
+      "message": "Created pod: cert-manager-webhook-7df747c4b7-pqfc4",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "firstTimestamp": "2023-03-08T14:28:44Z",
+      "lastTimestamp": "2023-03-08T14:28:44Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "cert-manager-webhook.174a77f983becffb",
+        "namespace": "cert-manager",
+        "uid": "2a20811f-4b55-4ce2-9e5b-5318b4a2f662",
+        "resourceVersion": "2766",
+        "creationTimestamp": "2023-03-08T14:28:44Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:44Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Deployment",
+        "namespace": "cert-manager",
+        "name": "cert-manager-webhook",
+        "uid": "6a61d7b4-0454-4800-bac5-6e3af8f9800e",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "2752"
+      },
+      "reason": "ScalingReplicaSet",
+      "message": "Scaled up replica set cert-manager-webhook-7df747c4b7 to 1",
+      "source": {
+        "component": "deployment-controller"
+      },
+      "firstTimestamp": "2023-03-08T14:28:44Z",
+      "lastTimestamp": "2023-03-08T14:28:44Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "cert-manager.174a77f98327989e",
+        "namespace": "cert-manager",
+        "uid": "01b4543e-d319-4090-9a43-c44f0c5a6ebe",
+        "resourceVersion": "2763",
+        "creationTimestamp": "2023-03-08T14:28:44Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:44Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Deployment",
+        "namespace": "cert-manager",
+        "name": "cert-manager",
+        "uid": "5e121523-802b-45ac-a117-c9a4a6c740c5",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "2751"
+      },
+      "reason": "ScalingReplicaSet",
+      "message": "Scaled up replica set cert-manager-84bf78566c to 1",
+      "source": {
+        "component": "deployment-controller"
+      },
+      "firstTimestamp": "2023-03-08T14:28:44Z",
+      "lastTimestamp": "2023-03-08T14:28:44Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "external-dns-6fcffb4796-fr4bf.174a77fa2517c855",
+        "namespace": "cert-manager",
+        "uid": "7bef6de2-e8e2-4a9a-9d5a-cfd8b7d0d417",
+        "resourceVersion": "2853",
+        "creationTimestamp": "2023-03-08T14:28:47Z",
+        "managedFields": [
+          {
+            "manager": "kube-scheduler",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:47Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "cert-manager",
+        "name": "external-dns-6fcffb4796-fr4bf",
+        "uid": "551ff380-ca64-41ea-96c5-0f74f737ca43",
+        "apiVersion": "v1",
+        "resourceVersion": "2848"
+      },
+      "reason": "Scheduled",
+      "message": "Successfully assigned cert-manager/external-dns-6fcffb4796-fr4bf to bd5a722b78f4bd8df2828c30186f791913455ba9640aaf5a97ec21690b7b8e49",
+      "source": {
+        "component": "default-scheduler"
+      },
+      "firstTimestamp": "2023-03-08T14:28:47Z",
+      "lastTimestamp": "2023-03-08T14:28:47Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "external-dns-6fcffb4796-fr4bf.174a77fa486aa4fa",
+        "namespace": "cert-manager",
+        "uid": "c2143dd9-8b49-4bde-b056-fc3ef51c06c0",
+        "resourceVersion": "2870",
+        "creationTimestamp": "2023-03-08T14:28:47Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:47Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "cert-manager",
+        "name": "external-dns-6fcffb4796-fr4bf",
+        "uid": "551ff380-ca64-41ea-96c5-0f74f737ca43",
+        "apiVersion": "v1",
+        "resourceVersion": "2849",
+        "fieldPath": "spec.containers{external-dns}"
+      },
+      "reason": "Pulling",
+      "message": "Pulling image \"ghcr.io/verrazzano/external-dns:v0.10.2-20221116113317-462c11cc\"",
+      "source": {
+        "component": "kubelet",
+        "host": "bd5a722b78f4bd8df2828c30186f791913455ba9640aaf5a97ec21690b7b8e49"
+      },
+      "firstTimestamp": "2023-03-08T14:28:47Z",
+      "lastTimestamp": "2023-03-08T14:28:47Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "external-dns-6fcffb4796-fr4bf.174a77fc5b8e724a",
+        "namespace": "cert-manager",
+        "uid": "94ce1bf0-32ef-4426-806f-c53b429fbe9e",
+        "resourceVersion": "3106",
+        "creationTimestamp": "2023-03-08T14:28:56Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:56Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "cert-manager",
+        "name": "external-dns-6fcffb4796-fr4bf",
+        "uid": "551ff380-ca64-41ea-96c5-0f74f737ca43",
+        "apiVersion": "v1",
+        "resourceVersion": "2849",
+        "fieldPath": "spec.containers{external-dns}"
+      },
+      "reason": "Pulled",
+      "message": "Successfully pulled image \"ghcr.io/verrazzano/external-dns:v0.10.2-20221116113317-462c11cc\" in 8.911027117s",
+      "source": {
+        "component": "kubelet",
+        "host": "bd5a722b78f4bd8df2828c30186f791913455ba9640aaf5a97ec21690b7b8e49"
+      },
+      "firstTimestamp": "2023-03-08T14:28:56Z",
+      "lastTimestamp": "2023-03-08T14:28:56Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "external-dns-6fcffb4796-fr4bf.174a77fd11c9fb4a",
+        "namespace": "cert-manager",
+        "uid": "9eb88437-d6dc-4348-8f97-da4eb29d54e1",
+        "resourceVersion": "3119",
+        "creationTimestamp": "2023-03-08T14:28:59Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:59Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "cert-manager",
+        "name": "external-dns-6fcffb4796-fr4bf",
+        "uid": "551ff380-ca64-41ea-96c5-0f74f737ca43",
+        "apiVersion": "v1",
+        "resourceVersion": "2849",
+        "fieldPath": "spec.containers{external-dns}"
+      },
+      "reason": "Created",
+      "message": "Created container external-dns",
+      "source": {
+        "component": "kubelet",
+        "host": "bd5a722b78f4bd8df2828c30186f791913455ba9640aaf5a97ec21690b7b8e49"
+      },
+      "firstTimestamp": "2023-03-08T14:28:59Z",
+      "lastTimestamp": "2023-03-08T14:28:59Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "external-dns-6fcffb4796-fr4bf.174a77fd165c93ed",
+        "namespace": "cert-manager",
+        "uid": "30539a75-83f4-4090-924c-ce4d9cc9caf9",
+        "resourceVersion": "3122",
+        "creationTimestamp": "2023-03-08T14:29:00Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:29:00Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "cert-manager",
+        "name": "external-dns-6fcffb4796-fr4bf",
+        "uid": "551ff380-ca64-41ea-96c5-0f74f737ca43",
+        "apiVersion": "v1",
+        "resourceVersion": "2849",
+        "fieldPath": "spec.containers{external-dns}"
+      },
+      "reason": "Started",
+      "message": "Started container external-dns",
+      "source": {
+        "component": "kubelet",
+        "host": "bd5a722b78f4bd8df2828c30186f791913455ba9640aaf5a97ec21690b7b8e49"
+      },
+      "firstTimestamp": "2023-03-08T14:29:00Z",
+      "lastTimestamp": "2023-03-08T14:29:00Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "external-dns-6fcffb4796.174a77fa24194775",
+        "namespace": "cert-manager",
+        "uid": "cf8427ad-2a06-4225-899e-5dd6daeb8b42",
+        "resourceVersion": "2850",
+        "creationTimestamp": "2023-03-08T14:28:47Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:47Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "ReplicaSet",
+        "namespace": "cert-manager",
+        "name": "external-dns-6fcffb4796",
+        "uid": "4586bc95-0288-49d2-ab95-37463dcd423a",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "2840"
+      },
+      "reason": "SuccessfulCreate",
+      "message": "Created pod: external-dns-6fcffb4796-fr4bf",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "firstTimestamp": "2023-03-08T14:28:47Z",
+      "lastTimestamp": "2023-03-08T14:28:47Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "external-dns.174a77fa0fb4abed",
+        "namespace": "cert-manager",
+        "uid": "ea28f58f-1dd8-43a8-9aa9-f78e286de98a",
+        "resourceVersion": "2842",
+        "creationTimestamp": "2023-03-08T14:28:47Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-08T14:28:47Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Deployment",
+        "namespace": "cert-manager",
+        "name": "external-dns",
+        "uid": "e807e942-03d6-4ae5-bb5a-27631384cee5",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "2837"
+      },
+      "reason": "ScalingReplicaSet",
+      "message": "Scaled up replica set external-dns-6fcffb4796 to 1",
+      "source": {
+        "component": "deployment-controller"
+      },
+      "firstTimestamp": "2023-03-08T14:28:47Z",
+      "lastTimestamp": "2023-03-08T14:28:47Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    }
+  ]
+}

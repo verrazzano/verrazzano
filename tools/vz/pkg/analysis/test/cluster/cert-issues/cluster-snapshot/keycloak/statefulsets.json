@@ -1,0 +1,652 @@
+{
+  "metadata": {
+    "resourceVersion": "34975"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "keycloak",
+        "namespace": "keycloak",
+        "uid": "d381a78b-1c03-4f6a-95a5-6c1e6d17de2d",
+        "resourceVersion": "10031",
+        "generation": 1,
+        "creationTimestamp": "2023-03-08T14:31:43Z",
+        "labels": {
+          "app.kubernetes.io/instance": "keycloak",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "keycloak",
+          "app.kubernetes.io/version": "v15.0.2-20221214054602-c01654ffed",
+          "helm.sh/chart": "keycloak-15.1.0"
+        },
+        "annotations": {
+          "field.cattle.io/publicEndpoints": "[{\"addresses\":[\"05c64bb5c0a9f1ad1aa3d101675ea2accf0deea6bbda52a0bee5538259174208\"],\"port\":443,\"protocol\":\"HTTPS\",\"serviceName\":\"keycloak:keycloak-http\",\"ingressName\":\"keycloak:keycloak\",\"hostname\":\"keycloak.b521.zea2591.v8o.io\",\"path\":\"/\",\"allNodes\":false}]",
+          "meta.helm.sh/release-name": "keycloak",
+          "meta.helm.sh/release-namespace": "keycloak"
+        },
+        "managedFields": [
+          {
+            "manager": "helm",
+            "operation": "Update",
+            "apiVersion": "apps/v1",
+            "time": "2023-03-08T14:31:43Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app.kubernetes.io/instance": {},
+                  "f:app.kubernetes.io/managed-by": {},
+                  "f:app.kubernetes.io/name": {},
+                  "f:app.kubernetes.io/version": {},
+                  "f:helm.sh/chart": {}
+                }
+              },
+              "f:spec": {
+                "f:podManagementPolicy": {},
+                "f:replicas": {},
+                "f:revisionHistoryLimit": {},
+                "f:selector": {},
+                "f:serviceName": {},
+                "f:template": {
+                  "f:metadata": {
+                    "f:annotations": {
+                      ".": {},
+                      "f:checksum/config-startup": {},
+                      "f:checksum/secrets": {},
+                      "f:traffic.sidecar.istio.io/excludeInboundPorts": {},
+                      "f:traffic.sidecar.istio.io/excludeOutboundPorts": {}
+                    },
+                    "f:labels": {
+                      ".": {},
+                      "f:app.kubernetes.io/instance": {},
+                      "f:app.kubernetes.io/name": {}
+                    }
+                  },
+                  "f:spec": {
+                    "f:affinity": {
+                      ".": {},
+                      "f:podAntiAffinity": {
+                        ".": {},
+                        "f:preferredDuringSchedulingIgnoredDuringExecution": {}
+                      }
+                    },
+                    "f:containers": {
+                      "k:{\"name\":\"keycloak\"}": {
+                        ".": {},
+                        "f:env": {
+                          ".": {},
+                          "k:{\"name\":\"CACHE_OWNERS\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"CACHE_OWNERS_AUTH_SESSIONS_COUNT\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"DB_ADDR\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"DB_DATABASE\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"DB_PASSWORD\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:valueFrom": {
+                              ".": {},
+                              "f:secretKeyRef": {}
+                            }
+                          },
+                          "k:{\"name\":\"DB_PORT\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"DB_USER\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"DB_VENDOR\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"JGROUPS_DISCOVERY_PROTOCOL\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"KEYCLOAK_PASSWORD\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:valueFrom": {
+                              ".": {},
+                              "f:secretKeyRef": {}
+                            }
+                          },
+                          "k:{\"name\":\"KEYCLOAK_USER\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"PROXY_ADDRESS_FORWARDING\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          }
+                        },
+                        "f:image": {},
+                        "f:imagePullPolicy": {},
+                        "f:livenessProbe": {
+                          ".": {},
+                          "f:failureThreshold": {},
+                          "f:httpGet": {
+                            ".": {},
+                            "f:path": {},
+                            "f:port": {},
+                            "f:scheme": {}
+                          },
+                          "f:periodSeconds": {},
+                          "f:successThreshold": {},
+                          "f:timeoutSeconds": {}
+                        },
+                        "f:name": {},
+                        "f:ports": {
+                          ".": {},
+                          "k:{\"containerPort\":7600,\"protocol\":\"TCP\"}": {
+                            ".": {},
+                            "f:containerPort": {},
+                            "f:name": {},
+                            "f:protocol": {}
+                          },
+                          "k:{\"containerPort\":8080,\"protocol\":\"TCP\"}": {
+                            ".": {},
+                            "f:containerPort": {},
+                            "f:name": {},
+                            "f:protocol": {}
+                          },
+                          "k:{\"containerPort\":8443,\"protocol\":\"TCP\"}": {
+                            ".": {},
+                            "f:containerPort": {},
+                            "f:name": {},
+                            "f:protocol": {}
+                          },
+                          "k:{\"containerPort\":9990,\"protocol\":\"TCP\"}": {
+                            ".": {},
+                            "f:containerPort": {},
+                            "f:name": {},
+                            "f:protocol": {}
+                          }
+                        },
+                        "f:readinessProbe": {
+                          ".": {},
+                          "f:failureThreshold": {},
+                          "f:httpGet": {
+                            ".": {},
+                            "f:path": {},
+                            "f:port": {},
+                            "f:scheme": {}
+                          },
+                          "f:initialDelaySeconds": {},
+                          "f:periodSeconds": {},
+                          "f:successThreshold": {},
+                          "f:timeoutSeconds": {}
+                        },
+                        "f:resources": {},
+                        "f:securityContext": {
+                          ".": {},
+                          "f:runAsNonRoot": {},
+                          "f:runAsUser": {}
+                        },
+                        "f:startupProbe": {
+                          ".": {},
+                          "f:failureThreshold": {},
+                          "f:httpGet": {
+                            ".": {},
+                            "f:path": {},
+                            "f:port": {},
+                            "f:scheme": {}
+                          },
+                          "f:initialDelaySeconds": {},
+                          "f:periodSeconds": {},
+                          "f:successThreshold": {},
+                          "f:timeoutSeconds": {}
+                        },
+                        "f:terminationMessagePath": {},
+                        "f:terminationMessagePolicy": {},
+                        "f:volumeMounts": {
+                          ".": {},
+                          "k:{\"mountPath\":\"/etc/keycloak-http\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {}
+                          },
+                          "k:{\"mountPath\":\"/opt/jboss/keycloak/themes/oracle\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {}
+                          },
+                          "k:{\"mountPath\":\"/opt/jboss/startup-scripts/keycloak.cli\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {},
+                            "f:readOnly": {},
+                            "f:subPath": {}
+                          }
+                        }
+                      }
+                    },
+                    "f:dnsPolicy": {},
+                    "f:enableServiceLinks": {},
+                    "f:imagePullSecrets": {
+                      ".": {},
+                      "k:{\"name\":\"verrazzano-container-registry\"}": {}
+                    },
+                    "f:initContainers": {
+                      ".": {},
+                      "k:{\"name\":\"theme-provider\"}": {
+                        ".": {},
+                        "f:args": {},
+                        "f:command": {},
+                        "f:image": {},
+                        "f:imagePullPolicy": {},
+                        "f:name": {},
+                        "f:resources": {},
+                        "f:terminationMessagePath": {},
+                        "f:terminationMessagePolicy": {},
+                        "f:volumeMounts": {
+                          ".": {},
+                          "k:{\"mountPath\":\"/cacerts\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {}
+                          },
+                          "k:{\"mountPath\":\"/theme\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {}
+                          }
+                        }
+                      }
+                    },
+                    "f:restartPolicy": {},
+                    "f:schedulerName": {},
+                    "f:securityContext": {
+                      ".": {},
+                      "f:fsGroup": {}
+                    },
+                    "f:serviceAccount": {},
+                    "f:serviceAccountName": {},
+                    "f:terminationGracePeriodSeconds": {},
+                    "f:volumes": {
+                      ".": {},
+                      "k:{\"name\":\"cacerts\"}": {
+                        ".": {},
+                        "f:emptyDir": {},
+                        "f:name": {}
+                      },
+                      "k:{\"name\":\"keycloak-http\"}": {
+                        ".": {},
+                        "f:name": {},
+                        "f:secret": {
+                          ".": {},
+                          "f:defaultMode": {},
+                          "f:secretName": {}
+                        }
+                      },
+                      "k:{\"name\":\"startup\"}": {
+                        ".": {},
+                        "f:configMap": {
+                          ".": {},
+                          "f:defaultMode": {},
+                          "f:items": {},
+                          "f:name": {}
+                        },
+                        "f:name": {}
+                      },
+                      "k:{\"name\":\"theme\"}": {
+                        ".": {},
+                        "f:emptyDir": {},
+                        "f:name": {}
+                      }
+                    }
+                  }
+                },
+                "f:updateStrategy": {
+                  "f:type": {}
+                }
+              }
+            }
+          },
+          {
+            "manager": "rancher",
+            "operation": "Update",
+            "apiVersion": "apps/v1",
+            "time": "2023-03-08T14:33:41Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  "f:field.cattle.io/publicEndpoints": {}
+                }
+              }
+            }
+          },
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "apps/v1",
+            "time": "2023-03-08T14:35:13Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:availableReplicas": {},
+                "f:collisionCount": {},
+                "f:currentReplicas": {},
+                "f:currentRevision": {},
+                "f:observedGeneration": {},
+                "f:readyReplicas": {},
+                "f:replicas": {},
+                "f:updateRevision": {},
+                "f:updatedReplicas": {}
+              }
+            },
+            "subresource": "status"
+          }
+        ]
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app.kubernetes.io/instance": "keycloak",
+            "app.kubernetes.io/name": "keycloak"
+          }
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "app.kubernetes.io/instance": "keycloak",
+              "app.kubernetes.io/name": "keycloak"
+            },
+            "annotations": {
+              "checksum/config-startup": "928cd5a57c5d3684ecd5dabac5d5c9252ab0197ffce52cfff2ef21c130495cbe",
+              "checksum/secrets": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+              "traffic.sidecar.istio.io/excludeInboundPorts": "7600",
+              "traffic.sidecar.istio.io/excludeOutboundPorts": "7600"
+            }
+          },
+          "spec": {
+            "volumes": [
+              {
+                "name": "startup",
+                "configMap": {
+                  "name": "keycloak-startup",
+                  "items": [
+                    {
+                      "key": "keycloak.cli",
+                      "path": "keycloak.cli"
+                    }
+                  ],
+                  "defaultMode": 365
+                }
+              },
+              {
+                "name": "theme",
+                "emptyDir": {}
+              },
+              {
+                "name": "cacerts",
+                "emptyDir": {}
+              },
+              {
+                "name": "keycloak-http",
+                "secret": {
+                  "secretName": "keycloak-http",
+                  "defaultMode": 420
+                }
+              }
+            ],
+            "initContainers": [
+              {
+                "name": "theme-provider",
+                "image": "ghcr.io/verrazzano/keycloak-oracle-theme:v1.4.0-20220803133014-7b829cf",
+                "command": [
+                  "sh"
+                ],
+                "args": [
+                  "-c",
+                  "echo \"Copying theme...\"\ncp -R /oracle/* /theme\n"
+                ],
+                "resources": {},
+                "volumeMounts": [
+                  {
+                    "name": "theme",
+                    "mountPath": "/theme"
+                  },
+                  {
+                    "name": "cacerts",
+                    "mountPath": "/cacerts"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "imagePullPolicy": "IfNotPresent"
+              }
+            ],
+            "containers": [
+              {
+                "name": "keycloak",
+                "image": "ghcr.io/verrazzano/keycloak:v15.0.2-20221214054602-c01654ffed",
+                "ports": [
+                  {
+                    "name": "http",
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  },
+                  {
+                    "name": "https",
+                    "containerPort": 8443,
+                    "protocol": "TCP"
+                  },
+                  {
+                    "name": "http-management",
+                    "containerPort": 9990,
+                    "protocol": "TCP"
+                  },
+                  {
+                    "name": "jgroups",
+                    "containerPort": 7600,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "CACHE_OWNERS",
+                    "value": "2"
+                  },
+                  {
+                    "name": "CACHE_OWNERS_AUTH_SESSIONS_COUNT",
+                    "value": "2"
+                  },
+                  {
+                    "name": "JGROUPS_DISCOVERY_PROTOCOL",
+                    "value": "JDBC_PING"
+                  },
+                  {
+                    "name": "DB_VENDOR",
+                    "value": "mysql"
+                  },
+                  {
+                    "name": "DB_ADDR",
+                    "value": "mysql"
+                  },
+                  {
+                    "name": "DB_PORT",
+                    "value": "3306"
+                  },
+                  {
+                    "name": "DB_DATABASE",
+                    "value": "keycloak"
+                  },
+                  {
+                    "name": "DB_USER",
+                    "value": "keycloak"
+                  },
+                  {
+                    "name": "DB_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "mysql",
+                        "key": "mysql-password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "PROXY_ADDRESS_FORWARDING",
+                    "value": "true"
+                  },
+                  {
+                    "name": "KEYCLOAK_USER",
+                    "value": "keycloakadmin"
+                  },
+                  {
+                    "name": "KEYCLOAK_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "keycloak-http",
+                        "key": "password"
+                      }
+                    }
+                  }
+                ],
+                "resources": {},
+                "volumeMounts": [
+                  {
+                    "name": "startup",
+                    "readOnly": true,
+                    "mountPath": "/opt/jboss/startup-scripts/keycloak.cli",
+                    "subPath": "keycloak.cli"
+                  },
+                  {
+                    "name": "theme",
+                    "mountPath": "/opt/jboss/keycloak/themes/oracle"
+                  },
+                  {
+                    "name": "keycloak-http",
+                    "mountPath": "/etc/keycloak-http"
+                  }
+                ],
+                "livenessProbe": {
+                  "httpGet": {
+                    "path": "/auth/",
+                    "port": "http",
+                    "scheme": "HTTP"
+                  },
+                  "timeoutSeconds": 5,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "failureThreshold": 3
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "path": "/auth/realms/master",
+                    "port": "http",
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 30,
+                  "timeoutSeconds": 1,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "failureThreshold": 3
+                },
+                "startupProbe": {
+                  "httpGet": {
+                    "path": "/auth/",
+                    "port": "http",
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 30,
+                  "timeoutSeconds": 1,
+                  "periodSeconds": 5,
+                  "successThreshold": 1,
+                  "failureThreshold": 60
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "imagePullPolicy": "IfNotPresent",
+                "securityContext": {
+                  "runAsUser": 0,
+                  "runAsNonRoot": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "terminationGracePeriodSeconds": 60,
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccountName": "keycloak",
+            "serviceAccount": "keycloak",
+            "securityContext": {
+              "fsGroup": 1000
+            },
+            "imagePullSecrets": [
+              {
+                "name": "verrazzano-container-registry"
+              }
+            ],
+            "affinity": {
+              "podAntiAffinity": {
+                "preferredDuringSchedulingIgnoredDuringExecution": [
+                  {
+                    "weight": 100,
+                    "podAffinityTerm": {
+                      "labelSelector": {
+                        "matchLabels": {
+                          "app.kubernetes.io/instance": "keycloak",
+                          "app.kubernetes.io/name": "keycloak"
+                        }
+                      },
+                      "topologyKey": "kubernetes.io/hostname"
+                    }
+                  }
+                ]
+              }
+            },
+            "schedulerName": "default-scheduler",
+            "enableServiceLinks": true
+          }
+        },
+        "serviceName": "keycloak-headless",
+        "podManagementPolicy": "Parallel",
+        "updateStrategy": {
+          "type": "RollingUpdate"
+        },
+        "revisionHistoryLimit": 10
+      },
+      "status": {
+        "observedGeneration": 1,
+        "replicas": 1,
+        "readyReplicas": 1,
+        "currentReplicas": 1,
+        "updatedReplicas": 1,
+        "currentRevision": "keycloak-67ff44b9db",
+        "updateRevision": "keycloak-67ff44b9db",
+        "collisionCount": 0,
+        "availableReplicas": 1
+      }
+    }
+  ]
+}
