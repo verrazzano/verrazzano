@@ -21,7 +21,7 @@ const (
 	bootstrapOcneProvider       = "bootstrap-ocne"
 	controlPlaneKubeadmProvider = "control-plane-kubeadm"
 	controlPlaneOcneProvider    = "control-plane-ocne"
-	clusterApiProvider          = "cluster-api"
+	clusterAPIProvider          = "cluster-api"
 	infrastructureOciProvider   = "infrastructure-oci"
 
 	deploymentRevisionAnnotation = "deployment.kubernetes.io/revision"
@@ -155,11 +155,11 @@ func getNotReadyDeployments() *fake.ClientBuilder {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      capiCMDeployment,
-				Labels:    map[string]string{providerLabel: clusterApiProvider},
+				Labels:    map[string]string{providerLabel: clusterAPIProvider},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{providerLabel: clusterApiProvider},
+					MatchLabels: map[string]string{providerLabel: clusterAPIProvider},
 				},
 			},
 			Status: appsv1.DeploymentStatus{
@@ -173,7 +173,7 @@ func getNotReadyDeployments() *fake.ClientBuilder {
 				Name:      capiCMDeployment + "-95d8c5d97-m6mbr",
 				Labels: map[string]string{
 					podTemplateHashLabel: "95d8c5d97",
-					providerLabel:        clusterApiProvider,
+					providerLabel:        clusterAPIProvider,
 				},
 			},
 		},
@@ -193,11 +193,11 @@ func getReadyDeployments() *fake.ClientBuilder {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      capiCMDeployment,
-				Labels:    map[string]string{providerLabel: clusterApiProvider},
+				Labels:    map[string]string{providerLabel: clusterAPIProvider},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{providerLabel: clusterApiProvider},
+					MatchLabels: map[string]string{providerLabel: clusterAPIProvider},
 				},
 			},
 			Status: appsv1.DeploymentStatus{
@@ -213,7 +213,7 @@ func getReadyDeployments() *fake.ClientBuilder {
 				Name:      capiCMDeployment + "-95d8c5d96-m6mbr",
 				Labels: map[string]string{
 					podTemplateHashLabel: "95d8c5d96",
-					providerLabel:        clusterApiProvider,
+					providerLabel:        clusterAPIProvider,
 				},
 			},
 		},
