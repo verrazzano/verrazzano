@@ -3,6 +3,7 @@ Features:
 
 - The Prometheus components can now be enabled or disabled at any point in the Verrazzano lifecycle
 - Added a None profile that comes with all components disabled by default
+- Added Thanos, which supports high availability and long-term storage on top of Prometheus.
 
 Component version updates:
 
@@ -10,6 +11,9 @@ Component version updates:
 - WebLogic Kubernetes Operator v4.0.6
 - WebLogic Monitoring Exporter v2.1.3
 - Jaeger v1.42.0
+
+Components added:
+- Thanos v0.30.2
 
 Fixes:
 
