@@ -1,4 +1,8 @@
 ### v1.6.0
+Features:
+
+- Prometheus stack is now able to be dynamically enabled or disabled at any point during the Verrazzano installation lifecycle
+
 Component version updates:
 
 - Rancher v2.7.1
