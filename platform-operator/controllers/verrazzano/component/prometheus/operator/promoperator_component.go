@@ -244,6 +244,7 @@ func (c prometheusComponent) PostUninstall(ctx spi.ComponentContext) error {
 	err := ctx.Client().Delete(context.TODO(), ingress)
 	if err != nil && !errors.IsNotFound(err) {
 		ctx.Log().Errorf("Error deleting legacy Prometheus ingress %s, %v", constants.PrometheusIngress, err)
+		return err
 	}
-	return err
+	return nil
 }
