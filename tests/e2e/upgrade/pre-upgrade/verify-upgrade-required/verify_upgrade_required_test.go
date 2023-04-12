@@ -77,14 +77,11 @@ var _ = t.Describe("Verify upgrade required when new version is available", Labe
 			}
 
 			var vz *vzalpha1.Verrazzano
-			Eventually(func() error {
+			Eventually(func() (*vzalpha1.Verrazzano, error) {
 				vz, err = pkg.GetVerrazzano()
-				return err
-			}, waitTimeout, pollingInterval).Should(BeNil())
-			if vz == nil {
-				t.Fail("Unable to get Verrazzano instance")
-				return
-			}
+				return vz, err
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).
+				ShouldNot(BeNil(), "Unable to get Verrazzano instance")
 
 			if vz.Spec.Components.Istio == nil {
 				vz.Spec.Components.Istio = &vzalpha1.IstioComponent{}
