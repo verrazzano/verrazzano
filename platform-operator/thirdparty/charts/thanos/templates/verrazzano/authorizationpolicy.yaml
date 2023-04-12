@@ -1,5 +1,5 @@
 # Copyright (c) 2023, Oracle and/or its affiliates.
-#{{ if .Capabilities.APIVersions.Has "security.istio.io/v1beta1" -}}
+{{ if .Capabilities.APIVersions.Has "security.istio.io/v1beta1" -}}
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
@@ -99,4 +99,4 @@ spec:
     matchLabels:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}
       app.kubernetes.io/component: query
-#{{end}}
+{{end}}
