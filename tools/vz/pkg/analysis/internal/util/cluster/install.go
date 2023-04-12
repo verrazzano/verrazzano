@@ -7,7 +7,6 @@ package cluster
 import (
 	encjson "encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"io"
 	"os"
 	"regexp"
@@ -145,7 +144,7 @@ func checkIfLoadJobFailed(vpoLog string, errorLogs []files.LogMessage, infoLogs 
 }
 
 func analyzeComponentCertIssue(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter, allMessages []files.LogMessage, vpoLog string) {
-	certs, err := pkg.GetCertificateList("")
+	certs, err := helpers.GetCertificateList("")
 	if err != nil {
 		return
 	}

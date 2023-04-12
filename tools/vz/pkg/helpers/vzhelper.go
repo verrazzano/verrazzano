@@ -6,6 +6,7 @@ package helpers
 import (
 	"context"
 	"fmt"
+	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -367,4 +368,18 @@ func CheckAndRemoveBugReportExistsInDir(dir string) bool {
 		return true
 	}
 	return false
+}
+
+// GetCertificateList returns a list of certificates in the given namespace
+func GetCertificateList(namespace string) (*certmanagerv1.CertificateList, error) {
+	// Get the Cert-manager clientset
+	clientSet, err := k8sutil.GetCertManagerClienset()
+	if err != nil {
+		return nil, err
+	}
+	certificateList, err := clientSet.Certificates(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return certificateList, nil
 }
