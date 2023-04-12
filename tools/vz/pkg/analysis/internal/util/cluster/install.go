@@ -18,6 +18,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
+	pkgConstants "github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -63,16 +64,6 @@ const (
 	nginxIngressControllerFailed = "nginxIngressControllerFailed"
 	noIPForIngressController     = "noIPForIngressController"
 	errorSettingRancherToken     = "errorSettingRancherToken"
-	grafana                      = "grafana"
-	keyCloak                     = "keycloak"
-	kiali                        = "kiali-server"
-	prometheus                   = "prometheus"
-	prometheusOperator           = "prometheus-operator"
-	argocd                       = "argocd"
-	rancher                      = "rancher"
-	opensearchDashboards         = "opensearch-dashboards"
-	opensearch                   = "opensearch"
-	verrazzano                   = "verrazzano"
 )
 
 var dispatchMatchMap = map[string]*regexp.Regexp{
@@ -149,17 +140,17 @@ func analyzeComponentCertIssue(log *zap.SugaredLogger, clusterRoot string, issue
 	}
 	issueVisited := make(map[string]bool)
 	certCompMap := map[string]string{
-		"system-tls-" + grafana:                  grafana,
-		keyCloak + "-tls":                        keyCloak,
-		"system-tls-" + kiali:                    kiali,
-		"system-tls-" + prometheus:               prometheus,
-		"tls-" + argocd + "-ingress":             argocd,
-		"tls-" + rancher + "-ingress":            rancher,
-		"system-tls-osd":                         opensearchDashboards,
-		"system-tls-os-ingest":                   opensearch,
-		prometheusOperator + "-kube-p-root-cert": prometheusOperator,
-		prometheusOperator + "-kube-p-admission": prometheusOperator,
-		verrazzano + "-tls":                      verrazzano,
+		"system-tls-" + pkgConstants.Grafana:                  pkgConstants.Grafana,
+		pkgConstants.KeyCloak + "-tls":                        pkgConstants.KeyCloak,
+		"system-tls-" + pkgConstants.Kiali:                    pkgConstants.Kiali,
+		"system-tls-" + pkgConstants.Prometheus:               pkgConstants.Prometheus,
+		"tls-" + pkgConstants.Argocd + "-ingress":             pkgConstants.Argocd,
+		"tls-" + pkgConstants.Rancher + "-ingress":            pkgConstants.Rancher,
+		"system-tls-osd":                                      pkgConstants.OpensearchDashboards,
+		"system-tls-os-ingest":                                pkgConstants.Opensearch,
+		pkgConstants.PrometheusOperator + "-kube-p-root-cert": pkgConstants.PrometheusOperator,
+		pkgConstants.PrometheusOperator + "-kube-p-admission": pkgConstants.PrometheusOperator,
+		pkgConstants.Verrazzano + "-tls":                      pkgConstants.Verrazzano,
 	}
 
 	files := StringSlice{clusterRoot + "/" + verrazzanoResource, vpoLog}

@@ -208,3 +208,17 @@ const (
 	KubeconfigPathFlagDefault = ""
 	KubeconfigPathFlagHelp    = "Path to the file where the kubeconfig should be saved - defaults to your current kubeconfig"
 )
+
+// known certs components
+const (
+	Grafana              = "grafana"
+	KeyCloak             = "keycloak"
+	Kiali                = "kiali-server"
+	Prometheus           = "prometheus"
+	PrometheusOperator   = "prometheus-operator"
+	Argocd               = "argocd"
+	Rancher              = "rancher"
+	OpensearchDashboards = "opensearch-dashboards"
+	Opensearch           = "opensearch"
+	Verrazzano           = "verrazzano"
+)
