@@ -39,7 +39,7 @@ spec:
         - operation:
             ports:
               - "10902"
-selector:
+  selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}
       app.kubernetes.io/component: query-frontend
