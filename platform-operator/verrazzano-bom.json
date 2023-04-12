@@ -193,7 +193,7 @@
             },
             {
               "image": "console",
-              "tag": "v1.6.0-20230314210001-966ab58",
+              "tag": "v1.6.0-20230411132135-bd3ca29",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -331,7 +331,7 @@
     },
     {
       "name": "weblogic-operator",
-      "version": "4.0.5",
+      "version": "4.0.6",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -339,12 +339,12 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "4.0.5",
+              "tag": "4.0.6",
               "helmFullImageKey": "image"
             },
             {
               "image": "weblogic-monitoring-exporter",
-              "tag": "2.1.2",
+              "tag": "2.1.3",
               "helmFullImageKey": "weblogicMonitoringExporterImage"
             }
           ]

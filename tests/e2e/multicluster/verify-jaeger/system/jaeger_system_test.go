@@ -51,7 +51,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 
 	m := make(map[string]string)
 	m[clusterNameLabel] = getClusterName()
-	metricsTest, err = pkg.NewMetricsTest([]string{adminKubeConfigPath}, adminKubeConfigPath, m)
+	metricsTest, err = pkg.NewMetricsTest(adminKubeConfigPath, m)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
 	}

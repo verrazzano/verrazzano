@@ -393,23 +393,6 @@ func GetCertificateList(namespace string) (*certmanagerv1.CertificateList, error
 	return certificateList, nil
 }
 
-// GetClusterIssuerList returns a list of cluster issuers
-func GetClusterIssuerList() (*certmanagerv1.ClusterIssuerList, error) {
-	// Get the Cert-manager clientset
-	clientSet, err := k8sutil.GetCertManagerClienset()
-	if err != nil {
-		return nil, err
-	}
-	clusterIssuerList, err := clientSet.ClusterIssuers().List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		if !k8serrors.IsNotFound(err) {
-			Log(Error, fmt.Sprintf("Failed to get Cluster Issuers: %v ", err))
-		}
-		return nil, err
-	}
-	return clusterIssuerList, nil
-}
-
 // GetIssuerList returns a list of cluster issuers
 func GetIssuerList(namespace string) (*certmanagerv1.IssuerList, error) {
 	// Get the Cert-manager clientset

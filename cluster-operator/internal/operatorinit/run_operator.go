@@ -31,7 +31,7 @@ const (
 )
 
 // StartClusterOperator Cluster operator execution entry point
-func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAddr string, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
+func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAddr string, ingressHost string, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
 	options := ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
@@ -76,8 +76,9 @@ func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAd
 
 	// Set up the reconciler for VerrazzanoManagedCluster objects
 	if err = (&vmc.VerrazzanoManagedClusterReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		RancherIngressHost: ingressHost,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller VerrazzanoManagedCluster")
 		os.Exit(1)

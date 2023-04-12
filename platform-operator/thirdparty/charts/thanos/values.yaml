@@ -4118,3 +4118,6 @@ networkPolicy:
   ##    - {key: role, operator: In, values: [frontend]}
   ##
   explicitNamespacesSelector: {}
+
+verrazzano:
+  isIstioEnabled: true

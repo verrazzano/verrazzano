@@ -1,7 +1,7 @@
 {{- /*
 Generated from https://github.com/thanos-io/thanos/blob/main/examples/alerts/alerts.md
 */ -}}
-{{- if and .Values.metrics.enabled (or .Values.metrics.prometheusRule.default.create .Values.metrics.prometheusRule.default.absent_rules ) }}
+{{- if and .Values.metrics.enabled (or .Values.metrics.prometheusRule.default.create .Values.metrics.prometheusRule.default.absent_rules ) ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) }}
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:

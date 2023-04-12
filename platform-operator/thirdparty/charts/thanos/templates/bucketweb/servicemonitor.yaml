@@ -1,4 +1,4 @@
-{{- if and .Values.bucketweb.enabled .Values.metrics.enabled .Values.metrics.serviceMonitor.enabled }}
+{{- if and .Values.bucketweb.enabled .Values.metrics.enabled .Values.metrics.serviceMonitor.enabled ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -21,6 +21,15 @@ spec:
   {{- end }}
   endpoints:
     - port: http
+      {{- if .Values.verrazzano.isIstioEnabled }}
+      # If Istio is enabled, specify the certs needed for Prometheus to reach the metrics endpoint
+      scheme: https
+      tlsConfig:
+        caFile: /etc/istio-certs/root-cert.pem
+        certFile: /etc/istio-certs/cert-chain.pem
+        keyFile: /etc/istio-certs/key.pem
+        insecureSkipVerify: true
+      {{- end}}
       {{- if .Values.metrics.serviceMonitor.interval }}
       interval: {{ .Values.metrics.serviceMonitor.interval }}
       {{- end }}

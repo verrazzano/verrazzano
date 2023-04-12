@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package ready
@@ -49,20 +49,32 @@ func StatefulSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, name
 	return true
 }
 
-// DoStatefulSetsExist checks if the named statefulsets exist
+// DoStatefulSetsExist checks if all the named statefulsets exist
 func DoStatefulSetsExist(log vzlog.VerrazzanoLogger, client client.Client, namespacedNames []types.NamespacedName, _ int32, prefix string) bool {
 	for _, namespacedName := range namespacedNames {
-		statuefulset := appsv1.StatefulSet{}
-		if err := client.Get(context.TODO(), namespacedName, &statuefulset); err != nil {
-			if errors.IsNotFound(err) {
-				log.Progressf("%s is waiting for statuefulset %v to exist", prefix, namespacedName)
-				return false
-			}
-			log.Errorf("%s failed getting statuefulset %v: %v", prefix, namespacedName, err)
+		exists, err := DoesStatefulsetExist(client, namespacedName)
+		if err != nil {
+			logErrorf(log, "%s failed getting statefulset %v: %v", prefix, namespacedName, err)
+			return false
+		}
+		if !exists {
+			logProgressf(log, "%s is waiting for statefulset %v to exist", prefix, namespacedName)
 			return false
 		}
 	}
 	return true
+}
+
+// DoesStatefulsetExist checks if the named statefulset exists
+func DoesStatefulsetExist(client client.Client, namespacedName types.NamespacedName) (bool, error) {
+	sts := appsv1.StatefulSet{}
+	if err := client.Get(context.TODO(), namespacedName, &sts); err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 // podsReadyStatefulSet checks for an expected number of pods to be using the latest controllerRevision resource and are

@@ -307,7 +307,11 @@ pipeline {
                     yq -i eval '.spec.components.oam.enabled = true' ${WORKSPACE}/appstack.yaml
                     yq -i eval '.spec.components.verrazzano.enabled = true' ${WORKSPACE}/appstack.yaml
                     yq -i eval '.spec.components.jaegerOperator.enabled = true' ${WORKSPACE}/appstack.yaml
+
                     kubectl apply -f ${WORKSPACE}/appstack.yaml
+
+                    # wait for Verrazzano install to start reconciling
+                    ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-reconciling.sh
 
                     # wait for Verrazzano install to complete
                     ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
@@ -364,6 +368,183 @@ pipeline {
                 }
             }
         }
+
+
+        stage('Install Istio App stack') {
+            environment {
+                KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
+                OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                REALM_USER_PASSWORD = credentials('todo-mysql-password')
+                REALM_NAME = 'test-realm'
+            }
+            steps {
+                sh """
+                    cp ${env.INSTALL_CONFIG_FILE_KIND_TESTS} ${env.INSTALL_CONFIG_FILE_KIND}
+                    cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/appstack.yaml
+                    cd ${GO_REPO_PATH}/verrazzano
+                    yq -i eval '.spec.components.istio.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.kubeStateMetrics.enabled = false' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.prometheus.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.prometheusOperator.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.prometheusAdapter.enabled = false' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.prometheusNodeExporter.enabled = false' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.prometheusPushgateway.enabled = false' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.applicationOperator.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.authProxy.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.certManager.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.fluentd.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.grafana.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.ingressNGINX.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.keycloak.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.mySQLOperator.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.opensearch.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.opensearchDashboards.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.oam.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.verrazzano.enabled = true' ${WORKSPACE}/appstack.yaml
+                    yq -i eval '.spec.components.jaegerOperator.enabled = true' ${WORKSPACE}/appstack.yaml
+                    kubectl apply -f ${WORKSPACE}/appstack.yaml
+
+                    # wait for Verrazzano install to start reconciling
+                    ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-reconciling.sh
+
+                    # wait for Verrazzano install to complete
+                    ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+
+                    # Log the vz status to get the URLs
+                    ${GO_REPO_PATH}/vz status
+                """
+            }
+
+            post {
+                failure {
+                    archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                    dumpK8sCluster('install-prom-app-istio-stack-dump')
+                }
+                always {
+                    archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Verify Istio App Stack') {
+            parallel {
+                stage('examples helidon') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
+                    }
+                    steps {
+                        runGinkgo('examples/helidon')
+                    }
+                }
+            }
+            post {
+                failure {
+                    dumpK8sCluster('verify-prom-app-istio-stack-dump')
+                }
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/*cluster-snapshot*/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                success {
+                    script {
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('istio-prom-app-istio-installation-cluster-snapshot')
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Reinstall None') {
+            environment {
+                KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
+                OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                REALM_USER_PASSWORD = credentials('todo-mysql-password')
+                REALM_NAME = 'test-realm'
+            }
+            steps {
+                sh """
+                    cp ${env.INSTALL_CONFIG_FILE_KIND_TESTS} ${env.INSTALL_CONFIG_FILE_KIND}
+                    cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/none.yaml
+                    cd ${GO_REPO_PATH}/verrazzano
+                    yq -i eval '.spec.components.istio.enabled = true' ${WORKSPACE}/none.yaml
+                    yq -i eval '.spec.components.kubeStateMetrics.enabled = false' ${WORKSPACE}/none.yaml
+                    yq -i eval '.spec.components.prometheus.enabled = false' ${WORKSPACE}/none.yaml
+                    yq -i eval '.spec.components.prometheusOperator.enabled = false' ${WORKSPACE}/none.yaml
+                    yq -i eval '.spec.components.prometheusAdapter.enabled = false' ${WORKSPACE}/none.yaml
+                    yq -i eval '.spec.components.prometheusNodeExporter.enabled = false' ${WORKSPACE}/none.yaml
+                    yq -i eval '.spec.components.prometheusPushgateway.enabled = false' ${WORKSPACE}/none.yaml
+                    yq -i eval '.spec.components.applicationOperator.enabled = true' ${WORKSPACE}/none.yaml
+                    yq -i eval '.spec.components.authProxy.enabled = true' ${WORKSPACE}/none.yaml
+                    yq -i eval '.spec.components.certManager.enabled = true' ${WORKSPACE}/none.yaml
+                    yq -i eval '.spec.components.fluentd.enabled = true' ${WORKSPACE}/none.yaml
+                    yq -i eval '.spec.components.grafana.enabled = true' ${WORKSPACE}/none.yaml
+                    yq -i eval '.spec.components.ingressNGINX.enabled = true' ${WORKSPACE}/none.yaml
+                    yq -i eval '.spec.components.keycloak.enabled = true' ${WORKSPACE}/none.yaml
+                    yq -i eval '.spec.components.mySQLOperator.enabled = true' ${WORKSPACE}/none.yaml
+                    yq -i eval '.spec.components.opensearch.enabled = true' ${WORKSPACE}/none.yaml
+                    yq -i eval '.spec.components.opensearchDashboards.enabled = true' ${WORKSPACE}/none.yaml
+                    yq -i eval '.spec.components.oam.enabled = true' ${WORKSPACE}/none.yaml
+                    yq -i eval '.spec.components.verrazzano.enabled = true' ${WORKSPACE}/none.yaml
+                    yq -i eval '.spec.components.jaegerOperator.enabled = true' ${WORKSPACE}/none.yaml
+                    kubectl apply -f ${WORKSPACE}/none.yaml
+
+                    # wait for Verrazzano install to complete
+                    ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+
+                    # Log the vz status to get the URLs
+                    ${GO_REPO_PATH}/vz status
+                """
+            }
+
+            post {
+                failure {
+                    archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                    dumpK8sCluster('none-installation-failure-dump')
+                }
+                always {
+                    archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Verify None') {
+            parallel {
+                stage('verify-install/promstack') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install/promstack"
+                    }
+                    steps {
+                        runGinkgoRandomize('verify-install/promstack')
+                    }
+                }
+                stage('verify-infra/vmi') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra/vmi"
+                    }
+                    steps {
+                        runGinkgoRandomize('verify-infra/vmi')
+                    }
+                }
+            }
+            post {
+                failure {
+                    dumpK8sCluster('verify-install-post-none-installation-failure-dump')
+                }
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/*cluster-snapshot*/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                success {
+                    script {
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('edge-stack-installation-cluster-snapshot')
+                        }
+                    }
+                }
+            }
+        }
+
 
     }
     post {
@@ -545,3 +726,13 @@ def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
         """
     }
 }
+
+def runGinkgo(testSuitePath) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
+    }
+}
+

@@ -4,10 +4,13 @@
 package grafana
 
 import (
+	"context"
 	"fmt"
 	"path"
+	"time"
 
 	"github.com/pkg/errors"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -16,6 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/thanos"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -118,4 +122,24 @@ func isThanosQueryFrontendEnabled(ctx spi.ComponentContext) (bool, error) {
 	}
 
 	return enabled, nil
+}
+
+// restartGrafanaPod adds an annotation to the Grafana deployment template to restart the Grafana pod
+func restartGrafanaPod(ctx spi.ComponentContext) error {
+	deployment := &appsv1.Deployment{}
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: grafanaDeployment}, deployment); err != nil {
+		return err
+	}
+
+	// annotate the deployment to do a restart of the pod
+	if deployment.Spec.Template.ObjectMeta.Annotations == nil {
+		deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+	}
+	deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().String()
+
+	if err := ctx.Client().Update(context.TODO(), deployment); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed updating Grafana deployment %s/%s to restart pod: %v", deployment.Namespace, deployment.Name, err)
+	}
+
+	return nil
 }
