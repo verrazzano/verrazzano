@@ -60,8 +60,8 @@ func TestCreateAndLabelNamespace(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: "testns"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+		Get(gomock.Any(), types.NamespacedName{Name: "testns"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 			return errors.NewNotFound(schema.ParseGroupResource("Namespace"), "testns")
 		})
 
@@ -86,8 +86,8 @@ func TestCreateAndLabelNamespaceIstioInjection(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: "testns"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+		Get(gomock.Any(), types.NamespacedName{Name: "testns"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 			return errors.NewNotFound(schema.ParseGroupResource("Namespace"), "testns")
 		})
 
@@ -112,8 +112,8 @@ func TestCreateAndLabelNamespaceVzManaged(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: "testns"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+		Get(gomock.Any(), types.NamespacedName{Name: "testns"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 			return errors.NewNotFound(schema.ParseGroupResource("Namespace"), "testns")
 		})
 
@@ -138,8 +138,8 @@ func TestCreateAndLabelNamespaceReturnsError(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: "testns"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+		Get(gomock.Any(), types.NamespacedName{Name: "testns"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 			return errors.NewNotFound(schema.ParseGroupResource("Namespace"), "testns")
 		})
 
@@ -208,8 +208,8 @@ func runNamespaceTest(t *testing.T, namespace string, expectedLabels map[string]
 	mock := mocks.NewMockClient(mocker)
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: namespace}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+		Get(gomock.Any(), types.NamespacedName{Name: namespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 			return errors.NewNotFound(schema.ParseGroupResource("Namespace"), namespace)
 		})
 
@@ -230,8 +230,8 @@ func runNamespaceTestWithIstioFlag(t *testing.T, namespace string, expectedLabel
 	mock := mocks.NewMockClient(mocker)
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: namespace}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+		Get(gomock.Any(), types.NamespacedName{Name: namespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 			return errors.NewNotFound(schema.ParseGroupResource("Namespace"), namespace)
 		})
 

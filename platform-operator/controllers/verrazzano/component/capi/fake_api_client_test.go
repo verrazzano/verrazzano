@@ -15,6 +15,10 @@ func (f *FakeCAPIClient) GetProvidersConfig() ([]client.Provider, error) {
 	return []client.Provider{}, nil
 }
 
+func (f *FakeCAPIClient) GenerateProvider(provider string, providerType v1alpha3.ProviderType, options client.ComponentsOptions) (client.Components, error) {
+	return nil, nil
+}
+
 func (f *FakeCAPIClient) GetProviderComponents(provider string, providerType v1alpha3.ProviderType, options client.ComponentsOptions) (client.Components, error) {
 	return nil, nil
 }

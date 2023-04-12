@@ -242,7 +242,7 @@ func TestOtherNS(t *testing.T) {
 
 	// Do not expect a call to get the ConfigMap if it's a different namespace
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).MaxTimes(0)
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).MaxTimes(0)
 
 	request := newRequest("test0", "test1")
 	reconciler := newConfigMapReconciler(mock)
@@ -257,8 +257,8 @@ func TestOtherNS(t *testing.T) {
 // mock client request to get the configmap
 func expectGetConfigMapExists(mock *mocks.MockClient, cmToUse *corev1.ConfigMap, namespace string, name string) {
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, cm *corev1.ConfigMap) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, cm *corev1.ConfigMap, opts ...client.GetOption) error {
 			return nil
 		})
 }
