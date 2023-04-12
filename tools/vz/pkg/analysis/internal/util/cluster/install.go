@@ -51,7 +51,7 @@ const servicesJSON = "services.json"
 const podsJSON = "pods.json"
 const ingressNginx = "ingress-nginx"
 const istioSystem = "istio-system"
-const systemTls = "system-tls"
+const systemTLS = "system-tls"
 
 const installErrorNotFound = "Component specific error(s) not found in the Verrazzano install log for - "
 const installErrorMessage = "One or more components listed below did not reach Ready state:"
@@ -141,10 +141,10 @@ func analyzeComponentCertIssue(log *zap.SugaredLogger, clusterRoot string, issue
 	}
 	issueVisited := make(map[string]bool)
 	certCompMap := map[string]string{
-		systemTls + pkgConstants.Grafana:                      pkgConstants.Grafana,
+		systemTLS + pkgConstants.Grafana:                      pkgConstants.Grafana,
 		pkgConstants.KeyCloak + "-tls":                        pkgConstants.KeyCloak,
-		systemTls + pkgConstants.Kiali:                        pkgConstants.Kiali,
-		systemTls + pkgConstants.Prometheus:                   pkgConstants.Prometheus,
+		systemTLS + pkgConstants.Kiali:                        pkgConstants.Kiali,
+		systemTLS + pkgConstants.Prometheus:                   pkgConstants.Prometheus,
 		"tls-" + pkgConstants.Argocd + "-ingress":             pkgConstants.Argocd,
 		"tls-" + pkgConstants.Rancher + "-ingress":            pkgConstants.Rancher,
 		"system-tls-osd":                                      pkgConstants.OpensearchDashboards,
