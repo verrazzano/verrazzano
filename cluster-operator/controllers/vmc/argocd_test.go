@@ -164,7 +164,7 @@ func TestMutateArgoCDClusterSecretWithRefresh(t *testing.T) {
 
 	mocker := gomock.NewController(t)
 	httpMock := mocks.NewMockRequestSender(mocker)
-	httpMock = expectHTTPRequests(httpMock)
+	httpMock = expectNoHTTPRequests(httpMock)
 	rancherutil.RancherHTTPClient = httpMock
 
 	caData := []byte("ca")
@@ -217,7 +217,7 @@ func expectHTTPClusterRoleTemplateUpdateRequests(httpMock *mocks.MockRequestSend
 	return httpMock
 }
 
-func expectHTTPRequests(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender {
+func expectNoHTTPRequests(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender {
 	// Expect an HTTP request to obtain a new token
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath)).
@@ -232,8 +232,7 @@ func expectHTTPRequests(httpMock *mocks.MockRequestSender) *mocks.MockRequestSen
 			return resp, nil
 		})
 
-	// Expect an HTTP request to fetch the token from Rancher
-	expectHTTPLoginRequests(httpMock)
+	// Do not expect an HTTP request because the token already exists
 	return httpMock
 }
 
