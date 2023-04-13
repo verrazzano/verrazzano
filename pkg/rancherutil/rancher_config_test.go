@@ -62,7 +62,7 @@ func TestCreateRancherRequest(t *testing.T) {
 	RancherHTTPClient = httpMock
 
 	// Test with the Verrazzano cluster user
-	rc, err := NewVerrazzanoClusterRancherConfig(cli, log)
+	rc, err := NewVerrazzanoClusterRancherConfig(cli, pkgconst.DefaultRancherIngressHost, log)
 	assert.NoError(t, err)
 
 	response, body, err := SendRequest(http.MethodGet, testPath, map[string]string{}, "", rc, log)
@@ -71,7 +71,7 @@ func TestCreateRancherRequest(t *testing.T) {
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 
 	// Test with the admin user
-	rc, err = NewAdminRancherConfig(cli, log)
+	rc, err = NewAdminRancherConfig(cli, pkgconst.DefaultRancherIngressHost, log)
 	assert.NoError(t, err)
 
 	response, body, err = SendRequest(http.MethodGet, testPath, map[string]string{}, "", rc, log)

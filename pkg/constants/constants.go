@@ -77,6 +77,9 @@ const PrometheusOperatorNamespace = "verrazzano-monitoring"
 // ArgoCDNamespace - the Argocd namespace
 const ArgoCDNamespace = "argocd"
 
+// CAPISystemNamespace - the CAPI system namespace
+const CAPISystemNamespace = "capi-system"
+
 // LabelIstioInjection - constant for a Kubernetes label that is applied by Verrazzano
 const LabelIstioInjection = "istio-injection"
 
@@ -181,6 +184,9 @@ const ArgoCDClusterRancherSecretName = "verrazzano-argocd-secret"
 // ArgoCDClusterRancherUsername is the username in Rancher used to identify the Verrazzano Argo CD cluster user
 const ArgoCDClusterRancherUsername = "vz-argoCD-reg"
 
+// DefaultRancherIngressHost is the default host used for Rancher API requests
+const DefaultRancherIngressHost = "ingress-controller-ingress-nginx-controller.ingress-nginx"
+
 // Components Names
 const (
 	Istio                 = "istio"
@@ -204,4 +210,4 @@ const (
 const ThanosQueryIngress = "thanos-query-frontend"
 
 // ThanosQueryStoreIngress is the name of the ingress for the Thanos Query Store API
-const ThanosQueryStoreIngress = "thanos-grpc"
+const ThanosQueryStoreIngress = "thanos-query-store"

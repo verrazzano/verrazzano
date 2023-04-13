@@ -1,7 +1,7 @@
 # Copyright (c) 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{ if .Values.experimentalFeatures.moduleAPI.enabled }}
 ---
-{{ if .Values.experimental.modules }}
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -15,15 +15,22 @@ spec:
     kind: Module
     listKind: ModuleList
     plural: modules
+    shortNames:
+    - vzmod
+    - vzmods
     singular: module
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - description: The current version of the Verrazzano platform.
+      jsonPath: .status.version
+      name: Version
+      type: string
     - description: State of Module reconciliation
       jsonPath: .status.state
       name: Status
       type: string
-    name: v1alpha1
+    name: v1beta2
     schema:
       openAPIV3Schema:
         properties:
@@ -35,68 +42,64 @@ spec:
             type: object
           spec:
             properties:
-              dependencies:
+              enabled:
+                type: boolean
+              name:
+                type: string
+              overrides:
                 items:
+                  properties:
+                    configMapRef:
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          type: string
+                        optional:
+                          type: boolean
+                      required:
+                      - key
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    secretRef:
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          type: string
+                        optional:
+                          type: boolean
+                      required:
+                      - key
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    values:
+                      x-kubernetes-preserve-unknown-fields: true
                   type: object
                 type: array
-              installer:
+              reconcile:
+                type: boolean
+              source:
                 properties:
-                  helmChart:
+                  repo:
                     properties:
-                      monitorChanges:
-                        type: boolean
+                      credentialsSecret:
+                        type: string
                       name:
                         type: string
-                      namespace:
-                        type: string
-                      overrides:
-                        items:
-                          properties:
-                            configMapRef:
-                              properties:
-                                key:
-                                  type: string
-                                name:
-                                  type: string
-                                optional:
-                                  type: boolean
-                              required:
-                              - key
-                              type: object
-                              x-kubernetes-map-type: atomic
-                            secretRef:
-                              properties:
-                                key:
-                                  type: string
-                                name:
-                                  type: string
-                                optional:
-                                  type: boolean
-                              required:
-                              - key
-                              type: object
-                              x-kubernetes-map-type: atomic
-                            values:
-                              x-kubernetes-preserve-unknown-fields: true
-                          type: object
-                        type: array
-                      repository:
-                        properties:
-                          path:
-                            type: string
-                          secretRef:
-                            type: string
-                          uri:
-                            type: string
-                        type: object
-                      version:
+                      uri:
                         type: string
                     required:
                     - name
+                    - uri
+                    type: object
+                  sourceRef:
                     type: object
                 type: object
-            required:
-            - installer
+              targetNamespace:
+                type: string
+              version:
+                type: string
             type: object
           status:
             properties:
@@ -116,12 +119,9 @@ spec:
                   - type
                   type: object
                 type: array
-              observedGeneration:
-                format: int64
-                type: integer
-              reconciledAt:
-                type: string
               state:
+                type: string
+              version:
                 type: string
             type: object
         type: object
@@ -129,4 +129,4 @@ spec:
     storage: true
     subresources:
       status: {}
-  {{ end }}
+{{ end }}

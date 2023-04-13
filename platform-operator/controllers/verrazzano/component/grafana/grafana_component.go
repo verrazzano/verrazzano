@@ -177,7 +177,10 @@ func (g grafanaComponent) Install(ctx spi.ComponentContext) error {
 
 // PostInstall checks post install conditions
 func (g grafanaComponent) PostInstall(ctx spi.ComponentContext) error {
-	return common.CheckIngressesAndCerts(ctx, g)
+	if err := common.CheckIngressesAndCerts(ctx, g); err != nil {
+		return err
+	}
+	return restartGrafanaPod(ctx)
 }
 
 func (g grafanaComponent) IsOperatorUninstallSupported() bool {
@@ -216,9 +219,13 @@ func (g grafanaComponent) Upgrade(ctx spi.ComponentContext) error {
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
 }
 
-// PostUpgrade checks post upgrade conditions
+// PostUpgrade checks post upgrade conditions and restarts the Grafana pod to ensure that any changes
+// to the datasources configmap are picked up
 func (g grafanaComponent) PostUpgrade(ctx spi.ComponentContext) error {
-	return common.CheckIngressesAndCerts(ctx, g)
+	if err := common.CheckIngressesAndCerts(ctx, g); err != nil {
+		return err
+	}
+	return restartGrafanaPod(ctx)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated

@@ -26,7 +26,7 @@ const (
 	queryCertificateName = "system-tls-thanos-query"
 
 	// Thanos Query StoreAPI constants
-	queryStoreHostName        = "query-store"
+	queryStoreHostName        = "thanos-query-store"
 	queryStoreCertificateName = "system-tls-query-store"
 )
 

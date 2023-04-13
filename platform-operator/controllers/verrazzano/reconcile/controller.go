@@ -9,9 +9,9 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
-	"io"
-
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	"io"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -863,7 +863,12 @@ func (r *Reconciler) watchResources(namespace string, name string, log vzlog.Ver
 	}
 
 	log.Debugf("Watching for the Thanos internal user secret to re-reconcile Keycloak")
-	return r.watchThanosInternalUserSecret(namespace, name)
+	if err := r.watchThanosInternalUserSecret(namespace, name); err != nil {
+		return err
+	}
+
+	log.Debugf("Watching the Rancher global data namespace to create admin cloud credential")
+	return r.watchRancherGlobalDataNamespace(namespace, name)
 }
 
 func (r *Reconciler) watchManagedClusterRegistrationSecret(namespace string, name string) error {
@@ -899,6 +904,31 @@ func (r *Reconciler) watchThanosInternalUserSecret(namespace string, name string
 			},
 		},
 	)
+}
+
+func (r *Reconciler) watchRancherGlobalDataNamespace(namespace string, name string) error {
+	return r.Controller.Watch(
+		&source.Kind{Type: &corev1.Namespace{}},
+		createReconcileEventHandler(namespace, name),
+		// Reconcile if there is an event related to the registration secret
+		predicate.Funcs{
+			CreateFunc: func(e event.CreateEvent) bool {
+				return r.isCattleGlobalDataNamespace(e.Object)
+			},
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				return r.isCattleGlobalDataNamespace(e.ObjectNew)
+			},
+		},
+	)
+}
+
+func (r *Reconciler) isCattleGlobalDataNamespace(o client.Object) bool {
+	ns := o.(*corev1.Namespace)
+	if ns.Name != rancher.CattleGlobalDataNamespace {
+		return false
+	}
+	r.AddWatch(rancher.ComponentJSONName)
+	return true
 }
 
 func (r *Reconciler) isManagedClusterRegistrationSecret(o client.Object) bool {

@@ -30,6 +30,7 @@ const (
 	// Only allowed capability in restricted mode
 	capNetBindService = "NET_BIND_SERVICE"
 	capDacOverride    = "DAC_OVERRIDE"
+	capFOwner         = "FOWNER"
 
 	// MySQL ignore pattern; skip mysql-# or mysql-xxxx-xxxx pod names, but not mysql-router-#
 	mysqlPattern = "^mysql-([\\d]+)$"
@@ -81,6 +82,19 @@ var exceptionPods = map[string]podExceptions{
 			"fluentd": {
 				allowedCapabilities: map[string]bool{
 					capDacOverride: true,
+				},
+			},
+		},
+	},
+	// Up to and including Prometheus Operator 0.59.1
+	// the thanos sidecar will get this capability from the Operator when object storage is enabled.
+	// This bug is fixed in the next patch version and this check should be removed once the
+	// Prometheus Operator is upgraded.
+	"prometheus-prometheus-operator-kube-p-prometheus": {
+		containers: map[string]containerException{
+			"thanos-sidecar": {
+				allowedCapabilities: map[string]bool{
+					capFOwner: true,
 				},
 			},
 		},
