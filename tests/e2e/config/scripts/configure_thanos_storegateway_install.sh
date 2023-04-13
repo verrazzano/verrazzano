@@ -20,4 +20,9 @@ echo "Editing install config file for Thanos Store Gateway ${INSTALL_CONFIG_TO_E
   yq -i eval ".spec.components.thanos.overrides.[0].values.existingObjstoreSecret = \"objstore-config\"" ${INSTALL_CONFIG_TO_EDIT}
   yq -i eval ".spec.components.thanos.overrides.[0].values.storegateway.enabled = true" ${INSTALL_CONFIG_TO_EDIT}
 
+# Modify the VZ CR to enable storage on the Prometheus Thanos Sidecar
+echo "Editing install config file to enable long-term storage on the Prometheus Thanos Sidecar ${INSTALL_CONFIG_TO_EDIT}"
+  yq -i eval ".spec.components.prometheusOperator.overrides.[2].values.prometheus.prometheusSpec.thanos.objectStorageConfig.key = \"objstore.yml\"" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.prometheusOperator.overrides.[2].values.prometheus.prometheusSpec.thanos.objectStorageConfig.name = \"objstore-config\"" ${INSTALL_CONFIG_TO_EDIT}
+
 cat ${INSTALL_CONFIG_TO_EDIT}
