@@ -142,8 +142,9 @@ spec:
               state:
                 description: The state of this managed cluster.
                 type: string
-              thanosHost:
-                description: The Thanos API host name for this managed cluster.
+              thanosQueryStore:
+                description: The Thanos Query Store API host name for this managed
+                  cluster.
                 type: string
             required:
             - state

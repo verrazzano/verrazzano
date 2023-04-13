@@ -4,17 +4,21 @@
 package operatorinit
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/platformctrl/modlifecycle"
+	modulectrl "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/platformctrl/module"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
@@ -49,7 +53,7 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 		StatusUpdater:     statusUpdater,
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
-		return errors.Wrap(err, "Failed to setup controller")
+		return errors.Wrap(err, "Failed to setup Verrazzano controller")
 	}
 	if config.HealthCheckPeriodSeconds > 0 {
 		healthCheck.Start()
@@ -87,6 +91,27 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 		DryRun: config.DryRun,
 	}).SetupWithManager(mgr); err != nil {
 		return errors.Wrap(err, "Failed to setup controller for Verrazzano Stacks")
+	}
+
+	if config.ExperimentalModules {
+		log.Infof("Experimental Modules API enabled, starting controllers")
+
+		if err = (&modlifecycle.Reconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+		}).SetupWithManager(mgr); err != nil {
+			log.Error(err, "Failed to setup ModuleLifecycle controller", vzlog.FieldController, "ModuleLifecycleController")
+			os.Exit(1)
+		}
+
+		// v1beta2 VerrazzanoModule controller
+		if err = (&modulectrl.VerrazzanoModuleReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+		}).SetupWithManager(mgr); err != nil {
+			log.Error(err, "Failed to setup Verrazzano Module controller", vzlog.FieldController, "VerrazzanoModuleController")
+			os.Exit(1)
+		}
 	}
 
 	// +kubebuilder:scaffold:builder

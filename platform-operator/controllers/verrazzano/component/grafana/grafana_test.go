@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -21,6 +22,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -411,4 +413,38 @@ func TestIsThanosQueryFrontendEnabled(t *testing.T) {
 			assert.Equal(t, tt.expectEnabled, enabled)
 		})
 	}
+}
+
+// TestRestartGrafanaPod tests the restartGrafanaPod function.
+func TestRestartGrafanaPod(t *testing.T) {
+	// GIVEN no Grafana deployment exists
+	// WHEN the restartGrafanaPod function is called
+	// THEN a NotFound error is returned
+	client := fake.NewClientBuilder().Build()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
+
+	err := restartGrafanaPod(ctx)
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
+
+	// GIVEN the Grafana deployment exists
+	// WHEN the restartGrafanaPod function is called
+	// THEN no error is returned and the deployment template annotation has been added
+	client = fake.NewClientBuilder().WithObjects(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      grafanaDeployment,
+			},
+		},
+	).Build()
+	ctx = spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
+
+	err = restartGrafanaPod(ctx)
+	assert.NoError(t, err)
+
+	deployment := &appsv1.Deployment{}
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: grafanaDeployment}, deployment)
+	assert.NoError(t, err)
+	assert.Contains(t, deployment.Spec.Template.ObjectMeta.Annotations, vzconst.VerrazzanoRestartAnnotation)
 }

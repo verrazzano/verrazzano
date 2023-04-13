@@ -73,7 +73,7 @@ func (r *VerrazzanoManagedClusterReconciler) getJaegerOpenSearchConfig(vzList *v
 	// If the Jaeger OpenSearch URL is the default URL, use VMI OpenSearch ingress URL.
 	// If the Jaeger OpenSearch URL  is not the default, meaning it is a custom OpenSearch, use the external OpenSearch URL.
 	if jsc.OSURL == vzconstants.DefaultJaegerOSURL {
-		jc.URL, err = r.getVmiESURL()
+		jc.URL, err = r.getVmiESURL(*vzList)
 		if err != nil {
 			return jc, err
 		}

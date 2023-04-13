@@ -314,7 +314,7 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 
 	// vz-specific chart overrides file
 	overrides, err := h.buildCustomHelmOverrides(context, resolvedNamespace, kvs...)
-	defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), `helm-overrides.*\.yaml`)
+	defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), fmt.Sprintf(`helm-overrides.*-%s-.*\.yaml`, h.Name()))
 	if err != nil {
 		return err
 	}
@@ -472,7 +472,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	}
 
 	overrides, err := h.buildCustomHelmOverrides(context, resolvedNamespace, kvs...)
-	defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), `helm-overrides.*\.yaml`)
+	defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), fmt.Sprintf(`helm-overrides.*-%s-.*\.yaml`, h.Name()))
 	if err != nil {
 		return err
 	}
@@ -482,7 +482,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 		return err
 	}
 
-	tmpFile, err := vzos.CreateTempFile("helm-overrides-values-*.yaml", stdout)
+	tmpFile, err := vzos.CreateTempFile(fmt.Sprintf("helm-overrides-values-%s-*.yaml", h.Name()), stdout)
 	if err != nil {
 		context.Log().Error(err.Error())
 		return err
@@ -607,7 +607,7 @@ func (h HelmComponent) filesFromVerrazzanoHelm(context spi.ComponentContext, nam
 
 	// Create the file from the string
 	if len(fileString) > 0 {
-		file, err := vzos.CreateTempFile("helm-overrides-verrazzano-*.yaml", []byte(fileString))
+		file, err := vzos.CreateTempFile(fmt.Sprintf("helm-overrides-verrazzano-%s-*.yaml", h.Name()), []byte(fileString))
 		if err != nil {
 			context.Log().Error(err.Error())
 			return newKvs, err
@@ -683,7 +683,7 @@ func (h HelmComponent) GetComputedValues(context spi.ComponentContext) (chartuti
 	}
 
 	overrides, err := h.buildCustomHelmOverrides(context, resolvedNamespace, kvs...)
-	defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), `helm-overrides.*\.yaml`)
+	defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), fmt.Sprintf(`helm-overrides.*-%s-.*\.yaml`, h.Name()))
 	if err != nil {
 		return nil, err
 	}
@@ -699,7 +699,7 @@ func (h HelmComponent) GetComputedValues(context spi.ComponentContext) (chartuti
 			return nil, err
 		}
 
-		tmpFile, err := vzos.CreateTempFile("helm-overrides-values-*.yaml", stdout)
+		tmpFile, err := vzos.CreateTempFile(fmt.Sprintf("helm-overrides-values-%s-*.yaml", h.Name()), stdout)
 		if err != nil {
 			return nil, err
 		}

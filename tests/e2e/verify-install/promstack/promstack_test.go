@@ -5,6 +5,21 @@ package promstack
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	vzalpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/adapter"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/kubestatemetrics"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/nodeexporter"
+	prometheusOperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/pushgateway"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
@@ -31,21 +46,22 @@ const (
 	overrideValue                   = "true"
 )
 
-type enabledFunc func(string) bool
-
 type enabledComponents struct {
-	podName     string
-	enabledFunc enabledFunc
+	podName       string
+	componentName string
+	target        string
 }
 
 var (
+	vz *vzalpha1.Verrazzano
+
 	promStackEnabledComponents = []enabledComponents{
-		{podName: "prometheus-adapter", enabledFunc: pkg.IsPrometheusAdapterEnabled},
-		{podName: "prometheus-operator-kube-p-operator", enabledFunc: pkg.IsPrometheusOperatorEnabled},
-		{podName: "kube-state-metrics", enabledFunc: pkg.IsKubeStateMetricsEnabled},
-		{podName: "prometheus-pushgateway", enabledFunc: pkg.IsPrometheusPushgatewayEnabled},
-		{podName: "prometheus-node-exporter", enabledFunc: pkg.IsPrometheusNodeExporterEnabled},
-		{podName: "prometheus-prometheus-operator-kube-p-prometheus", enabledFunc: pkg.IsPrometheusEnabled},
+		{podName: "prometheus-adapter", componentName: adapter.ComponentName},
+		{podName: "prometheus-operator-kube-p-operator", componentName: prometheusOperator.ComponentName},
+		{podName: "kube-state-metrics", componentName: kubestatemetrics.ComponentName},
+		{podName: "prometheus-pushgateway", componentName: pushgateway.ComponentName},
+		{podName: "prometheus-node-exporter", componentName: nodeexporter.ComponentName},
+		{podName: "prometheus-prometheus-operator-kube-p-prometheus", componentName: prometheusOperator.ComponentName},
 	}
 	promOperatorCrds = []string{
 		"alertmanagerconfigs.monitoring.coreos.com",
@@ -62,18 +78,33 @@ var (
 		"--prometheus-default-base-image=" + imagePrefix + "/verrazzano/prometheus",
 		"--alertmanager-default-base-image=" + imagePrefix + "/verrazzano/alertmanager",
 	}
-	labelMatch           = map[string]string{overrideKey: overrideValue}
-	isMinVersion140      bool
-	defaultScrapeTargets = []string{fmt.Sprintf("serviceMonitor/%s/%s", constants.VerrazzanoMonitoringNamespace, constants.ServiceMonitorNameKubelet)}
+	labelMatch      = map[string]string{overrideKey: overrideValue}
+	isMinVersion140 bool
+
+	scrapeTargets = []enabledComponents{
+		{target: "serviceMonitor/verrazzano-monitoring/prometheus-node-exporter", componentName: nodeexporter.ComponentName},
+		{target: "serviceMonitor/verrazzano-monitoring/prometheus-operator-kube-p-apiserver", componentName: prometheusOperator.ComponentName},
+		{target: "serviceMonitor/verrazzano-monitoring/prometheus-operator-kube-p-coredns", componentName: prometheusOperator.ComponentName},
+		{target: "serviceMonitor/verrazzano-monitoring/prometheus-operator-kube-p-kubelet", componentName: prometheusOperator.ComponentName},
+		{target: "serviceMonitor/verrazzano-monitoring/prometheus-operator-kube-p-operator", componentName: prometheusOperator.ComponentName},
+		//{target: "serviceMonitor/verrazzano-monitoring/prometheus-operator-kube-p-prometheus", componentName: prometheusOperator.ComponentName},
+		{target: "serviceMonitor/verrazzano-monitoring/authproxy", componentName: authproxy.ComponentName},
+		{target: "serviceMonitor/verrazzano-monitoring/fluentd", componentName: fluentd.ComponentName},
+		{target: "serviceMonitor/verrazzano-monitoring/kube-state-metrics", componentName: kubestatemetrics.ComponentName},
+		{target: "serviceMonitor/verrazzano-monitoring/opensearch", componentName: opensearch.ComponentName},
+		{target: "serviceMonitor/verrazzano-monitoring/pilot", componentName: istio.ComponentName},
+		{target: "serviceMonitor/verrazzano-monitoring/verrazzano-application-operator", componentName: appoper.ComponentName},
+		{target: "serviceMonitor/verrazzano-monitoring/verrazzano-cluster-operator", componentName: clusteroperator.ComponentName},
+		{target: "serviceMonitor/verrazzano-monitoring/verrazzano-monitoring-operator", componentName: vmo.ComponentName},
+	}
 )
 
 var t = framework.NewTestFramework("promstack")
 
 func listEnabledComponents() []string {
-	kubeconfigPath := getKubeConfigOrAbort()
 	var enabledPods []string
 	for _, component := range promStackEnabledComponents {
-		if component.enabledFunc(kubeconfigPath) {
+		if vzcr.IsComponentStatusEnabled(vz, component.componentName) {
 			enabledPods = append(enabledPods, component.podName)
 		}
 	}
@@ -81,22 +112,13 @@ func listEnabledComponents() []string {
 }
 
 func listDisabledComponents() []string {
-	kubeconfigPath := getKubeConfigOrAbort()
 	var disabledPods []string
 	for _, component := range promStackEnabledComponents {
-		if !component.enabledFunc(kubeconfigPath) {
+		if !vzcr.IsComponentStatusEnabled(vz, component.componentName) {
 			disabledPods = append(disabledPods, component.podName)
 		}
 	}
 	return disabledPods
-}
-
-func isPrometheusOperatorEnabled() bool {
-	return pkg.IsPrometheusOperatorEnabled(getKubeConfigOrAbort())
-}
-
-func isIngressEnabled() bool {
-	return pkg.IsIngressEnabled(getKubeConfigOrAbort())
 }
 
 // areOverridesEnabled - return true if the override value prometheusOperator.podAnnotations.override
@@ -218,16 +240,17 @@ func getKubeConfigOrAbort() string {
 	return kubeconfigPath
 }
 
-func isKubeStateMetricsEnabled() bool {
-	return pkg.IsKubeStateMetricsEnabled(getKubeConfigOrAbort())
-}
-
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	kubeconfigPath := getKubeConfigOrAbort()
 	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
+	}
+
+	vz, err = pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to get installed Verrazzano resource in the cluster: %v", err))
 	}
 })
 
@@ -283,7 +306,7 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 		// THEN we see that the correct pod labels and annotations exist
 		WhenPromStackInstalledIt("should have Prometheus Operator pod labeled and annotated", func() {
 			promStackPodsRunning := func() bool {
-				if isPrometheusOperatorEnabled() && areOverridesEnabled() {
+				if vzcr.IsComponentStatusEnabled(vz, prometheusOperator.ComponentName) && areOverridesEnabled() {
 					_, err := pkg.GetConfigMap(overrideConfigMapSecretName, constants.DefaultNamespace)
 					if err == nil {
 						pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{
@@ -313,7 +336,7 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 		// THEN we see that the arguments are correctly populated
 		WhenPromStackInstalledIt(fmt.Sprintf("should have the correct default image arguments: %s, %s", expectedPromOperatorArgs[0], expectedPromOperatorArgs[1]), func() {
 			promStackPodsRunning := func() (bool, error) {
-				if isPrometheusOperatorEnabled() {
+				if vzcr.IsComponentStatusEnabled(vz, prometheusOperator.ComponentName) {
 					return pkg.ContainerHasExpectedArgs(constants.VerrazzanoMonitoringNamespace, prometheusOperatorDeployment, prometheusOperatorContainerName, expectedPromOperatorArgs)
 				}
 				return true, nil
@@ -323,7 +346,7 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 
 		WhenPromStackInstalledIt("should have the correct Prometheus Operator CRDs", func() {
 			verifyCRDList := func() (bool, error) {
-				if isPrometheusOperatorEnabled() {
+				if vzcr.IsComponentStatusEnabled(vz, prometheusOperator.ComponentName) {
 					for _, crd := range promOperatorCrds {
 						exists, err := pkg.DoesCRDExist(crd)
 						if err != nil || !exists {
@@ -348,7 +371,7 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 
 		WhenPromStackInstalledIt("should have the TLS secret", func() {
 			Eventually(func() bool {
-				if isPrometheusOperatorEnabled() {
+				if vzcr.IsComponentStatusEnabled(vz, prometheusOperator.ComponentName) {
 					return pkg.SecretsCreated(constants.VerrazzanoMonitoringNamespace, prometheusTLSSecret)
 				}
 				return true
@@ -382,15 +405,20 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 			}
 		})
 
-		WhenPromStackInstalledIt("should have default scrape targets healthy", func() {
+		WhenPromStackInstalledIt("should have scrape targets healthy for installed components", func() {
 			if isMinVersion140 && !pkg.IsManagedClusterProfile() {
 				verifyScrapeTargets := func() (bool, error) {
-					if isKubeStateMetricsEnabled() {
-						defaultScrapeTargets = append(defaultScrapeTargets, fmt.Sprintf("serviceMonitor/%s/%s", constants.VerrazzanoMonitoringNamespace, constants.ServiceMonitorNameKubeStateMetrics))
+					var targets []string
+					for _, scrapeTarget := range scrapeTargets {
+						if vzcr.IsComponentStatusEnabled(vz, scrapeTarget.componentName) {
+							targets = append(targets, scrapeTarget.target)
+						}
 					}
-
-					if isPrometheusOperatorEnabled() && isIngressEnabled() {
-						return pkg.ScrapeTargetsHealthy(defaultScrapeTargets)
+					if vzcr.IsComponentStatusEnabled(vz, prometheusOperator.ComponentName) {
+						if !vzcr.IsComponentStatusEnabled(vz, nginx.ComponentName) {
+							return pkg.ScrapeTargetsHealthyFromExec(targets)
+						}
+						return pkg.ScrapeTargetsHealthy(targets)
 					}
 					return true, nil
 				}

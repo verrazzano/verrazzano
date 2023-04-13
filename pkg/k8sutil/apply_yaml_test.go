@@ -5,6 +5,7 @@ package k8sutil_test
 
 import (
 	"context"
+	"github.com/google/go-cmp/cmp"
 	"testing"
 
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -64,34 +65,40 @@ func TestApplyD(t *testing.T) {
 
 func TestApplyF(t *testing.T) {
 	var tests = []struct {
-		name    string
-		file    string
-		count   int
-		isError bool
+		name                                 string
+		file                                 string
+		count                                int
+		isError                              bool
+		expectedLastAppliedConfigAnnotations []string
 	}{
 		{
 			"should apply file",
 			objects + "/service.yaml",
 			1,
 			false,
+			[]string{"{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"name\":\"my-service\",\"namespace\":\"test\"},\"spec\":{\"ports\":[{\"port\":80,\"protocol\":\"TCP\",\"targetPort\":9376}],\"selector\":{\"app\":\"MyApp\"}}}\n"},
 		},
 		{
 			"should apply file with two objects",
 			testdata + "/two_objects.yaml",
 			2,
 			false,
+			[]string{"{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"name\":\"service1\",\"namespace\":\"test\"},\"spec\":{\"ports\":[{\"port\":80,\"protocol\":\"TCP\",\"targetPort\":9376}],\"selector\":{\"app\":\"MyApp\"}}}\n",
+				"{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"name\":\"service2\",\"namespace\":\"test\"},\"spec\":{\"ports\":[{\"port\":80,\"protocol\":\"TCP\",\"targetPort\":9376}],\"selector\":{\"app\":\"MyApp\"}}}\n"},
 		},
 		{
 			"should fail to apply files that are not YAML",
 			"blahblah",
 			0,
 			true,
+			nil,
 		},
 		{
 			"should fail when file is not YAML",
 			objects + "/not-yaml.txt",
 			0,
 			true,
+			nil,
 		},
 	}
 
@@ -106,6 +113,15 @@ func TestApplyF(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			assert.Equal(t, tt.count, len(y.Objects()))
+
+			for i, actualObj := range y.Objects() {
+				actual := actualObj.GetAnnotations()[corev1.LastAppliedConfigAnnotation]
+				expected := tt.expectedLastAppliedConfigAnnotations[i]
+				if diff := cmp.Diff(actual, expected); diff != "" {
+					t.Errorf("expected %v\n, got %v instead", expected, actual)
+					t.Logf("Difference: %s", diff)
+				}
+			}
 		})
 	}
 }
@@ -240,11 +256,12 @@ func TestApplyFClusterRole(t *testing.T) {
 
 func TestApplyFT(t *testing.T) {
 	var tests = []struct {
-		name    string
-		file    string
-		args    map[string]interface{}
-		count   int
-		isError bool
+		name                                 string
+		file                                 string
+		args                                 map[string]interface{}
+		count                                int
+		isError                              bool
+		expectedLastAppliedConfigAnnotations []string
 	}{
 		{
 			"should apply a template file",
@@ -252,6 +269,7 @@ func TestApplyFT(t *testing.T) {
 			map[string]interface{}{"namespace": "default"},
 			1,
 			false,
+			[]string{"{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"name\":\"tmpl-service\",\"namespace\":\"default\"},\"spec\":{\"ports\":[{\"port\":80,\"protocol\":\"TCP\",\"targetPort\":9376}],\"selector\":{\"app\":\"MyApp\"}}}\n"},
 		},
 		{
 			"should fail to apply when template is incomplete",
@@ -259,6 +277,7 @@ func TestApplyFT(t *testing.T) {
 			map[string]interface{}{},
 			0,
 			true,
+			nil,
 		},
 	}
 
@@ -273,6 +292,16 @@ func TestApplyFT(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			assert.Equal(t, tt.count, len(y.Objects()))
+
+			for i, actualObj := range y.Objects() {
+				actual := actualObj.GetAnnotations()[corev1.LastAppliedConfigAnnotation]
+				assert.NotEmpty(t, actual)
+				expected := tt.expectedLastAppliedConfigAnnotations[i]
+				if diff := cmp.Diff(actual, expected); diff != "" {
+					t.Errorf("expected %v\n, got %v instead", expected, actual)
+					t.Logf("Difference: %s", diff)
+				}
+			}
 		})
 	}
 }

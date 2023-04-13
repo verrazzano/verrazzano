@@ -59,6 +59,9 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 	vz := v1alpha1.Verrazzano{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
+
+	expectedLastAppliedConfigAnnotation := "{\"apiVersion\":\"install.verrazzano.io/v1alpha1\",\"kind\":\"Verrazzano\",\"metadata\":{\"annotations\":{},\"name\":\"verrazzano\",\"namespace\":\"default\"}}\n"
+	testhelpers.VerifyLastAppliedConfigAnnotation(t, vz.ObjectMeta, expectedLastAppliedConfigAnnotation)
 }
 
 // TestInstallCmdDefaultTimeoutBugReport

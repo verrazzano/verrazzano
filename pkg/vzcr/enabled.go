@@ -4,14 +4,14 @@
 package vzcr
 
 import (
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // IsPrometheusEnabled - Returns false only if explicitly disabled in the CR
 func IsPrometheusEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.Prometheus != nil && vzv1alpha1.Spec.Components.Prometheus.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.Prometheus.Enabled
 		}
@@ -25,7 +25,7 @@ func IsPrometheusEnabled(cr runtime.Object) bool {
 
 // IsOpenSearchDashboardsEnabled - Returns false only if explicitly disabled in the CR
 func IsOpenSearchDashboardsEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.Kibana != nil && vzv1alpha1.Spec.Components.Kibana.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.Kibana.Enabled
 		}
@@ -39,7 +39,7 @@ func IsOpenSearchDashboardsEnabled(cr runtime.Object) bool {
 
 // IsNGINXEnabled - Returns false only if explicitly disabled in the CR
 func IsNGINXEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.Ingress != nil && vzv1alpha1.Spec.Components.Ingress.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.Ingress.Enabled
 		}
@@ -53,7 +53,7 @@ func IsNGINXEnabled(cr runtime.Object) bool {
 
 // IsIstioEnabled - Returns false only if explicitly disabled in the CR
 func IsIstioEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.Istio != nil && vzv1alpha1.Spec.Components.Istio.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.Istio.Enabled
 		}
@@ -66,9 +66,27 @@ func IsIstioEnabled(cr runtime.Object) bool {
 	return true
 }
 
+// IsIstioInjectionEnabled - Returns false if either:
+//
+//	Istio is explicitly disabled in the CR OR
+//	Istio is enabled but injection is explicitly disabled in the CR
+func IsIstioInjectionEnabled(cr runtime.Object) bool {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.Istio != nil && vzv1alpha1.Spec.Components.Istio.Enabled != nil {
+			return *vzv1alpha1.Spec.Components.Istio.Enabled && (vzv1alpha1.Spec.Components.Istio.InjectionEnabled == nil || *vzv1alpha1.Spec.Components.Istio.InjectionEnabled)
+		}
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 != nil && vzv1beta1.Spec.Components.Istio != nil && vzv1beta1.Spec.Components.Istio.Enabled != nil {
+			return *vzv1beta1.Spec.Components.Istio.Enabled && (vzv1beta1.Spec.Components.Istio.InjectionEnabled == nil || *vzv1beta1.Spec.Components.Istio.InjectionEnabled)
+		}
+	}
+
+	return true
+}
+
 // IsCertManagerEnabled - Returns false only if CertManager is explicitly disabled by the user
 func IsCertManagerEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.CertManager != nil && vzv1alpha1.Spec.Components.CertManager.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.CertManager.Enabled
 		}
@@ -82,7 +100,7 @@ func IsCertManagerEnabled(cr runtime.Object) bool {
 
 // IsKialiEnabled - Returns false only if explicitly disabled in the CR
 func IsKialiEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.Kiali != nil && vzv1alpha1.Spec.Components.Kiali.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.Kiali.Enabled
 		}
@@ -96,7 +114,7 @@ func IsKialiEnabled(cr runtime.Object) bool {
 
 // IsOpenSearchEnabled - Returns false only if explicitly disabled in the CR
 func IsOpenSearchEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.Elasticsearch != nil && vzv1alpha1.Spec.Components.Elasticsearch.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.Elasticsearch.Enabled
 		}
@@ -110,7 +128,7 @@ func IsOpenSearchEnabled(cr runtime.Object) bool {
 
 // IsGrafanaEnabled - Returns false only if explicitly disabled in the CR
 func IsGrafanaEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.Grafana != nil && vzv1alpha1.Spec.Components.Grafana.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.Grafana.Enabled
 		}
@@ -124,7 +142,7 @@ func IsGrafanaEnabled(cr runtime.Object) bool {
 
 // IsFluentdEnabled - Returns false only if explicitly disabled in the CR
 func IsFluentdEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.Fluentd != nil && vzv1alpha1.Spec.Components.Fluentd.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.Fluentd.Enabled
 		}
@@ -138,7 +156,7 @@ func IsFluentdEnabled(cr runtime.Object) bool {
 
 // IsConsoleEnabled - Returns false only if explicitly disabled in the CR
 func IsConsoleEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.Console != nil && vzv1alpha1.Spec.Components.Console.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.Console.Enabled
 		}
@@ -152,7 +170,7 @@ func IsConsoleEnabled(cr runtime.Object) bool {
 
 // IsKeycloakEnabled - Returns false only if explicitly disabled in the CR
 func IsKeycloakEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.Keycloak != nil && vzv1alpha1.Spec.Components.Keycloak.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.Keycloak.Enabled
 		}
@@ -166,7 +184,7 @@ func IsKeycloakEnabled(cr runtime.Object) bool {
 
 // IsRancherEnabled - Returns false only if explicitly disabled in the CR
 func IsRancherEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.Rancher != nil && vzv1alpha1.Spec.Components.Rancher.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.Rancher.Enabled
 		}
@@ -180,7 +198,7 @@ func IsRancherEnabled(cr runtime.Object) bool {
 
 // IsExternalDNSEnabled Indicates if the external-dns service is expected to be deployed, true if OCI DNS is configured
 func IsExternalDNSEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.DNS != nil && vzv1alpha1.Spec.Components.DNS.OCI != nil {
 			return true
 		}
@@ -199,7 +217,7 @@ func IsVMOEnabled(vz runtime.Object) bool {
 
 // IsPrometheusOperatorEnabled returns false only if the Prometheus Operator is explicitly disabled in the CR
 func IsPrometheusOperatorEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.PrometheusOperator != nil && vzv1alpha1.Spec.Components.PrometheusOperator.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.PrometheusOperator.Enabled
 		}
@@ -213,7 +231,7 @@ func IsPrometheusOperatorEnabled(cr runtime.Object) bool {
 
 // IsPrometheusAdapterEnabled returns true only if the Prometheus Adapter is explicitly enabled in the CR
 func IsPrometheusAdapterEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.PrometheusAdapter != nil && vzv1alpha1.Spec.Components.PrometheusAdapter.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.PrometheusAdapter.Enabled
 		}
@@ -227,7 +245,7 @@ func IsPrometheusAdapterEnabled(cr runtime.Object) bool {
 
 // IsKubeStateMetricsEnabled returns true only if Kube State Metrics is explicitly enabled in the CR
 func IsKubeStateMetricsEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.KubeStateMetrics != nil && vzv1alpha1.Spec.Components.KubeStateMetrics.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.KubeStateMetrics.Enabled
 		}
@@ -239,7 +257,7 @@ func IsKubeStateMetricsEnabled(cr runtime.Object) bool {
 
 // IsPrometheusPushgatewayEnabled returns true only if the Prometheus Pushgateway is explicitly enabled in the CR
 func IsPrometheusPushgatewayEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.PrometheusPushgateway != nil && vzv1alpha1.Spec.Components.PrometheusPushgateway.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.PrometheusPushgateway.Enabled
 		}
@@ -253,7 +271,7 @@ func IsPrometheusPushgatewayEnabled(cr runtime.Object) bool {
 
 // IsPrometheusNodeExporterEnabled returns false only if the Prometheus Node-Exporter is explicitly disabled in the CR
 func IsPrometheusNodeExporterEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.PrometheusNodeExporter != nil && vzv1alpha1.Spec.Components.PrometheusNodeExporter.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.PrometheusNodeExporter.Enabled
 		}
@@ -267,7 +285,7 @@ func IsPrometheusNodeExporterEnabled(cr runtime.Object) bool {
 
 // IsJaegerOperatorEnabled returns true only if the Jaeger Operator is explicitly enabled in the CR
 func IsJaegerOperatorEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.JaegerOperator != nil && vzv1alpha1.Spec.Components.JaegerOperator.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.JaegerOperator.Enabled
 		}
@@ -281,7 +299,7 @@ func IsJaegerOperatorEnabled(cr runtime.Object) bool {
 
 // IsAuthProxyEnabled returns false only if Auth Proxy is explicitly disabled in the CR
 func IsAuthProxyEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.AuthProxy != nil && vzv1alpha1.Spec.Components.AuthProxy.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.AuthProxy.Enabled
 		}
@@ -295,7 +313,7 @@ func IsAuthProxyEnabled(cr runtime.Object) bool {
 
 // IsApplicationOperatorEnabled returns false only if Application Operator is explicitly disabled in the CR
 func IsApplicationOperatorEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.ApplicationOperator != nil && vzv1alpha1.Spec.Components.ApplicationOperator.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.ApplicationOperator.Enabled
 		}
@@ -309,7 +327,7 @@ func IsApplicationOperatorEnabled(cr runtime.Object) bool {
 
 // IsVeleroEnabled returns false unless Velero is not explicitly enabled in the CR
 func IsVeleroEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.Velero != nil && vzv1alpha1.Spec.Components.Velero.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.Velero.Enabled
 		}
@@ -323,7 +341,7 @@ func IsVeleroEnabled(cr runtime.Object) bool {
 
 // IsMySQLOperatorEnabled returns false if MySqlOperator is explicitly disabled in the CR
 func IsMySQLOperatorEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.MySQLOperator != nil && vzv1alpha1.Spec.Components.MySQLOperator.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.MySQLOperator.Enabled
 		}
@@ -337,7 +355,7 @@ func IsMySQLOperatorEnabled(cr runtime.Object) bool {
 
 // IsOAMEnabled returns false if OAM is explicitly disabled in the CR
 func IsOAMEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.OAM != nil && vzv1alpha1.Spec.Components.OAM.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.OAM.Enabled
 		}
@@ -351,7 +369,7 @@ func IsOAMEnabled(cr runtime.Object) bool {
 
 // IsVerrazzanoComponentEnabled returns false if Verrazzano is explicitly disabled in the CR
 func IsVerrazzanoComponentEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.Verrazzano != nil && vzv1alpha1.Spec.Components.Verrazzano.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.Verrazzano.Enabled
 		}
@@ -365,7 +383,7 @@ func IsVerrazzanoComponentEnabled(cr runtime.Object) bool {
 
 // IsClusterOperatorEnabled returns false only if Cluster Operator is explicitly disabled in the CR
 func IsClusterOperatorEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.ClusterOperator != nil && vzv1alpha1.Spec.Components.ClusterOperator.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.ClusterOperator.Enabled
 		}
@@ -379,7 +397,7 @@ func IsClusterOperatorEnabled(cr runtime.Object) bool {
 
 // IsWebLogicOperatorEnabled returns false if WebLogicOperator is explicitly disabled in the CR
 func IsWebLogicOperatorEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.WebLogicOperator != nil && vzv1alpha1.Spec.Components.WebLogicOperator.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.WebLogicOperator.Enabled
 		}
@@ -393,7 +411,7 @@ func IsWebLogicOperatorEnabled(cr runtime.Object) bool {
 
 // IsCoherenceOperatorEnabled returns false if CoherenceOperator is explicitly disabled in the CR
 func IsCoherenceOperatorEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.CoherenceOperator != nil && vzv1alpha1.Spec.Components.CoherenceOperator.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.CoherenceOperator.Enabled
 		}
@@ -407,7 +425,7 @@ func IsCoherenceOperatorEnabled(cr runtime.Object) bool {
 
 // IsNodeExporterEnabled returns false if NodeExporter is explicitly disabled in the CR, or Prometheus is disabled in the CR
 func IsNodeExporterEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.PrometheusNodeExporter != nil && vzv1alpha1.Spec.Components.PrometheusNodeExporter.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.PrometheusNodeExporter.Enabled
 		}
@@ -421,7 +439,7 @@ func IsNodeExporterEnabled(cr runtime.Object) bool {
 
 // IsRancherBackupEnabled returns false unless RancherBackup is explicitly enabled in the CR
 func IsRancherBackupEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.RancherBackup != nil && vzv1alpha1.Spec.Components.RancherBackup.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.RancherBackup.Enabled
 		}
@@ -435,7 +453,7 @@ func IsRancherBackupEnabled(cr runtime.Object) bool {
 
 // IsArgoCDEnabled returns false unless ArgoCD is explicitly enabled in the CR
 func IsArgoCDEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.ArgoCD != nil && vzv1alpha1.Spec.Components.ArgoCD.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.ArgoCD.Enabled
 		}
@@ -449,13 +467,35 @@ func IsArgoCDEnabled(cr runtime.Object) bool {
 
 // IsThanosEnabled returns true only if Thanos is explicitly enabled in the CR
 func IsThanosEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.Thanos != nil && vzv1alpha1.Spec.Components.Thanos.Enabled != nil {
 			return *vzv1alpha1.Spec.Components.Thanos.Enabled
 		}
 	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
 		if vzv1beta1 != nil && vzv1beta1.Spec.Components.Thanos != nil && vzv1beta1.Spec.Components.Thanos.Enabled != nil {
 			return *vzv1beta1.Spec.Components.Thanos.Enabled
+		}
+	}
+	return false
+}
+
+// IsComponentStatusEnabled checks if the component is enabled by looking at the component status State field
+func IsComponentStatusEnabled(cr runtime.Object, componentName string) bool {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		if vzv1alpha1 != nil &&
+			vzv1alpha1.Status.Components[componentName] != nil &&
+			!(vzv1alpha1.Status.Components[componentName].State == installv1alpha1.CompStateDisabled ||
+				vzv1alpha1.Status.Components[componentName].State == installv1alpha1.CompStateUninstalled ||
+				vzv1alpha1.Status.Components[componentName].State == installv1alpha1.CompStateUninstalling) {
+			return true
+		}
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 != nil &&
+			vzv1beta1.Status.Components[componentName] != nil &&
+			!(vzv1beta1.Status.Components[componentName].State == installv1beta1.CompStateDisabled ||
+				vzv1beta1.Status.Components[componentName].State == installv1beta1.CompStateUninstalled ||
+				vzv1beta1.Status.Components[componentName].State == installv1beta1.CompStateUninstalling) {
+			return true
 		}
 	}
 	return false

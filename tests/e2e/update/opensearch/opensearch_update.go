@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package opensearch
@@ -39,6 +39,11 @@ type OpensearchMasterNodeGroupModifier struct {
 	NodeStorage  string
 }
 
+type OpenSearchPlugins struct {
+	Enabled      bool
+	InstanceList string
+}
+
 type OpensearchIngestNodeGroupModifier struct {
 	NodeReplicas int32
 	NodeMemory   string
@@ -70,6 +75,18 @@ func (u OpensearchMasterNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 				Storage:   newNodeStorage(u.NodeStorage),
 			},
 		)
+}
+
+func (u OpenSearchPlugins) ModifyCR(cr *vzapi.Verrazzano) {
+	if cr.Spec.Components.Elasticsearch == nil {
+		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
+	}
+	cr.Spec.Components.Elasticsearch.Plugins = vmov1.OpenSearchPlugins{}
+	cr.Spec.Components.Elasticsearch.Plugins =
+		vmov1.OpenSearchPlugins{
+			Enabled:     u.Enabled,
+			InstallList: []string{u.InstanceList},
+		}
 }
 
 func (u OpensearchIngestNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {

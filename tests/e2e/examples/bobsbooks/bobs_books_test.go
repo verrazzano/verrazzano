@@ -61,7 +61,8 @@ var (
 		"bobbys-helidon-stock-application",
 		"robert-helidon",
 		"mysql"}
-	host = ""
+	host        = ""
+	metricsTest pkg.MetricsTest
 	appName = "bobs-books"
 )
 var isMinVersion140 bool
@@ -137,6 +138,16 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 		return host, err
 	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Bobs Books Application Failed to Deploy: Gateway is not ready")
+
+	kubeconfig, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to get the Kubeconfig location for the cluster: %v", err))
+	}
+	metricsTest, err = pkg.NewMetricsTest(kubeconfig, map[string]string{})
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
+	}
+
 	metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 
 	beforeSuitePassed = true
@@ -367,7 +378,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobbys-helidon-stock-application")
+						return metricsTest.MetricsExist("istio_tcp_received_bytes_total", map[string]string{"destination_canonical_service": "bobbys-helidon-stock-application"})
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 			)

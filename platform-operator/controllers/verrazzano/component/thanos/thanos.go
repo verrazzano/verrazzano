@@ -26,7 +26,7 @@ const (
 	queryCertificateName = "system-tls-thanos-query"
 
 	// Thanos Query StoreAPI constants
-	queryStoreHostName        = "query-store"
+	queryStoreHostName        = "thanos-query-store"
 	queryStoreCertificateName = "system-tls-query-store"
 )
 
@@ -59,7 +59,19 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 	kvs = append(kvs, image...)
 
+	kvs = appendVerrazzanoOverrides(ctx, kvs)
+
 	return appendIngressOverrides(ctx, kvs)
+}
+
+// appendVerrazzanoOverrides appends overrides that are specific to Verrazzano
+// i.e. .Values.verrazzano.*. To start with, there is just one (verrazzano.isIstioEnabled)
+func appendVerrazzanoOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) []bom.KeyValue {
+	enabled := vzcr.IsIstioInjectionEnabled(ctx.EffectiveCR())
+	// isIstioEnabled is used in the Helm chart to determine whether the Thanos service monitors
+	// should use Istio TLS config
+	kvs = append(kvs, bom.KeyValue{Key: "verrazzano.isIstioEnabled", Value: strconv.FormatBool(enabled)})
+	return kvs
 }
 
 // preInstallUpgrade handles pre-install and pre-upgrade processing for the Thanos Component

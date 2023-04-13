@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.7.1-20230404005853-65304ed87",
+              "tag": "v2.7.1-20230407173256-5ed2c984b",
               "dashboard": "v2.7.1-20230314212735-270d0ef83",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.1-20230404005853-65304ed87"
+              "tag": "v2.7.1-20230407173256-5ed2c984b"
             }
           ]
         },
@@ -193,7 +193,7 @@
             },
             {
               "image": "console",
-              "tag": "v1.6.0-20230314210001-966ab58",
+              "tag": "v1.6.0-20230411132135-bd3ca29",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -223,7 +223,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.6.0-20230302034628-8ea4e6c",
+              "tag": "v1.6.0-20230413051529-98842d3",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -331,7 +331,7 @@
     },
     {
       "name": "weblogic-operator",
-      "version": "4.0.5",
+      "version": "4.0.6",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -339,12 +339,12 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "4.0.5",
+              "tag": "4.0.6",
               "helmFullImageKey": "image"
             },
             {
               "image": "weblogic-monitoring-exporter",
-              "tag": "2.1.2",
+              "tag": "2.1.3",
               "helmFullImageKey": "weblogicMonitoringExporterImage"
             }
           ]
@@ -449,7 +449,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v20.0.1-20230301104410-055767339d",
+              "tag": "v20.0.1-20230406163645-080e314b71",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

@@ -552,8 +552,8 @@ const pkceClientUrisTemplate = `
 	  "https://osd.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://kiali.vmi.system.{{.DNSSubDomain}}/*",
 	  "https://kiali.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-	  "https://query-store.{{.DNSSubDomain}}/*",
-	  "https://query-store.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://thanos-query-store.{{.DNSSubDomain}}/*",
+	  "https://thanos-query-store.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://thanos-query.{{.DNSSubDomain}}/*",
 	  "https://thanos-query.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://jaeger.{{.DNSSubDomain}}/*"{{ if .OSHostExists}},
@@ -569,7 +569,7 @@ const pkceClientUrisTemplate = `
 	  "https://grafana.vmi.system.{{.DNSSubDomain}}",
 	  "https://osd.vmi.system.{{.DNSSubDomain}}",
 	  "https://kiali.vmi.system.{{.DNSSubDomain}}",
-	  "https://query-store.{{.DNSSubDomain}}",
+	  "https://thanos-query-store.{{.DNSSubDomain}}",
 	  "https://thanos-query.{{.DNSSubDomain}}",
 	  "https://jaeger.{{.DNSSubDomain}}"{{ if .OSHostExists}},
       "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
@@ -581,14 +581,14 @@ const ManagedClusterClientUrisTemplate = `
 	"redirectUris": [
 	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/*",
 	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-	  "https://query-store.{{.DNSSubDomain}}/*",
-	  "https://query-store.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://thanos-query-store.{{.DNSSubDomain}}/*",
+	  "https://thanos-query-store.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://thanos-query.{{.DNSSubDomain}}/*",
 	  "https://thanos-query.{{.DNSSubDomain}}/_authentication_callback"
 	],
 	"webOrigins": [
 	  "https://prometheus.vmi.system.{{.DNSSubDomain}}",
-	  "https://query-store.{{.DNSSubDomain}}",
+	  "https://thanos-query-store.{{.DNSSubDomain}}",
 	  "https://thanos-query.{{.DNSSubDomain}}"
 	]
 `

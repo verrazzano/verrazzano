@@ -34,10 +34,10 @@ const (
 
 var isMinVersion140 bool
 var (
-	t                  = framework.NewTestFramework("helidon")
-	generatedNamespace = pkg.GenerateNamespace(helloHelidon)
-	//yamlApplier              = k8sutil.YAMLApplier{}
+	t                        = framework.NewTestFramework("helidon")
+	generatedNamespace       = pkg.GenerateNamespace(helloHelidon)
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
+	metricsTest              pkg.MetricsTest
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -65,6 +65,16 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
+
+	kubeconfig, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to get the Kubeconfig location for the cluster: %v", err))
+	}
+	metricsTest, err = pkg.NewMetricsTest(kubeconfig, map[string]string{})
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
+	}
+
 	beforeSuitePassed = true
 })
 
