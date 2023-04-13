@@ -30,6 +30,7 @@ const (
 	// Only allowed capability in restricted mode
 	capNetBindService = "NET_BIND_SERVICE"
 	capDacOverride    = "DAC_OVERRIDE"
+	capFOwner         = "FOWNER"
 
 	// MySQL ignore pattern; skip mysql-# or mysql-xxxx-xxxx pod names, but not mysql-router-#
 	mysqlPattern = "^mysql-([\\d]+)$"
@@ -93,7 +94,7 @@ var exceptionPods = map[string]podExceptions{
 		containers: map[string]containerException{
 			"thanos-sidecar": {
 				allowedCapabilities: map[string]bool{
-					capNetBindService: true,
+					capFOwner: true,
 				},
 			},
 		},
