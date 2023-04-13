@@ -491,7 +491,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	// Generate a list of override files making helm get values overrides first
 	overrides = append([]helm.HelmOverrides{{FileOverride: tmpFile.Name()}}, overrides...)
 
-	_, err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, true, context.IsDryRun(), overrides)
+	_, err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, false, context.IsDryRun(), overrides)
 	return err
 }
 
