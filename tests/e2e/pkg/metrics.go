@@ -6,7 +6,6 @@ package pkg
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"os/exec"
