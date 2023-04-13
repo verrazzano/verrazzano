@@ -1050,6 +1050,7 @@ def upgradePlatformOperatorOnCluster(count) {
 
                 # ensure operator pod is up
                 kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+                kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install rollout status deployment/verrazzano-platform-operator-webhook
             """
         }
     }

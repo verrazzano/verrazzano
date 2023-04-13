@@ -1,10 +1,11 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package ready
 
 import (
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -602,4 +603,52 @@ func TestDeploymentsReadyPodNotFound(t *testing.T) {
 		}).Build()
 
 	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), fakeClient, namespacedName, 1, ""))
+}
+
+func TestDoDeploymentsExist(t *testing.T) {
+	tests := []struct {
+		name     string
+		depNames []types.NamespacedName
+		want     bool
+	}{
+		{"no deployment names provided", []types.NamespacedName{}, true},
+		{"deployment exists", []types.NamespacedName{{Name: "foo", Namespace: "bar"}}, true},
+		{"all deployments exist", []types.NamespacedName{{Name: "foo", Namespace: "bar"}, {Name: "foo2", Namespace: "bar2"}}, true},
+		{"only some deployments exist", []types.NamespacedName{{Name: "foo", Namespace: "bar"}, {Name: "nonexist", Namespace: "bar"}}, false},
+		{"none of the deployments exist", []types.NamespacedName{{Name: "nofoo", Namespace: "nobar"}, {Name: "nofoo2", Namespace: "bar2"}}, false},
+		{"deployment in different namespace", []types.NamespacedName{{Name: "foo", Namespace: "bar2"}}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			log := vzlog.DefaultLogger()
+			fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+				&appsv1.Deployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "bar",
+						Name:      "foo",
+					},
+					Spec: appsv1.DeploymentSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								"app": "foo",
+							},
+						},
+					},
+				},
+				&appsv1.Deployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "bar2",
+						Name:      "foo2",
+					},
+					Spec: appsv1.DeploymentSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								"app": "foo",
+							},
+						},
+					},
+				}).Build()
+			assert.Equalf(t, tt.want, DoDeploymentsExist(log, fakeClient, tt.depNames, 1, tt.name), "Expected %v for %s", tt.want, tt.name)
+		})
+	}
 }

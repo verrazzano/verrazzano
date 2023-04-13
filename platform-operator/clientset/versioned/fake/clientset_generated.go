@@ -11,6 +11,8 @@ import (
 	fakeverrazzanov1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/verrazzano/v1alpha1/fake"
 	verrazzanov1beta1 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/verrazzano/v1beta1"
 	fakeverrazzanov1beta1 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/verrazzano/v1beta1/fake"
+	verrazzanov1beta2 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/verrazzano/v1beta2"
+	fakeverrazzanov1beta2 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/verrazzano/v1beta2/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -67,6 +69,11 @@ var (
 	_ clientset.Interface = &Clientset{}
 	_ testing.FakeClient  = &Clientset{}
 )
+
+// VerrazzanoV1beta2 retrieves the VerrazzanoV1beta2Client
+func (c *Clientset) VerrazzanoV1beta2() verrazzanov1beta2.VerrazzanoV1beta2Interface {
+	return &fakeverrazzanov1beta2.FakeVerrazzanoV1beta2{Fake: &c.Fake}
+}
 
 // VerrazzanoV1beta1 retrieves the VerrazzanoV1beta1Client
 func (c *Clientset) VerrazzanoV1beta1() verrazzanov1beta1.VerrazzanoV1beta1Interface {

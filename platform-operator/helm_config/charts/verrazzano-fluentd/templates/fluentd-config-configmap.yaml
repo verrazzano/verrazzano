@@ -767,6 +767,39 @@ data:
       </parse>
     </filter>
 
+    # filter to parse Thanos container log files
+    <filter kubernetes.**thanos**verrazzano-monitoring**>
+      @type parser
+      @id thanos
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # Thanos has multiple formats for log records
+        # Some records do not have a "msg" field, they instead have an "err" field
+        @type multi_format
+        <pattern>
+          format /^level=(?<level>.*?) ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3,}Z)(.*?)msg="(?<message>.*?)"([\s\S]*?)$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format /^level=(?<level>.*?) ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3,}Z)(.*?)err="(?<message>.*?)"$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        # Istio proxy log pattern
+        <pattern>
+          format /^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{6}Z)\t(?<level>.*?)\t(?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
   kubernetes-filter.conf: |
     # Query the API for extra metadata.
     <filter kubernetes.**>

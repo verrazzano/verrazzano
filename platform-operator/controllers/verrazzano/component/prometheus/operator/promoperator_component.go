@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	networkv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
 
@@ -241,8 +242,9 @@ func (c prometheusComponent) PostUninstall(ctx spi.ComponentContext) error {
 		},
 	}
 	err := ctx.Client().Delete(context.TODO(), ingress)
-	if err != nil {
+	if err != nil && !errors.IsNotFound(err) {
 		ctx.Log().Errorf("Error deleting legacy Prometheus ingress %s, %v", constants.PrometheusIngress, err)
+		return err
 	}
-	return err
+	return nil
 }

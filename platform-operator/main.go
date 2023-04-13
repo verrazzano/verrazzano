@@ -18,6 +18,7 @@ import (
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	installv1beta2 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -41,6 +42,7 @@ func init() {
 	_ = vmov1.AddToScheme(scheme)
 	_ = installv1alpha1.AddToScheme(scheme)
 	_ = installv1beta1.AddToScheme(scheme)
+	_ = installv1beta2.AddToScheme(scheme)
 	_ = clustersv1alpha1.AddToScheme(scheme)
 
 	_ = istioclinet.AddToScheme(scheme)

@@ -2,6 +2,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 name: verrazzano-platform-operator
 namespace: verrazzano-install
+createNamespace: true
 namespaceLabelKey: verrazzano.io/namespace
 
 global:
@@ -42,5 +43,8 @@ webhookAffinity:
 webhooks:
   resourceValidation: false
 
-experimental:
-  modules: false
+# Configuration for experimental features that are under active development
+experimentalFeatures:
+  # Experimental support for Module CRDs and controllers
+  moduleAPI:
+    enabled: false
