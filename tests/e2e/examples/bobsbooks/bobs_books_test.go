@@ -63,7 +63,7 @@ var (
 		"mysql"}
 	host        = ""
 	metricsTest pkg.MetricsTest
-	appName = "bobs-books"
+	appName     = "bobs-books"
 )
 var isMinVersion140 bool
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -367,7 +367,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		t.It("Verify all scrape targets are healthy for the application", func() {
 			Eventually(func() (bool, error) {
 				var componentNames = []string{"bobby-coh", "bobby-helidon", "bobby-wls", "bobs-mysql-deployment", "bobs-mysql-service", "bobs-orders-wls", robertCoh, "robert-helidon"}
-				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "bob-books", componentNames, isMinVersion140))
+				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "bobs-books", componentNames, isMinVersion140))
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
 		// Verify Istio Prometheus scraped metrics
