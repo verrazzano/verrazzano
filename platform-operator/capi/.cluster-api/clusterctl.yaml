@@ -1,0 +1,20 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+images:
+  control-plane-ocne:
+    # TODO: these should come from the BOM
+    repository: ghcr.io/verrazzano
+    tag: v0.1.0-20230406225237-9bd77d2
+  bootstrap-ocne:
+    # TODO: these should come from the BOM
+    repository: ghcr.io/verrazzano
+    tag: v0.1.0-20230406225237-9bd77d2
+
+providers:
+  - name: "ocne"
+    url: "/verrazzano/capi/bootstrap-ocne/v0.1.0/bootstrap-components.yaml"
+    type: "BootstrapProvider"
+  - name: "ocne"
+    url: "/verrazzano/capi/control-plane-ocne/v0.1.0/control-plane-components.yaml"
+    type: "ControlPlaneProvider"
