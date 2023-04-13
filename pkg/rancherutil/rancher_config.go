@@ -16,6 +16,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	cons "github.com/verrazzano/verrazzano/pkg/constants"
@@ -50,6 +51,7 @@ type RancherConfig struct {
 	APIAccessToken           string
 	CertificateAuthorityData []byte
 	AdditionalCA             []byte
+	User                     string
 }
 
 var DefaultRetry = wait.Backoff{
@@ -58,6 +60,9 @@ var DefaultRetry = wait.Backoff{
 	Factor:   2.0,
 	Jitter:   0.1,
 }
+
+var userToken = make(map[string]string)
+var userLock = &sync.RWMutex{}
 
 // requestSender is an interface for sending requests to Rancher that allows us to mock during unit testing
 type requestSender interface {
@@ -96,6 +101,8 @@ func NewVerrazzanoClusterRancherConfig(rdr client.Reader, log vzlog.VerrazzanoLo
 // NewRancherConfigForUser returns a populated RancherConfig struct that can be used to make calls to the Rancher API
 func NewRancherConfigForUser(rdr client.Reader, username, password string, log vzlog.VerrazzanoLogger) (*RancherConfig, error) {
 	rc := &RancherConfig{BaseURL: "https://" + nginxIngressHostName}
+	// Needed to populate userToken[] map
+	rc.User = username
 
 	// Rancher host name is needed for TLS
 	log.Debug("Getting Rancher ingress host name")
@@ -116,12 +123,40 @@ func NewRancherConfigForUser(rdr client.Reader, username, password string, log v
 
 	log.Debugf("Checking for Rancher additional CA in secret %s", cons.AdditionalTLS)
 	rc.AdditionalCA = common.GetAdditionalCA(rdr)
-	token, err := getUserToken(rc, log, password, username)
-	if err != nil {
-		return nil, err
+
+	token, exists := getStoredToken(username)
+	if !exists {
+		token, err = getUserToken(rc, log, password, username)
+		if err != nil {
+			return nil, err
+		}
+		newStoredToken(username, token)
 	}
+
 	rc.APIAccessToken = token
 	return rc, nil
+}
+
+// newStoredToken creates a new user:token key-pair in memory
+func newStoredToken(username string, token string) {
+	userLock.Lock()
+	defer userLock.Unlock()
+	userToken[username] = token
+}
+
+// getStoredToken gets the token for the given user from memory
+func getStoredToken(username string) (string, bool) {
+	userLock.RLock()
+	defer userLock.RUnlock()
+	token, exists := userToken[username]
+	return token, exists
+}
+
+// deleteStoredToken deletes the token for the given user from memory
+func deleteStoredToken(username string) {
+	userLock.Lock()
+	defer userLock.Unlock()
+	delete(userToken, username)
 }
 
 // getRancherIngressHostname gets the Rancher ingress host name. This is used to set the host for TLS.
@@ -305,7 +340,12 @@ func SendRequest(action string, reqURL string, headers map[string]string, payloa
 	req.Header.Add("Host", rc.Host)
 	req.Host = rc.Host
 
-	return doRequest(req, rc, log)
+	response, body, err := doRequest(req, rc, log)
+	// If we get an unauthorized response, remove the token from the cache
+	if response.StatusCode == http.StatusUnauthorized {
+		deleteStoredToken(rc.User)
+	}
+	return response, body, err
 }
 
 // doRequest configures an HTTP transport (including TLS), sends an HTTP request with retries, and returns the response
