@@ -203,8 +203,9 @@ func (c capiComponent) Install(_ spi.ComponentContext) error {
 	// TODO: version of providers should come from the BOM. Is kubeadm optional?
 	// Set up the init options for the CAPI init.
 	initOptions := clusterapi.InitOptions{
-		BootstrapProviders:      []string{"ocne:v0.1.0", "kubeadm"},
-		ControlPlaneProviders:   []string{"ocne:v0.1.0", "kubeadm"},
+		CoreProvider:            "cluster-api:v1.3.3",
+		BootstrapProviders:      []string{"ocne:v0.1.0", "kubeadm:v1.3.3"},
+		ControlPlaneProviders:   []string{"ocne:v0.1.0", "kubeadm:v1.3.3"},
 		InfrastructureProviders: []string{"oci:v0.8.0"},
 		TargetNamespace:         ComponentNamespace,
 	}
