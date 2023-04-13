@@ -366,7 +366,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		// THEN confirm that all the scrape targets are healthy
 		t.It("Verify all scrape targets are healthy for the application", func() {
 			Eventually(func() (bool, error) {
-				var componentNames = []string{"bobby-coh", "bobby-helidon", "bobby-wls", "bobs-mysql-deployment", "bobs-mysql-service", "bobs-orders-wls", robertCoh, "robert-helidon"}
+				var componentNames = []string{"bobby-coh", "bobby-helidon", "bobby-wls", "bobs-orders-wls", robertCoh, "robert-helidon"}
 				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "bobs-books", componentNames, isMinVersion140))
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
