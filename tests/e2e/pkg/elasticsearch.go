@@ -1267,3 +1267,14 @@ func CheckISMPolicy() (bool, error) {
 	}
 	return false, nil
 }
+
+func UpdateVZISM(cr *vzapi.Verrazzano) {
+	age := "30d"
+	cr.Spec.Components.Elasticsearch.Policies = []vmov1.IndexManagementPolicy{
+		{
+			PolicyName:   "vz-custom",
+			IndexPattern: "verrazzano-system",
+			MinIndexAge:  &age,
+		},
+	}
+}

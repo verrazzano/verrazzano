@@ -86,25 +86,33 @@ var _ = t.Describe("Pre Upgrade OpenSearch", Label("f:observability.logging.es")
 				return false
 			}
 			if isOSEnabled {
-				file, err := pkg.FindTestDataFile(ismTeamplateFile)
+				cr, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeConfigPath)
 				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("failed to find test data file: %v", err))
+					pkg.Log(pkg.Error, err.Error())
 					return false
 				}
-				data, err := os.ReadFile(file)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("failed to read test data file: %v", err))
-					return false
-				}
-				resp, err := pkg.PutISMPolicy(string(data), "vz-custom")
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Failed to create to ISM: %v", err))
-					return false
-				}
-				if resp.StatusCode != 201 {
-					pkg.Log(pkg.Error, fmt.Sprintf("Failed to write to OpenSearch: status=%d: body=%s", resp.StatusCode, string(resp.Body)))
-					return false
-				}
+				pkg.UpdateVZISM(cr)
+
+				//	file, err := pkg.FindTestDataFile(ismTeamplateFile)
+				//	if err != nil {
+				//		pkg.Log(pkg.Error, fmt.Sprintf("failed to find test data file: %v", err))
+				//		return false
+				//	}
+				//	data, err := os.ReadFile(file)
+				//	if err != nil {
+				//		pkg.Log(pkg.Error, fmt.Sprintf("failed to read test data file: %v", err))
+				//		return false
+				//	}
+				//	resp, err := pkg.PutISMPolicy(string(data), "vz-custom")
+				//	if err != nil {
+				//		pkg.Log(pkg.Error, fmt.Sprintf("Failed to create to ISM: %v", err))
+				//		return false
+				//	}
+				//	if resp.StatusCode != 201 {
+				//		pkg.Log(pkg.Error, fmt.Sprintf("Failed to write to OpenSearch: status=%d: body=%s", resp.StatusCode, string(resp.Body)))
+				//		return false
+				//	}
+				//}
 			}
 			return true
 		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue(), "Expected not to fail while writing data to OpenSearch")
