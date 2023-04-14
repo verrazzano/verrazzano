@@ -707,7 +707,7 @@ func getExpectedThanosReplicaCount(kubeconfig string) (int32, error) {
 	if !vzcr.IsComponentStatusEnabled(vz, thanos.ComponentName) {
 		return 0, nil
 	}
-	var expectedReplicas int32 = 1
+	var expectedReplicas int32 = 0
 	if vz.Spec.Components.Thanos == nil {
 		return expectedReplicas, nil
 	}
@@ -716,13 +716,19 @@ func getExpectedThanosReplicaCount(kubeconfig string) (int32, error) {
 		if override.Values != nil {
 			jsonString, err := gabs.ParseJSON(override.Values.Raw)
 			if err != nil {
-				return 0, err
+				return expectedReplicas, err
 			}
-			if container := jsonString.Path("storegateway.replicaCount"); container != nil {
-				if val, ok := container.Data().(float64); ok {
-					expectedReplicas = int32(val)
-					t.Logs.Infof("Found Thanos storegateway replicas override in Verrazzano CR, replica count is: %d", expectedReplicas)
-					break
+			// check to see if storegateway is enabled and if so how many replicas it has
+			if enabledContainer := jsonString.Path("storegateway.enabled"); enabledContainer != nil {
+				if enabled, ok := enabledContainer.Data().(bool); ok && enabled {
+					expectedReplicas = int32(1)
+					if replicaContainer := jsonString.Path("storegateway.replicaCount"); replicaContainer != nil {
+						if val, ok := replicaContainer.Data().(float64); ok {
+							expectedReplicas = int32(val)
+							t.Logs.Infof("Found Thanos storegateway replicas override in Verrazzano CR, replica count is: %d", expectedReplicas)
+							break
+						}
+					}
 				}
 			}
 		}
