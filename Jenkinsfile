@@ -183,6 +183,7 @@ pipeline {
 
                     def imageProps = readProperties file: "${WORKSPACE}/${BASE_IMAGE_INFO_FILE}"
                     VZ_BASE_IMAGE = imageProps['base-image']
+                    env.VZ_BASE_IMAGE = "${VZ_BASE_IMAGE}"
                     echo "Verrazzano base image: ${VZ_BASE_IMAGE}"
                 }
             }
@@ -585,8 +586,7 @@ def checkRepoClean() {
 def buildImages(dockerImageTag) {
     sh """
         cd ${GO_REPO_PATH}/verrazzano
-	export VZ_BASE_IMAGE=${VZ_BASE_IMAGE}
-	echo 'Now build using ${VZ_BASE_IMAGE} as base image...'
+        echo 'Now build using ${env.VZ_BASE_IMAGE} as base image...'
         make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_APP_IMAGE_NAME} VERRAZZANO_CLUSTER_OPERATOR_IMAGE_NAME=${DOCKER_CLUSTER_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
         cp ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json $WORKSPACE/generated-verrazzano-bom.json
         cp $WORKSPACE/generated-verrazzano-bom.json $WORKSPACE/verrazzano-bom.json
