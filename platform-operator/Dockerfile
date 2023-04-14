@@ -1,7 +1,8 @@
 # Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-FROM ghcr.io/oracle/oraclelinux:8-slim AS build_base
+ARG BASE_IMAGE=ghcr.io/oracle/oraclelinux:8-slim
+FROM $BASE_IMAGE AS build_base
 
 ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 
@@ -16,7 +17,7 @@ RUN chmod 500 /usr/local/bin/verrazzano-platform-operator \
     && chmod +x scripts/*.sh
 
 # Create the verrazzano-platform-operator image
-FROM ghcr.io/oracle/oraclelinux:8-slim AS final
+FROM $BASE_IMAGE AS final
 
 ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 
