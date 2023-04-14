@@ -53,6 +53,10 @@ ifndef RELEASE_BRANCH
 	RELEASE_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 endif
 
+ifndef VZ_BASE_IMAGE
+$(error Environment variable VZ_BASE_IMAGE pointing to a base image is required)
+endif
+
 DIST_DIR:=dist
 GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
