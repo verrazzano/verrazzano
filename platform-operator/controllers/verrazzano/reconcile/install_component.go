@@ -213,7 +213,8 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compTra
 
 	// The component previously finished installing, but check for any mid-installation updates
 	// which may require restarting the component's installation from the beginning
-	if restartComponentInstallFromEndState(compContext, comp, componentStatus) {
+
+	if componentStatus != nil && restartComponentInstallFromEndState(compContext, comp, componentStatus) {
 		compTracker.installState = compStateInstallInitDetermineComponentState
 		if err := r.updateComponentStatus(compContext, "PreInstall started", vzapi.CondPreInstall); err != nil {
 			compLog.ErrorfThrottled("Error writing component PreInstall state to the status: %v", err)
