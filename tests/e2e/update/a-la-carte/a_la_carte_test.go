@@ -23,6 +23,7 @@ const (
 	promEdgeStack          = "prom-edge-stack"
 	appStack               = "app-stack"
 	istioAppStack          = "istio-app-stack"
+	authproxyIstioAppStack = "authproxy-istio-app-stack"
 	clusterManagementStack = "cluster-management-stack"
 	noneProfile            = "none-profile"
 )
@@ -47,6 +48,9 @@ type appStackModifier struct {
 type istioAppStackModifier struct {
 }
 
+type authproxyIstioAppStackModifier struct {
+}
+
 type clusterManagementStackModifier struct {
 }
 
@@ -69,7 +73,6 @@ func (m appStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.KubeStateMetrics = &vzapi.KubeStateMetricsComponent{Enabled: &falseVal}
 
 	cr.Spec.Components.ApplicationOperator = &vzapi.ApplicationOperatorComponent{Enabled: &trueVal}
-	cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{Enabled: &trueVal}
 	cr.Spec.Components.CertManager = &vzapi.CertManagerComponent{Enabled: &trueVal}
 	cr.Spec.Components.Fluentd = &vzapi.FluentdComponent{Enabled: &trueVal}
 	cr.Spec.Components.Grafana = &vzapi.GrafanaComponent{Enabled: &trueVal}
@@ -86,6 +89,10 @@ func (m appStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
 func (m istioAppStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Istio = &vzapi.IstioComponent{Enabled: &trueVal}
 	cr.Spec.Components.Kiali = &vzapi.KialiComponent{Enabled: &trueVal}
+}
+
+func (m authproxyIstioAppStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{Enabled: &trueVal}
 }
 
 func (m clusterManagementStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
@@ -128,6 +135,8 @@ func getModifer(updateType string) update.CRModifier {
 		return appStackModifier{}
 	case istioAppStack:
 		return istioAppStackModifier{}
+	case authproxyIstioAppStack:
+		return authproxyIstioAppStackModifier{}
 	case clusterManagementStack:
 		return clusterManagementStackModifier{}
 	case noneProfile:

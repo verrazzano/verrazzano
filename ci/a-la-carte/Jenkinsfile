@@ -324,7 +324,7 @@ pipeline {
             post {
                 failure {
                     archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
-                    dumpK8sCluster('install-prom-app-istio-stack-dump')
+                    dumpK8sCluster('install-istio-app-stack-dump')
                 }
                 always {
                     archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
@@ -361,7 +361,7 @@ pipeline {
             }
             post {
                 failure {
-                    dumpK8sCluster('verify-prom-app-istio-stack-dump')
+                    dumpK8sCluster('verify-istio-app-stack-dump')
                 }
                 always {
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/*cluster-snapshot*/**', allowEmptyArchive: true
@@ -370,12 +370,77 @@ pipeline {
                 success {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('istio-prom-app-istio-installation-cluster-snapshot')
+                            dumpK8sCluster('istio-app-stack-installation-cluster-snapshot')
                         }
                     }
                 }
             }
         }
+
+                stage('Install Authproxy Istio App stack') {
+                    environment {
+                        KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
+                        OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                    }
+                    steps {
+                        runGinkgoUpdate('update/a-la-carte', 'istio-app-stack')
+                    }
+
+                    post {
+                        failure {
+                            archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                            dumpK8sCluster('install-authproxy-istio-app-stack-dump')
+                        }
+                        always {
+                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
+                        }
+                    }
+                }
+
+                stage('Verify Authproxy Istio App Stack') {
+                    parallel {
+                        stage('examples helidon') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
+                            }
+                            steps {
+                                runGinkgo('examples/helidon')
+                            }
+                        }
+                        stage('verify-install/promstack') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install/promstack"
+                            }
+                            steps {
+                                runGinkgoRandomize('verify-install/promstack')
+                            }
+                        }
+                        stage('verify-infra/vmi') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra/vmi"
+                            }
+                            steps {
+                                runGinkgoRandomize('verify-infra/vmi')
+                            }
+                        }
+                    }
+                    post {
+                        failure {f
+                            dumpK8sCluster('verify-authproxy-istio-app-stack-dump')
+                        }
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/*cluster-snapshot*/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                        success {
+                            script {
+                                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                                    dumpK8sCluster('authproxy-istio-app-stack-installation-cluster-snapshot')
+                                }
+                            }
+                        }
+                    }
+                }
 
         stage('Install Cluster Management stack') {
             environment {
