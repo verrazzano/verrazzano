@@ -207,7 +207,6 @@ func (c capiComponent) Install(_ spi.ComponentContext) error {
 		BootstrapProviders:      []string{"ocne:v0.1.0", "kubeadm:v1.3.3"},
 		ControlPlaneProviders:   []string{"ocne:v0.1.0", "kubeadm:v1.3.3"},
 		InfrastructureProviders: []string{"oci:v0.8.0"},
-		TargetNamespace:         ComponentNamespace,
 	}
 
 	_, err = capiClient.Init(initOptions)
