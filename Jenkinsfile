@@ -181,7 +181,7 @@ pipeline {
                         echo "Suspect list: ${SUSPECT_LIST}"
                     }
 
-                    def imageProps = readProperties file: "${BASE_IMAGE_INFO_FILE}"
+                    def imageProps = readProperties file: "${WORKSPACE}/${BASE_IMAGE_INFO_FILE}"
                     VZ_BASE_IMAGE = imageProps['base-image']
                     echo "Verrazzano base image: ${VZ_BASE_IMAGE}"
                 }
@@ -556,7 +556,7 @@ def moveContentToGoRepoPath() {
 // Download the file containing the base image name and digest
 def downloadBaseImageInfoFile() {
     sh """
-        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name verrazzano-base-images/${BASE_IMAGE_INFO_FILE} --file ${GO_REPO_PATH}/verrazzano/${BASE_IMAGE_INFO_FILE}
+        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name verrazzano-base-images/${BASE_IMAGE_INFO_FILE} --file ${WORKSPACE}/${BASE_IMAGE_INFO_FILE}
     """
 }
 
