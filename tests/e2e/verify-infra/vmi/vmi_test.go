@@ -707,7 +707,7 @@ func getExpectedThanosReplicaCount(kubeconfig string) (int32, error) {
 	if !vzcr.IsComponentStatusEnabled(vz, thanos.ComponentName) {
 		return 0, nil
 	}
-	var expectedReplicas int32 = 0
+	expectedReplicas := int32(0)
 	if vz.Spec.Components.Thanos == nil {
 		return expectedReplicas, nil
 	}
