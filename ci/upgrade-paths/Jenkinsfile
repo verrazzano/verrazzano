@@ -1003,7 +1003,6 @@ def getPlatformOperatorForRelease(){
             OPERATOR_YAML_FILE=sh(returnStdout: true, script: "ci/scripts/derive_operator_yaml.sh v${VERSION_FOR_UPGRADE_ENV}").trim()
             operatorCMD = "curl -L ${OPERATOR_YAML_FILE} --output"
         }
-
         sh(script: "$operatorCMD $TARGET_UPGRADE_OPERATOR_YAML")
     }
 }
