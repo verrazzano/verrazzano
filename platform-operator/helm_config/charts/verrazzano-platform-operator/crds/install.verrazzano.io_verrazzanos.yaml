@@ -963,6 +963,33 @@ spec:
                       replicas:
                         format: int32
                         type: integer
+                      smtp:
+                        properties:
+                          certFileKey:
+                            type: string
+                          ehloIdentity:
+                            type: string
+                          enabled:
+                            type: boolean
+                          existingSecret:
+                            type: string
+                          fromAddress:
+                            type: string
+                          fromName:
+                            type: string
+                          host:
+                            type: string
+                          keyFileKey:
+                            type: string
+                          passwordKey:
+                            type: string
+                          skipVerify:
+                            type: boolean
+                          startTLSPolicy:
+                            type: string
+                          userKey:
+                            type: string
+                        type: object
                     type: object
                   ingress:
                     properties:
@@ -4257,7 +4284,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -4269,7 +4295,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -4295,7 +4320,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -4307,7 +4331,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -4333,7 +4356,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -4345,7 +4367,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -4395,7 +4416,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -4407,7 +4427,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -4433,7 +4452,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -4445,7 +4463,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -4471,7 +4488,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -4483,7 +4499,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -4509,7 +4524,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -4521,7 +4535,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -4570,7 +4583,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -4582,7 +4594,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -4644,7 +4655,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -4656,7 +4666,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -4676,6 +4685,33 @@ spec:
                       replicas:
                         format: int32
                         type: integer
+                      smtp:
+                        properties:
+                          certFileKey:
+                            type: string
+                          ehloIdentity:
+                            type: string
+                          enabled:
+                            type: boolean
+                          existingSecret:
+                            type: string
+                          fromAddress:
+                            type: string
+                          fromName:
+                            type: string
+                          host:
+                            type: string
+                          keyFileKey:
+                            type: string
+                          passwordKey:
+                            type: string
+                          skipVerify:
+                            type: boolean
+                          startTLSPolicy:
+                            type: string
+                          userKey:
+                            type: string
+                        type: object
                     type: object
                   ingressNGINX:
                     properties:
@@ -4699,7 +4735,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -4711,7 +4746,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -4766,7 +4800,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -4778,7 +4811,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -4804,7 +4836,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -4816,7 +4847,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -4846,7 +4876,6 @@ spec:
                                   required:
                                   - key
                                   type: object
-                                  x-kubernetes-map-type: atomic
                                 secretRef:
                                   properties:
                                     key:
@@ -4858,7 +4887,6 @@ spec:
                                   required:
                                   - key
                                   type: object
-                                  x-kubernetes-map-type: atomic
                                 values:
                                   x-kubernetes-preserve-unknown-fields: true
                               type: object
@@ -4926,7 +4954,6 @@ spec:
                                       name:
                                         type: string
                                     type: object
-                                    x-kubernetes-map-type: atomic
                                   user:
                                     type: string
                                 required:
@@ -4943,7 +4970,6 @@ spec:
                                       name:
                                         type: string
                                     type: object
-                                    x-kubernetes-map-type: atomic
                                   volumeID:
                                     type: string
                                 required:
@@ -4974,7 +5000,6 @@ spec:
                                   optional:
                                     type: boolean
                                 type: object
-                                x-kubernetes-map-type: atomic
                               csi:
                                 properties:
                                   driver:
@@ -4986,7 +5011,6 @@ spec:
                                       name:
                                         type: string
                                     type: object
-                                    x-kubernetes-map-type: atomic
                                   readOnly:
                                     type: boolean
                                   volumeAttributes:
@@ -5013,7 +5037,6 @@ spec:
                                           required:
                                           - fieldPath
                                           type: object
-                                          x-kubernetes-map-type: atomic
                                         mode:
                                           format: int32
                                           type: integer
@@ -5034,7 +5057,6 @@ spec:
                                           required:
                                           - resource
                                           type: object
-                                          x-kubernetes-map-type: atomic
                                       required:
                                       - path
                                       type: object
@@ -5072,10 +5094,10 @@ spec:
                                               name:
                                                 type: string
                                             required:
+                                            - apiGroup
                                             - kind
                                             - name
                                             type: object
-                                            x-kubernetes-map-type: atomic
                                           dataSourceRef:
                                             properties:
                                               apiGroup:
@@ -5085,10 +5107,10 @@ spec:
                                               name:
                                                 type: string
                                             required:
+                                            - apiGroup
                                             - kind
                                             - name
                                             type: object
-                                            x-kubernetes-map-type: atomic
                                           resources:
                                             properties:
                                               limits:
@@ -5131,7 +5153,6 @@ spec:
                                                   type: string
                                                 type: object
                                             type: object
-                                            x-kubernetes-map-type: atomic
                                           storageClassName:
                                             type: string
                                           volumeMode:
@@ -5178,7 +5199,6 @@ spec:
                                       name:
                                         type: string
                                     type: object
-                                    x-kubernetes-map-type: atomic
                                 required:
                                 - driver
                                 type: object
@@ -5263,7 +5283,6 @@ spec:
                                       name:
                                         type: string
                                     type: object
-                                    x-kubernetes-map-type: atomic
                                   targetPortal:
                                     type: string
                                 required:
@@ -5342,7 +5361,6 @@ spec:
                                             optional:
                                               type: boolean
                                           type: object
-                                          x-kubernetes-map-type: atomic
                                         downwardAPI:
                                           properties:
                                             items:
@@ -5357,7 +5375,6 @@ spec:
                                                     required:
                                                     - fieldPath
                                                     type: object
-                                                    x-kubernetes-map-type: atomic
                                                   mode:
                                                     format: int32
                                                     type: integer
@@ -5378,7 +5395,6 @@ spec:
                                                     required:
                                                     - resource
                                                     type: object
-                                                    x-kubernetes-map-type: atomic
                                                 required:
                                                 - path
                                                 type: object
@@ -5406,7 +5422,6 @@ spec:
                                             optional:
                                               type: boolean
                                           type: object
-                                          x-kubernetes-map-type: atomic
                                         serviceAccountToken:
                                           properties:
                                             audience:
@@ -5421,6 +5436,8 @@ spec:
                                           type: object
                                       type: object
                                     type: array
+                                required:
+                                - sources
                                 type: object
                               quobyte:
                                 properties:
@@ -5461,7 +5478,6 @@ spec:
                                       name:
                                         type: string
                                     type: object
-                                    x-kubernetes-map-type: atomic
                                   user:
                                     type: string
                                 required:
@@ -5483,7 +5499,6 @@ spec:
                                       name:
                                         type: string
                                     type: object
-                                    x-kubernetes-map-type: atomic
                                   sslEnabled:
                                     type: boolean
                                   storageMode:
@@ -5535,7 +5550,6 @@ spec:
                                       name:
                                         type: string
                                     type: object
-                                    x-kubernetes-map-type: atomic
                                   volumeName:
                                     type: string
                                   volumeNamespace:
@@ -5570,7 +5584,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -5582,7 +5595,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -5608,7 +5620,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -5620,7 +5631,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -5646,7 +5656,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -5658,7 +5667,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -5684,7 +5692,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -5696,7 +5703,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -5722,7 +5728,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -5734,7 +5739,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -5805,7 +5809,6 @@ spec:
                             indexPattern:
                               type: string
                             minIndexAge:
-                              pattern: ^[0-9]+(d|h|m|s|ms|micros|nanos)$
                               type: string
                             policyName:
                               type: string
@@ -5814,10 +5817,8 @@ spec:
                                 minDocCount:
                                   type: integer
                                 minIndexAge:
-                                  pattern: ^[0-9]+(d|h|m|s|ms|micros|nanos)$
                                   type: string
                                 minSize:
-                                  pattern: ^[0-9]+(b|kb|mb|gb|tb|pb)$
                                   type: string
                               type: object
                           required:
@@ -5870,7 +5871,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -5882,7 +5882,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -5908,7 +5907,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -5920,7 +5918,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -5946,7 +5943,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -5958,7 +5954,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -5984,7 +5979,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -5996,7 +5990,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -6024,7 +6017,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -6036,7 +6028,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -6062,7 +6053,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -6074,7 +6064,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -6100,7 +6089,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -6112,7 +6100,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -6138,7 +6125,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -6150,7 +6136,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -6176,7 +6161,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -6188,7 +6172,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -6214,7 +6197,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -6226,7 +6208,6 @@ spec:
                               required:
                               - key
                               type: object
-                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -6296,7 +6277,6 @@ spec:
                           name:
                             type: string
                         type: object
-                        x-kubernetes-map-type: atomic
                       user:
                         type: string
                     required:
@@ -6313,7 +6293,6 @@ spec:
                           name:
                             type: string
                         type: object
-                        x-kubernetes-map-type: atomic
                       volumeID:
                         type: string
                     required:
@@ -6344,7 +6323,6 @@ spec:
                       optional:
                         type: boolean
                     type: object
-                    x-kubernetes-map-type: atomic
                   csi:
                     properties:
                       driver:
@@ -6356,7 +6334,6 @@ spec:
                           name:
                             type: string
                         type: object
-                        x-kubernetes-map-type: atomic
                       readOnly:
                         type: boolean
                       volumeAttributes:
@@ -6383,7 +6360,6 @@ spec:
                               required:
                               - fieldPath
                               type: object
-                              x-kubernetes-map-type: atomic
                             mode:
                               format: int32
                               type: integer
@@ -6404,7 +6380,6 @@ spec:
                               required:
                               - resource
                               type: object
-                              x-kubernetes-map-type: atomic
                           required:
                           - path
                           type: object
@@ -6442,10 +6417,10 @@ spec:
                                   name:
                                     type: string
                                 required:
+                                - apiGroup
                                 - kind
                                 - name
                                 type: object
-                                x-kubernetes-map-type: atomic
                               dataSourceRef:
                                 properties:
                                   apiGroup:
@@ -6455,10 +6430,10 @@ spec:
                                   name:
                                     type: string
                                 required:
+                                - apiGroup
                                 - kind
                                 - name
                                 type: object
-                                x-kubernetes-map-type: atomic
                               resources:
                                 properties:
                                   limits:
@@ -6501,7 +6476,6 @@ spec:
                                       type: string
                                     type: object
                                 type: object
-                                x-kubernetes-map-type: atomic
                               storageClassName:
                                 type: string
                               volumeMode:
@@ -6548,7 +6522,6 @@ spec:
                           name:
                             type: string
                         type: object
-                        x-kubernetes-map-type: atomic
                     required:
                     - driver
                     type: object
@@ -6633,7 +6606,6 @@ spec:
                           name:
                             type: string
                         type: object
-                        x-kubernetes-map-type: atomic
                       targetPortal:
                         type: string
                     required:
@@ -6712,7 +6684,6 @@ spec:
                                 optional:
                                   type: boolean
                               type: object
-                              x-kubernetes-map-type: atomic
                             downwardAPI:
                               properties:
                                 items:
@@ -6727,7 +6698,6 @@ spec:
                                         required:
                                         - fieldPath
                                         type: object
-                                        x-kubernetes-map-type: atomic
                                       mode:
                                         format: int32
                                         type: integer
@@ -6748,7 +6718,6 @@ spec:
                                         required:
                                         - resource
                                         type: object
-                                        x-kubernetes-map-type: atomic
                                     required:
                                     - path
                                     type: object
@@ -6776,7 +6745,6 @@ spec:
                                 optional:
                                   type: boolean
                               type: object
-                              x-kubernetes-map-type: atomic
                             serviceAccountToken:
                               properties:
                                 audience:
@@ -6791,6 +6759,8 @@ spec:
                               type: object
                           type: object
                         type: array
+                    required:
+                    - sources
                     type: object
                   quobyte:
                     properties:
@@ -6831,7 +6801,6 @@ spec:
                           name:
                             type: string
                         type: object
-                        x-kubernetes-map-type: atomic
                       user:
                         type: string
                     required:
@@ -6853,7 +6822,6 @@ spec:
                           name:
                             type: string
                         type: object
-                        x-kubernetes-map-type: atomic
                       sslEnabled:
                         type: boolean
                       storageMode:
@@ -6905,7 +6873,6 @@ spec:
                           name:
                             type: string
                         type: object
-                        x-kubernetes-map-type: atomic
                       volumeName:
                         type: string
                       volumeNamespace:
@@ -6946,7 +6913,6 @@ spec:
                       - kind
                       - name
                       type: object
-                      x-kubernetes-map-type: atomic
                     type: array
                   monitorSubjects:
                     items:
@@ -6963,7 +6929,6 @@ spec:
                       - kind
                       - name
                       type: object
-                      x-kubernetes-map-type: atomic
                     type: array
                 type: object
               version:
@@ -6989,10 +6954,10 @@ spec:
                             name:
                               type: string
                           required:
+                          - apiGroup
                           - kind
                           - name
                           type: object
-                          x-kubernetes-map-type: atomic
                         dataSourceRef:
                           properties:
                             apiGroup:
@@ -7002,10 +6967,10 @@ spec:
                             name:
                               type: string
                           required:
+                          - apiGroup
                           - kind
                           - name
                           type: object
-                          x-kubernetes-map-type: atomic
                         resources:
                           properties:
                             limits:
@@ -7048,7 +7013,6 @@ spec:
                                 type: string
                               type: object
                           type: object
-                          x-kubernetes-map-type: atomic
                         storageClassName:
                           type: string
                         volumeMode:
