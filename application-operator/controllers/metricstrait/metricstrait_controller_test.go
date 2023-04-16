@@ -55,7 +55,7 @@ type erroringUpdateClient struct {
 	client.Client
 }
 
-func (eg *erroringGetClient) Get(_ context.Context, _ client.ObjectKey, _ client.Object) error {
+func (eg *erroringGetClient) Get(_ context.Context, _ client.ObjectKey, _ client.Object, _ ...client.GetOption) error {
 	return errors.NewTooManyRequests(getError, 0)
 }
 
@@ -370,8 +370,8 @@ func TestDeploymentUpdateError(t *testing.T) {
 				UID:        "test-workload-uid"}}}}
 	// Expect a call to get the trait resource.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.MetricsTrait) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.MetricsTrait, opts ...client.GetOption) error {
 			trait.TypeMeta = k8smeta.TypeMeta{
 				APIVersion: vzapi.SchemeGroupVersion.Identifier(),
 				Kind:       vzapi.MetricsTraitKind}
@@ -400,8 +400,8 @@ func TestDeploymentUpdateError(t *testing.T) {
 		})
 	// Expect a call to get the containerized workload resource
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-workload-name"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *unstructured.Unstructured) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-workload-name"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *unstructured.Unstructured, opts ...client.GetOption) error {
 			workload.SetGroupVersionKind(oamcore.ContainerizedWorkloadGroupVersionKind)
 			workload.SetNamespace(name.Namespace)
 			workload.SetName(name.Name)
@@ -410,8 +410,8 @@ func TestDeploymentUpdateError(t *testing.T) {
 		}).Times(2)
 	// Expect a call to get the prometheus configuration.
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment, opts ...client.GetOption) error {
 			assert.Equal("istio-system", name.Namespace)
 			assert.Equal("prometheus", name.Name)
 			deployment.APIVersion = k8sapps.SchemeGroupVersion.Identifier()
@@ -422,8 +422,8 @@ func TestDeploymentUpdateError(t *testing.T) {
 		})
 	// Expect a call to get the containerized workload resource definition
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *oamcore.WorkloadDefinition) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *oamcore.WorkloadDefinition, opts ...client.GetOption) error {
 			workloadDef.Namespace = name.Namespace
 			workloadDef.Name = name.Name
 			workloadDef.Spec.ChildResourceKinds = []oamcore.ChildResourceKind{
@@ -444,8 +444,8 @@ func TestDeploymentUpdateError(t *testing.T) {
 		}).Times(2)
 	// Expect a call to get the deployment definition
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-deployment-name"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-deployment-name"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment, opts ...client.GetOption) error {
 			deployment.ObjectMeta = testDeployment.ObjectMeta
 			deployment.Spec = testDeployment.Spec
 			return nil
@@ -671,8 +671,8 @@ func TestUseHTTPSForScrapeTargetFalseConditions(t *testing.T) {
 
 	// Expect a call to get the namespace definition
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, namespace *k8score.Namespace) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, namespace *k8score.Namespace, opts ...client.GetOption) error {
 			namespace.TypeMeta = testNamespace.TypeMeta
 			namespace.ObjectMeta = testNamespace.ObjectMeta
 			return nil
@@ -723,8 +723,8 @@ func TestUseHTTPSForScrapeTargetTrueCondition(t *testing.T) {
 
 	// Expect a call to get the namespace definition
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, namespace *k8score.Namespace) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, namespace *k8score.Namespace, opts ...client.GetOption) error {
 			namespace.TypeMeta = testNamespace.TypeMeta
 			namespace.ObjectMeta = testNamespace.ObjectMeta
 			return nil
