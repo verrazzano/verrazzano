@@ -388,7 +388,7 @@ func (r *Reconciler) initComponentStatus(ctx spi.ComponentContext, comp spi.Comp
 	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
 		Verrazzano: ctx.ActualCR(),
 		Components: map[string]*vzapi.ComponentStatusDetails{
-			comp.Name(): &vzapi.ComponentStatusDetails{
+			comp.Name(): {
 				Name:                     comp.Name(),
 				State:                    state,
 				LastReconciledGeneration: lastReconciled,
