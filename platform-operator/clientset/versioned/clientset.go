@@ -11,7 +11,6 @@ import (
 
 	verrazzanov1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/verrazzano/v1alpha1"
 	verrazzanov1beta1 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/verrazzano/v1beta1"
-	verrazzanov1beta2 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/verrazzano/v1beta2"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -19,7 +18,6 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	VerrazzanoV1beta2() verrazzanov1beta2.VerrazzanoV1beta2Interface
 	VerrazzanoV1beta1() verrazzanov1beta1.VerrazzanoV1beta1Interface
 	VerrazzanoV1alpha1() verrazzanov1alpha1.VerrazzanoV1alpha1Interface
 }
@@ -28,14 +26,8 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	verrazzanoV1beta2  *verrazzanov1beta2.VerrazzanoV1beta2Client
 	verrazzanoV1beta1  *verrazzanov1beta1.VerrazzanoV1beta1Client
 	verrazzanoV1alpha1 *verrazzanov1alpha1.VerrazzanoV1alpha1Client
-}
-
-// VerrazzanoV1beta2 retrieves the VerrazzanoV1beta2Client
-func (c *Clientset) VerrazzanoV1beta2() verrazzanov1beta2.VerrazzanoV1beta2Interface {
-	return c.verrazzanoV1beta2
 }
 
 // VerrazzanoV1beta1 retrieves the VerrazzanoV1beta1Client
@@ -92,10 +84,6 @@ func NewForConfigAndClient(c *rest.Config, httpClient *http.Client) (*Clientset,
 
 	var cs Clientset
 	var err error
-	cs.verrazzanoV1beta2, err = verrazzanov1beta2.NewForConfigAndClient(&configShallowCopy, httpClient)
-	if err != nil {
-		return nil, err
-	}
 	cs.verrazzanoV1beta1, err = verrazzanov1beta1.NewForConfigAndClient(&configShallowCopy, httpClient)
 	if err != nil {
 		return nil, err
@@ -125,7 +113,6 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.verrazzanoV1beta2 = verrazzanov1beta2.New(c)
 	cs.verrazzanoV1beta1 = verrazzanov1beta1.New(c)
 	cs.verrazzanoV1alpha1 = verrazzanov1alpha1.New(c)
 

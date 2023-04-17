@@ -104,7 +104,6 @@ go-build-linux-debug:
 go-install:
 	$(GO) install ./...
 
-manifests: export EXP_CRD_PATH ?= experimental/crds
 .PHONY: manifests
 manifests: platform-manifests
 

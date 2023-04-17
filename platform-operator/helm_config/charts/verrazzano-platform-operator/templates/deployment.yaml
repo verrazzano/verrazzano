@@ -47,7 +47,7 @@ spec:
           args:
             - --zap-log-level=info
             - --health-check-period=60
-            {{ if .Values.experimentalFeatures.moduleAPI.enabled }}
+            {{ if .Values.experimental.modules }}
             - --experimental-modules=true
             {{ end }}
           env:
@@ -127,7 +127,7 @@ spec:
           args:
             - --zap-log-level=info
             - --run-webhook-init=true
-            {{ if .Values.experimentalFeatures.moduleAPI.enabled }}
+            {{ if .Values.experimental.modules }}
             - --experimental-modules=true
             {{ end }}
           resources:
@@ -150,7 +150,7 @@ spec:
             - --zap-log-level=info
             - --run-webhooks=true
             - --resource-validation={{ .Values.webhooks.resourceValidation }}
-            {{ if .Values.experimentalFeatures.moduleAPI.enabled }}
+            {{ if .Values.experimental.modules }}
             - --experimental-modules=true
             {{ end }}
           volumeMounts:
