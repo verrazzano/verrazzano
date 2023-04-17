@@ -5,12 +5,12 @@ package promstack
 
 import (
 	"fmt"
+	"github.com/Jeffail/gabs/v2"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzalpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
@@ -19,10 +19,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/nodeexporter"
 	prometheusOperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/pushgateway"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/thanos"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"time"
 
-	"github.com/Jeffail/gabs/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -89,13 +89,15 @@ var (
 		{target: "serviceMonitor/verrazzano-monitoring/prometheus-operator-kube-p-operator", componentName: prometheusOperator.ComponentName},
 		//{target: "serviceMonitor/verrazzano-monitoring/prometheus-operator-kube-p-prometheus", componentName: prometheusOperator.ComponentName},
 		{target: "serviceMonitor/verrazzano-monitoring/authproxy", componentName: authproxy.ComponentName},
-		{target: "serviceMonitor/verrazzano-monitoring/fluentd", componentName: fluentd.ComponentName},
+		//{target: "serviceMonitor/verrazzano-monitoring/fluentd", componentName: fluentd.ComponentName},
 		{target: "serviceMonitor/verrazzano-monitoring/kube-state-metrics", componentName: kubestatemetrics.ComponentName},
 		{target: "serviceMonitor/verrazzano-monitoring/opensearch", componentName: opensearch.ComponentName},
 		{target: "serviceMonitor/verrazzano-monitoring/pilot", componentName: istio.ComponentName},
 		{target: "serviceMonitor/verrazzano-monitoring/verrazzano-application-operator", componentName: appoper.ComponentName},
 		{target: "serviceMonitor/verrazzano-monitoring/verrazzano-cluster-operator", componentName: clusteroperator.ComponentName},
 		{target: "serviceMonitor/verrazzano-monitoring/verrazzano-monitoring-operator", componentName: vmo.ComponentName},
+		{target: "serviceMonitor/verrazzano-monitoring/thanos-query-frontend", componentName: thanos.ComponentName},
+		{target: "serviceMonitor/verrazzano-monitoring/thanos-query", componentName: thanos.ComponentName},
 	}
 )
 
