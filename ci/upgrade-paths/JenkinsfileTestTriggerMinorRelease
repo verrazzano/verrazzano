@@ -151,9 +151,7 @@ pipeline {
             parallel {
                 stage('Upgrade Verrazzano from version current branch to master'){
                     when {
-                        not {
-                            branch "${CLEAN_BRANCH_NAME}"
-                        }
+                       expression { CLEAN_BRANCH_NAME != CLEAN_BRANCH_NAME }
                     }
                     steps{
                         script{
