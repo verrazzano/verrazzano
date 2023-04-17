@@ -22,9 +22,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"time"
 
-	"github.com/Jeffail/gabs/v2"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -97,7 +94,6 @@ var (
 		{target: "serviceMonitor/verrazzano-monitoring/verrazzano-cluster-operator", componentName: clusteroperator.ComponentName},
 		{target: "serviceMonitor/verrazzano-monitoring/verrazzano-monitoring-operator", componentName: vmo.ComponentName},
 		{target: "serviceMonitor/verrazzano-monitoring/thanos-query-frontend", componentName: thanos.ComponentName},
-		{target: "serviceMonitor/verrazzano-monitoring/thanos-storegateway", componentName: thanos.ComponentName},
 		{target: "serviceMonitor/verrazzano-monitoring/thanos-query", componentName: thanos.ComponentName},
 	}
 )
