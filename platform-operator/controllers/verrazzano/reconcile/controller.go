@@ -872,8 +872,8 @@ func (r *Reconciler) watchResources(namespace string, name string, log vzlog.Ver
 		return err
 	}
 
-	log.Debugf("Watching for OCI secret to create admin cloud credential")
-	return r.watchOCISecret(namespace, name)
+	log.Debugf("Watching for Capi secret to create admin cloud credential")
+	return r.watchCapiSecret(namespace, name)
 }
 
 func (r *Reconciler) watchManagedClusterRegistrationSecret(namespace string, name string) error {
@@ -936,17 +936,17 @@ func (r *Reconciler) isCattleGlobalDataNamespace(o client.Object) bool {
 	return true
 }
 
-func (r *Reconciler) watchOCISecret(namespace string, name string) error {
+func (r *Reconciler) watchCapiSecret(namespace string, name string) error {
 	return r.Controller.Watch(
 		&source.Kind{Type: &corev1.Secret{}},
 		createReconcileEventHandler(namespace, name),
 		// Reconcile if there is an event related to the registration secret
 		predicate.Funcs{
 			CreateFunc: func(e event.CreateEvent) bool {
-				return r.isOCISecret(e.Object)
+				return r.isCapiSecret(e.Object)
 			},
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				return r.isOCISecret(e.ObjectNew)
+				return r.isCapiSecret(e.ObjectNew)
 			},
 		},
 	)
@@ -970,9 +970,9 @@ func (r *Reconciler) isThanosInternalUserSecret(o client.Object) bool {
 	return true
 }
 
-func (r *Reconciler) isOCISecret(o client.Object) bool {
+func (r *Reconciler) isCapiSecret(o client.Object) bool {
 	secret := o.(*corev1.Secret)
-	if secret.Namespace != vzconst.VerrazzanoInstallNamespace || secret.Name != vzconst.OCISecretName {
+	if secret.Namespace != rancher.CAPIProviderOCISystemNamespace || secret.Name != rancher.CAPIProviderOCIAuthConfigSecret {
 		return false
 	}
 	r.AddWatch(rancher.ComponentJSONName)
