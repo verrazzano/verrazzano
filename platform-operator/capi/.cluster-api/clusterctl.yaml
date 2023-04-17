@@ -1,15 +1,23 @@
 # Copyright (c) 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+# TODO: image overrides should come from the BOM
 images:
-  control-plane-ocne:
-    # TODO: these should come from the BOM
+  cluster-api:
     repository: ghcr.io/verrazzano
-    tag: v0.1.0-20230406225237-9bd77d2
+    tag: amd64-v1.3.3-20230324202819-5e71a53d9
+
+  infrastructure-oci:
+    repository: ghcr.io/oracle
+    tag: v0.8.0
+
   bootstrap-ocne:
-    # TODO: these should come from the BOM
     repository: ghcr.io/verrazzano
     tag: v0.1.0-20230406225237-9bd77d2
+  control-plane-ocne:
+    repository: ghcr.io/verrazzano
+    tag: v0.1.0-20230406225237-9bd77d2
+
 
 providers:
   - name: "ocne"
