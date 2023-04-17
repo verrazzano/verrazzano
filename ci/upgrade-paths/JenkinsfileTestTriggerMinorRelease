@@ -152,7 +152,7 @@ pipeline {
                 stage('Upgrade Verrazzano from version current branch to master'){
                     when {
                         not {
-                            branch 'master'
+                            branch "${TARGET_UPGRADE_VERSION}"
                         }
                     }
                     steps{
@@ -163,7 +163,7 @@ pipeline {
                                     def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                                 string(name: 'GIT_COMMIT_TO_USE', value: params.GIT_COMMIT_TO_USE),
-                                                string(name: 'VERSION_FOR_INSTALL', value: "${TARGET_UPGRADE_VERSION}" ),
+                                                string(name: 'VERSION_FOR_INSTALL', value: "current_branch" ),
                                                 string(name: 'VERSION_FOR_UPGRADE', value: "master"),
                                                 string(name: 'VZ_INSTALL_CONFIG', value: params.VZ_INSTALL_CONFIG),
                                                 string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
