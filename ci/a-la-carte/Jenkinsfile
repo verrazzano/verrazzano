@@ -425,7 +425,7 @@ pipeline {
                         }
                     }
                     post {
-                        failure {f
+                        failure {
                             dumpK8sCluster('verify-authproxy-istio-app-stack-dump')
                         }
                         always {
