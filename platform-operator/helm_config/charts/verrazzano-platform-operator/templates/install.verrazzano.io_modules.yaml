@@ -1,7 +1,7 @@
 # Copyright (c) 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{ if .Values.experimentalFeatures.moduleAPI.enabled }}
 ---
-{{ if .Values.experimental.modules }}
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -15,10 +15,17 @@ spec:
     kind: Module
     listKind: ModuleList
     plural: modules
+    shortNames:
+    - vzmod
+    - vzmods
     singular: module
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - description: The current version of the Verrazzano platform.
+      jsonPath: .status.version
+      name: Version
+      type: string
     - description: State of Module reconciliation
       jsonPath: .status.state
       name: Status

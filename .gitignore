@@ -4,6 +4,8 @@
 platform-operator/scripts/install/build/
 platform-operator/scripts/uninstall/build/
 platform-operator/scripts/uninstall/uninstall-steps/build/
+# Experimental CRDs location, not shipped as-is
+platform-operator/experimental/crds
 examples/**/build/
 .idea/
 *.iml
