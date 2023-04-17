@@ -6,8 +6,8 @@ package capi
 import (
 	"context"
 	"fmt"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -23,45 +23,38 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "verrazzano-capi"
 
-// ComponentNamespace is the namespace of the component
-const ComponentNamespace = vzconst.CAPISystemNamespace
+// Namespaces for CAPI component
+const CAPISystemNamespace = "capi-system"
+const OCNEBootstrapNamespace = "capi-ocne-bootstrap-system"
+const OCNEControlPlaneNamespace = "capi-ocne-control-plane-system"
+const CoreProviderNamespace = "cluster-api-provider-oci-system"
 
 // ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "verrazzano-capi"
 
 const (
-	capiCMDeployment                    = "capi-controller-manager"
-	capiKubeadmBootstrapCMDeployment    = "capi-kubeadm-bootstrap-controller-manager"
-	capiKubeadmControlPlaneCMDeployment = "capi-kubeadm-control-plane-controller-manager"
-	capiOcneBootstrapCMDeployment       = "capi-ocne-bootstrap-controller-manager"
-	capiOcneControlPlaneCMDeployment    = "capi-ocne-control-plane-controller-manager"
-	capiociCMDeployment                 = "capoci-controller-manager"
+	capiCMDeployment                 = "capi-controller-manager"
+	capiOcneBootstrapCMDeployment    = "capi-ocne-bootstrap-controller-manager"
+	capiOcneControlPlaneCMDeployment = "capi-ocne-control-plane-controller-manager"
+	capiociCMDeployment              = "capoci-controller-manager"
 )
 
 var capiDeployments = []types.NamespacedName{
 	{
 		Name:      capiCMDeployment,
-		Namespace: ComponentNamespace,
-	},
-	{
-		Name:      capiKubeadmBootstrapCMDeployment,
-		Namespace: ComponentNamespace,
-	},
-	{
-		Name:      capiKubeadmControlPlaneCMDeployment,
-		Namespace: ComponentNamespace,
+		Namespace: CAPISystemNamespace,
 	},
 	{
 		Name:      capiOcneBootstrapCMDeployment,
-		Namespace: ComponentNamespace,
+		Namespace: OCNEBootstrapNamespace,
 	},
 	{
 		Name:      capiOcneControlPlaneCMDeployment,
-		Namespace: ComponentNamespace,
+		Namespace: OCNEControlPlaneNamespace,
 	},
 	{
 		Name:      capiociCMDeployment,
-		Namespace: ComponentNamespace,
+		Namespace: CoreProviderNamespace,
 	},
 }
 
@@ -93,7 +86,7 @@ func (c capiComponent) Name() string {
 
 // Namespace returns the component namespace.
 func (c capiComponent) Namespace() string {
-	return ComponentNamespace
+	return CAPISystemNamespace
 }
 
 // ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done.
@@ -119,9 +112,7 @@ func (c capiComponent) IsAvailable(ctx spi.ComponentContext) (reason string, ava
 
 // IsEnabled returns true if component is enabled for installation.
 func (c capiComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return true
-	// TODO: uncomment when component is added to verrazzano API
-	// return vzcr.IsCapiEnabled(effectiveCR)
+	return vzcr.IsCAPIEnabled(effectiveCR)
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
@@ -146,29 +137,27 @@ func (c capiComponent) GetJSONName() string {
 
 // GetOverrides returns the Helm override sources for a component
 func (c capiComponent) GetOverrides(object runtime.Object) interface{} {
-	// TODO: update when capi component is added to Verrazzano API
-	if _, ok := object.(*v1alpha1.Verrazzano); ok {
-		//		if effectiveCR.Spec.Components.Capi != nil {
-		//			return effectiveCR.Spec.Components.Capi.ValueOverrides
-		//		}
+	if effectiveCR, ok := object.(*v1alpha1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.CAPI != nil {
+			return effectiveCR.Spec.Components.CAPI.ValueOverrides
+		}
 		return []v1alpha1.Overrides{}
 	}
-	//effectiveCR := object.(*v1beta1.Verrazzano)
-	//	if effectiveCR.Spec.Components.Capi != nil {
-	//		return effectiveCR.Spec.Components.Capi.ValueOverrides
-	//	}
+	effectiveCR := object.(*v1beta1.Verrazzano)
+	if effectiveCR.Spec.Components.CAPI != nil {
+		return effectiveCR.Spec.Components.CAPI.ValueOverrides
+	}
 	return []v1beta1.Overrides{}
 }
 
 // MonitorOverrides indicates whether monitoring of override sources is enabled for a component
-func (c capiComponent) MonitorOverrides(_ spi.ComponentContext) bool {
-	// TODO: update when capi component is added to Verrazzano API
-	//	if ctx.EffectiveCR().Spec.Components.Capi == nil {
-	//		return false
-	//	}
-	//	if ctx.EffectiveCR().Spec.Components.Capi.MonitorChanges != nil {
-	//		return *ctx.EffectiveCR().Spec.Components.Istio.MonitorChanges
-	//	}
+func (c capiComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.CAPI == nil {
+		return false
+	}
+	if ctx.EffectiveCR().Spec.Components.CAPI.MonitorChanges != nil {
+		return *ctx.EffectiveCR().Spec.Components.CAPI.MonitorChanges
+	}
 	return true
 }
 
@@ -179,12 +168,12 @@ func (c capiComponent) IsOperatorInstallSupported() bool {
 // IsInstalled checks to see if CAPI is installed
 func (c capiComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	daemonSet := &appsv1.Deployment{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: capiCMDeployment}, daemonSet)
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: CAPISystemNamespace, Name: capiCMDeployment}, daemonSet)
 	if errors.IsNotFound(err) {
 		return false, nil
 	}
 	if err != nil {
-		ctx.Log().Errorf("Failed to get %s/%s deployment: %v", ComponentNamespace, capiCMDeployment, err)
+		ctx.Log().Errorf("Failed to get %s/%s deployment: %v", CAPISystemNamespace, capiCMDeployment, err)
 		return false, err
 	}
 	return true, nil

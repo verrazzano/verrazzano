@@ -20,3 +20,5 @@ spec:
       enabled: false
     argoCD:
       enabled: false
+    capi:
+      enabled: false
