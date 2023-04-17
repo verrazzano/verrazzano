@@ -152,7 +152,7 @@ pipeline {
                 stage('Upgrade Verrazzano from version current branch to master'){
                     when {
                         not {
-                            branch "${TARGET_UPGRADE_VERSION}"
+                            branch "${CLEAN_BRANCH_NAME}"
                         }
                     }
                     steps{
