@@ -159,9 +159,12 @@ pipeline {
                 }
             }
         }
-        currentBuild.result = 'SUCCESS'
-        return
         stage('Initialize workspace and checkout') {
+            when {
+                expression {
+                    return runPipeline()
+                }
+            }
             steps {
                 script {
                     echo "Current execution region: $ocirRegion"
@@ -268,6 +271,11 @@ pipeline {
         }
 
         stage('Download and extract Tarball') {
+            when {
+                expression {
+                    return runPipeline()
+                }
+            }
              environment {
                  TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
              }
@@ -326,6 +334,11 @@ pipeline {
         }
 
         stage('verify distribution') {
+            when {
+                expression {
+                    return runPipeline()
+                }
+            }
             environment {
                 VERRAZZANO_DEV_VERSION="${VERRAZZANO_DEV_VERSION}"
                 TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
@@ -336,6 +349,11 @@ pipeline {
         }
 
         stage('Upload Verrazzano Images') {
+             when {
+                 expression {
+                     return runPipeline()
+                }
+             }
              environment {
                  TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
              }
@@ -370,6 +388,11 @@ pipeline {
             }
         }
         stage('Acceptance Tests') {
+            when {
+                expression {
+                    return runPipeline()
+                }
+            }
             stages {
                 stage('Prepare AT environment') {
                     environment {
@@ -580,6 +603,11 @@ pipeline {
             }
         }
         stage('Uninstall') {
+            when {
+                expression {
+                    return runPipeline()
+                }
+            }
             options {
                 timeout(time: 30, unit: "MINUTES")
             }
@@ -615,6 +643,11 @@ pipeline {
             }
         }
         stage("Verify Uninstall") {
+            when {
+                expression {
+                    return runPipeline()
+                }
+            }
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
@@ -687,6 +720,10 @@ pipeline {
             deleteDir()
         }
     }
+}
+
+def runPipeline() {
+    return AIR_GAPPED
 }
 
 def runGinkgoRandomize(testSuitePath) {
