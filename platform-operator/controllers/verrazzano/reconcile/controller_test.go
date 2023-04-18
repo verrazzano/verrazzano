@@ -333,12 +333,12 @@ func TestCreateLocalRegistrationSecret(t *testing.T) {
 	asserts.NotNil(mockStatus)
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
 
 	// Expect a call to get the local registration secret in the verrazzano-system namespace - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCLocalRegistrationSecret}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCLocalRegistrationSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCLocalRegistrationSecret))
 
 	// Expect a call to create the registration secret
@@ -374,12 +374,12 @@ func TestCreateLocalRegistrationSecretUnexpectedError(t *testing.T) {
 	asserts.NotNil(mockStatus)
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(fmt.Errorf("Unexpected error getting secret"))
 
 	// Expect a call to get the local registration secret in the verrazzano-system namespace - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCLocalRegistrationSecret}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCLocalRegistrationSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Times(0)
 
 	// Expect a call to create the registration secret
@@ -464,8 +464,8 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 
 	// Expect a call to get the DNS config secret and return it
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			data := make(map[string][]byte)
 			data["passphrase"] = []byte("passphraseValue")
 			secret.ObjectMeta = metav1.ObjectMeta{
@@ -547,8 +547,8 @@ func TestUninstallComplete(t *testing.T) {
 
 	// Expect a call to get the Verrazzano resource.  Return resource with deleted timestamp.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano, opts ...client.GetOption) error {
 			verrazzano.TypeMeta = metav1.TypeMeta{
 				APIVersion: "install.verrazzano.io/v1alpha1",
 				Kind:       "Verrazzano"}
@@ -652,8 +652,8 @@ func TestUninstallStarted(t *testing.T) {
 
 	// Expect a call to get the Verrazzano resource.  Return resource with deleted timestamp.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano, opts ...client.GetOption) error {
 			verrazzano.TypeMeta = metav1.TypeMeta{
 				APIVersion: "install.verrazzano.io/v1alpha1",
 				Kind:       "Verrazzano"}
@@ -766,8 +766,8 @@ func TestUninstallSucceeded(t *testing.T) {
 
 	// Expect a call to get the Verrazzano resource.  Return resource with deleted timestamp.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano, opts ...client.GetOption) error {
 			verrazzano.TypeMeta = metav1.TypeMeta{
 				APIVersion: "install.verrazzano.io/v1alpha1",
 				Kind:       "Verrazzano"}
@@ -842,7 +842,7 @@ func TestVerrazzanoNotFound(t *testing.T) {
 
 	// Expect a call to get the Verrazzano resource - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Verrazzano"}, name))
 
 	// Create and make the request
@@ -873,7 +873,7 @@ func TestVerrazzanoGetError(t *testing.T) {
 
 	// Expect a call to get the Verrazzano resource - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewBadRequest("failed to get Verrazzano custom resource"))
 
 	// Create and make the request
@@ -928,7 +928,7 @@ func TestVZSystemNamespaceGetError(t *testing.T) {
 	errMsg := "get vz system namespace error"
 	// Expect a call to get the Verrazzano system namespace - return a failure error
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewBadRequest(errMsg))
 
 	config.TestProfilesDir = relativeProfilesDir
@@ -986,7 +986,7 @@ func TestVZSystemNamespaceCreateError(t *testing.T) {
 	errMsg := "create vz system namespace error"
 	// Expect a call to get the Verrazzano system namespace - return an IsNotFound
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.ParseGroupResource("namespaces"), constants.VerrazzanoSystemNamespace))
 
 	// Expect a call to create the Verrazzano system namespace - return a failure error
@@ -1056,7 +1056,7 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 
 	// Expect a call to get the DNS config secret but return a not found error
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewBadRequest("failed to get Secret"))
 
 	config.TestProfilesDir = relativeProfilesDir
@@ -1187,7 +1187,7 @@ func newVerrazzanoReconciler(c client.Client) Reconciler {
 func expectSyncLocalRegistration(t *testing.T, mock *mocks.MockClient, name string) {
 	// Expect a call to get the Agent secret in the verrazzano-system namespace - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(nil)
 }
 
@@ -1195,8 +1195,8 @@ func expectSyncLocalRegistration(t *testing.T, mock *mocks.MockClient, name stri
 // that it exists
 func expectGetVerrazzanoSystemNamespaceExists(mock *mocks.MockClient, asserts *assert.Assertions) {
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 			ns.Name = constants.VerrazzanoSystemNamespace
 			ns.Labels = systemNamespaceLabels
 			return nil
@@ -1209,8 +1209,8 @@ func expectClusterRoleBindingExists(mock *mocks.MockClient, verrazzanoToUse vzap
 	// Expect a call to get the ClusterRoleBinding - return that it exists
 	clusterRoleBindingName := buildClusterRoleBindingName(namespace, name)
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: clusterRoleBindingName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, clusterRoleBinding *rbacv1.ClusterRoleBinding) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: clusterRoleBindingName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, clusterRoleBinding *rbacv1.ClusterRoleBinding, opts ...client.GetOption) error {
 			crb := rbac.NewClusterRoleBinding(&verrazzanoToUse, nsName.Name, getInstallNamespace(), buildServiceAccountName(nsName.Name))
 			clusterRoleBinding.ObjectMeta = crb.ObjectMeta
 			clusterRoleBinding.RoleRef = crb.RoleRef
@@ -1224,8 +1224,8 @@ func expectClusterRoleBindingExists(mock *mocks.MockClient, verrazzanoToUse vzap
 func expectGetServiceAccountExists(mock *mocks.MockClient, name string, labels map[string]string) {
 	// Expect a call to get the ServiceAccount - return that it exists
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount, opts ...client.GetOption) error {
 			newSA := rbac.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
@@ -1236,8 +1236,8 @@ func expectGetServiceAccountExists(mock *mocks.MockClient, name string, labels m
 // one that has the same content as the verrazzanoToUse argument
 func expectGetVerrazzanoExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Verrazzano, namespace string, name string, labels map[string]string) {
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano, opts ...client.GetOption) error {
 			verrazzano.TypeMeta = verrazzanoToUse.TypeMeta
 			verrazzano.ObjectMeta = verrazzanoToUse.ObjectMeta
 			verrazzano.Spec.Components.DNS = verrazzanoToUse.Spec.Components.DNS
@@ -1260,20 +1260,20 @@ func expectSharedNamespaceDeletes(mock *mocks.MockClient) {
 	const fakeNS = "fake"
 	for _, ns := range sharedNamespaces {
 		mock.EXPECT().
-			Get(gomock.Any(), types.NamespacedName{Name: ns}, gomock.Not(gomock.Nil())).
+			Get(gomock.Any(), types.NamespacedName{Name: ns}, gomock.Not(gomock.Nil()), gomock.Any()).
 			Return(nil)
 		mock.EXPECT().Delete(gomock.Any(), nsMatcher{Name: ns}, gomock.Any()).Return(nil)
 		mock.EXPECT().
-			Get(gomock.Any(), types.NamespacedName{Name: ns}, gomock.Not(gomock.Nil())).
+			Get(gomock.Any(), types.NamespacedName{Name: ns}, gomock.Not(gomock.Nil()), gomock.Any()).
 			Return(errors.NewNotFound(schema.ParseGroupResource("Namespace"), ns))
 	}
 	// Expect delete for component namesapces
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: fakeNS}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Name: fakeNS}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(nil)
 	mock.EXPECT().Delete(gomock.Any(), nsMatcher{Name: fakeNS}, gomock.Any()).Return(nil)
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: fakeNS}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Name: fakeNS}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.ParseGroupResource("Namespace"), fakeNS))
 
 }
@@ -1290,7 +1290,7 @@ func expectNodeExporterCleanup(mock *mocks.MockClient) {
 
 func expectMCCleanup(mock *mocks.MockClient) {
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
 
 	mock.EXPECT().
@@ -1812,7 +1812,7 @@ func TestReconcilerInitForVzResource(t *testing.T) {
 		controller.EXPECT().Watch(gomock.Eq(podKind), gomock.Any(), gomock.Any()).Return(nil)
 		controller.EXPECT().Watch(gomock.Eq(jobKind), gomock.Any(), gomock.Any()).Return(nil)
 		// watches 2 secrets - managed cluster registration and Thanos internal user
-		controller.EXPECT().Watch(gomock.Eq(secretKind), gomock.Any(), gomock.Any()).Return(nil).Times(2)
+		controller.EXPECT().Watch(gomock.Eq(secretKind), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 		controller.EXPECT().Watch(gomock.Eq(namespaceKind), gomock.Any(), gomock.Any()).Return(nil)
 		reconciler.Controller = controller
 	}

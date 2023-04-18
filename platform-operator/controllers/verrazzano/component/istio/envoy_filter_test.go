@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package istio
@@ -41,8 +41,8 @@ func getIstioFilterMockCreate(t *testing.T) *mocks.MockClient {
 
 	// expect a call to get the filter
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serr.NewNotFound(schema.GroupResource{Group: "networking.istio.io/v1alpha3", Resource: "EnvoyFilter"}, name.Name)
 		})
 
@@ -75,8 +75,8 @@ func getIstioFilterMockUpdate(t *testing.T) *mocks.MockClient {
 
 	// expect a call to get the filter
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured, opts ...client.GetOption) error {
 			return nil
 		})
 

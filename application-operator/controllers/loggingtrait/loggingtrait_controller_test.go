@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package loggingtrait
@@ -88,8 +88,8 @@ func TestLoggingTraitCreatedForContainerizedWorkload(t *testing.T) {
 
 	// Expect a call to get the logging trait
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespaceName, Name: traitName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.LoggingTrait) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespaceName, Name: traitName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.LoggingTrait, opt ...client.GetOption) error {
 			trait.SetWorkloadReference(oamrt.TypedReference{
 				APIVersion: oamcore.SchemeGroupVersion.Identifier(),
 				Kind:       oamcore.ContainerizedWorkloadKind,
@@ -101,14 +101,14 @@ func TestLoggingTraitCreatedForContainerizedWorkload(t *testing.T) {
 		})
 	// Expect a call to get the workload
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespaceName, Name: workloadName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, workload *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespaceName, Name: workloadName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, workload *unstructured.Unstructured, opt ...client.GetOption) error {
 			return nil
 		})
 	// Expect a call to get the workload definition
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: "", Name: workloadDefinitionNamespace}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, workloadDef *oamcore.WorkloadDefinition) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: "", Name: workloadDefinitionNamespace}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, workloadDef *oamcore.WorkloadDefinition, opt ...client.GetOption) error {
 			workloadDef.Spec.ChildResourceKinds = []oamcore.ChildResourceKind{
 				{
 					APIVersion: k8sapps.SchemeGroupVersion.Identifier(),
@@ -132,8 +132,8 @@ func TestLoggingTraitCreatedForContainerizedWorkload(t *testing.T) {
 		})
 	// Expect a call to get the deployment
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespaceName, Name: deploymentName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, workload *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespaceName, Name: deploymentName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, workload *unstructured.Unstructured, opt ...client.GetOption) error {
 			return nil
 		})
 	// Expect a call to list the child Deployment resources of the containerized workload definition
@@ -192,15 +192,15 @@ func TestDeleteLoggingTraitFromContainerizedWorkload(t *testing.T) {
 
 	// Expect a call to get the workload
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespaceName, Name: workloadName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespaceName, Name: workloadName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *unstructured.Unstructured, opt ...client.GetOption) error {
 			workload.SetNamespace(namespaceName)
 			return nil
 		})
 	// Expect a call to get the workload definition
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: "", Name: workloadDefinitionNamespace}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, workloadDef *oamcore.WorkloadDefinition) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: "", Name: workloadDefinitionNamespace}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, workloadDef *oamcore.WorkloadDefinition, opt ...client.GetOption) error {
 			workloadDef.Spec.ChildResourceKinds = []oamcore.ChildResourceKind{
 				{
 					APIVersion: k8sapps.SchemeGroupVersion.Identifier(),
@@ -223,8 +223,8 @@ func TestDeleteLoggingTraitFromContainerizedWorkload(t *testing.T) {
 		})
 	// Expect a call to get the deployment
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespaceName, Name: deploymentName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, workload *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespaceName, Name: deploymentName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, workload *unstructured.Unstructured, opt ...client.GetOption) error {
 			return nil
 		})
 	// Expect to list config map
@@ -255,7 +255,7 @@ func TestFetchTraitError(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: namespaceName, Name: traitName}}
 
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespaceName, Name: traitName}), gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespaceName, Name: traitName}), gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(
 			fmt.Errorf(serverErr),
 		)
@@ -268,7 +268,7 @@ func TestFetchTraitError(t *testing.T) {
 
 	mock = mocks.NewMockClient(mocker)
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespaceName, Name: traitName}), gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespaceName, Name: traitName}), gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(
 			&errors.StatusError{ErrStatus: k8smeta.Status{Code: 404}},
 		)
@@ -308,13 +308,13 @@ func TestReconcileTraitNoWorkloadChild(t *testing.T) {
 	}
 
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespaceName, Name: workloadName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespaceName, Name: workloadName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured, opt ...client.GetOption) error {
 			return nil
 		})
 
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: workloadDefinitionNamespace}), gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: workloadDefinitionNamespace}), gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(fmt.Errorf(serverErr))
 
 	reconciler := newLoggingTraitReconciler(mock, t)
@@ -325,13 +325,13 @@ func TestReconcileTraitNoWorkloadChild(t *testing.T) {
 
 	mock = mocks.NewMockClient(mocker)
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespaceName, Name: workloadName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespaceName, Name: workloadName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured, opt ...client.GetOption) error {
 			return nil
 		})
 
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: workloadDefinitionNamespace}), gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: workloadDefinitionNamespace}), gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(fmt.Errorf(serverErr))
 
 	reconciler = newLoggingTraitReconciler(mock, t)

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package multiclusterconfigmap
@@ -90,7 +90,7 @@ func TestReconcileCreateConfigMap(t *testing.T) {
 
 	// expect a call to fetch existing K8S ConfigMap, and return not found error, to test create case
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "ConfigMap"}, crName))
 
 	// expect a call to create the K8S ConfigMap
@@ -195,7 +195,7 @@ func TestReconcileCreateConfigMapFailed(t *testing.T) {
 
 	// expect a call to fetch existing K8S ConfigMap and return not found error, to simulate create case
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "ConfigMap"}, crName))
 
 	// expect a call to create the K8S ConfigMap and fail the call
@@ -341,7 +341,7 @@ func TestReconcileResourceNotFound(t *testing.T) {
 	// expect a call to fetch the MultiClusterConfigMap
 	// and return a not found error
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: clustersv1alpha1.SchemeGroupVersion.Group, Resource: clustersv1alpha1.MultiClusterConfigMapResource}, crName))
 
 	// expect no further action to be taken
@@ -359,8 +359,8 @@ func TestReconcileResourceNotFound(t *testing.T) {
 // doExpectGetConfigMapExists expects a call to get an K8S ConfigMap and return an "existing" one
 func doExpectGetConfigMapExists(cli *mocks.MockClient, metadata metav1.ObjectMeta) {
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *v1.ConfigMap) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *v1.ConfigMap, opts ...client.GetOption) error {
 			existingCM, err := getExistingConfigMap()
 			if err == nil {
 				existingCM.DeepCopyInto(configMap)
@@ -407,8 +407,8 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 // call for a MultiClusterConfigMap, and populate the multi cluster ConfigMap with given data
 func doExpectGetMultiClusterConfigMap(cli *mocks.MockClient, mcConfigMapSample clustersv1alpha1.MultiClusterConfigMap, addFinalizer bool) {
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.AssignableToTypeOf(&mcConfigMapSample)).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.AssignableToTypeOf(&mcConfigMapSample), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap, opts ...client.GetOption) error {
 			mcConfigMap.ObjectMeta = mcConfigMapSample.ObjectMeta
 			mcConfigMap.TypeMeta = mcConfigMapSample.TypeMeta
 			mcConfigMap.Spec = mcConfigMapSample.Spec

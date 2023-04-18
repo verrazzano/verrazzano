@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -66,7 +66,7 @@ func TestCreateMCComponent(t *testing.T) {
 	// Managed Cluster - expect call to get a MultiClusterComponent from the list returned by the admin cluster
 	//                   Return the resource does not exist
 	mcMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testMCComponentNamespace, Name: testMCComponentName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: testMCComponentNamespace, Name: testMCComponentName}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "MultiClusterComponent"}, testMCComponentName))
 
 	// Managed Cluster - expect call to create a MultiClusterComponent
@@ -140,8 +140,8 @@ func TestUpdateMCComponent(t *testing.T) {
 	// Managed Cluster - expect call to get a MultiClusterComponent from the list returned by the admin cluster
 	//                   Return the resource with some values different than what the admin cluster returned
 	mcMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testMCComponentNamespace, Name: testMCComponentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcComponent *clustersv1alpha1.MultiClusterComponent) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testMCComponentNamespace, Name: testMCComponentName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcComponent *clustersv1alpha1.MultiClusterComponent, opts ...client.GetOption) error {
 			testMCComponent.DeepCopyInto(mcComponent)
 			return nil
 		})
@@ -226,8 +226,8 @@ func TestDeleteMCComponent(t *testing.T) {
 	// Managed Cluster - expect call to get a MultiClusterComponent from the list returned by the admin cluster
 	//                   Return the resource
 	mcMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testMCComponentNamespace, Name: testMCComponentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcComponent *clustersv1alpha1.MultiClusterComponent) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testMCComponentNamespace, Name: testMCComponentName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcComponent *clustersv1alpha1.MultiClusterComponent, opts ...client.GetOption) error {
 			testMCComponent.DeepCopyInto(mcComponent)
 			return nil
 		})
