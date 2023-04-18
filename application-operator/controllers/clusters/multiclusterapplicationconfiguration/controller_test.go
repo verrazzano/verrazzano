@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package multiclusterapplicationconfiguration
@@ -199,7 +199,7 @@ func TestReconcileCreateAppConfigFailed(t *testing.T) {
 
 	// expect a call to fetch existing OAM app config and return not found error, to simulate create case
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: "core.oam.dev", Resource: "ApplicationConfiguration"}, crName))
 
 	// expect a call to create the OAM app config and fail the call
@@ -287,7 +287,7 @@ func TestReconcileResourceNotFound(t *testing.T) {
 	// expect a call to fetch the MultiClusterApplicationConfiguration
 	// and return a not found error
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: clustersv1alpha1.SchemeGroupVersion.Group, Resource: clustersv1alpha1.MultiClusterAppConfigResource}, crName))
 
 	// expect no further action to be taken
@@ -364,8 +364,8 @@ func TestReconcilePlacementInDifferentCluster(t *testing.T) {
 // doExpectGetAppConfigExists expects a call to get an OAM app config and return an "existing" one
 func doExpectGetAppConfigExists(cli *mocks.MockClient, metadata metav1.ObjectMeta, appConfigSpec v1alpha2.ApplicationConfigurationSpec) {
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *v1alpha2.ApplicationConfiguration) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *v1alpha2.ApplicationConfiguration, opts ...client.GetOption) error {
 			appConfig.Spec = appConfigSpec
 			appConfig.ObjectMeta = metadata
 			return nil
@@ -412,8 +412,8 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 // call for a MultiClusterApplicationConfiguration, and populate it with given sample data
 func doExpectGetMultiClusterAppConfig(cli *mocks.MockClient, mcAppConfigSample clustersv1alpha1.MultiClusterApplicationConfiguration, addFinalizer bool) {
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.AssignableToTypeOf(&mcAppConfigSample)).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.AssignableToTypeOf(&mcAppConfigSample), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration, opts ...client.GetOption) error {
 			mcAppConfig.ObjectMeta = mcAppConfigSample.ObjectMeta
 			mcAppConfig.TypeMeta = mcAppConfigSample.TypeMeta
 			mcAppConfig.Spec = mcAppConfigSample.Spec
