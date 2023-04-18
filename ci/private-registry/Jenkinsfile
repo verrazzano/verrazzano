@@ -638,9 +638,11 @@ pipeline {
 
     post {
         always {
-            if (!AIR_GAPPED) {
-                echo "Airgap check failed, not running post actions."
-                sh "exit 0"
+            script {
+                if (!AIR_GAPPED) {
+                    echo "Airgap check failed, not running post actions."
+                    sh "exit 0"
+                }
             }
             sh """
                 echo "Current execution region: $ocirRegion"
