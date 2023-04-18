@@ -408,7 +408,7 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 		})
 
 		WhenPromStackInstalledIt("should have scrape targets healthy for installed components", func() {
-			if isMinVersion140 {
+			if isMinVersion140 && !pkg.IsManagedClusterProfile() {
 				verifyScrapeTargets := func() (bool, error) {
 					var targets []string
 					for _, scrapeTarget := range scrapeTargets {
