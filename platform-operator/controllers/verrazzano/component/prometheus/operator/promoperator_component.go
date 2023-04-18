@@ -110,6 +110,9 @@ func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := preInstallUpgrade(ctx); err != nil {
 		return err
 	}
+	if err := deleteNetworkPolicy(ctx); err != nil {
+		return err
+	}
 	return c.HelmComponent.PreInstall(ctx)
 }
 
@@ -186,37 +189,35 @@ func (c prometheusComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzan
 // getIngressNames - gets the names of the ingresses associated with this component
 func (c prometheusComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var ingressNames []types.NamespacedName
-
-	if vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) {
-		ns := ComponentNamespace
-		if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
-			ns = authproxy.ComponentNamespace
-		}
-		ingressNames = append(ingressNames, types.NamespacedName{
-			Namespace: ns,
-			Name:      constants.PrometheusIngress,
-		})
+	if !vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) || !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
+		return ingressNames
 	}
 
-	return ingressNames
+	ns := constants.VerrazzanoSystemNamespace
+	if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
+		ns = authproxy.ComponentNamespace
+	}
+	return append(ingressNames, types.NamespacedName{
+		Namespace: ns,
+		Name:      constants.PrometheusIngress,
+	})
 }
 
 // getCertificateNames - gets the names of the TLS ingress certificates associated with this component
 func (c prometheusComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var certificateNames []types.NamespacedName
 
-	if vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) {
-		ns := ComponentNamespace
-		if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
-			ns = authproxy.ComponentNamespace
-		}
-		certificateNames = append(certificateNames, types.NamespacedName{
-			Namespace: ns,
-			Name:      prometheusCertificateName,
-		})
+	if !vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) || !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
+		return certificateNames
 	}
-
-	return certificateNames
+	ns := constants.VerrazzanoSystemNamespace
+	if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
+		ns = authproxy.ComponentNamespace
+	}
+	return append(certificateNames, types.NamespacedName{
+		Namespace: ns,
+		Name:      prometheusCertificateName,
+	})
 }
 
 // checkExistingCNEPrometheus checks if Prometheus is already installed
