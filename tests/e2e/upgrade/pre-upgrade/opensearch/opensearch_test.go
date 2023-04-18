@@ -86,13 +86,6 @@ var _ = t.Describe("Pre Upgrade OpenSearch", Label("f:observability.logging.es")
 				return false
 			}
 			if isOSEnabled {
-				//cr, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeConfigPath)
-				//if err != nil {
-				//	pkg.Log(pkg.Error, err.Error())
-				//	return false
-				//}
-				//pkg.UpdateVZISM(cr)
-
 				file, err := pkg.FindTestDataFile(ismTeamplateFile)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("failed to find test data file: %v", err))
