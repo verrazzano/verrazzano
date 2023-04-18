@@ -8,7 +8,6 @@ package fake
 import (
 	verrazzanov1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	verrazzanov1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	verrazzanov1beta2 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -20,7 +19,6 @@ var scheme = runtime.NewScheme()
 var codecs = serializer.NewCodecFactory(scheme)
 
 var localSchemeBuilder = runtime.SchemeBuilder{
-	verrazzanov1beta2.AddToScheme,
 	verrazzanov1beta1.AddToScheme,
 	verrazzanov1alpha1.AddToScheme,
 }
