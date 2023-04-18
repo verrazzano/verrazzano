@@ -324,7 +324,7 @@ pipeline {
             post {
                 failure {
                     archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
-                    dumpK8sCluster('install-prom-app-istio-stack-dump')
+                    dumpK8sCluster('install-istio-app-stack-dump')
                 }
                 always {
                     archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
@@ -361,7 +361,7 @@ pipeline {
             }
             post {
                 failure {
-                    dumpK8sCluster('verify-prom-app-istio-stack-dump')
+                    dumpK8sCluster('verify-istio-app-stack-dump')
                 }
                 always {
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/*cluster-snapshot*/**', allowEmptyArchive: true
@@ -370,7 +370,7 @@ pipeline {
                 success {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('istio-prom-app-istio-installation-cluster-snapshot')
+                            dumpK8sCluster('istio-app-stack-installation-cluster-snapshot')
                         }
                     }
                 }

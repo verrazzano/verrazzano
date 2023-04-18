@@ -113,6 +113,9 @@ func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := preInstallUpgrade(ctx); err != nil {
 		return err
 	}
+	if err := deleteNetworkPolicy(ctx); err != nil {
+		return err
+	}
 	return c.HelmComponent.PreInstall(ctx)
 }
 
