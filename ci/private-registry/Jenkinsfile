@@ -680,7 +680,7 @@ pipeline {
                     sh "exit 0"
                 }
             }
-            sh """
+            /*sh """
                 echo "Current execution region: $ocirRegion"
                 echo "OCIR Repository: ${ocirRegistry}"
                 echo "Image repo subpath: ${imageRepoSubPath}"
@@ -703,11 +703,11 @@ pipeline {
                     dumpOamKubernetesRuntimeLogs()
                     dumpVerrazzanoApiLogs()
                 }
-            }
+            }*/
             archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/*bug-report*/**,**/${TEST_REPORT}", allowEmptyArchive: true
-            junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
+            // junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
-            sh """
+            /*sh """
                 cd ${GO_REPO_PATH}/verrazzano/platform-operator
                 make delete-cluster
                 cd ${WORKSPACE}/verrazzano
@@ -715,7 +715,7 @@ pipeline {
                   echo "Failures seen during dumping of artifacts, treat post as failed"
                   exit 1
                 fi
-            """
+            """ */
         }
         cleanup {
             deleteDir()
