@@ -21,7 +21,7 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = "verrazzano-capi"
+const ComponentName = "capi"
 
 // Namespaces for CAPI component
 const CAPISystemNamespace = "capi-system"
@@ -29,8 +29,8 @@ const OCNEBootstrapNamespace = "capi-ocne-bootstrap-system"
 const OCNEControlPlaneNamespace = "capi-ocne-control-plane-system"
 const CoreProviderNamespace = "cluster-api-provider-oci-system"
 
-// ComponentJSONName is the JSON name of the verrazzano component in CRD
-const ComponentJSONName = "verrazzano-capi"
+// ComponentJSONName is the JSON name of the component in CRD
+const ComponentJSONName = "capi"
 
 const (
 	capiCMDeployment                 = "capi-controller-manager"

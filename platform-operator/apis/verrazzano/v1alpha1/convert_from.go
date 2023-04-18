@@ -148,6 +148,7 @@ func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 		Velero:                 convertVeleroFromV1Beta1(in.Velero),
 		Verrazzano:             convertVerrazzanoFromV1Beta1(in.Verrazzano),
 		ArgoCD:                 convertArgoCDFromV1Beta1(in.ArgoCD),
+		CAPI:                   convertCAPIFromV1Beta1(in.CAPI),
 	}
 }
 
@@ -166,6 +167,16 @@ func convertAuthProxyFromV1Beta1(in *v1beta1.AuthProxyComponent) *AuthProxyCompo
 		return nil
 	}
 	return &AuthProxyComponent{
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
+	}
+}
+
+func convertCAPIFromV1Beta1(in *v1beta1.CAPIComponent) *CAPIComponent {
+	if in == nil {
+		return nil
+	}
+	return &CAPIComponent{
 		Enabled:          in.Enabled,
 		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
 	}
