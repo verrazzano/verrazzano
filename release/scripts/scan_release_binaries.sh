@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # Perform malware scan on release binaries
@@ -22,16 +22,19 @@ usage() {
 
   The script expects the following environment variables -
     RELEASE_VERSION - release version (major.minor.patch format, e.g. 1.0.1)
-    SCANNER_ARCHIVE_LOCATION - command line scanner
-    SCANNER_ARCHIVE_FILE - scanner archive
+    if installing command line scanner using local file:
+         SCANNER_TARGZ_FILE - command line scanner (in a local tar.gz)
+    if installing command line scanner using URL location:
+         SCANNER_ARCHIVE_LOCATION - command line scanner
+         SCANNER_ARCHIVE_FILE - scanner archive
     VIRUS_DEFINITION_LOCATION - virus definition location
     NO_PROXY_SUFFIX - suffix for no_proxy environment variable
 EOM
     exit 0
 }
 
-[ -z "$SCANNER_ARCHIVE_LOCATION" ] || [ -z "$SCANNER_ARCHIVE_FILE" ] || [ -z "$NO_PROXY_SUFFIX" ] ||
-[ -z "$VIRUS_DEFINITION_LOCATION" ] || [ -z "$RELEASE_VERSION" ] || [ "$1" == "-h" ] && { usage; }
+[ -z "$SCANNER_TARGZ_FILE" ] && ( [ -z "$SCANNER_ARCHIVE_LOCATION" ] || [ -z "$SCANNER_ARCHIVE_FILE" ] ) && { usage; }
+[ -z "$NO_PROXY_SUFFIX" ] || [ -z "$VIRUS_DEFINITION_LOCATION" ] || [ -z "$RELEASE_VERSION" ] || [ "$1" == "-h" ] && { usage; }
 
 . $SCRIPT_DIR/common.sh
 
@@ -67,9 +70,16 @@ if [ "$BUNDLE_TO_SCAN" == "Full" ];then
   DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR/verrazzano-${RELEASE_VERSION}"
 fi
 SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
-REPORT_DEBUG="$SCAN_REPORT_DIR/scan_report_debug.out"
 
-function install_scanner() {
+function install_local_scanner() {
+  echo "Installing scanner from local file: $SCANNER_TARGZ_FILE"
+  mkdir -p $SCANNER_HOME
+  cd $SCANNER_HOME
+  tar --overwrite -xvf $SCANNER_TARGZ_FILE
+}
+
+function install_remove_scanner() {
+  echo "Downloading and installing scanner from: $SCANNER_ARCHIVE_LOCATION/$SCANNER_ARCHIVE_FILE"
   mkdir -p $SCANNER_HOME
   no_proxy="$no_proxy,${NO_PROXY_SUFFIX}"
   cd $SCANNER_HOME
@@ -146,12 +156,11 @@ function scan_release_binaries() {
     done
   done < "$scan_summary"
   echo "Count of expected lines in the scan summary: ${result_count}"
-  grep -v 'is OK' $SCAN_REPORT > $REPORT_DEBUG
   if [ "$result_count" == "$array_count" ];then
     echo "Found all the expected lines in the summary of the scan report."
     return 0
   else
-    echo "One or more expected lines are not found in the summary of the scan report, please check the complete report $SCAN_REPORT and $REPORT_DEBUG which removes the OK lines"
+    echo "One or more expected lines are not found in the summary of the scan report, please check the complete report $SCAN_REPORT"
     return 1
   fi
 }
@@ -160,7 +169,11 @@ function scan_release_binaries() {
 if [ "true" == "${SKIP_INSTALL_SCANNER}" ];then
   echo "Skip installing scanner ..."
 else
-  install_scanner || exit 1
+  if [ -f ${SCANNER_TARGZ_FILE} ]; then
+    install_local_scanner || exit 1
+  else
+    install_remote_scanner || exit 1
+  fi
   update_virus_definition || exit 1
 fi
 
