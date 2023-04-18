@@ -704,8 +704,8 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }*/
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/*bug-report*/**,**/${TEST_REPORT}", allowEmptyArchive: true
-            // junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
+//            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/*bug-report*/**,**/${TEST_REPORT}", allowEmptyArchive: true
+//              junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             /*sh """
                 cd ${GO_REPO_PATH}/verrazzano/platform-operator
