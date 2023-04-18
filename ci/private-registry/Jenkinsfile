@@ -145,7 +145,7 @@ pipeline {
     }
 
     stages {
-        stage('Verify Airgapped') {
+        stage('Verify Air-Gapped') {
             steps {
                 script {
                     def exitCode = sh(returnStatus: true, script: 'curl "http://www.oracle.com"')
@@ -153,6 +153,7 @@ pipeline {
                         echo "curl command to internet succeeded, environment is not air-gapped! Exiting"
                         sh "exit 1"
                     }
+                    echo "Verified that we are in an air-gapped environment"
                 }
             }
         }
