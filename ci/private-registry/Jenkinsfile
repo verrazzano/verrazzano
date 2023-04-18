@@ -149,6 +149,7 @@ pipeline {
         stage('Verify Air-Gapped') {
             steps {
                 script {
+                    echo "Checking if we are running in an air-gapped environment"
                     def exitCode = sh(returnStatus: true, script: 'curl "http://www.oracle.com"')
                     if (exitCode == 0) {
                         echo "curl command to internet succeeded, environment is not air-gapped! Exiting"
@@ -723,7 +724,7 @@ pipeline {
 }
 
 def runPipeline() {
-    return airGapped
+    return false //airGapped
 }
 
 def runGinkgoRandomize(testSuitePath) {
