@@ -24,7 +24,7 @@ pipeline {
        docker {
             image "${PRIV_REG_RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
-            registryUrl "${ocirRegistry}"
+            registryUrl "https://${ocirRegistry}"
             registryCredentialsId 'ocir-pull-and-push-account'
             label "${agentLabel}"
         }
