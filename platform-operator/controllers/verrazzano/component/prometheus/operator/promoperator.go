@@ -6,14 +6,9 @@ package operator
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"path"
 	"strconv"
-
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
-
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -21,11 +16,15 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
 	securityv1beta1 "istio.io/api/security/v1beta1"
 	istiov1beta1 "istio.io/api/type/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -34,7 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/runtime"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -358,6 +357,11 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	// Add label to the Prometheus Operator pod to avoid a sidecar injection
 	kvs = append(kvs, bom.KeyValue{Key: `prometheusOperator.podAnnotations.sidecar\.istio\.io/inject`, Value: `"false"`})
 
+	// disable tls if Istio is not enabled
+	if !vzcr.IsIstioEnabled(ctx.EffectiveCR()) {
+		kvs = append(kvs, bom.KeyValue{Key: "prometheusOperator.tls.enabled", Value: "false"})
+	}
+
 	return kvs, nil
 }
 
@@ -431,7 +435,7 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 func (c prometheusComponent) validatePrometheusOperator(vz *installv1beta1.Verrazzano) error {
 	// Validate if Prometheus is enabled, Prometheus Operator should be enabled
 	if !c.IsEnabled(vz) && vzcr.IsPrometheusEnabled(vz) {
-		return fmt.Errorf("Prometheus cannot be enabled if the Prometheus Operator is disabled. Also disable the Prometheus component in order to disable Prometheus Operator")
+		return fmt.Errorf("Prometheus Operator must be enabled if Prometheus is enabled")
 	}
 	// Validate install overrides for v1beta1.Verrazzano
 	if vz.Spec.Components.PrometheusOperator != nil {
