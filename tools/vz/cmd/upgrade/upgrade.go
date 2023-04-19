@@ -158,13 +158,13 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 
 		err = upgradeVerrazzano(vzHelper, vz, client, version, vpoTimeout)
 		if err != nil {
-			return autoBugReport(cmd, vzHelper, err)
+			return bugreport.AutoBugReport(cmd, vzHelper, err)
 		}
 
 		// Wait for the Verrazzano upgrade to complete
 		err = waitForUpgradeToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat)
 		if err != nil {
-			return autoBugReport(cmd, vzHelper, err)
+			return bugreport.AutoBugReport(cmd, vzHelper, err)
 		}
 		return nil
 	}
@@ -175,7 +175,7 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	if !vzStatusVersion.IsEqualTo(vzSpecVersion) {
 		err = waitForUpgradeToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat)
 		if err != nil {
-			return autoBugReport(cmd, vzHelper, err)
+			return bugreport.AutoBugReport(cmd, vzHelper, err)
 		}
 		return nil
 	}
@@ -223,18 +223,4 @@ func upgradeVerrazzano(vzHelper helpers.VZHelper, vz *v1beta1.Verrazzano, client
 // Wait for the upgrade operation to complete
 func waitForUpgradeToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, namespacedName types.NamespacedName, timeout time.Duration, vpoTimeout time.Duration, logFormat cmdhelpers.LogFormat) error {
 	return cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, namespacedName, timeout, vpoTimeout, logFormat, v1beta1.CondUpgradeComplete)
-}
-
-// autoBugReport checks that AutoBugReportFlag is set and then kicks off vz bugreport CLI command. It returns the same error that is passed in
-func autoBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) error {
-	autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
-	if errFlag != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
-		return err
-	}
-	if autoBugReportFlag {
-		//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from uninstallVerrazzanoFn
-		err = bugreport.CallVzBugReport(cmd, vzHelper, err)
-	}
-	return err
 }

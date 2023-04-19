@@ -159,7 +159,7 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	assert.Error(t, err)
 	// This must be less than the 1 second polling delay to pass
 	// since the Verrazzano resource gets deleted almost instantaneously
-	assert.Equal(t, "Error: Failed to uninstall Verrazzano: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
+	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
 	ensureResourcesNotDeleted(t, c)
 	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
@@ -199,7 +199,7 @@ func TestUninstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	assert.Error(t, err)
 	// This must be less than the 1 second polling delay to pass
 	// since the Verrazzano resource gets deleted almost instantaneously
-	assert.Equal(t, "Error: Failed to uninstall Verrazzano: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
+	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
 	ensureResourcesNotDeleted(t, c)
 	// Bug Report must not exist
 	if helpers.CheckAndRemoveBugReportExistsInDir("") {

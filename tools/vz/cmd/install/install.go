@@ -188,7 +188,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		}
 		err = installVerrazzano(cmd, vzHelper, vz, client, version, vpoTimeout)
 		if err != nil {
-			return autoBugReport(cmd, vzHelper, err)
+			return bugreport.AutoBugReport(cmd, vzHelper, err)
 		}
 		vzNamespace = vz.GetNamespace()
 		vzName = vz.GetName()
@@ -197,23 +197,9 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	// Wait for the Verrazzano install to complete
 	err = waitForInstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vzNamespace, Name: vzName}, timeout, vpoTimeout, logFormat)
 	if err != nil {
-		return autoBugReport(cmd, vzHelper, err)
+		return bugreport.AutoBugReport(cmd, vzHelper, err)
 	}
 	return nil
-}
-
-// autoBugReport checks that AutoBugReportFlag is set and then kicks off vz bugreport CLI command. It returns the same error that is passed in
-func autoBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) error {
-	autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
-	if errFlag != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
-		return err
-	}
-	if autoBugReportFlag {
-		//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from either installVerrazzano() or waitForInstallToComplete()
-		err = bugreport.CallVzBugReport(cmd, vzHelper, err)
-	}
-	return err
 }
 
 func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz clipkg.Object, client clipkg.Client, version string, vpoTimeout time.Duration) error {

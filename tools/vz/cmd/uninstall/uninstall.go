@@ -163,7 +163,7 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 				return failedToUninstallErr(err)
 			}
 		} else {
-			return autoBugReport(cmd, vzHelper, err)
+			return bugreport.AutoBugReport(cmd, vzHelper, err)
 		}
 	}
 	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "Uninstalling Verrazzano\n")
@@ -171,23 +171,9 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	// Wait for the Verrazzano uninstall to complete.
 	err = waitForUninstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat, useUninstallJob)
 	if err != nil {
-		return autoBugReport(cmd, vzHelper, err)
+		return bugreport.AutoBugReport(cmd, vzHelper, err)
 	}
 	return nil
-}
-
-// autoBugReport checks that AutoBugReportFlag is set and then kicks off vz bugreport CLI command. It returns the same error that is passed in
-func autoBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) error {
-	autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
-	if errFlag != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
-		return err
-	}
-	if autoBugReportFlag {
-		//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from uninstallVerrazzanoFn
-		err = bugreport.CallVzBugReport(cmd, vzHelper, err)
-	}
-	return failedToUninstallErr(err)
 }
 
 // cleanupResources deletes remaining resources that remain after the Verrazzano resource in uninstalled
