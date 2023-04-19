@@ -4,6 +4,8 @@
 package ocnedriver
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -12,34 +14,23 @@ import (
 
 var t = framework.NewTestFramework("install")
 
-var beforeSuite = t.BeforeSuiteFunc(func() {})
+var beforeSuite = t.BeforeSuiteFunc(func() {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	Expect(err).ShouldNot(HaveOccurred())
+	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
+	api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
+	rancherURL := pkg.EventuallyGetURLForIngress(t.Logs, api, "cattle-system", "rancher", "https")
+	adminToken := pkg.GetRancherAdminToken(t.Logs, httpClient, rancherURL)
+	_ = adminToken
+	// TODO: authenticate using Bearer Token
+})
 var _ = BeforeSuite(beforeSuite)
-var afterSuite = t.AfterSuiteFunc(func() {})
-var _ = AfterSuite(afterSuite)
-var _ = t.AfterEach(func() {})
-
 
 var _ = t.Describe("OCNE Cluster Driver", Label("TODO: appropriate label"), Serial, func() {
 	t.Context("Cluster Creation", func() {
 		t.It("creates an active cluster", func() {
-			expected := 2
-			result := 1 + 1
-			Expect(result).To(Equal(expected))
-		})
-	})
-
-	t.Context("Cluster Deletion", func() {
-		expected := 0
-		t.BeforeEach(func() {
-			expected += 1
-		})
-		t.It("can delete an active cluster", func() {
-			result := 1
-			Expect(result).To(Equal(expected))
-		})
-		t.It("can delete ann incompletely provisioned cluster", func() {
-			result := 2
-			Expect(result).To(Equal(expected))
+			Expect(1+1).Should(Equal(2))
+			// TODO: create a cluster with an HTTP POST request, then verify that the cluster is eventually active
 		})
 	})
 })
