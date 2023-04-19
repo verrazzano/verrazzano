@@ -197,6 +197,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	return nil
 }
 
+// autoBugReport checks that AutoBugReportFlag is set and then kicks off vz bugreport CLI command. It returns the same error that is passed in
 func autoBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) error {
 	autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
 	if errFlag != nil {
