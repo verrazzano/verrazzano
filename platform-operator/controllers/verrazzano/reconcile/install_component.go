@@ -329,15 +329,6 @@ func skipComponentFromReadyState(compContext spi.ComponentContext, comp spi.Comp
 	return false
 }
 
-func isCurrentlyInstalled(compContext spi.ComponentContext, comp spi.Component) bool {
-	currentlyInstalled, err := comp.IsInstalled(compContext)
-	if err != nil {
-		compContext.Log().ErrorfThrottled("Error checking installed state for component %s: %v", comp.Name(), err)
-		return false
-	}
-	return currentlyInstalled
-}
-
 func (r *Reconciler) initComponentStatus(ctx spi.ComponentContext, comp spi.Component) error {
 	// If the component is installed then mark it as ready
 	compContext := ctx.Init(comp.Name()).Operation(vzconst.InitializeOperation)
