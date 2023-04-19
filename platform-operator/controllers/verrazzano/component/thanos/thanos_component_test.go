@@ -374,103 +374,136 @@ func TestGetCertificateNames(t *testing.T) {
 	}
 }
 
+type readinessTestType struct {
+	name                  string
+	queryDeployed         bool
+	queryFrontendDeployed bool
+	storegatewayDeployed  bool
+	queryReady            bool
+	queryFrontendReady    bool
+	storegatewayReady     bool
+	expectReady           bool
+}
+
+// readinessTests are test cases used by both TestIsReady and TestIsAvailable
+var readinessTests = []readinessTestType{
+	// The Thanos Query and Thanos Query frontend deployments exists and the pods are ready
+	{
+		name:                  "Thanos Query and Query Frontend are deployed and ready",
+		queryDeployed:         true,
+		queryFrontendDeployed: true,
+		storegatewayDeployed:  false,
+		queryReady:            true,
+		queryFrontendReady:    true,
+		storegatewayReady:     false,
+		expectReady:           true,
+	},
+	// The Thanos Query and Thanos Query frontend deployments exists but some of the pods are not ready
+	{
+		name:                  "Thanos Query and Query Frontend are deployed but one is not ready",
+		queryDeployed:         true,
+		queryFrontendDeployed: true,
+		storegatewayDeployed:  false,
+		queryReady:            true,
+		queryFrontendReady:    false,
+		storegatewayReady:     false,
+		expectReady:           false,
+	},
+	// The Thanos Query and Thanos Query frontend deployments exists and are available, Storegateway
+	// exists but pod is not ready
+	{
+		name:                  "Thanos Storegateway is also deployed but not ready",
+		queryDeployed:         true,
+		queryFrontendDeployed: true,
+		storegatewayDeployed:  true,
+		queryReady:            true,
+		queryFrontendReady:    true,
+		storegatewayReady:     false,
+		expectReady:           false,
+	},
+	// The Thanos Query and Thanos Query frontend deployments and Storegateway statefulset exist
+	// and are available
+	{
+		name:                  "Thanos all components are deployed and ready",
+		queryDeployed:         true,
+		queryFrontendDeployed: true,
+		storegatewayDeployed:  true,
+		queryReady:            true,
+		queryFrontendReady:    true,
+		storegatewayReady:     true,
+		expectReady:           true,
+	},
+}
+
 // TestIsReady tests IsReady for the Thanos component
 func TestIsReady(t *testing.T) {
 	scheme := k8scheme.Scheme
-	var tests = []struct {
-		name                  string
-		queryDeployed         bool
-		queryFrontendDeployed bool
-		storegatewayDeployed  bool
-		queryReady            bool
-		queryFrontendReady    bool
-		storegatewayReady     bool
-		expect                bool
-	}{
-		// GIVEN a call to IsReady
-		// WHEN only the Thanos Query and Thanos Query frontend deployments exists and the pods are ready
-		// THEN returns true
-		{
-			name:                  "Thanos Query and Query Frontend are deployed and ready",
-			queryDeployed:         true,
-			queryFrontendDeployed: true,
-			storegatewayDeployed:  false,
-			queryReady:            true,
-			queryFrontendReady:    true,
-			storegatewayReady:     false,
-			expect:                true,
-		},
-		{
-			name:                  "Thanos Query and Query Frontend are deployed but one is not ready",
-			queryDeployed:         true,
-			queryFrontendDeployed: true,
-			storegatewayDeployed:  false,
-			queryReady:            true,
-			queryFrontendReady:    false,
-			storegatewayReady:     false,
-			expect:                false,
-		},
-		{
-			name:                  "Thanos Storegateway is also deployed but not ready",
-			queryDeployed:         true,
-			queryFrontendDeployed: true,
-			storegatewayDeployed:  true,
-			queryReady:            true,
-			queryFrontendReady:    true,
-			storegatewayReady:     false,
-			expect:                false,
-		},
-		{
-			name:                  "Thanos all components are deployed and ready",
-			queryDeployed:         true,
-			queryFrontendDeployed: true,
-			storegatewayDeployed:  true,
-			queryReady:            true,
-			queryFrontendReady:    true,
-			storegatewayReady:     true,
-			expect:                true,
-		},
-	}
-	for _, test := range tests {
+
+	for _, test := range readinessTests {
 		t.Run(test.name, func(t *testing.T) {
-			var objectsToCreate []cliruntime.Object
-			revisionHash := "12345"
-			controllerRevisionName := "crevname"
-			if test.queryDeployed {
-				objectsToCreate = []cliruntime.Object{makeDeployment(queryDeployment)}
-				objectsToCreate = append(objectsToCreate, makeReplicaset(queryDeployment, revisionHash))
-			}
-			if test.queryFrontendDeployed {
-				objectsToCreate = append(objectsToCreate, makeDeployment(frontendDeployment))
-				objectsToCreate = append(objectsToCreate, makeReplicaset(frontendDeployment, revisionHash))
-			}
-			if test.storegatewayDeployed {
-				objectsToCreate = append(objectsToCreate, makeStatefulset(storeGatewayStatefulset))
-				objectsToCreate = append(objectsToCreate, makeControllerRevision(controllerRevisionName))
-			}
-			if test.queryReady {
-				objectsToCreate = append(objectsToCreate, makePod(queryDeployment, map[string]string{
-					"app":               queryDeployment,
-					"pod-template-hash": revisionHash,
-				}))
-			}
-			if test.queryFrontendReady {
-				objectsToCreate = append(objectsToCreate, makePod(frontendDeployment, map[string]string{
-					"app":               frontendDeployment,
-					"pod-template-hash": revisionHash,
-				}))
-			}
-			if test.storegatewayReady {
-				objectsToCreate = append(objectsToCreate, makePod(storeGatewayStatefulset, map[string]string{
-					"app":                      storeGatewayStatefulset,
-					"controller-revision-hash": controllerRevisionName,
-				}))
-			}
+			objectsToCreate := getReadinessTestObjects(test)
 			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objectsToCreate...).Build()
 			ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, true)
-			assert.Equal(t, test.expect, NewComponent().IsReady(ctx))
+			assert.Equal(t, test.expectReady, NewComponent().IsReady(ctx))
 		})
 	}
+}
+
+// TestIsAvailable tests IsAvailable for the Thanos component
+func TestIsAvailable(t *testing.T) {
+	scheme := k8scheme.Scheme
+
+	for _, test := range readinessTests {
+		t.Run(test.name, func(t *testing.T) {
+			objectsToCreate := getReadinessTestObjects(test)
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objectsToCreate...).Build()
+			ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, true)
+			_, availability := NewComponent().IsAvailable(ctx)
+			if test.expectReady {
+				assert.Equal(t, v1alpha1.ComponentAvailability(v1alpha1.ComponentAvailable), availability)
+			} else {
+				assert.Equal(t, v1alpha1.ComponentAvailability(v1alpha1.ComponentUnavailable), availability)
+			}
+		})
+	}
+}
+
+func getReadinessTestObjects(test readinessTestType) []cliruntime.Object {
+	var objectsToCreate []cliruntime.Object
+	revisionHash := "12345"
+	controllerRevisionName := "crevname"
+
+	if test.queryDeployed {
+		objectsToCreate = []cliruntime.Object{makeDeployment(queryDeployment, test.queryReady)}
+		objectsToCreate = append(objectsToCreate, makeReplicaset(queryDeployment, revisionHash))
+	}
+	if test.queryFrontendDeployed {
+		objectsToCreate = append(objectsToCreate, makeDeployment(frontendDeployment, test.queryFrontendReady))
+		objectsToCreate = append(objectsToCreate, makeReplicaset(frontendDeployment, revisionHash))
+	}
+	if test.storegatewayDeployed {
+		objectsToCreate = append(objectsToCreate, makeStatefulset(storeGatewayStatefulset, test.storegatewayReady))
+		objectsToCreate = append(objectsToCreate, makeControllerRevision(controllerRevisionName))
+	}
+	if test.queryReady {
+		objectsToCreate = append(objectsToCreate, makePod(queryDeployment, map[string]string{
+			"app":               queryDeployment,
+			"pod-template-hash": revisionHash,
+		}))
+	}
+	if test.queryFrontendReady {
+		objectsToCreate = append(objectsToCreate, makePod(frontendDeployment, map[string]string{
+			"app":               frontendDeployment,
+			"pod-template-hash": revisionHash,
+		}))
+	}
+	if test.storegatewayReady {
+		objectsToCreate = append(objectsToCreate, makePod(storeGatewayStatefulset, map[string]string{
+			"app":                      storeGatewayStatefulset,
+			"controller-revision-hash": controllerRevisionName,
+		}))
+	}
+	return objectsToCreate
 }
 
 func makeControllerRevision(name string) cliruntime.Object {
@@ -483,19 +516,27 @@ func makeControllerRevision(name string) cliruntime.Object {
 	}
 }
 
-func makeStatefulset(name string) cliruntime.Object {
+func makeStatefulset(name string, ready bool) *appsv1.StatefulSet {
+	var readyReplicas int32
+	if ready {
+		readyReplicas = 1
+	}
 	return &appsv1.StatefulSet{
 		ObjectMeta: v1.ObjectMeta{Name: name, Namespace: ComponentNamespace},
 		Spec:       appsv1.StatefulSetSpec{Selector: &v1.LabelSelector{MatchLabels: map[string]string{"app": name}}},
-		Status:     appsv1.StatefulSetStatus{AvailableReplicas: 1, UpdatedReplicas: 1, ReadyReplicas: 1},
+		Status:     appsv1.StatefulSetStatus{Replicas: 1, AvailableReplicas: 1, UpdatedReplicas: 1, ReadyReplicas: readyReplicas},
 	}
 }
 
-func makeDeployment(name string) cliruntime.Object {
+func makeDeployment(name string, ready bool) *appsv1.Deployment {
+	var readyReplicas int32
+	if ready {
+		readyReplicas = 1
+	}
 	return &appsv1.Deployment{
 		ObjectMeta: v1.ObjectMeta{Name: name, Namespace: ComponentNamespace},
 		Spec:       appsv1.DeploymentSpec{Selector: &v1.LabelSelector{MatchLabels: map[string]string{"app": name}}},
-		Status:     appsv1.DeploymentStatus{AvailableReplicas: 1, UpdatedReplicas: 1},
+		Status:     appsv1.DeploymentStatus{Replicas: 1, AvailableReplicas: 1, UpdatedReplicas: 1, ReadyReplicas: readyReplicas},
 	}
 }
 

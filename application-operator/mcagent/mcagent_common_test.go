@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 	"testing"
 	"time"
@@ -118,15 +119,15 @@ func TestSyncer_processStatusUpdates(t *testing.T) {
 	secretName := types.NamespacedName{Namespace: updateMsgSecret.GetNamespace(), Name: updateMsgSecret.GetName()}
 	appName := types.NamespacedName{Namespace: updateMsgAppConf.GetNamespace(), Name: updateMsgAppConf.GetName()}
 	adminMock.EXPECT().
-		Get(gomock.Any(), secretName, gomock.AssignableToTypeOf(&v1alpha1.MultiClusterSecret{})).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcSecret *v1alpha1.MultiClusterSecret) error {
+		Get(gomock.Any(), secretName, gomock.AssignableToTypeOf(&v1alpha1.MultiClusterSecret{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcSecret *v1alpha1.MultiClusterSecret, opts ...client.GetOption) error {
 			asserts.Equal(t, secretName, name)
 			updateMsgSecret.DeepCopyInto(mcSecret)
 			return nil
 		})
 	adminMock.EXPECT().
-		Get(gomock.Any(), appName, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcAppConf *v1alpha1.MultiClusterApplicationConfiguration) error {
+		Get(gomock.Any(), appName, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcAppConf *v1alpha1.MultiClusterApplicationConfiguration, opts ...client.GetOption) error {
 			asserts.Equal(t, appName, name)
 			updateMsgAppConf.DeepCopyInto(mcAppConf)
 			return nil
@@ -193,17 +194,17 @@ func TestSyncer_processStatusUpdates_RetriesOnConflict(t *testing.T) {
 	secretName := types.NamespacedName{Namespace: updateMsgSecret.GetNamespace(), Name: updateMsgSecret.GetName()}
 	appName := types.NamespacedName{Namespace: updateMsgAppConf.GetNamespace(), Name: updateMsgAppConf.GetName()}
 	adminMock.EXPECT().
-		Get(gomock.Any(), secretName, gomock.AssignableToTypeOf(&v1alpha1.MultiClusterSecret{})).
+		Get(gomock.Any(), secretName, gomock.AssignableToTypeOf(&v1alpha1.MultiClusterSecret{}), gomock.Any()).
 		Times(retryCount).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcSecret *v1alpha1.MultiClusterSecret) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcSecret *v1alpha1.MultiClusterSecret, opts ...client.GetOption) error {
 			asserts.Equal(t, secretName, name)
 			updateMsgSecret.DeepCopyInto(mcSecret)
 			return nil
 		})
 	adminMock.EXPECT().
-		Get(gomock.Any(), appName, gomock.Any()).
+		Get(gomock.Any(), appName, gomock.Any(), gomock.Any()).
 		Times(retryCount).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcAppConf *v1alpha1.MultiClusterApplicationConfiguration) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcAppConf *v1alpha1.MultiClusterApplicationConfiguration, opts ...client.GetOption) error {
 			asserts.Equal(t, appName, name)
 			updateMsgAppConf.DeepCopyInto(mcAppConf)
 			return nil

@@ -157,43 +157,6 @@ Copyright (C) 2015-2016, Google
 --------------------------------- (separator) ----------------------------------
 
 == Dependency
-github.com/PuerkitoBio/purell
-
-== License Type
-=== BSD-3-Clause-fb8b3949
-Copyright (c) 2012, Martin Angers
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
-
-* Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-
-* Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-
-* Neither the name of the author nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-
-
-== Copyright
-Copyright (c) 2012, Martin Angers
-
---------------------------------- (separator) ----------------------------------
-
-== Dependency
-github.com/PuerkitoBio/urlesc
-
-== License Type
-SPDX:BSD-3-Clause--modified-by-Google
-
-== Copyright
-Copyright (c) 2012 The Go Authors. All rights reserved.
-Copyright 2009 The Go Authors. All rights reserved.
-
---------------------------------- (separator) ----------------------------------
-
-== Dependency
 github.com/alessio/shellescape
 
 == License Type
@@ -695,15 +658,8 @@ github.com/fsnotify/fsnotify
 SPDX:BSD-3-Clause--modified-by-Google
 
 == Copyright
-Copyright (c) 2012 The Go Authors. All rights reserved.
-Copyright (c) 2012-2019 fsnotify Authors. All rights reserved.
-Copyright 2010 The Go Authors. All rights reserved.
-Copyright 2011 The Go Authors. All rights reserved.
-Copyright 2012 The Go Authors. All rights reserved.
-Copyright 2013 The Go Authors. All rights reserved.
-Copyright 2015 The Go Authors. All rights reserved.
-Copyright 2016 The Go Authors. All rights reserved.
-Copyright 2022 The Go Authors. All rights reserved.
+Copyright © 2012 The Go Authors. All rights reserved.
+Copyright © fsnotify Authors. All rights reserved.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -2663,7 +2619,9 @@ Copyright 2017 The Prometheus Authors
 Copyright 2018 The Prometheus Authors
 Copyright 2019 The Prometheus Authors
 Copyright 2020 The Prometheus Authors
+Copyright 2020 The Prometheus-operator Authors
 Copyright 2021 The Prometheus Authors
+Copyright 2022 The Prometheus Authors
 
 == Notices
 Common libraries shared by Prometheus Go components.
@@ -2690,6 +2648,7 @@ Copyright 2018 The Prometheus Authors
 Copyright 2019 The Prometheus Authors
 Copyright 2020 The Prometheus Authors
 Copyright 2021 The Prometheus Authors
+Copyright 2022 The Prometheus Authors
 
 == Notices
 procfs provides functions to retrieve system, kernel and process
@@ -2791,6 +2750,7 @@ Copyright © 2015 Steve Francia <spf@spf13.com>.
 Copyright © 2016 Steve Francia <spf@spf13.com>.
 Copyright © 2018 Steve Francia <spf@spf13.com>.
 Copyright © 2021 Vasily Ovchinnikov <vasily@remerge.io>.
+Copyright © 2022 Steve Francia <spf@spf13.com>.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -5128,5 +5088,5 @@ The above copyright notice and either this complete permission notice or at a mi
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 === ATTRIBUTION-HELPER-GENERATED:
-=== Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-104-ga251515e GitCommit:a251515ef3765b9d1210ee735fe33bddb8085b99 GitTreeState:clean BuildDate:2023-03-06T16:24:36Z GoVersion:go1.19.2 Compiler:gc Platform:darwin/amd64}
-=== License file based on go.mod with md5 sum:  f67ca8518bb022e45bd03e7a8ebea644
+=== Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-108-gc398c3cf GitCommit:c398c3cf1bca9bc72e2382e8918b1e9ccedd0816 GitTreeState:clean BuildDate:2023-04-16T22:18:59Z GoVersion:go1.19.2 Compiler:gc Platform:linux/amd64}
+=== License file based on go.mod with md5 sum:  16e464a0449c8c0db72d6b55db4274a3

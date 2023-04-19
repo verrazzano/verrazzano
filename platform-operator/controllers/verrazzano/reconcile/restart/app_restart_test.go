@@ -306,8 +306,8 @@ func expectListAppConfigs(_ *testing.T, mock *mocks.MockClient, config testAppCo
 
 func expectGetAppConfig(_ *testing.T, mock *mocks.MockClient, appConfigName string, annotationKey string, annotationVal string) {
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: appConfigName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, appConfig *oam.ApplicationConfiguration) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: appConfigName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, appConfig *oam.ApplicationConfiguration, opts ...client.GetOption) error {
 			if len(annotationVal) > 0 {
 				appConfig.Annotations = map[string]string{}
 				appConfig.Annotations[annotationKey] = annotationVal
@@ -329,8 +329,8 @@ func expectUpdateAppConfig(t *testing.T, mock *mocks.MockClient, annotationKey s
 
 func expectGetWebLogicWorkload(_ *testing.T, mock *mocks.MockClient, wlName string, lifecycleAction string) {
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: wlName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, wl *vzapp.VerrazzanoWebLogicWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: wlName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, wl *vzapp.VerrazzanoWebLogicWorkload, opts ...client.GetOption) error {
 			if len(lifecycleAction) > 0 {
 				wl.Annotations = map[string]string{}
 				wl.Annotations[vzconst.LifecycleActionAnnotation] = lifecycleAction

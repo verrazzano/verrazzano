@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package verrazzanoproject
@@ -251,8 +251,8 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 			// expect call to get a verrazzanoproject
 			if tt.fields.vpName == existingVP {
 				mockClient.EXPECT().
-					Get(gomock.Any(), types.NamespacedName{Namespace: tt.fields.vpNamespace, Name: tt.fields.vpName}, gomock.Not(gomock.Nil())).
-					DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject) error {
+					Get(gomock.Any(), types.NamespacedName{Namespace: tt.fields.vpNamespace, Name: tt.fields.vpName}, gomock.Not(gomock.Nil()), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject, opts ...client.GetOption) error {
 						vp.Namespace = tt.fields.vpNamespace
 						vp.Name = tt.fields.vpName
 						vp.ObjectMeta.Finalizers = []string{finalizer}
@@ -267,8 +267,8 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 					if tt.fields.nsList[0].Metadata.Name == existingNS.Metadata.Name {
 						// expect call to get vz system namespace
 						mockClient.EXPECT().
-							Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
-							DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+							Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+							DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 								ns.Labels = make(map[string]string)
 								ns.Labels["istio-injection"] = "enabled"
 
@@ -276,8 +276,8 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 							})
 						// expect call to get a namespace
 						mockClient.EXPECT().
-							Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: tt.fields.nsList[0].Metadata.Name}, gomock.Not(gomock.Nil())).
-							DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+							Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: tt.fields.nsList[0].Metadata.Name}, gomock.Not(gomock.Nil()), gomock.Any()).
+							DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 								return nil
 							})
 
@@ -306,8 +306,8 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 					} else { // not an existing namespace
 						// expect call to get vz system namespace
 						mockClient.EXPECT().
-							Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
-							DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+							Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+							DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 								ns.Labels = make(map[string]string)
 								ns.Labels["istio-injection"] = "enabled"
 
@@ -315,7 +315,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 							})
 						// expect call to get a namespace that returns namespace not found
 						mockClient.EXPECT().
-							Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: tt.fields.nsList[0].Metadata.Name}, gomock.Not(gomock.Nil())).
+							Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: tt.fields.nsList[0].Metadata.Name}, gomock.Not(gomock.Nil()), gomock.Any()).
 							Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Namespace"}, tt.fields.nsList[0].Metadata.Name))
 
 						// expect call to create a namespace
@@ -352,7 +352,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 
 			} else { // The VerrazzanoProject is not an existing one i.e. not existingVP
 				mockClient.EXPECT().
-					Get(gomock.Any(), types.NamespacedName{Namespace: tt.fields.vpNamespace, Name: tt.fields.vpName}, gomock.Not(gomock.Nil())).
+					Get(gomock.Any(), types.NamespacedName{Namespace: tt.fields.vpNamespace, Name: tt.fields.vpName}, gomock.Not(gomock.Nil()), gomock.Any()).
 					Return(errors.NewNotFound(schema.GroupResource{Group: clustersv1alpha1.SchemeGroupVersion.Group, Resource: clustersv1alpha1.VerrazzanoProjectResource}, tt.fields.vpName))
 			}
 
@@ -386,8 +386,8 @@ func TestNetworkPolicies(t *testing.T) {
 
 	// Expect call to get the project
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: vpName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: vpName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject, opts ...client.GetOption) error {
 			vp.Namespace = constants.VerrazzanoMultiClusterNamespace
 			vp.Name = vpName
 			vp.ObjectMeta.Finalizers = []string{finalizer}
@@ -399,8 +399,8 @@ func TestNetworkPolicies(t *testing.T) {
 
 	// expect call to get vz system namespace
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 			ns.Labels = make(map[string]string)
 			ns.Labels["istio-injection"] = "enabled"
 
@@ -409,8 +409,8 @@ func TestNetworkPolicies(t *testing.T) {
 
 	// expect call to get a namespace
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: ns1.Metadata.Name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: ns1.Metadata.Name}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 			return nil
 		})
 
@@ -437,7 +437,7 @@ func TestNetworkPolicies(t *testing.T) {
 
 	// expect call to get a network policy
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ns1Netpol.Metadata.Namespace, Name: ns1Netpol.Metadata.Name}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: ns1Netpol.Metadata.Namespace, Name: ns1Netpol.Metadata.Name}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: ns1.Metadata.Namespace, Resource: "NetworkPolicy"}, ns1.Metadata.Name))
 
 	// Expect call to create the network policies in the namespace
@@ -495,8 +495,8 @@ func TestDeleteVerrazzanoProject(t *testing.T) {
 	mockClient := mocks.NewMockClient(mocker)
 
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: vpName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: vpName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject, opts ...client.GetOption) error {
 			vp.Namespace = constants.VerrazzanoMultiClusterNamespace
 			vp.Name = vpName
 			vp.Spec.Template.Namespaces = []clustersv1alpha1.NamespaceTemplate{existingNS}
@@ -527,8 +527,8 @@ func TestDeleteVerrazzanoProjectFinalizer(t *testing.T) {
 
 	// Expect call to get the project
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: vpName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: vpName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject, opts ...client.GetOption) error {
 			vp.Namespace = constants.VerrazzanoMultiClusterNamespace
 			vp.Name = vpName
 			vp.ObjectMeta.Finalizers = []string{finalizer}
@@ -592,8 +592,8 @@ func TestDeleteVerrazzanoProjectFinalizer(t *testing.T) {
 
 	// expect a call to fetch a rolebinding for the cluster1 role and return rolebinding
 	clusterNameRef := generateRoleBindingManagedClusterRef(clusterstest.UnitTestClusterName)
-	mockClient.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: "existingNS", Name: clusterNameRef}, gomock.AssignableToTypeOf(&rbacv1.RoleBinding{})).
-		DoAndReturn(func(ctx context.Context, objectKey types.NamespacedName, rb *rbacv1.RoleBinding) error {
+	mockClient.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: "existingNS", Name: clusterNameRef}, gomock.AssignableToTypeOf(&rbacv1.RoleBinding{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, objectKey types.NamespacedName, rb *rbacv1.RoleBinding, opts ...client.GetOption) error {
 			rb.Name = clusterNameRef
 			rb.Namespace = "existingNS"
 			return nil
@@ -677,7 +677,7 @@ func mockNewManagedClusterRoleBindingExpectations(assert *asserts.Assertions, mo
 
 	// expect a call to fetch a rolebinding for the specified role and return not found
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: clusterNameRef}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: clusterNameRef}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "RoleBinding"}, existingNS.Metadata.Name))
 
 	managedClusterSubjects := []rbacv1.Subject{
@@ -703,7 +703,7 @@ func mockNewManagedClusterRoleBindingExpectations(assert *asserts.Assertions, mo
 func mockNewRoleBindingExpectations(assert *asserts.Assertions, mockClient *mocks.MockClient, namespace, role, k8sRole string, subjects []rbacv1.Subject) {
 	// expect a call to fetch a rolebinding for the specified role and return NotFound
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: role}, gomock.AssignableToTypeOf(&rbacv1.RoleBinding{})).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: role}, gomock.AssignableToTypeOf(&rbacv1.RoleBinding{}), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{}, ""))
 
 	// expect a call to create a rolebinding for the subjects to the specified role
@@ -716,7 +716,7 @@ func mockNewRoleBindingExpectations(assert *asserts.Assertions, mockClient *mock
 
 	// expect a call to fetch a rolebinding for the specified k8s role and return NotFound
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: k8sRole}, gomock.AssignableToTypeOf(&rbacv1.RoleBinding{})).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: k8sRole}, gomock.AssignableToTypeOf(&rbacv1.RoleBinding{}), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{}, ""))
 
 	// expect a call to create a rolebinding for the subjects to the specified k8s role
@@ -732,8 +732,8 @@ func mockNewRoleBindingExpectations(assert *asserts.Assertions, mockClient *mock
 func mockUpdatedRoleBindingExpectations(assert *asserts.Assertions, mockClient *mocks.MockClient, namespace, role, k8sRole string, subjects []rbacv1.Subject) {
 	// expect a call to fetch a rolebinding for the specified role and return an existing rolebinding
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: role}, gomock.AssignableToTypeOf(&rbacv1.RoleBinding{})).
-		DoAndReturn(func(ctx context.Context, ns types.NamespacedName, roleBinding *rbacv1.RoleBinding) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: role}, gomock.AssignableToTypeOf(&rbacv1.RoleBinding{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ns types.NamespacedName, roleBinding *rbacv1.RoleBinding, opts ...client.GetOption) error {
 			// simulate subjects and roleref being set our of band, we should reset them
 			roleBinding.RoleRef.Name = "changed"
 			roleBinding.Subjects = []rbacv1.Subject{
@@ -753,8 +753,8 @@ func mockUpdatedRoleBindingExpectations(assert *asserts.Assertions, mockClient *
 
 	// expect a call to fetch a rolebinding for the specified k8s role and return an existing rolebinding
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: k8sRole}, gomock.AssignableToTypeOf(&rbacv1.RoleBinding{})).
-		DoAndReturn(func(ctx context.Context, ns types.NamespacedName, roleBinding *rbacv1.RoleBinding) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: k8sRole}, gomock.AssignableToTypeOf(&rbacv1.RoleBinding{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ns types.NamespacedName, roleBinding *rbacv1.RoleBinding, opts ...client.GetOption) error {
 			// simulate subjects and roleref being set our of band, we should reset them
 			roleBinding.RoleRef.Name = "changed"
 			roleBinding.Subjects = []rbacv1.Subject{
