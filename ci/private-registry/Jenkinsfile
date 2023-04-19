@@ -22,9 +22,9 @@ pipeline {
 
     agent {
        docker {
-            image "${RUNNER_DOCKER_IMAGE}"
+            image "${PRIV_REG_RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
-            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            registryUrl "${ocirRegistry}"
             registryCredentialsId 'ocir-pull-and-push-account'
             label "${agentLabel}"
         }
