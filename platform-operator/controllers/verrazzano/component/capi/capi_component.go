@@ -195,7 +195,7 @@ func (c capiComponent) Install(_ spi.ComponentContext) error {
 		CoreProvider:            "cluster-api:v1.3.3",
 		BootstrapProviders:      []string{"ocne:v0.1.0"},
 		ControlPlaneProviders:   []string{"ocne:v0.1.0"},
-		InfrastructureProviders: []string{"oci:v0.8.0"},
+		InfrastructureProviders: []string{"oci:v0.8.1"},
 	}
 
 	_, err = capiClient.Init(initOptions)

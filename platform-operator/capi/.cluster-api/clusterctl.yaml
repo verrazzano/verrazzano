@@ -9,7 +9,7 @@ images:
 
   infrastructure-oci:
     repository: ghcr.io/oracle
-    tag: v0.8.0
+    tag: v0.8.1
 
   bootstrap-ocne:
     repository: ghcr.io/verrazzano
