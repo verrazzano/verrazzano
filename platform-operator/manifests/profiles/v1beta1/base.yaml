@@ -23,7 +23,7 @@ spec:
                   weight: 100
             replicas: 1
     capi:
-      enabled: true
+      enabled: false
     certManager:
       certificate:
         acme:

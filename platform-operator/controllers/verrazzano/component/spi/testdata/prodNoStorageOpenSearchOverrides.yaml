@@ -307,7 +307,7 @@ spec:
     argoCD:
       enabled: false
     capi:
-      enabled: true
+      enabled: false
   defaultVolumeSource:
     emptyDir: {}
   environmentName: default

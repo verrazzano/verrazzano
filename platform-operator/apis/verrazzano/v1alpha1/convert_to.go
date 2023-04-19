@@ -716,8 +716,7 @@ func convertCAPIToV1Beta1(src *CAPIComponent) *v1beta1.CAPIComponent {
 		return nil
 	}
 	return &v1beta1.CAPIComponent{
-		Enabled:          src.Enabled,
-		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
+		Enabled: src.Enabled,
 	}
 }
 

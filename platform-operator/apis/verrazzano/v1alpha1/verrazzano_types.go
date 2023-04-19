@@ -608,11 +608,6 @@ type CAPIComponent struct {
 	// If true, then CAPI Providers will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default CAPI Providers. Overrides are merged together, but in the event of conflicting
-	// fields, the last override in the list takes precedence over any others.
-	// Passing through invalid CAPI providers will result in an error.
-	// +optional
-	InstallOverrides `json:",inline"`
 }
 
 // CertManagerComponent specifies the cert-manager configuration.

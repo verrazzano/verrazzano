@@ -303,4 +303,4 @@ spec:
     argoCD:
       enabled: false
     capi:
-      enabled: true
+      enabled: false

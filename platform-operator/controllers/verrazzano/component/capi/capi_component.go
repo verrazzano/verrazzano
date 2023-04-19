@@ -23,11 +23,8 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "capi"
 
-// Namespaces for CAPI component
-const CAPISystemNamespace = "capi-system"
-const OCNEBootstrapNamespace = "capi-ocne-bootstrap-system"
-const OCNEControlPlaneNamespace = "capi-ocne-control-plane-system"
-const CoreProviderNamespace = "cluster-api-provider-oci-system"
+// Namespace for CAPI providers
+const VerrazzanoCAPINamespace = "verrazzano-capi"
 
 // ComponentJSONName is the JSON name of the component in CRD
 const ComponentJSONName = "capi"
@@ -42,19 +39,19 @@ const (
 var capiDeployments = []types.NamespacedName{
 	{
 		Name:      capiCMDeployment,
-		Namespace: CAPISystemNamespace,
+		Namespace: VerrazzanoCAPINamespace,
 	},
 	{
 		Name:      capiOcneBootstrapCMDeployment,
-		Namespace: OCNEBootstrapNamespace,
+		Namespace: VerrazzanoCAPINamespace,
 	},
 	{
 		Name:      capiOcneControlPlaneCMDeployment,
-		Namespace: OCNEControlPlaneNamespace,
+		Namespace: VerrazzanoCAPINamespace,
 	},
 	{
 		Name:      capiociCMDeployment,
-		Namespace: CoreProviderNamespace,
+		Namespace: VerrazzanoCAPINamespace,
 	},
 }
 
@@ -86,7 +83,7 @@ func (c capiComponent) Name() string {
 
 // Namespace returns the component namespace.
 func (c capiComponent) Namespace() string {
-	return CAPISystemNamespace
+	return VerrazzanoCAPINamespace
 }
 
 // ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done.
@@ -137,28 +134,12 @@ func (c capiComponent) GetJSONName() string {
 
 // GetOverrides returns the Helm override sources for a component
 func (c capiComponent) GetOverrides(object runtime.Object) interface{} {
-	if effectiveCR, ok := object.(*v1alpha1.Verrazzano); ok {
-		if effectiveCR.Spec.Components.CAPI != nil {
-			return effectiveCR.Spec.Components.CAPI.ValueOverrides
-		}
-		return []v1alpha1.Overrides{}
-	}
-	effectiveCR := object.(*v1beta1.Verrazzano)
-	if effectiveCR.Spec.Components.CAPI != nil {
-		return effectiveCR.Spec.Components.CAPI.ValueOverrides
-	}
-	return []v1beta1.Overrides{}
+	return nil
 }
 
 // MonitorOverrides indicates whether monitoring of override sources is enabled for a component
 func (c capiComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
-	if ctx.EffectiveCR().Spec.Components.CAPI == nil {
-		return false
-	}
-	if ctx.EffectiveCR().Spec.Components.CAPI.MonitorChanges != nil {
-		return *ctx.EffectiveCR().Spec.Components.CAPI.MonitorChanges
-	}
-	return true
+	return false
 }
 
 func (c capiComponent) IsOperatorInstallSupported() bool {
@@ -168,12 +149,12 @@ func (c capiComponent) IsOperatorInstallSupported() bool {
 // IsInstalled checks to see if CAPI is installed
 func (c capiComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	daemonSet := &appsv1.Deployment{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: CAPISystemNamespace, Name: capiCMDeployment}, daemonSet)
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: VerrazzanoCAPINamespace, Name: capiCMDeployment}, daemonSet)
 	if errors.IsNotFound(err) {
 		return false, nil
 	}
 	if err != nil {
-		ctx.Log().Errorf("Failed to get %s/%s deployment: %v", CAPISystemNamespace, capiCMDeployment, err)
+		ctx.Log().Errorf("Failed to get %s/%s deployment: %v", VerrazzanoCAPINamespace, capiCMDeployment, err)
 		return false, err
 	}
 	return true, nil
@@ -196,6 +177,7 @@ func (c capiComponent) Install(_ spi.ComponentContext) error {
 		BootstrapProviders:      []string{"ocne:v0.1.0"},
 		ControlPlaneProviders:   []string{"ocne:v0.1.0"},
 		InfrastructureProviders: []string{"oci:v0.8.1"},
+		TargetNamespace:         VerrazzanoCAPINamespace,
 	}
 
 	_, err = capiClient.Init(initOptions)
