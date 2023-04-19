@@ -736,7 +736,7 @@ func deleteNetworkPolicy(ctx spi.ComponentContext) error {
 	netpol := &netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: networkPolicyName, Namespace: ComponentNamespace}}
 	err := client.IgnoreNotFound(ctx.Client().Delete(context.TODO(), netpol))
 	if err != nil {
-		ctx.Log().Errorf("Error deleting existing NetworkPolicy %s/%s on upgrade: %v", networkPolicyName, ComponentNamespace, err)
+		ctx.Log().Errorf("Error deleting existing NetworkPolicy %s/%s: %v", networkPolicyName, ComponentNamespace, err)
 		return err
 	}
 	return nil
