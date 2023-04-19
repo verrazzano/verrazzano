@@ -156,53 +156,15 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 			return err
 		}
 
-		// Wait for the platform operator to be ready before we update the verrazzano install resource
-		_, err = cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondUpgradeComplete, vpoTimeout)
+		err = upgradeVerrazzano(vzHelper, vz, client, version, vpoTimeout)
 		if err != nil {
-			return err
-		}
-
-		err = kubectlutil.SetLastAppliedConfigurationAnnotation(vz)
-		if err != nil {
-			return err
-		}
-
-		// Update the version in the verrazzano install resource.  This will initiate the Verrazzano upgrade.
-		// We will retry up to 5 times if there is an error.
-		// Sometimes we see intermittent webhook errors due to timeouts.
-		retry := 0
-		for {
-			// Get the verrazzano install resource each iteration, in case of resource conflicts
-			vz, err = helpers.GetVerrazzanoResource(client, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name})
-			if err == nil {
-				vz.Spec.Version = version
-				err = helpers.UpdateVerrazzanoResource(client, vz)
-			}
-			if err != nil {
-				if retry == 5 {
-					return fmt.Errorf("Failed to set the upgrade version in the verrazzano install resource: %s", err.Error())
-				}
-				time.Sleep(time.Second)
-				retry++
-				fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Retrying after failing to set the upgrade version in the verrazzano install resource: %s\n", err.Error()))
-				continue
-			}
-			break
+			return autoBugReport(cmd, vzHelper, err)
 		}
 
 		// Wait for the Verrazzano upgrade to complete
 		err = waitForUpgradeToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat)
 		if err != nil {
-			autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
-			if errFlag != nil {
-				fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
-				return err
-			}
-			if autoBugReportFlag {
-				//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from waitForUpgradeToComplete
-				return bugreport.CallVzBugReport(cmd, vzHelper, err)
-			}
-			return err
+			return autoBugReport(cmd, vzHelper, err)
 		}
 		return nil
 	}
@@ -213,16 +175,7 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	if !vzStatusVersion.IsEqualTo(vzSpecVersion) {
 		err = waitForUpgradeToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat)
 		if err != nil {
-			autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
-			if errFlag != nil {
-				fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
-				return err
-			}
-			if autoBugReportFlag {
-				//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from waitForUpgradeToComplete
-				return bugreport.CallVzBugReport(cmd, vzHelper, err)
-			}
-			return err
+			return autoBugReport(cmd, vzHelper, err)
 		}
 		return nil
 	}
@@ -230,7 +183,58 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	return nil
 }
 
+func upgradeVerrazzano(vzHelper helpers.VZHelper, vz *v1beta1.Verrazzano, client clipkg.Client, version string, vpoTimeout time.Duration) error {
+	// Wait for the platform operator to be ready before we update the verrazzano install resource
+	_, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondUpgradeComplete, vpoTimeout)
+	if err != nil {
+		return err
+	}
+
+	err = kubectlutil.SetLastAppliedConfigurationAnnotation(vz)
+	if err != nil {
+		return err
+	}
+
+	// Update the version in the verrazzano install resource.  This will initiate the Verrazzano upgrade.
+	// We will retry up to 5 times if there is an error.
+	// Sometimes we see intermittent webhook errors due to timeouts.
+	retry := 0
+	for {
+		// Get the verrazzano install resource each iteration, in case of resource conflicts
+		vz, err = helpers.GetVerrazzanoResource(client, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name})
+		if err == nil {
+			vz.Spec.Version = version
+			err = helpers.UpdateVerrazzanoResource(client, vz)
+		}
+		if err != nil {
+			if retry == 5 {
+				return fmt.Errorf("Failed to set the upgrade version in the verrazzano install resource: %s", err.Error())
+			}
+			time.Sleep(time.Second)
+			retry++
+			fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Retrying after failing to set the upgrade version in the verrazzano install resource: %s\n", err.Error()))
+			continue
+		}
+		break
+	}
+	return nil
+}
+
 // Wait for the upgrade operation to complete
 func waitForUpgradeToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, namespacedName types.NamespacedName, timeout time.Duration, vpoTimeout time.Duration, logFormat cmdhelpers.LogFormat) error {
 	return cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, namespacedName, timeout, vpoTimeout, logFormat, v1beta1.CondUpgradeComplete)
+}
+
+// autoBugReport checks that AutoBugReportFlag is set and then kicks off vz bugreport CLI command. It returns the same error that is passed in
+func autoBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) error {
+	autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
+	if errFlag != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
+		return err
+	}
+	if autoBugReportFlag {
+		//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from uninstallVerrazzanoFn
+		err = bugreport.CallVzBugReport(cmd, vzHelper, err)
+	}
+	return err
 }

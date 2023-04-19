@@ -181,6 +181,11 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		if err != nil {
 			return err
 		}
+		// Apply the Verrazzano operator.yaml.
+		err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
+		if err != nil {
+			return err
+		}
 		err = installVerrazzano(cmd, vzHelper, vz, client, version, vpoTimeout)
 		if err != nil {
 			return autoBugReport(cmd, vzHelper, err)
@@ -212,14 +217,8 @@ func autoBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) err
 }
 
 func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz clipkg.Object, client clipkg.Client, version string, vpoTimeout time.Duration) error {
-	// Apply the Verrazzano operator.yaml.
-	err := cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
-	if err != nil {
-		return err
-	}
-
 	// Wait for the platform operator to be ready before we create the Verrazzano resource.
-	_, err = cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondInstallComplete, vpoTimeout)
+	_, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondInstallComplete, vpoTimeout)
 	if err != nil {
 		return err
 	}
