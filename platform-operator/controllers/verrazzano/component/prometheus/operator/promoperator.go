@@ -664,7 +664,7 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 		}
 		return nil
 	})
-	if ctrlerrors.ShouldLogKubernetesAPIError(err) {
+	if ctrlerrors.ShouldLogKubenetesAPIError(err) {
 		return ctx.Log().ErrorfNewErr("Failed creating/updating Prometheus auth policy: %v", err)
 	}
 	return err
