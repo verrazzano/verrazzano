@@ -179,7 +179,8 @@ buildArchLiteBundle() {
 }
 
 # Create the layout for the Verrazzano source bundle in a source layout directory that is named
-# with the right naming convention
+# with the right naming convention. These steps are needed so that the generated tar.gz will have the
+# right root directory name, and will be stored in a generated dir under the same root dir where the source is present.
 createVZSourceLayout() {
   local rootDir="$1"
   local srcLayoutDir="$2"
