@@ -267,39 +267,6 @@ pipeline {
                         }
                     }
                 }
-                stage('Upgrade Verrazzano from version current branch to master') {
-                    when {
-                        expression { CLEAN_BRANCH_NAME != 'master' }
-                    }
-                    steps {
-                        script{
-                            try{
-                                echo "Running upgrade job from version current branch to master"
-                                retry(count: JOB_PROMOTION_RETRIES) {
-                                    def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'GIT_COMMIT_TO_USE', value: params.GIT_COMMIT_TO_USE),
-                                        string(name: 'VERSION_FOR_INSTALL', value: "current_branch" ),
-                                        string(name: 'VERSION_FOR_UPGRADE', value: "master"),
-                                        string(name: 'VZ_INSTALL_CONFIG', value: params.VZ_INSTALL_CONFIG),
-                                        string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
-                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
-                                    ],  wait: true, propagate: true
-                                }
-                            } catch(err) {
-                                catchError(message: "${STAGE_NAME} Failed with ${err}", buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                                    echo "Caught: ${err}"
-                                    sh "exit 1"
-                                }
-                            }
-                        }
-                    }
-                }
             }
         }
     }
