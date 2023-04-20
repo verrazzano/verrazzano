@@ -220,11 +220,10 @@ pipeline {
 
                     echo "Extracting source"
                     tar xvf ${downloadLocation} -C ${GO_REPO_PATH}
-                    cd ${GO_REPO_PATH}/verrazzano
                 """
 
                 script {
-                    def props = readProperties file: '.verrazzano-development-version'
+                    def props = readProperties file: env.GO_REPO_PATH + '/verrazzano/.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
@@ -276,7 +275,7 @@ pipeline {
 
                     sh """
                         mkdir -p $zipDir || true
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${zipFileLoc} --file ${downloadLocation}
+                        oci --region eu-frankfurt-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${zipFileLoc} --file ${downloadLocation}
                     """
 
                     dir(env.TARBALL_ROOT_DIR) {
