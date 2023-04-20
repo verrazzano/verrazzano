@@ -151,7 +151,7 @@ pipeline {
         stage ('Upgrade every release to next Minor Release') {
             parallel {
                 
-                stage('Compute required N Upgrade Jobs') {
+                stage('Compute required N Upgrade Jobs'){ 
                 steps {
                     script {
                         final String fileContent = readFile(file: "${workspace}/tags.txt")
@@ -180,7 +180,7 @@ pipeline {
                         for(release in minorReleaseList){
                             RELEASE = release
                             sh """
-                                ${GIT_RELEASE_COMMIT_ID}=$(git rev-parse release-${RELEASE})
+                                "${GIT_RELEASE_COMMIT_ID}"=$(git rev-parse release-${RELEASE})
                                 echo "${RELEASE}:${GIT_RELEASE_COMMIT_ID}" >> ${workspace}/releaseAndCommits.txt
                             """
                         }
