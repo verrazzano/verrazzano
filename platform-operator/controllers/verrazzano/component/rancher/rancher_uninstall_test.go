@@ -218,6 +218,7 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 	randPV := "randomPV"
 	randCR := "randomCR"
 	randCRB := "randomCRB"
+	crdRancherOwned := "rancherOwns"
 	rancherCRDName := "definitelyrancher.cattle.io"
 	nonRancherCRDName := "other.cattle"
 
@@ -254,6 +255,12 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 	crbRancher := rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: webhookName,
+		},
+	}
+	crbOwnedByRancher := rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   crdRancherOwned,
+			Labels: map[string]string{"fleet.cattle.io/managed": "true"},
 		},
 	}
 	crNotRancher := rbacv1.ClusterRole{
@@ -533,6 +540,7 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 				&crbRancher,
 				&crNotRancher,
 				&crbNotRancher,
+				&crbOwnedByRancher,
 				&controllerCM,
 				&lockCM,
 				&rancherPV,
@@ -585,6 +593,8 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 			a.True(apierrors.IsNotFound(err))
 			// ClusterRoleBinding should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: webhookName}, &rbacv1.ClusterRoleBinding{})
+			a.True(apierrors.IsNotFound(err))
+			err = c.Get(context.TODO(), types.NamespacedName{Name: crdRancherOwned}, &rbacv1.ClusterRoleBinding{})
 			a.True(apierrors.IsNotFound(err))
 			if tt.nonRancherTest {
 				// Verify that non-Rancher components did not get cleaned up

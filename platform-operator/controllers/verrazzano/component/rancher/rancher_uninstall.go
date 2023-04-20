@@ -501,19 +501,19 @@ func deleteMatchingResources(ctx spi.ComponentContext) error {
 
 // deleteMatchingObjects is a helper function that deletes objects in an object list that match any of the object names using regex
 func deleteMatchingObject(ctx spi.ComponentContext, nameMatches []string, labelMatches []string, obj client.Object) error {
-	objectMatch, err := regexp.MatchString(strings.Join(nameMatches, "|"), obj.GetName())
+	nameMatch, err := regexp.MatchString(strings.Join(nameMatches, "|"), obj.GetName())
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to verify that the %s %s is from Rancher: %v", obj.GetObjectKind().GroupVersionKind().String(), obj.GetName(), err)
 	}
 	labelMatch := false
 	objLabels := obj.GetLabels()
 	for _, label := range labelMatches {
-		_, labelMatch := objLabels[label]
+		_, labelMatch = objLabels[label]
 		if labelMatch {
 			break
 		}
 	}
-	if objectMatch || labelMatch {
+	if nameMatch || labelMatch {
 		err = resource.Resource{
 			Name:      obj.GetName(),
 			Namespace: obj.GetNamespace(),
