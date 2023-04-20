@@ -13,11 +13,6 @@ Copyright (C) 2022, 2023, Oracle and/or its affiliates.
 Copyright (C) 2022, Oracle and/or its affiliates.
 Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
 Copyright (c) 2015-2021 Bitnami
-Copyright (c) 2019 Oracle and/or its affiliates.
-Copyright (c) 2019 Oracle and/or its associates.
-Copyright (c) 2019, 2020 Oracle and/or its associates. All rights reserved.
-Copyright (c) 2019, 2021 Oracle and/or its affiliates.
-Copyright (c) 2019, 2021 Oracle and/or its associates.
 Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 Copyright (c) 2020, 2022, Oracle America, Inc. and its affiliates.
 Copyright (c) 2020, 2022, Oracle and/or its affiliates.
@@ -28,8 +23,6 @@ Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 Copyright (c) 2021, Oracle and/or its affiliates.
 Copyright (c) 2021, Oracle and/or its affiliates. -->")
 Copyright (c) 2021, Oracle and/or its affiliates.")
-Copyright (c) 2022 Oracle and/or its affiliates.
-Copyright (c) 2022 Oracle and/or its associates.
 Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 Copyright (c) 2022, 2023, Oracle and/or its affiliates. -->
 Copyright (c) 2022, Oracle and/or its affiliates.
@@ -5095,5 +5088,5 @@ The above copyright notice and either this complete permission notice or at a mi
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 === ATTRIBUTION-HELPER-GENERATED:
-=== Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-108-gc398c3cf GitCommit:c398c3cf1bca9bc72e2382e8918b1e9ccedd0816 GitTreeState:clean BuildDate:2023-03-31T00:10:24Z GoVersion:go1.19.3 Compiler:gc Platform:darwin/amd64}
-=== License file based on go.mod with md5 sum:  7d6a26194a67a43a3a3a82272249cbc3
+=== Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-108-gc398c3cf GitCommit:c398c3cf1bca9bc72e2382e8918b1e9ccedd0816 GitTreeState:clean BuildDate:2023-03-31T00:10:24Z GoVersion:go1.20.3 Compiler:gc Platform:darwin/arm64}
+=== License file based on go.mod with md5 sum:  5a72eb0bd951440a1f8c977b22e94729
