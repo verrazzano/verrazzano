@@ -204,6 +204,7 @@ pipeline {
 	            }
                 sh """
                     rm -rf ${GO_REPO_PATH}/verrazzano
+                    mkdir -p ${GO_REPO_PATH}
 
                     echo "Downloading VZ source tarball"
                     oci --region eu-frankfurt-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/temp-for-airgap-testing/vz.tar.gz --file ${downloadLocation}
