@@ -99,6 +99,7 @@ pipeline {
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
         DATABASE_PSW = credentials('todo-mysql-password') // required by console ingress test
+        SHORT_COMMIT_HASH="${params.GIT_COMMIT_TO_USE}"[0..8]
 
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
@@ -174,7 +175,7 @@ pipeline {
                     echo "Image Repo Subpath: ${imageRepoSubPath}"
                     echo "Base Image Repo: ${baseImageRepo}"
 
-                    srcTar = "ephemeral/${env.BRANCH_NAME}/${GIT_COMMIT_TO_USE:0:8}/verrazzano-src.tar.gz"
+                    srcTar = "ephemeral/${env.BRANCH_NAME}/" + env.SHORT_COMMIT_HASH + "/verrazzano-src.tar.gz"
                     echo "source tarball: ${srcTar}"
                     downloadLocation = "${WORKSPACE}/vzsrc.tar.gz"
                     echo "source tarball download location: ${downloadLocation}"
@@ -214,17 +215,17 @@ pipeline {
 
                     echo "Extracting source"
                     tar xvf ${downloadLocation} -C ${GO_REPO_PATH}
+                    cd ${GO_REPO_PATH}/verrazzano
                 """
 
                 script {
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
                     setDisplayName()
-                    currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                    currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + env.SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
                 }
                 script {
                     zipFileLoc = params.ZIPFILE_LOCATION
