@@ -75,6 +75,10 @@ spec:
 {{- else }}
               value: none
 {{- end }}
+            - name: K8S_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           image: {{ .Values.logging.fluentdImage }}
           imagePullPolicy: IfNotPresent
           securityContext:

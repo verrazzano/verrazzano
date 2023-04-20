@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusterstest
@@ -75,8 +75,9 @@ func DoExpectGetMCRegistrationSecret(cli *mocks.MockClient) {
 		Get(gomock.Any(), types.NamespacedName{
 			Namespace: clusters.MCRegistrationSecretFullName.Namespace,
 			Name:      clusters.MCRegistrationSecretFullName.Name},
-			gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+			gomock.Not(gomock.Nil()),
+			gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret, opts ...client.GetOption) error {
 			secret.Data = mockRegistrationSecretData
 			secret.ObjectMeta.Namespace = clusters.MCRegistrationSecretFullName.Namespace
 			secret.ObjectMeta.Name = clusters.MCRegistrationSecretFullName.Name
@@ -121,8 +122,8 @@ func DoExpectUpdateState(t *testing.T, cli *mocks.MockClient, statusWriter *mock
 // call for the runtime resource and a subsequent request to delete it
 func ExpectDeleteAssociatedResource(cli *mocks.MockClient, resource runtime.Object, name types.NamespacedName) {
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: name.Namespace, Name: name.Name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj runtime.Object) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: name.Namespace, Name: name.Name}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj runtime.Object, opts ...client.GetOption) error {
 			return nil
 		})
 

@@ -11,6 +11,7 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -90,8 +91,11 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compTra
 
 	componentStatus, ok := spiCtx.ActualCR().Status.Components[comp.Name()]
 	if !ok {
-		compLog.Debugf("Did not find status details in map for component %s", comp.Name())
-		compTracker.installState = compStateInstallEnd
+		compLog.Debugf("Did not find status details in map for component %s, adding it to the component status map", comp.Name())
+		if err := r.initComponentStatus(compContext, comp); err != nil {
+			compLog.Errorf("Error initializing the component status for component %s: %v", comp.Name(), err)
+			return newRequeueWithDelay()
+		}
 	}
 
 	for compTracker.installState != compStateInstallEnd {
@@ -213,6 +217,7 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compTra
 
 	// The component previously finished installing, but check for any mid-installation updates
 	// which may require restarting the component's installation from the beginning
+
 	if restartComponentInstallFromEndState(compContext, comp, componentStatus) {
 		compTracker.installState = compStateInstallInitDetermineComponentState
 		if err := r.updateComponentStatus(compContext, "PreInstall started", vzapi.CondPreInstall); err != nil {
@@ -360,4 +365,35 @@ func isCurrentlyInstalled(compContext spi.ComponentContext, comp spi.Component) 
 		return false
 	}
 	return currentlyInstalled
+}
+
+func (r *Reconciler) initComponentStatus(ctx spi.ComponentContext, comp spi.Component) error {
+	// If the component is installed then mark it as ready
+	compContext := ctx.Init(comp.Name()).Operation(vzconst.InitializeOperation)
+	lastReconciled := int64(0)
+	state := vzapi.CompStateDisabled
+	if !unitTesting {
+		installed, err := comp.IsInstalled(compContext)
+		if err != nil {
+			ctx.Log().Errorf("Failed to determine if component %s is installed: %v", comp.Name(), err)
+			return err
+		}
+		if installed {
+			state = vzapi.CompStateReady
+			lastReconciled = compContext.ActualCR().Generation
+		}
+	}
+
+	// Update the status
+	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
+		Verrazzano: ctx.ActualCR(),
+		Components: map[string]*vzapi.ComponentStatusDetails{
+			comp.Name(): {
+				Name:                     comp.Name(),
+				State:                    state,
+				LastReconciledGeneration: lastReconciled,
+			},
+		},
+	})
+	return nil
 }
