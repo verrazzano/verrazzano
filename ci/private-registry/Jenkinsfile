@@ -13,7 +13,6 @@ def baseImageRepo=""
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 def zipFileLoc=""
 def installFilePath=""
-def airGapped = true
 
 pipeline {
     options {
@@ -144,6 +143,7 @@ pipeline {
         CLEAN_PERIODIC_PREFIX = "${CLEAN_BRANCH_NAME}-last-clean-periodic-test"
 
         DISTRIBUTION_VARIANT = "${params.DISTRIBUTION_VARIANT}"
+        AIR_GAPPED = true
     }
 
     stages {
@@ -154,7 +154,7 @@ pipeline {
                     def exitCode = sh(returnStatus: true, script: 'curl --max-time 20 "http://www.oracle.com"')
                     if (exitCode == 0) {
                         echo "curl command to internet succeeded, environment is not air-gapped! Exiting"
-                        airGapped=false
+                        AIR_GAPPED = false
                         sh "exit 1"
                     }
                     echo "Verified that we are in an air-gapped environment"
@@ -649,7 +649,7 @@ pipeline {
     post {
         always {
             script {
-                if (!airGapped) {
+                if (!env.AIR_GAPPED) {
                     echo "Airgap check failed, not running post actions."
                     sh "exit 0"
                 }
@@ -698,7 +698,7 @@ pipeline {
 }
 
 def runPipeline() {
-    return airGapped
+    return AIR_GAPPED
 }
 
 def runGinkgoRandomize(testSuitePath) {
