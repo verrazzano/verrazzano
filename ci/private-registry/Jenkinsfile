@@ -40,7 +40,7 @@ pipeline {
                 choices: ["Full", "Lite"])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
-                        description: 'This is the full git commit hash from the source build to be used for all jobs',
+                        description: 'This is the short git commit hash from the source build to be used for downloading from object storage',
                         trim: true)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'This is the wildcard DNS domain',
@@ -174,8 +174,10 @@ pipeline {
                     echo "Image Repo Subpath: ${imageRepoSubPath}"
                     echo "Base Image Repo: ${baseImageRepo}"
 
-                    downloadLocation = "${WORKSPACE}/vz.tar.gz"
-                    echo "source tarball download location: $downloadLocation"
+                    srcTar = "ephemeral/${CLEAN_BRANCH_NAME}/${GIT_COMMIT_TO_USE}/verrazzano-1.6.0-src.tar.gz"
+                    echo "source tarball: ${srcTar}"
+                    downloadLocation = "${WORKSPACE}/vzsrc.tar.gz"
+                    echo "source tarball download location: ${downloadLocation}"
                 }
 
                 sh """
@@ -207,7 +209,8 @@ pipeline {
                     mkdir -p ${GO_REPO_PATH}
 
                     echo "Downloading VZ source tarball"
-                    oci --region eu-frankfurt-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/temp-for-airgap-testing/vz.tar.gz --file ${downloadLocation}
+                    #oci --region eu-frankfurt-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/temp-for-airgap-testing/vz.tar.gz --file ${downloadLocation}
+                    oci --region eu-frankfurt-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${srcTar} --file ${downloadLocation}
 
                     echo "Extracting source"
                     tar xvf ${downloadLocation} -C ${GO_REPO_PATH}
