@@ -174,7 +174,7 @@ pipeline {
                     echo "Image Repo Subpath: ${imageRepoSubPath}"
                     echo "Base Image Repo: ${baseImageRepo}"
 
-                    srcTar = "ephemeral/${env.BRANCH_NAME}/${GIT_COMMIT_TO_USE}/verrazzano-src.tar.gz"
+                    srcTar = "ephemeral/${env.BRANCH_NAME}/${GIT_COMMIT_TO_USE:0:8}/verrazzano-src.tar.gz"
                     echo "source tarball: ${srcTar}"
                     downloadLocation = "${WORKSPACE}/vzsrc.tar.gz"
                     echo "source tarball download location: ${downloadLocation}"
