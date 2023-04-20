@@ -216,7 +216,7 @@ generateVZSourceBundle() {
   tar czf ${srcGeneratedDir}/${VZ_SRC_BUNDLE} $bundleRoot
   sha256sum ${srcGeneratedDir}/${VZ_SRC_BUNDLE} > ${srcGeneratedDir}/${VZ_SRC_BUNDLE_SHA256}
   cd $srcGeneratedDir
-  echo "Uploading Verrazzano source bundle ${srcGeneratedDir}/${VZ_SRC_BUNDLE} to $OCI_OS_DIST_REGION ..."
+  echo "Uploading Verrazzano source bundle ${srcGeneratedDir}/${VZ_SRC_BUNDLE} to $OCI_OS_DIST_REGION in bucket ${OCI_OS_COMMIT_BUCKET} with name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_SRC_BUNDLE} ..."
   oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_SRC_BUNDLE} --file ${VZ_SRC_BUNDLE}
   oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_SRC_BUNDLE_SHA256} --file ${VZ_SRC_BUNDLE_SHA256}
   echo "Successfully uploaded ${VZ_SRC_BUNDLE}"
