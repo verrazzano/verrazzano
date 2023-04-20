@@ -223,7 +223,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.6.0-20230413051529-98842d3",
+              "tag": "v1.6.0-20230420073456-b9a1675",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -798,10 +798,5 @@
       ]
     }
   ],
-  "supportedKubernetesVersions": [
-    "v1.21.0",
-    "v1.22.0",
-    "v1.23.0",
-    "v1.24.0"
-  ]
+  "supportedKubernetesVersions": ["v1.21.0", "v1.22.0", "v1.23.0", "v1.24.0"]
 }
