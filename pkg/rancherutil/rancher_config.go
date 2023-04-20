@@ -156,6 +156,13 @@ func deleteStoredToken(username string) {
 	delete(userToken, username)
 }
 
+// DeleteStoredTokens clears the map of stored tokens.
+func DeleteStoredTokens() {
+	userLock.Lock()
+	defer userLock.Unlock()
+	userToken = make(map[string]string)
+}
+
 // getRancherIngressHostname gets the Rancher ingress host name. This is used to set the host for TLS.
 func getRancherIngressHostname(rdr client.Reader) (string, error) {
 	ingress := &k8net.Ingress{}
