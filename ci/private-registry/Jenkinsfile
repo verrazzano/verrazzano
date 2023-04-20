@@ -99,7 +99,7 @@ pipeline {
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
         DATABASE_PSW = credentials('todo-mysql-password') // required by console ingress test
-        SHORT_COMMIT_HASH = params.GIT_COMMIT_TO_USE.substring(0, 9)
+        SHORT_COMMIT_HASH = params.GIT_COMMIT_TO_USE.substring(0, 8)
 
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
