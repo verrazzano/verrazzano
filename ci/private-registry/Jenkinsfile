@@ -150,7 +150,7 @@ pipeline {
             steps {
                 script {
                     echo "Checking if we are running in an air-gapped environment"
-                    def exitCode = sh(returnStatus: true, script: 'curl "http://www.oracle.com"')
+                    def exitCode = sh(returnStatus: true, script: 'curl --max-time 20 "http://www.oracle.com"')
                     if (exitCode == 0) {
                         echo "curl command to internet succeeded, environment is not air-gapped! Exiting"
                         airGapped=false
@@ -161,11 +161,6 @@ pipeline {
             }
         }
         stage('Initialize workspace and download/extract vz source tarball') {
-            when {
-                expression {
-                    return runPipeline()
-                }
-            }
             steps {
                 script {
                     echo "Current execution region: $ocirRegion"
