@@ -6,6 +6,8 @@ spec:
       enabled: false
     authProxy:
       enabled: false
+    capi:
+      enabled: false
     certManager:
       enabled: false
     coherenceOperator:
