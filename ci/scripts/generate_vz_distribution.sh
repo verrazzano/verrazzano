@@ -346,8 +346,12 @@ VZ_CLI_DARWIN_ARM64_TARGZ_SHA256="vz-darwin-arm64.tar.gz.sha256"
 
 DISTRIBUTION_PREFIX="verrazzano-${VZ_DEVELOPENT_VERSION}"
 
+# Don't use dev version in the source bundle prefix because the private registry job which
+# runs air-gapped has no way of getting the dev version until it downloads the source
+SRC_BUNDLE_PREFIX="verrazzano-src"
+
 # Source bundles and SHA256 of the source bundles
-VZ_SRC_BUNDLE="${DISTRIBUTION_PREFIX}-src.tar.gz"
+VZ_SRC_BUNDLE="${SRC_BUNDLE_PREFIX}.tar.gz"
 VZ_SRC_BUNDLE_SHA256="${VZ_SRC_BUNDLE}.sha256"
 
 # Release bundles and SHA256 of the bundles
@@ -372,7 +376,7 @@ VZ_DARWIN_ARM64_TARGZ="${DISTRIBUTION_PREFIX}-darwin-arm64.tar.gz"
 VZ_DARWIN_ARM64_TARGZ_SHA256="${DISTRIBUTION_PREFIX}-darwin-arm64.tar.gz.sha256"
 
 # Directory containing the layout and required files for the Verrazzano source bundle
-VZ_SRC_ROOT="${WORKSPACE}/${DISTRIBUTION_PREFIX}-src"
+VZ_SRC_ROOT="${WORKSPACE}/${SRC_BUNDLE_PREFIX}"
 VZ_SRC_GENERATED="${WORKSPACE}/vz-src-generated"
 
 # Directory to contain the files which are common for both types of distribution bundles
