@@ -180,8 +180,8 @@ pipeline {
                         for(release in minorReleaseList){
                             RELEASE = release
                             sh """
-                                ${GIT_RELEASE_COMMIT_ID} = $(git rev-parse release-${RELEASE})
-                                echo "release-${RELEASE}:${GIT_RELEASE_COMMIT_ID}" >> ${workspace}/releaseAndCommits.txt
+                                ${GIT_RELEASE_COMMIT_ID}=$(git rev-parse release-${RELEASE})
+                                echo "${RELEASE}:${GIT_RELEASE_COMMIT_ID}" >> ${workspace}/releaseAndCommits.txt
                             """
                         }
                         sh "cat ${workspace}/releaseAndCommits.txt"
