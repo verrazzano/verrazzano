@@ -179,12 +179,14 @@ pipeline {
                         minorReleaseList = getTipOfReleaseBranches(finalReleaseList)
                         for(release in minorReleaseList){
                             RELEASE = release
+                            GIT_RELEASE_COMMIT_ID = sh (script: "git rev-parse release-${RELEASE}")
                             sh """
-                                "${GIT_RELEASE_COMMIT_ID}"=$(git rev-parse release-${RELEASE})
-                                echo "${RELEASE}:${GIT_RELEASE_COMMIT_ID}" >> ${workspace}/releaseAndCommits.txt
+                                echo "$RELEASE:$GIT_RELEASE_COMMIT_ID" >> ${workspace}/releaseAndCommits.txt
                             """
                         }
-                        sh "cat ${workspace}/releaseAndCommits.txt"
+                        sh """
+                            cat ${workspace}/releaseAndCommits.txt
+                        """
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                         echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
                         def k = 0
