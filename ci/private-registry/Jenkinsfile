@@ -220,6 +220,8 @@ pipeline {
 
                     echo "Extracting source"
                     tar xvf ${downloadLocation} -C ${GO_REPO_PATH}
+
+                    ls -las ${GO_REPO_PATH}/verrazzano
                 """
 
                 script {
