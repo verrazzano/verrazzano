@@ -22,6 +22,8 @@ spec:
                     topologyKey: kubernetes.io/hostname
                   weight: 100
             replicas: 1
+    capi:
+      enabled: false
     certManager:
       certificate:
         acme:
