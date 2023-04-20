@@ -17,12 +17,10 @@ import (
 )
 
 const (
-	bootstrapKubeadmProvider    = "bootstrap-kubeadm"
-	bootstrapOcneProvider       = "bootstrap-ocne"
-	controlPlaneKubeadmProvider = "control-plane-kubeadm"
-	controlPlaneOcneProvider    = "control-plane-ocne"
-	clusterAPIProvider          = "cluster-api"
-	infrastructureOciProvider   = "infrastructure-oci"
+	bootstrapOcneProvider     = "bootstrap-ocne"
+	controlPlaneOcneProvider  = "control-plane-ocne"
+	clusterAPIProvider        = "cluster-api"
+	infrastructureOciProvider = "infrastructure-oci"
 
 	deploymentRevisionAnnotation = "deployment.kubernetes.io/revision"
 	podTemplateHashLabel         = "pod-template-hash"
@@ -80,7 +78,7 @@ func TestIsNotAvailable(t *testing.T) {
 	var comp capiComponent
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	reason, _ := comp.IsAvailable(compContext)
-	assert.Equal(t, "deployment capi-system/capi-controller-manager not available: 0/1 replicas ready", reason)
+	assert.Equal(t, "deployment verrazzano-capi/capi-controller-manager not available: 0/1 replicas ready", reason)
 }
 
 // TestIsInstalled tests the IsInstalled function
@@ -92,7 +90,7 @@ func TestIsInstalled(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: VerrazzanoCAPINamespace,
 				Name:      capiCMDeployment,
 			},
 		}).Build()
@@ -153,7 +151,7 @@ func getNotReadyDeployments() *fake.ClientBuilder {
 	return fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: VerrazzanoCAPINamespace,
 				Name:      capiCMDeployment,
 				Labels:    map[string]string{providerLabel: clusterAPIProvider},
 			},
@@ -169,7 +167,7 @@ func getNotReadyDeployments() *fake.ClientBuilder {
 		},
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: VerrazzanoCAPINamespace,
 				Name:      capiCMDeployment + "-95d8c5d97-m6mbr",
 				Labels: map[string]string{
 					podTemplateHashLabel: "95d8c5d97",
@@ -179,7 +177,7 @@ func getNotReadyDeployments() *fake.ClientBuilder {
 		},
 		&appsv1.ReplicaSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   ComponentNamespace,
+				Namespace:   VerrazzanoCAPINamespace,
 				Name:        capiCMDeployment + "-95d8c5d97",
 				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
@@ -191,7 +189,7 @@ func getReadyDeployments() *fake.ClientBuilder {
 	return fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: VerrazzanoCAPINamespace,
 				Name:      capiCMDeployment,
 				Labels:    map[string]string{providerLabel: clusterAPIProvider},
 			},
@@ -209,7 +207,7 @@ func getReadyDeployments() *fake.ClientBuilder {
 		},
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: VerrazzanoCAPINamespace,
 				Name:      capiCMDeployment + "-95d8c5d96-m6mbr",
 				Labels: map[string]string{
 					podTemplateHashLabel: "95d8c5d96",
@@ -219,7 +217,7 @@ func getReadyDeployments() *fake.ClientBuilder {
 		},
 		&appsv1.ReplicaSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   ComponentNamespace,
+				Namespace:   VerrazzanoCAPINamespace,
 				Name:        capiCMDeployment + "-95d8c5d96",
 				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
@@ -227,79 +225,7 @@ func getReadyDeployments() *fake.ClientBuilder {
 
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      capiKubeadmBootstrapCMDeployment,
-				Labels:    map[string]string{providerLabel: bootstrapKubeadmProvider},
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{providerLabel: bootstrapKubeadmProvider},
-				},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				ReadyReplicas:     1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      capiKubeadmBootstrapCMDeployment + "-95d8c5d95-m6mbr",
-				Labels: map[string]string{
-					podTemplateHashLabel: "95d8c5d95",
-					providerLabel:        bootstrapKubeadmProvider,
-				},
-			},
-		},
-		&appsv1.ReplicaSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   ComponentNamespace,
-				Name:        capiKubeadmBootstrapCMDeployment + "-95d8c5d95",
-				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
-			},
-		},
-
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      capiKubeadmControlPlaneCMDeployment,
-				Labels:    map[string]string{providerLabel: controlPlaneKubeadmProvider},
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{providerLabel: controlPlaneKubeadmProvider},
-				},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				ReadyReplicas:     1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      capiKubeadmControlPlaneCMDeployment + "-95d8c5d94-m6mbr",
-				Labels: map[string]string{
-					podTemplateHashLabel: "95d8c5d94",
-					providerLabel:        controlPlaneKubeadmProvider,
-				},
-			},
-		},
-		&appsv1.ReplicaSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   ComponentNamespace,
-				Name:        capiKubeadmControlPlaneCMDeployment + "-95d8c5d94",
-				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
-			},
-		},
-
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: VerrazzanoCAPINamespace,
 				Name:      capiOcneBootstrapCMDeployment,
 				Labels:    map[string]string{providerLabel: bootstrapOcneProvider},
 			},
@@ -317,7 +243,7 @@ func getReadyDeployments() *fake.ClientBuilder {
 		},
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: VerrazzanoCAPINamespace,
 				Name:      capiOcneBootstrapCMDeployment + "-95d8c5d93-m6mbr",
 				Labels: map[string]string{
 					podTemplateHashLabel: "95d8c5d93",
@@ -327,7 +253,7 @@ func getReadyDeployments() *fake.ClientBuilder {
 		},
 		&appsv1.ReplicaSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   ComponentNamespace,
+				Namespace:   VerrazzanoCAPINamespace,
 				Name:        capiOcneBootstrapCMDeployment + "-95d8c5d93",
 				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
@@ -335,7 +261,7 @@ func getReadyDeployments() *fake.ClientBuilder {
 
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: VerrazzanoCAPINamespace,
 				Name:      capiOcneControlPlaneCMDeployment,
 				Labels:    map[string]string{providerLabel: controlPlaneOcneProvider},
 			},
@@ -353,7 +279,7 @@ func getReadyDeployments() *fake.ClientBuilder {
 		},
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: VerrazzanoCAPINamespace,
 				Name:      capiOcneControlPlaneCMDeployment + "-95d8c5d92-m6mbr",
 				Labels: map[string]string{
 					podTemplateHashLabel: "95d8c5d92",
@@ -363,7 +289,7 @@ func getReadyDeployments() *fake.ClientBuilder {
 		},
 		&appsv1.ReplicaSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   ComponentNamespace,
+				Namespace:   VerrazzanoCAPINamespace,
 				Name:        capiOcneControlPlaneCMDeployment + "-95d8c5d92",
 				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
@@ -371,7 +297,7 @@ func getReadyDeployments() *fake.ClientBuilder {
 
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: VerrazzanoCAPINamespace,
 				Name:      capiociCMDeployment,
 				Labels:    map[string]string{providerLabel: infrastructureOciProvider},
 			},
@@ -389,7 +315,7 @@ func getReadyDeployments() *fake.ClientBuilder {
 		},
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: VerrazzanoCAPINamespace,
 				Name:      capiociCMDeployment + "-95d8c5d91-m6mbr",
 				Labels: map[string]string{
 					podTemplateHashLabel: "95d8c5d91",
@@ -399,7 +325,7 @@ func getReadyDeployments() *fake.ClientBuilder {
 		},
 		&appsv1.ReplicaSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   ComponentNamespace,
+				Namespace:   VerrazzanoCAPINamespace,
 				Name:        capiociCMDeployment + "-95d8c5d91",
 				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},

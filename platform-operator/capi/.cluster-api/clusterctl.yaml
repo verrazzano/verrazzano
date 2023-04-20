@@ -9,14 +9,14 @@ images:
 
   infrastructure-oci:
     repository: ghcr.io/oracle
-    tag: v0.8.0
+    tag: v0.8.1
 
   bootstrap-ocne:
     repository: ghcr.io/verrazzano
-    tag: v0.1.0-20230406225237-9bd77d2
+    tag: v0.1.0-20230417200213-babd8e5
   control-plane-ocne:
     repository: ghcr.io/verrazzano
-    tag: v0.1.0-20230406225237-9bd77d2
+    tag: v0.1.0-20230417200213-babd8e5
 
 
 providers:

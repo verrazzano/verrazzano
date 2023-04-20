@@ -5,6 +5,7 @@ package registry
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -94,7 +95,7 @@ func TestGetComponents(t *testing.T) {
 	comps := GetComponents()
 
 	var i int
-	a.Len(comps, 34, "Wrong number of components")
+	a.Len(comps, 35, "Wrong number of components")
 	a.Equal(comps[i].Name(), networkpolicies.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), oam.ComponentName)
@@ -110,6 +111,8 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[i].Name(), certmanager.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), externaldns.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), capi.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), rancher.ComponentName)
 	i++
