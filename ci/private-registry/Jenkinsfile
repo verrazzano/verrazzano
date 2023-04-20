@@ -5,7 +5,7 @@ def DOCKER_IMAGE_TAG
 // Pin to PHX for now for testing; tarball is located only in PHX at present, and takes 15+ mins to download to LHR at runtime
 // - at some point, we can either enable bucket replication or have the pipeline push it to more regions
 //def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
-def agentLabel = "blocked-large"
+def agentLabel = "largeexperimental"
 def ocirRegion = "fra"
 def ocirRegistry = "${ocirRegion}.ocir.io"
 def imageRepoSubPath=""
@@ -160,7 +160,7 @@ pipeline {
                 }
             }
         }
-        stage('Initialize workspace and checkout') {
+        stage('Initialize workspace and download/extract vz source tarball') {
             when {
                 expression {
                     return runPipeline()
@@ -173,34 +173,14 @@ pipeline {
                 }
 
                 script {
-                   EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
-                    if (params.GIT_COMMIT_TO_USE == "NONE") {
-                        echo "Specific GIT commit was not specified, use current head"
-                        def scmInfo = checkout scm
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                    } else {
-                        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
-                        def scmInfo = checkout([
-                            $class: 'GitSCM',
-                            branches: [[name: params.GIT_COMMIT_TO_USE]],
-                            doGenerateSubmoduleConfigurations: false,
-                            extensions: [],
-                            submoduleCfg: [],
-                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                        // If the commit we were handed is not what the SCM says we are using, fail
-                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
-                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
-                            exit 1
-                        }
-                    }
-                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                    EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
                     imageRepoSubPath="verrazzano-private-registry/${env.BRANCH_NAME}/b${env.BUILD_NUMBER}".trim().toLowerCase()
                     baseImageRepo="${env.OCI_OS_NAMESPACE}/${imageRepoSubPath}".trim().toLowerCase()
                     echo "Image Repo Subpath: ${imageRepoSubPath}"
                     echo "Base Image Repo: ${baseImageRepo}"
+
+                    downloadLocation = "${WORKSPACE}/vz.tar.gz"
+                    echo "source tarball download location: $downloadLocation"
                 }
 
                 sh """
@@ -244,8 +224,12 @@ pipeline {
 	            }
                 sh """
                     rm -rf ${GO_REPO_PATH}/verrazzano
-                    mkdir -p ${GO_REPO_PATH}/verrazzano
-                    tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+
+                    echo "Downloading VZ source tarball"
+                    oci --region eu-frankfurt-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/temp-for-airgap-testing/vz.tar.gz --file ${downloadLocation}
+
+                    echo "Extracting source"
+                    tar xvf ${downloadLocation} -C ${GO_REPO_PATH}
                 """
 
                 script {
@@ -271,7 +255,7 @@ pipeline {
             }
         }
 
-        stage('Download and extract Tarball') {
+        stage('Download and extract dist tarball') {
             when {
                 expression {
                     return runPipeline()
