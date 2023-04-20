@@ -376,7 +376,7 @@ VZ_DARWIN_ARM64_TARGZ="${DISTRIBUTION_PREFIX}-darwin-arm64.tar.gz"
 VZ_DARWIN_ARM64_TARGZ_SHA256="${DISTRIBUTION_PREFIX}-darwin-arm64.tar.gz.sha256"
 
 # Directory containing the layout and required files for the Verrazzano source bundle
-VZ_SRC_ROOT="${WORKSPACE}/${SRC_BUNDLE_PREFIX}"
+VZ_SRC_ROOT="${WORKSPACE}/verrazzano"
 VZ_SRC_GENERATED="${WORKSPACE}/vz-src-generated"
 
 # Directory to contain the files which are common for both types of distribution bundles
