@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
@@ -544,7 +545,7 @@ username: admin
 	capiSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      CAPIProviderOCIAuthConfigSecret,
-			Namespace: CAPIProviderOCISystemNamespace,
+			Namespace: capi.VerrazzanoCAPINamespace,
 		},
 		Data: map[string][]byte{
 			"fingerprint": []byte("abcdefg"),

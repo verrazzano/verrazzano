@@ -55,15 +55,10 @@ const ComponentNamespace = common.CattleSystem
 // ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "rancher"
 
-// TODO:  Move CAPIProviderOCISystemNamespace to CAPI component code
-
-// CAPIProviderOCISystemNamespace is the CAPI OCI system namespace
-const CAPIProviderOCISystemNamespace = "cluster-api-provider-oci-system"
-
 // CAPIProviderOCIAuthConfigSecret is the CAPI OCI system auth secret
 const CAPIProviderOCIAuthConfigSecret = "capoci-auth-config" //nolint:gosec //#gosec G101
 
-// CAPIProviderOCISystemNamespace is the multi-cluster namespace for verrazzano
+// CattleGlobalDataNamespace is the multi-cluster namespace for verrazzano
 const CattleGlobalDataNamespace = "cattle-global-data"
 
 const rancherIngressClassNameKey = "ingress.ingressClassName"
@@ -534,12 +529,12 @@ func (r rancherComponent) Reconcile(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// createAdminCloudCredentialSecret will create the admin cloud credential secert from the information available in the
+// createAdminCloudCredentialSecret will create the admin cloud credential secret from the information available in the
 // CAPI auth config secret
 func createAdminCloudCredentialSecret(ctx spi.ComponentContext) error {
 	// check for CAPI secret
 	capiSecret := &v1.Secret{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: CAPIProviderOCISystemNamespace, Name: CAPIProviderOCIAuthConfigSecret}, capiSecret)
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: capi.VerrazzanoCAPINamespace, Name: CAPIProviderOCIAuthConfigSecret}, capiSecret)
 	if err != nil {
 		if kerrs.IsNotFound(err) {
 			return nil

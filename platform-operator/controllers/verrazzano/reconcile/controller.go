@@ -10,6 +10,7 @@ import (
 	goerrors "errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"io"
 
@@ -972,7 +973,7 @@ func (r *Reconciler) isThanosInternalUserSecret(o client.Object) bool {
 
 func (r *Reconciler) isCapiSecret(o client.Object) bool {
 	secret := o.(*corev1.Secret)
-	if secret.Namespace != rancher.CAPIProviderOCISystemNamespace || secret.Name != rancher.CAPIProviderOCIAuthConfigSecret {
+	if secret.Namespace != capi.VerrazzanoCAPINamespace || secret.Name != rancher.CAPIProviderOCIAuthConfigSecret {
 		return false
 	}
 	r.AddWatch(rancher.ComponentJSONName)
