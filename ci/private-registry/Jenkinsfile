@@ -162,6 +162,11 @@ pipeline {
             }
         }
         stage('Initialize workspace and download/extract vz source tarball') {
+            when {
+                expression {
+                    return runPipeline()
+                }
+            }
             steps {
                 script {
                     echo "Current execution region: $ocirRegion"
@@ -649,7 +654,7 @@ pipeline {
                     sh "exit 0"
                 }
             }
-            /*sh """
+            sh """
                 echo "Current execution region: $ocirRegion"
                 echo "OCIR Repository: ${ocirRegistry}"
                 echo "Image repo subpath: ${imageRepoSubPath}"
@@ -672,11 +677,11 @@ pipeline {
                     dumpOamKubernetesRuntimeLogs()
                     dumpVerrazzanoApiLogs()
                 }
-            }*/
-//            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/*bug-report*/**,**/${TEST_REPORT}", allowEmptyArchive: true
-//              junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
+            }
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/*bug-report*/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
-            /*sh """
+            sh """
                 cd ${GO_REPO_PATH}/verrazzano/platform-operator
                 make delete-cluster
                 cd ${WORKSPACE}/verrazzano
@@ -684,7 +689,7 @@ pipeline {
                   echo "Failures seen during dumping of artifacts, treat post as failed"
                   exit 1
                 fi
-            """ */
+            """
         }
         cleanup {
             deleteDir()
@@ -693,7 +698,7 @@ pipeline {
 }
 
 def runPipeline() {
-    return false //airGapped
+    return airGapped
 }
 
 def runGinkgoRandomize(testSuitePath) {
