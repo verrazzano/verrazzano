@@ -73,7 +73,8 @@ pipeline {
         LAST_PERIODIC_LOCATION = "${WORKSPACE}/last-periodic-run-commit.txt"
         CLEAN_PERIODIC_LOCATION = "${WORKSPACE}/last-clean-periodic-commit.txt"
 
-        OCI_OS_REGION="us-phoenix-1"
+        OCI_OS_REGION="us-phoenix-1" // where to download existing artifacts from
+        OCI_OS_DIST_REGION="eu-frankfurt-1" // where to upload distributions to
     }
 
     stages {
