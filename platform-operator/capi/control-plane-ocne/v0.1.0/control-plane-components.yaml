@@ -14,7 +14,7 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.10.0
   labels:
     cluster.x-k8s.io/provider: control-plane-ocne
-    cluster.x-k8s.io/v1beta1: v1beta1
+    cluster.x-k8s.io/v1beta1: v1alpha1
   name: ocnecontrolplanes.controlplane.cluster.x-k8s.io
 spec:
   conversion:
@@ -86,7 +86,7 @@ spec:
       jsonPath: .spec.version
       name: Version
       type: string
-    name: v1beta1
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: OCNEControlPlane is the Schema for the OCNEControlPlane API.
@@ -1444,7 +1444,7 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.10.0
   labels:
     cluster.x-k8s.io/provider: control-plane-ocne
-    cluster.x-k8s.io/v1beta1: v1beta1
+    cluster.x-k8s.io/v1beta1: v1alpha1
   name: ocnecontrolplanetemplates.controlplane.cluster.x-k8s.io
 spec:
   conversion:
@@ -1474,7 +1474,7 @@ spec:
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
-    name: v1beta1
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: OCNEControlPlaneTemplate is the Schema for the ocnecontrolplanetemplates
@@ -2938,7 +2938,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.uid
-        image: ghcr.io/verrazzano/cluster-api-ocne-control-plane-controller:v0.1.0-20230406225237-9bd77d2
+        image: ghcr.io/verrazzano/cluster-api-ocne-control-plane-controller:v0.1.0-20230417200213-babd8e5
         imagePullPolicy: Always
         livenessProbe:
           httpGet:
@@ -3012,12 +3012,12 @@ metadata:
 webhooks:
 - admissionReviewVersions:
   - v1
-  - v1beta1
+  - v1alpha1
   clientConfig:
     service:
       name: capi-ocne-control-plane-webhook-service
       namespace: capi-ocne-control-plane-system
-      path: /mutate-controlplane-cluster-x-k8s-io-v1beta1-ocnecontrolplane
+      path: /mutate-controlplane-cluster-x-k8s-io-v1alpha1-ocnecontrolplane
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: default.ocnecontrolplane.controlplane.cluster.x-k8s.io
@@ -3025,7 +3025,7 @@ webhooks:
   - apiGroups:
     - controlplane.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1alpha1
     operations:
     - CREATE
     - UPDATE
@@ -3034,24 +3034,24 @@ webhooks:
   sideEffects: None
 - admissionReviewVersions:
   - v1
-  - v1beta1
+  - v1alpha1
   clientConfig:
     service:
       name: capi-ocne-control-plane-webhook-service
       namespace: capi-ocne-control-plane-system
-      path: /mutate-controlplane-cluster-x-k8s-io-v1beta1-kubeadmcontrolplanetemplate
+      path: /mutate-controlplane-cluster-x-k8s-io-v1alpha1-ocnecontrolplanetemplate
   failurePolicy: Fail
-  name: default.kubeadmcontrolplanetemplate.controlplane.cluster.x-k8s.io
+  name: default.ocnecontrolplanetemplate.controlplane.cluster.x-k8s.io
   rules:
   - apiGroups:
     - controlplane.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1alpha1
     operations:
     - CREATE
     - UPDATE
     resources:
-    - kubeadmcontrolplanetemplates
+    - ocnecontrolplanetemplates
   sideEffects: None
 ---
 apiVersion: admissionregistration.k8s.io/v1
@@ -3065,12 +3065,12 @@ metadata:
 webhooks:
 - admissionReviewVersions:
   - v1
-  - v1beta1
+  - v1alpha1
   clientConfig:
     service:
       name: capi-ocne-control-plane-webhook-service
       namespace: capi-ocne-control-plane-system
-      path: /validate-controlplane-cluster-x-k8s-io-v1beta1-ocnecontrolplane
+      path: /validate-controlplane-cluster-x-k8s-io-v1alpha1-ocnecontrolplane
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.ocnecontrolplane.controlplane.cluster.x-k8s.io
@@ -3078,7 +3078,7 @@ webhooks:
   - apiGroups:
     - controlplane.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1alpha1
     operations:
     - CREATE
     - UPDATE
@@ -3087,24 +3087,24 @@ webhooks:
   sideEffects: None
 - admissionReviewVersions:
   - v1
-  - v1beta1
+  - v1alpha1
   clientConfig:
     service:
       name: capi-ocne-control-plane-webhook-service
       namespace: capi-ocne-control-plane-system
-      path: /validate-controlplane-cluster-x-k8s-io-v1beta1-kubeadmcontrolplanetemplate
+      path: /validate-controlplane-cluster-x-k8s-io-v1alpha1-ocnecontrolplanetemplate
   failurePolicy: Fail
-  name: validation.kubeadmcontrolplanetemplate.controlplane.cluster.x-k8s.io
+  name: validation.ocnecontrolplanetemplate.controlplane.cluster.x-k8s.io
   rules:
   - apiGroups:
     - controlplane.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1alpha1
     operations:
     - CREATE
     - UPDATE
     resources:
-    - kubeadmcontrolplanetemplates
+    - ocnecontrolplanetemplates
   sideEffects: None
 - admissionReviewVersions:
   - v1
