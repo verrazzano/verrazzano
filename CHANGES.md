@@ -7,6 +7,7 @@ Component version updates:
 Fixed:
 
 - Disabled the startupapicheck job in cert-manager startup.
+- Fixed an install bug related to incorrect ingress names in certain configurations.
 
 Features:
 
