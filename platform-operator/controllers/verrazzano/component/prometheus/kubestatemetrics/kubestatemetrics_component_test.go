@@ -10,7 +10,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -171,8 +170,8 @@ func TestValidateUpdate(t *testing.T) {
 	trueValue := true
 	tests := []struct {
 		name    string
-		old     *v1alpha1.Verrazzano
-		new     *v1alpha1.Verrazzano
+		old     *vzapi.Verrazzano
+		new     *vzapi.Verrazzano
 		wantErr bool
 	}{
 		{
@@ -180,19 +179,19 @@ func TestValidateUpdate(t *testing.T) {
 			// WHEN the component is enabled and we call the validate update function
 			// THEN no error is returned
 			name: "enable",
-			old: &v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						KubeStateMetrics: &v1alpha1.KubeStateMetricsComponent{
+			old: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						KubeStateMetrics: &vzapi.KubeStateMetricsComponent{
 							Enabled: &falseValue,
 						},
 					},
 				},
 			},
-			new: &v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						KubeStateMetrics: &v1alpha1.KubeStateMetricsComponent{
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						KubeStateMetrics: &vzapi.KubeStateMetricsComponent{
 							Enabled: &trueValue,
 						},
 					},
@@ -205,19 +204,19 @@ func TestValidateUpdate(t *testing.T) {
 			// WHEN the component is disabled and we call the validate update function
 			// THEN an error is returned
 			name: "disable",
-			old: &v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						KubeStateMetrics: &v1alpha1.KubeStateMetricsComponent{
+			old: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						KubeStateMetrics: &vzapi.KubeStateMetricsComponent{
 							Enabled: &trueValue,
 						},
 					},
 				},
 			},
-			new: &v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						KubeStateMetrics: &v1alpha1.KubeStateMetricsComponent{
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						KubeStateMetrics: &vzapi.KubeStateMetricsComponent{
 							Enabled: &falseValue,
 						},
 					},
@@ -230,19 +229,19 @@ func TestValidateUpdate(t *testing.T) {
 			// WHEN the component is not changed and we call the validate update function
 			// THEN no error is returned
 			name: "no change",
-			old: &v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						KubeStateMetrics: &v1alpha1.KubeStateMetricsComponent{
+			old: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						KubeStateMetrics: &vzapi.KubeStateMetricsComponent{
 							Enabled: &trueValue,
 						},
 					},
 				},
 			},
-			new: &v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						KubeStateMetrics: &v1alpha1.KubeStateMetricsComponent{
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						KubeStateMetrics: &vzapi.KubeStateMetricsComponent{
 							Enabled: &trueValue,
 						},
 					},
