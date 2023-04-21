@@ -108,12 +108,4 @@ var _ = t.Describe("Pre Upgrade OpenSearch", Label("f:observability.logging.es")
 			return true
 		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue(), "Expected not to fail when creating ISM policies in OpenSearch")
 	})
-
-	//kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
-	//if err != nil {
-	//	Expect(err).To(BeNil(), fmt.Sprintf(pkg.KubeConfigErrorFmt, err))
-	//}
-	////t.ItMinimumVersion("Verify OpenSearch ISM have been installed", "1.3.0", kubeConfigPath, func() {
-	////	pkg.TestOpenSearchPlugins(pollingInterval, waitTimeout)
-	////})
 })

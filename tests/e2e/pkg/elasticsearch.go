@@ -1255,7 +1255,6 @@ func CheckISMPolicy() (bool, error) {
 		}
 		for _, pl := range policies.Policies {
 			for _, policy := range expectedSystemISMPolicies {
-				fmt.Printf("currnet values are.....%v.....%v", policy, pl.Policy.PolicyID)
 				if pl.Policy.PolicyID == policy {
 					counter++
 				}
@@ -1266,15 +1265,4 @@ func CheckISMPolicy() (bool, error) {
 		}
 	}
 	return false, nil
-}
-
-func UpdateVZISM(cr *vzapi.Verrazzano) {
-	age := "30d"
-	cr.Spec.Components.Elasticsearch.Policies = []vmov1.IndexManagementPolicy{
-		{
-			PolicyName:   "vz-custom",
-			IndexPattern: "verrazzano-system",
-			MinIndexAge:  &age,
-		},
-	}
 }
