@@ -13,13 +13,18 @@ images:
 
   bootstrap-ocne:
     repository: ghcr.io/verrazzano
-    tag: v0.1.0-20230417200213-babd8e5
+    tag: v0.1.0-20230421153459-16a5418
   control-plane-ocne:
     repository: ghcr.io/verrazzano
-    tag: v0.1.0-20230417200213-babd8e5
-
+    tag: v0.1.0-20230421153459-16a5418
 
 providers:
+  - name: "cluster-api"
+    url: "/verrazzano/capi/cluster-api/v1.3.3/core-components.yaml"
+    type: "CoreProvider"
+  - name: "oci"
+    url: "/verrazzano/capi/infrastructure-oci/v0.8.1/infrastructure-components.yaml"
+    type: "InfrastructureProvider"
   - name: "ocne"
     url: "/verrazzano/capi/bootstrap-ocne/v0.1.0/bootstrap-components.yaml"
     type: "BootstrapProvider"
