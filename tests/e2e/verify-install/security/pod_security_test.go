@@ -158,7 +158,7 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 		Entry("Checking pod security in verrazzano-system", "verrazzano-system"),
 		Entry("Checking pod security in verrazzano-monitoring", "verrazzano-monitoring"),
 		Entry("Checking pod security in verrazzano-backup", "verrazzano-backup"),
-		Entry("Checking pod security in ingress-nginx", "ingress-nginx"),
+		Entry("Checking pod security in verrazzano-ingress-nginx", "verrazzano-ingress-nginx"),
 		Entry("Checking pod security in mysql-operator", "mysql-operator"),
 		Entry("Checking pod security in cert-manager", "cert-manager"),
 		Entry("Checking pod security in keycloak", "keycloak"),

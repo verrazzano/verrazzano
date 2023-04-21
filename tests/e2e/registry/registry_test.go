@@ -42,7 +42,7 @@ var listOfNamespaces = []string{
 	"fleet-default",
 	"fleet-local",
 	"fleet-system",
-	"ingress-nginx",
+	"verrazzano-ingress-nginx",
 	"istio-system",
 	"keycloak",
 	"local",

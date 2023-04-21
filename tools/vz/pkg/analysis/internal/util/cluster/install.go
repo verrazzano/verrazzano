@@ -47,7 +47,7 @@ const verrazzanoResource = "verrazzano-resources.json"
 const eventsJSON = "events.json"
 const servicesJSON = "services.json"
 const podsJSON = "pods.json"
-const ingressNginx = "ingress-nginx"
+const ingressNginx = "verrazzano-ingress-nginx"
 const istioSystem = "istio-system"
 
 const installErrorNotFound = "Component specific error(s) not found in the Verrazzano install log for - "
