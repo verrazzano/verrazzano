@@ -95,11 +95,14 @@ const PrometheusIngress = "vmi-system-prometheus"
 // GlobalImagePullSecName is the name of the global image pull secret
 const GlobalImagePullSecName = "verrazzano-container-registry"
 
-// OldIngressNginxNamespace is the old nginx ingress namespace name
-const OldIngressNginxNamespace = "ingress-nginx"
-
 // IngressNginxNamespace is the nginx ingress namespace name
 const IngressNginxNamespace = "verrazzano-ingress-nginx"
+
+// LegacyIngressNginxNamespace is the old nginx ingress namespace name
+const LegacyIngressNginxNamespace = "ingress-nginx"
+
+// IngressNginxNamespaceAnnotation annotation contains the Ingrss NGINX namespace
+const IngressNginxNamespaceAnnotation = "install.verrazzano/io/ingress-nginx-namespace"
 
 // IstioSystemNamespace - the Istio system namespace
 const IstioSystemNamespace = "istio-system"
