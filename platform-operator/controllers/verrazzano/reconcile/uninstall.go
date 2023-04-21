@@ -10,8 +10,10 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -309,7 +311,7 @@ func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext, rancherProvision
 			return ctrl.Result{}, err
 		}
 	}
-	return r.deleteNamespaces(ctx.Log(), rancherProvisioned)
+	return r.deleteNamespaces(ctx, rancherProvisioned)
 }
 
 func (r *Reconciler) runRancherPostInstall(ctx spi.ComponentContext) error {
@@ -367,7 +369,8 @@ func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, 
 
 // deleteNamespaces deletes up all component namespaces plus any namespaces shared by multiple components
 // - returns an error or a requeue with delay result
-func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger, rancherProvisioned bool) (ctrl.Result, error) {
+func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvisioned bool) (ctrl.Result, error) {
+	log := ctx.Log()
 	// Load a set of all component namespaces plus shared namespaces
 	nsSet := make(map[string]bool)
 	for _, comp := range registry.GetComponents() {
@@ -375,9 +378,17 @@ func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger, rancherProvisi
 		if rancherProvisioned && comp.Namespace() == rancher.ComponentNamespace {
 			continue
 		}
+		if comp.Namespace() == certmanager.ComponentNamespace && !vzcr.IsCertManagerEnabled(ctx.EffectiveCR()) {
+			log.Progressf("Cert-Manager not enabled, skip namespace cleanup")
+			continue
+		}
 		nsSet[comp.Namespace()] = true
 	}
-	for i := range sharedNamespaces {
+	for i, ns := range sharedNamespaces {
+		if ns == certmanager.ComponentNamespace && !vzcr.IsCertManagerEnabled(ctx.EffectiveCR()) {
+			log.Progressf("Cert-Manager not enabled, skip namespace cleanup")
+			continue
+		}
 		nsSet[sharedNamespaces[i]] = true
 	}
 

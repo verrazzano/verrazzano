@@ -7,10 +7,14 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerconfig"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	time2 "helm.sh/helm/v3/pkg/time"
+	apiextfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"math/big"
 	"path/filepath"
 	"testing"
@@ -430,6 +434,9 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
 		k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
 	}()
+
+	defer func() { certmanagerconfig.ResetAPIExtV1ClientFunc() }()
+	certmanagerconfig.SetAPIExtV1ClientFunc(getAPIExtTestClient())
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -1666,6 +1673,9 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 		})
 	})
 
+	defer func() { certmanagerconfig.ResetAPIExtV1ClientFunc() }()
+	certmanagerconfig.SetAPIExtV1ClientFunc(getAPIExtTestClient())
+
 	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
@@ -1702,6 +1712,16 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 	assert.Equal(t, "https://"+kibanaURL, *instanceInfo.KibanaURL)
 	assert.Equal(t, "https://"+promURL, *instanceInfo.PrometheusURL)
 	assert.Equal(t, "https://"+jaegerURL, *instanceInfo.JaegerURL)
+}
+
+func getAPIExtTestClient(objs ...runtime.Object) func(log ...vzlog.VerrazzanoLogger) (apiextensionsv1client.ApiextensionsV1Interface, error) {
+	return func(log ...vzlog.VerrazzanoLogger) (apiextensionsv1client.ApiextensionsV1Interface, error) {
+		return createFakeAPIExtClient(objs...).ApiextensionsV1(), nil
+	}
+}
+
+func createFakeAPIExtClient(objs ...runtime.Object) *apiextfake.Clientset {
+	return apiextfake.NewSimpleClientset(objs...)
 }
 
 // TestInstanceRestoreWithPopulatedStatus tests the reconcileUpdate method for the following use case
@@ -1843,6 +1863,9 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 
 	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
+
+	defer func() { certmanagerconfig.ResetAPIExtV1ClientFunc() }()
+	certmanagerconfig.SetAPIExtV1ClientFunc(getAPIExtTestClient())
 
 	// Create and make the request
 	request := newRequest(namespace, name)
