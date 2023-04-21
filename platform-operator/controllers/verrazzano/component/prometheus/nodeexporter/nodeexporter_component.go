@@ -5,8 +5,9 @@ package nodeexporter
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
+
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
