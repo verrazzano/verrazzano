@@ -56,7 +56,7 @@ func TestConfigDefaults(t *testing.T) {
 //	    Able to override variables
 func TestSetConfig(t *testing.T) {
 	asserts := assert.New(t)
-	vzsystemNamespace := []string{"verrazzano-system", "verrazzano-monitoring", "ingress-nginx", "keycloak"}
+	vzsystemNamespace := []string{"verrazzano-system", "verrazzano-monitoring", "verrazzano-ingress-nginx", "keycloak"}
 	vznonsystemNamespace := []string{"coherence-operator", "oam-kubernetes-runtime", "verrazzano-application-operator", "verrazzano-cluster-operator"}
 	TestHelmConfigDir = "/etc/verrazzano/helm_config"
 	TestProfilesDir = "/etc/verrazzano/profile"

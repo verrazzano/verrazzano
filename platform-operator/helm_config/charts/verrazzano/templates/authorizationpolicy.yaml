@@ -19,7 +19,7 @@ spec:
     # verrazzano-authproxy:8775,8776 <- ingress-controller-ingress-nginx-controller
     - from:
         - source:
-            namespaces: ["ingress-nginx"]
+            namespaces: ["verrazzano-ingress-nginx"]
             principals: ["cluster.local/ns/ingress-nginx/sa/ingress-controller-ingress-nginx"]
       to:
         - operation:
