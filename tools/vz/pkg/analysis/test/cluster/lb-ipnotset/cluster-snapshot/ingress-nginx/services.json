@@ -9,7 +9,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-controller",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "selfLink": "/api/v1/namespaces/ingress-nginx/services/ingress-controller-ingress-nginx-controller",
                 "uid": "3dff034d-df72-49a2-9357-5c0cf363c8b4",
                 "resourceVersion": "22531",
@@ -93,7 +93,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-controller-metrics",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "selfLink": "/api/v1/namespaces/ingress-nginx/services/ingress-controller-ingress-nginx-controller-metrics",
                 "uid": "92c461bb-2087-4dea-8075-847319f3dca6",
                 "resourceVersion": "22530",
@@ -174,7 +174,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-defaultbackend",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "selfLink": "/api/v1/namespaces/ingress-nginx/services/ingress-controller-ingress-nginx-defaultbackend",
                 "uid": "4c3c67dc-6284-494d-906e-4d9deac9bd25",
                 "resourceVersion": "22524",

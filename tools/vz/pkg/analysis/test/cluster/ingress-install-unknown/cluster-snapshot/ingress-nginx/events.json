@@ -9,7 +9,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-controller-7994b5645-p8m5g.166fc0527a0cd298",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "selfLink": "/api/v1/namespaces/ingress-nginx/events/ingress-controller-ingress-nginx-controller-7994b5645-p8m5g.166fc0527a0cd298",
                 "uid": "3a5aaec0-9393-4dfb-a87d-99aadfc6b660",
                 "resourceVersion": "1356",
@@ -45,7 +45,7 @@
             },
             "involvedObject": {
                 "kind": "Pod",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "name": "ingress-controller-ingress-nginx-controller-7994b5645-p8m5g",
                 "uid": "2c9c0fec-d477-4117-9677-980d6e27d83a",
                 "apiVersion": "v1",
@@ -67,7 +67,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-controller-7994b5645-p8m5g.166fc05297769695",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "selfLink": "/api/v1/namespaces/ingress-nginx/events/ingress-controller-ingress-nginx-controller-7994b5645-p8m5g.166fc05297769695",
                 "uid": "aa2e3790-2838-4ed6-bcba-a0ab0986117e",
                 "resourceVersion": "1841",
@@ -105,7 +105,7 @@
             },
             "involvedObject": {
                 "kind": "Pod",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "name": "ingress-controller-ingress-nginx-controller-7994b5645-p8m5g",
                 "uid": "2c9c0fec-d477-4117-9677-980d6e27d83a",
                 "apiVersion": "v1",
@@ -129,7 +129,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-controller-7994b5645-p8m5g.166fc052a755f17f",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "selfLink": "/api/v1/namespaces/ingress-nginx/events/ingress-controller-ingress-nginx-controller-7994b5645-p8m5g.166fc052a755f17f",
                 "uid": "0bfbbb8a-b5dd-4ff8-9cad-f932de767dd9",
                 "resourceVersion": "1842",
@@ -167,7 +167,7 @@
             },
             "involvedObject": {
                 "kind": "Pod",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "name": "ingress-controller-ingress-nginx-controller-7994b5645-p8m5g",
                 "uid": "2c9c0fec-d477-4117-9677-980d6e27d83a",
                 "apiVersion": "v1",
@@ -191,7 +191,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-controller-7994b5645-p8m5g.166fc052ae2a6f69",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "selfLink": "/api/v1/namespaces/ingress-nginx/events/ingress-controller-ingress-nginx-controller-7994b5645-p8m5g.166fc052ae2a6f69",
                 "uid": "b0ca7193-2946-4abe-9382-5309b5aae3c2",
                 "resourceVersion": "1843",
@@ -229,7 +229,7 @@
             },
             "involvedObject": {
                 "kind": "Pod",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "name": "ingress-controller-ingress-nginx-controller-7994b5645-p8m5g",
                 "uid": "2c9c0fec-d477-4117-9677-980d6e27d83a",
                 "apiVersion": "v1",
@@ -253,7 +253,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-controller-7994b5645-p8m5g.166fc0536a6c8075",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "selfLink": "/api/v1/namespaces/ingress-nginx/events/ingress-controller-ingress-nginx-controller-7994b5645-p8m5g.166fc0536a6c8075",
                 "uid": "9ac14553-095c-45f2-89dc-4ed0a4afe2f7",
                 "resourceVersion": "4434",
@@ -291,7 +291,7 @@
             },
             "involvedObject": {
                 "kind": "Pod",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "name": "ingress-controller-ingress-nginx-controller-7994b5645-p8m5g",
                 "uid": "2c9c0fec-d477-4117-9677-980d6e27d83a",
                 "apiVersion": "v1",
@@ -315,7 +315,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-controller-7994b5645.166fc052793f353e",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "selfLink": "/api/v1/namespaces/ingress-nginx/events/ingress-controller-ingress-nginx-controller-7994b5645.166fc052793f353e",
                 "uid": "f80509a6-8027-4660-94ad-39f35a23c865",
                 "resourceVersion": "1354",
@@ -351,7 +351,7 @@
             },
             "involvedObject": {
                 "kind": "ReplicaSet",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "name": "ingress-controller-ingress-nginx-controller-7994b5645",
                 "uid": "8a812c19-0ea4-4e8c-a5ec-5b698e6ca4ac",
                 "apiVersion": "apps/v1",
@@ -373,7 +373,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-controller.166fc05277a0f39f",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "selfLink": "/api/v1/namespaces/ingress-nginx/events/ingress-controller-ingress-nginx-controller.166fc05277a0f39f",
                 "uid": "b8f6966b-98f8-420e-965f-9da835e8f92d",
                 "resourceVersion": "1330",
@@ -409,7 +409,7 @@
             },
             "involvedObject": {
                 "kind": "Service",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "name": "ingress-controller-ingress-nginx-controller",
                 "uid": "751dab0f-9da8-416d-885b-a20c96207250",
                 "apiVersion": "v1",
@@ -431,7 +431,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-controller.166fc052786cd136",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "selfLink": "/api/v1/namespaces/ingress-nginx/events/ingress-controller-ingress-nginx-controller.166fc052786cd136",
                 "uid": "31fb9db3-9ad9-42d6-8532-a149295127c7",
                 "resourceVersion": "1340",
@@ -467,7 +467,7 @@
             },
             "involvedObject": {
                 "kind": "Deployment",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "name": "ingress-controller-ingress-nginx-controller",
                 "uid": "63677406-857c-4ed6-9208-bb65970bdec4",
                 "apiVersion": "apps/v1",
@@ -489,7 +489,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-defaultbackend-6f5657774f.166fc052793e760b",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "selfLink": "/api/v1/namespaces/ingress-nginx/events/ingress-controller-ingress-nginx-defaultbackend-6f5657774f.166fc052793e760b",
                 "uid": "388f5d54-dde1-4b90-a171-4c3a31111260",
                 "resourceVersion": "1348",
@@ -525,7 +525,7 @@
             },
             "involvedObject": {
                 "kind": "ReplicaSet",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "name": "ingress-controller-ingress-nginx-defaultbackend-6f5657774f",
                 "uid": "c7423a89-bd57-4b92-980a-3f6fb930c808",
                 "apiVersion": "apps/v1",
@@ -547,7 +547,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-defaultbackend-6f5657774frbk88.166fc052797dc8c6",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "selfLink": "/api/v1/namespaces/ingress-nginx/events/ingress-controller-ingress-nginx-defaultbackend-6f5657774frbk88.166fc052797dc8c6",
                 "uid": "12b20683-a940-4a5e-8687-ba7220b90fe6",
                 "resourceVersion": "1353",
@@ -583,7 +583,7 @@
             },
             "involvedObject": {
                 "kind": "Pod",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "name": "ingress-controller-ingress-nginx-defaultbackend-6f5657774frbk88",
                 "uid": "48c494bd-5687-4bd9-b2df-764b0c6ed2bb",
                 "apiVersion": "v1",
@@ -605,7 +605,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-defaultbackend-6f5657774frbk88.166fc0529777cc97",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "selfLink": "/api/v1/namespaces/ingress-nginx/events/ingress-controller-ingress-nginx-defaultbackend-6f5657774frbk88.166fc0529777cc97",
                 "uid": "5514d1bd-6379-4c05-b20e-c816c43feea3",
                 "resourceVersion": "1368",
@@ -643,7 +643,7 @@
             },
             "involvedObject": {
                 "kind": "Pod",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "name": "ingress-controller-ingress-nginx-defaultbackend-6f5657774frbk88",
                 "uid": "48c494bd-5687-4bd9-b2df-764b0c6ed2bb",
                 "apiVersion": "v1",
@@ -667,7 +667,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-defaultbackend-6f5657774frbk88.166fc052a76e8489",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "selfLink": "/api/v1/namespaces/ingress-nginx/events/ingress-controller-ingress-nginx-defaultbackend-6f5657774frbk88.166fc052a76e8489",
                 "uid": "7c92d836-1a64-435f-b23c-3bf1f59ef67f",
                 "resourceVersion": "1370",
@@ -705,7 +705,7 @@
             },
             "involvedObject": {
                 "kind": "Pod",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "name": "ingress-controller-ingress-nginx-defaultbackend-6f5657774frbk88",
                 "uid": "48c494bd-5687-4bd9-b2df-764b0c6ed2bb",
                 "apiVersion": "v1",
@@ -729,7 +729,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-defaultbackend-6f5657774frbk88.166fc052ad906686",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "selfLink": "/api/v1/namespaces/ingress-nginx/events/ingress-controller-ingress-nginx-defaultbackend-6f5657774frbk88.166fc052ad906686",
                 "uid": "9b2230e4-a55d-47b3-9933-56a712afb248",
                 "resourceVersion": "1371",
@@ -767,7 +767,7 @@
             },
             "involvedObject": {
                 "kind": "Pod",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "name": "ingress-controller-ingress-nginx-defaultbackend-6f5657774frbk88",
                 "uid": "48c494bd-5687-4bd9-b2df-764b0c6ed2bb",
                 "apiVersion": "v1",
@@ -791,7 +791,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-defaultbackend.166fc0527888d526",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "selfLink": "/api/v1/namespaces/ingress-nginx/events/ingress-controller-ingress-nginx-defaultbackend.166fc0527888d526",
                 "uid": "f0300ef4-487e-451c-b7d1-2f4e7c12a4ef",
                 "resourceVersion": "1345",
@@ -827,7 +827,7 @@
             },
             "involvedObject": {
                 "kind": "Deployment",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "name": "ingress-controller-ingress-nginx-defaultbackend",
                 "uid": "8e1ddd2e-fb14-457b-a73c-fb0d5b953281",
                 "apiVersion": "apps/v1",

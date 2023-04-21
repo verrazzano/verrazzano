@@ -8,7 +8,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-controller",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "uid": "2002b06d-0bb7-4238-9d1b-775702bd1eab",
                 "resourceVersion": "4370",
                 "creationTimestamp": "2022-05-19T20:36:06Z",
@@ -24,7 +24,7 @@
                     "external-dns.alpha.kubernetes.io/hostname": "verrazzano-ingress.b10138.zbae33a.v8o.io",
                     "external-dns.alpha.kubernetes.io/ttl": "60",
                     "meta.helm.sh/release-name": "ingress-controller",
-                    "meta.helm.sh/release-namespace": "ingress-nginx"
+                    "meta.helm.sh/release-namespace": "verrazzano-ingress-nginx"
                 },
                 "finalizers": [
                     "service.kubernetes.io/load-balancer-cleanup"
@@ -67,7 +67,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-controller-metrics",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "uid": "c1884805-9edc-402e-b77f-d5cb3bfb3ce2",
                 "resourceVersion": "4200",
                 "creationTimestamp": "2022-05-19T20:36:06Z",
@@ -81,7 +81,7 @@
                 },
                 "annotations": {
                     "meta.helm.sh/release-name": "ingress-controller",
-                    "meta.helm.sh/release-namespace": "ingress-nginx"
+                    "meta.helm.sh/release-namespace": "verrazzano-ingress-nginx"
                 }
             },
             "spec": {
@@ -117,7 +117,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-defaultbackend",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "uid": "45810f87-41a6-4cee-9aaa-2e087265a1ac",
                 "resourceVersion": "4206",
                 "creationTimestamp": "2022-05-19T20:36:06Z",
@@ -131,7 +131,7 @@
                 },
                 "annotations": {
                     "meta.helm.sh/release-name": "ingress-controller",
-                    "meta.helm.sh/release-namespace": "ingress-nginx"
+                    "meta.helm.sh/release-namespace": "verrazzano-ingress-nginx"
                 }
             },
             "spec": {

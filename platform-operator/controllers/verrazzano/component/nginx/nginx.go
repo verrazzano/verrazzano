@@ -75,7 +75,7 @@ func PreInstall(compContext spi.ComponentContext, name string, namespace string,
 		if ns.Labels == nil {
 			ns.Labels = make(map[string]string)
 		}
-		ns.Labels["verrazzano.io/namespace"] = "ingress-nginx"
+		ns.Labels["verrazzano.io/namespace"] = "verrazzano-ingress-nginx"
 		istio := compContext.EffectiveCR().Spec.Components.Istio
 		if istio != nil && istio.IsInjectionEnabled() {
 			ns.Labels["istio-injection"] = "enabled"

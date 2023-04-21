@@ -69,7 +69,7 @@ data:
        - role: pod
          namespaces:
            names:
-             - "ingress-nginx"
+             - "verrazzano-ingress-nginx"
        relabel_configs:
        - source_labels: [__meta_kubernetes_pod_annotation_system_io_scrape]
          action: keep

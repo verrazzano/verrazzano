@@ -5,6 +5,7 @@ package kubernetes_test
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -83,7 +84,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("verrazzano-system", "verrazzano-system", true),
 			t.Entry("verrazzano-mc", "verrazzano-mc", true),
 			t.Entry("cert-manager", "cert-manager", true),
-			t.Entry("ingress-nginx", "ingress-nginx", true),
+			t.Entry("verrazzano-ingress-nginx", "verrazzano-ingress-nginx", true),
 		)
 
 		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
@@ -119,7 +120,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 		t.DescribeTable("ingress components are deployed,",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
-					return vzComponentPresent(name, "ingress-nginx")
+					return vzComponentPresent(name, constants.IngressNginxNamespace)
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
 			t.Entry("includes ingress-controller-ingress-nginx-controller", "ingress-controller-ingress-nginx-controller", true),
@@ -216,7 +217,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 						Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool { return checkPodsRunning("ingress-nginx", expectedPodsIngressNginx) }, waitTimeout, pollingInterval).
+					Eventually(func() bool { return checkPodsRunning(constants.IngressNginxNamespace, expectedPodsIngressNginx) }, waitTimeout, pollingInterval).
 						Should(BeTrue())
 				},
 				func() {

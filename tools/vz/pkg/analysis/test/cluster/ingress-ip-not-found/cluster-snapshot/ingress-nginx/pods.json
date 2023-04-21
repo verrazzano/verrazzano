@@ -9,7 +9,7 @@
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-controller-6b8bb69d6d-htjsm",
                 "generateName": "ingress-controller-ingress-nginx-controller-6b8bb69d6d-",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "uid": "cfe794c3-f178-4b6f-a24f-18be0267e3be",
                 "resourceVersion": "4760",
                 "creationTimestamp": "2022-05-25T13:19:20Z",
@@ -650,7 +650,7 @@
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-defaultbackend-56c5fbc6b8xhplj",
                 "generateName": "ingress-controller-ingress-nginx-defaultbackend-56c5fbc6b8-",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "uid": "f6aa8a12-39dc-4422-b3a2-0e93998a5540",
                 "resourceVersion": "4626",
                 "creationTimestamp": "2022-05-25T13:19:20Z",

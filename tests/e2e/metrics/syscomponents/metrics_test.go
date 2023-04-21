@@ -42,7 +42,7 @@ const (
 	// Namespaces used for validating envoy stats
 	verrazzanoSystemNamespace = "verrazzano-system"
 	istioSystemNamespace      = "istio-system"
-	ingressNginxNamespace     = "ingress-nginx"
+	ingressNginxNamespace     = "verrazzano-ingress-nginx"
 	keycloakNamespace         = "keycloak"
 
 	// Constants for various metric labels, used in the validation

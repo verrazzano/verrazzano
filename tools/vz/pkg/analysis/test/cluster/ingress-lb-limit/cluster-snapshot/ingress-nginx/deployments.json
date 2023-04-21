@@ -8,7 +8,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-controller",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "uid": "77a5663b-25d9-437b-b38f-e51784eaee27",
                 "resourceVersion": "19306",
                 "generation": 1,
@@ -24,7 +24,7 @@
                 "annotations": {
                     "deployment.kubernetes.io/revision": "1",
                     "meta.helm.sh/release-name": "ingress-controller",
-                    "meta.helm.sh/release-namespace": "ingress-nginx"
+                    "meta.helm.sh/release-namespace": "verrazzano-ingress-nginx"
                 },
                 "managedFields": [
                     {
@@ -481,7 +481,7 @@
         {
             "metadata": {
                 "name": "ingress-controller-ingress-nginx-defaultbackend",
-                "namespace": "ingress-nginx",
+                "namespace": "verrazzano-ingress-nginx",
                 "uid": "408ab964-d2a2-41b7-bf84-86499686a578",
                 "resourceVersion": "19046",
                 "generation": 1,
@@ -497,7 +497,7 @@
                 "annotations": {
                     "deployment.kubernetes.io/revision": "1",
                     "meta.helm.sh/release-name": "ingress-controller",
-                    "meta.helm.sh/release-namespace": "ingress-nginx"
+                    "meta.helm.sh/release-namespace": "verrazzano-ingress-nginx"
                 },
                 "managedFields": [
                     {

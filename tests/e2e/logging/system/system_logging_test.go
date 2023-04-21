@@ -25,7 +25,7 @@ const (
 	keycloakNamespace         = "keycloak"
 	cattleSystemNamespace     = "cattle-system"
 	fleetLocalSystemNamespace = "cattle-fleet-local-system"
-	nginxNamespace            = "ingress-nginx"
+	nginxNamespace            = "verrazzano-ingress-nginx"
 	monitoringNamespace       = "monitoring"
 	shortPollingInterval      = 10 * time.Second
 	shortWaitTimeout          = 5 * time.Minute
