@@ -224,7 +224,7 @@ pipeline {
 
                 script {
                     dir(env.GO_REPO_PATH + "/verrazzano") {
-                        def props = readProperties file: .verrzzano-development-version
+                        def props = readProperties file: '.verrazzano-development-version'
                         VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                         DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
