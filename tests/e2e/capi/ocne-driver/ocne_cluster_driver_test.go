@@ -45,9 +45,9 @@ var _ = BeforeSuite(beforeSuite)
 var _ = t.Describe("OCNE Cluster Driver", Label("TODO: appropriate label"), Serial, func() {
 	t.Context("Cluster Creation", func() {
 		t.It("creates an active cluster", func() {
-			clusterName := "capi-ocne-cluster"
 			// Create the cluster
-			createCluster()
+			clusterName := "toast"
+			createCluster(clusterName)
 
 			// Verify the cluster is active
 			Eventually(clusterIsActive(clusterName), waitTimeout, pollingInterval).Should(
@@ -57,14 +57,14 @@ var _ = t.Describe("OCNE Cluster Driver", Label("TODO: appropriate label"), Seri
 })
 
 // Creates an OCNE cluster through CAPI
-func createCluster() *http.Response {
+func createCluster(clusterName string) *http.Response {
 	requestURL := rancherURL + "/v3/cluster"
 	// FIXME: which vcn, compartment, etc. to use
-	requestBody := []byte(`{
+	requestBody := []byte(fmt.Sprintf(`{
 		"description": "testing cluster",
-		"name": "capi-ocne-cluster",
+		"name": "%s",
 		"ociocneEngineConfig": {
-			"displayName": "capi-ocne-cluster",
+			"displayName": "%s",
 			"driverName": "ociocneengine",
 			"vcnId": "<<FILL IN>>",
 			"nodePublicKeyContents": "<<FILL IN>>",
@@ -92,7 +92,7 @@ func createCluster() *http.Response {
 			"controlPlaneMemoryGbs": 16,
 			"controlPlaneOcpus": 1
 		}
-	}`)
+	}`, clusterName, clusterName))
 	
 	// FIXME: add error checking
 	request, _ := retryablehttp.NewRequest(http.MethodPost, requestURL, bytes.NewBuffer(requestBody))
