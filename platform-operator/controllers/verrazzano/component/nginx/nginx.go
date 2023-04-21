@@ -156,7 +156,7 @@ func determineNamespaceForIngressNGINX(log vzlog.VerrazzanoLogger) (string, erro
 	}
 	if installed {
 		// If Ingress NGINX is already installed ingress-nginx then don't change it.
-		// This is to avoid creating a new service in the new namespac, thus causing an
+		// This is to avoid creating a new service in the new namespace, thus causing an
 		// LB to be created.
 		return vpoconst.LegacyIngressNginxNamespace, nil
 	}

@@ -5,7 +5,9 @@ package networkpolicies
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"io/fs"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -36,8 +38,6 @@ const (
 var netpolNamespaceNames = []types.NamespacedName{
 	{Namespace: vzconst.CertManagerNamespace, Name: "cert-manager"},
 	{Namespace: vzconst.CertManagerNamespace, Name: "external-dns"},
-	{Namespace: constants.IngressNginxNamespace, Name: "ingress-nginx-controller"},
-	{Namespace: constants.IngressNginxNamespace, Name: "ingress-nginx-default-backend"},
 	{Namespace: vzconst.IstioSystemNamespace, Name: "istio-ingressgateway"},
 	{Namespace: vzconst.IstioSystemNamespace, Name: "istio-egressgateway"},
 	{Namespace: vzconst.IstioSystemNamespace, Name: "allow-same-namespace"},
@@ -155,6 +155,8 @@ func associateNetworkPoliciesWithHelm(ctx spi.ComponentContext) error {
 	// specify helm release nsn
 	releaseNsn := types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}
 
+	ensureIngressNGINXNamespace(ctx.EffectiveCR().ObjectMeta)
+
 	// Loop through the all the network policies
 	for _, nsn := range netpolNamespaceNames {
 		// Get the policy
@@ -187,6 +189,8 @@ func associateNetworkPoliciesWithHelm(ctx spi.ComponentContext) error {
 func removeResourcePolicyFromHelm(ctx spi.ComponentContext) error {
 	cli := ctx.Client()
 	log := ctx.Log()
+
+	ensureIngressNGINXNamespace(ctx.EffectiveCR().ObjectMeta)
 
 	// Loop through the all the network policies
 	for _, nsn := range netpolNamespaceNames {
@@ -255,4 +259,16 @@ func fixKeycloakMySQLNetPolicy(ctx spi.ComponentContext) error {
 	}
 
 	return nil
+}
+
+// ensureIngressNGINXNamespace ensures that Ingress NGINX NS is on the list
+func ensureIngressNGINXNamespace(meta metav1.ObjectMeta) {
+	namespace := nginx.GetIngressNGINXNamespace(meta)
+	for _, nsn := range netpolNamespaceNames {
+		if nsn.Namespace == namespace {
+			return
+		}
+	}
+	netpolNamespaceNames = append(netpolNamespaceNames, types.NamespacedName{Namespace: namespace, Name: "ingress-nginx-controller"})
+	netpolNamespaceNames = append(netpolNamespaceNames, types.NamespacedName{Namespace: namespace, Name: "ingress-nginx-default-backend"})
 }
