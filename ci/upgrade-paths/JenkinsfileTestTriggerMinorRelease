@@ -177,12 +177,13 @@ pipeline {
                         listOfUpgradeJobs = addTargetUpgradeVersion(finalReleaseList)
                         
                         minorReleaseList = getTipOfReleaseBranches(finalReleaseList)
-                        echo "${minorReleaseList}"
-                        // for(minorRelease in minorReleaseList){   
-                        //     GIT_RELEASE_COMMIT_ID=$(git rev-parse release-"$RELEASE")
-                        //     echo "$RELEASE:$GIT_RELEASE_COMMIT_ID" >> ${workspace}/releaseAndCommits.txt
-                        // }
-                        // sh "cat ${workspace}/releaseAndCommits.txt"
+                        echo "List of minor release: ${minorReleaseList}"
+
+                        for(minorRelease in minorReleaseList){   
+                            GIT_RELEASE_COMMIT_ID = sh(script: "git rev-parse release-${minorRelease}")
+                            sh "echo ${minorRelease}:${GIT_RELEASE_COMMIT_ID} >> ${workspace}/releaseAndCommits.txt"
+                        }
+                        sh "cat ${workspace}/releaseAndCommits.txt"
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                         echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
                         def k = 0
@@ -371,7 +372,7 @@ List extractReleaseTags(final String fileContent) {
 
 def getTipOfReleaseBranches(List releaseList){
     List minorReleases = []
-    for(tag in gitTags){
+    for(tag in releaseList){
         if (tag[-1] == "0"){
             minorReleases.add(tag[1..3])
         }
