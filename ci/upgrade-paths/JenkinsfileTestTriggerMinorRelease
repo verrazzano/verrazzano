@@ -182,7 +182,10 @@ pipeline {
                         for(minorRelease in minorReleaseList){   
                             // The git rev-parse command does not work since release-1.3, etc. is not checked out in the workspace. 
                             // Meaning we'll need someother way of grabbing the tip of the release branches
-                            sh "pwd"
+                            sh """
+                                pwd
+                                git tag
+                            """
                             GIT_RELEASE_COMMIT_ID = sh(script: "git rev-parse release-${minorRelease}")
                         
                             
