@@ -1,5 +1,6 @@
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 ==== START logs for container istio-init of pod ingress-nginx/ingress-controller-ingress-nginx-defaultbackend-56c5fbc6b88w5ll ====
 2022-05-19T20:36:08.074493Z	info	Istio iptables environment:
 ENVOY_PORT=
