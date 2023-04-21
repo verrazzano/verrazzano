@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/Jeffail/gabs/v2"
 	"github.com/hashicorp/go-retryablehttp"
@@ -20,6 +21,9 @@ import (
 )
 
 var (
+	waitTimeout          = 20 * time.Minute
+	pollingInterval      = 30 * time.Second
+
 	httpClient *retryablehttp.Client
 	rancherURL string
 	adminToken string
@@ -41,11 +45,13 @@ var _ = BeforeSuite(beforeSuite)
 var _ = t.Describe("OCNE Cluster Driver", Label("TODO: appropriate label"), Serial, func() {
 	t.Context("Cluster Creation", func() {
 		t.It("creates an active cluster", func() {
+			clusterName := "capi-ocne-cluster"
 			// Create the cluster
 			createCluster()
 
 			// Verify the cluster is active
-			getCluster("capi-ocne-cluster")
+			Eventually(clusterIsActive(clusterName), waitTimeout, pollingInterval).Should(
+				BeTrue(), fmt.Sprintf("Cluster %s is not active", clusterName))
 		})
 	})
 })
@@ -53,6 +59,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("TODO: appropriate label"), Seri
 // Creates an OCNE cluster through CAPI
 func createCluster() *http.Response {
 	requestURL := rancherURL + "/v3/cluster"
+	// FIXME: which vcn, compartment, etc. to use
 	requestBody := []byte(`{
 		"description": "testing cluster",
 		"name": "capi-ocne-cluster",
@@ -87,14 +94,25 @@ func createCluster() *http.Response {
 		}
 	}`)
 	
+	// FIXME: add error checking
 	request, _ := retryablehttp.NewRequest(http.MethodPost, requestURL, bytes.NewBuffer(requestBody))
 	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminToken))
 	response, _ := httpClient.Do(request)
 	return response
 }
 
+// Returns true if the cluster currently exists and is Active
+func clusterIsActive(clusterName string) bool {
+	// FIXME: add error checking
+	jsonBody := getCluster(clusterName)
+	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
+	fmt.Println("State: " + state)
+	return state == "active"
+}
+
 // Gets a specified cluster by using the Rancher REST API
-func getCluster(clusterName string) {
+func getCluster(clusterName string) *gabs.Container {
+	// FIXME: add error checking
 	requestURL := rancherURL + "/v3/cluster?name=" + clusterName
 	request, _ := retryablehttp.NewRequest(http.MethodGet, requestURL, nil)
 	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminToken))
@@ -102,5 +120,5 @@ func getCluster(clusterName string) {
 	defer response.Body.Close()
 	body, _ := io.ReadAll(response.Body)
 	jsonBody, _ := gabs.ParseJSON(body)
-	fmt.Println(jsonBody)
+	return jsonBody
 }
