@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package certmanager
+package certmanagerconfig
 
 //import (
 //	"context"
@@ -419,7 +419,7 @@ package certmanager
 //	}
 //
 //	// create the component and issue the call
-//	component := NewComponent().(certManagerComponent)
+//	component := NewComponent().(certManagerConfigComponent)
 //	asserts.NoError(component.createOrUpdateClusterIssuer(ctx))
 //
 //	// Verify the certificate status has an Issuing condition; this informs CertManager to renew the certificate

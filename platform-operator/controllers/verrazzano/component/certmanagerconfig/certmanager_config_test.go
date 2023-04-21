@@ -1,7 +1,7 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package certmanager
+package certmanagerconfig
 
 //import (
 //	"context"
@@ -118,8 +118,8 @@ package certmanager
 //	},
 //}
 //
-//// Fake certManagerComponent resource for function calls
-//var fakeComponent = certManagerComponent{}
+//// Fake certManagerConfigComponent resource for function calls
+//var fakeComponent = certManagerConfigComponent{}
 //
 //var testScheme = runtime.NewScheme()
 //
@@ -270,7 +270,7 @@ package certmanager
 //		newPod(webhookDeploymentName, map[string]string{"app": "webhook"}),
 //		newReplicaSet(webhookDeploymentName),
 //	).Build()
-//	certManager := NewComponent().(certManagerComponent)
+//	certManager := NewComponent().(certManagerConfigComponent)
 //	assert.True(t, certManager.isCertManagerReady(spi.NewFakeContext(client, nil, nil, false)))
 //}
 //
@@ -284,7 +284,7 @@ package certmanager
 //		newDeployment(cainjectorDeploymentName, map[string]string{"app": "cainjector"}, false),
 //		newDeployment(webhookDeploymentName, map[string]string{"app": "webhook"}, false),
 //	).Build()
-//	certManager := NewComponent().(certManagerComponent)
+//	certManager := NewComponent().(certManagerConfigComponent)
 //	assert.False(t, certManager.isCertManagerReady(spi.NewFakeContext(client, nil, nil, false)))
 //}
 //
