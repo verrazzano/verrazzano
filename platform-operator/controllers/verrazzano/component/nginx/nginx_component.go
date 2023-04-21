@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
+	"sigs.k8s.io/yaml"
 )
 
 // ComponentName is the name of the component
@@ -83,6 +84,20 @@ func NewComponent() spi.Component {
 			},
 		},
 	}
+}
+
+// IsInstalled Indicates whether the component is installed
+func (c nginxComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
+	// Check if Verrazzano NGINX is installed in the ingress-nginx namespace
+	installed, err := c.isNGINXInstalledInOldNamespace(context)
+	if err != nil {
+		context.Log().ErrorfNewErr("Error checking if the old ingress-nginx chart %s/%s is installed error: %v", vpoconst.OldIngressNginxNamespace, c.ReleaseName, err.Error())
+	}
+	if installed {
+		return true, nil
+	}
+
+	return c.HelmComponent.IsInstalled(context)
 }
 
 // IsEnabled nginx-specific enabled check for installation
@@ -202,25 +217,13 @@ func (c nginxComponent) PostUninstall(context spi.ComponentContext) error {
 
 // PreUpgrade processing for NGINX
 func (c nginxComponent) PreUpgrade(context spi.ComponentContext) error {
-	const (
-		key     = "ingress-class"
-		vzClass = "verrazzano-nginx"
-	)
-
-	// See if NGINX is installed in the ingress-nginx namespace
-	found, err := helm2.IsReleaseInstalled(c.ReleaseName, vpoconst.OldIngressNginxNamespace)
+	// Check if Verrazzano NGINX is installed in the ingress-nginx namespace
+	installed, err := c.isNGINXInstalledInOldNamespace(context)
 	if err != nil {
 		context.Log().ErrorfNewErr("Error checking if the old ingress-nginx chart %s/%s is installed error: %v", vpoconst.OldIngressNginxNamespace, c.ReleaseName, err.Error())
 	}
-	if found {
-		values, err := helm2.GetValuesMap(context.Log(), c.ReleaseName, vpoconst.OldIngressNginxNamespace)
-		if err != nil {
-			return err
-		}
-		val, ok := values[key]
-		if !ok || val != vzClass {
-			return nil
-		}
+	if !installed {
+		return nil
 	}
 
 	// The old verrazzano ingress-nginx chart is installed in ingress-nginx.  Uninstall it.
@@ -257,4 +260,43 @@ func (c nginxComponent) deleteNetworkPolicy(context spi.ComponentContext, namesp
 		return context.Log().ErrorfNewErr("Failed to delete the old network policy %s/%s: %v", namespace, name, err)
 	}
 	return nil
+}
+
+// See if Verrazzano NGINX is installed in ingress-nginx
+func (c nginxComponent) isNGINXInstalledInOldNamespace(context spi.ComponentContext) (bool, error) {
+	const vzClass = "verrazzano-nginx"
+
+	type YamlConfig struct {
+		Controller struct {
+			IngressClassResource struct {
+				Name string `json:"name"`
+			}
+		}
+	}
+
+	// See if NGINX is installed in the ingress-nginx namespace
+	found, err := helm2.IsReleaseInstalled(c.ReleaseName, vpoconst.OldIngressNginxNamespace)
+	if err != nil {
+		context.Log().ErrorfNewErr("Error checking if the old ingress-nginx chart %s/%s is installed error: %v", vpoconst.OldIngressNginxNamespace, c.ReleaseName, err.Error())
+	}
+	if found {
+		valMap, err := helm2.GetValuesMap(context.Log(), c.ReleaseName, vpoconst.OldIngressNginxNamespace)
+		if err != nil {
+			return false, err
+		}
+		b, err := yaml.Marshal(&valMap)
+		if err != nil {
+			return false, err
+		}
+		yml := YamlConfig{}
+		if err := yaml.Unmarshal(b, &yml); err != nil {
+			return false, err
+		}
+		if yml.Controller.IngressClassResource.Name == vzClass {
+			return true, nil
+		}
+
+		return false, nil
+	}
+	return false, nil
 }
