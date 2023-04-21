@@ -219,7 +219,7 @@ pipeline {
 
                     echo "Extracting source"
                     tar xvf ${downloadLocation}
-                    tar cf - . | (cd ${GO_REPO_PATH} ; tar xf -)
+                    tar cf - . | (cd ${GO_REPO_PATH} ; tar xf - ; ls -las)
                 """
 
                 script {
