@@ -5,25 +5,24 @@ package nginx
 
 import (
 	"fmt"
-	"path/filepath"
-
+	helm2 "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"path/filepath"
 )
 
 // ComponentName is the name of the component
@@ -195,4 +194,39 @@ func (c nginxComponent) PostUninstall(context spi.ComponentContext) error {
 	// Remove finalizers from the ingress-nginx namespace to avoid hanging namespace deletion
 	// and delete the namespace
 	return res.RemoveFinalizersAndDelete()
+}
+
+// PreUpgrade processing for NGINX
+func (c nginxComponent) PreUpgrade(context spi.ComponentContext) error {
+	const (
+		key     = "ingress-class"
+		vzClass = "verrazzano-nginx"
+	)
+
+	// See if NGIX is installed in ingress-nginx namespace
+	found, err := helm2.IsReleaseInstalled(c.ReleaseName, vpoconst.OldIngressNginxNamespace)
+	if err != nil {
+		return nil
+	}
+	if found {
+		values, err := helm2.GetValuesMap(context.Log(), c.ReleaseName, vpoconst.OldIngressNginxNamespace)
+		if err != nil {
+			return err
+		}
+		val, ok := values[key]
+		if !ok || val != vzClass {
+			return nil
+		}
+	}
+
+	// The old verrazzano ingress-nginx chart is installed in ingress-nginx.  Uninstall it.
+	err = helm2.Uninstall(context.Log(), c.ReleaseName, vpoconst.OldIngressNginxNamespace, context.IsDryRun())
+	if err != nil {
+		context.Log().Errorf("Error uninstalling the old ingress-nginx chart %s/%s, error: %v", vpoconst.OldIngressNginxNamespace, c.ReleaseName, err.Error())
+		return err
+	}
+	context.Log().Progressf("Uninstalled the old Verrazzano ingress-nginx chart %s/%s", vpoconst.OldIngressNginxNamespace, c.ReleaseName)
+
+	return nil
+
 }
