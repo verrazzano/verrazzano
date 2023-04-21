@@ -6,12 +6,6 @@ package rancher
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
-
 	"github.com/gertd/go-pluralize"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -22,6 +16,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -40,7 +35,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"os"
+	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strconv"
+	"strings"
 )
 
 // ComponentName is the name of the component
@@ -51,9 +50,6 @@ const ComponentNamespace = common.CattleSystem
 
 // ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "rancher"
-
-// CAPIProviderOCIAuthConfigSecret is the CAPI OCI system auth secret
-const CAPIProviderOCIAuthConfigSecret = "capoci-auth-config" //nolint:gosec //#gosec G101
 
 // CattleGlobalDataNamespace is the multi-cluster namespace for verrazzano
 const CattleGlobalDataNamespace = "cattle-global-data"
@@ -68,14 +64,6 @@ const cattleShellImageName = "rancher-shell"
 
 // cattleUIEnvName is the environment variable name to set for the Rancher dashboard
 const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
-
-const APIGroupRancherManagement = "management.cattle.io"
-const APIGroupVersionRancherManagement = "v3"
-const UserListKind = "UserList"
-const RancherBootstrappingLabel = "authz.management.cattle.io/bootstrapping"
-const RancherAdminUser = "admin-user"
-const cattleCreatorIDAnnotation = "field.cattle.io/creatorId"
-const cattleNameAnnotation = "field.cattle.io/name"
 
 // Environment variables for the Rancher images
 // format: imageName: baseEnvVar
@@ -513,12 +501,8 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	return patchRancherIngress(c, ctx.EffectiveCR())
 }
 
-// Reconcile creates the Rancher admin cloud credential if a corresponding CAPI secret exists
+// Reconcile for the Rancher component
 func (r rancherComponent) Reconcile(ctx spi.ComponentContext) error {
-	installed, err := r.IsInstalled(ctx)
-	if !installed {
-		return err
-	}
 	return nil
 }
 

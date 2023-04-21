@@ -10,7 +10,6 @@ import (
 	goerrors "errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"io"
 
@@ -869,12 +868,7 @@ func (r *Reconciler) watchResources(namespace string, name string, log vzlog.Ver
 	}
 
 	log.Debugf("Watching the Rancher global data namespace to create admin cloud credential")
-	if err := r.watchRancherGlobalDataNamespace(namespace, name); err != nil {
-		return err
-	}
-
-	log.Debugf("Watching for Capi secret to create admin cloud credential")
-	return r.watchCapiSecret(namespace, name)
+	return r.watchRancherGlobalDataNamespace(namespace, name)
 }
 
 func (r *Reconciler) watchManagedClusterRegistrationSecret(namespace string, name string) error {
@@ -937,22 +931,6 @@ func (r *Reconciler) isCattleGlobalDataNamespace(o client.Object) bool {
 	return true
 }
 
-func (r *Reconciler) watchCapiSecret(namespace string, name string) error {
-	return r.Controller.Watch(
-		&source.Kind{Type: &corev1.Secret{}},
-		createReconcileEventHandler(namespace, name),
-		// Reconcile if there is an event related to the registration secret
-		predicate.Funcs{
-			CreateFunc: func(e event.CreateEvent) bool {
-				return r.isCapiSecret(e.Object)
-			},
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				return r.isCapiSecret(e.ObjectNew)
-			},
-		},
-	)
-}
-
 func (r *Reconciler) isManagedClusterRegistrationSecret(o client.Object) bool {
 	secret := o.(*corev1.Secret)
 	if secret.Namespace != vzconst.VerrazzanoSystemNamespace || secret.Name != vzconst.MCRegistrationSecret {
@@ -968,15 +946,6 @@ func (r *Reconciler) isThanosInternalUserSecret(o client.Object) bool {
 		return false
 	}
 	r.AddWatch(keycloak.ComponentJSONName)
-	return true
-}
-
-func (r *Reconciler) isCapiSecret(o client.Object) bool {
-	secret := o.(*corev1.Secret)
-	if secret.Namespace != capi.VerrazzanoCAPINamespace || secret.Name != rancher.CAPIProviderOCIAuthConfigSecret {
-		return false
-	}
-	r.AddWatch(rancher.ComponentJSONName)
 	return true
 }
 
