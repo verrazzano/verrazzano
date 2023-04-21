@@ -4,6 +4,7 @@
 package nginx
 
 import (
+	ctx "context"
 	"fmt"
 	helm2 "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -20,6 +21,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
@@ -203,10 +207,10 @@ func (c nginxComponent) PreUpgrade(context spi.ComponentContext) error {
 		vzClass = "verrazzano-nginx"
 	)
 
-	// See if NGIX is installed in ingress-nginx namespace
+	// See if NGINX is installed in the ingress-nginx namespace
 	found, err := helm2.IsReleaseInstalled(c.ReleaseName, vpoconst.OldIngressNginxNamespace)
 	if err != nil {
-		return nil
+		context.Log().ErrorfNewErr("Error checking if the old ingress-nginx chart %s/%s is installed error: %v", vpoconst.OldIngressNginxNamespace, c.ReleaseName, err.Error())
 	}
 	if found {
 		values, err := helm2.GetValuesMap(context.Log(), c.ReleaseName, vpoconst.OldIngressNginxNamespace)
@@ -227,6 +231,30 @@ func (c nginxComponent) PreUpgrade(context spi.ComponentContext) error {
 	}
 	context.Log().Progressf("Uninstalled the old Verrazzano ingress-nginx chart %s/%s", vpoconst.OldIngressNginxNamespace, c.ReleaseName)
 
+	// Remove the old network policies
+	if err := c.deleteNetworkPolicy(context, vpoconst.OldIngressNginxNamespace, "ingress-nginx-controller"); err != nil {
+		return err
+	}
+	if err := c.deleteNetworkPolicy(context, vpoconst.OldIngressNginxNamespace, " ingress-nginx-default-backend"); err != nil {
+		return err
+	}
 	return nil
+}
 
+func (c nginxComponent) deleteNetworkPolicy(context spi.ComponentContext, namespace string, name string) error {
+	// Remove the old network policies
+	net := netv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	err := context.Client().Delete(ctx.TODO(), &net)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return context.Log().ErrorfNewErr("Failed to delete the old network policy %s/%s: %v", namespace, name, err)
+	}
+	return nil
 }
