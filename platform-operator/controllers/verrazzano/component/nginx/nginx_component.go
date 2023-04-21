@@ -4,29 +4,26 @@
 package nginx
 
 import (
-	ctx "context"
 	"fmt"
-	helm2 "github.com/verrazzano/verrazzano/pkg/helm"
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
-	netv1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 )
 
 // ComponentName is the name of the component
@@ -83,20 +80,6 @@ func NewComponent() spi.Component {
 			},
 		},
 	}
-}
-
-// IsInstalled Indicates whether the component is installed
-func (c nginxComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
-	// Check if Verrazzano NGINX is installed in the ingress-nginx namespace
-	installed, err := c.isNGINXInstalledInOldNamespace(context)
-	if err != nil {
-		context.Log().ErrorfNewErr("Error checking if the old ingress-nginx chart %s/%s is installed error: %v", vpoconst.OldIngressNginxNamespace, c.ReleaseName, err.Error())
-	}
-	if installed {
-		return true, nil
-	}
-
-	return c.HelmComponent.IsInstalled(context)
 }
 
 // IsEnabled nginx-specific enabled check for installation
@@ -212,51 +195,4 @@ func (c nginxComponent) PostUninstall(context spi.ComponentContext) error {
 	// Remove finalizers from the ingress-nginx namespace to avoid hanging namespace deletion
 	// and delete the namespace
 	return res.RemoveFinalizersAndDelete()
-}
-
-// PreUpgrade processing for NGINX
-func (c nginxComponent) PreUpgrade(context spi.ComponentContext) error {
-	// Check if Verrazzano NGINX is installed in the ingress-nginx namespace
-	installed, err := c.isNGINXInstalledInOldNamespace(context)
-	if err != nil {
-		context.Log().ErrorfNewErr("Error checking if the old ingress-nginx chart %s/%s is installed error: %v", vpoconst.OldIngressNginxNamespace, c.ReleaseName, err.Error())
-	}
-	if !installed {
-		return nil
-	}
-
-	// The old verrazzano ingress-nginx chart is installed in ingress-nginx.  Uninstall it.
-	err = helm2.Uninstall(context.Log(), c.ReleaseName, vpoconst.OldIngressNginxNamespace, context.IsDryRun())
-	if err != nil {
-		context.Log().Errorf("Error uninstalling the old ingress-nginx chart %s/%s, error: %v", vpoconst.OldIngressNginxNamespace, c.ReleaseName, err.Error())
-		return err
-	}
-	context.Log().Progressf("Uninstalled the old Verrazzano ingress-nginx chart %s/%s", vpoconst.OldIngressNginxNamespace, c.ReleaseName)
-
-	// Remove the old network policies
-	if err := c.deleteNetworkPolicy(context, vpoconst.OldIngressNginxNamespace, "ingress-nginx-controller"); err != nil {
-		return err
-	}
-	if err := c.deleteNetworkPolicy(context, vpoconst.OldIngressNginxNamespace, " ingress-nginx-default-backend"); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c nginxComponent) deleteNetworkPolicy(context spi.ComponentContext, namespace string, name string) error {
-	// Remove the old network policies
-	net := netv1.NetworkPolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-	}
-	err := context.Client().Delete(ctx.TODO(), &net)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil
-		}
-		return context.Log().ErrorfNewErr("Failed to delete the old network policy %s/%s: %v", namespace, name, err)
-	}
-	return nil
 }
