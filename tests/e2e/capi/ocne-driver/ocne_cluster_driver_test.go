@@ -4,6 +4,7 @@
 package ocnedriver
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -33,27 +34,73 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
 	rancherURL = pkg.EventuallyGetURLForIngress(t.Logs, api, "cattle-system", "rancher", "https")
 	adminToken = pkg.GetRancherAdminToken(t.Logs, httpClient, rancherURL)
-	fmt.Println("Token: " + adminToken)
+	fmt.Println(rancherURL)
 })
 var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("OCNE Cluster Driver", Label("TODO: appropriate label"), Serial, func() {
 	t.Context("Cluster Creation", func() {
 		t.It("creates an active cluster", func() {
-			// TODO: create a cluster with an HTTP POST request, then verify that the cluster is eventually active
+			// Create the cluster
+			createCluster()
 
-			// doing GET request as a test
-			clusterName := "local"
-			requestURL := rancherURL + "/v3/cluster?name=" + clusterName
-			request, _ := retryablehttp.NewRequest(http.MethodGet, requestURL, nil)
-			request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminToken))
-			response, _ := httpClient.Do(request)
-			defer response.Body.Close()
-			body, _ := io.ReadAll(response.Body)
-			jsonBody, _ := gabs.ParseJSON(body)
-			fmt.Println(jsonBody)
-
-			Expect(1+1).Should(Equal(2))
+			// Verify the cluster is active
+			getCluster("capi-ocne-cluster")
 		})
 	})
 })
+
+// Creates an OCNE cluster through CAPI
+func createCluster() *http.Response {
+	requestURL := rancherURL + "/v3/cluster"
+	requestBody := []byte(`{
+		"description": "testing cluster",
+		"name": "capi-ocne-cluster",
+		"ociocneEngineConfig": {
+			"displayName": "capi-ocne-cluster",
+			"driverName": "ociocneengine",
+			"vcnId": "<<FILL IN>>",
+			"nodePublicKeyContents": "<<FILL IN>>",
+			"compartmentId": "<<FILL IN>>",
+			"workerNodeSubnet": "<<FILL IN>>",
+			"controlPlaneSubnet": "<<FILL IN>>",
+			"loadBalancerSubnet": "<<FILL IN>>",
+			"imageDisplayName": "Oracle-Linux-8.7-2023.01.31-3",
+			"kubernetesVersion": "v1.24.8",
+			"useNodePvEncryption": true,
+			"cloudCredentialId": "<<FILL IN>>",
+			"region": "us-ashburn-1",
+
+			"nodeShape": "VM.Standard.E4.Flex",
+			"numWorkerNodes": 1,
+			"nodeOcpus": 2,
+			"nodeMemoryGbs": 32,
+
+			"nodeVolumeGbs": 50,
+			"controlPlaneVolumeGbs": 100,
+
+			"podCidr": "<<FILL IN>>",
+			"controlPlaneShape": "VM.Standard.E4.Flex",
+			"numControlPlaneNodes": 1,
+			"controlPlaneMemoryGbs": 16,
+			"controlPlaneOcpus": 1
+		}
+	}`)
+	
+	request, _ := retryablehttp.NewRequest(http.MethodPost, requestURL, bytes.NewBuffer(requestBody))
+	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminToken))
+	response, _ := httpClient.Do(request)
+	return response
+}
+
+// Gets a specified cluster by using the Rancher REST API
+func getCluster(clusterName string) {
+	requestURL := rancherURL + "/v3/cluster?name=" + clusterName
+	request, _ := retryablehttp.NewRequest(http.MethodGet, requestURL, nil)
+	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminToken))
+	response, _ := httpClient.Do(request)
+	defer response.Body.Close()
+	body, _ := io.ReadAll(response.Body)
+	jsonBody, _ := gabs.ParseJSON(body)
+	fmt.Println(jsonBody)
+}
