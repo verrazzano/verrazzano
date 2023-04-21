@@ -177,10 +177,12 @@ pipeline {
                         listOfUpgradeJobs = addTargetUpgradeVersion(finalReleaseList)
                         
                         minorReleaseList = getTipOfReleaseBranches(finalReleaseList)
-                        for(release in minorReleaseList){
-                            sh "${workspace}/ci/scripts/release_commit_id_formatter.sh $release"
-                        }
-                        sh "cat ${workspace}/releaseAndCommits.txt"
+                        echo "${minorReleaseList}"
+                        // for(minorRelease in minorReleaseList){   
+                        //     GIT_RELEASE_COMMIT_ID=$(git rev-parse release-"$RELEASE")
+                        //     echo "$RELEASE:$GIT_RELEASE_COMMIT_ID" >> ${workspace}/releaseAndCommits.txt
+                        // }
+                        // sh "cat ${workspace}/releaseAndCommits.txt"
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                         echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
                         def k = 0
