@@ -220,18 +220,18 @@ pipeline {
 
                     echo "Extracting source"
                     tar xvf ${downloadLocation} -C ${GO_REPO_PATH}
-
-                    ls -las ${GO_REPO_PATH}/verrazzano
                 """
 
                 script {
-                    def props = readProperties file: env.GO_REPO_PATH + '/verrazzano/.verrazzano-development-version'
-                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
-                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-                    DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
-                    // update the description with some meaningful info
-                    setDisplayName()
-                    currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + env.SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                    dir(env.GO_REPO_PATH + "/verrazzano") {
+                        def props = readProperties file: .verrzzano-development-version
+                        VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+                        TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                        DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
+                        // update the description with some meaningful info
+                        setDisplayName()
+                        currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + env.SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                    }
                 }
                 script {
                     zipFileLoc = params.ZIPFILE_LOCATION
