@@ -11,5 +11,5 @@ import (
 
 func TestOCNEClusterDriver(test *testing.T) {
 	t.RegisterFailHandler()
-	ginkgo.RunSpecs(test, "Install Script Suite")
+	ginkgo.RunSpecs(test, "OCNE Cluster Driver Suite")
 }
