@@ -5,7 +5,6 @@ package certmanager
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -131,7 +130,7 @@ func (c certManagerComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
 	return c.ValidateInstallV1Beta1(vzV1Beta1)
 }
 
-// ValidateInstall checks if the specified new Verrazzano CR is valid for this component to be installed
+// ValidateInstallV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be installed
 func (c certManagerComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
 	if err := checkExistingCertManager(vz); err != nil {
 		return err
@@ -148,12 +147,12 @@ func (c certManagerComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) err
 	return c.HelmComponent.ValidateInstallV1Beta1(vz)
 }
 
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+// ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c certManagerComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
-	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
-	}
+	//if c.IsEnabled(old) && !c.IsEnabled(new) {
+	//	return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	//}
 	if _, err := validateConfiguration(new.Spec.Components.CertManager); err != nil {
 		return err
 	}
@@ -284,10 +283,10 @@ func (c certManagerComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	return false
 }
 
-func checkExistingCertManager(vz runtime.Object) error {
-	if !vzcr.IsCertManagerEnabled(vz) {
-		return nil
-	}
+func checkExistingCertManager(_ runtime.Object) error {
+	//if !vzcr.IsCertManagerEnabled(vz) {
+	//	return nil
+	//}
 	client, err := k8sutil.GetCoreV1Func()
 	if err != nil {
 		return err

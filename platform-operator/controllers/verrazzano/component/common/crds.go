@@ -4,7 +4,11 @@
 package common
 
 import (
+	"context"
 	"fmt"
+	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -29,4 +33,18 @@ func ConvertVerrazzanoCR(vz *vzapi.Verrazzano, vzv1beta1 *v1beta1.Verrazzano) er
 		return err
 	}
 	return nil
+}
+
+func CheckCRDsExist(crdNames []string, err error, client v1.ApiextensionsV1Interface) (bool, error) {
+	for _, crdName := range crdNames {
+		_, err = client.CustomResourceDefinitions().Get(context.TODO(), crdName, v12.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return false, nil
+			}
+			//compCtx.Log().Errorf("Unxpected error looking up CertManager custom resource %s in cluster", crdName)
+			return false, err
+		}
+	}
+	return true, nil
 }

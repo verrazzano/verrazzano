@@ -465,7 +465,9 @@ func GetGoAPIExtClient(log ...vzlog.VerrazzanoLogger) (apiextv1.Interface, error
 func buildRESTConfig(logger vzlog.VerrazzanoLogger) (*rest.Config, error) {
 	config, err := GetConfigFromController()
 	if err != nil {
-		logger.Errorf("Failed to get kubeconfig: %v", err)
+		if logger != nil {
+			logger.Errorf("Failed to get kubeconfig: %v", err)
+		}
 		return nil, err
 	}
 	return config, nil

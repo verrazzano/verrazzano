@@ -4,21 +4,18 @@
 package certmanagerconfig
 
 import (
-	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -59,7 +56,9 @@ func NewComponent() spi.Component {
 
 // IsEnabled returns true if the cert-manager-config is enabled, which is the default
 func (c certManagerConfigComponent) IsEnabled(_ runtime.Object) bool {
-	return true
+	exists, err := c.checkExistingCertManager()
+	vzlog.DefaultLogger().ErrorfThrottledNewErr("Unexpected error checking for existing Cert-Manager: %v", err)
+	return exists
 }
 
 // IsReady component check
@@ -141,7 +140,7 @@ func (c certManagerConfigComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // PreInstall runs before cert-manager-config component is executed
 func (c certManagerConfigComponent) PreInstall(compContext spi.ComponentContext) error {
-	if err := c.checkExistingCertManager(compContext); err != nil {
+	if err := c.certManagerExists(compContext); err != nil {
 		return err
 	}
 	if err := common.ProcessAdditionalCertificates(compContext.Log(), compContext.Client(), compContext.EffectiveCR()); err != nil {
@@ -171,6 +170,21 @@ func (c certManagerConfigComponent) Upgrade(context spi.ComponentContext) error 
 	return nil
 }
 
+func (c certManagerConfigComponent) PreUpgrade(compContext spi.ComponentContext) error {
+	return c.certManagerExists(compContext)
+}
+
+func (c certManagerConfigComponent) certManagerExists(compContext spi.ComponentContext) error {
+	exists, err := c.checkExistingCertManager()
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return compContext.Log().ErrorfThrottledNewErr("CertManager custom resources not found in cluster")
+	}
+	return nil
+}
+
 // PostUpgrade applies necessary cert-manager-config resources after upgrade has occurred
 // In the case of an Acme cert, we install/update Acme resources
 // In the case of a CA cert, we install/update CA resources
@@ -179,9 +193,6 @@ func (c certManagerConfigComponent) PostUpgrade(compContext spi.ComponentContext
 	if compContext.IsDryRun() {
 		compContext.Log().Debug("cert-manager-config PostInstall dry run")
 		return nil
-	}
-	if err := c.checkExistingCertManager(compContext); err != nil {
-		return err
 	}
 	return c.createOrUpdateClusterIssuer(compContext)
 }
@@ -196,7 +207,7 @@ func (c certManagerConfigComponent) PostUninstall(compContext spi.ComponentConte
 		compContext.Log().Debug("cert-manager-configPostUninstall dry run")
 		return nil
 	}
-	if err := c.checkExistingCertManager(compContext); err != nil {
+	if err := c.certManagerExists(compContext); err != nil {
 		return err
 	}
 	return uninstallCertManager(compContext)
@@ -244,15 +255,15 @@ func (c certManagerConfigComponent) MonitorOverrides(ctx spi.ComponentContext) b
 	return false
 }
 
-func (c certManagerConfigComponent) checkExistingCertManager(compCtx spi.ComponentContext) error {
-	vz := compCtx.EffectiveCR()
-	if vzcr.IsCertManagerEnabled(vz) {
-		return nil
-	}
-
-	client, err := k8sutil.GetAPIExtV1Client(compCtx.Log())
+func (c certManagerConfigComponent) checkExistingCertManager() (bool, error) {
+	//vz := compCtx.EffectiveCR()
+	//if vzcr.IsCertManagerEnabled(vz) {
+	//	return nil
+	//}
+	//
+	client, err := k8sutil.GetAPIExtV1Client()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	crdNames := []string{
@@ -263,15 +274,10 @@ func (c certManagerConfigComponent) checkExistingCertManager(compCtx spi.Compone
 		"issuers.cert-manager.io",
 	}
 
-	for _, crdName := range crdNames {
-		_, err = client.CustomResourceDefinitions().Get(context.TODO(), crdName, metav1.GetOptions{})
-		if err != nil {
-			if kerrs.IsNotFound(err) {
-				return compCtx.Log().ErrorfThrottledNewErr("CertManager custom resource %s not found in cluster", crdName)
-			}
-			compCtx.Log().Errorf("Unxpected error looking up CertManager custom resource %s in cluster", crdName)
-			return err
-		}
+	resourcesExist, err := common.CheckCRDsExist(crdNames, err, client)
+	if err != nil {
+		return false, err
 	}
-	return nil
+	// Found required CRDs
+	return resourcesExist, nil
 }
