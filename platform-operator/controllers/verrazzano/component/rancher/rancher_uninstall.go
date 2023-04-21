@@ -506,11 +506,14 @@ func deleteMatchingObject(ctx spi.ComponentContext, nameMatches []string, labelM
 		return ctx.Log().ErrorfNewErr("Failed to verify that the %s %s is from Rancher: %v", obj.GetObjectKind().GroupVersionKind().String(), obj.GetName(), err)
 	}
 	labelMatch := false
-	objLabels := obj.GetLabels()
-	for _, label := range labelMatches {
-		_, labelMatch = objLabels[label]
-		if labelMatch {
-			break
+	if !nameMatch {
+		// Check if a label match
+		objLabels := obj.GetLabels()
+		for _, label := range labelMatches {
+			_, labelMatch = objLabels[label]
+			if labelMatch {
+				break
+			}
 		}
 	}
 	if nameMatch || labelMatch {
