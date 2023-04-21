@@ -1,4 +1,4 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 ---
@@ -34,6 +34,7 @@ metadata:
     nginx.ingress.kubernetes.io/service-upstream: "true"
     nginx.ingress.kubernetes.io/upstream-vhost: "${service_name}.${namespace}.svc.cluster.local"
     cert-manager.io/common-name: verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
+    cert-manager.io/cluster-issuer: verrazzano-cluster-issuer
   name: verrazzano-ingress
   namespace: {{ .Release.Namespace }}
 spec:

@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -62,6 +63,6 @@ func addAcmeIngressAnnotations(name, dnsSuffix string, ingress *networking.Ingre
 // addCAIngressAnnotations annotate ingress with custom CA specific values
 func addCAIngressAnnotations(name, dnsSuffix string, ingress *networking.Ingress) {
 	ingress.Annotations["nginx.ingress.kubernetes.io/auth-realm"] = fmt.Sprintf("%s.%s auth", name, dnsSuffix)
-	ingress.Annotations["cert-manager.io/cluster-issuer"] = "verrazzano-cluster-issuer"
+	ingress.Annotations["cert-manager.io/cluster-issuer"] = constants.VerrazzanoClusterIssuerName
 	ingress.Annotations["cert-manager.io/common-name"] = fmt.Sprintf("%s.%s.%s", common.RancherName, name, dnsSuffix)
 }
