@@ -7,7 +7,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	helm2 "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -21,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -142,4 +145,99 @@ func GetOverrides(object runtime.Object) interface{} {
 	}
 
 	return []vzapi.Overrides{}
+}
+
+// DeterminNamespaceForIngressNGINX determines the namespace for Ingress NGINX
+func (c nginxComponent) DeterminNamespaceForIngressNGINX(context spi.ComponentContext) (bool, error) {
+	const vzClass = "verrazzano-nginx"
+
+	type YamlConfig struct {
+		Controller struct {
+			IngressClassResource struct {
+				Name string `json:"name"`
+			}
+		}
+	}
+
+	// See if NGINX is installed in the ingress-nginx namespace
+	found, err := helm2.IsReleaseInstalled(c.ReleaseName, vpoconst.OldIngressNginxNamespace)
+	if err != nil {
+		context.Log().ErrorfNewErr("Error checking if the old ingress-nginx chart %s/%s is installed error: %v", vpoconst.OldIngressNginxNamespace, c.ReleaseName, err.Error())
+	}
+	if found {
+		valMap, err := helm2.GetValuesMap(context.Log(), c.ReleaseName, vpoconst.OldIngressNginxNamespace)
+		if err != nil {
+			return false, err
+		}
+		b, err := yaml.Marshal(&valMap)
+		if err != nil {
+			return false, err
+		}
+		yml := YamlConfig{}
+		if err := yaml.Unmarshal(b, &yml); err != nil {
+			return false, err
+		}
+		if yml.Controller.IngressClassResource.Name == vzClass {
+			return true, nil
+		}
+
+		return false, nil
+	}
+	return false, nil
+}
+
+// DetermineNamespaceForIngressNGINX determines the namespace for Ingress NGINX
+func (c nginxComponent) DetermineNamespaceForIngressNGINX(context spi.ComponentContext) (string, error) {
+	// Check if Verrazzano NGINX is installed in the ingress-nginx namespace
+	installed, err := c.isNGINXInstalledInOldNamespace(context.Log())
+	if err != nil {
+		context.Log().ErrorfNewErr("Error checking if the old ingress-nginx chart %s/%s is installed error: %v", vpoconst.OldIngressNginxNamespace, c.ReleaseName, err.Error())
+	}
+	if installed {
+		// If Ingress NGINX is already installed ingress-nginx then don't change it.
+		// This is to avoid creating a new service in the new namespac, thus causing an
+		// LB to be created.
+		return vpoconst.OldIngressNginxNamespace, nil
+	}
+
+	return vpoconst.IngressNginxNamespace, nil
+}
+
+// isNGINXInstalledInOldNamespace determines the namespace for Ingress NGINX
+func (c nginxComponent) isNGINXInstalledInOldNamespace(log vzlog.VerrazzanoLogger) (bool, error) {
+	const vzClass = "verrazzano-nginx"
+
+	type YamlConfig struct {
+		Controller struct {
+			IngressClassResource struct {
+				Name string `json:"name"`
+			}
+		}
+	}
+
+	// See if NGINX is installed in the ingress-nginx namespace
+	found, err := helm2.IsReleaseInstalled(c.ReleaseName, vpoconst.OldIngressNginxNamespace)
+	if err != nil {
+		log.ErrorfNewErr("Error checking if the old ingress-nginx chart %s/%s is installed error: %v", vpoconst.OldIngressNginxNamespace, c.ReleaseName, err.Error())
+	}
+	if found {
+		valMap, err := helm2.GetValuesMap(log, c.ReleaseName, vpoconst.OldIngressNginxNamespace)
+		if err != nil {
+			return false, err
+		}
+		b, err := yaml.Marshal(&valMap)
+		if err != nil {
+			return false, err
+		}
+		yml := YamlConfig{}
+		if err := yaml.Unmarshal(b, &yml); err != nil {
+			return false, err
+		}
+		if yml.Controller.IngressClassResource.Name == vzClass {
+			return true, nil
+		}
+
+		return false, nil
+	}
+	return false, nil
 }
