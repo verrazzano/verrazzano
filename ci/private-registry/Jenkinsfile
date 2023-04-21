@@ -219,12 +219,10 @@ pipeline {
 
                     echo "Extracting source"
                     tar xvf ${downloadLocation}
-                    tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
-                    hostname -I
+                    tar cf - . | (cd ${GO_REPO_PATH} ; tar xf -)
                 """
 
                 script {
-                    sh(script: "hostname -I")
                     VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "grep verrazzano-development-version ${GO_REPO_PATH}/verrazzano/.verrazzano-development-version | cut -d'=' -f2")
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
