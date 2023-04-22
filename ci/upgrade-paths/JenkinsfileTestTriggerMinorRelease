@@ -176,11 +176,11 @@ pipeline {
                         echo "List of Releases after excluding the user requested releases: ${finalReleaseList}"
                         listOfUpgradeJobs = addTargetUpgradeVersion(finalReleaseList)
                         
-                        minorReleaseList = getTipOfReleaseBranches(finalReleaseList)
+                        minorReleaseList = getCleanReleaseVersion(finalReleaseList)
                         echo "List of minor release: ${minorReleaseList}"
 
                         for(minorRelease in minorReleaseList){  
-                            RESULT = getLatestReleaseBranch(minorRelease)
+                            RESULT = getTipOfReleaseBranches(minorRelease)
                             echo RESULT
                         }
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
@@ -369,7 +369,7 @@ List extractReleaseTags(final String fileContent) {
     return releases
 }
 
-def getTipOfReleaseBranches(List releaseList){
+def getCleanReleaseVersion(List releaseList){
     List minorReleases = []
     for(tag in releaseList){
         if (tag[-1] == "0"){
@@ -379,10 +379,11 @@ def getTipOfReleaseBranches(List releaseList){
     return minorReleases
 }
 
-def getLatestReleaseBranch(release){ 
+def getTipOfReleaseBranches(releaseNumber){ 
+    completeReleaseVersionCommit = "release-" + releaseNumber
     scmReleaseBranchInfo = checkout([
         $class: 'GitSCM',
-        branches: [[name: release]],
+        branches: [[name: completeReleaseVersionCommit]],
         doGenerateSubmoduleConfigurations: false,
         extensions: [],
         submoduleCfg: [],
