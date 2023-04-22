@@ -178,11 +178,12 @@ pipeline {
                         
                         minorReleaseList = getCleanReleaseVersion(finalReleaseList)
                         echo "List of minor release: ${minorReleaseList}"
-
+                        def releaseCommitMap = [:]
                         for(minorRelease in minorReleaseList){  
-                            RESULT = getTipOfReleaseBranches(minorRelease)
-                            echo RESULT
+                            releaseCommit = getTipOfReleaseBranches(minorRelease)
+                            releaseCommitMap["v"+minorRelease] = releaseCommit
                         }
+                        echo releaseCommitMap
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                         echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
                         def k = 0
