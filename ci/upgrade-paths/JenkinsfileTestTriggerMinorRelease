@@ -179,16 +179,9 @@ pipeline {
                         minorReleaseList = getTipOfReleaseBranches(finalReleaseList)
                         echo "List of minor release: ${minorReleaseList}"
 
-                        for(minorRelease in minorReleaseList){   
-                            // The git rev-parse command does not work since release-1.3, etc. is not checked out in the workspace. 
-                            // Meaning we'll need someother way of grabbing the tip of the release branches
-                            sh """
-                                pwd
-                                git tag
-                            """
-                            GIT_RELEASE_COMMIT_ID = sh(script: "git rev-parse release-${minorRelease}")
-                        
-                            
+                        for(minorRelease in minorReleaseList){  
+                            RESULT = getLatestReleaseBranch(minorRelease)
+                            echo RESULT
                         }
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                         echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
@@ -384,6 +377,18 @@ def getTipOfReleaseBranches(List releaseList){
         }
     }
     return minorReleases
+}
+
+def getLatestReleaseBranch(release){ 
+    scmReleaseBranchInfo = checkout([
+        $class: 'GitSCM',
+        branches: [[name: release]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [],
+        submoduleCfg: [],
+        userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+        def releaseBranchCommitSHA = scmReleaseBranchInfo.GIT_COMMIT
+    return releaseBranchCommitSHA
 }
 
 def getStageOfUpgradeJob(job) {
