@@ -178,13 +178,12 @@ pipeline {
                         
                         minorReleaseList = getCleanReleaseVersion(finalReleaseList)
                         echo "List of minor release: ${minorReleaseList}"
-                        def releaseCommitMap = [:]
                         def listOfTipOfReleaseUpgradeJobs = []
+                        def releaseCommitMap = [:]
                         for(minorRelease in minorReleaseList){  
                             releaseCommit = getTipOfReleaseBranches(minorRelease)
                             String key = "v"+minorRelease
-                            releaseCommitMap[key] = releaseCommit
-                            listOfTipOfReleaseUpgradeJobs.put(getTipOfBranchToMasterJob(key, releaseCommit))
+                            releaseCommitMap.put(releaseCommit, getTipOfBranchToMasterJob(key, releaseCommit))
                         }
 
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
@@ -204,7 +203,7 @@ pipeline {
                             }
                     }
                     echo "Running upgrades from branch tips to current_branch:"
-                    for(job in listOfTipOfReleaseUpgradeJobs){
+                    for(job in releaseCommitMap){
                         parallel job
                         sleep 5
                     }
