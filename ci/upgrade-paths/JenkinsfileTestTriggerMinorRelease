@@ -203,10 +203,11 @@ pipeline {
                             }
                     }
                     echo "Running upgrades from branch tips to current_branch:"
-                    for(job in releaseCommitMap){
-                        parallel job
-                        sleep 5
-                    }
+                    echo releaseCommitMap
+                    // for(job in releaseCommitMap){
+                    //     parallel job
+                    //     sleep 5
+                    // }
                     print mapOfJobsInBatches
                     for(batch in mapOfJobsInBatches){
                         parallel batch
