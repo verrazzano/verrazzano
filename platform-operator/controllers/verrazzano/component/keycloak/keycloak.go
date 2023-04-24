@@ -1998,6 +1998,7 @@ func updateRancherClientSecretForKeycloakAuthConfig(ctx spi.ComponentContext) er
 	return common.UpdateKeycloakOIDCAuthConfig(ctx, authConfig)
 }
 
+// addRealmRoleToUser adds a realm role to the given user in the target realm
 func addRealmRoleToUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, userName, targetRealm, roleName string) error {
 	kcPod := keycloakPod()
 	addRoleCmd := kcAdminScript + " add-roles -r " + targetRealm + " --uusername " + userName + " --rolename " + roleName

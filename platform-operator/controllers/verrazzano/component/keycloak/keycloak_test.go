@@ -1867,6 +1867,10 @@ func TestAddClientRoleToUser(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestAddRealmRoleToUser adds a realm role to a user
+// GIVEN a client, and a k8s environment
+// WHEN I call addRealmRoleToUser
+// THEN confirm that the function doesn't return an error
 func TestAddRealmRoleToUser(t *testing.T) {
 	k8sutil.ClientConfig = fakeRESTConfig
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
