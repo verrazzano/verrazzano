@@ -92,6 +92,11 @@ func preInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	err = os.Mkdir("/verrazzano/.cluster-api", 0755)
+	if err != nil {
+		return err
+	}
+
 	// Create the clusterctl.yaml used when initializing CAPI.
 	return os.WriteFile("/verrazzano/.cluster-api/clusterctl.yaml", result.Bytes(), 0644)
 }
