@@ -46,12 +46,12 @@ type nginxComponent struct {
 // Verify that nginxComponent implements Component
 var _ spi.Component = nginxComponent{}
 
-// IngressNGINXNamespace namespace
-var IngressNGINXNamespace = vpoconst.IngressNginxNamespace
+// ComponentNamespace namespace, this can get udpated during runtime
+var ComponentNamespace = vpoconst.IngressNginxNamespace
 
 // SetIngressNGINXNamespace sets the namespace, this is done at VZ reconcile startup, see controller.go
 func SetIngressNGINXNamespace(ns string) {
-	IngressNGINXNamespace = ns
+	ComponentNamespace = ns
 }
 
 // NewComponent returns a new Nginx component
@@ -61,7 +61,7 @@ func NewComponent() spi.Component {
 			ReleaseName:               ComponentName,
 			JSONName:                  ComponentJSONName,
 			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), "ingress-nginx"), // Note name is different than release name
-			ChartNamespace:            IngressNGINXNamespace,
+			ChartNamespace:            ComponentNamespace,
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
@@ -76,11 +76,11 @@ func NewComponent() spi.Component {
 				DeploymentNames: []types.NamespacedName{
 					{
 						Name:      ControllerName,
-						Namespace: IngressNGINXNamespace,
+						Namespace: ComponentNamespace,
 					},
 					{
 						Name:      backendName,
-						Namespace: IngressNGINXNamespace,
+						Namespace: ComponentNamespace,
 					},
 				},
 			},
