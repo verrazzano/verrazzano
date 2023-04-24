@@ -204,7 +204,7 @@ pipeline {
                                 k = 0;
                             }
                     }
-                    echo "Running upgrades from tip of release branch to current_branch:"
+                    echo "Running upgrades from tip of release branch to master:"
                     print listOfTipOfReleaseUpgradeJobs
                     for(job in listOfTipOfReleaseUpgradeJobs){
                         parallel job
@@ -438,17 +438,17 @@ def getStageOfUpgradeJob(job) {
 
 def getTipOfBranchToMasterJob(String release, String commitNumber) {
     return {
-        stage("Upgrade Verrazzano from tip of ${release} to current branch") {
+        stage("Upgrade Verrazzano from tip of ${release} to master") {
             if( CLEAN_BRANCH_NAME != 'master') {
                     script{
                         try{
-                            echo "Running upgrade job from version ${release}-${commitNumber} to current branch"
+                            echo "Running upgrade job from version ${release}-${commitNumber} to master"
                             retry(count: JOB_PROMOTION_RETRIES) {
                                 def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: "${commitNumber}"),
                                     string(name: 'VERSION_FOR_INSTALL', value: "${release}" ),
-                                    string(name: 'VERSION_FOR_UPGRADE', value: "current_branch"),
+                                    string(name: 'VERSION_FOR_UPGRADE', value: "master"),
                                     string(name: 'VZ_INSTALL_CONFIG', value: params.VZ_INSTALL_CONFIG),
                                     string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
