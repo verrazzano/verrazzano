@@ -11,14 +11,46 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-const ComponentName = "ingress-controller"
+const helmReleaseName = "ingress-controller"
+
+// GetIngressNGINXNamespace get the Ingress NGINX namespace from the metadata annotation
+func GetIngressNGINXNamespace(meta metav1.ObjectMeta) string {
+	anno := meta.Annotations
+	if anno == nil {
+		return vpoconst.IngressNginxNamespace
+	}
+	val, ok := anno[vpoconst.IngressNginxNamespaceAnnotation]
+	if ok {
+		return val
+	}
+	return vpoconst.IngressNginxNamespace
+}
+
+// EnsureAnnotationForIngressNGINX ensures that the VZ CR has an annotation for Ingress NGINX namespace
+// Return true if VZ update needed.
+func EnsureAnnotationForIngressNGINX(log vzlog.VerrazzanoLogger, meta *metav1.ObjectMeta) (bool, error) {
+	anno := meta.Annotations
+	if anno == nil {
+		anno = make(map[string]string)
+	}
+	_, ok := anno[vpoconst.IngressNginxNamespaceAnnotation]
+	if ok {
+		return false, nil
+	}
+	name, err := determineNamespaceForIngressNGINX(log)
+	if err != nil {
+		return false, err
+	}
+	anno[vpoconst.IngressNginxNamespaceAnnotation] = name
+	return true, nil
+}
 
 // determineNamespaceForIngressNGINX determines the namespace for Ingress NGINX
 func determineNamespaceForIngressNGINX(log vzlog.VerrazzanoLogger) (string, error) {
 	// Check if Verrazzano NGINX is installed in the ingress-nginx namespace
-	installed, err := isVzNGINXInstalledInNamespace(log, vpoconst.LegacyIngressNginxNamespace, ComponentName)
+	installed, err := isVzNGINXInstalledInNamespace(log, helmReleaseName, vpoconst.LegacyIngressNginxNamespace)
 	if err != nil {
-		log.ErrorfNewErr("Error checking if the old ingress-nginx chart %s/%s is installed error: %v", vpoconst.LegacyIngressNginxNamespace, ComponentName, err.Error())
+		log.ErrorfNewErr("Failed checking if the old ingress-nginx chart %s/%s is installed: %v", vpoconst.LegacyIngressNginxNamespace, helmReleaseName, err.Error())
 	}
 	if installed {
 		// If Ingress NGINX is already installed ingress-nginx then don't change it.
@@ -67,36 +99,4 @@ func isVzNGINXInstalledInNamespace(log vzlog.VerrazzanoLogger, releaseName strin
 		return false, nil
 	}
 	return false, nil
-}
-
-// EnsureAnnotationForIngressNGINX ensures that the VZ CR has an annotation for Ingress NGINX namesapce
-// Return true if VZ update needed.
-func EnsureAnnotationForIngressNGINX(log vzlog.VerrazzanoLogger, meta *metav1.ObjectMeta) (bool, error) {
-	anno := meta.Annotations
-	if anno == nil {
-		anno = make(map[string]string)
-	}
-	_, ok := anno[vpoconst.IngressNginxNamespaceAnnotation]
-	if ok {
-		return false, nil
-	}
-	name, err := determineNamespaceForIngressNGINX(log)
-	if err != nil {
-		return false, err
-	}
-	anno[vpoconst.IngressNginxNamespaceAnnotation] = name
-	return true, nil
-}
-
-// GetIngressNGINXNamespace from the metadata annotation
-func GetIngressNGINXNamespace(meta metav1.ObjectMeta) string {
-	anno := meta.Annotations
-	if anno == nil {
-		return vpoconst.IngressNginxNamespace
-	}
-	val, ok := anno[vpoconst.IngressNginxNamespaceAnnotation]
-	if ok {
-		return val
-	}
-	return vpoconst.IngressNginxNamespace
 }
