@@ -442,7 +442,7 @@ def getTipOfBranchToMasterJob(String release, String commitNumber) {
             if( CLEAN_BRANCH_NAME != 'master') {
                     script{
                         try{
-                            echo "Running upgrade job from version current branch to master"
+                            echo "Running upgrade job from version ${release}-${commitNumber} to current branch"
                             retry(count: JOB_PROMOTION_RETRIES) {
                                 def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
