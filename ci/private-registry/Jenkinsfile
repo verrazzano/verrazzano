@@ -242,7 +242,7 @@ pipeline {
                 }
             }
         }
-
+        /*
         stage('Download and extract dist tarball') {
             when {
                 expression {
@@ -305,6 +305,7 @@ pipeline {
                 }
             }
         }
+        */
 
         stage('verify distribution') {
             when {
