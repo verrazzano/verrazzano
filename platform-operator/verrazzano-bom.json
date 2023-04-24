@@ -122,7 +122,7 @@
     },
     {
       "name": "rancher",
-      "version": "v2.7.1",
+      "version": "v2.7.2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -301,7 +301,7 @@
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "2.3.0-20230324072109-f9e6353395",
+              "tag": "2.3.0-20230424094216-cff07fd190",
               "helmFullImageKey": "monitoringOperator.osdImage"
             },
             {
