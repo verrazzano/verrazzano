@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"reflect"
 	"testing"
 	"time"
@@ -574,7 +574,7 @@ func TestDeleteNamespaces(t *testing.T) {
 		keycloak.ComponentNamespace,
 		kiali.ComponentNamespace,
 		mysql.ComponentNamespace,
-		nginx.ComponentNamespace,
+		nginxutil.IngressNGINXNamespace(),
 		oam.ComponentNamespace,
 		opensearch.ComponentNamespace,
 		opensearchdashboards.ComponentNamespace,
