@@ -6,7 +6,6 @@ package nginx
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
-	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -27,11 +26,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// ComponentNamespace namespace, this will get updated during runtime if Verrazzano
-// was installed in ingress-nginx namespace.  See verrazzano controller.go
-var ComponentNamespace = vpoconst.IngressNginxNamespace
-
 // ComponentName is the name of the component
+// NOTE, ComponentNamespace namespace is determined at runtime, see nginxutil.go
 const ComponentName = "ingress-controller"
 
 // ComponentJSONName is the JSON name of the verrazzano component in CRD
@@ -50,11 +46,6 @@ type nginxComponent struct {
 // Verify that nginxComponent implements Component
 var _ spi.Component = nginxComponent{}
 
-// SetIngressNGINXNamespace sets the namespace, this is done at VZ reconcile startup, see controller.go
-func SetIngressNGINXNamespace(ns string) {
-	ComponentNamespace = ns
-}
-
 // NewComponent returns a new Nginx component
 func NewComponent() spi.Component {
 	return nginxComponent{
@@ -62,7 +53,7 @@ func NewComponent() spi.Component {
 			ReleaseName:               ComponentName,
 			JSONName:                  ComponentJSONName,
 			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), "ingress-nginx"), // Note name is different than release name
-			ChartNamespace:            ComponentNamespace,
+			ChartNamespace:            nginxutil.IngressNGINXNamespace(),
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
@@ -77,11 +68,11 @@ func NewComponent() spi.Component {
 				DeploymentNames: []types.NamespacedName{
 					{
 						Name:      ControllerName,
-						Namespace: ComponentNamespace,
+						Namespace: nginxutil.IngressNGINXNamespace(),
 					},
 					{
 						Name:      backendName,
-						Namespace: ComponentNamespace,
+						Namespace: nginxutil.IngressNGINXNamespace(),
 					},
 				},
 			},

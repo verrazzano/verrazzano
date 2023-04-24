@@ -13,6 +13,20 @@ import (
 
 const helmReleaseName = "ingress-controller"
 
+// This is set by verrazzano controller.go at startup.  It has to be injected
+// since is an import cycle if this code uses component.nginx.
+var ingressNGINXNamespace = vpoconst.IngressNginxNamespace
+
+// SetIngressNGINXNamespace sets the namespace, this is done at VZ reconcile startup, see controller.go
+func SetIngressNGINXNamespace(ns string) {
+	ingressNGINXNamespace = ns
+}
+
+// IngressNGINXNamespace returns the ingress-nginx namespace
+func IngressNGINXNamespace() string {
+	return ingressNGINXNamespace
+}
+
 // GetIngressNGINXNamespace get the Ingress NGINX namespace from the metadata annotation
 func GetIngressNGINXNamespace(meta metav1.ObjectMeta) string {
 	anno := meta.Annotations
@@ -37,7 +51,7 @@ func EnsureAnnotationForIngressNGINX(log vzlog.VerrazzanoLogger, meta *metav1.Ob
 	if ok {
 		return false, nil
 	}
-	name, err := determineNamespaceForIngressNGINX(log)
+	name, err := DetermineNamespaceForIngressNGINX(log)
 	if err != nil {
 		return false, err
 	}
@@ -45,8 +59,8 @@ func EnsureAnnotationForIngressNGINX(log vzlog.VerrazzanoLogger, meta *metav1.Ob
 	return true, nil
 }
 
-// determineNamespaceForIngressNGINX determines the namespace for Ingress NGINX
-func determineNamespaceForIngressNGINX(log vzlog.VerrazzanoLogger) (string, error) {
+// DetermineNamespaceForIngressNGINX determines the namespace for Ingress NGINX
+func DetermineNamespaceForIngressNGINX(log vzlog.VerrazzanoLogger) (string, error) {
 	// Check if Verrazzano NGINX is installed in the ingress-nginx namespace
 	installed, err := isVzNGINXInstalledInNamespace(log, helmReleaseName, vpoconst.LegacyIngressNginxNamespace)
 	if err != nil {

@@ -4,6 +4,7 @@
 package config
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -102,15 +103,6 @@ var instance = OperatorConfig{
 	MySQLCheckPeriodSeconds:        60,
 	MySQLRepairTimeoutSeconds:      120,
 	ExperimentalModules:            false,
-}
-
-// This is set by verrazzano controller.go at startup.  It has to be injected
-// since is an import cycle if this code uses component.nginx.
-var ingressNGINXNamespace string
-
-// SetIngressNGINXNamespace sets the namespace, this is done at VZ reconcile startup, see controller.go
-func SetIngressNGINXNamespace(ns string) {
-	ingressNGINXNamespace = ns
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests
@@ -241,7 +233,7 @@ func GetDefaultBOMFilePath() string {
 }
 
 func GetInjectedSystemNamespaces() []string {
-	return []string{constants.VerrazzanoSystemNamespace, constants.VerrazzanoMonitoringNamespace, ingressNGINXNamespace, constants.KeycloakNamespace}
+	return []string{constants.VerrazzanoSystemNamespace, constants.VerrazzanoMonitoringNamespace, nginxutil.IngressNGINXNamespace(), constants.KeycloakNamespace}
 }
 
 func GetNoInjectionComponents() []string {
