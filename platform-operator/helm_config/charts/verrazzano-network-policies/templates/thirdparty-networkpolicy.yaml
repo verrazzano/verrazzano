@@ -654,7 +654,7 @@ spec:
               verrazzano.io/namespace: {{ .Values.ingressNGINX.namespace }}
           podSelector:
             matchLabels:
-              app.kubernetes.io/name: {{ .Values.ingressNGINX.namespace }}
+              app.kubernetes.io/name: ingress-nginx
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: verrazzano-monitoring
