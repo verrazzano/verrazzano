@@ -10,8 +10,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"net/mail"
 	"strings"
 	"text/template"
@@ -131,20 +129,9 @@ type getCoreV1ClientFuncType func(log ...vzlog.VerrazzanoLogger) (corev1.CoreV1I
 
 var getClientFunc getCoreV1ClientFuncType = k8sutil.GetCoreV1Client
 
-type getAPIExtV1ClientFuncType func(log ...vzlog.VerrazzanoLogger) (apiextensionsv1client.ApiextensionsV1Interface, error)
-
-var getAPIExtV1ClientFunc getAPIExtV1ClientFuncType = k8sutil.GetAPIExtV1Client
-
 type getCertManagerClientFuncType func() (certv1client.CertmanagerV1Interface, error)
 
 var getCMClientFunc getCertManagerClientFuncType = GetCertManagerClientset
-
-func SetAPIExtV1ClientFunc(f getAPIExtV1ClientFuncType) {
-	getAPIExtV1ClientFunc = f
-}
-func ResetAPIExtV1ClientFunc() {
-	getAPIExtV1ClientFunc = k8sutil.GetAPIExtV1Client
-}
 
 // GetCertManagerClientset Get a CertManager clientset object
 func GetCertManagerClientset() (certv1client.CertmanagerV1Interface, error) {
@@ -689,29 +676,29 @@ func (c certManagerConfigComponent) createOrUpdateClusterIssuer(compContext spi.
 	return nil
 }
 
-func (c certManagerConfigComponent) certManagerExistsInCluster(compContext spi.ComponentContext) error {
-	exists, err := c.checkExistingCertManagerResources()
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return compContext.Log().ErrorfThrottledNewErr("CertManager custom resources not found in cluster")
-	}
-	return nil
-}
-
-func (c certManagerConfigComponent) checkExistingCertManagerResources() (bool, error) {
-	client, err := getAPIExtV1ClientFunc()
-	if err != nil {
-		return false, err
-	}
-	resourcesExist, err := common.CheckCRDsExist(certManagerCRDNames, err, client)
-	if err != nil {
-		return false, err
-	}
-	// Found required CRDs
-	return resourcesExist, nil
-}
+//func (c certManagerConfigComponent) certManagerExistsInCluster(compContext spi.ComponentContext) error {
+//	exists, err := c.certManagerCrdsExist()
+//	if err != nil {
+//		return err
+//	}
+//	if !exists {
+//		return compContext.Log().ErrorfThrottledNewErr("CertManager custom resources not found in cluster")
+//	}
+//	return nil
+//}
+//
+//func (c certManagerConfigComponent) certManagerCrdsExist() (bool, error) {
+//	client, err := getAPIExtV1ClientFunc()
+//	if err != nil {
+//		return false, err
+//	}
+//	crdsExist, err := common.CheckCRDsExist(GetRequiredCertManagerCRDNames(), err, client)
+//	if err != nil {
+//		return false, err
+//	}
+//	// Found required CRDs
+//	return crdsExist, nil
+//}
 
 // uninstallVerrazzanoCertManagerResources is the implementation for the cert-manager uninstall step
 // this removes cert-manager ConfigMaps from the cluster and after the helm uninstall, deletes the namespace

@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	common "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/core/v1"
@@ -77,8 +78,8 @@ func init() {
 // WHEN cert-manager is enabled
 // THEN the function returns true
 func TestIsCertManagerEnabled(t *testing.T) {
-	defer func() { getAPIExtV1ClientFunc = k8sutil.GetAPIExtV1Func }()
-	getAPIExtV1ClientFunc = getTestClient(createCertManagerCRDsRuntimeObjs()...)
+	defer func() { common.ResetAPIExtV1ClientFunc() }()
+	common.SetAPIExtV1ClientFunc(getTestClient(createCertManagerCRDsRuntimeObjs()...))
 
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(true)
@@ -92,8 +93,8 @@ func TestIsCertManagerEnabled(t *testing.T) {
 // WHEN cert-manager is disabled
 // THEN the function returns false
 func TestIsCertManagerDisabled(t *testing.T) {
-	defer func() { ResetAPIExtV1ClientFunc() }()
-	SetAPIExtV1ClientFunc(getTestClient())
+	defer func() { common.ResetAPIExtV1ClientFunc() }()
+	common.SetAPIExtV1ClientFunc(getTestClient())
 
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(false)
@@ -118,8 +119,8 @@ func TestCertManagerPreInstall(t *testing.T) {
 	config.Set(config.OperatorConfig{
 		VerrazzanoRootDir: "../../../../..", //since we are running inside the cert manager package, root is up 5 directories
 	})
-	defer func() { getAPIExtV1ClientFunc = k8sutil.GetAPIExtV1Func }()
-	getAPIExtV1ClientFunc = getTestClient(createCertManagerCRDsRuntimeObjs()...)
+	defer func() { common.ResetAPIExtV1ClientFunc() }()
+	common.SetAPIExtV1ClientFunc(getTestClient(createCertManagerCRDsRuntimeObjs()...))
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
@@ -141,8 +142,8 @@ func TestIsCertManagerReady(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(objects...).Build()
 
 	runtimeObjects := append(createCertManagerCRDsRuntimeObjs(), clusterIssuer)
-	getAPIExtV1ClientFunc = getTestClient(runtimeObjects...)
-	defer func() { getAPIExtV1ClientFunc = k8sutil.GetAPIExtV1Func }()
+	defer func() { common.ResetAPIExtV1ClientFunc() }()
+	common.SetAPIExtV1ClientFunc(getTestClient(runtimeObjects...))
 
 	certManager := NewComponent().(certManagerConfigComponent)
 	assert.True(t, certManager.verrazzanoCertManagerResourcesReady(spi.NewFakeContext(client, nil, nil, false)))
@@ -590,7 +591,7 @@ func certificateExists(client clipkg.Client, name string, namespace string) (boo
 
 func createCertManagerCRDsRuntimeObjs() []runtime.Object {
 	var cmCRDs []runtime.Object
-	for _, crd := range certManagerCRDNames {
+	for _, crd := range common.GetRequiredCertManagerCRDNames() {
 		cmCRDs = append(cmCRDs, newCRD(crd))
 	}
 	return cmCRDs
@@ -598,7 +599,7 @@ func createCertManagerCRDsRuntimeObjs() []runtime.Object {
 
 func createCertManagerCRDs() []clipkg.Object {
 	var cmCRDs []clipkg.Object
-	for _, crd := range certManagerCRDNames {
+	for _, crd := range common.GetRequiredCertManagerCRDNames() {
 		cmCRDs = append(cmCRDs, newCRD(crd))
 	}
 	return cmCRDs

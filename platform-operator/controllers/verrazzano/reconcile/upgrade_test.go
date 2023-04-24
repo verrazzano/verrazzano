@@ -7,7 +7,6 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerconfig"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
@@ -435,8 +434,8 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 		k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
 	}()
 
-	defer func() { certmanagerconfig.ResetAPIExtV1ClientFunc() }()
-	certmanagerconfig.SetAPIExtV1ClientFunc(getAPIExtTestClient())
+	defer func() { common.ResetAPIExtV1ClientFunc() }()
+	common.SetAPIExtV1ClientFunc(getAPIExtTestClient())
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -1673,8 +1672,8 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 		})
 	})
 
-	defer func() { certmanagerconfig.ResetAPIExtV1ClientFunc() }()
-	certmanagerconfig.SetAPIExtV1ClientFunc(getAPIExtTestClient())
+	defer func() { common.ResetAPIExtV1ClientFunc() }()
+	common.SetAPIExtV1ClientFunc(getAPIExtTestClient())
 
 	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
@@ -1864,8 +1863,8 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
-	defer func() { certmanagerconfig.ResetAPIExtV1ClientFunc() }()
-	certmanagerconfig.SetAPIExtV1ClientFunc(getAPIExtTestClient())
+	defer func() { common.ResetAPIExtV1ClientFunc() }()
+	common.SetAPIExtV1ClientFunc(getAPIExtTestClient())
 
 	// Create and make the request
 	request := newRequest(namespace, name)
