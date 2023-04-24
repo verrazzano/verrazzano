@@ -14,6 +14,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
@@ -267,6 +269,8 @@ var tests = []validationTestStruct{
 }
 
 func validationTests(t *testing.T, isUpdate bool) {
+	defer func() { common.ResetAPIExtV1ClientFunc() }()
+	common.SetAPIExtV1ClientFunc(getAPIExtTestClient())
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.name == "Cert Manager Namespace already exists" && isUpdate { // will throw error only during installation
@@ -277,6 +281,16 @@ func validationTests(t *testing.T, isUpdate bool) {
 			runValidationTest(t, tt, isUpdate, c)
 		})
 	}
+}
+
+func getAPIExtTestClient(cmObjs ...runtime.Object) func(log ...vzlog.VerrazzanoLogger) (apiextensionsv1client.ApiextensionsV1Interface, error) {
+	return func(log ...vzlog.VerrazzanoLogger) (apiextensionsv1client.ApiextensionsV1Interface, error) {
+		return createFakeAPIExtClient(cmObjs...).ApiextensionsV1(), nil
+	}
+}
+
+func createFakeAPIExtClient(objs ...runtime.Object) *apiextfake.Clientset {
+	return apiextfake.NewSimpleClientset(objs...)
 }
 
 func runValidationTest(t *testing.T, tt validationTestStruct, isUpdate bool, c spi.Component) {
@@ -415,3 +429,28 @@ func getSingleOverrideCR() *vzapi.Verrazzano {
 		},
 	}
 }
+
+//func createCertManagerCRDsRuntimeObjs() []runtime.Object {
+//	var cmCRDs []runtime.Object
+//	for _, crd := range common.GetRequiredCertManagerCRDNames() {
+//		cmCRDs = append(cmCRDs, newCRD(crd))
+//	}
+//	return cmCRDs
+//}
+//
+//func createCertManagerCRDs() []clipkg.Object {
+//	var cmCRDs []clipkg.Object
+//	for _, crd := range common.GetRequiredCertManagerCRDNames() {
+//		cmCRDs = append(cmCRDs, newCRD(crd))
+//	}
+//	return cmCRDs
+//}
+//
+//func newCRD(name string) clipkg.Object {
+//	crd := &apiextv1.CustomResourceDefinition{
+//		ObjectMeta: metav1.ObjectMeta{
+//			Name: name,
+//		},
+//	}
+//	return crd
+//}

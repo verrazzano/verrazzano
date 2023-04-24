@@ -38,7 +38,7 @@ func CertManagerExistsInCluster(log vzlog.VerrazzanoLogger) error {
 		return err
 	}
 	if !exists {
-		return log.ErrorfThrottledNewErr("CertManager custom resources not found in cluster")
+		return log.ErrorfThrottledNewErr("CertManager CRDs not found in cluster")
 	}
 	return nil
 }

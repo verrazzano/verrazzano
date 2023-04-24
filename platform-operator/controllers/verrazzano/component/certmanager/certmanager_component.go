@@ -227,6 +227,18 @@ func checkExistingCertManager(vz runtime.Object) error {
 	if !vzcr.IsCertManagerEnabled(vz) {
 		return nil
 	}
+
+	// Check if the cert-manager CRDs already exists, meaning they were not installed by Verrazzano
+	crdsFound, err := common.CertManagerCrdsExist()
+	if err != nil {
+		return err
+	}
+	if crdsFound {
+		return fmt.Errorf("detected existing Cert-Manager installation not installed by Verrazzano, to utilize " +
+			"the existing instance disable certManager in the Verrazzano resource")
+	}
+
+	// Check if the cert-manager namespace already exists and is not owned by Verrazzano
 	client, err := k8sutil.GetCoreV1Func()
 	if err != nil {
 		return err
@@ -246,5 +258,6 @@ func checkExistingCertManager(vz runtime.Object) error {
 	}); err != nil {
 		return err
 	}
+
 	return nil
 }
