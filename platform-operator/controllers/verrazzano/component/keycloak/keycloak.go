@@ -941,7 +941,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// Create admin role
+	// Create opensearch-admin role
 	err = createVerrazzanoRole(ctx, cfg, cli, opensearchAdminRole)
 	if err != nil {
 		return err
@@ -1275,13 +1275,13 @@ func createVerrazzanoRole(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 	}
 	role := "name=" + roleName
 	createRoleCmd := kcAdminScript + " create roles -r " + vzSysRealm + " -s " + role
-	ctx.Log().Debugf("createVerrazzanoRole: Create Verrazzano API Access Role Cmd = %s", createRoleCmd)
+	ctx.Log().Debugf("createVerrazzanoRole: Create %s Role Cmd = %s", roleName, createRoleCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(createRoleCmd))
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed creating Verrazzano API Access Role: stdout = %s, stderr = %s", stdout, stderr)
+		ctx.Log().Errorf("Component Keycloak failed creating %s Role: stdout = %s, stderr = %s", roleName, stdout, stderr)
 		return err
 	}
-	ctx.Log().Once("Component Keycloak successfully created the Verrazzano API access role")
+	ctx.Log().Once("Component Keycloak successfully created the %s role", roleName)
 	return nil
 }
 

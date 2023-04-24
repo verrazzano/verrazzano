@@ -1866,3 +1866,15 @@ func TestAddClientRoleToUser(t *testing.T) {
 	err := addClientRoleToUser(ctx, cfg, cli, "testuser", "test-client", "test-realm", "test-role")
 	assert.NoError(t, err)
 }
+
+func TestAddRealmRoleToUser(t *testing.T) {
+	k8sutil.ClientConfig = fakeRESTConfig
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	cfg, cli, _ := fakeRESTConfig()
+
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	ctx := spi.NewFakeContext(c, testVZ, nil, false)
+
+	err := addRealmRoleToUser(ctx, cfg, cli, "test-user", "test-realm", "test-role")
+	assert.NoError(t, err)
+}
