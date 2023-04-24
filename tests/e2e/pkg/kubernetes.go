@@ -697,7 +697,6 @@ func GetVerrazzanoVersion(kubeconfigPath string) (string, error) {
 // IsVerrazzanoMinVersion returns true if the installed Verrazzano version >= minVersion
 func IsVerrazzanoMinVersion(minVersion string, kubeconfigPath string) (bool, error) {
 	vzVersion, err := GetVerrazzanoVersion(kubeconfigPath)
-	fmt.Println("currently Installed VZ Version", vzVersion)
 	if err != nil {
 		return false, err
 	}
