@@ -120,6 +120,7 @@ pipeline {
     }
 
     environment {
+        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
         DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
         DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME == 'master' ? env.DOCKER_PLATFORM_PUBLISH_IMAGE_NAME : env.DOCKER_PLATFORM_CI_IMAGE_NAME}"
@@ -1068,8 +1069,8 @@ def upgradeVerrazzano() {
         // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
         VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
         
-        if(params.VERSION_FOR_UPGRADE == "master"){
-            VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
+        if(params.VERSION_FOR_UPGRADE == "current_branch"){
+            VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}%2Fgenerated-verrazzano-bom.json --file - | jq -r '.version'").trim()
         }else if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
             VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE_ENV
         }
@@ -1964,9 +1965,13 @@ def isVZOperatorMinimumCompatibleVersion(minimumOperatorVersion){
 
 def downloadCLI() {
     script {
+        sh "echo Downloading VZ CLI from object storage"
+        if(VERSION_FOR_UPGRADE_ENV == "current_branch"){
+            sh "oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name /${CLEAN_BRANCH_NAME}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}"           
+        }else{
+            sh "oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}"
+        }
         sh """
-            echo "Downloading VZ CLI from object storage"
-            oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
             tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
             ${GO_REPO_PATH}/vz version
         """
