@@ -95,8 +95,6 @@ func isVzNGINXInstalledInNamespace(log vzlog.VerrazzanoLogger, releaseName strin
 		if yml.Controller.IngressClassResource.Name == vzClass {
 			return true, nil
 		}
-
-		return false, nil
 	}
 	return false, nil
 }
