@@ -893,7 +893,7 @@ def getVerrazzanoOperatorYaml() {
             echo "Platform Operator Configuration"
             cd ${GO_REPO_PATH}/verrazzano
             if [ "NONE" == "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
-                 if [ "current_branch" == "${VERSION_FOR_INSTALL}" ]; then
+                 if [ "current_branch" == "${VERSION_FOR_UPGRADE_ENV}" ]; then
                     echo "Trying to download from object storage . . ."
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-release-operator.yaml
                 else
