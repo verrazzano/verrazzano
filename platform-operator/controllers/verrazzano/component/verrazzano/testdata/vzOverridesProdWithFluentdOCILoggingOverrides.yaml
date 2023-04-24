@@ -45,3 +45,5 @@ prometheusNodeExporter:
 jaegerOperator:
   enabled: falseistio:
   enabled: true
+ingressNGINX:
+  namespace: "verrazzano-ingress-nginx"
