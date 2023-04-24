@@ -440,7 +440,6 @@ def getTipOfBranchToMasterJob(String release, String commitNumber) {
     return {
         stage("Upgrade Verrazzano from tip of ${release} to current branch") {
             if( CLEAN_BRANCH_NAME != 'master') {
-                steps {
                     script{
                         try{
                             echo "Running upgrade job from version current branch to master"
@@ -466,8 +465,7 @@ def getTipOfBranchToMasterJob(String release, String commitNumber) {
                                 sh "exit 1"
                             }
                         }
-                    }
-                }
+                    } 
             }
         }
     }
