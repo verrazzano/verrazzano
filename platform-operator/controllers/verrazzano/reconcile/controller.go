@@ -9,6 +9,7 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
@@ -1042,10 +1043,14 @@ func createPredicate(f func(e event.CreateEvent) bool) predicate.Funcs {
 func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
 	var update bool
 
-	update, err := nginx.EnsureAnnotationForIngressNGINX(log, &vz.ObjectMeta)
+	update, err := nginxutil.EnsureAnnotationForIngressNGINX(log, &vz.ObjectMeta)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	// Make sure NGINX component has the namespace.  We need to do this
+	// since NewComponent doesn't have the ObjectMetadata needed to get ns
+	IngressNGINXNamespace := nginxutil.GetIngressNGINXNamespace(vz.ObjectMeta)
+	nginx.SetIngressNGINXNamespace(IngressNGINXNamespace)
 
 	// Add our finalizer if not already added
 	if !vzstring.SliceContainsString(vz.ObjectMeta.Finalizers, finalizerName) {

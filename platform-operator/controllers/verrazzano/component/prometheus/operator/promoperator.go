@@ -6,7 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"path"
 	"strconv"
 
@@ -509,7 +509,7 @@ func appendAdditionalVolumeOverrides(ctx spi.ComponentContext, volumeMountKey, v
 // applySystemMonitors applies templatized PodMonitor and ServiceMonitor custom resources for Verrazzano system
 // components to the cluster
 func applySystemMonitors(ctx spi.ComponentContext) error {
-	IngressNGINXNamespace := nginx.GetIngressNGINXNamespace(ctx.EffectiveCR().ObjectMeta)
+	IngressNGINXNamespace := nginxutil.GetIngressNGINXNamespace(ctx.EffectiveCR().ObjectMeta)
 
 	// create template key/value map
 	args := make(map[string]interface{})

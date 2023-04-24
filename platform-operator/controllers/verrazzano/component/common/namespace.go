@@ -6,7 +6,7 @@ package common
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -42,9 +42,9 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 		}
 	}
 
-	IngressNGINXNamespace := nginx.GetIngressNGINXNamespace(ctx.EffectiveCR().ObjectMeta)
+	IngressNGINXNamespace := nginxutil.GetIngressNGINXNamespace(ctx.EffectiveCR().ObjectMeta)
 	if err := namespace.CreateIngressNginxNamespace(ctx.Client(), istioInject, IngressNGINXNamespace); err != nil {
-		IngressNGINXNamespace := nginx.GetIngressNGINXNamespace(ctx.EffectiveCR().ObjectMeta)
+		IngressNGINXNamespace := nginxutil.GetIngressNGINXNamespace(ctx.EffectiveCR().ObjectMeta)
 		return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", IngressNGINXNamespace, err)
 	}
 

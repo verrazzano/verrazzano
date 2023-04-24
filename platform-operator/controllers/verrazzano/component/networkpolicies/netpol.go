@@ -5,7 +5,7 @@ package networkpolicies
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"io/fs"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
@@ -263,7 +263,7 @@ func fixKeycloakMySQLNetPolicy(ctx spi.ComponentContext) error {
 
 // ensureIngressNGINXNamespace ensures that Ingress NGINX NS is on the list
 func ensureIngressNGINXNamespace(meta metav1.ObjectMeta) {
-	namespace := nginx.GetIngressNGINXNamespace(meta)
+	namespace := nginxutil.GetIngressNGINXNamespace(meta)
 	for _, nsn := range netpolNamespaceNames {
 		if nsn.Namespace == namespace {
 			return

@@ -36,7 +36,7 @@ var crEnabled = vzapi.Verrazzano{
 //	THEN the values created properly
 func TestAppendNGINXOverrides(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
-	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, nil, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, nil, false), ComponentName, vpoconst.IngressNginxNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1)
 }
@@ -60,7 +60,7 @@ func TestAppendNGINXOverridesWithInstallArgs(t *testing.T) {
 			},
 		},
 	}
-	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, nil, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, nil, false), ComponentName, vpoconst.IngressNginxNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4)
 }
@@ -90,7 +90,7 @@ func TestAppendNGINXOverridesWithExternalDNS(t *testing.T) {
 			},
 		},
 	}
-	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, nil, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, nil, false), ComponentName, vpoconst.IngressNginxNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 6)
 }
@@ -109,7 +109,7 @@ func TestAppendNGINXOverridesExtraKVs(t *testing.T) {
 	kvs := []bom.KeyValue{
 		{Key: "Key", Value: "Value"},
 	}
-	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, nil, false), ComponentName, ComponentNamespace, "", kvs)
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, nil, false), ComponentName, vpoconst.IngressNginxNamespace, "", kvs)
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 2)
 }
@@ -121,7 +121,7 @@ func TestAppendNGINXOverridesExtraKVs(t *testing.T) {
 //	THEN no errors are returned
 func TestNGINXPreInstall(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	err := PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false), ComponentName, ComponentNamespace, "")
+	err := PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false), ComponentName, vpoconst.IngressNginxNamespace, "")
 	assert.NoError(t, err)
 }
 
@@ -134,7 +134,7 @@ func TestIsNGINXReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: vpoconst.IngressNginxNamespace,
 				Name:      ControllerName,
 				Labels:    map[string]string{"app.kubernetes.io/component": "controller"},
 			},
@@ -151,7 +151,7 @@ func TestIsNGINXReady(t *testing.T) {
 		},
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: vpoconst.IngressNginxNamespace,
 				Name:      ControllerName + "-95d8c5d96-m6mbr",
 				Labels: map[string]string{
 					"pod-template-hash":           "95d8c5d96",
@@ -161,14 +161,14 @@ func TestIsNGINXReady(t *testing.T) {
 		},
 		&appsv1.ReplicaSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   ComponentNamespace,
+				Namespace:   vpoconst.IngressNginxNamespace,
 				Name:        ControllerName + "-95d8c5d96",
 				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: vpoconst.IngressNginxNamespace,
 				Name:      backendName,
 				Labels:    map[string]string{"app.kubernetes.io/component": "default-backend"},
 			},
@@ -185,7 +185,7 @@ func TestIsNGINXReady(t *testing.T) {
 		},
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: vpoconst.IngressNginxNamespace,
 				Name:      backendName + "-95d8c5d96-m6mbr",
 				Labels: map[string]string{
 					"pod-template-hash":           "95d8c5d96",
@@ -195,7 +195,7 @@ func TestIsNGINXReady(t *testing.T) {
 		},
 		&appsv1.ReplicaSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   ComponentNamespace,
+				Namespace:   vpoconst.IngressNginxNamespace,
 				Name:        backendName + "-95d8c5d96",
 				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 			},
@@ -233,7 +233,7 @@ func TestIsNGINXNotReadyWithoutIP(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: vpoconst.IngressNginxNamespace,
 				Name:      ControllerName,
 				Labels:    map[string]string{"app.kubernetes.io/component": "controller"},
 			},
@@ -250,7 +250,7 @@ func TestIsNGINXNotReadyWithoutIP(t *testing.T) {
 		},
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: vpoconst.IngressNginxNamespace,
 				Name:      ControllerName + "-95d8c5d96-m6mbr",
 				Labels: map[string]string{
 					"pod-template-hash":           "95d8c5d96",
@@ -260,14 +260,14 @@ func TestIsNGINXNotReadyWithoutIP(t *testing.T) {
 		},
 		&appsv1.ReplicaSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   ComponentNamespace,
+				Namespace:   vpoconst.IngressNginxNamespace,
 				Name:        ControllerName + "-95d8c5d96",
 				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: vpoconst.IngressNginxNamespace,
 				Name:      backendName,
 				Labels:    map[string]string{"app.kubernetes.io/component": "default-backend"},
 			},
@@ -284,7 +284,7 @@ func TestIsNGINXNotReadyWithoutIP(t *testing.T) {
 		},
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: vpoconst.IngressNginxNamespace,
 				Name:      backendName + "-95d8c5d96-m6mbr",
 				Labels: map[string]string{
 					"pod-template-hash":           "95d8c5d96",
@@ -294,7 +294,7 @@ func TestIsNGINXNotReadyWithoutIP(t *testing.T) {
 		},
 		&appsv1.ReplicaSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   ComponentNamespace,
+				Namespace:   vpoconst.IngressNginxNamespace,
 				Name:        backendName + "-95d8c5d96",
 				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 			},
@@ -329,7 +329,7 @@ func TestIsNGINXNotReadyWithoutIP(t *testing.T) {
 func TestIsNGINXNotReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
+			Namespace: vpoconst.IngressNginxNamespace,
 			Name:      ControllerName,
 		},
 		Status: appsv1.DeploymentStatus{
@@ -340,7 +340,7 @@ func TestIsNGINXNotReady(t *testing.T) {
 	},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: vpoconst.IngressNginxNamespace,
 				Name:      backendName,
 			},
 			Status: appsv1.DeploymentStatus{
@@ -392,7 +392,7 @@ func TestPostInstallWithPorts(t *testing.T) {
 		},
 	}
 	svc := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: ControllerName, Namespace: ComponentNamespace},
+		ObjectMeta: metav1.ObjectMeta{Name: ControllerName, Namespace: vpoconst.IngressNginxNamespace},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
 				{
@@ -426,7 +426,7 @@ func TestPostInstallWithPorts(t *testing.T) {
 		},
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(svc).Build()
-	err := PostInstall(spi.NewFakeContext(fakeClient, vz, nil, false), ComponentName, ComponentNamespace)
+	err := PostInstall(spi.NewFakeContext(fakeClient, vz, nil, false), ComponentName, vpoconst.IngressNginxNamespace)
 	assert.NoError(t, err)
 }
 
@@ -447,7 +447,7 @@ func TestPostInstallNoPorts(t *testing.T) {
 		},
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	assert.NoError(t, PostInstall(spi.NewFakeContext(fakeClient, vz, nil, false), ComponentName, ComponentNamespace))
+	assert.NoError(t, PostInstall(spi.NewFakeContext(fakeClient, vz, nil, false), ComponentName, vpoconst.IngressNginxNamespace))
 }
 
 // TestPostInstallDryRun tests the PostInstall function
@@ -457,7 +457,7 @@ func TestPostInstallNoPorts(t *testing.T) {
 //	THEN no error is returned
 func TestPostInstallDryRun(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	assert.NoError(t, PostInstall(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false), ComponentName, ComponentNamespace))
+	assert.NoError(t, PostInstall(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false), ComponentName, vpoconst.IngressNginxNamespace))
 }
 
 // TestNewComponent tests the NewComponent function

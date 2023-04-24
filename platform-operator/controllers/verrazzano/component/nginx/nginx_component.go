@@ -5,6 +5,8 @@ package nginx
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
+	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -16,7 +18,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -28,9 +29,6 @@ import (
 
 // ComponentName is the name of the component
 const ComponentName = "ingress-controller"
-
-// ComponentNamespace is the namespace of the component
-const ComponentNamespace = vpoconst.IngressNginxNamespace
 
 // ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "ingressNGINX"
@@ -48,6 +46,14 @@ type nginxComponent struct {
 // Verify that nginxComponent implements Component
 var _ spi.Component = nginxComponent{}
 
+// IngressNGINXNamespace namespace
+var IngressNGINXNamespace = vpoconst.IngressNginxNamespace
+
+// SetIngressNGINXNamespace sets the namespace, this is done at VZ reconcile startup, see controller.go
+func SetIngressNGINXNamespace(ns string) {
+	IngressNGINXNamespace = ns
+}
+
 // NewComponent returns a new Nginx component
 func NewComponent() spi.Component {
 	return nginxComponent{
@@ -55,7 +61,7 @@ func NewComponent() spi.Component {
 			ReleaseName:               ComponentName,
 			JSONName:                  ComponentJSONName,
 			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), "ingress-nginx"), // Note name is different than release name
-			ChartNamespace:            ComponentNamespace,
+			ChartNamespace:            IngressNGINXNamespace,
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
@@ -70,11 +76,11 @@ func NewComponent() spi.Component {
 				DeploymentNames: []types.NamespacedName{
 					{
 						Name:      ControllerName,
-						Namespace: ComponentNamespace,
+						Namespace: IngressNGINXNamespace,
 					},
 					{
 						Name:      backendName,
-						Namespace: ComponentNamespace,
+						Namespace: IngressNGINXNamespace,
 					},
 				},
 			},
@@ -186,8 +192,10 @@ func (c nginxComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 
 // PostUninstall processing for NGINX
 func (c nginxComponent) PostUninstall(context spi.ComponentContext) error {
+	IngressNGINXNamespace := nginxutil.GetIngressNGINXNamespace(context.EffectiveCR().ObjectMeta)
+
 	res := resource.Resource{
-		Name:   ComponentNamespace,
+		Name:   IngressNGINXNamespace,
 		Client: context.Client(),
 		Object: &corev1.Namespace{},
 		Log:    context.Log(),

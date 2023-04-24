@@ -33,7 +33,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
@@ -574,7 +573,7 @@ func TestDeleteNamespaces(t *testing.T) {
 		keycloak.ComponentNamespace,
 		kiali.ComponentNamespace,
 		mysql.ComponentNamespace,
-		nginx.ComponentNamespace,
+		vzconst.IngressNginxNamespace,
 		oam.ComponentNamespace,
 		opensearch.ComponentNamespace,
 		opensearchdashboards.ComponentNamespace,

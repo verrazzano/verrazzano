@@ -4,8 +4,7 @@ package vzconfig
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
-
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -96,7 +95,7 @@ func GetIngressIP(client client.Client, vz *vzapi.Verrazzano) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	IngressNGINXNamespace := nginx.GetIngressNGINXNamespace(vz.ObjectMeta)
+	IngressNGINXNamespace := nginxutil.GetIngressNGINXNamespace(vz.ObjectMeta)
 	return GetExternalIP(client, serviceType, vpoconst.NGINXControllerServiceName, IngressNGINXNamespace)
 }
 
