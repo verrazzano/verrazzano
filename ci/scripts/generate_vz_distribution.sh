@@ -186,6 +186,9 @@ createVZSourceLayout() {
   local srcLayoutDir="$2"
 
   cd $rootDir
+  echo "Running go mod vendor ${rootDir}..."
+  go mod vendor
+
   echo "Creating source layout in ${srcLayoutDir}..."
 
   local tmp_src_bundle="/tmp/tmp_src_bundle.tar.gz"
