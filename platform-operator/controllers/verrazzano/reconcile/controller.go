@@ -1051,6 +1051,7 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog
 	// since NewComponent doesn't have the ObjectMetadata needed to get ns
 	IngressNGINXNamespace := nginxutil.GetIngressNGINXNamespace(vz.ObjectMeta)
 	nginx.SetIngressNGINXNamespace(IngressNGINXNamespace)
+	config.SetIngressNGINXNamespace(IngressNGINXNamespace)
 
 	// Add our finalizer if not already added
 	if !vzstring.SliceContainsString(vz.ObjectMeta.Finalizers, finalizerName) {
