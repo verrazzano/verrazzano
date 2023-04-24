@@ -27,6 +27,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+// ComponentNamespace namespace, this will get updated during runtime if Verrazzano
+// was installed in ingress-nginx namespace.  See verrazzano controller.go
+var ComponentNamespace = vpoconst.IngressNginxNamespace
+
 // ComponentName is the name of the component
 const ComponentName = "ingress-controller"
 
@@ -45,9 +49,6 @@ type nginxComponent struct {
 
 // Verify that nginxComponent implements Component
 var _ spi.Component = nginxComponent{}
-
-// ComponentNamespace namespace, this can get udpated during runtime
-var ComponentNamespace = vpoconst.IngressNginxNamespace
 
 // SetIngressNGINXNamespace sets the namespace, this is done at VZ reconcile startup, see controller.go
 func SetIngressNGINXNamespace(ns string) {

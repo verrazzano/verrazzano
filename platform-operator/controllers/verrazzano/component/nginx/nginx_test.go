@@ -203,7 +203,7 @@ func TestIsNGINXReady(t *testing.T) {
 		&corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      vpoconst.NGINXControllerServiceName,
-				Namespace: ComponentNamespace,
+				Namespace: vpoconst.IngressNginxNamespace,
 			},
 			Spec: corev1.ServiceSpec{
 				ExternalIPs: []string{"127.0.0.1"},
@@ -302,7 +302,7 @@ func TestIsNGINXNotReadyWithoutIP(t *testing.T) {
 		&corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      vpoconst.NGINXControllerServiceName,
-				Namespace: ComponentNamespace,
+				Namespace: vpoconst.IngressNginxNamespace,
 			},
 		},
 	).Build()
