@@ -9,7 +9,6 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"io"
@@ -1022,13 +1021,6 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog
 	if unitTesting {
 		return ctrl.Result{}, nil
 	}
-
-	// Determine the IngressNGINX namespace and set it so that it can be used at runtime
-	ingressNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(log)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	nginxutil.SetIngressNGINXNamespace(ingressNamespace)
 
 	// Check if init done for this resource
 	_, ok := initializedSet[vz.Name]

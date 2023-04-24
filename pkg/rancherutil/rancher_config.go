@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"io"
 	"net"
 	"net/http"
@@ -395,4 +396,9 @@ func doRequest(req *http.Request, rc *RancherConfig, log vzlog.VerrazzanoLogger)
 	}
 
 	return resp, string(body), err
+}
+
+// RancherIngressServiceHost returns the internal service host name of the Rancher ingress
+func RancherIngressServiceHost() string {
+	return cons.DefaultRancherIngressHostPrefix + nginxutil.IngressNGINXNamespace()
 }

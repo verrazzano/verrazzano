@@ -4,6 +4,8 @@
 package operatorinit
 
 import (
+	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
 	"sync"
@@ -36,6 +38,12 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 	}
 
 	metricsexporter.StartMetricsServer(log)
+
+	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog2.DefaultLogger())
+	if err != nil {
+		return errors.Wrapf(err, "Failed to determin Ingress NGINX namespace")
+	}
+	nginxutil.SetIngressNGINXNamespace(ingressNGINXNamespace)
 
 	// Set up the reconciler
 	statusUpdater := healthcheck.NewStatusUpdater(mgr.GetClient())
