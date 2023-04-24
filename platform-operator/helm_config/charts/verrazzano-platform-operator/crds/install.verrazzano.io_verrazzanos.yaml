@@ -535,6 +535,11 @@ spec:
                           type: object
                         type: array
                     type: object
+                  capi:
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   certManager:
                     properties:
                       certificate:
@@ -4377,6 +4382,11 @@ spec:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
+                    type: object
+                  capi:
+                    properties:
+                      enabled:
+                        type: boolean
                     type: object
                   certManager:
                     properties:

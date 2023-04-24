@@ -21,6 +21,8 @@ spec:
                         values:
                           - verrazzano-authproxy
                   topologyKey: kubernetes.io/hostname
+    capi:
+      enabled: false
     certManager:
       enabled: true
       certificate:

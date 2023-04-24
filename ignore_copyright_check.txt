@@ -10,8 +10,6 @@ platform-operator/helm_config/charts/verrazzano-fluentd/NOTES.txt
 platform-operator/helm_config/charts/verrazzano-platform-operator/NOTES.txt
 platform-operator/helm_config/charts/verrazzano-monitoring-operator/NOTES.txt
 platform-operator/helm_config/charts/verrazzano-network-policies/NOTES.txt
-platform-operator/capi/bootstrap-ocne
-platform-operator/capi/control-plane-ocne
 
 tools/psr/manifests/charts/worker/NOTES.txt
 tools/psr/manifests/charts/worker/charts/http/NOTES.txt
