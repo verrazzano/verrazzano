@@ -193,7 +193,7 @@ createVZSourceLayout() {
 
   local tmp_src_bundle="/tmp/tmp_src_bundle.tar.gz"
   echo "Creating $tmp_src_bundle from $rootDir"
-  tar czf $tmp_src_bundle --exclude vendor .
+  tar czf $tmp_src_bundle .
 
   mkdir -p $srcLayoutDir
   cd $srcLayoutDir
