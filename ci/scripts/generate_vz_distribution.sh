@@ -189,6 +189,9 @@ createVZSourceLayout() {
   echo "Running go mod vendor ${rootDir}..."
   go mod vendor
 
+  echo "Compiling verify-distribution test"
+  GO111MODULE=on GOFLAGS=-mod=vendor ginkgo build tests/e2e/verify-distribution/...
+
   echo "Creating source layout in ${srcLayoutDir}..."
 
   local tmp_src_bundle="/tmp/tmp_src_bundle.tar.gz"
