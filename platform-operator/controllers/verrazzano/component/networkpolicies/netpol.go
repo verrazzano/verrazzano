@@ -263,7 +263,7 @@ func fixKeycloakMySQLNetPolicy(ctx spi.ComponentContext) error {
 
 // ensureIngressNGINXNamespace ensures that Ingress NGINX NS is on the list
 func ensureIngressNGINXNamespace(meta metav1.ObjectMeta) {
-	namespace := nginxutil.GetIngressNGINXNamespace(meta)
+	namespace := nginxutil.IngressNGINXNamespace()
 	for _, nsn := range netpolNamespaceNames {
 		if nsn.Namespace == namespace {
 			return

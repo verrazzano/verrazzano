@@ -509,13 +509,11 @@ func appendAdditionalVolumeOverrides(ctx spi.ComponentContext, volumeMountKey, v
 // applySystemMonitors applies templatized PodMonitor and ServiceMonitor custom resources for Verrazzano system
 // components to the cluster
 func applySystemMonitors(ctx spi.ComponentContext) error {
-	IngressNGINXNamespace := nginxutil.GetIngressNGINXNamespace(ctx.EffectiveCR().ObjectMeta)
-
 	// create template key/value map
 	args := make(map[string]interface{})
 	args["systemNamespace"] = constants.VerrazzanoSystemNamespace
 	args["monitoringNamespace"] = constants.VerrazzanoMonitoringNamespace
-	args["nginxNamespace"] = IngressNGINXNamespace
+	args["nginxNamespace"] = nginxutil.IngressNGINXNamespace()
 	args["istioNamespace"] = constants.IstioSystemNamespace
 	args["installNamespace"] = constants.VerrazzanoInstallNamespace
 

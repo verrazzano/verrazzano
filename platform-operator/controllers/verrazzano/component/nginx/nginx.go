@@ -105,8 +105,7 @@ func PostInstall(ctx spi.ComponentContext, _ string, _ string) error {
 
 	c := ctx.Client()
 	svcPatch := v1.Service{}
-	IngressNGINXNamespace := nginxutil.GetIngressNGINXNamespace(ctx.EffectiveCR().ObjectMeta)
-	if err := c.Get(context.TODO(), types.NamespacedName{Name: ControllerName, Namespace: IngressNGINXNamespace}, &svcPatch); err != nil {
+	if err := c.Get(context.TODO(), types.NamespacedName{Name: ControllerName, Namespace: nginxutil.IngressNGINXNamespace()}, &svcPatch); err != nil {
 		if errors.IsNotFound(err) {
 			return nil
 		}

@@ -184,10 +184,8 @@ func (c nginxComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 
 // PostUninstall processing for NGINX
 func (c nginxComponent) PostUninstall(context spi.ComponentContext) error {
-	IngressNGINXNamespace := nginxutil.GetIngressNGINXNamespace(context.EffectiveCR().ObjectMeta)
-
 	res := resource.Resource{
-		Name:   IngressNGINXNamespace,
+		Name:   nginxutil.IngressNGINXNamespace(),
 		Client: context.Client(),
 		Object: &corev1.Namespace{},
 		Log:    context.Log(),

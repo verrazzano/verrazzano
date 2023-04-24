@@ -42,9 +42,8 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 		}
 	}
 
-	IngressNGINXNamespace := nginxutil.GetIngressNGINXNamespace(ctx.EffectiveCR().ObjectMeta)
+	IngressNGINXNamespace := nginxutil.IngressNGINXNamespace()
 	if err := namespace.CreateIngressNginxNamespace(ctx.Client(), istioInject, IngressNGINXNamespace); err != nil {
-		IngressNGINXNamespace := nginxutil.GetIngressNGINXNamespace(ctx.EffectiveCR().ObjectMeta)
 		return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", IngressNGINXNamespace, err)
 	}
 

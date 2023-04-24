@@ -7,7 +7,6 @@ import (
 	helm2 "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -25,38 +24,6 @@ func SetIngressNGINXNamespace(ns string) {
 // IngressNGINXNamespace returns the ingress-nginx namespace
 func IngressNGINXNamespace() string {
 	return ingressNGINXNamespace
-}
-
-// GetIngressNGINXNamespace get the Ingress NGINX namespace from the metadata annotation
-func GetIngressNGINXNamespace(meta metav1.ObjectMeta) string {
-	anno := meta.Annotations
-	if anno == nil {
-		return vpoconst.IngressNginxNamespace
-	}
-	val, ok := anno[vpoconst.IngressNginxNamespaceAnnotation]
-	if ok {
-		return val
-	}
-	return vpoconst.IngressNginxNamespace
-}
-
-// EnsureAnnotationForIngressNGINX ensures that the VZ CR has an annotation for Ingress NGINX namespace
-// Return true if VZ update needed.
-func EnsureAnnotationForIngressNGINX(log vzlog.VerrazzanoLogger, meta *metav1.ObjectMeta) (bool, error) {
-	anno := meta.Annotations
-	if anno == nil {
-		anno = make(map[string]string)
-	}
-	_, ok := anno[vpoconst.IngressNginxNamespaceAnnotation]
-	if ok {
-		return false, nil
-	}
-	name, err := DetermineNamespaceForIngressNGINX(log)
-	if err != nil {
-		return false, err
-	}
-	anno[vpoconst.IngressNginxNamespaceAnnotation] = name
-	return true, nil
 }
 
 // DetermineNamespaceForIngressNGINX determines the namespace for Ingress NGINX

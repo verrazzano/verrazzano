@@ -101,9 +101,6 @@ const IngressNginxNamespace = "verrazzano-ingress-nginx"
 // LegacyIngressNginxNamespace is the old nginx ingress namespace name
 const LegacyIngressNginxNamespace = "ingress-nginx"
 
-// IngressNginxNamespaceAnnotation annotation contains the Ingrss NGINX namespace
-const IngressNginxNamespaceAnnotation = "install.verrazzano/io/ingress-nginx-namespace"
-
 // IstioSystemNamespace - the Istio system namespace
 const IstioSystemNamespace = "istio-system"
 

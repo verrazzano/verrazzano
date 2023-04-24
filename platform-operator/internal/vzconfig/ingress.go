@@ -95,8 +95,7 @@ func GetIngressIP(client client.Client, vz *vzapi.Verrazzano) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	IngressNGINXNamespace := nginxutil.GetIngressNGINXNamespace(vz.ObjectMeta)
-	return GetExternalIP(client, serviceType, vpoconst.NGINXControllerServiceName, IngressNGINXNamespace)
+	return GetExternalIP(client, serviceType, vpoconst.NGINXControllerServiceName, nginxutil.IngressNGINXNamespace())
 }
 
 // BuildDNSDomain Constructs the full DNS subdomain for the deployment
