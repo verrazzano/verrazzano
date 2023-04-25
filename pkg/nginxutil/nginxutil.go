@@ -34,7 +34,7 @@ func DetermineNamespaceForIngressNGINX(log vzlog.VerrazzanoLogger) (string, erro
 		log.ErrorfNewErr("Failed checking if the old ingress-nginx chart %s/%s is installed: %v", vpoconst.LegacyIngressNginxNamespace, helmReleaseName, err.Error())
 	}
 	ingressNGINXNamespace = getNamespaceForIngressNGINX(legacy)
-	log.Infof("Ingress NGINX namespace is %s", vpoconst.IngressNginxNamespace)
+	log.Infof("Ingress NGINX namespace is %s", ingressNGINXNamespace)
 	return ingressNGINXNamespace, nil
 }
 
