@@ -8,6 +8,12 @@ podAnnotations:
 restic:
   annotations:
     traffic.sidecar.istio.io/excludeOutboundPorts: "443"
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: [ "ALL" ]
+      add: [ "DAC_OVERRIDE" ]
+    privileged: false
 metrics:
   serviceMonitor:
     enabled: true
