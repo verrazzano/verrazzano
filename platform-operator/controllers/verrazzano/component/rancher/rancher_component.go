@@ -6,15 +6,6 @@ package rancher
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"os"
-	"path/filepath"
-	controllerruntime "sigs.k8s.io/controller-runtime"
-	"strconv"
-	"strings"
-
 	"github.com/gertd/go-pluralize"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -25,6 +16,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -43,7 +35,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"os"
+	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strconv"
+	"strings"
 )
 
 // ComponentName is the name of the component
@@ -55,15 +51,7 @@ const ComponentNamespace = common.CattleSystem
 // ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "rancher"
 
-// TODO:  Move CAPIProviderOCISystemNamespace to CAPI component code
-
-// CAPIProviderOCISystemNamespace is the CAPI OCI system namespace
-const CAPIProviderOCISystemNamespace = "cluster-api-provider-oci-system"
-
-// CAPIProviderOCIAuthConfigSecret is the CAPI OCI system auth secret
-const CAPIProviderOCIAuthConfigSecret = "capoci-auth-config" //nolint:gosec //#gosec G101
-
-// CAPIProviderOCISystemNamespace is the multi-cluster namespace for verrazzano
+// CattleGlobalDataNamespace is the multi-cluster namespace for verrazzano
 const CattleGlobalDataNamespace = "cattle-global-data"
 
 const rancherIngressClassNameKey = "ingress.ingressClassName"
@@ -76,15 +64,6 @@ const cattleShellImageName = "rancher-shell"
 
 // cattleUIEnvName is the environment variable name to set for the Rancher dashboard
 const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
-
-const APIGroupRancherManagement = "management.cattle.io"
-const APIGroupVersionRancherManagement = "v3"
-const UserListKind = "UserList"
-const RancherBootstrappingLabel = "authz.management.cattle.io/bootstrapping"
-const RancherAdminUser = "admin-user"
-const cattleCreatorIDAnnotation = "field.cattle.io/creatorId"
-const cattleNameAnnotation = "field.cattle.io/name"
-const cattleProvisioningDriverAnnotation = "provisioning.cattle.io/driver"
 
 // Environment variables for the Rancher images
 // format: imageName: baseEnvVar
@@ -522,115 +501,9 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	return patchRancherIngress(c, ctx.EffectiveCR())
 }
 
-// Reconcile creates the Rancher admin cloud credential if a corresponding CAPI secret exists
+// Reconcile for the Rancher component
 func (r rancherComponent) Reconcile(ctx spi.ComponentContext) error {
-	installed, err := r.IsInstalled(ctx)
-	if !installed {
-		return err
-	}
-	if err := createAdminCloudCredentialSecret(ctx); err != nil {
-		return err
-	}
 	return nil
-}
-
-// createAdminCloudCredentialSecret will create the admin cloud credential secert from the information available in the
-// CAPI auth config secret
-func createAdminCloudCredentialSecret(ctx spi.ComponentContext) error {
-	// check for CAPI secret
-	capiSecret := &v1.Secret{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: CAPIProviderOCISystemNamespace, Name: CAPIProviderOCIAuthConfigSecret}, capiSecret)
-	if err != nil {
-		if kerrs.IsNotFound(err) {
-			return nil
-		}
-		return err
-	}
-	// create the cloud credential secret
-	if capiSecret.Data == nil {
-		return nil
-	}
-	rancherAdminUser, err := getRancherAdminUsername(ctx)
-	if err != nil {
-		return err
-	}
-	if rancherAdminUser == nil {
-		return ctx.Log().ErrorNewErr("No Rancher admin user found")
-	}
-
-	username := fmt.Sprintf("%v", rancherAdminUser.Object["username"])
-	cloudCredSecret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-creds", username),
-			Namespace: CattleGlobalDataNamespace,
-		},
-	}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), cloudCredSecret, func() error {
-		if cloudCredSecret.Data == nil {
-			cloudCredSecret.Data = make(map[string][]byte)
-		}
-		if cloudCredSecret.Annotations == nil {
-			cloudCredSecret.Annotations = make(map[string]string)
-		}
-		if _, exists := capiSecret.Data["fingerprint"]; exists {
-			cloudCredSecret.Data["ocicredentialConfig-fingerprint"] = capiSecret.Data["fingerprint"]
-		}
-		if _, exists := capiSecret.Data["key"]; exists {
-			cloudCredSecret.Data["ocicredentialConfig-privateKeyContents"] = capiSecret.Data["key"]
-		}
-		if _, exists := capiSecret.Data["tenancy"]; exists {
-			cloudCredSecret.Data["ocicredentialConfig-tenancyId"] = capiSecret.Data["tenancy"]
-		}
-		if _, exists := capiSecret.Data["user"]; exists {
-			cloudCredSecret.Data["ocicredentialConfig-userId"] = capiSecret.Data["user"]
-		}
-		if _, exists := capiSecret.Data["passphrase"]; exists {
-			cloudCredSecret.Data["ocicredentialConfig-passphrase"] = capiSecret.Data["passphrase"]
-		}
-		if _, exists := capiSecret.Data["region"]; exists {
-			cloudCredSecret.Data["ocicredentialConfig-region"] = capiSecret.Data["region"]
-		}
-
-		cloudCredSecret.Annotations[cattleCreatorIDAnnotation] = rancherAdminUser.GetName()
-		cloudCredSecret.Annotations[cattleNameAnnotation] = username
-		cloudCredSecret.Annotations[cattleProvisioningDriverAnnotation] = "oracle"
-
-		return nil
-	}); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to create or update the %s cloud credential secret: %v",
-			rancherAdminUser.GetName(), err)
-	}
-
-	return nil
-}
-
-// getRancherAdminUsername returns the Rancher admin username
-func getRancherAdminUsername(ctx spi.ComponentContext) (*unstructured.Unstructured, error) {
-	labels := &metav1.LabelSelector{
-		MatchLabels: map[string]string{
-			RancherBootstrappingLabel: RancherAdminUser,
-		},
-	}
-	selector, err := metav1.LabelSelectorAsSelector(labels)
-	if err != nil {
-		return nil, err
-	}
-	usersList := unstructured.UnstructuredList{}
-	usersList.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   APIGroupRancherManagement,
-		Version: APIGroupVersionRancherManagement,
-		Kind:    UserListKind,
-	})
-	listOptions := &client.ListOptions{LabelSelector: selector}
-	err = ctx.Client().List(context.TODO(), &usersList, listOptions)
-	if err != nil {
-		return nil, err
-	}
-	// there should be just one item returned
-	if len(usersList.Items) < 1 {
-		return nil, ctx.Log().ErrorNewErr("More than one Rancher admin user found")
-	}
-	return &usersList.Items[0], nil
 }
 
 // activateDrivers activates the nodeDriver oci and oraclecontainerengine kontainerDriver
