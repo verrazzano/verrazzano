@@ -37,9 +37,11 @@ func DetermineNamespaceForIngressNGINX(log vzlog.VerrazzanoLogger) (string, erro
 		// If Ingress NGINX is already installed ingress-nginx then don't change it.
 		// This is to avoid creating a new service in the new namespace, thus causing an
 		// LB to be created.
+		log.Infof("Ingress NGINX namespace is %s", vpoconst.LegacyIngressNginxNamespace)
 		return vpoconst.LegacyIngressNginxNamespace, nil
 	}
 
+	log.Infof("Ingress NGINX namespace is %s", vpoconst.IngressNginxNamespace)
 	return vpoconst.IngressNginxNamespace, nil
 }
 
