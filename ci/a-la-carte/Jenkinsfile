@@ -255,12 +255,28 @@ pipeline {
         }
 
 
-        stage('Install App stack') {
+        stage('Install App stack with third party cert-manager') {
             environment {
                 KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
             }
             steps {
+                sh """
+                    echo "Installing cert-manager via helm chart"
+                    kubectl create ns cert-manager
+                    controllerTag=$(cat platform-operator/verrazzano-bom.json | jq '.components[] | select(.name=="cert-manager")' | jq '.subcomponents[0].images[] | select(.image=="cert-manager-controller")' | jq .tag -r)
+                    cainjectorTag=$(cat platform-operator/verrazzano-bom.json | jq '.components[] | select(.name=="cert-manager")' | jq '.subcomponents[0].images[] | select(.image=="cert-manager-cainjector")' | jq .tag -r)
+                    webhookTag=$(cat platform-operator/verrazzano-bom.json | jq '.components[] | select(.name=="cert-manager")' | jq '.subcomponents[0].images[] | select(.image=="cert-manager-webhook")' | jq .tag -r)
+                    helm upgrade cert-manager -n cert-manager platform-operator/thirdparty/charts/cert-manager --set image.repository=ghcr.io/verrazzano/cert-manager-controller --set image.tag=${controllerTag}  --set cainjector.image.repository=ghcr.io/verrazzano/cert-manager-cainjector --set cainjector.image.tag=${cainjectorTag}  --set webhook.image.repository=ghcr.io/verrazzano/cert-manager-webhook --set webhook.image.tag=${webhookTag} --install
+
+                    echo "ensure cert-manager using ghcr.io images"
+                    if [ ! -z "$(kubectl get po -n cert-manager -o yaml | grep quay.io)" ]
+                    then
+                      kubectl get po -n cert-manager -o yaml | grep quay.io
+                      exit 1
+                    fi
+                """
+
                 runGinkgoUpdate('update/a-la-carte', 'app-stack')
             }
 
