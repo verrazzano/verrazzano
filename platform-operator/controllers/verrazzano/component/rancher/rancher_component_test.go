@@ -56,8 +56,11 @@ const (
 	profilesRelativePath = "../../../../manifests/profiles"
 )
 
+var getKubernetesTestVersion = func() (string, error) { return "v1.23.5", nil }
+
 func init() {
-	getKubernetesClusterVersion = func() (string, error) { return "v1.23.5", nil }
+
+	getKubernetesClusterVersion = getKubernetesTestVersion
 }
 
 func getValue(kvs []bom.KeyValue, key string) (string, bool) {
@@ -178,10 +181,9 @@ func TestPSPEnabledOverrides(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			getKubernetesVersionOriginal := getKubernetesVersion
 			getKubernetesClusterVersion = tt.getKubernetesVersionFunc
 			defer func() {
-				getKubernetesClusterVersion = getKubernetesVersionOriginal
+				getKubernetesClusterVersion = getKubernetesTestVersion
 
 			}()
 			ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzapi.Verrazzano{}, nil, false)
