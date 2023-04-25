@@ -28,7 +28,7 @@ const (
 // THEN the function should update that internal metric by one
 func TestReconcileCounterAndErrorIncrement(t *testing.T) {
 	Init()
-	
+
 	assert := asserts.New(t)
 	test := struct {
 		name                             string
