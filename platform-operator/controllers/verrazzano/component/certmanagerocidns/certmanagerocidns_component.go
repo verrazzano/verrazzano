@@ -4,8 +4,10 @@
 package certmanagerocidns
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
@@ -50,7 +52,13 @@ func NewComponent() spi.Component {
 
 // IsEnabled returns true if the cert-manager is enabled, which is the default
 func (c certManagerOciDNSComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzcr.IsCertManagerEnabled(effectiveCR) && vzcr.IsExternalDNSEnabled(effectiveCR)
+	logger := vzlog.DefaultLogger()
+	err := common.CertManagerExistsInCluster(logger)
+	if err != nil {
+		logger.ErrorfThrottled("Unexpected error checking for CertManager in cluster: %v", err)
+		return false
+	}
+	return vzcr.IsExternalDNSEnabled(effectiveCR)
 }
 
 // IsReady component check
