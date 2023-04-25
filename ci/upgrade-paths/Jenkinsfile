@@ -890,7 +890,7 @@ def deleteOkeClusters() {
 def getVerrazzanoOperatorYaml() {
     script {
         OPERATOR_YAML_FILE=sh(returnStdout: true, script: "ci/scripts/derive_operator_yaml.sh ${params.VERSION_FOR_INSTALL}").trim()
-        RELEASE_NUMBER=sh(script: "echo $VERSION_FOR_INSTALL | tail -c4")
+        RELEASE_NUMBER=sh(script: "echo ${VERSION_FOR_INSTALL} | tail -c4")
 
         sh """
             echo "Platform Operator Configuration"
