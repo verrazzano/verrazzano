@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/kubernetes"
 	"os"
 	"path/filepath"
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -41,6 +42,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	k8sversionutil "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/dynamic"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -95,6 +97,8 @@ var imageEnvVars = map[string]string{
 	"rancher-webhook":     "RANCHER_WEBHOOK_IMAGE",
 	"rancher-gitjob":      "GITJOB_IMAGE",
 }
+
+var getKubernetesClusterVersion = getKubernetesVersion
 
 type envVar struct {
 	Name      string
@@ -201,6 +205,10 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		Key:   rancherIngressClassNameKey,
 		Value: vzconfig.GetIngressClassName(ctx.EffectiveCR()),
 	})
+	kvs, err = appendPSPEnabledOverrides(ctx, kvs)
+	if err != nil {
+		return kvs, err
+	}
 	return appendCAOverrides(log, kvs, ctx)
 }
 
@@ -310,6 +318,47 @@ func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.K
 	envList = append(envList, envVar{Name: cattleUIEnvName, Value: "true", SetString: true})
 
 	return createEnvVars(kvs, envList), nil
+}
+
+// appendPSPEnabledOverrides appends overrides to disable PSP if the K8S version is 1.25 or above
+func appendPSPEnabledOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	version, err := getKubernetesClusterVersion()
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed to get the kubernetes version: %v", err)
+	}
+	k8sVersion, err := k8sversionutil.ParseSemantic(version)
+	if err != nil {
+		return nil, ctx.Log().ErrorfNewErr("couldn't parse Kubernetes version %q: %v", version, err)
+	}
+	// If K8s version is 1.25 or above, set pspEnabled to false
+	pspDisabledVersion := k8sversionutil.MustParseSemantic("1.25.0-0")
+	if k8sVersion.AtLeast(pspDisabledVersion) {
+		kvs = append(kvs, bom.KeyValue{
+			Key:   pspEnabledKey,
+			Value: "false",
+		})
+	}
+	return kvs, nil
+}
+
+// getKubernetesVersion returns the version of Kubernetes cluster in which operator is deployed
+func getKubernetesVersion() (string, error) {
+	config, err := k8sutil.GetConfigFromController()
+	if err != nil {
+		return "", fmt.Errorf("error while getting kubernetes client config %v", err.Error())
+	}
+
+	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return "", fmt.Errorf("error while getting kubernetes client %v", err.Error())
+	}
+
+	versionInfo, err := client.ServerVersion()
+	if err != nil {
+		return "", fmt.Errorf("error while getting kubernetes version %v", err.Error())
+	}
+
+	return versionInfo.String(), nil
 }
 
 // createEnvVars takes in a list of env arguments and creates the extraEnv override arguments
