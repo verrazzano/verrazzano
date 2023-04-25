@@ -82,8 +82,14 @@ func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, comm
 		if existingSecret.Labels == nil {
 			existingSecret.Labels = make(map[string]string)
 		}
+		log.Info("Adding labels in existing secret")
 		existingSecret.Labels["managed-by"] = OperatorCertLabel
-		secretsClient.Update(context.TODO(), existingSecret, metav1.UpdateOptions{})
+		existingSecret, err = secretsClient.Update(context.TODO(), existingSecret, metav1.UpdateOptions{})
+		if err == nil {
+			log.Errorf("error while updating the secret")
+		}
+		log.Info("Adding labels in existing secret")
+		log.Info("labels in secrets", existingSecret.Labels)
 		return existingSecret.Data[CertKey], existingSecret.Data[PrivKey], nil
 	}
 	if !errors.IsNotFound(err) {
@@ -156,12 +162,23 @@ func createTLSCertSecretIfNecesary(log *zap.SugaredLogger, secretsClient corev1.
 		webhookCrt.Labels = make(map[string]string)
 	}
 	webhookCrt.Labels["managed-by"] = OperatorCertLabel
+	log.Info("Adding labels in existing secret")
 	_, createError := secretsClient.Create(context.TODO(), &webhookCrt, metav1.CreateOptions{})
 	if createError != nil {
 		if errors.IsAlreadyExists(createError) {
 			log.Infof("Operator CA secret %s already exists, skipping", OperatorCA)
 			existingSecret, err := secretsClient.Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
-
+			if existingSecret.Labels == nil {
+				existingSecret.Labels = make(map[string]string)
+			}
+			log.Info("Adding labels in existing secret")
+			existingSecret.Labels["managed-by"] = OperatorCertLabel
+			existingSecret, err = secretsClient.Update(context.TODO(), existingSecret, metav1.UpdateOptions{})
+			if err == nil {
+				log.Errorf("error while updating the secret")
+			}
+			log.Info("Adding labels in existing secret")
+			log.Info("labels in secrets", existingSecret.Labels)
 			if err != nil {
 				return []byte{}, []byte{}, err
 			}
@@ -243,6 +260,13 @@ func createCACertSecretIfNecessary(log *zap.SugaredLogger, secretsClient corev1.
 		if errors.IsAlreadyExists(createError) {
 			log.Infof("Operator CA secret %s already exists, using existing secret", OperatorCA)
 			existingSecret, err := secretsClient.Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+			if err == nil {
+				log.Errorf("error while updating the secret")
+			}
+			log.Info("Adding labels in existing secret")
+			existingSecret.Labels["managed-by"] = OperatorCertLabel
+			existingSecret, err = secretsClient.Update(context.TODO(), existingSecret, metav1.UpdateOptions{})
+			log.Info("labels in secrets", existingSecret.Labels)
 			if err != nil {
 				return nil, nil, err
 			}
