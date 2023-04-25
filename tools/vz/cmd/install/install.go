@@ -6,10 +6,11 @@ package install
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
@@ -74,6 +75,9 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
 	cmd.PersistentFlags().StringArrayP(constants.SetFlag, constants.SetFlagShorthand, []string{}, constants.SetFlagHelp)
 	cmd.PersistentFlags().Bool(constants.AutoBugReportFlag, constants.AutoBugReportFlagDefault, constants.AutoBugReportFlagHelp)
+	// Private registry support
+	cmd.PersistentFlags().String(constants.ImageRegistryFlag, constants.ImageRegistryFlagDefault, constants.ImageRegistryFlagHelp)
+	cmd.PersistentFlags().String(constants.ImagePrefixFlag, constants.ImagePrefixFlagDefault, constants.ImagePrefixFlagHelp)
 
 	// Initially the operator-file flag may be for internal use, hide from help until
 	// a decision is made on supporting this option.
@@ -359,6 +363,17 @@ func waitForInstallToComplete(client clipkg.Client, kubeClient kubernetes.Interf
 func validateCmd(cmd *cobra.Command) error {
 	if cmd.PersistentFlags().Changed(constants.VersionFlag) && cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
 		return fmt.Errorf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.OperatorFileFlag)
+	}
+	prefix, err := cmd.PersistentFlags().GetString(constants.ImagePrefixFlag)
+	if err != nil {
+		return err
+	}
+	reg, err := cmd.PersistentFlags().GetString(constants.ImageRegistryFlag)
+	if err != nil {
+		return err
+	}
+	if prefix != constants.ImagePrefixFlagDefault && reg == constants.ImageRegistryFlagDefault {
+		return fmt.Errorf("%s cannot be specified without also specifying %s", constants.ImagePrefixFlag, constants.ImageRegistryFlag)
 	}
 	return nil
 }
