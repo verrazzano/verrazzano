@@ -86,7 +86,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 		if err != nil {
 			return err
 		}
-	} else if esURL == constants.DefaultOperatorOSURL {
+	} else if esURL == constants.DefaultOperatorOSURL || esURL == constants.DefaultOperatorOSURLWithNS {
 		esURL, err = r.getESURL(vzList, operatorOSIngress)
 		if err != nil {
 			return err

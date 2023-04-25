@@ -409,6 +409,10 @@ data:
         return false
     end
 
+    function me.startsWith(ingressHost, start)
+        return string.sub(ingressHost,1,string.len(start)) == start
+    end
+
     local authproxy_prefix = 'verrazzano-authproxy-'
     local in_cluster_namespace = '.verrazzano-system'
     local in_cluster_dns_suffix = '.svc.cluster.local'
@@ -468,8 +472,8 @@ data:
             if hostname and #hostname > 0 then
                 first, last, backend_name = hostname:find("^([^.]+)")
                 if backend_name and #backend_name > 0 then
-                    -- Append '-logging' if 'logging' is in the ingressHost and not already present in backend_name
-                    if string.find(ingressHost, 'logging') and not string.find(backend_name, 'logging') then
+                    -- Append '-logging' if the ingressHost is for OS or OSD from logging namespace
+                    if me.startsWith(ingressHost, 'opensearch.logging') or me.startsWith(ingressHost, 'osd.logging') then
                         backend_name = backend_name .. '-logging'
                     end
                     -- Strip the auth proxy prefix from the extracted backend name if present

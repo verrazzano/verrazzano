@@ -83,7 +83,7 @@ func (r *VerrazzanoManagedClusterReconciler) getJaegerOpenSearchConfig(vzList *v
 		if err != nil {
 			return jc, r.log.ErrorfNewErr("Failed to get the CA bundle used by Verrazzano ingress %v", err)
 		}
-	} else if jsc.OSURL == vzconstants.DefaultOperatorOSJaegerURL {
+	} else if jsc.OSURL == vzconstants.DefaultOperatorOSURLWithNS {
 		jc.URL, err = r.getESURL(*vzList, operatorOSIngress)
 		if err != nil {
 			return jc, err

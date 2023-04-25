@@ -49,12 +49,12 @@ const (
 	vzSystemGroup           = "verrazzano-system-users"
 	vzAPIAccessRole         = "vz_api_access"
 	vzLogPusherRole         = "vz_log_pusher"
+	vzOpenSearchAdminRole   = "vz_opensearch_admin"
 	vzUserName              = "verrazzano"
 	vzInternalPromUser      = "verrazzano-prom-internal"
 	vzInternalEsUser        = "verrazzano-es-internal"
 	keycloakPodName         = "keycloak-0"
 	realmManagement         = "realm-management"
-	opensearchAdminRole     = "opensearch-admin"
 	viewUsersRole           = "view-users"
 	noRouterAddr            = "mysql-instances"
 	routerAddr              = "mysql"
@@ -947,8 +947,8 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// Create opensearch-admin role
-	err = createVerrazzanoRole(ctx, cfg, cli, opensearchAdminRole)
+	// Create Verrazzano OpenSearch Admin role
+	err = createVerrazzanoRole(ctx, cfg, cli, vzOpenSearchAdminRole)
 	if err != nil {
 		return err
 	}
@@ -1002,8 +1002,8 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// Grant opensearch_admin role to verrazzano user
-	err = addRealmRoleToUser(ctx, cfg, cli, vzUserName, vzSysRealm, opensearchAdminRole)
+	// Grant vz_opensearch_admin role to verrazzano user
+	err = addRealmRoleToUser(ctx, cfg, cli, vzUserName, vzSysRealm, vzOpenSearchAdminRole)
 	if err != nil {
 		return err
 	}
@@ -2001,7 +2001,7 @@ func updateRancherClientSecretForKeycloakAuthConfig(ctx spi.ComponentContext) er
 // addRealmRoleToUser adds a realm role to the given user in the target realm
 func addRealmRoleToUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, userName, targetRealm, roleName string) error {
 	kcPod := keycloakPod()
-	addRoleCmd := kcAdminScript + " add-roles -r " + targetRealm + " --uusername " + userName + " --rolename " + roleName
+	addRoleCmd := fmt.Sprintf("%s add-roles -r %s --uusername %s --rolename %s", kcAdminScript, targetRealm, userName, roleName)
 	ctx.Log().Debugf("Adding realm role %s to user %s, using command: %s", roleName, userName, addRoleCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(addRoleCmd))
 	if err != nil {
