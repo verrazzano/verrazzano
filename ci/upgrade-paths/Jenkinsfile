@@ -896,7 +896,7 @@ def getVerrazzanoOperatorYaml() {
             if [ "NONE" == "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
                 if [ "master" == "${VERSION_FOR_UPGRADE_ENV}" ]; then
                     echo "Downloading operator from object storage"
-                    RELEASE_NUMBER=$(echo \${params.VERSION_FOR_INSTALL} | tail -c4)
+                    RELEASE_NUMBER=$(echo "${VERSION_FOR_INSTALL}" | tail -c4)
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/release-$RELEASE_NUMBER/${SHORT_COMMIT_HASH}/operator.yaml --file
                 else
                     echo "Downloading ${OPERATOR_YAML_FILE} for release ${params.VERSION_FOR_INSTALL}"
