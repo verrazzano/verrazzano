@@ -10,8 +10,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"net/mail"
 	"strings"
 	"text/template"
