@@ -225,6 +225,7 @@ pipeline {
     }
 
     // FIXME: review these post actions
+    // TODO: delete resources of OKE cluster here
     post {
         always {
             script {
@@ -240,6 +241,9 @@ pipeline {
             }
 
             sh """
+                # Cleanup OKE cluster
+                ${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} -k ${params.DNS_SCOPE} || echo "Failed to delete DNS zone z${zoneId}"
+
                 # Copy the generated test reports to WORKSPACE to archive them
                 mkdir -p ${TEST_REPORT_DIR}
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
@@ -247,7 +251,6 @@ pipeline {
             """
             archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/*cluster-snapshot*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
-            deleteCluster()
         }
         failure {
             sh """
@@ -360,17 +363,6 @@ def getEffectiveDumpOnSuccess() {
         echo "Forcing dump on success based on global override setting"
     }
     return effectiveValue
-}
-
-def deleteCluster() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        make delete-cluster
-        if [ -f ${POST_DUMP_FAILED_FILE} ]; then
-          echo "Failures seen during dumping of artifacts, treat post as failed"
-          exit 1
-        fi
-    """
 }
 
 def setDisplayName() {
