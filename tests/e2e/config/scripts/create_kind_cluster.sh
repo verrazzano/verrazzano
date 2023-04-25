@@ -32,7 +32,7 @@ create_kind_cluster() {
     exit 1
   fi
 
-  if [ $SETUP_CALICO == true ] ; then
+  if false ; then #$SETUP_CALICO == true ] ; then
     CALICO_SUFFIX="-calico"
   fi
 
