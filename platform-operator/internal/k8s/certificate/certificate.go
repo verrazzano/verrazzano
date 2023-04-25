@@ -26,11 +26,12 @@ import (
 
 const (
 	// OperatorName is the resource name for the Verrazzano platform operator
-	OperatorName      = "verrazzano-platform-operator-webhook"
-	OldOperatorName   = "verrazzano-platform-operator"
-	OperatorCA        = "verrazzano-platform-operator-ca"
-	OperatorTLS       = "verrazzano-platform-operator-tls"
-	OperatorCertLabel = "install.verrazzano.io/vpo-webhook"
+	OperatorName         = "verrazzano-platform-operator-webhook"
+	OldOperatorName      = "verrazzano-platform-operator"
+	OperatorCA           = "verrazzano-platform-operator-ca"
+	OperatorTLS          = "verrazzano-platform-operator-tls"
+	OperatorCertLabel    = "install.verrazzano.io/vpo-webhook"
+	OperatorCertLabelKey = "managed_by"
 	// OperatorNamespace is the resource namespace for the Verrazzano platform operator
 	OperatorNamespace = "verrazzano-install"
 	CRDName           = "verrazzanos.install.verrazzano.io"
@@ -83,7 +84,7 @@ func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, comm
 			existingSecret.Labels = make(map[string]string)
 		}
 		log.Info("Adding labels in existing secret")
-		existingSecret.Labels["managed-by"] = OperatorCertLabel
+		existingSecret.Labels[OperatorCertLabelKey] = OperatorCertLabel
 		existingSecret, err = secretsClient.Update(context.TODO(), existingSecret, metav1.UpdateOptions{})
 		if err == nil {
 			log.Errorf("error while updating the secret")
@@ -161,7 +162,7 @@ func createTLSCertSecretIfNecesary(log *zap.SugaredLogger, secretsClient corev1.
 	if webhookCrt.Labels == nil {
 		webhookCrt.Labels = make(map[string]string)
 	}
-	webhookCrt.Labels["managed-by"] = OperatorCertLabel
+	webhookCrt.Labels[OperatorCertLabelKey] = OperatorCertLabel
 	log.Info("Adding labels in existing secret")
 	_, createError := secretsClient.Create(context.TODO(), &webhookCrt, metav1.CreateOptions{})
 	if createError != nil {
@@ -172,7 +173,7 @@ func createTLSCertSecretIfNecesary(log *zap.SugaredLogger, secretsClient corev1.
 				existingSecret.Labels = make(map[string]string)
 			}
 			log.Info("Adding labels in existing secret")
-			existingSecret.Labels["managed-by"] = OperatorCertLabel
+			existingSecret.Labels[OperatorCertLabelKey] = OperatorCertLabel
 			existingSecret, err = secretsClient.Update(context.TODO(), existingSecret, metav1.UpdateOptions{})
 			if err == nil {
 				log.Errorf("error while updating the secret")
@@ -253,7 +254,7 @@ func createCACertSecretIfNecessary(log *zap.SugaredLogger, secretsClient corev1.
 	if webhookCA.Labels == nil {
 		webhookCA.Labels = make(map[string]string)
 	}
-	webhookCA.Labels["managed-by"] = OperatorCertLabel
+	webhookCA.Labels[OperatorCertLabelKey] = OperatorCertLabel
 
 	_, createError := secretsClient.Create(context.TODO(), &webhookCA, metav1.CreateOptions{})
 	if createError != nil {
@@ -264,7 +265,7 @@ func createCACertSecretIfNecessary(log *zap.SugaredLogger, secretsClient corev1.
 				log.Errorf("error while updating the secret")
 			}
 			log.Info("Adding labels in existing secret")
-			existingSecret.Labels["managed-by"] = OperatorCertLabel
+			existingSecret.Labels[OperatorCertLabelKey] = OperatorCertLabel
 			existingSecret, err = secretsClient.Update(context.TODO(), existingSecret, metav1.UpdateOptions{})
 			log.Info("labels in secrets", existingSecret.Labels)
 			if err != nil {
