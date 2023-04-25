@@ -122,7 +122,7 @@
     },
     {
       "name": "rancher",
-      "version": "v2.7.1",
+      "version": "v2.7.2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -131,13 +131,13 @@
             {
               "image": "rancher",
               "dashboard": "v2.7.1-20230314212735-270d0ef83",
-              "tag": "v2.7.2-20230421201024-9def50a5d",
+              "tag": "v2.7.2-20230424144636-9def50a5d",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.2-20230421201024-9def50a5d"
+              "tag": "v2.7.2-20230424144636-9def50a5d"
             }
           ]
         },
@@ -249,7 +249,7 @@
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "2.3.0-20230324072109-f9e6353395",
+              "tag": "2.3.0-20230424094216-cff07fd190",
               "helmFullImageKey": "monitoringOperator.osdImage"
             },
             {
