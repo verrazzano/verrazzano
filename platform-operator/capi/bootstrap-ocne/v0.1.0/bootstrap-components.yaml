@@ -1,3 +1,6 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -14,7 +17,7 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.10.0
   labels:
     cluster.x-k8s.io/provider: bootstrap-ocne
-    cluster.x-k8s.io/v1beta1: v1beta1
+    cluster.x-k8s.io/v1beta1: v1alpha1
   name: ocneconfigs.bootstrap.cluster.x-k8s.io
 spec:
   conversion:
@@ -48,7 +51,7 @@ spec:
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
-    name: v1beta1
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: OCNEConfig is the Schema for the ocneconfigs API.
@@ -547,6 +550,47 @@ spec:
                         type: boolean
                     type: object
                 type: object
+              imageConfiguration:
+                description: ImageConfiguration contains configuration required for
+                  the base image.
+                properties:
+                  dependencies:
+                    description: Dependencies contains details about dependencies
+                      on the image that can be configured at boot time.
+                    properties:
+                      skipInstall:
+                        description: SkipInstall is the flag that can be used to tell
+                          the provider to skip install of OCNE dependencies. The value,
+                          if set to true, will be used to skip the overrides installation
+                          on OCNEConfigSpec. By default, this value is false.
+                        type: boolean
+                    type: object
+                  proxy:
+                    description: Proxy contains proxy server info that may be required
+                      for installing dependencies. The value, if specified is used
+                      in conjunction with preOCNECommands to install and configure
+                      repositories.
+                    properties:
+                      httpProxy:
+                        description: HttpProxy contains http proxy server info that
+                          may be required for installing dependencies. The value,
+                          if specified is used in conjunction with preOCNECommands
+                          to install and configure repositories.
+                        type: string
+                      httpsProxy:
+                        description: HttpsProxy contains https proxy server info that
+                          may be required for installing dependencies. The value,
+                          if specified is used in conjunction with preOCNECommands
+                          to install and configure repositories.
+                        type: string
+                      noProxy:
+                        description: NoProxy contains addresses that needs to be skipped
+                          when proxy server is being used. The value, if specified
+                          is used in conjunction with preOCNECommands to install and
+                          configure repositories.
+                        type: string
+                    type: object
+                type: object
               initConfiguration:
                 description: InitConfiguration along with ClusterConfiguration are
                   the configurations necessary for the init command
@@ -977,30 +1021,6 @@ spec:
                 items:
                   type: string
                 type: array
-              proxy:
-                description: Proxy contains proxy server info that may be required
-                  for installing dependencies. The value, if specified is used in
-                  conjunction with preOCNECommands to install and configure repositories.
-                properties:
-                  httpProxy:
-                    description: HttpProxy contains http proxy server info that may
-                      be required for installing dependencies. The value, if specified
-                      is used in conjunction with preOCNECommands to install and configure
-                      repositories.
-                    type: string
-                  httpsProxy:
-                    description: HttpsProxy contains https proxy server info that
-                      may be required for installing dependencies. The value, if specified
-                      is used in conjunction with preOCNECommands to install and configure
-                      repositories.
-                    type: string
-                  noProxy:
-                    description: NoProxy contains addresses that needs to be skipped
-                      when proxy server is being used. The value, if specified is
-                      used in conjunction with preOCNECommands to install and configure
-                      repositories.
-                    type: string
-                type: object
               useExperimentalRetryJoin:
                 description: "UseExperimentalRetryJoin replaces a basic kubeadm command
                   with a shell script with retries for joins. \n This is meant to
@@ -1174,7 +1194,7 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.10.0
   labels:
     cluster.x-k8s.io/provider: bootstrap-ocne
-    cluster.x-k8s.io/v1beta1: v1beta1
+    cluster.x-k8s.io/v1beta1: v1alpha1
   name: ocneconfigtemplates.bootstrap.cluster.x-k8s.io
 spec:
   conversion:
@@ -1204,7 +1224,7 @@ spec:
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
-    name: v1beta1
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: OCNEConfigTemplate is the Schema for the ocneconfigtemplates
@@ -1741,6 +1761,48 @@ spec:
                                 type: boolean
                             type: object
                         type: object
+                      imageConfiguration:
+                        description: ImageConfiguration contains configuration required
+                          for the base image.
+                        properties:
+                          dependencies:
+                            description: Dependencies contains details about dependencies
+                              on the image that can be configured at boot time.
+                            properties:
+                              skipInstall:
+                                description: SkipInstall is the flag that can be used
+                                  to tell the provider to skip install of OCNE dependencies.
+                                  The value, if set to true, will be used to skip
+                                  the overrides installation on OCNEConfigSpec. By
+                                  default, this value is false.
+                                type: boolean
+                            type: object
+                          proxy:
+                            description: Proxy contains proxy server info that may
+                              be required for installing dependencies. The value,
+                              if specified is used in conjunction with preOCNECommands
+                              to install and configure repositories.
+                            properties:
+                              httpProxy:
+                                description: HttpProxy contains http proxy server
+                                  info that may be required for installing dependencies.
+                                  The value, if specified is used in conjunction with
+                                  preOCNECommands to install and configure repositories.
+                                type: string
+                              httpsProxy:
+                                description: HttpsProxy contains https proxy server
+                                  info that may be required for installing dependencies.
+                                  The value, if specified is used in conjunction with
+                                  preOCNECommands to install and configure repositories.
+                                type: string
+                              noProxy:
+                                description: NoProxy contains addresses that needs
+                                  to be skipped when proxy server is being used. The
+                                  value, if specified is used in conjunction with
+                                  preOCNECommands to install and configure repositories.
+                                type: string
+                            type: object
+                        type: object
                       initConfiguration:
                         description: InitConfiguration along with ClusterConfiguration
                           are the configurations necessary for the init command
@@ -2202,31 +2264,6 @@ spec:
                         items:
                           type: string
                         type: array
-                      proxy:
-                        description: Proxy contains proxy server info that may be
-                          required for installing dependencies. The value, if specified
-                          is used in conjunction with preOCNECommands to install and
-                          configure repositories.
-                        properties:
-                          httpProxy:
-                            description: HttpProxy contains http proxy server info
-                              that may be required for installing dependencies. The
-                              value, if specified is used in conjunction with preOCNECommands
-                              to install and configure repositories.
-                            type: string
-                          httpsProxy:
-                            description: HttpsProxy contains https proxy server info
-                              that may be required for installing dependencies. The
-                              value, if specified is used in conjunction with preOCNECommands
-                              to install and configure repositories.
-                            type: string
-                          noProxy:
-                            description: NoProxy contains addresses that needs to
-                              be skipped when proxy server is being used. The value,
-                              if specified is used in conjunction with preOCNECommands
-                              to install and configure repositories.
-                            type: string
-                        type: object
                       useExperimentalRetryJoin:
                         description: "UseExperimentalRetryJoin replaces a basic kubeadm
                           command with a shell script with retries for joins. \n This
@@ -2497,7 +2534,7 @@ spec:
         - --bootstrap-token-ttl=${KUBEADM_BOOTSTRAP_TOKEN_TTL:=15m}
         command:
         - /manager
-        image: ghcr.io/verrazzano/cluster-api-ocne-bootstrap-controller:v0.1.0-20230406225237-9bd77d2
+        image: ghcr.io/verrazzano/cluster-api-ocne-bootstrap-controller:v0.1.0-20230421153459-16a5418
         imagePullPolicy: Always
         livenessProbe:
           httpGet:
@@ -2571,19 +2608,19 @@ metadata:
 webhooks:
 - admissionReviewVersions:
   - v1
-  - v1beta1
+  - v1alpha1
   clientConfig:
     service:
       name: capi-ocne-bootstrap-webhook-service
       namespace: capi-ocne-bootstrap-system
-      path: /mutate-bootstrap-cluster-x-k8s-io-v1beta1-ocneconfig
+      path: /mutate-bootstrap-cluster-x-k8s-io-v1alpha1-ocneconfig
   failurePolicy: Fail
   name: default.ocneconfig.bootstrap.cluster.x-k8s.io
   rules:
   - apiGroups:
     - bootstrap.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1alpha1
     operations:
     - CREATE
     - UPDATE
@@ -2592,19 +2629,19 @@ webhooks:
   sideEffects: None
 - admissionReviewVersions:
   - v1
-  - v1beta1
+  - v1alpha1
   clientConfig:
     service:
       name: capi-ocne-bootstrap-webhook-service
       namespace: capi-ocne-bootstrap-system
-      path: /mutate-bootstrap-cluster-x-k8s-io-v1beta1-ocneconfigtemplate
+      path: /mutate-bootstrap-cluster-x-k8s-io-v1alpha1-ocneconfigtemplate
   failurePolicy: Fail
   name: default.ocneconfigtemplate.bootstrap.cluster.x-k8s.io
   rules:
   - apiGroups:
     - bootstrap.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1alpha1
     operations:
     - CREATE
     - UPDATE
@@ -2623,12 +2660,12 @@ metadata:
 webhooks:
 - admissionReviewVersions:
   - v1
-  - v1beta1
+  - v1alpha1
   clientConfig:
     service:
       name: capi-ocne-bootstrap-webhook-service
       namespace: capi-ocne-bootstrap-system
-      path: /validate-bootstrap-cluster-x-k8s-io-v1beta1-ocneconfig
+      path: /validate-bootstrap-cluster-x-k8s-io-v1alpha1-ocneconfig
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.ocneconfig.bootstrap.cluster.x-k8s.io
@@ -2636,7 +2673,7 @@ webhooks:
   - apiGroups:
     - bootstrap.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1alpha1
     operations:
     - CREATE
     - UPDATE
@@ -2645,12 +2682,12 @@ webhooks:
   sideEffects: None
 - admissionReviewVersions:
   - v1
-  - v1beta1
+  - v1alpha1
   clientConfig:
     service:
       name: capi-ocne-bootstrap-webhook-service
       namespace: capi-ocne-bootstrap-system
-      path: /validate-bootstrap-cluster-x-k8s-io-v1beta1-ocneconfigtemplate
+      path: /validate-bootstrap-cluster-x-k8s-io-v1alpha1-ocneconfigtemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.ocneconfigtemplate.bootstrap.cluster.x-k8s.io
@@ -2658,7 +2695,7 @@ webhooks:
   - apiGroups:
     - bootstrap.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1alpha1
     operations:
     - CREATE
     - UPDATE

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package multiclustersecret
@@ -85,7 +85,7 @@ func TestReconcileCreateSecret(t *testing.T) {
 
 	// expect a call to fetch existing corev1.Secret and return not found error, to test create case
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, crName))
 
 	// expect a call to create the K8S secret
@@ -190,7 +190,7 @@ func TestReconcileCreateSecretFailed(t *testing.T) {
 
 	// expect a call to fetch existing corev1.Secret and return not found error, to simulate create case
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, crName))
 
 	// expect a call to create the K8S secret and fail the call
@@ -330,7 +330,7 @@ func TestReconcileResourceNotFound(t *testing.T) {
 	// expect a call to fetch the MultiClusterLoggingScope
 	// and return a not found error
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: clustersv1alpha1.SchemeGroupVersion.Group, Resource: clustersv1alpha1.MultiClusterSecretResource}, crName))
 
 	// expect no further action to be taken
@@ -348,8 +348,8 @@ func TestReconcileResourceNotFound(t *testing.T) {
 // doExpectGetSecretExists expects a call to get a corev1.Secret, and return an "existing" secret
 func doExpectGetSecretExists(cli *mocks.MockClient, metadata metav1.ObjectMeta, existingSecretData map[string][]byte) {
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret, opts ...client.GetOption) error {
 			secret.Data = existingSecretData
 			secret.ObjectMeta = metadata
 			return nil
@@ -396,8 +396,8 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 // call for a MultiClusterSecret, and populate the multi cluster secret with given data
 func doExpectGetMultiClusterSecret(cli *mocks.MockClient, mcSecretSample clustersv1alpha1.MultiClusterSecret, addFinalizer bool) {
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.AssignableToTypeOf(&mcSecretSample)).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcSecret *clustersv1alpha1.MultiClusterSecret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.AssignableToTypeOf(&mcSecretSample), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcSecret *clustersv1alpha1.MultiClusterSecret, opts ...client.GetOption) error {
 			mcSecret.ObjectMeta = mcSecretSample.ObjectMeta
 			mcSecret.TypeMeta = mcSecretSample.TypeMeta
 			mcSecret.Spec = mcSecretSample.Spec

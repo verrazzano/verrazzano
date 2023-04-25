@@ -91,23 +91,6 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	err := installVerrazzano(cmd, vzHelper)
-	if err != nil {
-		autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
-		if errFlag != nil {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
-			return err
-		}
-		if autoBugReportFlag {
-			//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from installVerrazzano
-			err = bugreport.CallVzBugReport(cmd, vzHelper, err)
-		}
-		return err
-	}
-	return nil
-}
-
-func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	// Validate the command options
 	err := validateCmd(cmd)
 	if err != nil {
@@ -198,48 +181,57 @@ func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		if err != nil {
 			return err
 		}
-
 		// Apply the Verrazzano operator.yaml.
 		err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
 		if err != nil {
 			return err
 		}
-
-		// Wait for the platform operator to be ready before we create the Verrazzano resource.
-		_, err = cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondInstallComplete, vpoTimeout)
+		err = installVerrazzano(cmd, vzHelper, vz, client, version, vpoTimeout)
 		if err != nil {
-			return err
+			return bugreport.AutoBugReport(cmd, vzHelper, err)
 		}
-
-		err = kubectlutil.SetLastAppliedConfigurationAnnotation(vz)
-		if err != nil {
-			return err
-		}
-
-		// Create the Verrazzano install resource, if need be.
-		// We will retry up to 5 times if there is an error.
-		// Sometimes we see intermittent webhook errors due to timeouts.
-		retry := 0
-		for {
-			err = client.Create(context.TODO(), vz)
-			if err != nil {
-				if retry == 5 {
-					return fmt.Errorf("Failed to create the verrazzano install resource: %s", err.Error())
-				}
-				time.Sleep(time.Second)
-				retry++
-				fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Retrying after failing to create the verrazzano install resource: %s\n", err.Error()))
-				continue
-			}
-			break
-		}
-
 		vzNamespace = vz.GetNamespace()
 		vzName = vz.GetName()
 	}
 
 	// Wait for the Verrazzano install to complete
-	return waitForInstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vzNamespace, Name: vzName}, timeout, vpoTimeout, logFormat)
+	err = waitForInstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vzNamespace, Name: vzName}, timeout, vpoTimeout, logFormat)
+	if err != nil {
+		return bugreport.AutoBugReport(cmd, vzHelper, err)
+	}
+	return nil
+}
+
+func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz clipkg.Object, client clipkg.Client, version string, vpoTimeout time.Duration) error {
+	// Wait for the platform operator to be ready before we create the Verrazzano resource.
+	_, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondInstallComplete, vpoTimeout)
+	if err != nil {
+		return err
+	}
+
+	err = kubectlutil.SetLastAppliedConfigurationAnnotation(vz)
+	if err != nil {
+		return err
+	}
+
+	// Create the Verrazzano install resource, if need be.
+	// We will retry up to 5 times if there is an error.
+	// Sometimes we see intermittent webhook errors due to timeouts.
+	retry := 0
+	for {
+		err = client.Create(context.TODO(), vz)
+		if err != nil {
+			if retry == 5 {
+				return fmt.Errorf("Failed to create the verrazzano install resource: %s", err.Error())
+			}
+			time.Sleep(time.Second)
+			retry++
+			fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Retrying after failing to create the verrazzano install resource: %s\n", err.Error()))
+			continue
+		}
+		break
+	}
+	return nil
 }
 
 // getVerrazzanoYAML returns the verrazzano install resource to be created

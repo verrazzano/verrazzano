@@ -198,7 +198,7 @@ func TestInstallCmdJsonLogFormat(t *testing.T) {
 // GIVEN a CLI install command with defaults and --wait=false and --filename specified and multiple group versions in the filenames
 //
 //	WHEN I call cmd.Execute for install
-//	THEN the CLI install command is unsuccessful and a bug report should be generated
+//	THEN the CLI install command is unsuccessful but a bug report should not be generated
 func TestInstallCmdMultipleGroupVersions(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
@@ -213,7 +213,7 @@ func TestInstallCmdMultipleGroupVersions(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "cannot merge objects with different group versions")
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -404,7 +404,7 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 // GIVEN an install command
 //
 //	WHEN invalid command options exist
-//	THEN expect an error and a bug report should be generated
+//	THEN expect an error but a bug report should not be generated
 func TestInstallValidations(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
@@ -416,7 +416,7 @@ func TestInstallValidations(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), fmt.Sprintf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.OperatorFileFlag))
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -578,7 +578,7 @@ func TestInstallCmdInProgress(t *testing.T) {
 // GIVEN a CLI install command when an install already happened
 //
 //	WHEN I call cmd.Execute for install
-//	THEN the CLI install command is unsuccessful and a bug report is generated
+//	THEN the CLI install command is unsuccessful but a bug report is not generated
 func TestInstallCmdAlreadyInstalled(t *testing.T) {
 	vz := &v1beta1.Verrazzano{
 		TypeMeta: metav1.TypeMeta{},
@@ -604,7 +604,7 @@ func TestInstallCmdAlreadyInstalled(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Only one install of Verrazzano is allowed")
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -613,7 +613,7 @@ func TestInstallCmdAlreadyInstalled(t *testing.T) {
 // GIVEN a CLI install command when an install is in progress for a different version
 //
 //	WHEN I call cmd.Execute for install
-//	THEN the CLI install command is unsuccessful and a bug report is generated
+//	THEN the CLI install command is unsuccessful but a bug report is not generated
 func TestInstallCmdDifferentVersion(t *testing.T) {
 	vz := &v1beta1.Verrazzano{
 		TypeMeta: metav1.TypeMeta{},
@@ -639,7 +639,7 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Unable to install version v1.3.1, install of version v1.3.2 is in progress")
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }

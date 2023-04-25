@@ -310,6 +310,10 @@ type ComponentSpec struct {
 	// +optional
 	AuthProxy *AuthProxyComponent `json:"authProxy,omitempty"`
 
+	// The CAPI component configuration.
+	// +optional
+	CAPI *CAPIComponent `json:"capi,omitempty"`
+
 	// The cert-manager component configuration.
 	// +optional
 	CertManager *CertManagerComponent `json:"certManager,omitempty"`
@@ -582,6 +586,13 @@ type PrometheusPushgatewayComponent struct {
 	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
+}
+
+// CAPIComponent specifies the CAPI configuration.
+type CAPIComponent struct {
+	// If true, then CAPI Providers will be installed.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // CertManagerComponent specifies the cert-manager configuration.

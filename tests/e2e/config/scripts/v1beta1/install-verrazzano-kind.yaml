@@ -50,3 +50,5 @@ spec:
       enabled: true
     thanos:
       enabled: true
+    capi:
+      enabled: true
