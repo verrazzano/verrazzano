@@ -3,11 +3,11 @@
 package vzconfig
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/test/ip"
 
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 
@@ -166,7 +166,7 @@ func TestGetIngressIP(t *testing.T) {
 			}
 			svc := &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: globalconst.IngressNamespace,
+					Namespace: nginxutil.IngressNGINXNamespace(),
 					Name:      vpoconst.NGINXControllerServiceName,
 				},
 			}
@@ -328,7 +328,7 @@ func TestGetDNSSuffix(t *testing.T) {
 			}
 			svc := &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: globalconst.IngressNamespace,
+					Namespace: nginxutil.IngressNGINXNamespace(),
 					Name:      vpoconst.NGINXControllerServiceName,
 				},
 			}

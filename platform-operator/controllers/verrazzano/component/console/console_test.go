@@ -6,7 +6,7 @@ package console
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -40,7 +40,7 @@ func TestAppendOverrides(t *testing.T) {
 	c := fake.NewClientBuilder().
 		WithScheme(k8scheme.Scheme).
 		WithObjects(&corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{Name: vpoconst.NGINXControllerServiceName, Namespace: globalconst.IngressNamespace},
+			ObjectMeta: metav1.ObjectMeta{Name: vpoconst.NGINXControllerServiceName, Namespace: nginxutil.IngressNGINXNamespace()},
 			Spec: corev1.ServiceSpec{
 				Type: corev1.ServiceTypeLoadBalancer,
 			},
