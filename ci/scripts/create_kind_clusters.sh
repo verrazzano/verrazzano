@@ -90,6 +90,8 @@ create_kind_cluster() {
     fi
   fi
 
+  # check to make sure the kind image is loaded
+  docker images
 
   # List the permissions of /dev/null.  We have seen a failure where `docker ps` gets an operation not permitted error.
   # Listing the permissions will help to analyze what is wrong, if we see the failure again.
@@ -108,7 +110,7 @@ create_kind_cluster() {
   yq -i eval '.networking.apiServerAddress=strenv(KIND_API_SERVER_ADDRESS)' ${KIND_CONFIG_FILE}
 
   cat ${KIND_CONFIG_FILE}
-  HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster --retain -v 1 --name ${CLUSTER_NAME} \
+  HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster --retain -v 9 --name ${CLUSTER_NAME} \
     --config=${KIND_CONFIG_FILE}
 }
 

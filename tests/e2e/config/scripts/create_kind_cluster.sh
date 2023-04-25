@@ -67,9 +67,6 @@ create_kind_cluster() {
     fi
   fi
 
-  # check to make sure the kind image is loaded
-  docker images
-
   # List the permissions of /dev/null.  We have seen a failure where `docker ps` gets an operation not permitted error.
   # Listing the permissions will help to analyze what is wrong, if we see the failure again.
   echo "Listing permissions for /dev/null"
