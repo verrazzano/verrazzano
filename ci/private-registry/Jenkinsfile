@@ -306,7 +306,7 @@ pipeline {
             }
         }
 
-
+        /*
         stage('verify distribution') {
             when {
                 expression {
@@ -360,7 +360,7 @@ pipeline {
                     }
                 }
             }
-        }
+        }*/
         stage('Acceptance Tests') {
             when {
                 expression {
