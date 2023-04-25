@@ -47,12 +47,16 @@ func DetermineNamespaceForIngressNGINX(log vzlog.VerrazzanoLogger) (string, erro
 func isVzNGINXInstalledInNamespace(log vzlog.VerrazzanoLogger, releaseName string, namespace string) (bool, error) {
 	const vzClass = "verrazzano-nginx"
 
-	type YamlConfig struct {
-		Controller struct {
-			IngressClassResource struct {
-				Name string `json:"name"`
-			}
-		}
+	// Define structs needed to marshal YAML.  Fields must be public
+	type IngressClassResource struct {
+		Name            string `json:"name"`
+		ControllerValue string `json:"controllerValue"`
+	}
+	type Controller struct {
+		IngressClassResource `json:"ingressClassResource"`
+	}
+	type helmValues struct {
+		Controller `json:"controller"`
 	}
 
 	// See if NGINX is installed in the ingress-nginx namespace
@@ -69,11 +73,11 @@ func isVzNGINXInstalledInNamespace(log vzlog.VerrazzanoLogger, releaseName strin
 		if err != nil {
 			return false, err
 		}
-		yml := YamlConfig{}
-		if err := yaml.Unmarshal(b, &yml); err != nil {
+		vals := helmValues{}
+		if err := yaml.Unmarshal(b, &vals); err != nil {
 			return false, err
 		}
-		if yml.Controller.IngressClassResource.Name == vzClass {
+		if vals.Controller.IngressClassResource.Name == vzClass {
 			return true, nil
 		}
 	}
