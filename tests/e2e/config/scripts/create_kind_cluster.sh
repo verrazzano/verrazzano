@@ -32,7 +32,7 @@ create_kind_cluster() {
     exit 1
   fi
 
-  if false ; then #$SETUP_CALICO == true ] ; then
+  if [ $SETUP_CALICO == true ] ; then
     CALICO_SUFFIX="-calico"
   fi
 
@@ -78,7 +78,7 @@ create_kind_cluster() {
   done
   sed -i "s/KIND_IMAGE/${KIND_IMAGE}/g" ${KIND_CONFIG_FILE}
   cat ${KIND_CONFIG_FILE}
-  HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster --retain -v 1 --name ${CLUSTER_NAME} --config=${KIND_CONFIG_FILE}
+  HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster --retain -v 9 --name ${CLUSTER_NAME} --config=${KIND_CONFIG_FILE}
   kubectl config set-context kind-${CLUSTER_NAME}
   sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}
   cat ${KUBECONFIG} | grep server
