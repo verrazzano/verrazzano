@@ -94,8 +94,8 @@ func TestReconcileRestart(t *testing.T) {
 		"##DEPLOYMENT_NAME##":      "test-workload-name",
 	}
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-containerized-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *oamv1.ContainerizedWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-containerized-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *oamv1.ContainerizedWorkload, opts ...client.GetOption) error {
 			assert.NoError(updateObjectFromYAMLTemplate(workload, "testdata/templates/containerized_workload_deployment.yaml", params))
 			workload.ObjectMeta.Labels = labels
 			workload.ObjectMeta.Annotations = annotations
@@ -110,8 +110,8 @@ func TestReconcileRestart(t *testing.T) {
 		})
 	// expect a call to fetch the deployment
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment, opts ...client.GetOption) error {
 			annotateRestartVersion(deployment, "")
 			return nil
 		})

@@ -280,3 +280,5 @@ spec:
       enabled: false
     thanos:
       enabled: false
+    capi:
+      enabled: false

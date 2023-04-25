@@ -92,8 +92,8 @@ func TestReconcileWorkloadNotFound(t *testing.T) {
 
 	// expect a call to fetch the VerrazzanoHelidonWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload, opt ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 
@@ -121,8 +121,8 @@ func TestReconcileFetchWorkloadError(t *testing.T) {
 
 	// expect a call to fetch the VerrazzanoHelidonWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload, opt ...client.GetOption) error {
 			return k8serrors.NewBadRequest("An error has occurred")
 		})
 
@@ -177,8 +177,8 @@ func TestReconcileWorkloadMissingData(t *testing.T) {
 
 	// expect a call to fetch the VerrazzanoHelidonWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload, opt ...client.GetOption) error {
 			workload.Spec.DeploymentTemplate = *deploymentTemplate
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
@@ -250,14 +250,14 @@ func TestReconcileCreateHelidon(t *testing.T) {
 	}
 	// expect call to fetch existing deployment
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "hello-helidon-deployment-new"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "hello-helidon-deployment-new"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment, opt ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the application configuration
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-app-config"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-app-config"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration, opt ...client.GetOption) error {
 			appconf.Namespace = name.Namespace
 			appconf.Name = name.Name
 			appconf.APIVersion = oamapi.SchemeGroupVersion.String()
@@ -267,8 +267,8 @@ func TestReconcileCreateHelidon(t *testing.T) {
 		})
 	// expect a call to fetch the VerrazzanoHelidonWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload, opt ...client.GetOption) error {
 			workload.Spec.DeploymentTemplate = *deploymentTemplate
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
@@ -393,14 +393,14 @@ func TestReconcileCreateHelidonWithServiceTemplate(t *testing.T) {
 
 	// expect call to fetch existing deployment
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "hello-helidon-deployment-new"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "hello-helidon-deployment-new"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment, opt ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the application configuration
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-app-config"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-app-config"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration, opt ...client.GetOption) error {
 			appconf.Namespace = name.Namespace
 			appconf.Name = name.Name
 			appconf.APIVersion = oamapi.SchemeGroupVersion.String()
@@ -410,8 +410,8 @@ func TestReconcileCreateHelidonWithServiceTemplate(t *testing.T) {
 		})
 	// expect a call to fetch the VerrazzanoHelidonWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload, opt ...client.GetOption) error {
 			workload.Spec.DeploymentTemplate = *deploymentTemplate
 			workload.Spec.ServiceTemplate = *serviceTemplate
 			workload.ObjectMeta.Labels = labels
@@ -525,14 +525,14 @@ func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
 
 	// expect call to fetch existing deployment
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "hello-helidon-deployment-new"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "hello-helidon-deployment-new"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment, opt ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the application configuration
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-app-config"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-app-config"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration, opt ...client.GetOption) error {
 			appconf.Namespace = name.Namespace
 			appconf.Name = name.Name
 			appconf.APIVersion = oamapi.SchemeGroupVersion.String()
@@ -542,8 +542,8 @@ func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
 		})
 	// expect a call to fetch the VerrazzanoHelidonWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload, opt ...client.GetOption) error {
 			workload.Spec.DeploymentTemplate = *deploymentTemplate
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
@@ -647,21 +647,21 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 	}
 	// expect call to fetch existing deployment
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-deployment"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-deployment"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment, opt ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the application configuration
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-appconf"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-appconf"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration, opt ...client.GetOption) error {
 			assert.NoError(updateObjectFromYAMLTemplate(appconf, "testdata/templates/helidon_appconf_with_ingress_and_logging.yaml", params))
 			return nil
 		}).Times(1)
 	// expect a call to fetch the VerrazzanoHelidonWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload, opt ...client.GetOption) error {
 			assert.NoError(updateObjectFromYAMLTemplate(workload, helidonWorkload, params))
 			return nil
 		}).Times(1)
@@ -765,21 +765,21 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 	}
 	// expect call to fetch existing deployment
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-deployment"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-deployment"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment, opt ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the application configuration
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-appconf"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-appconf"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration, opt ...client.GetOption) error {
 			assert.NoError(updateObjectFromYAMLTemplate(appconf, "testdata/templates/helidon_appconf_with_ingress_and_logging.yaml", params))
 			return nil
 		})
 	// expect a call to fetch the VerrazzanoHelidonWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload, opt ...client.GetOption) error {
 			assert.NoError(updateObjectFromYAMLTemplate(workload, "testdata/templates/helidon_workload_multi_container.yaml", params))
 			return nil
 		}).Times(1)
@@ -1006,21 +1006,21 @@ func TestReconcileRestart(t *testing.T) {
 	}
 	// expect call to fetch existing deployment
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-deployment"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-deployment"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment, opt ...client.GetOption) error {
 			return nil
 		})
 	// expect a call to fetch the application configuration
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-appconf"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-appconf"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration, opt ...client.GetOption) error {
 			assert.NoError(updateObjectFromYAMLTemplate(appconf, "testdata/templates/helidon_appconf_with_ingress_and_logging.yaml", params))
 			return nil
 		}).Times(1)
 	// expect a call to fetch the VerrazzanoHelidonWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload, opt ...client.GetOption) error {
 			assert.NoError(updateObjectFromYAMLTemplate(workload, helidonWorkload, params))
 			workload.ObjectMeta.Labels = labels
 			workload.ObjectMeta.Annotations = annotations
@@ -1065,8 +1065,8 @@ func TestReconcileRestart(t *testing.T) {
 		})
 	// expect a call to fetch the deployment
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment, opt ...client.GetOption) error {
 			annotateRestartVersion(deployment, "")
 			return nil
 		})
@@ -1177,8 +1177,8 @@ func TestAddMetrics(t *testing.T) {
 		// GIVEN a default mocker client
 		// WHEN we call Get from the addMetrics method
 		// THEN the call feeds workload to get metrics traits
-		Get(gomock.Any(), request, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload1 *vzapi.VerrazzanoHelidonWorkload) error {
+		Get(gomock.Any(), request, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload1 *vzapi.VerrazzanoHelidonWorkload, opt ...client.GetOption) error {
 			assert.NoError(updateObjectFromYAMLTemplate(workload1, helidonWorkload, params))
 			workload1.ObjectMeta.Labels = labels
 			workload1.ObjectMeta.Annotations = annotations
@@ -1191,8 +1191,8 @@ func TestAddMetrics(t *testing.T) {
 		// GIVEN a default mocker client
 		// WHEN we call Get from the ComponentFromWorkloadLabels method
 		// THEN the call feeds workload and component to get metrics traits
-		Get(gomock.Any(), request, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload1 *oamapi.ApplicationConfiguration) error {
+		Get(gomock.Any(), request, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload1 *oamapi.ApplicationConfiguration, opt ...client.GetOption) error {
 			assert.NoError(updateObjectFromYAMLTemplate(workload1, helidonWorkload, params))
 			workload1.ObjectMeta.Labels = labels
 			workload1.ObjectMeta.Annotations = annotations

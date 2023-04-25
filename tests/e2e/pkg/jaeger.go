@@ -7,6 +7,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -386,7 +388,11 @@ func ValidateEsIndexCleanerCronJobFunc() func() (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		create := IsOpensearchEnabled(kubeconfigPath)
+		vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+		if err != nil {
+			return false, err
+		}
+		create := vzcr.IsComponentStatusEnabled(vz, opensearch.ComponentName)
 		if create {
 			return DoesCronJobExist(kubeconfigPath, constants.VerrazzanoMonitoringNamespace, jaegerESIndexCleanerJob)
 		}

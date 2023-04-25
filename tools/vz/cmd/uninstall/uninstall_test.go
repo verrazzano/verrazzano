@@ -6,8 +6,6 @@ package uninstall
 import (
 	"bytes"
 	"context"
-	"fmt"
-	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -145,11 +143,6 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
-	uninstallFunc := func(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-		return fmt.Errorf("Timeout 2ms exceeded waiting for uninstall to complete")
-	}
-	SetUninstallVerrazzanoFn(uninstallFunc)
-	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
@@ -166,7 +159,7 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	assert.Error(t, err)
 	// This must be less than the 1 second polling delay to pass
 	// since the Verrazzano resource gets deleted almost instantaneously
-	assert.Equal(t, "Error: Failed to uninstall Verrazzano: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
+	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
 	ensureResourcesNotDeleted(t, c)
 	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
@@ -193,11 +186,6 @@ func TestUninstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
-	uninstallFunc := func(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-		return fmt.Errorf("Timeout 2ms exceeded waiting for uninstall to complete")
-	}
-	SetUninstallVerrazzanoFn(uninstallFunc)
-	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
 	_ = cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
@@ -211,7 +199,7 @@ func TestUninstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	assert.Error(t, err)
 	// This must be less than the 1 second polling delay to pass
 	// since the Verrazzano resource gets deleted almost instantaneously
-	assert.Equal(t, "Error: Failed to uninstall Verrazzano: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
+	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
 	ensureResourcesNotDeleted(t, c)
 	// Bug Report must not exist
 	if helpers.CheckAndRemoveBugReportExistsInDir("") {
@@ -299,11 +287,6 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
-	uninstallFunc := func(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-		return fmt.Errorf(VzVpoFailureError)
-	}
-	SetUninstallVerrazzanoFn(uninstallFunc)
-	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
@@ -339,11 +322,6 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
-	uninstallFunc := func(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-		return fmt.Errorf(PodNotFoundError)
-	}
-	SetUninstallVerrazzanoFn(uninstallFunc)
-	defer ResetUninstallVerrazzanoFn()
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "simple")
@@ -372,7 +350,7 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 // GIVEN a CLI uninstall command with all defaults and no vz resource found
 //
 //	WHEN I call cmd.Execute for uninstall
-//	THEN the CLI uninstall command fails and bug report should be generated
+//	THEN the CLI uninstall command fails and bug report should not be generated
 func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).Build()
 
@@ -395,7 +373,7 @@ func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Verrazzano is not installed: Failed to find any Verrazzano resources")
 	assert.Contains(t, errBuf.String(), "Verrazzano is not installed: Failed to find any Verrazzano resources")
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }

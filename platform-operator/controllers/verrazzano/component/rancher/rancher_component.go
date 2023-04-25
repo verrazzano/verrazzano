@@ -6,11 +6,6 @@ package rancher
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
-
 	"github.com/gertd/go-pluralize"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -21,6 +16,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -39,7 +35,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"os"
+	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strconv"
+	"strings"
 )
 
 // ComponentName is the name of the component
@@ -50,6 +50,9 @@ const ComponentNamespace = common.CattleSystem
 
 // ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "rancher"
+
+// CattleGlobalDataNamespace is the multi-cluster namespace for verrazzano
+const CattleGlobalDataNamespace = "cattle-global-data"
 
 const rancherIngressClassNameKey = "ingress.ingressClassName"
 
@@ -115,7 +118,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
 			Certificates:              certificates,
-			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, certmanager.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, certmanager.ComponentName, capi.ComponentName},
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DeploymentNames: []types.NamespacedName{
 					{
@@ -498,14 +501,14 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	return patchRancherIngress(c, ctx.EffectiveCR())
 }
 
+// Reconcile for the Rancher component
+func (r rancherComponent) Reconcile(ctx spi.ComponentContext) error {
+	return nil
+}
+
 // activateDrivers activates the nodeDriver oci and oraclecontainerengine kontainerDriver
 func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
-	err := activateOCIDriver(log, c)
-	if err != nil {
-		return err
-	}
-
-	err = activatOKEDriver(log, c)
+	err := activatOKEDriver(log, c)
 	if err != nil {
 		return err
 	}

@@ -67,9 +67,9 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
-	
+
 	var err error
-	metricsTest, err = pkg.NewMetricsTest([]string{adminKubeconfig, managedKubeconfig}, adminKubeconfig, map[string]string{})
+	metricsTest, err = pkg.NewMetricsTest(adminKubeconfig, map[string]string{}, managedKubeconfig)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
 	}

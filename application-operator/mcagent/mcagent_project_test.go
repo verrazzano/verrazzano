@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -128,8 +128,8 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 			if tt.fields.vpName == existingVP {
 				// Managed Cluster - expect call to get VerrazzanoProject
 				localMock.EXPECT().
-					Get(gomock.Any(), types.NamespacedName{Namespace: tt.fields.vpNamespace, Name: tt.fields.vpName}, gomock.Not(gomock.Nil())).
-					DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject) error {
+					Get(gomock.Any(), types.NamespacedName{Namespace: tt.fields.vpNamespace, Name: tt.fields.vpName}, gomock.Not(gomock.Nil()), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject, opts ...client.GetOption) error {
 						vp.Namespace = tt.fields.vpNamespace
 						vp.Name = tt.fields.vpName
 						vp.Spec.Template.Namespaces = []clustersv1alpha1.NamespaceTemplate{testNamespace1, testNamespace2, testNamespace3}
@@ -149,7 +149,7 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 			} else {
 				// Managed Cluster - expect call to get VerrazzanoProject
 				localMock.EXPECT().
-					Get(gomock.Any(), types.NamespacedName{Namespace: tt.fields.vpNamespace, Name: tt.fields.vpName}, gomock.Not(gomock.Nil())).
+					Get(gomock.Any(), types.NamespacedName{Namespace: tt.fields.vpNamespace, Name: tt.fields.vpName}, gomock.Not(gomock.Nil()), gomock.Any()).
 					Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "VerrazzanoProject"}, tt.fields.vpName))
 
 				// Managed Cluster - expect call to create a VerrazzanoProject
@@ -269,8 +269,8 @@ func TestDeleteVerrazzanoProject(t *testing.T) {
 
 			// Managed Cluster - expect call to get VerrazzanoProject
 			localMock.EXPECT().
-				Get(gomock.Any(), types.NamespacedName{Namespace: tt.fields.vpNamespace, Name: tt.fields.vpName}, gomock.Not(gomock.Nil())).
-				DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject) error {
+				Get(gomock.Any(), types.NamespacedName{Namespace: tt.fields.vpNamespace, Name: tt.fields.vpName}, gomock.Not(gomock.Nil()), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject, opts ...client.GetOption) error {
 					vp.Namespace = tt.fields.vpNamespace
 					vp.Name = tt.fields.vpName
 					vp.Spec.Template.Namespaces = tt.fields.nsList
@@ -402,7 +402,7 @@ func TestVerrazzanoProjectMulti(t *testing.T) {
 			if tt.vp1Fields.vpNamespace == constants.VerrazzanoMultiClusterNamespace {
 				// Managed Cluster - expect call to get VerrazzanoProject
 				localMock.EXPECT().
-					Get(gomock.Any(), types.NamespacedName{Namespace: tt.vp1Fields.vpNamespace, Name: tt.vp1Fields.vpName}, gomock.Not(gomock.Nil())).
+					Get(gomock.Any(), types.NamespacedName{Namespace: tt.vp1Fields.vpNamespace, Name: tt.vp1Fields.vpName}, gomock.Not(gomock.Nil()), gomock.Any()).
 					Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "VerrazzanoProject"}, tt.vp1Fields.vpName))
 
 				// Managed Cluster - expect call to create a VerrazzanoProject
@@ -417,7 +417,7 @@ func TestVerrazzanoProjectMulti(t *testing.T) {
 
 				// Managed Cluster - expect call to get VerrazzanoProject
 				localMock.EXPECT().
-					Get(gomock.Any(), types.NamespacedName{Namespace: tt.vp2Fields.vpNamespace, Name: tt.vp2Fields.vpName}, gomock.Not(gomock.Nil())).
+					Get(gomock.Any(), types.NamespacedName{Namespace: tt.vp2Fields.vpNamespace, Name: tt.vp2Fields.vpName}, gomock.Not(gomock.Nil()), gomock.Any()).
 					Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "VerrazzanoProject"}, tt.vp2Fields.vpName))
 
 				// Managed Cluster - expect call to create a VerrazzanoProject
@@ -528,8 +528,8 @@ func TestRemovePlacementVerrazzanoProject(t *testing.T) {
 
 	// Managed Cluster - expect call to get VerrazzanoProject
 	localMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vpNamespace, Name: vpName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpNamespace, Name: vpName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject, opts ...client.GetOption) error {
 			testProj.DeepCopyInto(vp)
 			return nil
 		})

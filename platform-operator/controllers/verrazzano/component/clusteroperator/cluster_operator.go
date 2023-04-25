@@ -97,7 +97,7 @@ func (c clusterOperatorComponent) postInstallUpgrade(ctx spi.ComponentContext) e
 
 // createVZClusterUser creates the Verrazzano cluster user in Rancher using the Rancher API
 func createVZUser(userName, regName, userDescription, secretName string, ctx spi.ComponentContext) error {
-	rc, err := rancherutil.NewAdminRancherConfig(ctx.Client(), ctx.Log())
+	rc, err := rancherutil.NewAdminRancherConfig(ctx.Client(), vzconst.DefaultRancherIngressHost, ctx.Log())
 	if err != nil {
 		return err
 	}

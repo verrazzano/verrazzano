@@ -79,6 +79,11 @@ func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, comm
 	existingSecret, err := secretsClient.Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
 	if err == nil {
 		log.Infof("Secret %s exists, using...", OperatorTLS)
+		if existingSecret.Labels == nil {
+			existingSecret.Labels = make(map[string]string)
+		}
+		existingSecret.Labels["managed-by"] = OperatorCertLabel
+		secretsClient.Update(context.TODO(), existingSecret, metav1.UpdateOptions{})
 		return existingSecret.Data[CertKey], existingSecret.Data[PrivKey], nil
 	}
 	if !errors.IsNotFound(err) {
@@ -147,10 +152,10 @@ func createTLSCertSecretIfNecesary(log *zap.SugaredLogger, secretsClient corev1.
 	webhookCrt.Data = make(map[string][]byte)
 	webhookCrt.Data[CertKey] = serverPEMBytes
 	webhookCrt.Data[PrivKey] = serverKeyPEMBytes
-	webhookCrt.Labels = map[string]string{
-		"managed-by": OperatorCertLabel,
+	if webhookCrt.Labels == nil {
+		webhookCrt.Labels = make(map[string]string)
 	}
-
+	webhookCrt.Labels["managed-by"] = OperatorCertLabel
 	_, createError := secretsClient.Create(context.TODO(), &webhookCrt, metav1.CreateOptions{})
 	if createError != nil {
 		if errors.IsAlreadyExists(createError) {
@@ -228,9 +233,10 @@ func createCACertSecretIfNecessary(log *zap.SugaredLogger, secretsClient corev1.
 	webhookCA.Data = make(map[string][]byte)
 	webhookCA.Data[CertKey] = caPEMBytes
 	webhookCA.Data[PrivKey] = caKeyPEMBytes
-	webhookCA.Labels = map[string]string{
-		"managed-by": OperatorCertLabel,
+	if webhookCA.Labels == nil {
+		webhookCA.Labels = make(map[string]string)
 	}
+	webhookCA.Labels["managed-by"] = OperatorCertLabel
 
 	_, createError := secretsClient.Create(context.TODO(), &webhookCA, metav1.CreateOptions{})
 	if createError != nil {

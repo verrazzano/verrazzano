@@ -134,6 +134,7 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 		client := action.NewUpgrade(actionConfig)
 		client.Namespace = namespace
 		client.DryRun = dryRun
+		client.Wait = wait
 
 		rel, err = client.Run(releaseName, chart, vals)
 		if err != nil {
@@ -148,6 +149,7 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 		client.ReleaseName = releaseName
 		client.DryRun = dryRun
 		client.Replace = true
+		client.Wait = wait
 
 		rel, err = client.Run(chart, vals)
 		if err != nil {

@@ -46,7 +46,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	vmiCredentials = pkg.EventuallyGetSystemVMICredentials()
 
-	metricsTest, err = pkg.NewMetricsTest([]string{kubeconfig}, kubeconfig, map[string]string{})
+	metricsTest, err = pkg.NewMetricsTest(kubeconfig, map[string]string{})
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
 	}
