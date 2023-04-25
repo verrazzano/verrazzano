@@ -17,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/thanos"
 	"io"
 	"net/http"
 	"os"
@@ -378,6 +379,21 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 						Eventually(assertAdminRole, waitTimeout, pollingInterval).Should(BeTrue())
 					}
 				})
+
+				t.It("Grafana should have a default datasource present", func() {
+					vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+					if err != nil {
+						t.Logs.Errorf("Error getting Verrazzano resource: %v", err)
+						Fail(err.Error())
+					}
+					name := "Prometheus"
+					if vzcr.IsThanosEnabled(vz) {
+						name = "Thanos"
+					}
+					Eventually(func() (bool, error) {
+						return grafanaDefaultDatasourceExists(vz, name, kubeconfigPath)
+					}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(BeTrue())
+				})
 			}
 
 		} else {
@@ -408,12 +424,15 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 
 					expectedPromReplicas, err := getExpectedPrometheusReplicaCount(kubeconfigPath)
 					Expect(err).ToNot(HaveOccurred())
+					expectedThanosReplicas, err := getExpectedThanosReplicaCount(kubeconfigPath)
+					Expect(err).ToNot(HaveOccurred())
+
 					if minVer14 {
 						Expect(len(volumeClaims)).To(Equal(2))
 						assertPersistentVolume("vmi-system-grafana", size)
 						assertPersistentVolume(esMaster0, size)
 
-						Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(expectedPromReplicas)))
+						Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(expectedPromReplicas) + int(expectedThanosReplicas)))
 						assertPrometheusVolume(size)
 					} else {
 						Expect(len(volumeClaims)).To(Equal(3))
@@ -432,9 +451,12 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 
 				expectedPromReplicas, err := getExpectedPrometheusReplicaCount(kubeconfigPath)
 				Expect(err).ToNot(HaveOccurred())
+				expectedThanosReplicas, err := getExpectedThanosReplicaCount(kubeconfigPath)
+				Expect(err).ToNot(HaveOccurred())
+
 				if minVer14 {
 					Expect(len(volumeClaims)).To(Equal(0))
-					Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(expectedPromReplicas)))
+					Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(expectedPromReplicas) + int(expectedThanosReplicas)))
 					assertPrometheusVolume(size)
 				} else {
 					Expect(len(volumeClaims)).To(Equal(1))
@@ -448,9 +470,12 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 
 				expectedPromReplicas, err := getExpectedPrometheusReplicaCount(kubeconfigPath)
 				Expect(err).ToNot(HaveOccurred())
+				expectedThanosReplicas, err := getExpectedThanosReplicaCount(kubeconfigPath)
+				Expect(err).ToNot(HaveOccurred())
+
 				if minVer14 {
 					Expect(len(volumeClaims)).To(Equal(7))
-					Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(expectedPromReplicas)))
+					Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(expectedPromReplicas) + int(expectedThanosReplicas)))
 					assertPrometheusVolume(size)
 				} else {
 					Expect(len(volumeClaims)).To(Equal(8))
@@ -644,6 +669,9 @@ func getExpectedPrometheusReplicaCount(kubeconfig string) (int32, error) {
 	if err != nil {
 		return 0, err
 	}
+	if !vzcr.IsComponentStatusEnabled(vz, operator.ComponentName) {
+		return 0, nil
+	}
 	var expectedReplicas int32 = 1
 	if vz.Spec.Components.PrometheusOperator == nil {
 		return expectedReplicas, nil
@@ -668,6 +696,47 @@ func getExpectedPrometheusReplicaCount(kubeconfig string) (int32, error) {
 	return expectedReplicas, nil
 }
 
+// getExpectedThanosReplicaCount returns the thanos replicas in the values overrides from the
+// Thanos component in the Verrazzano CR. If there is no override for replicas then the
+// default replica count of 1 is returned.
+func getExpectedThanosReplicaCount(kubeconfig string) (int32, error) {
+	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfig)
+	if err != nil {
+		return 0, err
+	}
+	if !vzcr.IsComponentStatusEnabled(vz, thanos.ComponentName) {
+		return 0, nil
+	}
+	expectedReplicas := int32(0)
+	if vz.Spec.Components.Thanos == nil {
+		return expectedReplicas, nil
+	}
+
+	for _, override := range vz.Spec.Components.Thanos.InstallOverrides.ValueOverrides {
+		if override.Values != nil {
+			jsonString, err := gabs.ParseJSON(override.Values.Raw)
+			if err != nil {
+				return expectedReplicas, err
+			}
+			// check to see if storegateway is enabled and if so how many replicas it has
+			if enabledContainer := jsonString.Path("storegateway.enabled"); enabledContainer != nil {
+				if enabled, ok := enabledContainer.Data().(bool); ok && enabled {
+					expectedReplicas = int32(1)
+					if replicaContainer := jsonString.Path("storegateway.replicaCount"); replicaContainer != nil {
+						if val, ok := replicaContainer.Data().(float64); ok {
+							expectedReplicas = int32(val)
+							t.Logs.Infof("Found Thanos storegateway replicas override in Verrazzano CR, replica count is: %d", expectedReplicas)
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return expectedReplicas, nil
+}
+
 func ingressEnabled(vz *vzalpha1.Verrazzano) bool {
 	return vzcr.IsComponentStatusEnabled(vz, nginx.ComponentName) &&
 		vzcr.IsComponentStatusEnabled(vz, certmanager.ComponentName) &&
@@ -680,4 +749,60 @@ func verrazzanoSecretRequired(vz *vzalpha1.Verrazzano) bool {
 		vzcr.IsComponentStatusEnabled(vz, operator.ComponentName) ||
 		vzcr.IsComponentStatusEnabled(vz, grafana.ComponentName) ||
 		vzcr.IsComponentStatusEnabled(vz, kiali.ComponentName)
+}
+
+func grafanaDefaultDatasourceExists(vz *vzalpha1.Verrazzano, name, kubeconfigPath string) (bool, error) {
+	password, err := pkg.GetVerrazzanoPasswordInCluster(kubeconfigPath)
+	if err != nil {
+		t.Logs.Error("Failed to get the Verrazzano password from the cluster")
+		return false, err
+	}
+	if vz == nil || vz.Status.VerrazzanoInstance == nil || vz.Status.VerrazzanoInstance.GrafanaURL == nil {
+		t.Logs.Error("Grafana URL in the Verrazzano status is empty")
+		return false, nil
+	}
+	resp, err := pkg.GetWebPageWithBasicAuth(*vz.Status.VerrazzanoInstance.GrafanaURL+"/api/datasources", "", "verrazzano", password, kubeconfigPath)
+	if err != nil {
+		t.Logs.Errorf("Failed to get Grafana datasources: %v", err)
+		return false, err
+	}
+
+	var datasources []map[string]interface{}
+	err = json.Unmarshal(resp.Body, &datasources)
+	if err != nil {
+		t.Logs.Errorf("Failed to unmarshal Grafana datasources: %v", err)
+		return false, err
+	}
+
+	for _, source := range datasources {
+		sourceName, ok := source["name"]
+		if !ok {
+			t.Logs.Errorf("Failed to find name for Grafana datasource")
+			continue
+		}
+
+		nameStr, ok := sourceName.(string)
+		if !ok {
+			t.Logs.Errorf("Failed to convert name field to string")
+			continue
+		}
+		if nameStr != name {
+			continue
+		}
+
+		sourceDefault, ok := source["isDefault"]
+		if !ok {
+			t.Logs.Errorf("Failed to verify the datasource was the default")
+			continue
+		}
+		defaultBool, ok := sourceDefault.(bool)
+		if !ok {
+			t.Logs.Errorf("Failed to convert default to bool")
+			continue
+		}
+		return defaultBool, nil
+	}
+
+	t.Logs.Errorf("Failed to find Grafana datasource %s", name)
+	return false, nil
 }

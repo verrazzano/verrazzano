@@ -82,6 +82,19 @@ var (
 	DefaultRolloverPeriod  = "1d"
 )
 
+type PolicyList struct {
+	Policies      []InlinePolicy `json:"policies"`
+	TotalPolicies int            `json:"total_policies"`
+}
+
+type InlinePolicy struct {
+	ID             *string   `json:"_id,omitempty"`
+	PrimaryTerm    *int      `json:"_primary_term,omitempty"`
+	SequenceNumber *int      `json:"_seq_no,omitempty"`
+	Status         *int      `json:"status,omitempty"`
+	Policy         ISMPolicy `json:"policy"`
+}
+
 // ISMPolicy definition
 type ISMPolicy struct {
 	PolicyID        string      `json:"policy_id"`
@@ -202,6 +215,8 @@ type IndexListData struct {
 type OpenSearchISMPolicyAddModifier struct{}
 
 type OpenSearchISMPolicyRemoveModifier struct{}
+
+var expectedSystemISMPolicies = []string{"vz-application", "vz-custom"}
 
 func (u OpenSearchISMPolicyAddModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
@@ -378,6 +393,15 @@ func postOpenSearchWithBasicAuth(url, body, username, password, kubeconfigPath s
 		return nil, err
 	}
 	return doReq(url, "POST", "application/json", "", username, password, strings.NewReader(body), retryableClient)
+}
+
+// putOpenSearchWithBasicAuth retries PUT using basic auth
+func putOpenSearchWithBasicAuth(url, body, username, password, kubeconfigPath string) (*HTTPResponse, error) {
+	retryableClient, err := getOpenSearchClient(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return doReq(url, "PUT", "application/json", "", username, password, strings.NewReader(body), retryableClient)
 }
 
 // deleteOpenSearchWithBasicAuth retries DELETE using basic auth
@@ -1192,3 +1216,53 @@ const queryTemplate = `{
   }
 }
 `
+
+func PutISMPolicy(policyData, policyName string) (*HTTPResponse, error) {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		return nil, err
+	}
+	username, password, err := getOpenSearchUsernamePassword(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	policyURL := fmt.Sprintf("%s/_plugins/_ism/policies/%s", getOpenSearchURL(kubeconfigPath), policyName)
+	resp, err := putOpenSearchWithBasicAuth(policyURL, policyData, username, password, kubeconfigPath)
+	return resp, err
+}
+
+func CheckISMPolicy() (bool, error) {
+	result := false
+	counter := 0
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		return false, err
+	}
+	username, password, err := getOpenSearchUsernamePassword(kubeconfigPath)
+	if err != nil {
+		return false, err
+	}
+	policyURL := fmt.Sprintf("%s/_plugins/_ism/policies/", getOpenSearchURL(kubeconfigPath))
+	resp, err := getOpenSearchWithBasicAuth(policyURL, "", username, password, kubeconfigPath)
+	if err != nil {
+		return result, err
+	}
+	if resp.StatusCode == http.StatusOK {
+		policies := &PolicyList{}
+		err = json.Unmarshal(resp.Body, &policies)
+		if err != nil {
+			fmt.Println("error while processing", err)
+		}
+		for _, pl := range policies.Policies {
+			for _, policy := range expectedSystemISMPolicies {
+				if pl.Policy.PolicyID == policy {
+					counter++
+				}
+			}
+		}
+		if counter == len(expectedSystemISMPolicies) {
+			return true, nil
+		}
+	}
+	return false, nil
+}

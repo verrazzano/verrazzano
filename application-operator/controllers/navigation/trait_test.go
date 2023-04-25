@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package navigation
@@ -40,8 +40,8 @@ func TestFetchTrait(t *testing.T) {
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
 	name = types.NamespacedName{Namespace: "test-namespace", Name: "test-name"}
-	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(name), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, trait *vzapi.MetricsTrait) error {
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(name), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, trait *vzapi.MetricsTrait, opts ...client.GetOption) error {
 			trait.Name = "test-name"
 			return nil
 		})
@@ -56,8 +56,8 @@ func TestFetchTrait(t *testing.T) {
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
 	name = types.NamespacedName{Namespace: "test-namespace", Name: "test-name"}
-	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(name), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, trait *vzapi.MetricsTrait) error {
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(name), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, trait *vzapi.MetricsTrait, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(schema.GroupResource{Group: trait.APIVersion, Resource: trait.Kind}, key.Name)
 		})
 	trait, err = FetchTrait(context.TODO(), cli, zap.S(), name)
@@ -70,8 +70,8 @@ func TestFetchTrait(t *testing.T) {
 	// THEN verify that the error is propagated
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
-	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(name), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, trait *vzapi.MetricsTrait) error {
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(name), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, trait *vzapi.MetricsTrait, opts ...client.GetOption) error {
 			return fmt.Errorf("test-error")
 		})
 	name = types.NamespacedName{Namespace: "test-namespace", Name: "test-name"}
@@ -104,8 +104,8 @@ func TestFetchWorkloadFromTrait(t *testing.T) {
 		Spec: vzapi.IngressTraitSpec{WorkloadReference: oamrt.TypedReference{
 			APIVersion: "core.oam.dev/v1alpha2", Kind: "ContainerizedWorkload", Name: "test-workload-name"}}}
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "test-trait-namespace", Name: "test-workload-name"}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "test-trait-namespace", Name: "test-workload-name"}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured, opts ...client.GetOption) error {
 			obj.SetNamespace(key.Namespace)
 			obj.SetName(key.Name)
 			return nil
@@ -128,8 +128,8 @@ func TestFetchWorkloadFromTrait(t *testing.T) {
 		Spec: vzapi.IngressTraitSpec{WorkloadReference: oamrt.TypedReference{
 			APIVersion: "core.oam.dev/v1alpha2", Kind: "ContainerizedWorkload", Name: "test-workload-name"}}}
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "test-trait-namespace", Name: "test-workload-name"}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "test-trait-namespace", Name: "test-workload-name"}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured, opts ...client.GetOption) error {
 			return fmt.Errorf("test-error")
 		})
 	uns, err = FetchWorkloadFromTrait(ctx, cli, vzlog.DefaultLogger(), trait)
@@ -165,8 +165,8 @@ func TestFetchWorkloadFromTrait(t *testing.T) {
 
 	// expect a call to fetch the referenced workload
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "test-trait-namespace", Name: "test-workload-name"}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "test-trait-namespace", Name: "test-workload-name"}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured, opts ...client.GetOption) error {
 			obj.SetNamespace(key.Namespace)
 			obj.SetName(key.Name)
 			obj.SetAPIVersion(workloadAPIVersion)
@@ -176,8 +176,8 @@ func TestFetchWorkloadFromTrait(t *testing.T) {
 		})
 	// expect a call to fetch the contained workload that is wrapped by the Verrazzano workload
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "test-trait-namespace", Name: containedName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "test-trait-namespace", Name: containedName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured, opts ...client.GetOption) error {
 			obj.SetUnstructuredContent(containedResource)
 			obj.SetAPIVersion(containedAPIVersion)
 			obj.SetKind(containedKind)
@@ -204,8 +204,8 @@ func TestFetchWorkloadFromTrait(t *testing.T) {
 		Spec: vzapi.IngressTraitSpec{WorkloadReference: oamrt.TypedReference{
 			APIVersion: "oam.verrazzano.io/v1alpha1", Kind: "VerrazzanoHelidonWorkload", Name: "test-helidon-workload"}}}
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "test-trait-namespace", Name: "test-helidon-workload"}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "test-trait-namespace", Name: "test-helidon-workload"}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured, opts ...client.GetOption) error {
 			obj.SetNamespace(key.Namespace)
 			obj.SetName(key.Name)
 			return nil
@@ -279,8 +279,8 @@ func TestFetchWorkloadResource(t *testing.T) {
 	unstructured.SetNestedMap(uns.Object, containedResource, "spec", "template")
 	// expect a call to fetch the contained workload that is wrapped by the Verrazzano workload
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: containedNamespace, Name: containedName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: containedNamespace, Name: containedName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured, opts ...client.GetOption) error {
 			obj.SetUnstructuredContent(containedResource)
 			obj.SetAPIVersion(containedAPIVersion)
 			obj.SetKind(containedKind)
@@ -324,8 +324,8 @@ func TestFetchWorkloadResource(t *testing.T) {
 	unstructured.SetNestedMap(uns.Object, containedResource, "spec", "template")
 	// expect a call to fetch the contained workload that is wrapped by the Verrazzano workload and return error
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: containedNamespace, Name: containedName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: containedNamespace, Name: containedName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured, opts ...client.GetOption) error {
 			return fmt.Errorf("test-error")
 		})
 

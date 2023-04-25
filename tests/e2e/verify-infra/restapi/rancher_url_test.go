@@ -95,18 +95,6 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 
 				if minVer14 {
 					start = time.Now()
-					t.Logs.Info("Verify OCI driver status")
-					Eventually(func() (bool, error) {
-						ociDriverData, err := k8sClient.Resource(pkg.GvkToGvr(rancher.GVKNodeDriver)).Get(context.Background(), rancher.NodeDriverOCI, v1.GetOptions{})
-						if err != nil {
-							t.Logs.Error(fmt.Sprintf("Error getting OCI Driver CR: %v", err))
-							return false, err
-						}
-						return ociDriverData.UnstructuredContent()["spec"].(map[string]interface{})["active"].(bool), nil
-					}, waitTimeout, pollingInterval).Should(Equal(true), "rancher OCI driver not activated")
-					metrics.Emit(t.Metrics.With("get_oci_driver_state_elapsed_time", time.Since(start).Milliseconds()))
-
-					start = time.Now()
 					t.Logs.Info("Verify OKE driver status")
 					Eventually(func() (bool, error) {
 						okeDriverData, err := k8sClient.Resource(pkg.GvkToGvr(rancher.GVKKontainerDriver)).Get(context.Background(), rancher.KontainerDriverOKE, v1.GetOptions{})

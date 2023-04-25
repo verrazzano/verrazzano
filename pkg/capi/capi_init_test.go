@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package capi
 
@@ -28,6 +28,10 @@ type FakeCAPIClient struct{}
 
 func (f *FakeCAPIClient) GetProvidersConfig() ([]client.Provider, error) {
 	return []client.Provider{}, nil
+}
+
+func (f *FakeCAPIClient) GenerateProvider(provider string, providerType v1alpha3.ProviderType, options client.ComponentsOptions) (client.Components, error) {
+	return nil, nil
 }
 
 func (f *FakeCAPIClient) GetProviderComponents(provider string, providerType v1alpha3.ProviderType, options client.ComponentsOptions) (client.Components, error) {

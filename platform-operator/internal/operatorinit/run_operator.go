@@ -89,6 +89,10 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 		return errors.Wrap(err, "Failed to setup controller for Verrazzano Stacks")
 	}
 
+	if config.ExperimentalModules {
+		log.Infof("Experimental Modules API enabled")
+	}
+
 	// +kubebuilder:scaffold:builder
 	log.Info("Starting controller-runtime manager")
 	if err := mgr.Start(controllerruntime.SetupSignalHandler()); err != nil {

@@ -60,7 +60,7 @@ type erroringFakeClient struct {
 
 const tooManyRequests = "too many requests"
 
-func (e *erroringFakeClient) Get(_ context.Context, _ client.ObjectKey, _ client.Object) error {
+func (e *erroringFakeClient) Get(_ context.Context, _ client.ObjectKey, _ client.Object, _ ...client.GetOption) error {
 	return errors.NewTooManyRequests(tooManyRequests, 0)
 }
 
@@ -338,23 +338,23 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 
 	// isLegacyDatabaseUpgrade
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret, opts ...client.GetOption) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
 			dep.Data = map[string][]byte{notDepFound: []byte("false")}
 			return nil
 		})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment, opts ...client.GetOption) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
 			return nil
 		})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret, opts ...client.GetOption) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
 			return nil
@@ -369,8 +369,8 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 
 	// isDatabaseMigrationStageCompleted
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret, opts ...client.GetOption) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
 			dep.Data = map[string][]byte{notPVCDelete: []byte("false")}
@@ -378,15 +378,15 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 		})
 	// get PVC
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim, opts ...client.GetOption) error {
 			pvc.Spec.VolumeName = "pv-name"
 			return nil
 		})
 	// RetainPersistentVolume
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: "pv-name"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pv *v1.PersistentVolume) error {
+		Get(gomock.Any(), types.NamespacedName{Name: "pv-name"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pv *v1.PersistentVolume, opts ...client.GetOption) error {
 			return nil
 		})
 	mock.EXPECT().
@@ -413,8 +413,8 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 		})
 	// updateDBMigrationInProgressSecret(ctx, pvcDeletedStage)
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret, opts ...client.GetOption) error {
 			secret.Name = name.Name
 			secret.Namespace = name.Namespace
 			return nil
@@ -427,8 +427,8 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 		})
 	// UpdateExistingVolumeClaims
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret, opts ...client.GetOption) error {
 			secret.Name = name.Name
 			secret.Namespace = name.Namespace
 			return nil
@@ -462,8 +462,8 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 		})
 	// createPVCFromPV
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: legacyDBDumpClaim}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: legacyDBDumpClaim}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim, opts ...client.GetOption) error {
 			return nil
 		})
 	mock.EXPECT().
@@ -474,8 +474,8 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 			return nil
 		})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret, opts ...client.GetOption) error {
 			secret.Name = name.Name
 			secret.Namespace = name.Namespace
 			return nil
@@ -488,13 +488,13 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 		})
 	// Expect a calls to get and create the load job
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbLoadJobName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbLoadJobName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job, opts ...client.GetOption) error {
 			return errors.NewNotFound(schema.GroupResource{Group: "batchv1", Resource: "Job"}, name.Name)
 		})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret, opts ...client.GetOption) error {
 			secret.Name = secretName
 			secret.Data = map[string][]byte{}
 			secret.Data["mysql-root-password"] = []byte("test-root-key")
@@ -548,23 +548,23 @@ func TestPreUpgradeDevProfile(t *testing.T) {
 
 	// isLegacyDatabaseUpgrade
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret, opts ...client.GetOption) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
 			dep.Data = map[string][]byte{notDepFound: []byte("false")}
 			return nil
 		})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment, opts ...client.GetOption) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
 			return nil
 		})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret, opts ...client.GetOption) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
 			return nil
@@ -579,8 +579,8 @@ func TestPreUpgradeDevProfile(t *testing.T) {
 
 	// isDatabaseMigrationStageCompleted
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret, opts ...client.GetOption) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
 			dep.Data = map[string][]byte{notPVCDelete: []byte("false")}
@@ -588,8 +588,8 @@ func TestPreUpgradeDevProfile(t *testing.T) {
 		})
 	// get PVC
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim, opts ...client.GetOption) error {
 			return errors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "PersistenceVolumeClaim"}, name.Name)
 		})
 
@@ -637,16 +637,16 @@ func TestPreUpgradeForStatefulSetMySQL(t *testing.T) {
 
 	// isLegacyDatabaseUpgrade
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret, opts ...client.GetOption) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
 			dep.Data = map[string][]byte{notDepFound: []byte("false")}
 			return nil
 		})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment, opts ...client.GetOption) error {
 			return errors.NewNotFound(schema.GroupResource{Group: "appsv1", Resource: "Deployment"}, name.Name)
 		})
 
@@ -694,8 +694,8 @@ func TestPostUpgradeProdProfile(t *testing.T) {
 
 	// cleanupDbMigrationJob
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbLoadJobName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbLoadJobName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job, opts ...client.GetOption) error {
 			job.Name = dbLoadJobName
 			return nil
 		})
@@ -772,8 +772,8 @@ func TestPostUpgradeDevProfile(t *testing.T) {
 
 	// cleanupDbMigrationJob
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbLoadJobName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbLoadJobName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job, opts ...client.GetOption) error {
 			return errors.NewNotFound(schema.GroupResource{Group: "batch", Resource: "Job"}, name.Name)
 		})
 	// deleteDbMigrationSecret
@@ -819,23 +819,23 @@ func TestAppendMySQLOverridesUpgradeLegacyDevProfile(t *testing.T) {
 
 	// isLegacyDatabaseUpgrade
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret, opts ...client.GetOption) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
 			dep.Data = map[string][]byte{notDepFound: []byte("false")}
 			return nil
 		})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment, opts ...client.GetOption) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
 			return nil
 		})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret, opts ...client.GetOption) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
 			return nil
@@ -848,24 +848,24 @@ func TestAppendMySQLOverridesUpgradeLegacyDevProfile(t *testing.T) {
 		})
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret, opts ...client.GetOption) error {
 			secret.Name = secretName
 			secret.Data = map[string][]byte{}
 			secret.Data["mysql-root-password"] = []byte("test-root-key")
 			return nil
 		})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret, opts ...client.GetOption) error {
 			secret.Name = secretName
 			secret.Data = map[string][]byte{}
 			secret.Data["mysql-password"] = []byte("test-user-key")
 			return nil
 		})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret, opts ...client.GetOption) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
 			dep.Data = map[string][]byte{notPVCDelete: []byte("false")}
@@ -873,8 +873,8 @@ func TestAppendMySQLOverridesUpgradeLegacyDevProfile(t *testing.T) {
 		})
 	// get PVC
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim, opts ...client.GetOption) error {
 			return errors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "PersistentVolumeClaim"}, name.Name)
 		})
 
@@ -908,16 +908,16 @@ func TestAppendMySQLOverridesUpgradeDevProfile(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	// isLegacyDatabaseUpgrade
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret, opts ...client.GetOption) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
 			dep.Data = map[string][]byte{notDepFound: []byte("false")}
 			return nil
 		})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment, opts ...client.GetOption) error {
 			return errors.NewNotFound(schema.GroupResource{Group: "appsv1", Resource: "Deployment"}, name.Name)
 		})
 
@@ -965,21 +965,21 @@ func TestAppendMySQLOverridesUpgradeLegacyProdProfile(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	// isLegacyDatabaseUpgrade
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret, opts ...client.GetOption) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
 			dep.Data = map[string][]byte{notDepFound: []byte("false")}
 			return nil
 		})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment, opts ...client.GetOption) error {
 			return nil
 		})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret, opts ...client.GetOption) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
 			return nil
@@ -992,29 +992,29 @@ func TestAppendMySQLOverridesUpgradeLegacyProdProfile(t *testing.T) {
 		})
 	// appendLegacyUpgradeBaseValues
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret, opts ...client.GetOption) error {
 			secret.Data = map[string][]byte{rootPasswordKey: []byte("test-root-key")}
 			return nil
 		})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret, opts ...client.GetOption) error {
 			secret.Data = map[string][]byte{secretKey: []byte("test-user-key")}
 			return nil
 		})
 	// get PVC
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret, opts ...client.GetOption) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
 			dep.Data = map[string][]byte{notPVCDelete: []byte("false")}
 			return nil
 		})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim, opts ...client.GetOption) error {
 			return nil
 		})
 	mock.EXPECT().

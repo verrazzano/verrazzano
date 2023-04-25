@@ -103,7 +103,7 @@ func verifyThanosIngress() {
 func verifyThanosStore() {
 	for _, managedCluster := range managedClusters {
 		gomega.Eventually(func() (bool, error) {
-			metricsTest, err := pkg.NewMetricsTest([]string{adminCluster.KubeConfigPath, managedCluster.KubeConfigPath}, adminCluster.KubeConfigPath, map[string]string{})
+			metricsTest, err := pkg.NewMetricsTest(adminCluster.KubeConfigPath, map[string]string{}, managedCluster.KubeConfigPath)
 			if err != nil {
 				t.Logs.Errorf("Failed to create metrics test object for cluster: %v", err)
 				return false, err
