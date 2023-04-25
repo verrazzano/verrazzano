@@ -98,7 +98,7 @@ func preInstall(ctx spi.ComponentContext) error {
 	}
 
 	// Create the clusterctl.yaml used when initializing CAPI.
-	return os.WriteFile("/verrazzano/.cluster-api/clusterctl.yaml", result.Bytes(), 0644)
+	return os.WriteFile("/verrazzano/.cluster-api/clusterctl.yaml", result.Bytes(), 0600)
 }
 
 // getImageOverrides returns the CAPI provider image overrides and versions from the Verrazzano bom
