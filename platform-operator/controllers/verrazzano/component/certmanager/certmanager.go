@@ -153,7 +153,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 	}
 
 	// Verify that we are using CA certs before appending override
-	isCAValue, err := isCA(compContext)
+	isCAValue, err := IsCA(compContext)
 	if err != nil {
 		err = compContext.Log().ErrorfNewErr("Failed to verify the config type: %v", err)
 		return []bom.KeyValue{}, err
@@ -240,7 +240,7 @@ func createSnippetWithPadding(padding string) []byte {
 }
 
 // Check if cert-type is CA, if not it is assumed to be Acme
-func isCA(compContext spi.ComponentContext) (bool, error) {
+func IsCA(compContext spi.ComponentContext) (bool, error) {
 	comp := vzapi.ConvertCertManagerToV1Beta1(compContext.EffectiveCR().Spec.Components.CertManager)
 	return validateConfiguration(comp)
 }

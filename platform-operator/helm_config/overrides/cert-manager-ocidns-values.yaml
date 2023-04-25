@@ -1,0 +1,16 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+# The GroupName here is used to identify the company or business unit that created this webhook.
+groupName: verrazzano.io
+
+certManager:
+  namespace: cert-manager
+  serviceAccountName: cert-manager
+
+image:
+  repository: ghcr.io/verrazzano/cert-manager-ocidns-provider
+  tag: 1.0.0
+
+nameOverride: "cert-manager-ocidns-provider"
+fullnameOverride: "cert-manager-ocidns-provider"

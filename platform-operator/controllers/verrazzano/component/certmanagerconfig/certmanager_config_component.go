@@ -4,16 +4,16 @@
 package certmanagerconfig
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-	"k8s.io/apimachinery/pkg/runtime"
-
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerocidns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // ComponentName is the name of the component
@@ -44,7 +44,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_0_0,
-			Dependencies:              []string{networkpolicies.ComponentName, certmanager.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, certmanager.ComponentName, certmanagerocidns.ComponentName},
 		},
 	}
 }
@@ -64,6 +64,9 @@ func (c certManagerConfigComponent) IsReady(ctx spi.ComponentContext) bool {
 }
 
 func (c certManagerConfigComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
+	if err := common.CertManagerExistsInCluster(ctx.Log()); err != nil {
+		return false, nil
+	}
 	return c.verrazzanoCertManagerResourcesReady(ctx), nil
 }
 

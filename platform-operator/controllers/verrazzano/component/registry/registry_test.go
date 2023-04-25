@@ -7,6 +7,8 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerconfig"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerocidns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -98,7 +100,7 @@ func TestGetComponents(t *testing.T) {
 	comps := GetComponents()
 
 	var i int
-	a.Len(comps, 36, "Wrong number of components")
+	a.Len(comps, 37, "Wrong number of components")
 	a.Equal(comps[i].Name(), networkpolicies.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), oam.ComponentName)
@@ -112,6 +114,8 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[i].Name(), nginx.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), certmanager.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), certmanagerocidns.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), certmanagerconfig.ComponentName)
 	i++
@@ -653,8 +657,8 @@ func TestComponentDependenciesMetStateCheckCompDisabled(t *testing.T) {
 // WHEN Newcontext is called
 // THEN all components referred from the registry are disabled except for network-policies
 func TestNoneProfileInstalledAllComponentsDisabled(t *testing.T) {
-	defer func() { certmanagerconfig.ResetAPIExtV1ClientFunc() }()
-	certmanagerconfig.SetAPIExtV1ClientFunc(getAPIExtTestClient())
+	defer func() { common.ResetAPIExtV1ClientFunc() }()
+	common.SetAPIExtV1ClientFunc(getAPIExtTestClient())
 	config.TestProfilesDir = profileDir
 	defer func() { config.TestProfilesDir = "" }()
 	t.Run("TestNoneProfileInstalledAllComponentsDisabled", func(t *testing.T) {

@@ -106,12 +106,14 @@ spec:
       name: {{.AcmeSecretName}}
     solvers:
       - dns01:
-          ocidns:
-            useInstancePrincipals: {{ .UseInstancePrincipals}}
-            serviceAccountSecretRef:
-              name: {{.SecretName}}
-              key: "oci.yaml"
-            ocizonename: {{.OCIZoneName}}`
+          webhook:
+            groupName: verrazzano.io
+            solverName: oci
+            config:
+              useInstancePrincipals: false
+              ociProfileSecretName: {{.SecretName}}
+              ociProfileSecretKey: "oci.yaml"
+              ociZoneName: {{.OCIZoneName}}`
 
 // Template data for ClusterIssuer
 type templateData struct {
@@ -123,6 +125,38 @@ type templateData struct {
 	OCIZoneName           string
 	UseInstancePrincipals bool
 }
+
+//const clusterIssuerTemplate = `
+//apiVersion: cert-manager.io/v1
+//kind: ClusterIssuer
+//metadata:
+//  name: {{.ClusterIssuerName}}
+//spec:
+//  acme:
+//    email: {{.Email}}
+//    server: "{{.Server}}"
+//    preferredChain: ""
+//    privateKeySecretRef:
+//      name: {{.AcmeSecretName}}
+//    solvers:
+//      - dns01:
+//          ocidns:
+//            useInstancePrincipals: {{ .UseInstancePrincipals}}
+//            serviceAccountSecretRef:
+//              name: {{.SecretName}}
+//              key: "oci.yaml"
+//            ocizonename: {{.OCIZoneName}}`
+//
+//// Template data for ClusterIssuer
+//type templateData struct {
+//	AcmeSecretName        string
+//	ClusterIssuerName     string
+//	Email                 string
+//	Server                string
+//	SecretName            string
+//	OCIZoneName           string
+//	UseInstancePrincipals bool
+//}
 
 // CertIssuerType identifies the certificate issuer type
 type CertIssuerType string
