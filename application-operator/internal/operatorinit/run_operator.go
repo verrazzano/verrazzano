@@ -38,7 +38,7 @@ import (
 func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, defaultMetricsScraper string, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
 	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog2.DefaultLogger())
 	if err != nil {
-		return errors.Wrapf(err, "Failed to determin Ingress NGINX namespace")
+		return errors.Wrapf(err, "Failed to determine Ingress NGINX namespace")
 	}
 	nginxutil.SetIngressNGINXNamespace(ingressNGINXNamespace)
 

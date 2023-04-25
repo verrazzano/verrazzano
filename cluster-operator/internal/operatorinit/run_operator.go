@@ -45,7 +45,7 @@ func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAd
 
 	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
 	if err != nil {
-		return errors.Wrapf(err, "Failed to determin Ingress NGINX namespace")
+		return errors.Wrapf(err, "Failed to determind Ingress NGINX namespace")
 	}
 	nginxutil.SetIngressNGINXNamespace(ingressNGINXNamespace)
 
