@@ -29,24 +29,17 @@ func IngressNGINXNamespace() string {
 // DetermineNamespaceForIngressNGINX determines the namespace for Ingress NGINX
 func DetermineNamespaceForIngressNGINX(log vzlog.VerrazzanoLogger) (string, error) {
 	// Check if Verrazzano NGINX is installed in the ingress-nginx namespace
-	installed, err := isVzNGINXInstalledInNamespace(log, helmReleaseName, vpoconst.LegacyIngressNginxNamespace)
+	legacy, err := isLegacyNGINXNamespace(log, helmReleaseName, vpoconst.LegacyIngressNginxNamespace)
 	if err != nil {
 		log.ErrorfNewErr("Failed checking if the old ingress-nginx chart %s/%s is installed: %v", vpoconst.LegacyIngressNginxNamespace, helmReleaseName, err.Error())
 	}
-	if installed {
-		// If Ingress NGINX is already installed ingress-nginx then don't change it.
-		// This is to avoid creating a new service in the new namespace, thus causing an
-		// LB to be created.
-		log.Infof("Ingress NGINX namespace is %s", vpoconst.LegacyIngressNginxNamespace)
-		return vpoconst.LegacyIngressNginxNamespace, nil
-	}
-
+	ingressNGINXNamespace = getNamespaceForIngressNGINX(legacy)
 	log.Infof("Ingress NGINX namespace is %s", vpoconst.IngressNginxNamespace)
-	return vpoconst.IngressNginxNamespace, nil
+	return ingressNGINXNamespace, nil
 }
 
-// isNGINXInstalledInOldNamespace determines the namespace for Ingress NGINX
-func isVzNGINXInstalledInNamespace(log vzlog.VerrazzanoLogger, releaseName string, namespace string) (bool, error) {
+// isLegacyNGINXNamespace determines the namespace for Ingress NGINX
+func isLegacyNGINXNamespace(log vzlog.VerrazzanoLogger, releaseName string, namespace string) (bool, error) {
 	const vzClass = "verrazzano-nginx"
 
 	// Define structs needed to marshal YAML.  Fields must be public
@@ -84,4 +77,14 @@ func isVzNGINXInstalledInNamespace(log vzlog.VerrazzanoLogger, releaseName strin
 		}
 	}
 	return false, nil
+}
+
+func getNamespaceForIngressNGINX(legacy bool) string {
+	if legacy {
+		// If Ingress NGINX is already installed ingress-nginx then don't change it.
+		// This is to avoid creating a new service in the new namespace, thus causing an
+		// LB to be created.
+		return vpoconst.LegacyIngressNginxNamespace
+	}
+	return vpoconst.IngressNginxNamespace
 }

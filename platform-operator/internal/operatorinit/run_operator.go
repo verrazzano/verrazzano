@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"sync"
 	"time"
 
@@ -26,6 +27,16 @@ import (
 
 // StartPlatformOperator Platform operator execution entry point
 func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
+	// Determin NGINX namespace before initializing components
+	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog2.DefaultLogger())
+	if err != nil {
+		return errors.Wrapf(err, "Failed to determine Ingress NGINX namespace")
+	}
+	nginxutil.SetIngressNGINXNamespace(ingressNGINXNamespace)
+
+	registry.InitRegistry()
+	metricsexporter.Init()
+
 	mgr, err := controllerruntime.NewManager(k8sutil.GetConfigOrDieFromController(), controllerruntime.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: config.MetricsAddr,
@@ -38,12 +49,6 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 	}
 
 	metricsexporter.StartMetricsServer(log)
-
-	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog2.DefaultLogger())
-	if err != nil {
-		return errors.Wrapf(err, "Failed to determine Ingress NGINX namespace")
-	}
-	nginxutil.SetIngressNGINXNamespace(ingressNGINXNamespace)
 
 	// Set up the reconciler
 	statusUpdater := healthcheck.NewStatusUpdater(mgr.GetClient())
