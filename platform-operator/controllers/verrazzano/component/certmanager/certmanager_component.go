@@ -283,10 +283,10 @@ func (c certManagerComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	return false
 }
 
-func checkExistingCertManager(_ runtime.Object) error {
-	//if !vzcr.IsCertManagerEnabled(vz) {
-	//	return nil
-	//}
+func checkExistingCertManager(vz runtime.Object) error {
+	if !vzcr.IsCertManagerEnabled(vz) {
+		return nil
+	}
 	client, err := k8sutil.GetCoreV1Func()
 	if err != nil {
 		return err
