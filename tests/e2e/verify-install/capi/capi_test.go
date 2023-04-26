@@ -83,7 +83,6 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
 	}
-
 	if isCAPIInstalled {
 		update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
 		update.ValidatePods(capiLabelValue, capiLabelKey, constants.VerrazzanoCAPINamespace, uint32(0), false)
@@ -95,19 +94,24 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	kubeconfigPath := getKubeConfigOrAbort()
 
+	isCAPIInstalled = vzcr.IsCAPIEnabled(inClusterVZ)
 	isCAPISupported, err = pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfigPath)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %v", err))
 	}
-	if isCAPISupported {
+
+	if isCAPISupported && !isCAPIInstalled {
 		update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
+		isCAPIInstalled = vzcr.IsCAPIEnabled(inClusterVZ)
+	}
+
+	if isCAPISupported && isCAPIInstalled {
 		update.ValidatePods(capiLabelValue, capiLabelKey, constants.VerrazzanoCAPINamespace, uint32(4), false)
 	}
 	inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
 	}
-	isCAPIInstalled = vzcr.IsCAPIEnabled(inClusterVZ)
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -135,6 +139,7 @@ var _ = AfterSuite(afterSuite)
 // 'It' Wrapper to only run spec if the CAPI is supported on the current Verrazzano version and is installed
 func WhenCapiInstalledIt(description string, f func()) {
 	t.It(description, func() {
+		isCAPIInstalled = vzcr.IsCAPIEnabled(inClusterVZ)
 		if isCAPISupported && isCAPIInstalled {
 			f()
 		} else {
