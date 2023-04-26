@@ -21,8 +21,8 @@ import (
 const (
 	waitTimeout     = 3 * time.Minute
 	pollingInterval = 10 * time.Second
-	capiLabelValue  = "control-plane"
-	capiLabelKey    = "controller-manager"
+	capiLabelValue  = "controller-manager"
+	capiLabelKey    = "control-plane"
 )
 
 var (
