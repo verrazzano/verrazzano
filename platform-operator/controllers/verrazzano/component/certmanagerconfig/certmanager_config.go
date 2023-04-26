@@ -108,7 +108,7 @@ spec:
             groupName: verrazzano.io
             solverName: oci
             config:
-              useInstancePrincipals: false
+              useInstancePrincipals: {{ .UseInstancePrincipals }}
               ociProfileSecretName: {{.SecretName}}
               ociProfileSecretKey: "oci.yaml"
               ociZoneName: {{.OCIZoneName}}`
