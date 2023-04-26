@@ -42,7 +42,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0].name",
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "cert-manager-ocidns-values.yaml"),
+			//ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "cert-manager-ocidns-values.yaml"),
 			//AppendOverridesFunc:     AppendOverrides,
 			MinVerrazzanoVersion: constants.VerrazzanoVersion1_0_0,
 			Dependencies:         []string{networkpolicies.ComponentName, certmanager.ComponentName},

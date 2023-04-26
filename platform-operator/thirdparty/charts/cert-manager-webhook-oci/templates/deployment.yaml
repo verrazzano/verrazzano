@@ -31,12 +31,13 @@ spec:
           args:
             - --tls-cert-file=/tls/tls.crt
             - --tls-private-key-file=/tls/tls.key
+            - --secure-port={{ .Values.securePort }}
           env:
             - name: GROUP_NAME
               value: {{ .Values.groupName | quote }}
           ports:
             - name: https
-              containerPort: 443
+              containerPort: {{ .Values.securePort }}
               protocol: TCP
           livenessProbe:
             httpGet:

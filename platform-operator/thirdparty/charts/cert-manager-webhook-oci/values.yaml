@@ -4,26 +4,28 @@
 # solve the DNS01 challenge.
 # This group name should be **unique**, hence using your own company's domain
 # here is recommended.
-groupName: acme.d-n.be
+groupName: verrazzano.io
 
 certManager:
   namespace: cert-manager
   serviceAccountName: cert-manager
 
 image:
-  repository: registry.gitlab.com/dn13/cert-manager-webhook-oci
-  tag: latest
+  repository: ghcr.io/verrazzano/cert-manager-ocidns-provider
+  tag: 1.0.0
   pullPolicy: IfNotPresent
 
 global:
   imagePullSecrets: []
 
-nameOverride: ""
-fullnameOverride: ""
+nameOverride: "cert-manager-ocidns-provider"
+fullnameOverride: "cert-manager-ocidns-provider"
 
 service:
   type: ClusterIP
   port: 443
+
+securePort: 9443
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
@@ -43,15 +45,15 @@ tolerations: []
 
 affinity: {}
 
-#securityContext:
-#  allowPrivilegeEscalation: false
-#  privileged: false
-#  runAsNonRoot: true
-#  runAsUser: 1000
-#  runAsGroup: 0
-#  capabilities:
-#    drop:
-#      - ALL
+securityContext:
+  allowPrivilegeEscalation: false
+  privileged: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 999
+  capabilities:
+    drop:
+      - ALL
 
 podSecurityContext:
   seccompProfile:
