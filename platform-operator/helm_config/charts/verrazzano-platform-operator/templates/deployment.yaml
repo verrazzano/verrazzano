@@ -84,6 +84,19 @@ spec:
             capabilities:
               drop:
                 - ALL
+          volumeMounts:
+            - name: chart-dir
+              mountPath: /home/verrazzano/charts/thirdparty
+        - name: helm-charts
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          image: {{ .Values.helm.image }}
+          command: [ 'sh', '-c', "/scripts/extract-chart.sh" ]
+          volumeMounts:
+            - name: chart-dir
+              mountPath: /charts
+      volumes:
+        - name: chart-dir
+          emptyDir: {}
       serviceAccountName: {{ .Values.name }}
       securityContext:
         runAsUser: 1000

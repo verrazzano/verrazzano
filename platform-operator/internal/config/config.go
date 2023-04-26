@@ -11,21 +11,29 @@ import (
 )
 
 const (
-	rootDir                      = "/verrazzano"
-	platformDirSuffix            = "/platform-operator"
-	profilesDirSuffix            = "/platform-operator/manifests/profiles"
-	installDirSuffix             = "/platform-operator/scripts/install"
-	thirdPartyDirSuffix          = "/platform-operator/thirdparty/charts"
+	rootDir           = "/verrazzano"
+	platformDirSuffix = "/platform-operator"
+	profilesDirSuffix = "/platform-operator/manifests/profiles"
+	installDirSuffix  = "/platform-operator/scripts/install"
+	// thirdPartyDirSuffix          = "/platform-operator/thirdparty/charts"
+	thirdPartyDirSuffix          = "/home/verrazzano/charts/thirdparty"
 	thirdPartyManifestsDirSuffix = "/platform-operator/thirdparty/manifests"
 	helmConfigDirSuffix          = "/platform-operator/helm_config"
 	helmChartsDirSuffix          = "/platform-operator/helm_config/charts"
 	helmVMOChartsDirSuffix       = "/platform-operator/helm_config/charts/verrazzano-monitoring-operator"
 	helmAppOpChartsDirSuffix     = "/platform-operator/helm_config/charts/verrazzano-application-operator"
 	helmClusterOpChartsDirSuffix = "/platform-operator/helm_config/charts/verrazzano-cluster-operator"
-	helmKialiChartsDirSuffix     = "/platform-operator/thirdparty/charts/kiali-server"
-	helmPromOpChartsDirSuffix    = "/platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack"
-	helmOamChartsDirSuffix       = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
-	helmOverridesDirSuffix       = "/platform-operator/helm_config/overrides"
+
+	//helmKialiChartsDirSuffix     = "/platform-operator/thirdparty/charts/kiali-server"
+	helmKialiChartsDirSuffix = thirdPartyDirSuffix + "/kiali-server"
+
+	//helmPromOpChartsDirSuffix    = "/platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack"
+	helmPromOpChartsDirSuffix = thirdPartyDirSuffix + "/prometheus-community/kube-prometheus-stack"
+
+	//helmOamChartsDirSuffix       = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
+	helmOamChartsDirSuffix = thirdPartyDirSuffix + "/oam-kubernetes-runtime"
+
+	helmOverridesDirSuffix = "/platform-operator/helm_config/overrides"
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
@@ -159,7 +167,8 @@ func GetHelmPromOpChartsDir() string {
 	if TestHelmConfigDir != "" {
 		return filepath.Join(TestHelmConfigDir, "/charts/prometheus-community/kube-prometheus-stack")
 	}
-	return filepath.Join(instance.VerrazzanoRootDir, helmPromOpChartsDirSuffix)
+	// return filepath.Join(instance.VerrazzanoRootDir, helmPromOpChartsDirSuffix)
+	return helmPromOpChartsDirSuffix
 }
 
 // GetHelmKialiChartsDir returns the Kiali helm charts dir
@@ -175,7 +184,8 @@ func GetHelmOamChartsDir() string {
 	if TestHelmConfigDir != "" {
 		return filepath.Join(TestHelmConfigDir, "/charts/oam-kubernetes-runtime")
 	}
-	return filepath.Join(instance.VerrazzanoRootDir, helmOamChartsDirSuffix)
+	// return filepath.Join(instance.VerrazzanoRootDir, helmOamChartsDirSuffix)
+	return helmOamChartsDirSuffix
 }
 
 // GetHelmOverridesDir returns the helm overrides dir
@@ -198,7 +208,8 @@ func GetPlatformDir() string {
 
 // GetThirdPartyDir returns the thirdparty dir
 func GetThirdPartyDir() string {
-	return filepath.Join(instance.VerrazzanoRootDir, thirdPartyDirSuffix)
+	// return filepath.Join(instance.VerrazzanoRootDir, thirdPartyDirSuffix)
+	return thirdPartyDirSuffix
 }
 
 func GetThirdPartyManifestsDir() string {

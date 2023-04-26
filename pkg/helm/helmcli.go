@@ -143,7 +143,7 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 			return nil, err
 		}
 	} else {
-		log.Infof("Starting Helm installation of release %s in namespace %s with overrides: %v", releaseName, namespace, overrides)
+		log.Infof("Starting Helm installation of release %s in namespace %s, using charts from %s, with overrides: %v", releaseName, namespace, chartDir, overrides)
 		client := action.NewInstall(actionConfig)
 		client.Namespace = namespace
 		client.ReleaseName = releaseName
