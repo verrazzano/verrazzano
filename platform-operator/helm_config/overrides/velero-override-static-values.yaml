@@ -12,7 +12,7 @@ restic:
     allowPrivilegeEscalation: false
     capabilities:
       drop: [ "ALL" ]
-      add: [ "DAC_OVERRIDE" ]
+      add: [ "DAC_OVERRIDE","CHOWN" ]
     privileged: false
 metrics:
   serviceMonitor:
