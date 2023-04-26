@@ -15,8 +15,10 @@ KIND_AT_CACHE=${7:-false}
 SETUP_CALICO=${8:-false}
 KIND_AT_CACHE_NAME=${9:-"NONE"}
 NODE_COUNT=${10:-1}
+SETUP_PRIVATE_REGISTRY=${SETUP_PRIVATE_REGISTRY:-false}
 KIND_IMAGE=""
 CALICO_SUFFIX=""
+PRIVATE_REGISTRY_SUFFIX=""
 
 create_kind_cluster() {
   if [ "${K8S_VERSION}" == "1.21" ]; then
@@ -36,6 +38,10 @@ create_kind_cluster() {
     CALICO_SUFFIX="-calico"
   fi
 
+  if [ $SETUP_PRIVATE_REGISTRY == true ] ; then
+      PRIVATE_REGISTRY_SUFFIX="-private-registry"
+    fi
+
   # Set CLEANUP_KIND_CONTAINERS to true, while second cluster and onwards
   if [ ${CLEANUP_KIND_CONTAINERS} == true ]; then
     cd ${PLATFORM_OPERATOR_DIR}/build/scripts
@@ -54,16 +60,16 @@ create_kind_cluster() {
   echo "Kubeconfig ${KUBECONFIG}"
   echo "KIND Image : ${KIND_IMAGE}"
   cd ${SCRIPT_DIR}/
-  KIND_CONFIG_FILE=kind-config${CALICO_SUFFIX}.yaml
+  KIND_CONFIG_FILE=kind-config${CALICO_SUFFIX}${PRIVATE_REGISTRY_SUFFIX}.yaml
   if [ ${KIND_AT_CACHE} == true ]; then
     if [ ${KIND_AT_CACHE_NAME} != "NONE" ]; then
       # If a cache name was specified, replace the at_test cache name with the one specified (this is used only
       # for multi-cluster tests at the moment)
-      sed "s;v8o_cache/at_tests;v8o_cache/${KIND_AT_CACHE_NAME};g" kind-config-ci${CALICO_SUFFIX}.yaml > kind-config-ci${CALICO_SUFFIX}_${KIND_AT_CACHE_NAME}.yaml
-      KIND_CONFIG_FILE=kind-config-ci${CALICO_SUFFIX}_${KIND_AT_CACHE_NAME}.yaml
+      sed "s;v8o_cache/at_tests;v8o_cache/${KIND_AT_CACHE_NAME};g" kind-config-ci${CALICO_SUFFIX}${PRIVATE_REGISTRY_SUFFIX}.yaml > kind-config-ci${CALICO_SUFFIX}${PRIVATE_REGISTRY_SUFFIX}_${KIND_AT_CACHE_NAME}.yaml
+      KIND_CONFIG_FILE=kind-config-ci${CALICO_SUFFIX}${PRIVATE_REGISTRY_SUFFIX}_${KIND_AT_CACHE_NAME}.yaml
     else
       # If no cache name specified use at_tests cache
-      KIND_CONFIG_FILE=kind-config-ci${CALICO_SUFFIX}.yaml
+      KIND_CONFIG_FILE=kind-config-ci${CALICO_SUFFIX}${PRIVATE_REGISTRY_SUFFIX}.yaml
     fi
   fi
 
