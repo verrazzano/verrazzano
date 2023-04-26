@@ -6,7 +6,6 @@ package vzconfig
 import (
 	"context"
 	"fmt"
-	"github.com/google/martian/log"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	v1 "k8s.io/api/core/v1"
@@ -22,8 +21,7 @@ func GetExternalIP(client client.Client, serviceType vzapi.IngressType, name, na
 	if serviceType == vzapi.LoadBalancer || serviceType == vzapi.NodePort {
 		svc := v1.Service{}
 		if err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, &svc); err != nil {
-			log.Errorf("Failed to get Service %s/%s: %v", namespace, name, err)
-			return "", err
+			return "", fmt.Errorf("Error getting service %s/%s: %v", namespace, name, err)
 		}
 		// If externalIPs exists, use it; else use IP from status
 		if len(svc.Spec.ExternalIPs) > 0 {
