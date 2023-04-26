@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	certManagerDeploymentName = "cert-manager"
-	ocidnsDeploymentName      = "cert-manager-ocidns-provider"
+	//certManagerDeploymentName = "cert-manager"
+	ocidnsDeploymentName = "cert-manager-ocidns-provider"
 
 	//letsEncryptProd  = "https://acme-v02.api.letsencrypt.org/directory"
 	//letsEncryptStage = "https://acme-staging-v02.api.letsencrypt.org/directory"
