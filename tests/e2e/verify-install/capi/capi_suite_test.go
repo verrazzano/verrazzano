@@ -1,4 +1,4 @@
-package capi_test
+package capi
 
 import (
 	"testing"
