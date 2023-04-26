@@ -124,38 +124,6 @@ type templateData struct {
 	UseInstancePrincipals bool
 }
 
-//const clusterIssuerTemplate = `
-//apiVersion: cert-manager.io/v1
-//kind: ClusterIssuer
-//metadata:
-//  name: {{.ClusterIssuerName}}
-//spec:
-//  acme:
-//    email: {{.Email}}
-//    server: "{{.Server}}"
-//    preferredChain: ""
-//    privateKeySecretRef:
-//      name: {{.AcmeSecretName}}
-//    solvers:
-//      - dns01:
-//          ocidns:
-//            useInstancePrincipals: {{ .UseInstancePrincipals}}
-//            serviceAccountSecretRef:
-//              name: {{.SecretName}}
-//              key: "oci.yaml"
-//            ocizonename: {{.OCIZoneName}}`
-//
-//// Template data for ClusterIssuer
-//type templateData struct {
-//	AcmeSecretName        string
-//	ClusterIssuerName     string
-//	Email                 string
-//	Server                string
-//	SecretName            string
-//	OCIZoneName           string
-//	UseInstancePrincipals bool
-//}
-
 // CertIssuerType identifies the certificate issuer type
 type CertIssuerType string
 
@@ -709,30 +677,6 @@ func (c certManagerConfigComponent) createOrUpdateClusterIssuer(compContext spi.
 	}
 	return nil
 }
-
-//func (c certManagerConfigComponent) certManagerExistsInCluster(compContext spi.ComponentContext) error {
-//	exists, err := c.certManagerCrdsExist()
-//	if err != nil {
-//		return err
-//	}
-//	if !exists {
-//		return compContext.Log().ErrorfThrottledNewErr("CertManager custom resources not found in cluster")
-//	}
-//	return nil
-//}
-//
-//func (c certManagerConfigComponent) certManagerCrdsExist() (bool, error) {
-//	client, err := getAPIExtV1ClientFunc()
-//	if err != nil {
-//		return false, err
-//	}
-//	crdsExist, err := common.CheckCRDsExist(GetRequiredCertManagerCRDNames(), err, client)
-//	if err != nil {
-//		return false, err
-//	}
-//	// Found required CRDs
-//	return crdsExist, nil
-//}
 
 // uninstallVerrazzanoCertManagerResources is the implementation for the cert-manager uninstall step
 // this removes cert-manager ConfigMaps from the cluster and after the helm uninstall, deletes the namespace
