@@ -5,6 +5,8 @@ package verrazzano_test
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"strings"
 	"time"
 
@@ -40,6 +42,8 @@ var t = framework.NewTestFramework("verrazzano")
 
 var _ = t.AfterEach(func() {})
 
+var ingressNGINXNamespace string
+
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -65,6 +69,11 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	keycloakEnabled = pkg.IsKeycloakEnabled(kubeconfigPath)
 	mySQLOperatorEnabled = pkg.IsMySQLOperatorEnabled(kubeconfigPath)
 	argocdEnabled = pkg.IsArgoCDEnabled(kubeconfigPath)
+
+	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	if err != nil {
+		Fail(err.Error())
+	}
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -472,7 +481,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 		t.It("has expected controller deployment", func() {
 			if isMinVersion110 {
 				Eventually(func() (bool, error) {
-					return pkg.DoesDeploymentExist(constants.IngressNamespace, constants.IngressController)
+					return pkg.DoesDeploymentExist(ingressNGINXNamespace, constants.IngressController)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
@@ -481,7 +490,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 		t.It("has expected defaultBackend deployment", func() {
 			if isMinVersion110 {
 				Eventually(func() (bool, error) {
-					return pkg.DoesDeploymentExist(constants.IngressNamespace, constants.IngressDefaultBackend)
+					return pkg.DoesDeploymentExist(ingressNGINXNamespace, constants.IngressDefaultBackend)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
@@ -498,7 +507,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has affinity configured as expected", func() {
 			if isMinVersion140 {
-				assertPodAntiAffinity(map[string]string{"app": "ingress-nginx"}, constants.IngressNamespace)
+				assertPodAntiAffinity(map[string]string{"app": "ingress-nginx"}, ingressNGINXNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
 			}
@@ -739,21 +748,21 @@ func validateCorrectNumberOfIngressNGINXPodsRunning() {
 	var controllerDeployment *appsv1.Deployment
 	Eventually(func() (*appsv1.Deployment, error) {
 		var err error
-		controllerDeployment, err = pkg.GetDeployment(constants.IngressNamespace, "ingress-controller-ingress-nginx-controller")
+		controllerDeployment, err = pkg.GetDeployment(ingressNGINXNamespace, "ingress-controller-ingress-nginx-controller")
 		return controllerDeployment, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 	var defaultBackendDeployment *appsv1.Deployment
 	Eventually(func() (*appsv1.Deployment, error) {
 		var err error
-		defaultBackendDeployment, err = pkg.GetDeployment(constants.IngressNamespace, constants.IngressDefaultBackend)
+		defaultBackendDeployment, err = pkg.GetDeployment(ingressNGINXNamespace, constants.IngressDefaultBackend)
 		return defaultBackendDeployment, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 	var pods []corev1.Pod
 	Eventually(func() bool {
 		var err error
-		pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/name": "ingress-nginx"}}, constants.IngressNamespace)
+		pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/name": "ingress-nginx"}}, ingressNGINXNamespace)
 		if err != nil {
 			return false
 		}

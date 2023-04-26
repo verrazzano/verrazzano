@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"reflect"
 	"strings"
 	"text/template"
@@ -47,6 +49,8 @@ const (
 	nginxLBShapeValue        = "flexible"
 	istioLBShapeValue        = "flexible"
 )
+
+var ingressNGINXNamespace string
 
 var testNginxIngressPorts = []corev1.ServicePort{
 	{
@@ -366,6 +370,10 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
+	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	if err != nil {
+		Fail(err.Error())
+	}
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -381,7 +389,7 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 				expectedIstioRunning = 2
 				expectedNGINXRunning = 2
 			}
-			update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, expectedNGINXRunning, false)
+			update.ValidatePods(nginxLabelValue, nginxLabelKey, ingressNGINXNamespace, expectedNGINXRunning, false)
 			update.ValidatePods(istioIngressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, expectedIstioRunning, false)
 			update.ValidatePods(istioEgressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, expectedIstioRunning, false)
 		})
@@ -409,7 +417,7 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 			}
 			update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 
-			update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, newReplicas, false)
+			update.ValidatePods(nginxLabelValue, nginxLabelKey, ingressNGINXNamespace, newReplicas, false)
 			update.ValidatePods(istioIngressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, newReplicas, false)
 			update.ValidatePods(istioEgressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, newReplicas, false)
 		})
@@ -585,7 +593,7 @@ func getServiceLoadBalancerIP(ns, svcName string) (string, error) {
 func validateServiceAnnotations(m NginxIstioIngressServiceAnnotationModifier) {
 	gomega.Eventually(func() error {
 		var err error
-		nginxIngress, err := pkg.GetService(constants.IngressNamespace, nginxIngressServiceName)
+		nginxIngress, err := pkg.GetService(ingressNGINXNamespace, nginxIngressServiceName)
 		if err != nil {
 			return err
 		}
@@ -613,7 +621,7 @@ func validateServiceNodePortAndExternalIP(expectedSystemExternalIP, expectedAppl
 	gomega.Eventually(func() error {
 		// validate Nginx Ingress service
 		var err error
-		nginxIngress, err := pkg.GetService(constants.IngressNamespace, nginxIngressServiceName)
+		nginxIngress, err := pkg.GetService(ingressNGINXNamespace, nginxIngressServiceName)
 		if err != nil {
 			return err
 		}
@@ -668,14 +676,14 @@ func validateServiceLoadBalancer() {
 	gomega.Eventually(func() error {
 		// validate Nginx Ingress service
 		var err error
-		nginxIngress, err := pkg.GetService(constants.IngressNamespace, nginxIngressServiceName)
+		nginxIngress, err := pkg.GetService(ingressNGINXNamespace, nginxIngressServiceName)
 		if err != nil {
 			return err
 		}
 		if nginxIngress.Spec.Type != corev1.ServiceTypeLoadBalancer {
 			return fmt.Errorf("expect nginx ingress with type LoadBalancer, but got %v", nginxIngress.Spec.Type)
 		}
-		nginxLBIP, err := getServiceLoadBalancerIP(constants.IngressNamespace, nginxIngressServiceName)
+		nginxLBIP, err := getServiceLoadBalancerIP(ingressNGINXNamespace, nginxIngressServiceName)
 		if err != nil {
 			return err
 		}
