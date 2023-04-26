@@ -14,7 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	common "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/core/v1"
@@ -79,7 +79,7 @@ func init() {
 // THEN the function returns true
 func TestIsCertManagerEnabled(t *testing.T) {
 	defer func() { common.ResetAPIExtV1ClientFunc() }()
-	common.SetAPIExtV1ClientFunc(getTestClient(createCertManagerCRDsRuntimeObjs()...))
+	common.SetAPIExtV1ClientFunc(common.NewFakeAPIExtTestClient(createCertManagerCRDsRuntimeObjs()...))
 
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(true)
@@ -94,7 +94,7 @@ func TestIsCertManagerEnabled(t *testing.T) {
 // THEN the function returns false
 func TestIsCertManagerDisabled(t *testing.T) {
 	defer func() { common.ResetAPIExtV1ClientFunc() }()
-	common.SetAPIExtV1ClientFunc(getTestClient())
+	common.SetAPIExtV1ClientFunc(common.NewFakeAPIExtTestClient())
 
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(false)
@@ -120,7 +120,7 @@ func TestCertManagerPreInstall(t *testing.T) {
 		VerrazzanoRootDir: "../../../../..", //since we are running inside the cert manager package, root is up 5 directories
 	})
 	defer func() { common.ResetAPIExtV1ClientFunc() }()
-	common.SetAPIExtV1ClientFunc(getTestClient(createCertManagerCRDsRuntimeObjs()...))
+	common.SetAPIExtV1ClientFunc(common.NewFakeAPIExtTestClient(createCertManagerCRDsRuntimeObjs()...))
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
@@ -143,7 +143,7 @@ func TestIsCertManagerReady(t *testing.T) {
 
 	runtimeObjects := append(createCertManagerCRDsRuntimeObjs(), clusterIssuer)
 	defer func() { common.ResetAPIExtV1ClientFunc() }()
-	common.SetAPIExtV1ClientFunc(getTestClient(runtimeObjects...))
+	common.SetAPIExtV1ClientFunc(common.NewFakeAPIExtTestClient(runtimeObjects...))
 
 	certManager := NewComponent().(certManagerConfigComponent)
 	assert.True(t, certManager.verrazzanoCertManagerResourcesReady(spi.NewFakeContext(client, nil, nil, false)))

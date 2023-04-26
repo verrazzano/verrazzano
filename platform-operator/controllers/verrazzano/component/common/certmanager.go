@@ -5,7 +5,9 @@ package common
 import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	apiextfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 type getAPIExtV1ClientFuncType func(log ...vzlog.VerrazzanoLogger) (apiextensionsv1client.ApiextensionsV1Interface, error)
@@ -54,4 +56,14 @@ func CertManagerCrdsExist() (bool, error) {
 	}
 	// Found required CRDs
 	return crdsExist, nil
+}
+
+func NewFakeAPIExtTestClient(objs ...runtime.Object) func(log ...vzlog.VerrazzanoLogger) (apiextensionsv1client.ApiextensionsV1Interface, error) {
+	return func(log ...vzlog.VerrazzanoLogger) (apiextensionsv1client.ApiextensionsV1Interface, error) {
+		return createFakeAPIExtClient(objs...).ApiextensionsV1(), nil
+	}
+}
+
+func createFakeAPIExtClient(objs ...runtime.Object) *apiextfake.Clientset {
+	return apiextfake.NewSimpleClientset(objs...)
 }

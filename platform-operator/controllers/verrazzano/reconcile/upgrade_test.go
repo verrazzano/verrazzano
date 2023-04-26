@@ -42,11 +42,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	apiextfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	gofake "k8s.io/client-go/kubernetes/fake"
@@ -434,7 +431,7 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 	}()
 
 	defer func() { common.ResetAPIExtV1ClientFunc() }()
-	common.SetAPIExtV1ClientFunc(getAPIExtTestClient())
+	common.SetAPIExtV1ClientFunc(common.NewFakeAPIExtTestClient())
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -1672,7 +1669,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 	})
 
 	defer func() { common.ResetAPIExtV1ClientFunc() }()
-	common.SetAPIExtV1ClientFunc(getAPIExtTestClient())
+	common.SetAPIExtV1ClientFunc(common.NewFakeAPIExtTestClient())
 
 	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
@@ -1710,16 +1707,6 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 	assert.Equal(t, "https://"+kibanaURL, *instanceInfo.KibanaURL)
 	assert.Equal(t, "https://"+promURL, *instanceInfo.PrometheusURL)
 	assert.Equal(t, "https://"+jaegerURL, *instanceInfo.JaegerURL)
-}
-
-func getAPIExtTestClient(objs ...runtime.Object) func(log ...vzlog.VerrazzanoLogger) (apiextensionsv1client.ApiextensionsV1Interface, error) {
-	return func(log ...vzlog.VerrazzanoLogger) (apiextensionsv1client.ApiextensionsV1Interface, error) {
-		return createFakeAPIExtClient(objs...).ApiextensionsV1(), nil
-	}
-}
-
-func createFakeAPIExtClient(objs ...runtime.Object) *apiextfake.Clientset {
-	return apiextfake.NewSimpleClientset(objs...)
 }
 
 // TestInstanceRestoreWithPopulatedStatus tests the reconcileUpdate method for the following use case
@@ -1863,7 +1850,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 	defer func() { config.TestProfilesDir = "" }()
 
 	defer func() { common.ResetAPIExtV1ClientFunc() }()
-	common.SetAPIExtV1ClientFunc(getAPIExtTestClient())
+	common.SetAPIExtV1ClientFunc(common.NewFakeAPIExtTestClient())
 
 	// Create and make the request
 	request := newRequest(namespace, name)

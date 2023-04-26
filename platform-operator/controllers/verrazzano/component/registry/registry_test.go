@@ -15,8 +15,6 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/time"
-	apiextfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -658,7 +656,8 @@ func TestComponentDependenciesMetStateCheckCompDisabled(t *testing.T) {
 // THEN all components referred from the registry are disabled except for network-policies
 func TestNoneProfileInstalledAllComponentsDisabled(t *testing.T) {
 	defer func() { common.ResetAPIExtV1ClientFunc() }()
-	common.SetAPIExtV1ClientFunc(getAPIExtTestClient())
+	common.SetAPIExtV1ClientFunc(common.NewFakeAPIExtTestClient())
+
 	config.TestProfilesDir = profileDir
 	defer func() { config.TestProfilesDir = "" }()
 	t.Run("TestNoneProfileInstalledAllComponentsDisabled", func(t *testing.T) {
@@ -681,16 +680,6 @@ func TestNoneProfileInstalledAllComponentsDisabled(t *testing.T) {
 			assert.False(t, comp.IsEnabled(context.EffectiveCR()), "Component: %s should be Disabled", comp.Name())
 		}
 	})
-}
-
-func getAPIExtTestClient(objs ...runtime.Object) func(log ...vzlog.VerrazzanoLogger) (apiextensionsv1client.ApiextensionsV1Interface, error) {
-	return func(log ...vzlog.VerrazzanoLogger) (apiextensionsv1client.ApiextensionsV1Interface, error) {
-		return createFakeAPIExtClient(objs...).ApiextensionsV1(), nil
-	}
-}
-
-func createFakeAPIExtClient(objs ...runtime.Object) *apiextfake.Clientset {
-	return apiextfake.NewSimpleClientset(objs...)
 }
 
 func runDepenencyStateCheckTest(t *testing.T, state v1alpha1.CompStateType, enabled bool) {

@@ -26,11 +26,8 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
-	apiextfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -439,14 +436,6 @@ func TestDryRun(t *testing.T) {
 	assert.NoError(t, fakeComponent.PostUpgrade(ctx))
 }
 
-func createFakeClient(objs ...runtime.Object) *apiextfake.Clientset {
-	return apiextfake.NewSimpleClientset(objs...)
-}
-
-//func createFakeClient(objs ...runtime.Object) *k8sfake.Clientset {
-//	return k8sfake.NewSimpleClientset(objs...)
-//}
-
 func createCertSecret(name string, namespace string, fakeCertBytes []byte) (*corev1.Secret, error) {
 	//fakeCertBytes, err := createFakeCertBytes(cn)
 	//if err != nil {
@@ -666,9 +655,3 @@ func createFakeCertificate(cn string) *x509.Certificate {
 //		}
 //	}
 //}
-
-func getTestClient(cmObjs ...runtime.Object) func(log ...vzlog.VerrazzanoLogger) (apiextensionsv1client.ApiextensionsV1Interface, error) {
-	return func(log ...vzlog.VerrazzanoLogger) (apiextensionsv1client.ApiextensionsV1Interface, error) {
-		return createFakeClient(cmObjs...).ApiextensionsV1(), nil
-	}
-}
