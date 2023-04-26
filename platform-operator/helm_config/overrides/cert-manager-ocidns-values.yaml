@@ -14,3 +14,17 @@ image:
 
 nameOverride: "cert-manager-ocidns-provider"
 fullnameOverride: "cert-manager-ocidns-provider"
+
+securityContext:
+  allowPrivilegeEscalation: false
+  privileged: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 0
+  capabilities:
+    drop:
+      - ALL
+
+podSecurityContext:
+  seccompProfile:
+    type: RuntimeDefault
