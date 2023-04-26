@@ -45,7 +45,7 @@ type CapiDisabledModifierV1beta1 struct {
 
 func (c CapiDisabledModifier) ModifyCR(cr *v1alpha1.Verrazzano) {
 	cr.Spec.Components.CAPI = &v1alpha1.CAPIComponent{}
-	t.Logs.Debugf("CapiEnabledModifier CR: %v", cr.Spec)
+	t.Logs.Debugf("CapiDisabledModifier CR: %v", cr.Spec)
 }
 
 func (c CapiDisabledModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
