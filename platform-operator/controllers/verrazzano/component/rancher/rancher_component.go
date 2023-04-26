@@ -328,7 +328,7 @@ func appendPSPEnabledOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]
 	}
 	k8sVersion, err := k8sversionutil.ParseSemantic(version)
 	if err != nil {
-		return nil, ctx.Log().ErrorfNewErr("couldn't parse Kubernetes version %q: %v", version, err)
+		return kvs, ctx.Log().ErrorfNewErr("Failed to parse Kubernetes version %q: %v", version, err)
 	}
 	// If K8s version is 1.25 or above, set pspEnabled to false
 	pspDisabledVersion := k8sversionutil.MustParseSemantic("1.25.0-0")
@@ -345,17 +345,17 @@ func appendPSPEnabledOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]
 func getKubernetesVersion() (string, error) {
 	config, err := k8sutil.GetConfigFromController()
 	if err != nil {
-		return "", fmt.Errorf("error while getting kubernetes client config %v", err.Error())
+		return "", fmt.Errorf("Failed to get kubernetes client config %v", err.Error())
 	}
 
 	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return "", fmt.Errorf("error while getting kubernetes client %v", err.Error())
+		return "", fmt.Errorf("Failed to get kubernetes client %v", err.Error())
 	}
 
 	versionInfo, err := client.ServerVersion()
 	if err != nil {
-		return "", fmt.Errorf("error while getting kubernetes version %v", err.Error())
+		return "", fmt.Errorf("Failed to get kubernetes version %v", err.Error())
 	}
 
 	return versionInfo.String(), nil
