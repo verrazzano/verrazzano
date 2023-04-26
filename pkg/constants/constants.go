@@ -49,6 +49,9 @@ const VerrazzanoInstallNamespace = "verrazzano-install"
 // VerrazzanoSystemNamespace is the system namespace for Verrazzano
 const VerrazzanoSystemNamespace = "verrazzano-system"
 
+// VerrazzanoCapiNamespace is the system namespace for Cluster API resources
+const VerrazzanoCapiNamespace = "verrazzano-capi"
+
 // VerrazzanoMultiClusterNamespace is the multi-cluster namespace for Verrazzano
 const VerrazzanoMultiClusterNamespace = "verrazzano-mc"
 
