@@ -43,17 +43,17 @@ func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAd
 		LeaderElectionID:       "42d5ea87.verrazzano.io",
 	}
 
-	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
-	if err != nil {
-		return errors.Wrapf(err, "Failed to determind Ingress NGINX namespace")
-	}
-	nginxutil.SetIngressNGINXNamespace(ingressNGINXNamespace)
-
 	ctrlConfig := k8sutil.GetConfigOrDieFromController()
 	mgr, err := ctrl.NewManager(ctrlConfig, options)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to setup controller manager")
 	}
+
+	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(mgr.GetClient(), vzlog.DefaultLogger())
+	if err != nil {
+		return errors.Wrapf(err, "Failed to determine Ingress NGINX namespace")
+	}
+	nginxutil.SetIngressNGINXNamespace(ingressNGINXNamespace)
 
 	apiextv1Client := apiextv1.NewForConfigOrDie(ctrlConfig)
 	crdInstalled, err := isCattleClustersCRDInstalled(apiextv1Client)

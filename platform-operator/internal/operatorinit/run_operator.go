@@ -27,13 +27,6 @@ import (
 
 // StartPlatformOperator Platform operator execution entry point
 func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
-	// Determine NGINX namespace before initializing components
-	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog2.DefaultLogger())
-	if err != nil {
-		return errors.Wrapf(err, "Failed to determine Ingress NGINX namespace")
-	}
-	nginxutil.SetIngressNGINXNamespace(ingressNGINXNamespace)
-
 	registry.InitRegistry()
 	metricsexporter.Init()
 
@@ -47,6 +40,13 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 	if err != nil {
 		return errors.Wrap(err, "Failed to create a controller-runtime manager")
 	}
+
+	// Determine NGINX namespace before initializing components
+	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(mgr.GetClient(), vzlog2.DefaultLogger())
+	if err != nil {
+		return errors.Wrapf(err, "Failed to determine Ingress NGINX namespace")
+	}
+	nginxutil.SetIngressNGINXNamespace(ingressNGINXNamespace)
 
 	metricsexporter.StartMetricsServer(log)
 

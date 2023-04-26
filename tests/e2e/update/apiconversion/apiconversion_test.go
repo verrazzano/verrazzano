@@ -53,7 +53,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
-	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(nil, vzlog.DefaultLogger())
 	if err != nil {
 		Fail(err.Error())
 	}

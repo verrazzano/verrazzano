@@ -7,8 +7,6 @@ package cluster
 import (
 	encjson "encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"io"
 	"os"
 	"regexp"
@@ -140,10 +138,12 @@ func analyzeVerrazzanoInstallIssue(log *zap.SugaredLogger, clusterRoot string, i
 	analyzeIstioIngressService(log, clusterRoot, issueReporter)
 	analyzeExternalDNS(log, clusterRoot, issueReporter)
 
-	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	ingressNGINXNamespace, err := checkIngressNGINXNamespace(clusterRoot)
 	if err != nil {
+		log.Errorf("Unexpected error checking for Ingress NGINX namespace: %v", err)
 		return err
 	}
+
 	podFile := files.FindFileInNamespace(clusterRoot, ingressNGINXNamespace, podsJSON)
 
 	podList, err := GetPodList(log, podFile)
@@ -181,10 +181,12 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 	// If we have a start/end time for the install containerStatus, then we can use that to only look at logs which are in that time range
 
 	// Look at the ingress-controller-ingress-nginx-controller, and look at the events related to it
-	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	ingressNGINXNamespace, err := checkIngressNGINXNamespace(clusterRoot)
 	if err != nil {
+		log.Errorf("Unexpected error checking for Ingress NGINX namespace: %v", err)
 		return err
 	}
+
 	services, err := GetServiceList(log, files.FindFileInNamespace(clusterRoot, ingressNGINXNamespace, servicesJSON))
 	if err != nil {
 		return err
@@ -569,4 +571,14 @@ func analyzeExternalDNS(log *zap.SugaredLogger, clusterRoot string, issueReporte
 			issueReporter.AddKnownIssueMessagesFiles(report.ExternalDNSConfigureIssue, clusterRoot, messages, servFiles)
 		}
 	}
+}
+
+func checkIngressNGINXNamespace(clusterRoot string) (string, error) {
+	_, err := os.Stat(fmt.Sprint("%s/%s", clusterRoot, constants.IngressNginxNamespace))
+	if err == nil {
+		return constants.IngressNginxNamespace, nil
+	} else if os.IsNotExist(err) {
+		return constants.LegacyIngressNginxNamespace, nil
+	}
+	return "", err
 }

@@ -31,7 +31,7 @@ func DetermineNamespaceForIngressNGINX(client client.Client, log vzlog.Verrazzan
 	// Check if Verrazzano NGINX is installed in the ingress-nginx namespace
 	legacyNSExists, err := namespace.CheckIfVerrazzanoManagedNamespaceExists(client, vpoconst.LegacyIngressNginxNamespace)
 	if err != nil {
-		return "", log.ErrorfNewErr("Failed checking if the old ingress-nginx chart %s/%s is installed: %v", vpoconst.LegacyIngressNginxNamespace, helmReleaseName, err.Error())
+		return "", log.ErrorfNewErr("Failed checking for legacy Ingress NGINX namespace %s: %v", vpoconst.LegacyIngressNginxNamespace, err.Error())
 	}
 	ingressNGINXNamespace = getNamespaceForIngressNGINX(legacyNSExists)
 	log.Infof("Ingress NGINX namespace is %s", ingressNGINXNamespace)

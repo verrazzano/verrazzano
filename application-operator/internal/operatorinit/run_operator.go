@@ -4,7 +4,6 @@
 package operatorinit
 
 import (
-	"github.com/pkg/errors"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
@@ -30,17 +29,14 @@ import (
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/scheme"
+
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, defaultMetricsScraper string, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
-	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog2.DefaultLogger())
-	if err != nil {
-		return errors.Wrapf(err, "Failed to determine Ingress NGINX namespace")
-	}
-	nginxutil.SetIngressNGINXNamespace(ingressNGINXNamespace)
 
 	mgr, err := ctrl.NewManager(k8sutil.GetConfigOrDieFromController(), ctrl.Options{
 		Scheme:             scheme,
@@ -53,6 +49,12 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		log.Errorf("Failed to start manager: %v", err)
 		return err
 	}
+
+	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(mgr.GetClient(), vzlog2.DefaultLogger())
+	if err != nil {
+		return errors.Wrapf(err, "Failed to determine Ingress NGINX namespace")
+	}
+	nginxutil.SetIngressNGINXNamespace(ingressNGINXNamespace)
 
 	if err = (&ingresstrait.Reconciler{
 		Client: mgr.GetClient(),
