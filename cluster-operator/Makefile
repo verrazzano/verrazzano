@@ -50,9 +50,7 @@ ifndef RELEASE_BRANCH
 	RELEASE_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 endif
 
-ifndef VZ_BASE_IMAGE
-$(error Environment variable VZ_BASE_IMAGE pointing to a base image is required)
-endif
+VZ_BASE_IMAGE ?= ghcr.io/verrazzano/verrazzano-base:v1.0.0-20230327155846-4653b27
 
 DIST_DIR:=dist
 GO ?= CGO_ENABLED=0 GO111MODULE=on GOPRIVATE=github.com/verrazzano go

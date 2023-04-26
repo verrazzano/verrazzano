@@ -16,9 +16,7 @@ RUN chmod 500 /usr/local/bin/verrazzano-cluster-operator \
 # Create the verrazzano-cluster-operator image
 FROM $BASE_IMAGE AS final
 
-RUN microdnf update -y \
-    && microdnf clean all \
-    && rm -rf /var/cache/yum /var/lib/rpm/* \
+RUN rm -rf /var/cache/yum /var/lib/rpm/* \
     && groupadd -r verrazzano  \
     && useradd --no-log-init -r -g verrazzano -u 1000 verrazzano \
     && mkdir /home/verrazzano \
