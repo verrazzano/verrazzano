@@ -21,8 +21,8 @@ import (
 const (
 	waitTimeout     = 3 * time.Minute
 	pollingInterval = 10 * time.Second
-	capiLabelValue  = "cluster.x-k8s.io/provider"
-	capiLabelKey    = "cluster-api"
+	capiLabelValue  = "control-plane"
+	capiLabelKey    = "controller-manager"
 )
 
 var (
