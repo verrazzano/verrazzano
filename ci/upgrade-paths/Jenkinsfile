@@ -1968,7 +1968,7 @@ def isVZOperatorMinimumCompatibleVersion(minimumOperatorVersion){
 def downloadCLI() {
     script {
         sh "echo Downloading VZ CLI from object storage"
-        if(VERSION_FOR_UPGRADE_ENV == "master"){
+        if(VERSION_FOR_UPGRADE_ENV == "master" || VERSION_FOR_UPGRADE_ENV == "current_branch" ){
             sh "oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}"           
         }else{
             sh "oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}"
