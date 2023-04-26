@@ -125,6 +125,7 @@ subjects:
     name: {{ include "cert-manager-webhook-oci.fullname" . }}
     namespace: {{ .Release.Namespace }}
 ---
+# REVIEW: this needs to be removed/replaced
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -142,4 +143,3 @@ subjects:
   - kind: ServiceAccount
     name: {{ include "cert-manager-webhook-oci.fullname" . }}
     namespace: {{ .Release.Namespace }}
-
