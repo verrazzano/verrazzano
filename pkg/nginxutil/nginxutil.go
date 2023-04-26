@@ -10,8 +10,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const helmReleaseName = "ingress-controller"
-
 // This is set by verrazzano controller.go at startup.  It has to be injected
 // since is an import cycle if this code uses component.nginx.
 var ingressNGINXNamespace = vpoconst.IngressNginxNamespace

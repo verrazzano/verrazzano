@@ -12,7 +12,7 @@ import (
 
 // CheckIfVerrazzanoManagedNamespaceExists returns true if the namespace exists and has the verrazzano.io/namespace label
 func CheckIfVerrazzanoManagedNamespaceExists(client client.Client, nsName string) (bool, error) {
-	var ns *corev1.Namespace
+	ns := &corev1.Namespace{}
 	err := client.Get(context.TODO(), types.NamespacedName{Name: nsName}, ns)
 	if err != nil && !errors.IsNotFound(err) {
 		return false, err
