@@ -6,6 +6,7 @@ package helm
 import (
 	ctx "context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"os"
 	"sort"
 	"strings"
@@ -24,7 +25,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/api/core/v1"
@@ -210,12 +210,20 @@ func (h HelmComponent) GetMinVerrazzanoVersion() string {
 }
 
 // IsInstalled Indicates whether the component is installed
-func (h HelmComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
-	if context.IsDryRun() {
-		context.Log().Debugf("IsInstalled() dry run for %s", h.ReleaseName)
+func (h HelmComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
+	if ctx.IsDryRun() {
+		ctx.Log().Debugf("IsInstalled() dry run for %s", h.ReleaseName)
 		return true, nil
 	}
-	installed, _ := helm.IsReleaseInstalled(h.ReleaseName, h.resolveNamespace(context))
+	// check to make sure we own the namespace first
+	vzManaged, err := common.CheckIfVerrazzanoManagedNamespaceExists(ctx, h.resolveNamespace(ctx))
+	if err != nil {
+		return false, err
+	}
+	if !vzManaged {
+		return false, nil
+	}
+	installed, _ := helm.IsReleaseInstalled(h.ReleaseName, h.resolveNamespace(ctx))
 	return installed, nil
 }
 

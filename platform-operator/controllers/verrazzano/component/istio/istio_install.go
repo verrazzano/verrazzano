@@ -50,11 +50,11 @@ type installFuncSig func(log vzlog.VerrazzanoLogger, imageOverridesString string
 
 var installFunc installFuncSig = istio.Install
 
-type forkInstallFuncSig func(compContext spi.ComponentContext, monitor monitor.BackgroundProcessMonitor, overrideStrings string, files []string) error
+type forkInstallFuncSig func(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor, overrideStrings string, files []string) error
 
 var forkInstallFunc forkInstallFuncSig = forkInstall
 
-type isInstalledFuncSig func(log vzlog.VerrazzanoLogger) (bool, error)
+type isInstalledFuncSig func(compContext spi.ComponentContext) (bool, error)
 
 var isInstalledFunc isInstalledFuncSig = istio.IsInstalled
 

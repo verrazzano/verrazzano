@@ -4,6 +4,8 @@
 package istio
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"os/exec"
 	"strings"
 
@@ -89,9 +91,18 @@ func Uninstall(log vzlog.VerrazzanoLogger) (stdout []byte, stderr []byte, err er
 }
 
 // IsInstalled returns true if Istio is installed
-func IsInstalled(log vzlog.VerrazzanoLogger) (bool, error) {
+func IsInstalled(ctx spi.ComponentContext) (bool, error) {
+	// check to make sure we own the namespace first
+	vzManaged, err := common.CheckIfVerrazzanoManagedNamespaceExists(ctx, ctx.GetComponent())
+	if err != nil {
+		return false, err
+	}
+	if !vzManaged {
+		return false, nil
+	}
+
 	// Perform istioctl call of type upgrade
-	stdout, _, err := VerifyInstall(log)
+	stdout, _, err := VerifyInstall(ctx.Log())
 	if err != nil {
 		return false, err
 	}
