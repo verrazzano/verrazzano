@@ -40,7 +40,8 @@ func DetermineNamespaceForIngressNGINX(log vzlog.VerrazzanoLogger) (string, erro
 
 // isLegacyNGINXNamespace determines the namespace for Ingress NGINX
 func isLegacyNGINXNamespace(log vzlog.VerrazzanoLogger, releaseName string, namespace string) (bool, error) {
-	const vzClass = "verrazzano-nginx"
+	// Note, older versions of Verrazzano had both ingress and verrazzano-ingress as the class, so we need to use controllerClass
+	const controllerClass = "k8s.io/verrazzano-ingress-nginx"
 
 	// Define structs needed to marshal YAML.  Fields must be public
 	type IngressClassResource struct {
@@ -72,7 +73,7 @@ func isLegacyNGINXNamespace(log vzlog.VerrazzanoLogger, releaseName string, name
 		if err := yaml.Unmarshal(b, &vals); err != nil {
 			return false, log.ErrorfNewErr("Error unmarshaling helm values: %v", err.Error())
 		}
-		if vals.Controller.IngressClassResource.Name == vzClass {
+		if vals.Controller.IngressClassResource.ControllerValue == controllerClass {
 			return true, nil
 		}
 	}
