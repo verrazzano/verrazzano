@@ -21,16 +21,16 @@ import (
 )
 
 const (
-	waitTimeout          = 30 * time.Minute
-	pollingInterval      = 1 * time.Minute
+	waitTimeout     = 30 * time.Minute
+	pollingInterval = 1 * time.Minute
 )
 
 var (
-	t = framework.NewTestFramework("capi-ocne-driver")
-	httpClient *retryablehttp.Client
-	rancherURL string
-	adminToken string
-	cloudCredentialId string
+	t                 = framework.NewTestFramework("capi-ocne-driver")
+	httpClient        *retryablehttp.Client
+	rancherURL        string
+	adminToken        string
+	cloudCredentialID string
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -40,7 +40,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
 	rancherURL = pkg.EventuallyGetURLForIngress(t.Logs, api, "cattle-system", "rancher", "https")
 	adminToken = pkg.GetRancherAdminToken(t.Logs, httpClient, rancherURL)
-	cloudCredentialId = createCloudCredential("testing-creds")
+	cloudCredentialID = createCloudCredential("testing-creds")
 })
 var _ = BeforeSuite(beforeSuite)
 
@@ -52,7 +52,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("TODO: appropriate label"), Seri
 			createCluster(clusterName)
 
 			// Verify the cluster is active
-			Eventually(func() bool {return clusterIsActive(clusterName)}, waitTimeout, pollingInterval).Should(
+			Eventually(func() bool { return clusterIsActive(clusterName) }, waitTimeout, pollingInterval).Should(
 				BeTrue(), fmt.Sprintf("Cluster %s is not active", clusterName))
 		})
 	})
@@ -88,8 +88,8 @@ func createCloudCredential(credentialName string) string {
 	defer response.Body.Close()
 	body, _ := io.ReadAll(response.Body)
 	jsonBody, _ := gabs.ParseJSON(body)
-	credId := fmt.Sprint(jsonBody.Path("id").Data())
-	return credId
+	credID := fmt.Sprint(jsonBody.Path("id").Data())
+	return credID
 }
 
 // Creates an OCNE cluster through CAPI
@@ -128,8 +128,8 @@ func createCluster(clusterName string) {
 			"controlPlaneMemoryGbs": 16,
 			"controlPlaneOcpus": 1
 		}
-	}`, clusterName, clusterName, cloudCredentialId))
-	
+	}`, clusterName, clusterName, cloudCredentialID))
+
 	// FIXME: add error checking
 	request, _ := retryablehttp.NewRequest(http.MethodPost, requestURL, bytes.NewBuffer(requestBody))
 	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminToken))
