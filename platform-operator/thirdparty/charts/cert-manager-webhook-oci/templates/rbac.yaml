@@ -125,21 +125,32 @@ subjects:
     name: {{ include "cert-manager-webhook-oci.fullname" . }}
     namespace: {{ .Release.Namespace }}
 ---
-# REVIEW: this needs to be removed/replaced
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "cert-manager-webhook-oci.fullname" . }}:flowcontrol
+  namespace: {{ .Release.Namespace }}
+rules:
+  - apiGroups:
+      - flowcontrol.apiserver.k8s.io
+    resources:
+      - "*"
+    verbs:
+      - "get"
+      - "watch"
+      - "list"
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "cert-manager-webhook-oci.fullname" . }}-admin
-  labels:
-    app: {{ include "cert-manager-webhook-oci.name" . }}
-    chart: {{ include "cert-manager-webhook-oci.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+  name: {{ include "cert-manager-webhook-oci.fullname" . }}:flowcontrol
+  namespace: {{ .Release.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: cluster-admin
+  name: {{ include "cert-manager-webhook-oci.fullname" . }}:flowcontrol
 subjects:
-  - kind: ServiceAccount
+  - apiGroup: ""
+    kind: ServiceAccount
     name: {{ include "cert-manager-webhook-oci.fullname" . }}
     namespace: {{ .Release.Namespace }}
