@@ -31,7 +31,7 @@ func DetermineNamespaceForIngressNGINX(log vzlog.VerrazzanoLogger) (string, erro
 	// Check if Verrazzano NGINX is installed in the ingress-nginx namespace
 	legacy, err := isLegacyNGINXNamespace(log, helmReleaseName, vpoconst.LegacyIngressNginxNamespace)
 	if err != nil {
-		log.ErrorfNewErr("Failed checking if the old ingress-nginx chart %s/%s is installed: %v", vpoconst.LegacyIngressNginxNamespace, helmReleaseName, err.Error())
+		return "", log.ErrorfNewErr("Failed checking if the old ingress-nginx chart %s/%s is installed: %v", vpoconst.LegacyIngressNginxNamespace, helmReleaseName, err.Error())
 	}
 	ingressNGINXNamespace = getNamespaceForIngressNGINX(legacy)
 	log.Infof("Ingress NGINX namespace is %s", ingressNGINXNamespace)
@@ -62,15 +62,15 @@ func isLegacyNGINXNamespace(log vzlog.VerrazzanoLogger, releaseName string, name
 	if found {
 		valMap, err := helm2.GetValuesMap(log, releaseName, namespace)
 		if err != nil {
-			return false, err
+			return false, log.ErrorfNewErr("Error getting helm values: %v", err.Error())
 		}
 		b, err := yaml.Marshal(&valMap)
 		if err != nil {
-			return false, err
+			return false, log.ErrorfNewErr("Error marshaling helm values: %v", err.Error())
 		}
 		vals := helmValues{}
 		if err := yaml.Unmarshal(b, &vals); err != nil {
-			return false, err
+			return false, log.ErrorfNewErr("Error unmarshaling helm values: %v", err.Error())
 		}
 		if vals.Controller.IngressClassResource.Name == vzClass {
 			return true, nil

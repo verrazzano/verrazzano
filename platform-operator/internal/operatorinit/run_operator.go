@@ -27,7 +27,7 @@ import (
 
 // StartPlatformOperator Platform operator execution entry point
 func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
-	// Determin NGINX namespace before initializing components
+	// Determine NGINX namespace before initializing components
 	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog2.DefaultLogger())
 	if err != nil {
 		return errors.Wrapf(err, "Failed to determine Ingress NGINX namespace")
