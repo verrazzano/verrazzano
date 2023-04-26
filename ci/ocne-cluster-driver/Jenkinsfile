@@ -1,19 +1,16 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-// FIXME: understand
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 pipeline {
-    // FIXME: understand
     options {
         skipDefaultCheckout true
         timestamps ()
     }
 
-    // FIXME: understand
     agent {
        docker {
             image "${RUNNER_DOCKER_IMAGE}"
@@ -25,10 +22,6 @@ pipeline {
     }
 
     parameters {
-        choice (name: 'KUBERNETES_CLUSTER_VERSION',
-                description: 'Kubernetes Version for KinD Cluster',
-                // 1st choice is the default value
-                choices: [ "1.24", "1.23", "1.22", "1.21" ])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -47,7 +40,6 @@ pipeline {
         // TODO: add parameters related to CAPI cluster creation
     }
 
-    // FIXME: remove unnecessary variables
     environment {
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
@@ -68,6 +60,9 @@ pipeline {
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
+
+        TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+        SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
 
         // Terraform variables
         TF_VAR_tenancy_id = credentials('oci-tenancy')
@@ -109,9 +104,8 @@ pipeline {
 
         // used to emit metrics from Ginkgo suites
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
-        TEST_ENV_LABEL = "kind"
-        TEST_ENV = "KIND"
-        K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
+        TEST_ENV = "magicdns_oke" // FIXME: perhaps change?
+        TEST_ENV_LABEL = "${TEST_ENV}"
         SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
         SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
         SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
@@ -123,7 +117,6 @@ pipeline {
     }
 
     stages {
-        // FIXME: review, remove any unnecessary things
         stage('Clean workspace and checkout') {
             steps {
                 sh """
@@ -186,12 +179,11 @@ pipeline {
                 script {
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
-                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                    DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
+                    DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${env.TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
                     setDisplayName()
-                    currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
 
                     // derive the prefix for the OKE cluster
                     OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
@@ -210,7 +202,6 @@ pipeline {
         // TODO: stages here to call Ginkgo suites
 
         stage('Create OKE cluster') {
-            // FIXME: understand everything
             environment {
                 TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
             }
@@ -250,8 +241,7 @@ pipeline {
         
     }
 
-    // FIXME: review these post actions
-    // TODO: delete resources of OKE cluster here
+    // FIXME: delete resources of OKE cluster here
     post {
         always {
             script {
