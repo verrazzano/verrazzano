@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package secrets
@@ -453,7 +453,7 @@ func TestOtherNS(t *testing.T) {
 
 	// Do not expect a call to get the Secret if it's a different namespace
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).MaxTimes(0)
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).MaxTimes(0)
 
 	request := newRequest("test0", "test1")
 	reconciler := newSecretsReconciler(mock)
@@ -481,15 +481,15 @@ func runNamespaceErrorTest(t *testing.T, expectedErr error) {
 
 	// Expect  a call to get the verrazzano-mc namespace
 	mock.EXPECT().
-		Get(gomock.Any(), mcNamespace, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+		Get(gomock.Any(), mcNamespace, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 			return expectedErr
 		})
 
 	// Expect a call to get the verrazzano-tls secret
 	mock.EXPECT().
-		Get(gomock.Any(), vzTLSSecret, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), vzTLSSecret, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Name = vzTLSSecret.Name
 			secret.Namespace = vzTLSSecret.Namespace
 			return nil
@@ -497,7 +497,7 @@ func runNamespaceErrorTest(t *testing.T, expectedErr error) {
 
 	// Expect a call to get the verrazzano-tls secret
 	mock.EXPECT().
-		Get(gomock.Any(), additionalTLSSecret, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), additionalTLSSecret, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants2.RancherSystemNamespace, Resource: "Secret"}, additionalTLSSecret.Name)).
 		MinTimes(1)
 
@@ -518,8 +518,8 @@ func expectGetAdditionalTLS(t *testing.T, mock *mocks.MockClient, exists bool, s
 	// one if exists == true, otherwise return not found
 	if exists {
 		mock.EXPECT().
-			Get(gomock.Any(), additionalTLSSecret, gomock.Not(gomock.Nil())).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			Get(gomock.Any(), additionalTLSSecret, gomock.Not(gomock.Nil()), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 				secret.Name = additionalTLSSecret.Name
 				secret.Namespace = additionalTLSSecret.Namespace
 				secret.Data = map[string][]byte{constants2.AdditionalTLSCAKey: []byte(secretData)}
@@ -527,7 +527,7 @@ func expectGetAdditionalTLS(t *testing.T, mock *mocks.MockClient, exists bool, s
 			}).MinTimes(1)
 	} else {
 		mock.EXPECT().
-			Get(gomock.Any(), additionalTLSSecret, gomock.Not(gomock.Nil())).
+			Get(gomock.Any(), additionalTLSSecret, gomock.Not(gomock.Nil()), gomock.Any()).
 			Return(errors.NewNotFound(schema.GroupResource{Group: constants2.RancherSystemNamespace, Resource: "Secret"}, additionalTLSSecret.Name)).
 			MinTimes(1)
 	}
@@ -536,8 +536,8 @@ func expectGetAdditionalTLS(t *testing.T, mock *mocks.MockClient, exists bool, s
 // mock client request to get the secret
 func expectGetSecretExists(mock *mocks.MockClient, SecretToUse *corev1.Secret, namespace string, name string) {
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			return nil
 		})
 }
@@ -545,15 +545,15 @@ func expectGetSecretExists(mock *mocks.MockClient, SecretToUse *corev1.Secret, n
 func expectGetCalls(t *testing.T, mock *mocks.MockClient, secretNS string, secretName string, secretKey string, secretData string) {
 	// Expect  a call to get the verrazzano-mc namespace
 	mock.EXPECT().
-		Get(gomock.Any(), mcNamespace, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+		Get(gomock.Any(), mcNamespace, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 			return nil
 		}).AnyTimes()
 
 	// Expect a call to get the specified tls secret
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: secretName, Namespace: secretNS}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Name: secretName, Namespace: secretNS}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Name = secretName
 			secret.Namespace = secretNS
 			secret.Data = map[string][]byte{secretKey: []byte(secretData)}
@@ -562,8 +562,8 @@ func expectGetCalls(t *testing.T, mock *mocks.MockClient, secretNS string, secre
 
 	// Expect a call to get the local ca bundle secret
 	mock.EXPECT().
-		Get(gomock.Any(), vzLocalCaBundleSecret, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret2 *corev1.Secret) error {
+		Get(gomock.Any(), vzLocalCaBundleSecret, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret2 *corev1.Secret, opts ...client.GetOption) error {
 			secret2.Name = vzLocalCaBundleSecret.Name
 			secret2.Namespace = vzLocalCaBundleSecret.Namespace
 			return nil
@@ -593,7 +593,7 @@ func expectNothingForWrongSecret(t *testing.T, mock *mocks.MockClient) {
 
 	// Expect no calls to get a secret
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).MaxTimes(0)
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).MaxTimes(0)
 
 	// Expect no calls to get update
 	mock.EXPECT().

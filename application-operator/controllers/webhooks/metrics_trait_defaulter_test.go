@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -6,6 +6,7 @@ package webhooks
 import (
 	"context"
 	"encoding/json"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -63,8 +64,8 @@ func testDefaulter(t *testing.T, componentPath, configPath, workloadPath string,
 
 	// Expect a call to get the component.
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component, opt ...client.GetOption) error {
 			err = json.Unmarshal(readYaml2Json(t, componentPath), component)
 			if err != nil {
 				t.Fatalf("Error in unmarshalling component %v", err)

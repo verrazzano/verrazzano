@@ -188,14 +188,14 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.GetOption) error {
 			workload.Spec.Template = buildDomainV8Template(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
@@ -221,8 +221,8 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 		})
 	// expect call to fetch the WDT config Map
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, getWDTConfigMapName(weblogicDomainName))
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
@@ -236,21 +236,21 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 		})
 	// expect a call to get the namespace for the domain
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace, opts ...client.GetOption) error {
 			return nil
 		})
 	// expect a call to get the application configuration for the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
 			return nil
 		}).Times(2)
 	// expect a call to attempt to get the WebLogic CR - return not found
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 	// expect a call to create the WebLogic domain CR
@@ -324,14 +324,14 @@ func TestReconcileCreateWebLogicDomainV9(t *testing.T) {
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.GetOption) error {
 			workload.Spec.Template = buildDomainV9Template(weblogicDomainv9WithTwoClusters)
 			workload.Spec.Clusters = []vzapi.VerrazzanoWebLogicWorkloadTemplate{buildClusterTemplate("cluster-1"), buildClusterTemplate("cluster-2")}
 			workload.ObjectMeta.Labels = labels
@@ -358,8 +358,8 @@ func TestReconcileCreateWebLogicDomainV9(t *testing.T) {
 		})
 	// expect call to fetch the WDT config Map
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, getWDTConfigMapName(weblogicDomainName))
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
@@ -373,27 +373,27 @@ func TestReconcileCreateWebLogicDomainV9(t *testing.T) {
 		})
 	// expect a call to get the application configuration for the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
 			return nil
 		}).Times(2)
 	// expect call to fetch existing WebLogic Cluster cluster-1
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "cluster-1"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "cluster-1"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect call to fetch existing WebLogic Cluster cluster-2
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "cluster-2"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "cluster-2"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to attempt to get the WebLogic CR - return not found
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 	// expect a call to create the WebLogic Cluster CR cluster-1
@@ -485,14 +485,14 @@ func TestReconcileCreateWebLogicDomainWithMonitoringExporter(t *testing.T) {
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.GetOption) error {
 			workload.Spec.Template = buildDomainV8Template(weblogicDomainWithMonitoringExporter)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
@@ -518,8 +518,8 @@ func TestReconcileCreateWebLogicDomainWithMonitoringExporter(t *testing.T) {
 		})
 	// expect call to fetch the WDT config Map
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, getWDTConfigMapName(weblogicDomainName))
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
@@ -532,21 +532,21 @@ func TestReconcileCreateWebLogicDomainWithMonitoringExporter(t *testing.T) {
 		})
 	// expect a call to get the namespace for the domain
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace, opts ...client.GetOption) error {
 			return nil
 		})
 	// expect a call to get the application configuration for the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
 			return nil
 		}).Times(2)
 	// expect a call to attempt to get the WebLogic CR - return not found
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 	// expect a call to create the WebLogic domain CR
@@ -623,14 +623,14 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.GetOption) error {
 			workload.Spec.Template = buildDomainV8Template(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
@@ -656,8 +656,8 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 		})
 	// expect call to fetch the WDT config Map
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, getWDTConfigMapName(weblogicDomainName))
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
@@ -670,21 +670,21 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 		})
 	// expect a call to get the namespace for the domain
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace, opts ...client.GetOption) error {
 			return nil
 		})
 	// expect a call to get the application configuration for the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
 			return nil
 		}).Times(2)
 	// expect a call to attempt to get the WebLogic CR - return not found
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 	// expect a call to create the WebLogic domain CR
@@ -759,14 +759,14 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.GetOption) error {
 			workload.Spec.Template = buildDomainV8Template(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
@@ -851,8 +851,8 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 		})
 	// expect call to fetch the WDT config Map
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, getWDTConfigMapName(weblogicDomainName))
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
@@ -865,14 +865,14 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 		})
 	// expect a call to get the namespace for the domain
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace, opts ...client.GetOption) error {
 			return nil
 		})
 	// expect a call to get the application configuration for the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{
 				{
 					ComponentName: componentName,
@@ -889,8 +889,8 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 		}).Times(2)
 	// expect a call to get the ConfigMap for logging - return not found
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: "logging-stdout-unit-test-cluster-domain"}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: "logging-stdout-unit-test-cluster-domain"}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{
 				Group:    "",
 				Resource: "ConfigMap",
@@ -899,8 +899,8 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 		})
 	// expect a call to attempt to get the WebLogic CR - return not found
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 	// expect a call to create the WebLogic domain CR
@@ -976,14 +976,14 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.GetOption) error {
 			workload.Spec.Template = buildDomainV8Template(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
@@ -1037,8 +1037,8 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 		})
 	// expect call to fetch the WDT config Map
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, getWDTConfigMapName(weblogicDomainName))
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
@@ -1051,14 +1051,14 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 		})
 	// expect a call to get the namespace for the domain
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace, opts ...client.GetOption) error {
 			return nil
 		})
 	// expect a call to get the application configuration for the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{
 				{
@@ -1076,14 +1076,14 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 		}).Times(2)
 	// expect a call to get the ConfigMap for logging
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: "logging-stdout-unit-test-cluster-domain"}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: "logging-stdout-unit-test-cluster-domain"}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap, opts ...client.GetOption) error {
 			return nil
 		})
 	// expect a call to attempt to get the WebLogic CR - return not found
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 	// expect a call to create the WebLogic domain CR
@@ -1154,14 +1154,14 @@ func TestReconcileCreateWebLogicDomainWithWDTConfigMap(t *testing.T) {
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.GetOption) error {
 			workload.Spec.Template = buildDomainV8Template(weblogicDomainWithWDTConfigMap)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
@@ -1187,22 +1187,22 @@ func TestReconcileCreateWebLogicDomainWithWDTConfigMap(t *testing.T) {
 		})
 	// expect a call to get the namespace for the domain
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace, opts ...client.GetOption) error {
 			return nil
 		})
 	// expect a call to get the application configuration for the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
 			return nil
 		})
 
 	// expect call to fetch the WDT config map
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "wdt-config-map"}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "wdt-config-map"}, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap, opts ...client.GetOption) error {
 			// set up a scaled down existing scrape config entry for cluster1
 			configMap.Data = map[string]string{
 				"resources": "test",
@@ -1220,8 +1220,8 @@ func TestReconcileCreateWebLogicDomainWithWDTConfigMap(t *testing.T) {
 
 	// expect a call to attempt to get the WebLogic CR - return not found
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 	// expect a call to create the WebLogic domain CR
@@ -1278,15 +1278,15 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured, opts ...client.GetOption) error {
 			// return nil error to simulate domain existing
 			return nil
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.GetOption) error {
 			workload.Spec.Template = buildDomainV8Template(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
@@ -1312,8 +1312,8 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 		})
 	// expect call to fetch the WDT config Map
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, getWDTConfigMapName(weblogicDomainName))
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
@@ -1326,14 +1326,14 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 		})
 	// expect a call to get the namespace for the domain
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace, opts ...client.GetOption) error {
 			return nil
 		})
 	// expect a call to attempt to get the VerrazzanoWebLogicWorkload CR
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured, opts ...client.GetOption) error {
 			// set the old Fluentd image on the returned obj
 			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
 			_ = unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
@@ -1343,8 +1343,8 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 		})
 	// expect a call to get the application configuration for the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
 			return nil
 		}).Times(2)
@@ -1415,14 +1415,14 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.GetOption) error {
 			workload.Spec.Template = buildDomainV8Template(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
@@ -1448,8 +1448,8 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 		})
 	// expect call to fetch the WDT config Map
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, getWDTConfigMapName(weblogicDomainName))
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
@@ -1462,21 +1462,21 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 		})
 	// expect a call to get the namespace for the domain
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace, opts ...client.GetOption) error {
 			return nil
 		})
 	// expect a call to get the application configuration for the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
 			return nil
 		}).Times(2)
 	// expect a call to attempt to get the WebLogic CR - return not found
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 	// expect a call to create the WebLogic domain CR and return a BadRequest error
@@ -1519,8 +1519,8 @@ func TestReconcileWorkloadNotFound(t *testing.T) {
 
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 
@@ -1547,8 +1547,8 @@ func TestReconcileFetchWorkloadError(t *testing.T) {
 
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.GetOption) error {
 			return k8serrors.NewBadRequest("an error has occurred")
 		})
 
@@ -1578,8 +1578,8 @@ func TestCopyLabelsFailure(t *testing.T) {
 	// so when we attempt to set the labels field inside spec it will fail) - this is a contrived example, but it's the easiest
 	// way to force error on copying labels
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.GetOption) error {
 			json := `{27}`
 			workload.Spec.Template = buildDomainV8Template(json)
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
@@ -1611,13 +1611,13 @@ func TestCreateRuntimeEncryptionSecretCreate(t *testing.T) {
 
 	// Expect a call to get a secret and return that it is not found.
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-secret"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-secret"}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(k8serrors.NewNotFound(k8sschema.GroupResource{Group: "test-space", Resource: "Secret"}, "test-space-secret"))
 
 	// Expect a call to get the appconfig resource to set the owner reference
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-app"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, app *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-app"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, app *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 			app.TypeMeta = metav1.TypeMeta{
 				APIVersion: "core.oam.dev/v1alpha2",
 				Kind:       "ApplicationConfiguration",
@@ -1662,8 +1662,8 @@ func TestCreateRuntimeEncryptionSecretNoCreate(t *testing.T) {
 
 	// Expect a call to get a secret and return that it was found.
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-secret"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dr *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-secret"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dr *corev1.Secret, opts ...client.GetOption) error {
 			dr.TypeMeta = metav1.TypeMeta{
 				APIVersion: "v1",
 				Kind:       "Secret"}
@@ -1876,15 +1876,15 @@ func TestReconcileRestart(t *testing.T) {
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured, opts ...client.GetOption) error {
 			// return nil error to simulate domain existing
 			return nil
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.GetOption) error {
 			workload.Spec.Template = buildDomainV8Template(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.ObjectMeta.Annotations = annotations
@@ -1911,8 +1911,8 @@ func TestReconcileRestart(t *testing.T) {
 		})
 	// expect call to fetch the WDT config Map
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, getWDTConfigMapName(weblogicDomainName))
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
@@ -1925,14 +1925,14 @@ func TestReconcileRestart(t *testing.T) {
 		})
 	// expect a call to get the namespace for the domain
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace, opts ...client.GetOption) error {
 			return nil
 		})
 	// expect a call to attempt to get the domain CR
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured, opts ...client.GetOption) error {
 			// set the old Fluentd image on the returned obj
 			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
 			_ = unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
@@ -1942,8 +1942,8 @@ func TestReconcileRestart(t *testing.T) {
 		})
 	// expect a call to get the application configuration for the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
 			return nil
 		}).Times(2)
@@ -2020,15 +2020,15 @@ func TestReconcileStopDomain(t *testing.T) {
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured, opts ...client.GetOption) error {
 			// return nil error to simulate domain existing
 			return nil
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.GetOption) error {
 			workload.Spec.Template = buildDomainV8Template(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.ObjectMeta.Annotations = annotations
@@ -2055,8 +2055,8 @@ func TestReconcileStopDomain(t *testing.T) {
 		})
 	// expect call to fetch the WDT config Map
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, getWDTConfigMapName(weblogicDomainName))
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
@@ -2069,14 +2069,14 @@ func TestReconcileStopDomain(t *testing.T) {
 		})
 	// expect a call to get the namespace for the domain
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace, opts ...client.GetOption) error {
 			return nil
 		})
 	// expect a call to attempt to get the WebLogic CR
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured, opts ...client.GetOption) error {
 			// set the old Fluentd image on the returned obj
 			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
 			_ = unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
@@ -2086,8 +2086,8 @@ func TestReconcileStopDomain(t *testing.T) {
 		})
 	// expect a call to get the application configuration for the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
 			return nil
 		}).Times(2)
@@ -2153,15 +2153,15 @@ func TestReconcileStartDomain(t *testing.T) {
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured, opts ...client.GetOption) error {
 			// return nil error to simulate domain existing
 			return nil
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.GetOption) error {
 			workload.Spec.Template = buildDomainV8Template(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.ObjectMeta.Annotations = annotations
@@ -2188,8 +2188,8 @@ func TestReconcileStartDomain(t *testing.T) {
 		})
 	// expect call to fetch the WDT config Map
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, getWDTConfigMapName(weblogicDomainName))
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
@@ -2202,14 +2202,14 @@ func TestReconcileStartDomain(t *testing.T) {
 		})
 	// expect a call to get the namespace for the domain
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace, opts ...client.GetOption) error {
 			return nil
 		})
 	// expect a call to attempt to get the WebLogic CR
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured, opts ...client.GetOption) error {
 			// set the old Fluentd image on the returned obj
 			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
 			_ = unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
@@ -2219,8 +2219,8 @@ func TestReconcileStartDomain(t *testing.T) {
 		})
 	// expect a call to get the application configuration for the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
 			return nil
 		}).Times(2)
@@ -2296,14 +2296,14 @@ func TestReconcileUserProvidedLogHome(t *testing.T) {
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.GetOption) error {
 			workload.Spec.Template = buildDomainV8Template(weblogicDomainWithLogHome)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
@@ -2329,8 +2329,8 @@ func TestReconcileUserProvidedLogHome(t *testing.T) {
 		})
 	// expect call to fetch the WDT config Map
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, getWDTConfigMapName(weblogicDomainName))
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
@@ -2343,21 +2343,21 @@ func TestReconcileUserProvidedLogHome(t *testing.T) {
 		})
 	// expect a call to get the namespace for the domain
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace, opts ...client.GetOption) error {
 			return nil
 		})
 	// expect a call to get the application configuration for the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
 			return nil
 		}).Times(2)
 	// expect a call to attempt to get the WebLogic CR - return not found
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 	// expect a call to create the WebLogic domain CR

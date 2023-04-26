@@ -40,8 +40,6 @@ PARENT_BRANCH ?= origin/master
 GO ?= CGO_ENABLED=0 GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
 
-SOURCE_EXCLUSIONS = tests/e2e|tools/psr|platform-operator/experimental
-
 .PHONY: clean
 clean: ## remove coverage and test results
 	find . -name coverage.cov -exec rm {} \;
@@ -103,7 +101,7 @@ precommit-check: check check-tests copyright-check ## run precommit checks witho
 precommit-build:  ## go build the project
 	go build ./...
 
-unit-test-coverage: export COVERAGE_EXCLUSIONS ?= ${SOURCE_EXCLUSIONS}
+unit-test-coverage: export COVERAGE_EXCLUSIONS ?= tests/e2e|tools/psr
 .PHONY: unit-test-coverage
 unit-test-coverage:  ## run unit tests with coverage
 	${SCRIPT_DIR}/coverage.sh html
@@ -114,7 +112,7 @@ unit-test-coverage-ratcheting:  ## run unit tests with coverage ratcheting
 
 .PHONY: unit-test
 unit-test:  ## run all unit tests in project
-	go test $$(go list ./... | grep -Ev "${SOURCE_EXCLUSIONS}")
+	go test $$(go list ./... | grep -Ev "/tests/e2e|/tools/psr")
 
 #
 #  Compliance check targets

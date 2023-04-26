@@ -10,7 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
@@ -36,7 +35,8 @@ type ComponentConfigMapReconciler struct {
 
 func initShimComponentList() {
 	// Add any shim components here that you want to test.
-	shimComponents[capi.ComponentName] = capi.NewComponent()
+	// For example,
+	// shimComponents[capi.ComponentName] = capi.NewComponent()
 }
 
 func (r *ComponentConfigMapReconciler) SetupWithManager(mgr ctrl.Manager) error {

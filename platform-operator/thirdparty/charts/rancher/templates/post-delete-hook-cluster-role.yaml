@@ -32,7 +32,12 @@ rules:
     verbs: [ "get", "list", "delete" ]
   - apiGroups: [ "policy" ]
     resources: [ "podsecuritypolicies" ]
-    verbs: [ "use", "delete", "create" ]
+    verbs: ["delete", "create" ]
+{{- if .Values.global.cattle.psp.enabled }}
+  - apiGroups: [ "policy" ]
+    resources: [ "podsecuritypolicies" ]
+    verbs: [ "use"]
+{{- end }}
   - apiGroups: [ "networking.k8s.io" ]
     resources: [ "ingresses" ]
     verbs: [ "delete" ]

@@ -30,7 +30,7 @@ spec:
       jsonPath: .status.state
       name: Status
       type: string
-    name: v1beta2
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         properties:
@@ -42,64 +42,68 @@ spec:
             type: object
           spec:
             properties:
-              enabled:
-                type: boolean
-              name:
-                type: string
-              overrides:
+              dependencies:
                 items:
-                  properties:
-                    configMapRef:
-                      properties:
-                        key:
-                          type: string
-                        name:
-                          type: string
-                        optional:
-                          type: boolean
-                      required:
-                      - key
-                      type: object
-                      x-kubernetes-map-type: atomic
-                    secretRef:
-                      properties:
-                        key:
-                          type: string
-                        name:
-                          type: string
-                        optional:
-                          type: boolean
-                      required:
-                      - key
-                      type: object
-                      x-kubernetes-map-type: atomic
-                    values:
-                      x-kubernetes-preserve-unknown-fields: true
                   type: object
                 type: array
-              reconcile:
-                type: boolean
-              source:
+              installer:
                 properties:
-                  repo:
+                  helmChart:
                     properties:
-                      credentialsSecret:
-                        type: string
+                      monitorChanges:
+                        type: boolean
                       name:
                         type: string
-                      uri:
+                      namespace:
+                        type: string
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                      repository:
+                        properties:
+                          path:
+                            type: string
+                          secretRef:
+                            type: string
+                          uri:
+                            type: string
+                        type: object
+                      version:
                         type: string
                     required:
                     - name
-                    - uri
-                    type: object
-                  sourceRef:
                     type: object
                 type: object
-              targetNamespace:
-                type: string
-              version:
-                type: string
+            required:
+            - installer
             type: object
           status:
             properties:
@@ -119,9 +123,12 @@ spec:
                   - type
                   type: object
                 type: array
-              state:
+              observedGeneration:
+                format: int64
+                type: integer
+              reconciledAt:
                 type: string
-              version:
+              state:
                 type: string
             type: object
         type: object
@@ -129,4 +136,4 @@ spec:
     storage: true
     subresources:
       status: {}
-{{ end }}
+  {{ end }}
