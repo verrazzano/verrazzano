@@ -15,15 +15,13 @@ image:
 nameOverride: "cert-manager-ocidns-provider"
 fullnameOverride: "cert-manager-ocidns-provider"
 
+# temporary until we work out port-binding issue
 securityContext:
-  allowPrivilegeEscalation: false
-  privileged: false
-  runAsNonRoot: true
-  runAsUser: 1000
+  allowPrivilegeEscalation: true
+  privileged: true
+  runAsNonRoot: false
+  runAsUser: 0
   runAsGroup: 0
-  capabilities:
-    drop:
-      - ALL
 
 podSecurityContext:
   seccompProfile:

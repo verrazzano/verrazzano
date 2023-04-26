@@ -15,6 +15,9 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
+global:
+  imagePullSecrets: []
+
 nameOverride: ""
 fullnameOverride: ""
 
@@ -39,3 +42,17 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+#securityContext:
+#  allowPrivilegeEscalation: false
+#  privileged: false
+#  runAsNonRoot: true
+#  runAsUser: 1000
+#  runAsGroup: 0
+#  capabilities:
+#    drop:
+#      - ALL
+
+podSecurityContext:
+  seccompProfile:
+    type: RuntimeDefault
