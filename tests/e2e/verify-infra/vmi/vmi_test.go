@@ -17,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/thanos"
 	"io"
 	"net/http"
 	"os"
@@ -423,12 +424,15 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 
 					expectedPromReplicas, err := getExpectedPrometheusReplicaCount(kubeconfigPath)
 					Expect(err).ToNot(HaveOccurred())
+					expectedThanosReplicas, err := getExpectedThanosReplicaCount(kubeconfigPath)
+					Expect(err).ToNot(HaveOccurred())
+
 					if minVer14 {
 						Expect(len(volumeClaims)).To(Equal(2))
 						assertPersistentVolume("vmi-system-grafana", size)
 						assertPersistentVolume(esMaster0, size)
 
-						Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(expectedPromReplicas)))
+						Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(expectedPromReplicas) + int(expectedThanosReplicas)))
 						assertPrometheusVolume(size)
 					} else {
 						Expect(len(volumeClaims)).To(Equal(3))
@@ -447,9 +451,12 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 
 				expectedPromReplicas, err := getExpectedPrometheusReplicaCount(kubeconfigPath)
 				Expect(err).ToNot(HaveOccurred())
+				expectedThanosReplicas, err := getExpectedThanosReplicaCount(kubeconfigPath)
+				Expect(err).ToNot(HaveOccurred())
+
 				if minVer14 {
 					Expect(len(volumeClaims)).To(Equal(0))
-					Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(expectedPromReplicas)))
+					Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(expectedPromReplicas) + int(expectedThanosReplicas)))
 					assertPrometheusVolume(size)
 				} else {
 					Expect(len(volumeClaims)).To(Equal(1))
@@ -463,9 +470,12 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 
 				expectedPromReplicas, err := getExpectedPrometheusReplicaCount(kubeconfigPath)
 				Expect(err).ToNot(HaveOccurred())
+				expectedThanosReplicas, err := getExpectedThanosReplicaCount(kubeconfigPath)
+				Expect(err).ToNot(HaveOccurred())
+
 				if minVer14 {
 					Expect(len(volumeClaims)).To(Equal(7))
-					Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(expectedPromReplicas)))
+					Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(expectedPromReplicas) + int(expectedThanosReplicas)))
 					assertPrometheusVolume(size)
 				} else {
 					Expect(len(volumeClaims)).To(Equal(8))
@@ -659,6 +669,9 @@ func getExpectedPrometheusReplicaCount(kubeconfig string) (int32, error) {
 	if err != nil {
 		return 0, err
 	}
+	if !vzcr.IsComponentStatusEnabled(vz, operator.ComponentName) {
+		return 0, nil
+	}
 	var expectedReplicas int32 = 1
 	if vz.Spec.Components.PrometheusOperator == nil {
 		return expectedReplicas, nil
@@ -675,6 +688,47 @@ func getExpectedPrometheusReplicaCount(kubeconfig string) (int32, error) {
 					expectedReplicas = int32(val)
 					t.Logs.Infof("Found Prometheus replicas override in Verrazzano CR, replica count is: %d", expectedReplicas)
 					break
+				}
+			}
+		}
+	}
+
+	return expectedReplicas, nil
+}
+
+// getExpectedThanosReplicaCount returns the thanos replicas in the values overrides from the
+// Thanos component in the Verrazzano CR. If there is no override for replicas then the
+// default replica count of 1 is returned.
+func getExpectedThanosReplicaCount(kubeconfig string) (int32, error) {
+	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfig)
+	if err != nil {
+		return 0, err
+	}
+	if !vzcr.IsComponentStatusEnabled(vz, thanos.ComponentName) {
+		return 0, nil
+	}
+	expectedReplicas := int32(0)
+	if vz.Spec.Components.Thanos == nil {
+		return expectedReplicas, nil
+	}
+
+	for _, override := range vz.Spec.Components.Thanos.InstallOverrides.ValueOverrides {
+		if override.Values != nil {
+			jsonString, err := gabs.ParseJSON(override.Values.Raw)
+			if err != nil {
+				return expectedReplicas, err
+			}
+			// check to see if storegateway is enabled and if so how many replicas it has
+			if enabledContainer := jsonString.Path("storegateway.enabled"); enabledContainer != nil {
+				if enabled, ok := enabledContainer.Data().(bool); ok && enabled {
+					expectedReplicas = int32(1)
+					if replicaContainer := jsonString.Path("storegateway.replicaCount"); replicaContainer != nil {
+						if val, ok := replicaContainer.Data().(float64); ok {
+							expectedReplicas = int32(val)
+							t.Logs.Infof("Found Thanos storegateway replicas override in Verrazzano CR, replica count is: %d", expectedReplicas)
+							break
+						}
+					}
 				}
 			}
 		}

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package namespace
 
@@ -71,8 +71,8 @@ func TestReconcileNamespaceUpdate(t *testing.T) {
 
 	// Expect a call to get the namespace
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 			ns.Name = "myns"
 			ns.Annotations = map[string]string{
 				constants.OCILoggingIDAnnotation: "myocid",
@@ -134,8 +134,8 @@ func runTestReconcileGetError(t *testing.T, returnErr error, expectedResult ctrl
 
 	// Expect a call to get the namespace
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 			return returnErr
 		})
 
@@ -169,8 +169,8 @@ func TestReconcileNamespaceDeleted(t *testing.T) {
 
 	// Expect a call to get the namespace
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 			ns.Name = "myns"
 			ns.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 			ns.Annotations = map[string]string{
@@ -220,8 +220,8 @@ func TestReconcileNamespaceDeletedErrorOnUpdate(t *testing.T) {
 
 	// Expect a call to get the namespace
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 			ns.Name = "myns"
 			ns.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 			ns.Annotations = map[string]string{
@@ -266,8 +266,8 @@ func TestReconcileNamespaceDeletedNoFinalizer(t *testing.T) {
 
 	// Expect a call to get the namespace
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 			ns.Name = "myns"
 			ns.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 			ns.Annotations = map[string]string{
@@ -708,8 +708,8 @@ func Test_reconcileOCILoggingAddOCILoggingAddFailed(t *testing.T) {
 func mockFluentdRestart(mock *mocks.MockClient, asserts *assert.Assertions) {
 	// Expect a call to get the Fleuntd Daemonset and another to update it with a restart time annotation
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ds *appsv1.DaemonSet) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ds *appsv1.DaemonSet, opts ...client.GetOption) error {
 			return nil
 		})
 	mock.EXPECT().

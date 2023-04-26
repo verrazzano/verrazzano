@@ -375,14 +375,14 @@ func getMock(t *testing.T) *mocks.MockClient {
 		}).AnyTimes()
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: "default"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, _ *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: "default"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, _ *v1.Secret, opts ...client.GetOption) error {
 			return nil
 		}).AnyTimes()
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: IstioNamespace}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, _ *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: IstioNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, _ *v1.Secret, opts ...client.GetOption) error {
 			return nil
 		}).AnyTimes()
 
@@ -393,8 +393,8 @@ func getMock(t *testing.T) *mocks.MockClient {
 		}).AnyTimes()
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: IstioIngressgatewayDeployment, Namespace: IstioNamespace}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, svc *v1.Service) error {
+		Get(gomock.Any(), types.NamespacedName{Name: IstioIngressgatewayDeployment, Namespace: IstioNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, svc *v1.Service, opts ...client.GetOption) error {
 			svc.Status.LoadBalancer.Ingress = []v1.LoadBalancerIngress{
 				{
 					IP: "0.0.0.0",

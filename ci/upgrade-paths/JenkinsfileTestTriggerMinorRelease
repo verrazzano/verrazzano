@@ -150,7 +150,6 @@ pipeline {
            
         stage ('Upgrade every release to next Minor Release') {
             parallel {
-                
                 stage('Compute required N Upgrade Jobs'){ 
                 steps {
                     script {

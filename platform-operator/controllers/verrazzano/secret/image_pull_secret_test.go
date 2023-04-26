@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package secret
 
@@ -80,8 +80,8 @@ func TestUnexpectedErrorGetTargetSecret(t *testing.T) {
 
 	// Expect a call to get an existing configmap, but return a NotFound error.
 	mock.EXPECT().
-		Get(gomock.Any(), name, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, _ *corev1.Secret) error {
+		Get(gomock.Any(), name, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, _ *corev1.Secret, opts ...client.GetOption) error {
 			return fmt.Errorf("Unexpected error")
 		})
 	copied, err := CheckImagePullSecret(mock, constants.VerrazzanoSystemNamespace)
@@ -105,14 +105,14 @@ func TestUnexpectedErrorOnCreate(t *testing.T) {
 
 	// Expect a call to get the target ns secret first, return not found
 	mock.EXPECT().
-		Get(gomock.Any(), targetSecretName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *corev1.Secret) error {
+		Get(gomock.Any(), targetSecretName, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *corev1.Secret, opts ...client.GetOption) error {
 			return errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.GlobalImagePullSecName)
 		})
 	// Expect a call to get the default ns secret.
 	mock.EXPECT().
-		Get(gomock.Any(), defaultName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *corev1.Secret) error {
+		Get(gomock.Any(), defaultName, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.ObjectMeta.Namespace = defaultName.Namespace
 			secret.ObjectMeta.Name = defaultName.Name
 			secret.Type = "kubernetes.io/dockerconfigjson"
@@ -143,8 +143,8 @@ func TestUnexpectedErrorGetSourceSecret(t *testing.T) {
 
 	// Expect a call to get the default ns secret.
 	mock.EXPECT().
-		Get(gomock.Any(), defaultName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *corev1.Secret) error {
+		Get(gomock.Any(), defaultName, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *corev1.Secret, opts ...client.GetOption) error {
 			return fmt.Errorf("unexpected error")
 		})
 	copied, err := CheckImagePullSecret(mock, constants.VerrazzanoSystemNamespace)
@@ -167,8 +167,8 @@ func TestAddImagePullSecretUnexpectedError(t *testing.T) {
 
 	// Expect a call to get the target ns secret first, return not found
 	mock.EXPECT().
-		Get(gomock.Any(), targetSecretName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *corev1.Secret) error {
+		Get(gomock.Any(), targetSecretName, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *corev1.Secret, opts ...client.GetOption) error {
 			return fmt.Errorf("unexpected error")
 		}).AnyTimes()
 
