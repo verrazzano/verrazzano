@@ -93,6 +93,7 @@ pipeline {
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
         KUBECONFIG_DIR = "${WORKSPACE}/kubeconfig"
+        KUBECONFIG = "${KUBECONFIG_DIR}/test_kubeconfig"
 
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
