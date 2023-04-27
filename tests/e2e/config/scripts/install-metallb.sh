@@ -7,6 +7,12 @@
 set -e
 
 ADDRESS_RANGE=${1:-"172.18.0.230-172.18.0.254"}
+CLUSTER_NAME=${CLUSTER_NAME:-verrazzano}
+
+# Kind load the MetalLB images
+# We should ignore these errors because they are not blocking for most pipelines
+kind load docker-image quay.io/metallb/controller:v0.13.7 --name "${CLUSTER_NAME}" || true
+kind load docker-image quay.io/metallb/speaker:v0.13.7 --name "${CLUSTER_NAME}" || true
 
 # Apply the MetalLB manifest
 if [ -f "$HOME"/metallb-native.yaml ] ; then
