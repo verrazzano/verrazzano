@@ -501,7 +501,7 @@ def setInitValues() {
         // update the description with some meaningful info
         setDisplayName()
         currentBuild.description = "from ${params.VERSION_FOR_INSTALL}\n${SHORT_COMMIT_HASH} : ${env.GIT_COMMIT} : ${params.GIT_COMMIT_TO_USE}"
-        OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
+        env.OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
         echo "OKE_CLUSTER_PREFIX inside: ${OKE_CLUSTER_PREFIX}"
         // Sets the VZ installation configuration based on VZ_INSTALL_CONFIG parameter.
         setVZConfigForInstallation()
