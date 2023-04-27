@@ -37,7 +37,7 @@ pipeline {
         choice (name: 'OKE_CLUSTER_VERSION',
                 description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
-                choices: [ "v1.21.5", "v1.22.5", "v1.23.4", "v1.24.1" ])
+                choices: [ "v1.23.4", "v1.24.1" ])
         string (name: 'GIT_COMMIT_TO_USE',
                 defaultValue: 'NONE',
                 description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -171,6 +171,7 @@ pipeline {
                     OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
                 }
                 downloadCLI()
+                echo "DOCKER_IMAGE_TAG: ${DOCKER_IMAGE_TAG}"
             }
         }
 
