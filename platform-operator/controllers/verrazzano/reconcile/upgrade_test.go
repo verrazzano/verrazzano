@@ -430,9 +430,6 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 		k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
 	}()
 
-	defer func() { common.ResetAPIExtV1ClientFunc() }()
-	common.SetAPIExtV1ClientFunc(common.NewFakeAPIExtTestClient())
-
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
@@ -1668,9 +1665,6 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 		})
 	})
 
-	defer func() { common.ResetAPIExtV1ClientFunc() }()
-	common.SetAPIExtV1ClientFunc(common.NewFakeAPIExtTestClient())
-
 	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
@@ -1848,9 +1842,6 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 
 	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
-
-	defer func() { common.ResetAPIExtV1ClientFunc() }()
-	common.SetAPIExtV1ClientFunc(common.NewFakeAPIExtTestClient())
 
 	// Create and make the request
 	request := newRequest(namespace, name)

@@ -52,7 +52,7 @@ func NewComponent() spi.Component {
 // IsEnabled returns true if the cert-manager is enabled, which is the default
 func (c certManagerOciDNSComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	logger := vzlog.DefaultLogger()
-	err := common.CertManagerExistsInCluster(logger)
+	err := common.CertManagerExistsInCluster(logger, nil)
 	if err != nil {
 		logger.ErrorfThrottled("Unexpected error checking for CertManager in cluster: %v", err)
 		return false

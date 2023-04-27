@@ -15,6 +15,7 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/time"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -655,8 +656,10 @@ func TestComponentDependenciesMetStateCheckCompDisabled(t *testing.T) {
 // WHEN Newcontext is called
 // THEN all components referred from the registry are disabled except for network-policies
 func TestNoneProfileInstalledAllComponentsDisabled(t *testing.T) {
-	defer func() { common.ResetAPIExtV1ClientFunc() }()
-	common.SetAPIExtV1ClientFunc(common.NewFakeAPIExtTestClient())
+	defer func() { common.ResetNewClientFunc() }()
+	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
+		return fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), nil
+	})
 
 	config.TestProfilesDir = profileDir
 	defer func() { config.TestProfilesDir = "" }()

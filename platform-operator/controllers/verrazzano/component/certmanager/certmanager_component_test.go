@@ -267,8 +267,6 @@ var tests = []validationTestStruct{
 }
 
 func validationTests(t *testing.T, isUpdate bool) {
-	defer func() { common.ResetAPIExtV1ClientFunc() }()
-	common.SetAPIExtV1ClientFunc(common.NewFakeAPIExtTestClient())
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.name == "Cert Manager Namespace already exists" && isUpdate { // will throw error only during installation

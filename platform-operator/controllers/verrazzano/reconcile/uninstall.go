@@ -14,6 +14,7 @@ import (
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerconfig"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -409,6 +410,10 @@ func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvision
 	// Wait for all the namespaces to be deleted
 	waiting := false
 	for ns := range nsSet {
+		// Clean up any remaining CM resources in Verrazzano-managed namespaces
+		if err := certmanagerconfig.UninstallCleanup(ctx.Log(), ctx.Client(), ns); err != nil {
+			return newRequeueWithDelay(), err
+		}
 		err := r.Get(context.TODO(), types.NamespacedName{Name: ns}, &corev1.Namespace{})
 		if err != nil {
 			if errors.IsNotFound(err) {
