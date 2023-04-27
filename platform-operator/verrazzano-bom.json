@@ -85,8 +85,8 @@
           "name": "cert-manager-ocidns",
           "images": [
             {
-              "image": "cert-manager-ocidns-provider-jenkins",
-              "tag": "1.1.0-20230426133115-3dd9e0a",
+              "image": "cert-manager-ocidns-provider",
+              "tag": "1.1.0-20230427015358-71e4bec",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
