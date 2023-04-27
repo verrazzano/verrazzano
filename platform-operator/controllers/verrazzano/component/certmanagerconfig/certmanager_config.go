@@ -164,37 +164,41 @@ func UninstallCleanup(log vzlog.VerrazzanoLogger, cli crtclient.Client, namespac
 
 	log.Progressf("Cleaning up any dangling Cert-Manager resources in namespace %s", namespace)
 
-	if err := deleteResources(log, cli, namespace, &certv1.Issuer{}, &certv1.IssuerList{}); err != nil {
+	if err := deleteResources(log, cli, namespace, &certv1.Issuer{}, createCertManagerGVK("IssuerList")); err != nil {
 		return err
 	}
 
-	if err := deleteResources(log, cli, namespace, &certv1.CertificateRequest{}, &certv1.CertificateRequestList{}); err != nil {
+	if err := deleteResources(log, cli, namespace, &certv1.CertificateRequest{}, createCertManagerGVK("CertificateRequestList")); err != nil {
 		return err
 	}
 
-	if err := deleteResources(log, cli, namespace, &certv1.Certificate{}, &certv1.CertificateList{}); err != nil {
+	if err := deleteResources(log, cli, namespace, &certv1.Certificate{}, createCertManagerGVK("CertificateList")); err != nil {
 		return err
 	}
 
-	if err := deleteResources(log, cli, namespace, &v12.Order{}, &v12.OrderList{}); err != nil {
+	if err := deleteResources(log, cli, namespace, &v12.Order{}, createAcmeGVK("OrderList")); err != nil {
 		return err
 	}
 
-	if err := deleteResources(log, cli, namespace, &v12.Challenge{}, &v12.ChallengeList{}); err != nil {
+	if err := deleteResources(log, cli, namespace, &v12.Challenge{}, createAcmeGVK("ChallengeList")); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func deleteResources(log vzlog.VerrazzanoLogger, cli crtclient.Client, namespace string, obj crtclient.Object, list crtclient.ObjectList) error {
+func createAcmeGVK(kind string) schema.GroupVersionKind {
+	return schema.GroupVersionKind{Group: "acme.cert-manager.io", Version: "v1", Kind: kind}
+}
+
+func createCertManagerGVK(kind string) schema.GroupVersionKind {
+	return schema.GroupVersionKind{Group: "cert-manager.io", Version: "v1", Kind: kind}
+}
+
+func deleteResources(log vzlog.VerrazzanoLogger, cli crtclient.Client, namespace string, obj crtclient.Object, gvk schema.GroupVersionKind) error {
 	// Use an unstructured object to get the list of resources
 	objectList := &unstructured.UnstructuredList{}
-	objectList.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   list.GetObjectKind().GroupVersionKind().Group,
-		Kind:    list.GetObjectKind().GroupVersionKind().Kind,
-		Version: list.GetObjectKind().GroupVersionKind().Version,
-	})
+	objectList.SetGroupVersionKind(gvk)
 	if err := cli.List(context.TODO(), objectList, crtclient.InNamespace(namespace)); err != nil {
 		return err
 	}
