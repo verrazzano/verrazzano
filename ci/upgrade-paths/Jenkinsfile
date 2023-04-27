@@ -1999,7 +1999,9 @@ def setInitValues() {
         VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-        if("${COMMIT_HASH_FOR_INSTALL}" != "NONE"){
+        if("${COMMIT_HASH_FOR_INSTALL}" == "NONE"){
+            SHORT_HASH_FROM_TIP = "${COMMIT_HASH_FOR_INSTALL}"
+        }else{
             SHORT_HASH_FROM_TIP = "${COMMIT_HASH_FOR_INSTALL}"[0..7]
         }
         DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
