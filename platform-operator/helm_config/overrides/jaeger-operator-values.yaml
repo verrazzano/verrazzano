@@ -27,7 +27,7 @@ jaeger:
         allowPrivilegeEscalation: false
         capabilities:
           drop:
-            - ALL
+          - ALL
     collector:
       options:
         collector:
@@ -46,7 +46,7 @@ jaeger:
         allowPrivilegeEscalation: false
         capabilities:
           drop:
-            - ALL
+          - ALL
     query:
       securityContext:
         runAsGroup: 65534
@@ -62,7 +62,7 @@ jaeger:
         allowPrivilegeEscalation: false
         capabilities:
           drop:
-            - ALL
+          - ALL
     storage:
       dependencies:
         enabled: false
@@ -87,7 +87,7 @@ jaeger:
           allowPrivilegeEscalation: false
           capabilities:
             drop:
-              - ALL
+            - ALL
       options:
         es:
           index-prefix: verrazzano
@@ -107,7 +107,7 @@ containerSecurityContext:
   allowPrivilegeEscalation: false
   capabilities:
     drop:
-      - ALL
+    - ALL
 
 extraLabels:
   sidecar.istio.io/inject: "false"
