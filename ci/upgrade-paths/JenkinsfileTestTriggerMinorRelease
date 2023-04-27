@@ -442,7 +442,7 @@ def getStageOfUpgradeJob(job) {
 def getTipOfBranchToMasterJob(String release, String commitNumber) {
     return {
         stage("Upgrade Verrazzano from tip of ${release} to master") {
-            if( CLEAN_BRANCH_NAME != 'master') {
+            if( CLEAN_BRANCH_NAME != CLEAN_BRANCH_NAME) {
                     script{
                         try{
                             echo "Running upgrade job from version ${release}-${commitNumber} to master"
