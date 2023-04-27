@@ -320,7 +320,7 @@ pipeline {
             steps {
                 runGinkgoRandomize('verify-distribution/verifydistribution/verifydistribution.test')
             }
-        }
+        }*/
 
         stage('Upload Verrazzano Images') {
              when {
@@ -360,7 +360,7 @@ pipeline {
                     }
                 }
             }
-        }*/
+        }
         stage('Acceptance Tests') {
             when {
                 expression {
