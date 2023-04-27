@@ -11,6 +11,22 @@ jaeger:
     annotations:
       sidecar.istio.io/inject: "true"
       proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
+    agent:
+      securityContext:
+        runAsGroup: 65534
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containerSecurityContext:
+        runAsUser: 10001
+        runAsGroup: 65534
+        runAsNonRoot: true
+        privileged: false
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
     ingress:
       enabled: false
       securityContext:
