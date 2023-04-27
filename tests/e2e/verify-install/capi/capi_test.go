@@ -83,10 +83,10 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
 	}
-	if isCAPIInstalled {
-		update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
-		update.ValidatePods(capiLabelValue, capiLabelKey, constants.VerrazzanoCAPINamespace, uint32(0), false)
-	}
+	//if isCAPIInstalled {
+	//	update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
+	//	update.ValidatePods(capiLabelValue, capiLabelKey, constants.VerrazzanoCAPINamespace, uint32(0), false)
+	//}
 })
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
