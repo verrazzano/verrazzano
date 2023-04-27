@@ -5,8 +5,6 @@ package verrazzano_test
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"strings"
 	"time"
 
@@ -70,7 +68,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	mySQLOperatorEnabled = pkg.IsMySQLOperatorEnabled(kubeconfigPath)
 	argocdEnabled = pkg.IsArgoCDEnabled(kubeconfigPath)
 
-	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	ingressNGINXNamespace, err = pkg.DetermineIngressNGINXNamespace()
 	if err != nil {
 		Fail(err.Error())
 	}

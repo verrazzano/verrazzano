@@ -32,53 +32,9 @@ func DetermineNamespaceForIngressNGINX(client client.Client, log vzlog.Verrazzan
 		return "", log.ErrorfNewErr("Failed checking for legacy Ingress NGINX namespace %s: %v", vpoconst.LegacyIngressNginxNamespace, err.Error())
 	}
 	ingressNGINXNamespace = getNamespaceForIngressNGINX(legacyNSExists)
-	log.Infof("Ingress NGINX namespace is %s", ingressNGINXNamespace)
+	log.Oncef("Ingress NGINX namespace is %s", ingressNGINXNamespace)
 	return ingressNGINXNamespace, nil
 }
-
-//
-//// isLegacyNGINXNamespace determines the namespace for Ingress NGINX
-//func isLegacyNGINXNamespace(client client.Client, log vzlog.VerrazzanoLogger, releaseName string, namespace string) (bool, error) {
-//	// Note, older versions of Verrazzano had both ingress and verrazzano-ingress as the class, so we need to use controllerClass
-//	const controllerClass = "k8s.io/verrazzano-ingress-nginx"
-//
-//	// Define structs needed to marshal YAML.  Fields must be public
-//	type IngressClassResource struct {
-//		Name            string `json:"name"`
-//		ControllerValue string `json:"controllerValue"`
-//	}
-//	type Controller struct {
-//		IngressClassResource `json:"ingressClassResource"`
-//	}
-//	type helmValues struct {
-//		Controller `json:"controller"`
-//	}
-//
-//	// See if NGINX is installed in the ingress-nginx namespace
-//	found, err := helm2.IsReleaseInstalled(releaseName, namespace)
-//	if err != nil {
-//		log.ErrorfNewErr("Error checking if the old ingress-nginx chart %s/%s is installed error: %v", namespace, releaseName, err.Error())
-//	}
-//	if found {
-//		valMap, err := helm2.GetValuesMap(log, releaseName, namespace)
-//		if err != nil {
-//			return false, log.ErrorfNewErr("Error getting helm values: %v", err.Error())
-//		}
-//		b, err := yaml.Marshal(&valMap)
-//		if err != nil {
-//			return false, log.ErrorfNewErr("Error marshaling helm values: %v", err.Error())
-//		}
-//		vals := helmValues{}
-//		if err := yaml.Unmarshal(b, &vals); err != nil {
-//			return false, log.ErrorfNewErr("Error unmarshaling helm values: %v", err.Error())
-//		}
-//		if vals.Controller.IngressClassResource.ControllerValue == controllerClass {
-//			return true, nil
-//		}
-//	}
-//	if
-//	return false, nil
-//}
 
 func getNamespaceForIngressNGINX(legacy bool) string {
 	if legacy {

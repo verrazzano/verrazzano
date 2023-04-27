@@ -5,8 +5,6 @@ package verify
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"strings"
 	"time"
 
@@ -79,7 +77,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return err
 	}, shortWait, pollingInterval).Should(BeNil(), "Expected to get envoy proxy image name and tag")
 
-	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	ingressNGINXNamespace, err = pkg.DetermineIngressNGINXNamespace()
 	if err != nil {
 		Fail(fmt.Sprintf("Failed to get Ingress NGINX namespace: %s", err.Error()))
 	}

@@ -5,8 +5,6 @@ package apiconversion
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -53,7 +51,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
-	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(nil, vzlog.DefaultLogger())
+	ingressNGINXNamespace, err = pkg.DetermineIngressNGINXNamespace()
 	if err != nil {
 		Fail(err.Error())
 	}

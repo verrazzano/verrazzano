@@ -7,8 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"reflect"
 	"strings"
 	"text/template"
@@ -370,7 +368,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
-	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	ingressNGINXNamespace, err = pkg.DetermineIngressNGINXNamespace()
 	if err != nil {
 		Fail(err.Error())
 	}
