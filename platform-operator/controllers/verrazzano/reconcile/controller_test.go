@@ -192,6 +192,9 @@ func TestInstall(t *testing.T) {
 			// Expect a call to get the Verrazzano system namespace (return exists)
 			expectGetVerrazzanoSystemNamespaceExists(mock, asserts)
 
+			// Expect call to get legacy ingres-nginx namespace
+			expectGetIngressNGINXNamespaceExists(mock)
+
 			// Expect a call to get the status writer and return a mock.
 			mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
@@ -1245,6 +1248,15 @@ func expectGetVerrazzanoExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Ver
 			verrazzano.Status = verrazzanoToUse.Status
 			return nil
 		}).AnyTimes()
+}
+
+// expectGetIngressNGINXNamespaceExists expects a call to get the legacy ingress-nginx namespace
+func expectGetIngressNGINXNamespaceExists(mock *mocks.MockClient) {
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.LegacyIngressNginxNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, namespace *corev1.Namespace, opts ...client.GetOption) error {
+			return nil
+		})
 }
 
 // expectGetIngressListExists expects a call to get the ingressList

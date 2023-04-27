@@ -210,6 +210,9 @@ func (i istioComponent) PreUninstall(_ spi.ComponentContext) error {
 
 // Uninstall processing for Istio
 func (i istioComponent) Uninstall(context spi.ComponentContext) error {
+	// update injected system namespace
+	i.InjectedSystemNamespaces = config.GetInjectedSystemNamespaces()
+
 	_, _, err := istioUninstallFunc(context.Log())
 	return err
 }
@@ -379,6 +382,9 @@ func (i istioComponent) validateForExternalIPSWithNodePortV1Beta1(vz *installv1b
 
 func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 	log := context.Log()
+
+	// update injected system namespace
+	i.InjectedSystemNamespaces = config.GetInjectedSystemNamespaces()
 
 	// build list of temp files
 	istioTempFiles, err := i.createIstioTempFiles(context)

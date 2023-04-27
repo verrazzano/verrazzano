@@ -194,3 +194,27 @@ func (c nginxComponent) PostUninstall(context spi.ComponentContext) error {
 	// and delete the namespace
 	return res.RemoveFinalizersAndDelete()
 }
+
+// Install processing for NGINX
+func (c nginxComponent) Install(context spi.ComponentContext) error {
+	// update the chart namespace
+	c.ChartNamespace = nginxutil.IngressNGINXNamespace()
+
+	return c.HelmComponent.Install(context)
+}
+
+// Upgrade processing for NGINX
+func (c nginxComponent) Upgrade(context spi.ComponentContext) error {
+	// update the chart namespace
+	c.ChartNamespace = nginxutil.IngressNGINXNamespace()
+
+	return c.HelmComponent.Upgrade(context)
+}
+
+// Uninstall processing for NGINX
+func (c nginxComponent) Uninstall(context spi.ComponentContext) error {
+	// update the chart namespace
+	c.ChartNamespace = nginxutil.IngressNGINXNamespace()
+
+	return c.HelmComponent.Uninstall(context)
+}
