@@ -2,18 +2,11 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-def SKIP_ACCEPTANCE_TESTS = false
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
-def acmeEnvironments = [ "staging", "production" ]
 Collections.shuffle(availableRegions)
-def OKE_CLUSTER_PREFIX = ""
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
-
-def KUBECTL = "kubectl"
-def VZ_CLI = "vz cli"
-def installationMethods = [ KUBECTL, VZ_CLI ]
-Collections.shuffle(installationMethods)
+def OKE_CLUSTER_PREFIX = ""
 
 pipeline {
     options {
@@ -37,7 +30,7 @@ pipeline {
                 choices: availableRegions )
         choice (description: 'Verrazzano installation using either kubectl or vz cli ', name: 'INSTALLATION_METHOD',
                 // 1st choice is the default value
-                choices: installationMethods)
+                choices: [ "vz cli", "kubectl" ])
         choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
                 // 1st choice is the default value
                 choices: [ "VM.Standard.E3.Flex-4-2", "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2" ])
