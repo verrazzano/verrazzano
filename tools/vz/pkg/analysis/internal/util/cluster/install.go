@@ -574,7 +574,7 @@ func analyzeExternalDNS(log *zap.SugaredLogger, clusterRoot string, issueReporte
 }
 
 func checkIngressNGINXNamespace(clusterRoot string) (string, error) {
-	_, err := os.Stat(fmt.Sprint("%s/%s", clusterRoot, constants.IngressNginxNamespace))
+	_, err := os.Stat(fmt.Sprintf("%s/%s", clusterRoot, constants.IngressNginxNamespace))
 	if err == nil {
 		return constants.IngressNginxNamespace, nil
 	} else if os.IsNotExist(err) {
