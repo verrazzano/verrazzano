@@ -1981,7 +1981,7 @@ def isVZOperatorMinimumCompatibleVersion(minimumOperatorVersion){
 def downloadCLI() {
     script {
         sh "echo Downloading VZ CLI from object storage"
-        if(VERSION_FOR_UPGRADE_ENV == "master" || VERSION_FOR_UPGRADE_ENV == "current_branch" ){
+        if(VERSION_FOR_UPGRADE_ENV == "master"){
             sh "oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}"           
         }else{
             sh "oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}"
@@ -1999,7 +1999,9 @@ def setInitValues() {
         VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-        SHORT_HASH_FROM_TIP = "${COMMIT_HASH_FOR_INSTALL}"[0..7]
+        if("${COMMIT_HASH_FOR_INSTALL}" != "NONE"){
+            SHORT_HASH_FROM_TIP = "${COMMIT_HASH_FOR_INSTALL}"[0..7]
+        }
         DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
         // update the description with some meaningful info
         setDisplayName()
