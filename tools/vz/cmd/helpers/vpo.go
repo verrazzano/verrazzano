@@ -34,6 +34,8 @@ import (
 )
 
 const VpoSimpleLogFormatRegexp = `"level":"(.*?)","@timestamp":"(.*?)",(.*?)"message":"(.*?)",`
+const accessErrorMsg = "Failed to access the Verrazzano operator.yaml file %s: %s"
+const applyErrorMsg = "Failed to apply the Verrazzano operator.yaml file %s: %s"
 
 // deleteLeftoverPlatformOperatorSig is a function needed for unit test override
 type deleteLeftoverPlatformOperatorSig func(client clipkg.Client) error
@@ -84,62 +86,25 @@ func UsePlatformOperatorUninstallJob(client clipkg.Client) (bool, error) {
 
 // ApplyPlatformOperatorYaml applies a given version of the platform operator yaml file
 func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelper helpers.VZHelper, version string) error {
-	// Was an operator-file passed on the command line?
-	operatorFile, err := GetOperatorFile(cmd)
+	localOperatorFilename, userVisibleFilename, isTempFile, err := getOrDownloadOperatorYAML(cmd, version, vzHelper)
 	if err != nil {
 		return err
 	}
-
-	// If the operatorFile was specified, is it a local or remote file?
-	url := ""
-	internalFilename := ""
-	if len(operatorFile) > 0 {
-		if strings.HasPrefix(strings.ToLower(operatorFile), "https://") {
-			url = operatorFile
-		} else {
-			internalFilename = operatorFile
-		}
-	} else {
-		url, err = helpers.GetOperatorYaml(version)
-		if err != nil {
-			return err
-		}
+	if isTempFile {
+		// the operator YAML is a temporary file that must be deleted after applying it
+		defer os.Remove(localOperatorFilename)
 	}
 
-	const accessErrorMsg = "Failed to access the Verrazzano operator.yaml file %s: %s"
-	const applyErrorMsg = "Failed to apply the Verrazzano operator.yaml file %s: %s"
-	userVisibleFilename := operatorFile
-	if len(url) > 0 {
-		userVisibleFilename = url
-		// Get the Verrazzano operator.yaml and store it in a temp file
-		httpClient := vzHelper.GetHTTPClient()
-		resp, err := httpClient.Get(url)
-		if err != nil {
-			return fmt.Errorf(accessErrorMsg, userVisibleFilename, err.Error())
-		}
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf(accessErrorMsg, userVisibleFilename, resp.Status)
-		}
-		// Store response in a temporary file
-		tmpFile, err := os.CreateTemp("", "vz")
-		if err != nil {
-			return fmt.Errorf(applyErrorMsg, userVisibleFilename, err.Error())
-		}
-		defer os.Remove(tmpFile.Name())
-		_, err = tmpFile.ReadFrom(resp.Body)
-		if err != nil {
-			os.Remove(tmpFile.Name())
-			return fmt.Errorf(applyErrorMsg, userVisibleFilename, err.Error())
-		}
-		internalFilename = tmpFile.Name()
+	if localOperatorFilename, err = processOperatorYAMLPrivateRegistry(cmd, localOperatorFilename); err != nil {
+		return err
 	}
 
 	// Apply the Verrazzano operator.yaml
 	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Applying the file %s\n", userVisibleFilename))
 	yamlApplier := k8sutil.NewYAMLApplier(client, "")
-	err = yamlApplier.ApplyF(internalFilename)
+	err = yamlApplier.ApplyF(localOperatorFilename)
 	if err != nil {
-		return fmt.Errorf(applyErrorMsg, internalFilename, err.Error())
+		return fmt.Errorf(applyErrorMsg, localOperatorFilename, err.Error())
 	}
 
 	// Dump out the object result messages
@@ -147,6 +112,79 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("%s\n", strings.ToLower(result)))
 	}
 	return nil
+}
+
+// processOperatorYAMLPrivateRegistry - examines private registry related command flags and processes
+// the operator YAML file as needed
+func processOperatorYAMLPrivateRegistry(cmd *cobra.Command, operatorFilename string) (string, error) {
+	// check for private registry flags
+	if !cmd.PersistentFlags().Changed(constants.ImageRegistryFlag) &&
+		!cmd.PersistentFlags().Changed(constants.ImagePrefixFlag) {
+		return operatorFilename, nil
+	}
+	var imageRegistry string
+	var imagePrefix string
+	var err error
+	if imageRegistry, err = cmd.PersistentFlags().GetString(constants.ImageRegistryFlag); err != nil {
+		return operatorFilename, err
+	}
+	if imagePrefix, err = cmd.PersistentFlags().GetString(constants.ImagePrefixFlag); err != nil {
+		return operatorFilename, err
+	}
+
+	return updateOperatorYAMLPrivateRegistry(operatorFilename, imageRegistry, imagePrefix)
+}
+
+func getOrDownloadOperatorYAML(cmd *cobra.Command, version string, vzHelper helpers.VZHelper) (string, string, bool, error) {
+	// Was an operator-file passed on the command line?
+	operatorFile, err := getOperatorFileFromFlag(cmd)
+	if err != nil {
+		return "", "", false, err
+	}
+
+	isTempFile := false
+	// If the operatorFile was specified, is it a local or remote file?
+	url := ""
+	localOperatorFilename := ""
+	if len(operatorFile) > 0 {
+		if strings.HasPrefix(strings.ToLower(operatorFile), "https://") {
+			url = operatorFile
+		} else {
+			localOperatorFilename = operatorFile
+		}
+	} else {
+		url, err = helpers.GetOperatorYaml(version)
+		if err != nil {
+			return "", "", false, err
+		}
+	}
+
+	userVisibleFilename := operatorFile
+	if len(url) > 0 {
+		userVisibleFilename = url
+		// Get the Verrazzano operator.yaml and store it in a temp file
+		httpClient := vzHelper.GetHTTPClient()
+		resp, err := httpClient.Get(url)
+		if err != nil {
+			return "", "", false, fmt.Errorf(accessErrorMsg, userVisibleFilename, err.Error())
+		}
+		if resp.StatusCode != http.StatusOK {
+			return "", "", false, fmt.Errorf(accessErrorMsg, userVisibleFilename, resp.Status)
+		}
+		// Store response in a temporary file
+		tmpFile, err := os.CreateTemp("", "vz")
+		if err != nil {
+			return "", "", false, fmt.Errorf(applyErrorMsg, userVisibleFilename, err.Error())
+		}
+		_, err = tmpFile.ReadFrom(resp.Body)
+		if err != nil {
+			os.Remove(tmpFile.Name())
+			return "", "", false, fmt.Errorf(applyErrorMsg, userVisibleFilename, err.Error())
+		}
+		isTempFile = true
+		localOperatorFilename = tmpFile.Name()
+	}
+	return localOperatorFilename, userVisibleFilename, isTempFile, nil
 }
 
 // WaitForPlatformOperator waits for the verrazzano-platform-operator to be ready

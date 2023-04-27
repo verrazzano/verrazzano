@@ -5,8 +5,9 @@ package helpers
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/semver"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/semver"
 
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -85,8 +86,8 @@ func GetVersion(cmd *cobra.Command, vzHelper helpers.VZHelper) (string, error) {
 	return version, nil
 }
 
-// GetOperatorFile returns the value for the operator-file option
-func GetOperatorFile(cmd *cobra.Command) (string, error) {
+// getOperatorFileFromFlag returns the value for the operator-file option
+func getOperatorFileFromFlag(cmd *cobra.Command) (string, error) {
 	// Get the value from the command line
 	operatorFile, err := cmd.PersistentFlags().GetString(constants.OperatorFileFlag)
 	if err != nil {
