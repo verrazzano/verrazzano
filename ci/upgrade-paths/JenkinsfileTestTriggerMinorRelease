@@ -73,7 +73,7 @@ pipeline {
                 description: 'The branch to check out after cloning the console repository.',
                 trim: true)
         string (name: 'GIT_COMMIT_FOR_OPERATOR_INSTALL',
-                defaultValue: '',
+                defaultValue: 'NONE',
                 description: 'This commit hash is used to install the operator of the tip of a release branch, to test the upgrade from the tip of a release branch to master',
                 trim: true)
     }

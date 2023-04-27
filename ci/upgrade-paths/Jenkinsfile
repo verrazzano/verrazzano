@@ -106,7 +106,7 @@ pipeline {
                 description: 'The branch to check out after cloning the console repository.',
                 trim: true)
         string (name: 'GIT_COMMIT_FOR_OPERATOR_INSTALL',
-                defaultValue: '',
+                defaultValue: 'NONE',
                 description: 'This commit hash is used to install the operator of the tip of a release branch, to test the upgrade from the tip of a release branch to master',
                 trim: true)
         string (name: 'TAGGED_TESTS',
@@ -1999,7 +1999,9 @@ def setInitValues() {
         VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-        SHORT_HASH_FROM_TIP = COMMIT_HASH_FOR_INSTALL[0..7]
+        if (COMMIT_HASH_FOR_INSTALL != "NONE"){
+            SHORT_HASH_FROM_TIP = COMMIT_HASH_FOR_INSTALL[0..7]
+        }
         DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
         // update the description with some meaningful info
         setDisplayName()
