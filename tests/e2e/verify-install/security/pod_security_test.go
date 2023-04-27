@@ -55,7 +55,7 @@ var skipPods = map[string][]string{
 	},
 }
 
-var skipContainers = []string{}
+var skipContainers = []string{"jaeger-agent"}
 var skipInitContainers = []string{"istio-init", "elasticsearch-init"}
 
 type podExceptions struct {
