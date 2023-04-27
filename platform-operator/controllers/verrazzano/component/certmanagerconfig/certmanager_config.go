@@ -10,6 +10,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"net/mail"
 	"strings"
 	"text/template"
@@ -266,17 +267,29 @@ func cleanupFailedCertificateRequests(ctx context.Context, cmclientv1 certv1clie
 }
 
 // verrazzanoCertManagerResourcesReady Verifies that the Verrazzano ClusterIssuer exists
-func (c certManagerConfigComponent) verrazzanoCertManagerResourcesReady(context spi.ComponentContext) bool {
+func (c certManagerConfigComponent) verrazzanoCertManagerResourcesReady(ctx spi.ComponentContext) bool {
+	logger := ctx.Log()
+
 	exists, err := vzresource.Resource{
 		Name:   constants.VerrazzanoClusterIssuerName,
-		Client: context.Client(),
+		Client: ctx.Client(),
 		Object: &certv1.ClusterIssuer{},
-		Log:    context.Log(),
+		Log:    logger,
 	}.Exists()
 	if err != nil {
-		context.Log().ErrorfThrottled("Error checking for ClusterIssuer %s existence: %v", constants.VerrazzanoClusterIssuerName, err)
+		logger.ErrorfThrottled("Error checking for ClusterIssuer %s existence: %v", constants.VerrazzanoClusterIssuerName, err)
 	}
+
 	return exists
+}
+
+func (c certManagerConfigComponent) cmCRDsExist(log vzlog.VerrazzanoLogger) bool {
+	crdsExist, err := common.CertManagerCrdsExist()
+	if err != nil {
+		log.ErrorfThrottled("Error checking if CertManager CRDs exist: %v", err.Error())
+		return false
+	}
+	return crdsExist
 }
 
 // Check if cert-type is CA, if not it is assumed to be Acme
@@ -680,8 +693,45 @@ func (c certManagerConfigComponent) createOrUpdateClusterIssuer(compContext spi.
 
 // uninstallVerrazzanoCertManagerResources is the implementation for the cert-manager uninstall step
 // this removes cert-manager ConfigMaps from the cluster and after the helm uninstall, deletes the namespace
-func uninstallVerrazzanoCertManagerResources(compContext spi.ComponentContext) error {
+func (c certManagerConfigComponent) uninstallVerrazzanoCertManagerResources(compContext spi.ComponentContext) error {
+
+	if err := c.deleteCertManagerIssuerResources(compContext); err != nil {
+		return err
+	}
+
+	err := vzresource.Resource{
+		Name:      defaultCACertificateSecretName,
+		Namespace: ComponentNamespace,
+		Client:    compContext.Client(),
+		Object:    &v1.Secret{},
+		Log:       compContext.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	// Delete the ACME secret if present
+	err = vzresource.Resource{
+		Name:      caAcmeSecretName,
+		Namespace: ComponentNamespace,
+		Client:    compContext.Client(),
+		Object:    &v1.Secret{},
+		Log:       compContext.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c certManagerConfigComponent) deleteCertManagerIssuerResources(compContext spi.ComponentContext) error {
+
 	// Delete the ClusterIssuer created by Verrazzano
+	if !c.cmCRDsExist(compContext.Log()) {
+		compContext.Log().Progressf("CertManager CRDs do not exist, skipping ClusterIssuer cleanup")
+		return nil
+	}
+
 	err := vzresource.Resource{
 		Name:   constants.VerrazzanoClusterIssuerName,
 		Client: compContext.Client(),
@@ -713,28 +763,7 @@ func uninstallVerrazzanoCertManagerResources(compContext spi.ComponentContext) e
 	if err != nil {
 		return err
 	}
-	err = vzresource.Resource{
-		Name:      defaultCACertificateSecretName,
-		Namespace: ComponentNamespace,
-		Client:    compContext.Client(),
-		Object:    &v1.Secret{},
-		Log:       compContext.Log(),
-	}.Delete()
-	if err != nil {
-		return err
-	}
 
-	// Delete the ACME secret if present
-	err = vzresource.Resource{
-		Name:      caAcmeSecretName,
-		Namespace: ComponentNamespace,
-		Client:    compContext.Client(),
-		Object:    &v1.Secret{},
-		Log:       compContext.Log(),
-	}.Delete()
-	if err != nil {
-		return err
-	}
 	return nil
 }
 

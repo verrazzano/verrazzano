@@ -60,13 +60,13 @@ func (c certManagerConfigComponent) IsEnabled(_ runtime.Object) bool {
 
 // IsReady component check
 func (c certManagerConfigComponent) IsReady(ctx spi.ComponentContext) bool {
+	if !c.cmCRDsExist(ctx.Log()) {
+		return false
+	}
 	return c.verrazzanoCertManagerResourcesReady(ctx)
 }
 
 func (c certManagerConfigComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
-	if err := common.CertManagerExistsInCluster(ctx.Log()); err != nil {
-		return false, nil
-	}
 	return c.verrazzanoCertManagerResourcesReady(ctx), nil
 }
 
@@ -106,8 +106,5 @@ func (c certManagerConfigComponent) Uninstall(compContext spi.ComponentContext) 
 		compContext.Log().Debug("cert-manager-configPostUninstall dry run")
 		return nil
 	}
-	if err := common.CertManagerExistsInCluster(compContext.Log()); err != nil {
-		return err
-	}
-	return uninstallVerrazzanoCertManagerResources(compContext)
+	return c.uninstallVerrazzanoCertManagerResources(compContext)
 }

@@ -126,25 +126,17 @@ func TestCertManagerPreInstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestIsCertManagerReady tests the verrazzanoCertManagerResourcesReady function
+// TestIsCertManagerConfigReady tests the verrazzanoCertManagerResourcesReady function
 // GIVEN a call to verrazzanoCertManagerResourcesReady
 // WHEN the deployment object has enough replicas available
 // THEN true is returned
-func TestIsCertManagerReady(t *testing.T) {
-	cmCRDs := createCertManagerCRDs()
+func TestIsCertManagerConfigReady(t *testing.T) {
 	clusterIssuer := &certv1.ClusterIssuer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.VerrazzanoClusterIssuerName,
 		},
 	}
-
-	objects := append(cmCRDs, clusterIssuer)
-	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(objects...).Build()
-
-	runtimeObjects := append(createCertManagerCRDsRuntimeObjs(), clusterIssuer)
-	defer func() { common.ResetAPIExtV1ClientFunc() }()
-	common.SetAPIExtV1ClientFunc(common.NewFakeAPIExtTestClient(runtimeObjects...))
-
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(clusterIssuer).Build()
 	certManager := NewComponent().(certManagerConfigComponent)
 	assert.True(t, certManager.verrazzanoCertManagerResourcesReady(spi.NewFakeContext(client, nil, nil, false)))
 }
@@ -402,6 +394,9 @@ func TestCustomCAConfigCleanupUnusedResources(t *testing.T) {
 // WHEN the objects exist in the cluster
 // THEN no error is returned and all objects are deleted
 func TestUninstallCertManager(t *testing.T) {
+	defer func() { common.ResetAPIExtV1ClientFunc() }()
+	common.SetAPIExtV1ClientFunc(common.NewFakeAPIExtTestClient(createCertManagerCRDsRuntimeObjs()...))
+
 	vz := defaultVZConfig.DeepCopy()
 
 	certNS := v1.Namespace{
@@ -496,7 +491,7 @@ func TestUninstallCertManager(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(tt.objects...).Build()
 			fakeContext := spi.NewFakeContext(c, vz, nil, false, profileDir)
-			err := uninstallVerrazzanoCertManagerResources(fakeContext)
+			err := certManagerConfigComponent{}.uninstallVerrazzanoCertManagerResources(fakeContext)
 			assert.NoError(t, err)
 			// expect the Namespace to get deleted
 			err = c.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoClusterIssuerName, Namespace: vzconst.DefaultNamespace}, &certv1.ClusterIssuer{})

@@ -36,16 +36,15 @@ var _ spi.Component = certManagerOciDNSComponent{}
 func NewComponent() spi.Component {
 	return certManagerOciDNSComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), "cert-manager-webhook-oci"),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  "global.imagePullSecrets[0].name",
-			//ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "cert-manager-ocidns-values.yaml"),
-			//AppendOverridesFunc:     AppendOverrides,
-			MinVerrazzanoVersion: constants.VerrazzanoVersion1_0_0,
-			Dependencies:         []string{networkpolicies.ComponentName, certmanager.ComponentName},
+			ReleaseName:               ComponentName,
+			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), "cert-manager-webhook-oci"),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			ImagePullSecretKeyname:    "global.imagePullSecrets[0].name",
+			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_0_0,
+			Dependencies:              []string{networkpolicies.ComponentName, certmanager.ComponentName},
 		},
 	}
 }
@@ -58,25 +57,13 @@ func (c certManagerOciDNSComponent) IsEnabled(effectiveCR runtime.Object) bool {
 		logger.ErrorfThrottled("Unexpected error checking for CertManager in cluster: %v", err)
 		return false
 	}
-	return vzcr.IsExternalDNSEnabled(effectiveCR)
+	return vzcr.IsOCIDNSEnabled(effectiveCR)
 }
 
 // IsReady component check
 func (c certManagerOciDNSComponent) IsReady(ctx spi.ComponentContext) bool {
-	if !isCertManagerEnabled(ctx) {
-		return true
-	}
 	if c.HelmComponent.IsReady(ctx) {
 		return isCertManagerOciDNSReady(ctx)
 	}
 	return false
-}
-
-// IsCertManagerEnabled returns true if the cert-manager is enabled, which is the default
-func isCertManagerEnabled(compContext spi.ComponentContext) bool {
-	comp := compContext.EffectiveCR().Spec.Components.CertManager
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
 }
