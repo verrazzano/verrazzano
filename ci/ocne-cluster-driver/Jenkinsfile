@@ -80,7 +80,6 @@ pipeline {
     environment {
         NETRC_FILE = credentials('netrc')
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
-        TEST_ENV = "${params.TEST_ENV}" // FIXME: remove
         INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
@@ -134,6 +133,7 @@ pipeline {
 
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
+        TEST_ENV = "${params.TEST_ENV}"
         TEST_ENV_LABEL = "${params.TEST_ENV}"
         SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
         SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
@@ -193,10 +193,8 @@ pipeline {
                     setDisplayName()
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + params.OKE_CLUSTER_REGION + " : " + params.OKE_CLUSTER_VERSION
 
-                    if (params.TEST_ENV != "kind") {
-                        // derive the prefix for the OKE cluster
-                        OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_oke_cluster_name.sh").trim()
-                    }
+                    // derive the prefix for the OKE cluster
+                    OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_oke_cluster_name.sh").trim()
                 }
                 script {
                     sh """
@@ -211,7 +209,6 @@ pipeline {
         }
 
         stage("install-oke") {
-            when { expression { return params.TEST_ENV != 'kind' } }
             environment {
                 TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
             }
@@ -269,9 +266,6 @@ pipeline {
                     archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*full-cluster*/**,**/*bug-report*/**,**/test-cluster-snapshots/**/,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             sh """
-                if [ "${TEST_ENV}" == "ocidns_oke" ]; then
-                  ${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} -k ${params.DNS_SCOPE} || echo "Failed to delete DNS zone z${zoneId}"
-                fi
                 if [ "${keepOKEClusterOnFailure}" == "false" ]; then
                   TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/delete_oke_cluster.sh || true
                 fi
