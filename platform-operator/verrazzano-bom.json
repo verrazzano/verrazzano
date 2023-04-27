@@ -409,8 +409,8 @@
           "name": "keycloak",
           "images": [
             {
-              "image": "keycloak-jenkins",
-              "tag": "v15.0.2-20230426115635-6ee8c9fe58",
+              "image": "keycloak",
+              "tag": "v15.0.2-20230426165041-9cc8bdc972",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
