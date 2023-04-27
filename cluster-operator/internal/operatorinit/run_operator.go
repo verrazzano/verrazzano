@@ -10,8 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/rancher"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"go.uber.org/zap"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -48,12 +46,6 @@ func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAd
 	if err != nil {
 		return errors.Wrapf(err, "Failed to setup controller manager")
 	}
-
-	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(mgr.GetClient(), vzlog.DefaultLogger())
-	if err != nil {
-		return errors.Wrapf(err, "Failed to determine Ingress NGINX namespace")
-	}
-	nginxutil.SetIngressNGINXNamespace(ingressNGINXNamespace)
 
 	apiextv1Client := apiextv1.NewForConfigOrDie(ctrlConfig)
 	crdInstalled, err := isCattleClustersCRDInstalled(apiextv1Client)

@@ -26,11 +26,8 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
-	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/scheme"
 
-	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -49,12 +46,6 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		log.Errorf("Failed to start manager: %v", err)
 		return err
 	}
-
-	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(mgr.GetClient(), vzlog2.DefaultLogger())
-	if err != nil {
-		return errors.Wrapf(err, "Failed to determine Ingress NGINX namespace")
-	}
-	nginxutil.SetIngressNGINXNamespace(ingressNGINXNamespace)
 
 	if err = (&ingresstrait.Reconciler{
 		Client: mgr.GetClient(),

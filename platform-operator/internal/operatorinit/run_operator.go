@@ -4,8 +4,6 @@
 package operatorinit
 
 import (
-	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
@@ -40,13 +38,6 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 	if err != nil {
 		return errors.Wrap(err, "Failed to create a controller-runtime manager")
 	}
-
-	// Determine NGINX namespace before initializing components
-	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(mgr.GetClient(), vzlog2.DefaultLogger())
-	if err != nil {
-		return errors.Wrapf(err, "Failed to determine Ingress NGINX namespace")
-	}
-	nginxutil.SetIngressNGINXNamespace(ingressNGINXNamespace)
 
 	metricsexporter.StartMetricsServer(log)
 
