@@ -199,6 +199,8 @@ func (c nginxComponent) PostUninstall(context spi.ComponentContext) error {
 func (c nginxComponent) Install(context spi.ComponentContext) error {
 	// update the chart namespace
 	c.ChartNamespace = nginxutil.IngressNGINXNamespace()
+	c.AvailabilityObjects.DeploymentNames[0].Namespace = nginxutil.IngressNGINXNamespace()
+	c.AvailabilityObjects.DeploymentNames[1].Namespace = nginxutil.IngressNGINXNamespace()
 
 	return c.HelmComponent.Install(context)
 }
@@ -207,14 +209,18 @@ func (c nginxComponent) Install(context spi.ComponentContext) error {
 func (c nginxComponent) Upgrade(context spi.ComponentContext) error {
 	// update the chart namespace
 	c.ChartNamespace = nginxutil.IngressNGINXNamespace()
+	c.AvailabilityObjects.DeploymentNames[0].Namespace = nginxutil.IngressNGINXNamespace()
+	c.AvailabilityObjects.DeploymentNames[1].Namespace = nginxutil.IngressNGINXNamespace()
 
 	return c.HelmComponent.Upgrade(context)
 }
 
 // Uninstall processing for NGINX
 func (c nginxComponent) Uninstall(context spi.ComponentContext) error {
-	// update the chart namespace
+	// update the nginx namespace
 	c.ChartNamespace = nginxutil.IngressNGINXNamespace()
+	c.AvailabilityObjects.DeploymentNames[0].Namespace = nginxutil.IngressNGINXNamespace()
+	c.AvailabilityObjects.DeploymentNames[1].Namespace = nginxutil.IngressNGINXNamespace()
 
 	return c.HelmComponent.Uninstall(context)
 }
