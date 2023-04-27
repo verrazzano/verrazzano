@@ -395,6 +395,10 @@ func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvision
 
 	// Delete all the namespaces
 	for ns := range nsSet {
+		// Clean up any remaining CM resources in Verrazzano-managed namespaces
+		if err := certmanagerconfig.UninstallCleanup(ctx.Log(), ctx.Client(), ns); err != nil {
+			return newRequeueWithDelay(), err
+		}
 		log.Progressf("Deleting namespace %s", ns)
 		err := resource.Resource{
 			Name:   ns,
@@ -410,10 +414,6 @@ func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvision
 	// Wait for all the namespaces to be deleted
 	waiting := false
 	for ns := range nsSet {
-		// Clean up any remaining CM resources in Verrazzano-managed namespaces
-		if err := certmanagerconfig.UninstallCleanup(ctx.Log(), ctx.Client(), ns); err != nil {
-			return newRequeueWithDelay(), err
-		}
 		err := r.Get(context.TODO(), types.NamespacedName{Name: ns}, &corev1.Namespace{})
 		if err != nil {
 			if errors.IsNotFound(err) {
