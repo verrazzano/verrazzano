@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,7 +18,6 @@ import (
 	istioClient "istio.io/client-go/pkg/clientset/versioned"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -62,9 +60,6 @@ var ClientConfig ClientConfigFunc = func() (*rest.Config, kubernetes.Interface, 
 // fakeClient is for unit testing
 var fakeClient kubernetes.Interface
 
-// fakeAPIExtClient is for unit testing
-var fakeAPIExtClient apiextv1.Interface
-
 // SetFakeClient for unit tests
 func SetFakeClient(client kubernetes.Interface) {
 	fakeClient = client
@@ -73,6 +68,16 @@ func SetFakeClient(client kubernetes.Interface) {
 // ClearFakeClient for unit tests
 func ClearFakeClient() {
 	fakeClient = nil
+}
+
+// NewControllerRuntimeClient Create a new controller runtime client
+func NewControllerRuntimeClient(opts client.Options) (client.Client, error) {
+	config, err := GetConfigFromController()
+	if err != nil {
+		return nil, err
+	}
+
+	return client.New(config, opts)
 }
 
 // GetConfigFromController get the config from the Controller Runtime and set the default QPS and burst.
@@ -215,18 +220,6 @@ func GetAppsV1Client(log ...vzlog.VerrazzanoLogger) (appsv1.AppsV1Interface, err
 		return nil, err
 	}
 	return goClient.AppsV1(), nil
-}
-
-// GetAPIExtV1Func is the function the AppsV1Interface
-var GetAPIExtV1Func = GetAPIExtV1Client
-
-// GetAPIExtV1Client returns the AppsV1Interface
-func GetAPIExtV1Client(log ...vzlog.VerrazzanoLogger) (apiextensionsv1client.ApiextensionsV1Interface, error) {
-	goClient, err := GetGoAPIExtClient(log...)
-	if err != nil {
-		return nil, err
-	}
-	return goClient.ApiextensionsV1(), nil
 }
 
 // GetDynamicClientFunc is the function to return the Dynamic Interface
@@ -416,17 +409,21 @@ func ExecPodNoTty(client kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, co
 
 // GetGoClient returns a go-client
 func GetGoClient(log ...vzlog.VerrazzanoLogger) (kubernetes.Interface, error) {
-	if fakeClient != nil {
-		return fakeClient, nil
-	}
 	var logger vzlog.VerrazzanoLogger
 	if len(log) > 0 {
 		logger = log[0]
 	}
-	config, err := buildRESTConfig(logger)
+	if fakeClient != nil {
+		return fakeClient, nil
+	}
+	config, err := GetConfigFromController()
 	if err != nil {
+		if logger != nil {
+			logger.Errorf("Failed to get kubeconfig: %v", err)
+		}
 		return nil, err
 	}
+
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		if logger != nil {
@@ -436,44 +433,6 @@ func GetGoClient(log ...vzlog.VerrazzanoLogger) (kubernetes.Interface, error) {
 	}
 
 	return kubeClient, err
-}
-
-// GetGoAPIExtClient returns a go-client for the API Extensions interface
-func GetGoAPIExtClient(log ...vzlog.VerrazzanoLogger) (apiextv1.Interface, error) {
-	if fakeClient != nil {
-		return fakeAPIExtClient, nil
-	}
-
-	var logger vzlog.VerrazzanoLogger
-	if len(log) > 0 {
-		logger = log[0]
-	}
-
-	config, err := buildRESTConfig(logger)
-	if err != nil {
-		return nil, err
-	}
-
-	apiExtClient, err := apiextv1.NewForConfig(config)
-	if err != nil {
-		if logger != nil {
-			logger.Errorf("Failed to get clientset: %v", err)
-		}
-		return nil, err
-	}
-
-	return apiExtClient, err
-}
-
-func buildRESTConfig(logger vzlog.VerrazzanoLogger) (*rest.Config, error) {
-	config, err := GetConfigFromController()
-	if err != nil {
-		if logger != nil {
-			logger.Errorf("Failed to get kubeconfig: %v", err)
-		}
-		return nil, err
-	}
-	return config, nil
 }
 
 // GetDynamicClientInCluster returns a dynamic client needed to access Unstructured data

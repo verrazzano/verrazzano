@@ -14,7 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	common "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/core/v1"
@@ -78,14 +78,17 @@ func init() {
 // WHEN cert-manager is enabled
 // THEN the function returns true
 func TestIsCertManagerEnabled(t *testing.T) {
-	defer func() { common.ResetAPIExtV1ClientFunc() }()
-	common.SetAPIExtV1ClientFunc(getTestClient(createCertManagerCRDsRuntimeObjs()...))
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(createCertManagerCRDs()...).Build()
+
+	defer func() { common.ResetNewClientFunc() }()
+	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
+		return client, nil
+	})
 
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(true)
 
-	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(createCertManagerCRDs()...).Build()
-	assert.True(t, fakeComponent.IsEnabled(spi.NewFakeContext(client, localvz, nil, false).EffectiveCR()))
+	assert.True(t, fakeComponent.IsEnabled(localvz))
 }
 
 // TestIsCertManagerDisabled tests the IsCertManagerEnabled fn
@@ -93,12 +96,16 @@ func TestIsCertManagerEnabled(t *testing.T) {
 // WHEN cert-manager is disabled
 // THEN the function returns false
 func TestIsCertManagerDisabled(t *testing.T) {
-	defer func() { common.ResetAPIExtV1ClientFunc() }()
-	common.SetAPIExtV1ClientFunc(getTestClient())
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+
+	defer func() { common.ResetNewClientFunc() }()
+	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
+		return client, nil
+	})
 
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(false)
-	assert.False(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, nil, false).EffectiveCR()))
+	assert.False(t, fakeComponent.IsEnabled(localvz))
 }
 
 // TestCertManagerPreInstall tests the PreInstall fn
@@ -119,32 +126,28 @@ func TestCertManagerPreInstall(t *testing.T) {
 	config.Set(config.OperatorConfig{
 		VerrazzanoRootDir: "../../../../..", //since we are running inside the cert manager package, root is up 5 directories
 	})
-	defer func() { common.ResetAPIExtV1ClientFunc() }()
-	common.SetAPIExtV1ClientFunc(getTestClient(createCertManagerCRDsRuntimeObjs()...))
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(createCertManagerCRDs()...).Build()
+
+	defer func() { common.ResetNewClientFunc() }()
+	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
+		return client, nil
+	})
+
 	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 }
 
-// TestIsCertManagerReady tests the verrazzanoCertManagerResourcesReady function
+// TestIsCertManagerConfigReady tests the verrazzanoCertManagerResourcesReady function
 // GIVEN a call to verrazzanoCertManagerResourcesReady
 // WHEN the deployment object has enough replicas available
 // THEN true is returned
-func TestIsCertManagerReady(t *testing.T) {
-	cmCRDs := createCertManagerCRDs()
+func TestIsCertManagerConfigReady(t *testing.T) {
 	clusterIssuer := &certv1.ClusterIssuer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.VerrazzanoClusterIssuerName,
 		},
 	}
-
-	objects := append(cmCRDs, clusterIssuer)
-	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(objects...).Build()
-
-	runtimeObjects := append(createCertManagerCRDsRuntimeObjs(), clusterIssuer)
-	defer func() { common.ResetAPIExtV1ClientFunc() }()
-	common.SetAPIExtV1ClientFunc(getTestClient(runtimeObjects...))
-
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(clusterIssuer).Build()
 	certManager := NewComponent().(certManagerConfigComponent)
 	assert.True(t, certManager.verrazzanoCertManagerResourcesReady(spi.NewFakeContext(client, nil, nil, false)))
 }
@@ -402,6 +405,13 @@ func TestCustomCAConfigCleanupUnusedResources(t *testing.T) {
 // WHEN the objects exist in the cluster
 // THEN no error is returned and all objects are deleted
 func TestUninstallCertManager(t *testing.T) {
+	//client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(createCertManagerCRDs()...).Build()
+	//
+	//defer func() { common.ResetNewClientFunc() }()
+	//common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
+	//	return client, nil
+	//})
+
 	vz := defaultVZConfig.DeepCopy()
 
 	certNS := v1.Namespace{
@@ -494,9 +504,11 @@ func TestUninstallCertManager(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(tt.objects...).Build()
+			objs := createCertManagerCRDsRuntimeObjs()
+			objs = append(objs, tt.objects...)
+			c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(objs...).Build()
 			fakeContext := spi.NewFakeContext(c, vz, nil, false, profileDir)
-			err := uninstallVerrazzanoCertManagerResources(fakeContext)
+			err := certManagerConfigComponent{}.uninstallVerrazzanoCertManagerResources(fakeContext)
 			assert.NoError(t, err)
 			// expect the Namespace to get deleted
 			err = c.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoClusterIssuerName, Namespace: vzconst.DefaultNamespace}, &certv1.ClusterIssuer{})
@@ -589,8 +601,8 @@ func certificateExists(client clipkg.Client, name string, namespace string) (boo
 	return true, nil
 }
 
-func createCertManagerCRDsRuntimeObjs() []runtime.Object {
-	var cmCRDs []runtime.Object
+func createCertManagerCRDsRuntimeObjs() []clipkg.Object {
+	var cmCRDs []clipkg.Object
 	for _, crd := range common.GetRequiredCertManagerCRDNames() {
 		cmCRDs = append(cmCRDs, newCRD(crd))
 	}

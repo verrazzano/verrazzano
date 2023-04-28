@@ -5,19 +5,19 @@ package common
 import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
+	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type getAPIExtV1ClientFuncType func(log ...vzlog.VerrazzanoLogger) (apiextensionsv1client.ApiextensionsV1Interface, error)
+type newClientFuncType func(opts client.Options) (client.Client, error)
 
-var getAPIExtV1ClientFunc getAPIExtV1ClientFuncType = k8sutil.GetAPIExtV1Client
+var newClientFunc newClientFuncType = k8sutil.NewControllerRuntimeClient
 
-func SetAPIExtV1ClientFunc(f getAPIExtV1ClientFuncType) {
-	getAPIExtV1ClientFunc = f
+func SetNewClientFunc(f newClientFuncType) {
+	newClientFunc = f
 }
 
-func ResetAPIExtV1ClientFunc() {
-	getAPIExtV1ClientFunc = k8sutil.GetAPIExtV1Client
+func ResetNewClientFunc() {
+	newClientFunc = k8sutil.NewControllerRuntimeClient
 }
 
 var certManagerCRDNames = []string{
@@ -32,8 +32,8 @@ func GetRequiredCertManagerCRDNames() []string {
 	return certManagerCRDNames
 }
 
-func CertManagerExistsInCluster(log vzlog.VerrazzanoLogger) error {
-	exists, err := CertManagerCrdsExist()
+func CertManagerExistsInCluster(log vzlog.VerrazzanoLogger, cli client.Client) error {
+	exists, err := CertManagerCrdsExist(cli)
 	if err != nil {
 		return err
 	}
@@ -43,12 +43,15 @@ func CertManagerExistsInCluster(log vzlog.VerrazzanoLogger) error {
 	return nil
 }
 
-func CertManagerCrdsExist() (bool, error) {
-	client, err := getAPIExtV1ClientFunc()
-	if err != nil {
-		return false, err
+func CertManagerCrdsExist(cli client.Client) (bool, error) {
+	var err error
+	crtClient := cli
+	if crtClient == nil {
+		if crtClient, err = newClientFunc(client.Options{}); err != nil {
+			return false, err
+		}
 	}
-	crdsExist, err := CheckCRDsExist(GetRequiredCertManagerCRDNames(), err, client)
+	crdsExist, err := CheckCRDsExist(crtClient, GetRequiredCertManagerCRDNames())
 	if err != nil {
 		return false, err
 	}

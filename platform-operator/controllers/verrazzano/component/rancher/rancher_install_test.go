@@ -61,8 +61,6 @@ func TestAddCAIngressAnnotations(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
 				"nginx.ingress.kubernetes.io/auth-realm": fmt.Sprintf("%s.%s auth", name, dnsSuffix),
-				"cert-manager.io/cluster-issuer":         "verrazzano-cluster-issuer",
-				"cert-manager.io/common-name":            fmt.Sprintf("%s.%s.%s", common.RancherName, name, dnsSuffix),
 			},
 		},
 	}

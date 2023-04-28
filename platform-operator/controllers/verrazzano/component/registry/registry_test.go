@@ -7,14 +7,15 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerconfig"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerocidns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/time"
-	apiextfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -98,7 +99,7 @@ func TestGetComponents(t *testing.T) {
 	comps := GetComponents()
 
 	var i int
-	a.Len(comps, 36, "Wrong number of components")
+	a.Len(comps, 37, "Wrong number of components")
 	a.Equal(comps[i].Name(), networkpolicies.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), oam.ComponentName)
@@ -112,6 +113,8 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[i].Name(), nginx.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), certmanager.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), certmanagerocidns.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), certmanagerconfig.ComponentName)
 	i++
@@ -653,8 +656,11 @@ func TestComponentDependenciesMetStateCheckCompDisabled(t *testing.T) {
 // WHEN Newcontext is called
 // THEN all components referred from the registry are disabled except for network-policies
 func TestNoneProfileInstalledAllComponentsDisabled(t *testing.T) {
-	defer func() { certmanagerconfig.ResetAPIExtV1ClientFunc() }()
-	certmanagerconfig.SetAPIExtV1ClientFunc(getAPIExtTestClient())
+	defer func() { common.ResetNewClientFunc() }()
+	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
+		return fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), nil
+	})
+
 	config.TestProfilesDir = profileDir
 	defer func() { config.TestProfilesDir = "" }()
 	t.Run("TestNoneProfileInstalledAllComponentsDisabled", func(t *testing.T) {
@@ -677,16 +683,6 @@ func TestNoneProfileInstalledAllComponentsDisabled(t *testing.T) {
 			assert.False(t, comp.IsEnabled(context.EffectiveCR()), "Component: %s should be Disabled", comp.Name())
 		}
 	})
-}
-
-func getAPIExtTestClient(objs ...runtime.Object) func(log ...vzlog.VerrazzanoLogger) (apiextensionsv1client.ApiextensionsV1Interface, error) {
-	return func(log ...vzlog.VerrazzanoLogger) (apiextensionsv1client.ApiextensionsV1Interface, error) {
-		return createFakeAPIExtClient(objs...).ApiextensionsV1(), nil
-	}
-}
-
-func createFakeAPIExtClient(objs ...runtime.Object) *apiextfake.Clientset {
-	return apiextfake.NewSimpleClientset(objs...)
 }
 
 func runDepenencyStateCheckTest(t *testing.T, state v1alpha1.CompStateType, enabled bool) {

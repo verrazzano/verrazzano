@@ -14,6 +14,7 @@ import (
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerconfig"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -49,6 +50,10 @@ const (
 	// vzStateUninstallEnd is the terminal state
 	vzStateUninstallEnd uninstallState = "vzStateUninstallEnd"
 )
+
+type cmCleanupFuncType func(log vzlog.VerrazzanoLogger, cli client.Client, namespace string) error
+
+var cmCleanupFunc cmCleanupFuncType = certmanagerconfig.UninstallCleanup
 
 // old node-exporter constants replaced with prometheus-operator node-exporter
 const (
@@ -394,6 +399,10 @@ func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvision
 
 	// Delete all the namespaces
 	for ns := range nsSet {
+		// Clean up any remaining CM resources in Verrazzano-managed namespaces
+		if err := cmCleanupFunc(ctx.Log(), ctx.Client(), ns); err != nil {
+			return newRequeueWithDelay(), err
+		}
 		log.Progressf("Deleting namespace %s", ns)
 		err := resource.Resource{
 			Name:   ns,

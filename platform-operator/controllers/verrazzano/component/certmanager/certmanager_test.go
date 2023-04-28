@@ -299,7 +299,7 @@ func TestIsCertManagerNotReady(t *testing.T) {
 // THEN true is returned
 func TestIsCANilWithProfile(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	isCAValue, err := isCA(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false, profileDir))
+	isCAValue, err := IsCA(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false, profileDir))
 	assert.Nil(t, err)
 	assert.True(t, isCAValue)
 }
@@ -317,7 +317,7 @@ func TestIsCATrue(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 
-	isCAValue, err := isCA(spi.NewFakeContext(client, localvz, nil, false, profileDir))
+	isCAValue, err := IsCA(spi.NewFakeContext(client, localvz, nil, false, profileDir))
 	assert.Nil(t, err)
 	assert.True(t, isCAValue)
 }
@@ -342,7 +342,7 @@ func TestIsCAFalse(t *testing.T) {
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	isCAValue, err := isCA(spi.NewFakeContext(client, localvz, nil, false, profileDir))
+	isCAValue, err := IsCA(spi.NewFakeContext(client, localvz, nil, false, profileDir))
 	assert.Nil(t, err)
 	assert.False(t, isCAValue)
 }
@@ -356,7 +356,7 @@ func TestIsCABothPopulated(t *testing.T) {
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	_, err := isCA(spi.NewFakeContext(client, localvz, nil, false, profileDir))
+	_, err := IsCA(spi.NewFakeContext(client, localvz, nil, false, profileDir))
 	assert.Error(t, err)
 }
 
