@@ -104,14 +104,13 @@ pipeline {
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
 
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
-        VERRAZZANO_KUBECONFIG = "${KUBECONFIG}" // FIXME: remove?
+        VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
 
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
 
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
 
-        // FIXME: probably needed later
         INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-nipio.yaml"
 
         // Environment variables required to capture cluster snapshot and bug report on test failure
@@ -303,8 +302,13 @@ pipeline {
             }
         }
 
-        // TODO: maybe add a Verify-install stage
-        
+        stage("OCNE Cluster Driver Tests") {
+            steps {
+                script {
+                    runGinkgo('capi/ocne-driver')
+                }
+            }
+        }
     }
 
     post {
@@ -467,4 +471,14 @@ def createImagePullSecrets() {
         ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}"
         ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
     """
+}
+
+// Run the OCNE Cluster Driver Ginkgo test suite, passing in some parameters
+def runGinkgo(testSuitePath) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            cd ${WORKSPACE}/tests/e2e
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
+    }
 }
