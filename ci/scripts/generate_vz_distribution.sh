@@ -321,12 +321,12 @@ loadExampleTarFiles() {
     local rootDir="$1"
     local generatedDir="$3"
 
-  IMAGE_LIST=$(grep -r 'image:' "${VZ_REPO_ROOT}/examples" | grep -Eo '(ghcr\.io|container\-registry\.oracle\.com){1}(/.+)+:[^"]+')
+  IMAGE_LIST=($(grep -r 'image:' "${VZ_REPO_ROOT}/examples" | grep -Eo '(ghcr\.io|container\-registry\.oracle\.com){1}(/.+)+:[^"]+'))
   for image in "${IMAGE_LIST[@]}"; do
     docker pull "$image"
   done
 
-  docker save "$IMAGE_LIST" -o ${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE}
+  docker save ${IMAGE_LIST} -o ${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE}
   sha256sum ${generatedDir}/${VZ_SRC_BUNDLE} > ${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE_SHA256}
   cd generatedDir
   echo "Uploading example images bundle to $OCI_OS_DIST_REGION in bucket ${OCI_OS_COMMIT_BUCKET} with name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_EXAMPLE_IMAGES_BUNDLE} ..."
