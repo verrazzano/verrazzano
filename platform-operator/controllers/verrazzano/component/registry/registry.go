@@ -65,12 +65,12 @@ func ResetGetComponentsFn() {
 
 func InitRegistry() {
 	componentsRegistry = []spi.Component{
-		nginx.NewComponent(),
 		networkpolicies.NewComponent(), // This must be first, don't move it.  see netpol_components.go
 		oam.NewComponent(),
 		appoper.NewComponent(),
 		istio.NewComponent(),
 		weblogic.NewComponent(),
+		nginx.NewComponent(),
 		certmanager.NewComponent(),
 		externaldns.NewComponent(),
 		capi.NewComponent(),

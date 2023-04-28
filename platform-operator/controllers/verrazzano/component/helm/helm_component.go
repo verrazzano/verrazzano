@@ -241,7 +241,7 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 	if err != nil {
 		return false
 	}
-	releaseAppVersion, err := helm.GetReleaseAppVersion(h.ReleaseName, h.ChartNamespace)
+	releaseAppVersion, err := helm.GetReleaseAppVersion(h.ReleaseName, h.resolveNamespace(context))
 	if err != nil {
 		return false
 	}
