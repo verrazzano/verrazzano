@@ -162,7 +162,7 @@ func UninstallCleanup(log vzlog.VerrazzanoLogger, cli crtclient.Client, namespac
 		return nil
 	}
 
-	log.Progressf("Cleaning up any dangling Cert-Manager resources in namespace %s", namespace)
+	log.Debugf("Cleaning up any dangling Cert-Manager resources in namespace %s", namespace)
 
 	if err := deleteResources(log, cli, namespace, &certv1.Issuer{}, createCertManagerGVK("IssuerList")); err != nil {
 		return err

@@ -86,7 +86,7 @@
           "images": [
             {
               "image": "cert-manager-ocidns-provider",
-              "tag": "1.1.0-20230427015358-71e4bec",
+              "tag": "v1.6.0-20230428024017-ee8932e",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
