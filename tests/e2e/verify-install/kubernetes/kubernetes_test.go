@@ -5,6 +5,8 @@ package kubernetes_test
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"time"
 
@@ -51,6 +53,10 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 	func() {
 		isManagedClusterProfile := pkg.IsManagedClusterProfile()
 		isProdProfile := pkg.IsProdProfile()
+		ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+		if err != nil {
+			Fail("Error determining ingress-nginx namespace")
+		}
 
 		t.It("the expected number of nodes exist", func() {
 			Eventually(func() (bool, error) {
@@ -84,7 +90,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("verrazzano-system", "verrazzano-system", true),
 			t.Entry("verrazzano-mc", "verrazzano-mc", true),
 			t.Entry("cert-manager", "cert-manager", true),
-			t.Entry("verrazzano-ingress-nginx", "verrazzano-ingress-nginx", true),
+			t.Entry(ingressNGINXNamespace, ingressNGINXNamespace, true),
 		)
 
 		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()

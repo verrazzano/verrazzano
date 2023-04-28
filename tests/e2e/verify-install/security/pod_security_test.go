@@ -6,6 +6,8 @@ package security
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"go.uber.org/zap"
 	"regexp"
 	"strings"
@@ -102,7 +104,8 @@ var exceptionPods = map[string]podExceptions{
 }
 
 var (
-	clientset *kubernetes.Clientset
+	clientset             *kubernetes.Clientset
+	ingressNGINXNamespace string
 )
 
 var isMinVersion150 bool
@@ -120,6 +123,12 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		clientset, err = k8sutil.GetKubernetesClientset()
 		return clientset, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	if err != nil {
+		Fail("Error determining ingress-nginx namespace")
+	}
+
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -158,7 +167,7 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 		Entry("Checking pod security in verrazzano-system", "verrazzano-system"),
 		Entry("Checking pod security in verrazzano-monitoring", "verrazzano-monitoring"),
 		Entry("Checking pod security in verrazzano-backup", "verrazzano-backup"),
-		Entry("Checking pod security in verrazzano-ingress-nginx", "verrazzano-ingress-nginx"),
+		Entry("Checking pod security in "+ingressNGINXNamespace, ingressNGINXNamespace),
 		Entry("Checking pod security in mysql-operator", "mysql-operator"),
 		Entry("Checking pod security in cert-manager", "cert-manager"),
 		Entry("Checking pod security in keycloak", "keycloak"),

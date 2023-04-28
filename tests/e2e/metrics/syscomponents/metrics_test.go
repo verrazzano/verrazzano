@@ -58,7 +58,6 @@ const (
 	job                 = "job"
 	app                 = "app"
 	namespace           = "namespace"
-	podName             = "pod_name"
 	container           = "container"
 	esMaster            = "es-master"
 
