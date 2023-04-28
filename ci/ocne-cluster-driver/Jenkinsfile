@@ -54,8 +54,6 @@ pipeline {
                 choices: [ "v1beta1", "v1alpha1"])
         string defaultValue: 'dev', description: 'Verrazzano install profile name', name: "INSTALL_PROFILE", trim: true
         string defaultValue: 'NONE', description: 'Verrazzano platform operator image name (within ghcr.io/verrazzano repo)', name: 'VERRAZZANO_OPERATOR_IMAGE', trim: true
-        choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
-                choices: [ "magicdns_oke" ])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -133,7 +131,7 @@ pipeline {
 
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
-        TEST_ENV = "${params.TEST_ENV}"
+        TEST_ENV = "magicdns_oke"
         TEST_ENV_LABEL = "${params.TEST_ENV}"
         SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
         SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
