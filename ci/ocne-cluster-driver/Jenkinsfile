@@ -1,4 +1,3 @@
-// Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DEFAULT_REPO_URL
@@ -206,7 +205,7 @@ pipeline {
             }
         }
 
-        stage("install-oke") {
+        stage("Create OKE Cluster") {
             environment {
                 TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
             }
@@ -243,6 +242,65 @@ pipeline {
                 }
             }
         }
+
+        stage("Create Image Pull Secrets") {
+            steps {
+                createImagePullSecrets()
+            }
+        }
+
+        stage("Install Platform Operator") {
+            environment {
+                OCI_CLI_AUTH="instance_principal"
+            }
+            steps {
+                sh """
+                    echo "Install Platform Operator"
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                    cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+
+                    # Install the verrazzano-platform-operator
+                    kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
+
+                    # make sure ns exists
+                    ${WORKSPACE}/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+                    # create secret in verrazzano-install ns
+                    ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}" "verrazzano-install"
+                """
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage("Setup nip.io Config") {
+            steps {
+                script {
+                    sh """
+                        ${WORKSPACE}/tests/e2e/config/scripts/process_nipio_install_yaml.sh $INSTALL_CONFIG_FILE_NIPIO
+                    """
+                }
+            }
+        }
+
+        stage("Install Verrazzano") {
+            steps {
+                sh """
+                    echo "Waiting for Operator to be ready"
+                    kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+                    echo "Installing Verrazzano on ${TEST_ENV}"
+                    # apply config to create cluster
+                    kubectl apply -f ${INSTALL_CONFIG_FILE_NIPIO}
+                    # wait for Verrazzano install to complete
+                    ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+                """
+            }
+        }
+
+        // TODO: maybe add a Verify-install stage
+        
     }
 
     post {
@@ -395,4 +453,14 @@ def setDisplayName() {
          }
     }
     echo "End setDisplayName"
+}
+
+def createImagePullSecrets() {
+    sh """
+        # Create image pull secrets for Verrazzano docker images
+        cd ${WORKSPACE}
+        ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}"
+        ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}"
+        ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
+    """
 }
