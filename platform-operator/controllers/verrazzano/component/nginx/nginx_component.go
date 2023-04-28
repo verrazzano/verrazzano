@@ -54,14 +54,13 @@ func NewComponent() spi.Component {
 			JSONName:                  ComponentJSONName,
 			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), "ingress-nginx"), // Note name is different than release name
 			ChartNamespace:            nginxutil.IngressNGINXNamespace(),
-			IgnoreNamespaceOverride:   false,
+			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), ValuesFileOverride),
 			PreInstallFunc:            PreInstall,
 			AppendOverridesFunc:       AppendOverrides,
-			ResolveNamespaceFunc:      nginxResolveNameSpace,
 			PostInstallFunc:           PostInstall,
 			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
@@ -194,38 +193,4 @@ func (c nginxComponent) PostUninstall(context spi.ComponentContext) error {
 	// Remove finalizers from the ingress-nginx namespace to avoid hanging namespace deletion
 	// and delete the namespace
 	return res.RemoveFinalizersAndDelete()
-}
-
-// Install processing for NGINX
-func (c nginxComponent) Install(context spi.ComponentContext) error {
-	// update the chart namespace
-	c.ChartNamespace = nginxutil.IngressNGINXNamespace()
-	c.AvailabilityObjects.DeploymentNames[0].Namespace = nginxutil.IngressNGINXNamespace()
-	c.AvailabilityObjects.DeploymentNames[1].Namespace = nginxutil.IngressNGINXNamespace()
-
-	return c.HelmComponent.Install(context)
-}
-
-// Upgrade processing for NGINX
-func (c nginxComponent) Upgrade(context spi.ComponentContext) error {
-	// update the chart namespace
-	c.ChartNamespace = nginxutil.IngressNGINXNamespace()
-	c.AvailabilityObjects.DeploymentNames[0].Namespace = nginxutil.IngressNGINXNamespace()
-	c.AvailabilityObjects.DeploymentNames[1].Namespace = nginxutil.IngressNGINXNamespace()
-
-	return c.HelmComponent.Upgrade(context)
-}
-
-// Uninstall processing for NGINX
-func (c nginxComponent) Uninstall(context spi.ComponentContext) error {
-	// update the nginx namespace
-	c.ChartNamespace = nginxutil.IngressNGINXNamespace()
-	c.AvailabilityObjects.DeploymentNames[0].Namespace = nginxutil.IngressNGINXNamespace()
-	c.AvailabilityObjects.DeploymentNames[1].Namespace = nginxutil.IngressNGINXNamespace()
-
-	return c.HelmComponent.Uninstall(context)
-}
-
-func nginxResolveNameSpace(_ string) string {
-	return nginxutil.IngressNGINXNamespace()
 }

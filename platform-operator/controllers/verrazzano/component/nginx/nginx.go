@@ -85,7 +85,6 @@ func PreInstall(compContext spi.ComponentContext, name string, namespace string,
 	}); err != nil {
 		return err
 	}
-
 	return nil
 }
 

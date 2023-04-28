@@ -1,23 +1,29 @@
+// Copyright (c) 2023, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package namespace
 
 import (
 	"context"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
+	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // CheckIfVerrazzanoManagedNamespaceExists returns true if the namespace exists and has the verrazzano.io/namespace label
-func CheckIfVerrazzanoManagedNamespaceExists(client client.Client, nsName string) (bool, error) {
-	ns := &corev1.Namespace{}
-	err := client.Get(context.TODO(), types.NamespacedName{Name: nsName}, ns)
-	if err != nil && !errors.IsNotFound(err) {
-		return false, err
+func CheckIfVerrazzanoManagedNamespaceExists(nsName string) (bool, error) {
+	client, err := k8sutil.GetCoreV1Client()
+	if err != nil {
+		return false, fmt.Errorf("Error creating corev1 client: %v", err)
 	}
-	if ns == nil || ns.Labels[constants.VerrazzanoManagedKey] == "" {
+
+	namespace, err := client.Namespaces().Get(context.TODO(), nsName, metav1.GetOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		return false, fmt.Errorf("Unexpected error checking for namespace %s: %v", nsName, err)
+	}
+	if namespace == nil || namespace.Labels[constants.VerrazzanoManagedKey] == "" {
 		return false, nil
 	}
 	return true, nil

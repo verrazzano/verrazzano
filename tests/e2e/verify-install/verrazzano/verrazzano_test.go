@@ -8,14 +8,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -68,7 +70,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	mySQLOperatorEnabled = pkg.IsMySQLOperatorEnabled(kubeconfigPath)
 	argocdEnabled = pkg.IsArgoCDEnabled(kubeconfigPath)
 
-	ingressNGINXNamespace, err = pkg.DetermineIngressNGINXNamespace()
+	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
 	if err != nil {
 		Fail(err.Error())
 	}

@@ -8,12 +8,11 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
@@ -34,6 +33,9 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"k8s.io/apimachinery/pkg/api/errors"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 const (
@@ -77,7 +79,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return err
 	}, shortWait, pollingInterval).Should(BeNil(), "Expected to get envoy proxy image name and tag")
 
-	ingressNGINXNamespace, err = pkg.DetermineIngressNGINXNamespace()
+	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
 	if err != nil {
 		Fail(fmt.Sprintf("Failed to get Ingress NGINX namespace: %s", err.Error()))
 	}

@@ -7,13 +7,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"reflect"
 	"strings"
 	"text/template"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -21,6 +21,9 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
+
+	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -368,7 +371,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
-	ingressNGINXNamespace, err = pkg.DetermineIngressNGINXNamespace()
+	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
 	if err != nil {
 		Fail(err.Error())
 	}

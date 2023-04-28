@@ -4,6 +4,8 @@
 package operatorinit
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
@@ -25,6 +27,13 @@ import (
 
 // StartPlatformOperator Platform operator execution entry point
 func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
+	// Determine NGINX namespace before initializing components
+	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	if err != nil {
+		return err
+	}
+	nginxutil.SetIngressNGINXNamespace(ingressNGINXNamespace)
+
 	registry.InitRegistry()
 	metricsexporter.Init()
 

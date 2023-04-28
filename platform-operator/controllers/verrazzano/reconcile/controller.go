@@ -9,7 +9,6 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"io"
@@ -141,13 +140,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		errorCounterMetricObject.Inc()
 		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
 	}
-
-	// Determine NGINX namespace before initializing components
-	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(r.Client, log)
-	if err != nil {
-		return newRequeueWithDelay(), err
-	}
-	nginxutil.SetIngressNGINXNamespace(ingressNGINXNamespace)
 
 	log.Oncef("Reconciling Verrazzano resource %v, generation %v, version %s", req.NamespacedName, vz.Generation, vz.Status.Version)
 	res, err := r.doReconcile(ctx, log, vz)

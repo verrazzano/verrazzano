@@ -7,7 +7,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/namespace"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // This is set by verrazzano controller.go at startup.  It has to be injected
@@ -25,9 +24,9 @@ func IngressNGINXNamespace() string {
 }
 
 // DetermineNamespaceForIngressNGINX determines the namespace for Ingress NGINX
-func DetermineNamespaceForIngressNGINX(client client.Client, log vzlog.VerrazzanoLogger) (string, error) {
+func DetermineNamespaceForIngressNGINX(log vzlog.VerrazzanoLogger) (string, error) {
 	// Check if Verrazzano NGINX is installed in the ingress-nginx namespace
-	legacyNSExists, err := namespace.CheckIfVerrazzanoManagedNamespaceExists(client, vpoconst.LegacyIngressNginxNamespace)
+	legacyNSExists, err := namespace.CheckIfVerrazzanoManagedNamespaceExists(vpoconst.LegacyIngressNginxNamespace)
 	if err != nil {
 		return "", log.ErrorfNewErr("Failed checking for legacy Ingress NGINX namespace %s: %v", vpoconst.LegacyIngressNginxNamespace, err.Error())
 	}

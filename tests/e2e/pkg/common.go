@@ -7,7 +7,6 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"io"
 	"net/http"
 	neturl "net/url"
@@ -772,20 +771,4 @@ func IngressesExist(vz *v1alpha1.Verrazzano, namespace string, ingressNames []st
 		return false, nil
 	}
 	return true, err
-}
-
-func DetermineIngressNGINXNamespace() (string, error) {
-	clientset, err := k8sutil.GetKubernetesClientset()
-	if err != nil {
-		return "", err
-	}
-
-	_, err = clientset.CoreV1().Namespaces().Get(context.TODO(), vpoconst.IngressNginxNamespace, metav1.GetOptions{})
-	if err == nil {
-		return vpoconst.IngressNginxNamespace, nil
-	} else if errors.IsNotFound(err) {
-		return vpoconst.LegacyIngressNginxNamespace, nil
-	} else {
-		return "", err
-	}
 }

@@ -126,9 +126,6 @@ func (i istioComponent) IsInstalled(compContext spi.ComponentContext) (bool, err
 // If the monitor detects that the goroutine is finished, we either return nil (success) for the successful install
 // case, or reset the monitor state and drop down to the rest of the install method to retry the install again.
 func (i istioComponent) Install(compContext spi.ComponentContext) error {
-	// update injected system namespace
-	i.InjectedSystemNamespaces = config.GetInjectedSystemNamespaces()
-
 	if i.monitor.IsRunning() {
 		// Check the result
 		succeeded, err := i.monitor.CheckResult()
