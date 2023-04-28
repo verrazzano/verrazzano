@@ -321,8 +321,8 @@ loadExampleTarFiles() {
     local rootDir="$1"
     local generatedDir="$3"
 
-  IMAGE_LIST=$(grep -r 'image:' "${VZ_REPO_ROOT}/examples" | grep -E '(ghcr\.io|container\-registry\.oracle\.com){1}(/.+)+:[^"]+')
-  for image in ${IMAGE_LIST[@]}; do
+  IMAGE_LIST=$(grep -r 'image:' "${VZ_REPO_ROOT}/examples" | grep -Eo '(ghcr\.io|container\-registry\.oracle\.com){1}(/.+)+:[^"]+')
+  for image in "${IMAGE_LIST[@]}"; do
     docker pull "$image"
   done
 
