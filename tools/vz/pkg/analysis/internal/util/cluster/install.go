@@ -12,8 +12,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
@@ -21,7 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -141,8 +138,9 @@ func analyzeVerrazzanoInstallIssue(log *zap.SugaredLogger, clusterRoot string, i
 	analyzeIstioIngressService(log, clusterRoot, issueReporter)
 	analyzeExternalDNS(log, clusterRoot, issueReporter)
 
-	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	ingressNGINXNamespace, err := checkIngressNGINXNamespace(clusterRoot)
 	if err != nil {
+		log.Errorf("Unexpected error checking for Ingress NGINX namespace: %v", err)
 		return err
 	}
 
@@ -183,8 +181,9 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 	// If we have a start/end time for the install containerStatus, then we can use that to only look at logs which are in that time range
 
 	// Look at the ingress-controller-ingress-nginx-controller, and look at the events related to it
-	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	ingressNGINXNamespace, err := checkIngressNGINXNamespace(clusterRoot)
 	if err != nil {
+		log.Errorf("Unexpected error checking for Ingress NGINX namespace: %v", err)
 		return err
 	}
 
@@ -572,4 +571,14 @@ func analyzeExternalDNS(log *zap.SugaredLogger, clusterRoot string, issueReporte
 			issueReporter.AddKnownIssueMessagesFiles(report.ExternalDNSConfigureIssue, clusterRoot, messages, servFiles)
 		}
 	}
+}
+
+func checkIngressNGINXNamespace(clusterRoot string) (string, error) {
+	_, err := os.Stat(fmt.Sprintf("%s/%s", clusterRoot, constants.IngressNginxNamespace))
+	if err == nil {
+		return constants.IngressNginxNamespace, nil
+	} else if os.IsNotExist(err) {
+		return constants.LegacyIngressNginxNamespace, nil
+	}
+	return "", err
 }
