@@ -189,9 +189,6 @@ createVZSourceLayout() {
   echo "Running go mod vendor ${rootDir}..."
   go mod vendor
 
-  echo "Compiling verify-distribution test"
-  GO111MODULE=on GOFLAGS=-mod=vendor ginkgo build tests/e2e/verify-distribution/...
-
   echo "Creating source layout in ${srcLayoutDir}..."
 
   local tmp_src_bundle="/tmp/tmp_src_bundle.tar.gz"
@@ -319,6 +316,26 @@ includeImageTarFiles() {
   ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh -f ${distDir} -b ${VZ_DISTRIBUTION_COMMON}/verrazzano-bom.json
 }
 
+loadExampleTarFiles() {
+  echo "Generating example image bundle....."
+    local rootDir="$1"
+    local generatedDir="$3"
+
+  IMAGE_LIST=$(grep -r 'image:' ~/go/src/github.com/verrazzano/verrazzano/examples | grep -E '(ghcr\.io|container\-registry\.oracle\.com){1}(/.+)+:[^"]+')
+  for image in "${IMAGE_LIST[@]}"; do
+    docker pull "$image"
+  done
+
+  docker save "$IMAGE_LIST" -o ${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE}
+  sha256sum ${generatedDir}/${VZ_SRC_BUNDLE} > ${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE_SHA256}
+  cd generatedDir
+  echo "Uploading example images bundle to $OCI_OS_DIST_REGION in bucket ${OCI_OS_COMMIT_BUCKET} with name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_EXAMPLE_IMAGES_BUNDLE} ..."
+  oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_EXAMPLE_IMAGES_BUNDLE} --file ${VZ_EXAMPLE_IMAGES_BUNDLE}
+  oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_EXAMPLE_IMAGES_BUNDLE_SHA256} --file ${VZ_EXAMPLE_IMAGES_BUNDLE_SHA256}
+  echo "Successfully uploaded ${VZ_EXAMPLE_IMAGES_BUNDLE}"
+  cd $rootDir
+}
+
 # generate profiles and remove cruft
 includeProfiles() {
   local rootDir=$1
@@ -367,6 +384,9 @@ VZ_LITE_RELEASE_BUNDLE_SHA256="${VZ_LITE_RELEASE_BUNDLE}.sha256"
 VZ_FULL_RELEASE_BUNDLE="${DISTRIBUTION_PREFIX}.zip"
 VZ_FULL_RELEASE_BUNDLE_SHA256="${VZ_FULL_RELEASE_BUNDLE}.sha256"
 
+VZ_EXAMPLE_IMAGES_BUNDLE="${DISTRIBUTION_PREFIX}-example-images.tar"
+VZ_EXAMPLE_IMAGES_BUNDLE_SHA256="${VZ_EXAMPLE_IMAGES_BUNDLE}.sha256"
+
 # Linux AMD64 and Darwin AMD64 bundles for the lite distribution
 VZ_LINUX_AMD64_TARGZ="${DISTRIBUTION_PREFIX}-linux-amd64.tar.gz"
 VZ_LINUX_AMD64_TARGZ_SHA256="${DISTRIBUTION_PREFIX}-linux-amd64.tar.gz.sha256"
@@ -388,6 +408,9 @@ VZ_SRC_GENERATED="${WORKSPACE}/vz-src-generated"
 # Directory to contain the files which are common for both types of distribution bundles
 VZ_DISTRIBUTION_COMMON="${WORKSPACE}/vz-distribution-common"
 
+# Directory to contain the example images tar
+VZ_EXAMPLE_IMAGES_GENERATED="${WORKSPACE}/vz-example-images"
+
 # Directory containing the layout and required files for the Verrazzano lite distribution
 VZ_LITE_ROOT="${WORKSPACE}/vz-lite"
 VZ_LITE_GENERATED="${WORKSPACE}/vz-lite-generated"
@@ -403,6 +426,9 @@ LITE_DARWIN_ARM64_BUNDLE_CONTENTS="${DISTRIBUTION_PREFIX}-lite-darwin-arm64.txt"
 
 LITE_BUNDLE_CONTENTS="${DISTRIBUTION_PREFIX}-lite.txt"
 FULL_BUNDLE_CONTENTS="${DISTRIBUTION_PREFIX}-full.txt"
+
+# Build the example image bundle for air gap testing
+loadExampleTarFiles "${VZ_REPO_ROOT}" "${VZ_EXAMPLE_IMAGES_GENERATED}"
 
 # Build Verrazzano source bundle before we start putting generated files in the VZ_REPO_ROOT
 createVZSourceLayout "${VZ_REPO_ROOT}" "${VZ_SRC_ROOT}"
