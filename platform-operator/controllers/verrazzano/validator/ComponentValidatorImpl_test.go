@@ -40,9 +40,6 @@ func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
 	}
 	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
 
-	defer func() { common.ResetAPIExtV1ClientFunc() }()
-	common.SetAPIExtV1ClientFunc(common.NewFakeAPIExtTestClient())
-
 	tests := []struct {
 		name           string
 		vz             *vzapi.Verrazzano
@@ -107,9 +104,6 @@ func TestComponentValidatorImpl_ValidateInstallV1Beta1(t *testing.T) {
 		return k8sfake.NewSimpleClientset().AppsV1(), nil
 	}
 	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
-
-	defer func() { common.ResetAPIExtV1ClientFunc() }()
-	common.SetAPIExtV1ClientFunc(common.NewFakeAPIExtTestClient())
 
 	tests := []struct {
 		name           string

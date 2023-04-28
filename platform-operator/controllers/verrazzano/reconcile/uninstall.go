@@ -51,6 +51,10 @@ const (
 	vzStateUninstallEnd uninstallState = "vzStateUninstallEnd"
 )
 
+type cmCleanupFuncType func(log vzlog.VerrazzanoLogger, cli client.Client, namespace string) error
+
+var cmCleanupFunc cmCleanupFuncType = certmanagerconfig.UninstallCleanup
+
 // old node-exporter constants replaced with prometheus-operator node-exporter
 const (
 	monitoringNamespace = "monitoring"
@@ -396,7 +400,7 @@ func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvision
 	// Delete all the namespaces
 	for ns := range nsSet {
 		// Clean up any remaining CM resources in Verrazzano-managed namespaces
-		if err := certmanagerconfig.UninstallCleanup(ctx.Log(), ctx.Client(), ns); err != nil {
+		if err := cmCleanupFunc(ctx.Log(), ctx.Client(), ns); err != nil {
 			return newRequeueWithDelay(), err
 		}
 		log.Progressf("Deleting namespace %s", ns)
