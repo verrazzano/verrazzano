@@ -54,13 +54,14 @@ func NewComponent() spi.Component {
 			JSONName:                  ComponentJSONName,
 			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), "ingress-nginx"), // Note name is different than release name
 			ChartNamespace:            nginxutil.IngressNGINXNamespace(),
-			IgnoreNamespaceOverride:   true,
+			IgnoreNamespaceOverride:   false,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), ValuesFileOverride),
 			PreInstallFunc:            PreInstall,
 			AppendOverridesFunc:       AppendOverrides,
+			ResolveNamespaceFunc:      nginxResolveNameSpace,
 			PostInstallFunc:           PostInstall,
 			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
@@ -223,4 +224,8 @@ func (c nginxComponent) Uninstall(context spi.ComponentContext) error {
 	c.AvailabilityObjects.DeploymentNames[1].Namespace = nginxutil.IngressNGINXNamespace()
 
 	return c.HelmComponent.Uninstall(context)
+}
+
+func nginxResolveNameSpace(_ string) string {
+	return nginxutil.IngressNGINXNamespace()
 }
