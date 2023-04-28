@@ -207,12 +207,6 @@ pipeline {
             }
         }
 
-        stage("Dummy Stage") {
-            steps {
-                performDummyStage()
-            }
-        }
-
         stage("Create OKE Cluster") {
             environment {
                 TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
@@ -250,6 +244,18 @@ pipeline {
                 }
             }
         }
+
+        stage("Dummy Stage") {
+            steps {
+                sh """
+                    # do some dummy operations
+                    cd ${WORKSPACE}
+                    echo ${WORKSPACE}
+                    ls -l ./tests/e2e/config/scripts/create-image-pull-secret.sh
+                """
+            }
+        }
+
 
         stage("Create Image Pull Secrets") {
             steps {
@@ -488,13 +494,4 @@ def runGinkgo(testSuitePath) {
             ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
-}
-
-def performDummyStage() {
-    sh """
-        # do some nonsense operations
-        cd ${WORKSPACE}
-        echo ${WORKSPACE}
-        readlink -f ./tests/e2e/config/scripts/create-image-pull-secret.sh
-    """
 }
