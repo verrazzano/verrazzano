@@ -247,9 +247,7 @@ pipeline {
 
         stage("Create Image Pull Secrets") {
             steps {
-                script {
-                    createImagePullSecrets()
-                }
+                createImagePullSecrets()
             }
         }
 
@@ -258,21 +256,19 @@ pipeline {
                 OCI_CLI_AUTH="instance_principal"
             }
             steps {
-                script {
-                    sh """
-                        echo "Install Platform Operator"
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-                        cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+                sh """
+                    echo "Install Platform Operator"
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                    cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
 
-                        # Install the verrazzano-platform-operator
-                        kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
+                    # Install the verrazzano-platform-operator
+                    kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
 
-                        # make sure ns exists
-                        ${WORKSPACE}/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
-                        # create secret in verrazzano-install ns
-                        ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}" "verrazzano-install"
-                    """
-                }
+                    # make sure ns exists
+                    ${WORKSPACE}/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+                    # create secret in verrazzano-install ns
+                    ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}" "verrazzano-install"
+                """
             }
             post {
                 always {
