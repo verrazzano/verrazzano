@@ -15,7 +15,7 @@ def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 pipeline {
     options {
         skipDefaultCheckout true
-        copyArtifactPermission('*'); // FIXME: what does this do?
+        copyArtifactPermission('*');
         timestamps ()
     }
 
@@ -102,7 +102,6 @@ pipeline {
         TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
         TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
 
-        // FIXME: needed for creating the cloud credential
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
@@ -421,7 +420,6 @@ def dumpVerrazzanoPlatformOperatorLogs() {
     """
 }
 
-// FIXME: remove?
 def dumpVerrazzanoApplicationOperatorLogs() {
     sh """
         ## dump out verrazzano-application-operator logs
@@ -479,6 +477,7 @@ def createImagePullSecrets() {
     """
 }
 
+// TODO: pass variables into the this Ginkgo test suite
 // Run the OCNE Cluster Driver Ginkgo test suite, passing in some parameters
 def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
