@@ -80,6 +80,10 @@ pipeline {
         INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
+        IMAGE_PULL_SECRET = 'verrazzano-container-registry'
+        GHCR_REPO = 'ghcr.io'
+        GITHUB_PKGS_CREDS = credentials('github-packages-credentials-rw')
+        OCIR_CREDS = credentials('ocir-pull-and-push-account')
 
         TF_VAR_tenancy_id = credentials('oci-tenancy')
         TF_VAR_user_id = credentials('oci-user-ocid')
