@@ -322,7 +322,7 @@ loadExampleTarFiles() {
     local generatedDir="$3"
 
   IMAGE_LIST=$(grep -r 'image:' ~/go/src/github.com/verrazzano/verrazzano/examples | grep -E '(ghcr\.io|container\-registry\.oracle\.com){1}(/.+)+:[^"]+')
-  for image in "${IMAGE_LIST[@]}"; do
+  for image in ${IMAGE_LIST[@]}; do
     docker pull "$image"
   done
 
