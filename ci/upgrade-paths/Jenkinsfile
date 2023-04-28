@@ -105,10 +105,6 @@ pipeline {
                 defaultValue: '',
                 description: 'The branch to check out after cloning the console repository.',
                 trim: true)
-        string (name: 'GIT_COMMIT_FOR_OPERATOR_INSTALL',
-                defaultValue: 'NONE',
-                description: 'This commit hash is used to install the operator of the tip of a release branch, to test the upgrade from the tip of a release branch to master',
-                trim: true)
         string (name: 'TAGGED_TESTS',
                 defaultValue: '',
                 description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
@@ -124,7 +120,6 @@ pipeline {
     }
 
     environment {
-        COMMIT_HASH_FOR_INSTALL = "${params.GIT_COMMIT_FOR_OPERATOR_INSTALL}"
         DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
         DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
         DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME == 'master' ? env.DOCKER_PLATFORM_PUBLISH_IMAGE_NAME : env.DOCKER_PLATFORM_CI_IMAGE_NAME}"
@@ -902,7 +897,7 @@ def getVerrazzanoOperatorYaml() {
             if [ "NONE" == "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
                 if [ "master" == $VERSION_FOR_UPGRADE_ENV ]; then
                     echo "Downloading operator from object storage"
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/release-${RELEASE_NUMBER}/${SHORT_HASH_FROM_TIP}/operator.yaml --file ${WORKSPACE}/downloaded-release-operator.yaml
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/release-${RELEASE_NUMBER}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-release-operator.yaml
                 else
                     echo "Downloading ${OPERATOR_YAML_FILE} for release ${params.VERSION_FOR_INSTALL}"
                     wget "${OPERATOR_YAML_FILE}" -O "${WORKSPACE}"/downloaded-release-operator.yaml
@@ -1077,15 +1072,6 @@ def upgradeVerrazzano() {
         
         if(params.VERSION_FOR_UPGRADE == "master"){
             VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
-            def scmInfo = checkout([
-                            $class: 'GitSCM',
-                            branches: [[name: 'master']],
-                            doGenerateSubmoduleConfigurations: false,
-                            extensions: [],
-                            submoduleCfg: [],
-                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
         }else if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
             VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE_ENV
         }
@@ -1999,10 +1985,10 @@ def setInitValues() {
         VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-        if("${COMMIT_HASH_FOR_INSTALL}" == "NONE"){
-            SHORT_HASH_FROM_TIP = "${COMMIT_HASH_FOR_INSTALL}"
-        }else{
-            SHORT_HASH_FROM_TIP = "${COMMIT_HASH_FOR_INSTALL}"[0..7]
+        // The above command grabs the commit hash from the checked-out branch but for an upgrade from 
+        // the tip of release to master, we need to grab the shortten commit hash passed through by GIT_COMMIT_TO_USE
+        if(params.VERSION_FOR_UPGRADE == 'master'){
+            SHORT_COMMIT_HASH = params.GIT_COMMIT_TO_USE[0..7]
         }
         DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
         // update the description with some meaningful info
@@ -2043,7 +2029,17 @@ def performSourceCodeCheckout() {
             def scmInfo = checkout scm
             env.GIT_COMMIT = scmInfo.GIT_COMMIT
             env.GIT_BRANCH = scmInfo.GIT_BRANCH
-        } else {
+        }else if(params.VERSION_FOR_UPGRADE == 'master'){
+            def scmInfo = checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: 'master']],
+                    doGenerateSubmoduleConfigurations: false,
+                    extensions: [],
+                    submoduleCfg: [],
+                    userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+            env.GIT_COMMIT = scmInfo.GIT_COMMIT
+            env.GIT_BRANCH = scmInfo.GIT_BRANCH
+        }else {
             echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
             def scmInfo = checkout([
                     $class: 'GitSCM',

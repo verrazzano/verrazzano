@@ -72,10 +72,6 @@ pipeline {
                 defaultValue: '',
                 description: 'The branch to check out after cloning the console repository.',
                 trim: true)
-        string (name: 'GIT_COMMIT_FOR_OPERATOR_INSTALL',
-                defaultValue: 'NONE',
-                description: 'This commit hash is used to install the operator of the tip of a release branch, to test the upgrade from the tip of a release branch to master',
-                trim: true)
     }
 
     environment {
@@ -439,17 +435,17 @@ def getStageOfUpgradeJob(job) {
     }
 }
 
-def getTipOfBranchToMasterJob(String release, String commitNumber) {
+def getTipOfBranchToMasterJob(String release, String commitSHA) {
     return {
         stage("Upgrade Verrazzano from tip of ${release} to master") {
             if( CLEAN_BRANCH_NAME != 'master') {
                     script{
                         try{
-                            echo "Running upgrade job from version ${release}-${commitNumber} to master"
+                            echo "Running upgrade job from version ${release}-${commitSHA} to master"
                             retry(count: JOB_PROMOTION_RETRIES) {
                                 def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
-                                    string(name: 'GIT_COMMIT_TO_USE', value: params.GIT_COMMIT_TO_USE),
+                                    string(name: 'GIT_COMMIT_TO_USE', value: "${commitSHA}"),
                                     string(name: 'VERSION_FOR_INSTALL', value: "${release}" ),
                                     string(name: 'VERSION_FOR_UPGRADE', value: "master"),
                                     string(name: 'VZ_INSTALL_CONFIG', value: params.VZ_INSTALL_CONFIG),
@@ -459,8 +455,7 @@ def getTipOfBranchToMasterJob(String release, String commitNumber) {
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                     string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                     string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
-                                    string(name: 'GIT_COMMIT_FOR_OPERATOR_INSTALL', value: "${commitNumber}")
+                                    string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
                                 ],  wait: true, propagate: true
                             }
                         } catch(err) {
