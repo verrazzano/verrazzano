@@ -317,7 +317,7 @@ pipeline {
                 TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
             }
             steps {
-                runGinkgoRandomize('verify-distribution/verifydistribution/verifydistribution.test')
+                runGinkgoRandomize('verify-distribution')
             }
         }
 
@@ -705,7 +705,7 @@ def runGinkgoRandomize(testSuitePath) {
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             echo "Running pre-compiled test suite ${testSuitePath}"
             ls -l ${testSuitePath}
-            ginkgo run -p --randomize-all -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}
+            ginkgo -p --randomize-all -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
             ../../build/copy-junit-output.sh ${WORKSPACE}
             echo "ls -l after test run"
             ls -l ${testSuitePath}
