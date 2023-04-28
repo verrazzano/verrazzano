@@ -108,9 +108,7 @@ pipeline {
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
 
         // FIXME: probably needed later
-        INSTALL_CONFIG_FILE_OCIDNS = "${WORKSPACE}/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-ocidns.yaml"
         INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-nipio.yaml"
-        INSTALL_CONFIG_FILE_NODEPORT = "${WORKSPACE}/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-nodeport.yaml"
 
         // Environment variables required to capture cluster snapshot and bug report on test failure
         DUMP_KUBECONFIG="${KUBECONFIG}"
@@ -275,11 +273,13 @@ pipeline {
             }
         }
 
-        stage("Setup nip.io Config") {
+        stage("Setup VZ Config") {
             steps {
                 script {
                     sh """
                         ${WORKSPACE}/tests/e2e/config/scripts/process_nipio_install_yaml.sh $INSTALL_CONFIG_FILE_NIPIO
+                        # enable CAPI component
+                        yq -i eval '.spec.components.capi.enabled = true' ${INSTALL_CONFIG_FILE_NIPIO}
                     """
                 }
             }
