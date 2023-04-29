@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package externaldns
@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -16,8 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
 const fooDomainSuffix = "foo.com"
@@ -361,4 +360,36 @@ func TestValidateUpdateV1beta1(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestIsAvailableDefaultNamespace tests the IsAvailable fn
+// GIVEN a call to IsAvailable
+// WHEN ExternalDNS is installed in the default ns and its pod is ready
+// THEN it is reported as available
+func TestIsAvailableDefaultNamespace(t *testing.T) {
+	resolvedNamespace = ComponentNamespace
+	defer func() { resolvedNamespace = "" }()
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		newDeployment(ComponentName, resolvedNamespace, true), newPod(ComponentName, resolvedNamespace), newReplicaSet(ComponentName, resolvedNamespace),
+	).Build()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
+
+	_, availability := NewComponent().IsAvailable(ctx)
+	assert.Equal(t, vzapi.ComponentAvailable, string(availability))
+}
+
+// TestIsAvailableLegacy tests the IsAvailable fn
+// GIVEN a call to IsAvailable
+// WHEN ExternalDNS is installed in the legacy ns and its pod is ready
+// THEN it is reported as available
+func TestIsAvailableLegacy(t *testing.T) {
+	resolvedNamespace = legacyNamespace
+	defer func() { resolvedNamespace = "" }()
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		newDeployment(ComponentName, resolvedNamespace, true), newPod(ComponentName, resolvedNamespace), newReplicaSet(ComponentName, resolvedNamespace),
+	).Build()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
+
+	_, availability := NewComponent().IsAvailable(ctx)
+	assert.Equal(t, vzapi.ComponentAvailable, string(availability))
 }

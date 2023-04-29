@@ -11,6 +11,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"math/big"
 	"net"
 	"testing"
@@ -256,6 +257,51 @@ func TestCertManagerPreInstall(t *testing.T) {
 	})
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false))
+	assert.NoError(t, err)
+
+	secret := &v1.Secret{}
+	err = client.Get(context.TODO(), types.NamespacedName{Name: "oci", Namespace: ComponentNamespace}, secret)
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
+}
+
+// TestCertManagerPreInstallOCIDNS tests the PreInstall fn
+// GIVEN a call to this fn
+// WHEN I call PreInstall and OCI DNS is enabled
+// THEN no errors are returned and the DNS secret is set up
+func TestCertManagerPreInstallOCIDNS(t *testing.T) {
+	config.Set(config.OperatorConfig{
+		VerrazzanoRootDir: "../../../../..", //since we are running inside the cert manager package, root is up 5 directories
+	})
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "oci",
+				Namespace: constants.VerrazzanoInstallNamespace,
+			},
+			Data: map[string][]byte{"oci.yaml": []byte("fake data")},
+		}).Build()
+	vz := &vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Name: "my-verrazzano", Namespace: "default", CreationTimestamp: metav1.Now()},
+		Spec: vzapi.VerrazzanoSpec{
+			EnvironmentName: "myenv",
+			Components: vzapi.ComponentSpec{
+				DNS: &vzapi.DNSComponent{
+					OCI: &vzapi.OCI{
+						OCIConfigSecret:        "oci",
+						DNSZoneCompartmentOCID: "compartmentID",
+						DNSZoneOCID:            "zoneID",
+						DNSZoneName:            "zone.name.io",
+					},
+				},
+			},
+		},
+	}
+	err := fakeComponent.PreInstall(spi.NewFakeContext(client, vz, nil, false))
+	assert.NoError(t, err)
+
+	secret := &v1.Secret{}
+	err = client.Get(context.TODO(), types.NamespacedName{Name: "oci", Namespace: ComponentNamespace}, secret)
 	assert.NoError(t, err)
 }
 

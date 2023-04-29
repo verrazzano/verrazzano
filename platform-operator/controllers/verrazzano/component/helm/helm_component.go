@@ -241,7 +241,9 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 	if err != nil {
 		return false
 	}
-	releaseAppVersion, err := helm.GetReleaseAppVersion(h.ReleaseName, h.resolveNamespace(context))
+
+	resolvedNamespace := h.resolveNamespace(context)
+	releaseAppVersion, err := helm.GetReleaseAppVersion(h.ReleaseName, resolvedNamespace)
 	if err != nil {
 		return false
 	}
@@ -249,8 +251,7 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 		return false
 	}
 
-	ns := h.resolveNamespace(context)
-	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, ns); deployed {
+	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, resolvedNamespace); deployed {
 		return true
 	}
 	return false
