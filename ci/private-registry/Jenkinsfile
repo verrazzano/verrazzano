@@ -412,7 +412,7 @@ pipeline {
                         }
                         sh """
                             oci --region eu-frankfurt-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${exampleImagesTar} --file ${downloadLocation}
-                            kind load image-archive ${downloadLocation}
+                            kind load image-archive ${downloadLocation} --name verrazzano
                         """
                     }
                 }
