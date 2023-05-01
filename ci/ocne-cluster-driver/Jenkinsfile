@@ -509,7 +509,7 @@ def runGinkgo(testSuitePath) {
                 --workerNodeSubnet=${SUBNET_ID} \
                 --controlPlaneSubnet=${SUBNET_ID} \
                 --loadBalancerSubnet=${SUBNET_ID} \
-                --podCidr=${POD_CIDR} \
+                --podCidr=${POD_CIDR}
         """
     }
 }
