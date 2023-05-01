@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	waitTimeout     = 3 * time.Minute
+	waitTimeout     = 6 * time.Minute
 	pollingInterval = 10 * time.Second
 	capiLabelValue  = "controller-manager"
 	capiLabelKey    = "control-plane"
