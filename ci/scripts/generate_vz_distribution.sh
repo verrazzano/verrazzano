@@ -428,7 +428,7 @@ LITE_BUNDLE_CONTENTS="${DISTRIBUTION_PREFIX}-lite.txt"
 FULL_BUNDLE_CONTENTS="${DISTRIBUTION_PREFIX}-full.txt"
 
 # Build the example image bundle for air gap testing
-loadExampleTarFiles "${VZ_FULL_ROOT}" "${VZ_EXAMPLE_IMAGES_GENERATED}"
+loadExampleTarFiles "${VZ_REPO_ROOT}" "${VZ_EXAMPLE_IMAGES_GENERATED}"
 
 # Build Verrazzano source bundle before we start putting generated files in the VZ_REPO_ROOT
 createVZSourceLayout "${VZ_REPO_ROOT}" "${VZ_SRC_ROOT}"
