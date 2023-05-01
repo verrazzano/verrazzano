@@ -522,8 +522,8 @@ func setConfigQPSBurst(config *rest.Config) {
 	config.QPS = APIServerQPS
 }
 
-// getKubernetesVersion returns the version of Kubernetes cluster in which operator is deployed
-func getKubernetesVersion() (string, error) {
+// GetKubernetesVersion returns the version of Kubernetes cluster in which operator is deployed
+func GetKubernetesVersion() (string, error) {
 	config, err := GetConfigFromController()
 	if err != nil {
 		return "", fmt.Errorf("Failed to get kubernetes client config %v", err.Error())
@@ -542,7 +542,7 @@ func getKubernetesVersion() (string, error) {
 }
 
 func IsMinimumk8sVersion(expectedK8sVersion string) (bool, error) {
-	version, err := getKubernetesVersion()
+	version, err := GetKubernetesVersion()
 	if err != nil {
 		return false, fmt.Errorf("Failed to get the kubernetes version: %v", err)
 	}
