@@ -19,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -47,6 +48,9 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 	// Run upgrade command
 	err := cmd.Execute()
@@ -84,6 +88,9 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	defer cmdHelpers.SetDefaultDeleteFunc()
 	defer os.RemoveAll(tempKubeConfigPath.Name())
 
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.Error(t, err)
@@ -120,12 +127,15 @@ func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	defer cmdHelpers.SetDefaultDeleteFunc()
 	defer os.RemoveAll(tempKubeConfigPath.Name())
 
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
-	// Bug report must not exists
+	// Bug report must not exist
 	if helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal("found bug report file in current directory")
 	}
@@ -185,6 +195,9 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
 	// Run upgrade command
 	cmd.PersistentFlags().Set(constants.VPOTimeoutFlag, "1s")
 	err := cmd.Execute()
@@ -218,6 +231,9 @@ func TestUpgradeCmdJsonLogFormat(t *testing.T) {
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.NoError(t, err)
@@ -246,11 +262,17 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
-	assert.Contains(t, buf.String(), "Applying the file ../../test/testdata/operator-file-fake.yaml\nnamespace/verrazzano-install created\nserviceaccount/verrazzano-platform-operator created\nservice/verrazzano-platform-operator created\n")
+	assert.Contains(t, buf.String(), "Applying the file ../../test/testdata/operator-file-fake.yaml")
+	assert.Contains(t, buf.String(), "namespace/verrazzano-install created")
+	assert.Contains(t, buf.String(), "serviceaccount/verrazzano-platform-operator created")
+	assert.Contains(t, buf.String(), "service/verrazzano-platform-operator created")
 
 	// Verify the objects in the operator-file got added
 	sa := corev1.ServiceAccount{}
@@ -262,13 +284,13 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 	ns := corev1.Namespace{}
 	err = c.Get(context.TODO(), types.NamespacedName{Name: "verrazzano-install"}, &ns)
 	assert.NoError(t, err)
-	expectedLastAppliedConfigAnnotation = "{\"apiVersion\":\"v1\",\"kind\":\"Namespace\",\"metadata\":{\"annotations\":{},\"name\":\"verrazzano-install\"}}\n"
+	expectedLastAppliedConfigAnnotation = "{\"apiVersion\":\"v1\",\"kind\":\"Namespace\",\"metadata\":{\"annotations\":{},\"labels\":{\"verrazzano.io/namespace\":\"verrazzano-install\"},\"name\":\"verrazzano-install\"}}\n"
 	testhelpers.VerifyLastAppliedConfigAnnotation(t, ns.ObjectMeta, expectedLastAppliedConfigAnnotation)
 
 	svc := corev1.Service{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &svc)
 	assert.NoError(t, err)
-	expectedLastAppliedConfigAnnotation = "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"verrazzano-platform-operator\"},\"name\":\"verrazzano-platform-operator\",\"namespace\":\"verrazzano-install\"},\"spec\":{\"ports\":[{\"name\":\"webhook\",\"port\":443,\"targetPort\":9443}],\"selector\":{\"app\":\"verrazzano-platform-operator\"}}}\n"
+	expectedLastAppliedConfigAnnotation = "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"verrazzano-platform-operator\"},\"name\":\"verrazzano-platform-operator\",\"namespace\":\"verrazzano-install\"},\"spec\":{\"ports\":[{\"name\":\"http-metric\",\"port\":9100,\"protocol\":\"TCP\",\"targetPort\":9100}],\"selector\":{\"app\":\"verrazzano-platform-operator\"}}}\n"
 	testhelpers.VerifyLastAppliedConfigAnnotation(t, svc.ObjectMeta, expectedLastAppliedConfigAnnotation)
 
 	// Verify the version got updated
@@ -413,6 +435,9 @@ func TestUpgradeCmdInProgress(t *testing.T) {
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.3.4")
+
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 	// Run upgrade command
 	err := cmd.Execute()

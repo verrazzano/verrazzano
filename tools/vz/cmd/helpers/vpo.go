@@ -56,6 +56,19 @@ func FakeDeleteFunc(client clipkg.Client) error {
 	return nil
 }
 
+// Allow overriding the vpoIsReady function for unit testing
+type vpoIsReadySig func(client clipkg.Client) (bool, error)
+
+var vpoIsReadyFunc vpoIsReadySig = vpoIsReady
+
+func SetVPOIsReadyFunc(f vpoIsReadySig) {
+	vpoIsReadyFunc = f
+}
+
+func SetDefaultVPOIsReadyFunc() {
+	vpoIsReadyFunc = vpoIsReady
+}
+
 // GetExistingVPODeployment - get existing Verrazzano Platform operator Deployment from the cluster
 func GetExistingVPODeployment(client clipkg.Client) (*appsv1.Deployment, error) {
 	deploy := appsv1.Deployment{}
@@ -249,7 +262,7 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 	secondsWaited := 0
 	maxSecondsToWait := int(timeout.Seconds())
 	for {
-		ready, err := vpoIsReady(client)
+		ready, err := vpoIsReadyFunc(client)
 		if ready {
 			break
 		}

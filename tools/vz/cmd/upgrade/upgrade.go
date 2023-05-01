@@ -5,9 +5,10 @@ package upgrade
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
-	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -170,7 +171,7 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	}
 
 	// If we already started the upgrade no need to apply the operator.yaml, wait for VPO, and update the verrazzano
-	// install resource. This could happen if the upgrade command was aborted and the rerun. We anly wait for the upgrade
+	// install resource. This could happen if the upgrade command was aborted and then rerun. We only wait for the upgrade
 	// to complete.
 	if !vzStatusVersion.IsEqualTo(vzSpecVersion) {
 		err = waitForUpgradeToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat)
