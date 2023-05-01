@@ -24,7 +24,7 @@ import (
 const ComponentName = "capi"
 
 // Namespace for CAPI providers
-const VerrazzanoCAPINamespace = constants.VerrazzanoCAPINamespace
+const VerrazzanoCAPINamespace = "verrazzano-capi"
 
 // ComponentJSONName is the JSON name of the component in CRD
 const ComponentJSONName = "capi"
