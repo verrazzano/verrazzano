@@ -328,7 +328,7 @@ loadExampleTarFiles() {
 
   docker save -o "${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE}" "${image}"
   sha256sum "${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE}" > "${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE_SHA256}"
-  cd generatedDir
+  cd "${generatedDir}"
   echo "Uploading example images bundle to $OCI_OS_DIST_REGION in bucket ${OCI_OS_COMMIT_BUCKET} with name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_EXAMPLE_IMAGES_BUNDLE} ..."
   oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_EXAMPLE_IMAGES_BUNDLE} --file ${VZ_EXAMPLE_IMAGES_BUNDLE}
   oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_EXAMPLE_IMAGES_BUNDLE_SHA256} --file ${VZ_EXAMPLE_IMAGES_BUNDLE_SHA256}
