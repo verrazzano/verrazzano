@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -126,7 +125,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 		t.DescribeTable("ingress components are deployed,",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
-					return vzComponentPresent(name, constants.IngressNginxNamespace)
+					return vzComponentPresent(name, ingressNGINXNamespace)
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
 			t.Entry("includes ingress-controller-ingress-nginx-controller", "ingress-controller-ingress-nginx-controller", true),
@@ -223,7 +222,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 						Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool { return checkPodsRunning(constants.IngressNginxNamespace, expectedPodsIngressNginx) }, waitTimeout, pollingInterval).
+					Eventually(func() bool { return checkPodsRunning(ingressNGINXNamespace, expectedPodsIngressNginx) }, waitTimeout, pollingInterval).
 						Should(BeTrue())
 				},
 				func() {
