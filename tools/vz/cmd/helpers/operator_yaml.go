@@ -151,13 +151,15 @@ func addRegistryEnvVarsToContainer(container map[string]interface{}, imageRegist
 	}
 	if !foundRegistry {
 		env = append(env, map[string]interface{}{
-			vpoconst.RegistryOverrideEnvVar: imageRegistry,
+			"name":  vpoconst.RegistryOverrideEnvVar,
+			"value": imageRegistry,
 		})
 		updated = true
 	}
 	if !foundPrefix {
 		env = append(env, map[string]interface{}{
-			vpoconst.ImageRepoOverrideEnvVar: imagePrefix,
+			"name":  vpoconst.ImageRepoOverrideEnvVar,
+			"value": imagePrefix,
 		})
 		updated = true
 	}

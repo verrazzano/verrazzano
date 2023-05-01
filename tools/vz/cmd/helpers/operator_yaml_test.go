@@ -50,14 +50,15 @@ func assertPrivateRegEnvVars(t *testing.T, deployment unstructured.Unstructured,
 			env := container["env"].([]interface{})
 			for _, eachEnv := range env {
 				envVar := eachEnv.(map[string]interface{})
-				val, ok := envVar[vpoconst.RegistryOverrideEnvVar]
-				if ok {
+				varName := envVar["name"]
+				if varName == vpoconst.RegistryOverrideEnvVar {
+					val := envVar["value"]
 					assert.Equal(t, imageRegistry, val)
 					registryOk = true
 					continue
 				}
-				val, ok = envVar[vpoconst.ImageRepoOverrideEnvVar]
-				if ok {
+				if varName == vpoconst.ImageRepoOverrideEnvVar {
+					val := envVar["value"]
 					assert.Equal(t, imagePrefix, val)
 					prefixOk = true
 				}
