@@ -319,12 +319,12 @@ includeImageTarFiles() {
 loadExampleTarFiles() {
   echo "Generating example image bundle....."
     local rootDir="$1"
-    local generatedDir="$3"
+    local generatedDir="$2"
 
   image=$(grep -r 'image:' "${VZ_REPO_ROOT}/examples/hello-helidon" | grep -Eo 'ghcr\.io(/.+)+:[^"]+' | uniq)
   docker pull "${image}"
 
-  docker save "${image}" > "${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE}"
+  docker save -o "${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE}" "${image}"
   sha256sum "${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE}" > "${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE_SHA256}"
   cd generatedDir
   echo "Uploading example images bundle to $OCI_OS_DIST_REGION in bucket ${OCI_OS_COMMIT_BUCKET} with name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_EXAMPLE_IMAGES_BUNDLE} ..."
