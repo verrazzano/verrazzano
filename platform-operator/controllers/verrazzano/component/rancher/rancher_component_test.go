@@ -55,6 +55,13 @@ const (
 	profilesRelativePath = "../../../../manifests/profiles"
 )
 
+var getKubernetesTestVersion = func() (string, error) { return "v1.23.5", nil }
+
+func init() {
+
+	getKubernetesClusterVersion = getKubernetesTestVersion
+}
+
 func getValue(kvs []bom.KeyValue, key string) (string, bool) {
 	for _, kv := range kvs {
 		if strings.EqualFold(key, kv.Key) {
@@ -75,17 +82,17 @@ func TestAppendRegistryOverrides(t *testing.T) {
 	registry := "foobar"
 	imageRepo := "barfoo"
 	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 28, len(kvs)) // should only have LetsEncrypt + useBundledSystemChart + RancherImage Overrides
+	assert.Equal(t, 29, len(kvs)) // should only have LetsEncrypt + useBundledSystemChart + RancherImage Overrides
 	_ = os.Setenv(constants.RegistryOverrideEnvVar, registry)
 	kvs, _ = AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 29, len(kvs)) // one extra for the systemDefaultRegistry override
+	assert.Equal(t, 30, len(kvs)) // one extra for the systemDefaultRegistry override
 	v, ok := getValue(kvs, systemDefaultRegistryKey)
 	assert.True(t, ok)
 	assert.Equal(t, registry, v)
 
 	_ = os.Setenv(constants.ImageRepoOverrideEnvVar, imageRepo)
 	kvs, _ = AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 29, len(kvs))
+	assert.Equal(t, 30, len(kvs))
 	v, ok = getValue(kvs, systemDefaultRegistryKey)
 	assert.True(t, ok)
 	assert.Equal(t, fmt.Sprintf("%s/%s", registry, imageRepo), v)
@@ -135,6 +142,65 @@ func TestAppendImageOverrides(t *testing.T) {
 
 	for key, val := range expectedImages {
 		a.True(val, fmt.Sprintf("Image %s was not found in the key value arguments:\n%v", key, expectedImages))
+	}
+}
+
+// TestPSPEnabledOverrides verifies that pspEnabled override is added if K8s version is 1.25 or above
+func TestPSPEnabledOverrides(t *testing.T) {
+	tests := []struct {
+		name                     string
+		getKubernetesVersionFunc func() (string, error)
+		isError                  bool
+		overrideAdded            bool
+	}{
+		{
+			name:                     "testPSPEnabledOverrideNotAdded",
+			getKubernetesVersionFunc: func() (string, error) { return "v1.23.5", nil },
+			isError:                  false,
+			overrideAdded:            false,
+		},
+		{
+			name:                     "testPSPEnabledOverrideAddedFor_1_25",
+			getKubernetesVersionFunc: func() (string, error) { return "v1.25.3", nil },
+			isError:                  false,
+			overrideAdded:            true,
+		},
+		{
+			name:                     "testPSPEnabledOverrideAddedFor_1_25_Above",
+			getKubernetesVersionFunc: func() (string, error) { return "1.26.5", nil },
+			isError:                  false,
+			overrideAdded:            true,
+		},
+		{
+			name:                     "testPSPEnabledOverrideError",
+			getKubernetesVersionFunc: func() (string, error) { return "xx1.26.5", fmt.Errorf("errored out") },
+			isError:                  true,
+			overrideAdded:            true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			getKubernetesClusterVersion = tt.getKubernetesVersionFunc
+			defer func() {
+				getKubernetesClusterVersion = getKubernetesTestVersion
+
+			}()
+			ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzapi.Verrazzano{}, nil, false)
+			kvs, err := appendPSPEnabledOverrides(ctx, []bom.KeyValue{})
+			if !tt.isError {
+				assert.Nil(t, err)
+				if tt.overrideAdded {
+					assert.Equal(t, 1, len(kvs))
+					v, ok := getValue(kvs, pspEnabledKey)
+					assert.True(t, ok)
+					assert.Equal(t, "false", v)
+				} else {
+					assert.Equal(t, 0, len(kvs))
+				}
+			} else {
+				assert.Error(t, err)
+			}
+		})
 	}
 }
 
