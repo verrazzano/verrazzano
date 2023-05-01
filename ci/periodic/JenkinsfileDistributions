@@ -57,6 +57,8 @@ pipeline {
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_EMAIL = credentials('github-packages-email')
         DOCKER_REPO = 'ghcr.io'
+        OCR_CREDS = credentials('ocr-pull-and-push-account')
+        OCR_REPO = 'container-registry.oracle.com'
 
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
@@ -86,6 +88,21 @@ pipeline {
 
         stage('Build Release Distributions') {
             steps {
+                script {
+                    try {
+                        sh """
+                             echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
+                        """
+                    } catch(error) {
+                        echo "OCIR docker login at ${OCIR_REPO} failed, retrying after sleep"
+                        retry(4) {
+                            sleep(30)
+                            sh """
+                                echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
+                            """
+                        }
+                    }
+                }
                 sh """
                     ci/scripts/build_distribution.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${VERRAZZANO_DEV_VERSION}
                 """
