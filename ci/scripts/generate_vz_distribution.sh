@@ -318,8 +318,10 @@ includeImageTarFiles() {
 
 loadExampleTarFiles() {
   echo "Generating example image bundle....."
-    local rootDir="$1"
-    local generatedDir="$2"
+  local rootDir="$1"
+  local generatedDir="$2"
+
+  mkdir "${generatedDir}"
 
   image=$(grep -r 'image:' "${VZ_REPO_ROOT}/examples/hello-helidon" | grep -Eo 'ghcr\.io(/.+)+:[^"]+' | uniq)
   docker pull "${image}"
