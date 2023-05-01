@@ -401,6 +401,20 @@ pipeline {
                         }
                     }
                 }
+                stage('Load Example Images') {
+                    steps {
+                        script {
+                            srcTar = "ephemeral/${env.BRANCH_NAME}/" + env.SHORT_COMMIT_HASH + "/verrazzano-${VERRAZZANO_DEV_VERSION}-example-images.tar"
+                            echo "example image tarball: ${exampleImagesTar}"
+                            downloadLocation = "${WORKSPACE}/verrazzano-${VERRAZZANO_DEV_VERSION}-example-images.tar"
+                            echo "example image tarball download location: ${downloadLocation}"
+                        }
+                        sh """
+                            oci --region eu-frankfurt-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${exampleImagesTar} --file ${downloadLocation}
+                            kind load image-archive ${downloadLocation}
+                        """
+                    }
+                }
                 stage('Run Acceptance Tests') {
                     environment {
                         PRIVATE_REPO="${baseImageRepo}"
