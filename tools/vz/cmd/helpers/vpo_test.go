@@ -291,6 +291,92 @@ func TestGetOperationString(t *testing.T) {
 	assert.Equal(t, "upgrade", operation)
 }
 
+// TestGetExistingVPODeployment
+// GIVEN a K8S client
+//
+//	WHEN I call GetExistingVPODeployment
+//	THEN expect it to return the Verrazzano Platform operator deployment if it exists, nil if it doesn't
+func TestGetExistingVPODeployment(t *testing.T) {
+	var tests = []struct {
+		name      string
+		vpoExists bool
+	}{
+		{
+			"VPO exists",
+			true,
+		},
+		{
+			"VPO does not exist",
+			false,
+		},
+	}
+	for _, tt := range tests {
+		clientBuilder := fake.NewClientBuilder()
+		if tt.vpoExists {
+			clientBuilder = clientBuilder.WithObjects(
+				&appsv1.Deployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: vpoconst.VerrazzanoInstallNamespace,
+						Name:      constants.VerrazzanoPlatformOperator,
+					},
+				})
+		}
+		client := clientBuilder.Build()
+		vpo, err := GetExistingVPODeployment(client)
+		assert.NoError(t, err)
+		if tt.vpoExists {
+			assert.Equal(t, vpoconst.VerrazzanoInstallNamespace, vpo.Namespace)
+			assert.Equal(t, constants.VerrazzanoPlatformOperator, vpo.Name)
+		} else {
+			assert.Nil(t, vpo)
+		}
+	}
+}
+
+// GetExistingPrivateRegistrySettings
+// GIVEN a K8S client
+//
+//		WHEN I call GetExistingPrivateRegistrySettings
+//		THEN expect it to return the Verrazzano Platform operator deployment's REGISTRY and IMAGE_REPO
+//		environment variables from the verrazzano-platform-operator container, empty strings for missing
+//	 values
+func GetExistingPrivateRegistrySettings(t *testing.T) {
+	var tests = []struct {
+		name      string
+		vpoExists bool
+	}{
+		{
+			"VPO exists",
+			true,
+		},
+		{
+			"VPO does not exist",
+			false,
+		},
+	}
+	for _, tt := range tests {
+		clientBuilder := fake.NewClientBuilder()
+		if tt.vpoExists {
+			clientBuilder = clientBuilder.WithObjects(
+				&appsv1.Deployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: vpoconst.VerrazzanoInstallNamespace,
+						Name:      constants.VerrazzanoPlatformOperator,
+					},
+				})
+		}
+		client := clientBuilder.Build()
+		vpo, err := GetExistingPrivateRegistrySettings(client)
+		assert.NoError(t, err)
+		if tt.vpoExists {
+			assert.Equal(t, vpoconst.VerrazzanoInstallNamespace, vpo.Namespace)
+			assert.Equal(t, constants.VerrazzanoPlatformOperator, vpo.Name)
+		} else {
+			assert.Nil(t, vpo)
+		}
+	}
+}
+
 // getVpoDeployment returns just the deployment object simulating a Verrazzano Platform Operator deployment.
 func getVpoDeployment(vpoVersion string, updatedReplicas, availableReplicas int32) client.Object {
 	return &appsv1.Deployment{

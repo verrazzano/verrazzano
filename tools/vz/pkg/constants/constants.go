@@ -41,6 +41,9 @@ const (
 	FilenameFlag             = "filename"
 	FilenameFlagShorthand    = "f"
 	FilenameFlagHelp         = "Path to file containing Verrazzano custom resource.  This flag can be specified multiple times to overlay multiple files.  Specifying \"-\" as the filename accepts input from stdin."
+	SkipConfirmationFlagHelp = "Non-interactive mode - assumes the answers to all interactive questions to be 'Y'."
+	SkipConfirmationFlag     = "skip-confirmation"
+	SkipConfirmationShort    = "y"
 	VerboseFlag              = "verbose"
 	VerboseFlagShorthand     = "v"
 	VerboseFlagDefault       = false

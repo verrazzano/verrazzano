@@ -20,6 +20,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	constants2 "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	appsv1 "k8s.io/api/apps/v1"
@@ -53,6 +54,43 @@ func SetDefaultDeleteFunc() {
 
 func FakeDeleteFunc(client clipkg.Client) error {
 	return nil
+}
+
+// GetExistingVPODeployment - get existing Verrazzano Platform operator Deployment from the cluster
+func GetExistingVPODeployment(client clipkg.Client) (*appsv1.Deployment, error) {
+	deploy := appsv1.Deployment{}
+	namespacedName := types.NamespacedName{Name: constants.VerrazzanoPlatformOperator, Namespace: vzconstants.VerrazzanoInstallNamespace}
+	if err := client.Get(context.TODO(), namespacedName, &deploy); err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, failedToGetVPODeployment(err)
+
+	}
+	return &deploy, nil
+}
+
+// GetExistingPrivateRegistrySettings gets the private registry env var settings on existing
+// VPO Deployment, if present
+func GetExistingPrivateRegistrySettings(client clipkg.Client) (string, string) {
+	vpoDeploy, err := GetExistingVPODeployment(client)
+	if err != nil || vpoDeploy == nil {
+		return "", ""
+	}
+	registry := ""
+	imagePrefix := ""
+	for _, container := range vpoDeploy.Spec.Template.Spec.Containers {
+		if container.Name == constants.VerrazzanoPlatformOperator {
+			for _, env := range container.Env {
+				if env.Name == constants2.RegistryOverrideEnvVar {
+					registry = env.Value
+				} else if env.Name == constants2.ImageRepoOverrideEnvVar {
+					imagePrefix = env.Value
+				}
+			}
+		}
+	}
+	return registry, imagePrefix
 }
 
 // UsePlatformOperatorUninstallJob determines whether the version of the platform operator is using an uninstall job.
@@ -437,6 +475,10 @@ func vpoIsReady(client clipkg.Client) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func failedToGetVPODeployment(err error) error {
+	return fmt.Errorf("Failed to get existing %s deployment: %s", constants.VerrazzanoPlatformOperator, err.Error())
 }
 
 // deleteLeftoverPlatformOperator deletes leftover verrazzano-platform-operator deployments after an abort.

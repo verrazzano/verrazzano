@@ -4,7 +4,9 @@
 package helpers
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -84,6 +86,27 @@ func GetVersion(cmd *cobra.Command, vzHelper helpers.VZHelper) (string, error) {
 		version = fmt.Sprintf("v%s", installVersion.ToString())
 	}
 	return version, nil
+}
+
+// ConfirmWithUser asks the user a yes/no question and returns true if the user answered yes, false
+// otherwise.
+func ConfirmWithUser(questionText string, skipQuestion bool) (bool, error) {
+	if skipQuestion {
+		return true, nil
+	}
+	var response string
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Printf("%s [Y/n]: ", questionText)
+	if scanner.Scan() {
+		response = scanner.Text()
+	}
+	if err := scanner.Err(); err != nil {
+		return false, err
+	}
+	if response == "y" || response == "Y" {
+		return true, nil
+	}
+	return false, nil
 }
 
 // getOperatorFileFromFlag returns the value for the operator-file option
