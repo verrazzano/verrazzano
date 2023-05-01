@@ -67,7 +67,7 @@ const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
 
 const streamSnippetAnnotation = `ingress.extraAnnotations.nginx\.ingress\.kubernetes\.io/stream-snippet`
 
-const streamSnippet = ` |
+const streamSnippet = `
     upstream rancher_servers_http {
         least_conn;
         server %[1]s.%[2]s.svc.cluster.local:80 max_fails=3 fail_timeout=5s;
@@ -80,7 +80,7 @@ const streamSnippet = ` |
 
     upstream rancher_servers_https {
         least_conn;
-        server %s[1].%[2]s.svc.cluster.local:443 max_fails=3 fail_timeout=5s;
+        server %[1]s.%[2]s.svc.cluster.local:443 max_fails=3 fail_timeout=5s;
     }
 
     server {
