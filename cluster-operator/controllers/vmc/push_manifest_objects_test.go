@@ -97,6 +97,9 @@ func TestPushManifestObjects(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// clear any cached user auth tokens when the test completes
+			defer rancherutil.DeleteStoredTokens()
+
 			rancherutil.RancherHTTPClient = tt.mock
 			updated, err := r.pushManifestObjects(tt.vmc)
 			a.Equal(tt.updated, updated)
