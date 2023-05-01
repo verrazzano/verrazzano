@@ -104,8 +104,7 @@ var exceptionPods = map[string]podExceptions{
 }
 
 var (
-	clientset             *kubernetes.Clientset
-	ingressNGINXNamespace string
+	clientset *kubernetes.Clientset
 )
 
 var isMinVersion150 bool
@@ -123,12 +122,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		clientset, err = k8sutil.GetKubernetesClientset()
 		return clientset, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
-
-	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
-	if err != nil {
-		Fail("Error determining ingress-nginx namespace")
-	}
-
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -161,6 +154,10 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 			errors = append(errors, expectPodSecurityForNamespace(pod)...)
 		}
 		Expect(errors).To(BeEmpty())
+	}
+	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	if err != nil {
+		Fail("Error determining ingress-nginx namespace")
 	}
 	t.DescribeTable("Check pod security in system namespaces", testFunc,
 		Entry("Checking pod security in verrazzano-install", "verrazzano-install"),
