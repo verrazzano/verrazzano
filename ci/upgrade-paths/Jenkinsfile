@@ -2027,8 +2027,10 @@ def performSourceCodeCheckout() {
             def scmInfo = checkout scm
             env.GIT_COMMIT = scmInfo.GIT_COMMIT
             env.GIT_BRANCH = scmInfo.GIT_BRANCH
-        // Master is checked out specifically when the upgrade target branch is master. 
-        // This is done to ensure the master upgrade test suites ran in the verify upgrade stages.
+        // The master branch is checked out specifically when the upgrade target branch is master. 
+        // This is done to ensure the master branch upgrade test suites are run after the upgrade is completed.
+        // Since the target upgrade branch is the master, then the tests run after upgrade must also be from the master branch.
+        // This is here to ensure that happens.
         }else if(params.VERSION_FOR_UPGRADE == 'master'){
             def scmInfo = checkout([
                     $class: 'GitSCM',
