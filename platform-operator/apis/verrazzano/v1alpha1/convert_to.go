@@ -493,6 +493,7 @@ func convertGrafanaToV1Beta1(src *GrafanaComponent) *v1beta1.GrafanaComponent {
 		Enabled:  src.Enabled,
 		Replicas: src.Replicas,
 		Database: info,
+		SMTP:     src.SMTP,
 	}
 }
 
