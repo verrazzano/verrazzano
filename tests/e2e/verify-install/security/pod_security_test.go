@@ -6,10 +6,11 @@ package security
 import (
 	"context"
 	"fmt"
-	"go.uber.org/zap"
 	"regexp"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -54,7 +55,7 @@ var skipPods = map[string][]string{
 	},
 }
 
-var skipContainers = []string{"jaeger-collector", "jaeger-query", "jaeger-agent"}
+var skipContainers = []string{"jaeger-agent"}
 var skipInitContainers = []string{"istio-init", "elasticsearch-init"}
 
 type podExceptions struct {
