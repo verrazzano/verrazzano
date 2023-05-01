@@ -321,13 +321,11 @@ loadExampleTarFiles() {
     local rootDir="$1"
     local generatedDir="$3"
 
-  IMAGE_LIST=($(grep -r 'image:' "${VZ_REPO_ROOT}/examples/hello-helidon" | grep -Eo '(ghcr\.io|container\-registry\.oracle\.com){1}(/.+)+:[^"]+'))
-  for image in "${IMAGE_LIST[@]}"; do
-    docker pull "$image"
-  done
+  image=$(grep -r 'image:' "${VZ_REPO_ROOT}/examples/hello-helidon" | grep -Eo 'ghcr\.io(/.+)+:[^"]+' | uniq)
+  docker pull "${image}"
 
-  docker save -o ${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE} ${IMAGE_LIST}
-  sha256sum ${generatedDir}/${VZ_SRC_BUNDLE} > ${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE_SHA256}
+  docker save "${image}" > "${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE}"
+  sha256sum "${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE}" > "${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE_SHA256}"
   cd generatedDir
   echo "Uploading example images bundle to $OCI_OS_DIST_REGION in bucket ${OCI_OS_COMMIT_BUCKET} with name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_EXAMPLE_IMAGES_BUNDLE} ..."
   oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_EXAMPLE_IMAGES_BUNDLE} --file ${VZ_EXAMPLE_IMAGES_BUNDLE}
@@ -428,7 +426,7 @@ LITE_BUNDLE_CONTENTS="${DISTRIBUTION_PREFIX}-lite.txt"
 FULL_BUNDLE_CONTENTS="${DISTRIBUTION_PREFIX}-full.txt"
 
 # Build the example image bundle for air gap testing
-loadExampleTarFiles "${VZ_REPO_ROOT}" "${VZ_EXAMPLE_IMAGES_GENERATED}"
+loadExampleTarFiles "${VZ_FULL_ROOT}" "${VZ_EXAMPLE_IMAGES_GENERATED}"
 
 # Build Verrazzano source bundle before we start putting generated files in the VZ_REPO_ROOT
 createVZSourceLayout "${VZ_REPO_ROOT}" "${VZ_SRC_ROOT}"
