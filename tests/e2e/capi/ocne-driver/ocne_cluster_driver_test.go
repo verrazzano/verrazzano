@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"text/template"
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
@@ -33,9 +34,42 @@ var (
 	cloudCredentialID string
 )
 
+const cloudCredentialsRequestBodyTemplate := `{
+	"_name": "{{.CredentialName}}",
+	"_type": "provisioning.cattle.io/cloud-credential",
+	"type": "provisioning.cattle.io/cloud-credential",
+	"name": "{{.CredentialName}}",
+	"description": "dummy description",
+	"metadata": {
+		"generateName": "cc-",
+		"namespace": "fleet-default"
+	},
+	"annotations": {
+		"provisioning.cattle.io/driver": "oracle"
+	},
+	"ocicredentialConfig": {
+		"fingerprint": "{{.Fingerprint}}",
+		"privateKeyContents": "{{.PrivateKeyContents}}",
+		"tenancyId": "{{.TenancyId}}",
+		"userId": "{{.UserId}}"
+	}
+}`
+
+// cloudCredentialsData needed for template rendering
+type cloudCredentialsData struct {
+	CredentialName string
+	Fingerprint string
+	PrivateKeyContents string
+	TenancyId string
+	UserId string
+}
+
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	Expect(err).ShouldNot(HaveOccurred())
+	if !pkg.IsRancherEnabled(kubeconfigPath) || !pkg.IsCAPIEnabled(kubeconfigPath) {
+		Skip("Skipping ocne cluster driver test suite since either of rancher and capi components are not enabled")
+	}
 	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
 	rancherURL = pkg.EventuallyGetURLForIngress(t.Logs, api, "cattle-system", "rancher", "https")
@@ -58,31 +92,31 @@ var _ = t.Describe("OCNE Cluster Driver", Label("TODO: appropriate label"), Seri
 	})
 })
 
+func executeCloudCredentialsTemplate(data *cloudCredentialsData, buffer *bytes.Buffer) error {
+	cloudCredentialsTemplate, err := template.New("cloudCredentials").Parse(cloudCredentialsRequestBodyTemplate)
+	if err != nil {
+		return fmt.Errorf("failed to create the cloud credentials template: %v", err)
+	}
+	return cloudCredentialsTemplate.Execute(buffer, *data)
+}
+
 func createCloudCredential(credentialName string) string {
 	requestURL := rancherURL + "/v3/cloudcredentials"
-	requestBody := []byte(fmt.Sprintf(`{
-		"_name": "%s",
-		"_type": "provisioning.cattle.io/cloud-credential",
-		"type": "provisioning.cattle.io/cloud-credential",
-		"name": "%s",
-		"description": "dummy description",
-		"metadata": {
-			"generateName": "cc-",
-			"namespace": "fleet-default"
-		},
-		"annotations": {
-			"provisioning.cattle.io/driver": "oracle"
-		},
-		"ocicredentialConfig": {
-			"fingerprint": "<<FILL ME>>",
-			"privateKeyContents": "<<FILL ME>>",
-			"tenancyId": "<<FILL ME>>",
-			"userId": "<<FILL ME>>"
-		}
-	}`, credentialName, credentialName))
+	credentialsData := cloudCredentialsData{
+		CredentialName:     credentialName,
+		Fingerprint:        fingerprint,
+		PrivateKeyContents: privateKeyContents,
+		TenancyId:          tenancyId,
+		UserId:             userId,
+	}
+	buf := &bytes.Buffer{}
+	err := executeCloudCredentialsTemplate(&credentialsData, buf)
+	if err != nil {
+		Fail("failed to parse the cloud credentials template: " + err.Error())
+	}
 
 	// FIXME: add error checking
-	request, _ := retryablehttp.NewRequest(http.MethodPost, requestURL, bytes.NewBuffer(requestBody))
+	request, _ := retryablehttp.NewRequest(http.MethodPost, requestURL, buf)
 	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminToken))
 	response, _ := httpClient.Do(request)
 	defer response.Body.Close()
