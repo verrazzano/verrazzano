@@ -146,10 +146,10 @@ pipeline {
                 }
             }
         }
-           
+
         stage ('Upgrade every release to next Minor Release') {
             parallel {
-                stage('Compute required N Upgrade Jobs'){ 
+                stage('Compute required N Upgrade Jobs') {
                 steps {
                     script {
                         final String fileContent = readFile(file: "${workspace}/tags.txt")
