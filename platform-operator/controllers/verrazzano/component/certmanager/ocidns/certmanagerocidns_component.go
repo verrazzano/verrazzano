@@ -53,7 +53,11 @@ func NewComponent() spi.Component {
 }
 
 func (c certManagerOciDNSComponent) PreInstall(ctx spi.ComponentContext) error {
-	if err := common.CopyOCIDNSSecret(ctx, constants.CertManagerNamespace); err != nil {
+	cmConfig, err := cmcommon.GetCertManagerConfiguration(ctx.EffectiveCR())
+	if err != nil {
+		return err
+	}
+	if err := common.CopyOCIDNSSecret(ctx, cmConfig.ClusterResourceNamespace); err != nil {
 		return err
 	}
 	return nil
@@ -62,17 +66,12 @@ func (c certManagerOciDNSComponent) PreInstall(ctx spi.ComponentContext) error {
 // IsEnabled returns true if the cert-manager is enabled, which is the default
 func (c certManagerOciDNSComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	logger := vzlog.DefaultLogger()
-	err := cmcommon.CertManagerExistsInCluster(logger)
-	if err != nil {
-		logger.ErrorfThrottled("Unexpected error checking for CertManager in cluster: %v", err)
-		return false
-	}
 	isACMEConfig, err := cmcommon.IsACMEConfig(effectiveCR)
 	if err != nil {
 		logger.ErrorfThrottled("Unexpected error checking certificate configuration: %v", err.Error())
 		return false
 	}
-	return isACMEConfig && vzcr.IsOCIDNSEnabled(effectiveCR)
+	return vzcr.IsAnyCertManagerEnabled(effectiveCR) && isACMEConfig && vzcr.IsOCIDNSEnabled(effectiveCR)
 }
 
 func (c certManagerOciDNSComponent) PostUninstall(ctx spi.ComponentContext) error {

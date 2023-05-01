@@ -82,33 +82,28 @@ func init() {
 // WHEN cert-manager is enabled
 // THEN the function returns true
 func TestIsCertManagerEnabled(t *testing.T) {
-	crdObjs := createCertManagerCRDs()
-
-	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
-	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
-		return apiextv1fake.NewSimpleClientset(crtObjectToRuntimeObject(crdObjs...)...).ApiextensionsV1(), nil
-	}
-
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(true)
-
 	assert.True(t, fakeComponent.IsEnabled(localvz))
-}
 
-// TestIsCertManagerEnabledCRDsNotPresent tests the IsCertManagerEnabled fn
-// GIVEN a call to IsCertManagerEnabled
-// WHEN no CertManager CRDs are present
-// THEN the function returns false
-func TestIsCertManagerEnabledCRDsNotPresent(t *testing.T) {
-
-	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
-	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
-		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
+	localvz = &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			EnvironmentName: "myenv",
+			Components: vzapi.ComponentSpec{
+				ExternalCertManager: &vzapi.ExternalCertManagerComponent{
+					Enabled:     getBoolPtr(true),
+					Certificate: vzapi.Certificate{},
+				},
+			},
+		},
 	}
+	assert.True(t, fakeComponent.IsEnabled(localvz))
 
-	localvz := defaultVZConfig.DeepCopy()
-	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(true)
+	localvz = &vzapi.Verrazzano{}
+	assert.True(t, fakeComponent.IsEnabled(localvz))
 
+	localvz = defaultVZConfig.DeepCopy()
+	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(false)
 	assert.False(t, fakeComponent.IsEnabled(localvz))
 }
 
@@ -254,7 +249,7 @@ func TestIsCAFalse(t *testing.T) {
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	isCAValue, err := cmcommon.IsCA(spi.NewFakeContext(client, localvz, nil, false, profileDir))
+	isCAValue, err := cmcommon.IsCAConfigured(spi.NewFakeContext(client, localvz, nil, false, profileDir).EffectiveCR())
 	assert.Nil(t, err)
 	assert.False(t, isCAValue)
 }
@@ -268,7 +263,7 @@ func TestIsCABothPopulated(t *testing.T) {
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	_, err := cmcommon.IsCA(spi.NewFakeContext(client, localvz, nil, false, profileDir))
+	_, err := cmcommon.IsCAConfigured(spi.NewFakeContext(client, localvz, nil, false, profileDir).EffectiveCR())
 	assert.Error(t, err)
 }
 
@@ -282,7 +277,11 @@ func TestCreateCAResources(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 
-	opResult, err := createOrUpdateCAResources(spi.NewFakeContext(client, localvz, nil, false, profileDir))
+	fakeContext := spi.NewFakeContext(client, localvz, nil, false, profileDir)
+	cmConfig, err := cmcommon.GetCertManagerConfiguration(fakeContext.EffectiveCRV1Beta1())
+	assert.NoError(t, err)
+
+	opResult, err := createOrUpdateCAResources(fakeContext.Log(), fakeContext.Client(), cmConfig)
 	assert.NoError(t, err)
 	assert.Equal(t, controllerutil.OperationResultCreated, opResult)
 
@@ -310,7 +309,11 @@ func TestCreateCAResources(t *testing.T) {
 	}
 	client = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&secret).Build()
 
-	opResult, err = createOrUpdateCAResources(spi.NewFakeContext(client, localvz, nil, false, profileDir))
+	newFakeContext := spi.NewFakeContext(client, localvz, nil, false, profileDir)
+	cmConfig2, err := cmcommon.GetCertManagerConfiguration(newFakeContext.EffectiveCRV1Beta1())
+	assert.NoError(t, err)
+
+	opResult, err = createOrUpdateCAResources(newFakeContext.Log(), newFakeContext.Client(), cmConfig2)
 	assert.NoError(t, err)
 	assert.Equal(t, controllerutil.OperationResultCreated, opResult)
 
@@ -336,7 +339,9 @@ func TestCreateCAResources(t *testing.T) {
 func TestRenewAllCertificatesNoCertsPresent(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	fakeContext := spi.NewFakeContext(client, defaultVZConfig, nil, false)
-	assert.NoError(t, checkRenewAllCertificates(fakeContext, true))
+	cmConfig, err := cmcommon.GetCertManagerConfiguration(fakeContext.EffectiveCRV1Beta1())
+	assert.NoError(t, err)
+	assert.NoError(t, checkRenewAllCertificates(fakeContext.Log(), fakeContext.Client(), cmConfig, true))
 }
 
 // TestDeleteObject tests the deleteObject function
@@ -379,10 +384,13 @@ func TestCleanupUnusedACMEResources(t *testing.T) {
 		Build()
 
 	fakeContext := spi.NewFakeContext(client, vz, nil, false, profileDir)
-	assert.NoError(t, cleanupUnusedResources(fakeContext, true))
+	cmConfig, err := cmcommon.GetCertManagerConfiguration(fakeContext.EffectiveCRV1Beta1())
+	assert.NoError(t, err)
+
+	assert.NoError(t, cleanupUnusedResources(fakeContext.Log(), fakeContext.Client(), cmConfig, true))
 	assertFound(t, client, constants.VerrazzanoClusterIssuerName, ComponentNamespace, &certv1.ClusterIssuer{})
 	assertNotFound(t, client, caAcmeSecretName, ComponentNamespace, &v1.Secret{})
-	assertFound(t, client, defaultCACertificateSecretName, ComponentNamespace, &v1.Secret{})
+	assertFound(t, client, cmcommon.DefaultCACertificateSecretName, ComponentNamespace, &v1.Secret{})
 	assertFound(t, client, caCertificateName, ComponentNamespace, &certv1.Certificate{})
 	assertFound(t, client, caSelfSignedIssuerName, ComponentNamespace, &certv1.Issuer{})
 }
@@ -403,10 +411,13 @@ func TestCleanupUnusedDefaultCAResources(t *testing.T) {
 		Build()
 
 	fakeContext := spi.NewFakeContext(client, vz, nil, false, profileDir)
-	assert.NoError(t, cleanupUnusedResources(fakeContext, false))
+	cmConfig, err := cmcommon.GetCertManagerConfiguration(fakeContext.EffectiveCRV1Beta1())
+	assert.NoError(t, err)
+
+	assert.NoError(t, cleanupUnusedResources(fakeContext.Log(), fakeContext.Client(), cmConfig, false))
 	assertFound(t, client, caAcmeSecretName, ComponentNamespace, &v1.Secret{})
 	assertFound(t, client, constants.VerrazzanoClusterIssuerName, ComponentNamespace, &certv1.ClusterIssuer{})
-	assertNotFound(t, client, defaultCACertificateSecretName, ComponentNamespace, &v1.Secret{})
+	assertNotFound(t, client, cmcommon.DefaultCACertificateSecretName, ComponentNamespace, &v1.Secret{})
 	assertNotFound(t, client, caCertificateName, ComponentNamespace, &certv1.Certificate{})
 	assertNotFound(t, client, caSelfSignedIssuerName, ComponentNamespace, &certv1.Issuer{})
 }
@@ -434,11 +445,14 @@ func TestCustomCAConfigCleanupUnusedResources(t *testing.T) {
 		Build()
 
 	fakeContext := spi.NewFakeContext(client, vz, nil, false, profileDir)
-	assert.NoError(t, cleanupUnusedResources(fakeContext, true))
+	cmConfig, err := cmcommon.GetCertManagerConfiguration(fakeContext.EffectiveCRV1Beta1())
+	assert.NoError(t, err)
+
+	assert.NoError(t, cleanupUnusedResources(fakeContext.Log(), fakeContext.Client(), cmConfig, true))
 	assertFound(t, client, customCAName, customCANamespace, &v1.Secret{})
 	assertFound(t, client, constants.VerrazzanoClusterIssuerName, ComponentNamespace, &certv1.ClusterIssuer{})
 	assertNotFound(t, client, caAcmeSecretName, ComponentNamespace, &v1.Secret{})
-	assertNotFound(t, client, defaultCACertificateSecretName, ComponentNamespace, &v1.Secret{})
+	assertNotFound(t, client, cmcommon.DefaultCACertificateSecretName, ComponentNamespace, &v1.Secret{})
 	assertNotFound(t, client, caCertificateName, ComponentNamespace, &certv1.Certificate{})
 	assertNotFound(t, client, caSelfSignedIssuerName, ComponentNamespace, &certv1.Issuer{})
 }
@@ -475,7 +489,7 @@ func TestUninstallCertManager(t *testing.T) {
 	caSecret := v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
-			Name:      defaultCACertificateSecretName,
+			Name:      cmcommon.DefaultCACertificateSecretName,
 		},
 	}
 	caAcmeSec := v1.Secret{
@@ -563,7 +577,7 @@ func TestUninstallCertManager(t *testing.T) {
 			err = c.Get(context.TODO(), types.NamespacedName{Name: caCertificateName, Namespace: ComponentNamespace}, &certv1.Certificate{})
 			assert.Error(t, err, "Expected the Certificate %s to be deleted", ComponentNamespace)
 			// expect the Namespace to get deleted
-			err = c.Get(context.TODO(), types.NamespacedName{Name: defaultCACertificateSecretName, Namespace: ComponentNamespace}, &v1.Secret{})
+			err = c.Get(context.TODO(), types.NamespacedName{Name: cmcommon.DefaultCACertificateSecretName, Namespace: ComponentNamespace}, &v1.Secret{})
 			assert.Error(t, err, "Expected the Secret %s to be deleted", ComponentNamespace)
 			// expect the Namespace to get deleted
 			err = c.Get(context.TODO(), types.NamespacedName{Name: caAcmeSecretName, Namespace: ComponentNamespace}, &v1.Secret{})
@@ -678,7 +692,7 @@ func createClusterIssuerResources() []clipkg.Object {
 
 func createDefaultIssuerResources() []clipkg.Object {
 	secretToDelete := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: defaultCACertificateSecretName, Namespace: ComponentNamespace},
+		ObjectMeta: metav1.ObjectMeta{Name: cmcommon.DefaultCACertificateSecretName, Namespace: ComponentNamespace},
 	}
 	selfSignedCACert := &certv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{Name: caCertificateName, Namespace: ComponentNamespace},

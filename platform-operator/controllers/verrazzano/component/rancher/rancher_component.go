@@ -6,6 +6,12 @@ package rancher
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strconv"
+	"strings"
+
 	"github.com/gertd/go-pluralize"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -17,6 +23,7 @@ import (
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -37,11 +44,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"os"
-	"path/filepath"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strconv"
-	"strings"
 )
 
 // ComponentName is the name of the component
@@ -213,36 +215,36 @@ func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 
 // appendCAOverrides sets overrides for CA Issuers, ACME or CA.
 func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyValue, error) {
-	cm := ctx.EffectiveCR().Spec.Components.CertManager
-	if cm == nil {
-		return kvs, log.ErrorfThrottledNewErr("Failed to find certManager component in effective cr")
+	cmConfig, err := cmcommon.GetCertManagerConfiguration(ctx.EffectiveCR())
+	if err != nil {
+		return nil, err
 	}
 
 	// Configure CA Issuer KVs
-	if (cm.Certificate.Acme != vzapi.Acme{}) {
+	if (cmConfig.Certificate.Acme != vzapi.Acme{}) {
 		kvs = append(kvs,
 			bom.KeyValue{
 				Key:   letsEncryptIngressClassKey,
 				Value: common.RancherName,
 			}, bom.KeyValue{
 				Key:   letsEncryptEmailKey,
-				Value: cm.Certificate.Acme.EmailAddress,
+				Value: cmConfig.Certificate.Acme.EmailAddress,
 			}, bom.KeyValue{
 				Key:   letsEncryptEnvironmentKey,
-				Value: cm.Certificate.Acme.Environment,
+				Value: cmConfig.Certificate.Acme.Environment,
 			}, bom.KeyValue{
 				Key:   ingressTLSSourceKey,
 				Value: letsEncryptTLSSource,
 			}, bom.KeyValue{
 				Key:   additionalTrustedCAsKey,
-				Value: strconv.FormatBool(useAdditionalCAs(cm.Certificate.Acme)),
+				Value: strconv.FormatBool(useAdditionalCAs(cmConfig.Certificate.Acme)),
 			})
 	} else { // Certificate issuer type is CA
 		kvs = append(kvs, bom.KeyValue{
 			Key:   ingressTLSSourceKey,
 			Value: caTLSSource,
 		})
-		if isUsingDefaultCACertificate(cm) {
+		if isUsingDefaultCACertificate(cmConfig.Certificate) {
 			kvs = append(kvs, bom.KeyValue{
 				Key:   privateCAKey,
 				Value: privateCAValue,
@@ -404,6 +406,7 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	vz := ctx.EffectiveCR()
 	c := ctx.Client()
 	log := ctx.Log()
+
 	if err := createCattleSystemNamespace(log, c); err != nil {
 		log.ErrorfThrottledNewErr("Failed creating cattle-system namespace: %s", err.Error())
 		return err

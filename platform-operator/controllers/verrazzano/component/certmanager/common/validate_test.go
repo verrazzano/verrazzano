@@ -11,14 +11,13 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	cmcommonfake "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common/fake"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
 
@@ -134,9 +133,7 @@ func TestIsCATrue(t *testing.T) {
 	defer func() { GetClientFunc = k8sutil.GetCoreV1Client }()
 	GetClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, "defaultVZConfig-cn")
 
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-
-	isCAValue, err := IsCA(spi.NewFakeContext(client, localvz, nil, false, profileDir))
+	isCAValue, err := IsCAConfigured(localvz)
 	assert.Nil(t, err)
 	assert.True(t, isCAValue)
 }
@@ -154,7 +151,7 @@ func createClientFunc(caConfig vzapi.CA, cn string, otherObjs ...runtime.Object)
 }
 
 func createCertSecretNoParent(name string, namespace string, cn string) (*v1.Secret, error) {
-	fakeCertBytes, err := CreateFakeCertBytes(cn, nil)
+	fakeCertBytes, err := cmcommonfake.CreateFakeCertBytes(cn, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -179,8 +176,7 @@ func createCertSecretNoParent(name string, namespace string, cn string) (*v1.Sec
 func TestIsCAFalse(t *testing.T) {
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	isCAValue, err := IsCA(spi.NewFakeContext(client, localvz, nil, false, profileDir))
+	isCAValue, err := IsCAConfigured(localvz)
 	assert.Nil(t, err)
 	assert.False(t, isCAValue)
 }
@@ -190,8 +186,7 @@ func TestIsCAFalse(t *testing.T) {
 // WHEN the CertManager component is populated by the profile
 // THEN true is returned
 func TestIsCANilWithProfile(t *testing.T) {
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	isCAValue, err := IsCA(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false, profileDir))
+	isCAValue, err := IsCAConfigured(&vzapi.Verrazzano{})
 	assert.Nil(t, err)
 	assert.True(t, isCAValue)
 }
@@ -204,8 +199,8 @@ func TestIsCABothPopulated(t *testing.T) {
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	_, err := IsCA(spi.NewFakeContext(client, localvz, nil, false, profileDir))
+
+	_, err := IsCAConfigured(localvz)
 	assert.Error(t, err)
 }
 
@@ -257,7 +252,7 @@ func TestValidateLongestHostName(t *testing.T) {
 	cr2.Spec.Components.DNS.OCI = oci
 	// Verify that we check the hostname length even if CM is disabled
 	cr3.Spec.EnvironmentName = "veryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryverylong"
-	cr3.Spec.Components.CertManager = &vzapi.CertManagerComponent{Enabled: GetBoolPtr(false)}
+	cr3.Spec.Components.CertManager = &vzapi.CertManagerComponent{Enabled: cmcommonfake.GetBoolPtr(false)}
 	cr3.Spec.Components.DNS = nil
 	cr4.Spec.Components.DNS = nil
 	cr5.Spec.Components.DNS = &vzapi.DNSComponent{External: &vzapi.External{Suffix: ociLongDNSZoneNameV1Beta1.DNSZoneName}}
@@ -312,8 +307,8 @@ func TestValidateLongestHostName(t *testing.T) {
 func TestValidateLongestHostNameV1Beta1(t *testing.T) {
 	asserts := assert.New(t)
 	cr1, cr2, cr3, cr4, cr5, cr6 := *vzv1beta1.DeepCopy(), *vzv1beta1.DeepCopy(), *vzv1beta1.DeepCopy(), *vzv1beta1.DeepCopy(), *vzv1beta1.DeepCopy(), *vzv1beta1.DeepCopy()
-	cr1.Spec.Components.DNS.OCI = ociLongDNSZoneNameV1Beta1
-	cr2.Spec.Components.DNS.OCI = ociV1Beta1
+	cr1.Spec.Components.DNS = &v1beta1.DNSComponent{OCI: ociLongDNSZoneNameV1Beta1}
+	cr2.Spec.Components.DNS = &v1beta1.DNSComponent{OCI: ociV1Beta1}
 	cr3.Spec.EnvironmentName = "veryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryverylong"
 	cr3.Spec.Components.DNS = nil
 	cr4.Spec.Components.DNS = nil

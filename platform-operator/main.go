@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	acmev1 "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
 	"os"
 
 	cmapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -52,6 +53,7 @@ func init() {
 
 	// Add cert-manager components to the scheme
 	_ = cmapiv1.AddToScheme(scheme)
+	_ = acmev1.AddToScheme(scheme)
 
 	// Add the Prometheus Operator resources to the scheme
 	_ = promoperapi.AddToScheme(scheme)

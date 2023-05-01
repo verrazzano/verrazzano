@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package common
@@ -6,13 +6,14 @@ package common
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"io"
 	"net/http"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -80,14 +81,17 @@ func ProcessAdditionalCertificates(log vzlog.VerrazzanoLogger, cli client.Client
 	if !vzcr.IsRancherEnabled(vz) {
 		return nil
 	}
-	cm := vz.Spec.Components.CertManager
+	cmConfig, err := cmcommon.GetCertManagerConfiguration(vz)
+	if err != nil {
+		return err
+	}
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: CattleSystem,
 			Name:      constants.AdditionalTLS,
 		},
 	}
-	if cm != nil && useAdditionalCAs(cm.Certificate.Acme) {
+	if useAdditionalCAs(cmConfig.Certificate.Acme) {
 		log.Debugf("Creating additional Rancher certificates for non-production environment")
 		return createAdditionalCertificates(log, cli, secret)
 	}

@@ -5,7 +5,6 @@ package config
 
 import (
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -52,12 +51,8 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled returns true if the cert-manager-config is enabled, which is the default
-func (c certManagerConfigComponent) IsEnabled(_ runtime.Object) bool {
-	exists, err := cmcommon.CertManagerCrdsExist()
-	if err != nil {
-		vzlog.DefaultLogger().ErrorfThrottled("CertManager config: unexpected error checking for existing Cert-Manager: %v", err)
-	}
-	return exists
+func (c certManagerConfigComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzcr.IsAnyCertManagerEnabled(effectiveCR)
 }
 
 // IsReady component check
@@ -66,7 +61,7 @@ func (c certManagerConfigComponent) IsReady(ctx spi.ComponentContext) bool {
 		ctx.Log().Debug("cert-manager-config IsReady dry run")
 		return true
 	}
-	if !c.cmCRDsExist(ctx.Log(), ctx.Client()) {
+	if !c.cmCRDsExist(ctx.Log()) {
 		return false
 	}
 	return c.verrazzanoCertManagerResourcesReady(ctx)
@@ -180,11 +175,16 @@ func (c certManagerConfigComponent) validateConfiguration(new *v1beta1.Verrazzan
 	}
 
 	cm := new.Spec.Components.CertManager
-	if cm == nil {
+	extCM := new.Spec.Components.ExternalCertManager
+	if cm == nil && extCM == nil {
 		return nil
 	}
 
-	if err := cmcommon.ValidateConfiguration(new); err != nil {
+	cmConfig, err := cmcommon.GetCertManagerConfiguration(new)
+	if err != nil {
+		return err
+	}
+	if err := cmcommon.ValidateConfiguration(cmConfig); err != nil {
 		return err
 	}
 	return nil

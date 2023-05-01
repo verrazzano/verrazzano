@@ -6,7 +6,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	common2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"path/filepath"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -16,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
@@ -30,16 +30,16 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = common2.CertManagerComponentName
+const ComponentName = cmcommon.CertManagerComponentName
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = vzconst.CertManagerNamespace
 
 // ComponentJSONName is the JSON name of the verrazzano component in CRD
-const ComponentJSONName = common2.CertManagerComponentJSONName
+const ComponentJSONName = cmcommon.CertManagerComponentJSONName
 
 // ExternalDNSComponentJSONName is the JSON name of the verrazzano component in CRD
-const ExternalDNSComponentJSONName = common2.ExternalDNSComponentJSONName
+const ExternalDNSComponentJSONName = cmcommon.ExternalDNSComponentJSONName
 
 // certManagerComponent represents an CertManager component
 type certManagerComponent struct {
@@ -93,6 +93,10 @@ func (c certManagerComponent) IsEnabled(effectiveCR runtime.Object) bool {
 
 // IsReady component check
 func (c certManagerComponent) IsReady(ctx spi.ComponentContext) bool {
+	if ctx.IsDryRun() {
+		ctx.Log().Debug("cert-manager PostUninstall dry run")
+		return true
+	}
 	if c.HelmComponent.IsReady(ctx) {
 		return c.isCertManagerReady(ctx)
 	}
@@ -128,6 +132,11 @@ func (c certManagerComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) err
 		return nil
 	}
 
+	// Can not enable both CM and External CM
+	if err := cmcommon.ValidateCertManagerConfiguration(vz); err != nil {
+		return err
+	}
+
 	// Verify there isn't a CertManager installation that already exists in the cert-manager namespace
 	if err := checkExistingCertManager(vz); err != nil {
 		return err
@@ -141,6 +150,11 @@ func (c certManagerComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+
+	// Can not enable both CM and External CM
+	if err := cmcommon.ValidateCertManagerConfiguration(new); err != nil {
+		return err
 	}
 
 	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
