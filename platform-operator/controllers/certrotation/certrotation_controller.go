@@ -90,9 +90,9 @@ func (r *CertificateRotationManagerReconciler) Reconcile(ctx context.Context, re
 	if err != nil {
 		//r.log.Debugf("Error listing certificate secrets, skipping reconcile for %v, error: %s", req.NamespacedName, err.Error())
 		// An error occurred requeue and try again
-		return newRequeueWithDelay(5, 10, time.Second), err
+		return newRequeueWithDelay(30, 60, time.Second), err
 	}
-	if len(certList) == 0 {
+	if len(certList) < len(r.CertificatesList) {
 		// If there are no matching certificates, we don't need to re-queue
 		r.log.Debugf("No matching certificate secrets found")
 		return ctrl.Result{}, nil
@@ -162,10 +162,16 @@ func (r *CertificateRotationManagerReconciler) CheckCertificateExpiration(ctx co
 			if err != nil {
 				return r.log.ErrorfNewErr("an error deleting the certificate")
 			}
-			err = r.RolloutRestartDeployment(ctx)
-			if err != nil {
-				return err
-			}
+			//err = r.RolloutRestartDeployment(ctx)
+			//if err != nil {
+			//	return err
+			//}
+		}
+	}
+	if mustRotate {
+		err = r.RolloutRestartDeployment(ctx)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
