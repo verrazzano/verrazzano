@@ -24,7 +24,7 @@ const (
 	pollingInterval   = 10 * time.Second
 	capiLabelValue    = "controller-manager"
 	capiLabelKey      = "control-plane"
-	minimumK8sVersion = "1.25.0-0"
+	minimumK8sVersion = "1.22.0-0"
 )
 
 var (
