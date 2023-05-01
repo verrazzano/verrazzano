@@ -336,49 +336,70 @@ func TestGetExistingVPODeployment(t *testing.T) {
 // GetExistingPrivateRegistrySettings
 // GIVEN a K8S client
 //
-//		WHEN I call GetExistingPrivateRegistrySettings
-//		THEN expect it to return the Verrazzano Platform operator deployment's REGISTRY and IMAGE_REPO
-//		environment variables from the verrazzano-platform-operator container, empty strings for missing
+//	WHEN I call GetExistingPrivateRegistrySettings
+//	THEN expect it to return the Verrazzano Platform operator deployment's REGISTRY and IMAGE_REPO
+//	environment variables from the verrazzano-platform-operator container, empty strings for missing
 //	 values
-func GetExistingPrivateRegistrySettings(t *testing.T) {
+func TestGetExistingPrivateRegistrySettings(t *testing.T) {
 	var tests = []struct {
-		name      string
-		vpoExists bool
+		name             string
+		envVarsMap       map[string]string
+		expectedRegistry string
+		expectedPrefix   string
 	}{
 		{
-			"VPO exists",
-			true,
+			"no env vars",
+			map[string]string{},
+			"",
+			"",
 		},
 		{
-			"VPO does not exist",
-			false,
+			"no private registry env vars",
+			map[string]string{"someEnv": "someValue"},
+			"",
+			"",
+		},
+		{
+			"only registry env var",
+			map[string]string{vpoconst.RegistryOverrideEnvVar: "myreg.example.io"},
+			"myreg.example.io",
+			"",
+		},
+		{
+			"only prefix env var",
+			map[string]string{vpoconst.ImageRepoOverrideEnvVar: "myImagePrefix/morestuff"},
+			"",
+			"myImagePrefix/morestuff",
+		},
+		{
+			"registry and prefix env vars",
+			map[string]string{
+				vpoconst.RegistryOverrideEnvVar:  "myregistry.example.io",
+				vpoconst.ImageRepoOverrideEnvVar: "someprefix",
+			},
+			"myregistry.example.io",
+			"someprefix",
 		},
 	}
 	for _, tt := range tests {
-		clientBuilder := fake.NewClientBuilder()
-		if tt.vpoExists {
-			clientBuilder = clientBuilder.WithObjects(
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: vpoconst.VerrazzanoInstallNamespace,
-						Name:      constants.VerrazzanoPlatformOperator,
-					},
-				})
+		vpoDeploy := getVpoDeployment("1.5.0", 1, 1)
+		for idx, _ := range vpoDeploy.Spec.Template.Spec.Containers {
+			container := &vpoDeploy.Spec.Template.Spec.Containers[idx]
+			if container.Name == constants.VerrazzanoPlatformOperator {
+				for envName, envValue := range tt.envVarsMap {
+					container.Env = append(container.Env, corev1.EnvVar{Name: envName, Value: envValue})
+				}
+			}
 		}
-		client := clientBuilder.Build()
-		vpo, err := GetExistingPrivateRegistrySettings(client)
-		assert.NoError(t, err)
-		if tt.vpoExists {
-			assert.Equal(t, vpoconst.VerrazzanoInstallNamespace, vpo.Namespace)
-			assert.Equal(t, constants.VerrazzanoPlatformOperator, vpo.Name)
-		} else {
-			assert.Nil(t, vpo)
-		}
+		client := fake.NewClientBuilder().WithObjects(vpoDeploy).Build()
+		reg, prefix := GetExistingPrivateRegistrySettings(client)
+		assert.Equal(t, tt.expectedRegistry, reg)
+		assert.Equal(t, tt.expectedPrefix, prefix)
 	}
 }
 
 // getVpoDeployment returns just the deployment object simulating a Verrazzano Platform Operator deployment.
-func getVpoDeployment(vpoVersion string, updatedReplicas, availableReplicas int32) client.Object {
+func getVpoDeployment(vpoVersion string, updatedReplicas, availableReplicas int32) *appsv1.Deployment {
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vpoconst.VerrazzanoInstallNamespace,
@@ -390,6 +411,13 @@ func getVpoDeployment(vpoVersion string, updatedReplicas, availableReplicas int3
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
+			},
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{Name: constants.VerrazzanoPlatformOperator},
+					},
+				},
 			},
 		},
 		Status: appsv1.DeploymentStatus{
