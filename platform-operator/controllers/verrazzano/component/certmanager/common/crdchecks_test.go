@@ -79,6 +79,51 @@ func TestCertManagerCrdsExist(t *testing.T) {
 	asserts.NoError(err)
 }
 
+// TestCheckCRDsExist tests the CheckCRDsExist function
+// GIVEN a call to CheckCRDsExist
+// WHEN the requested CRDs are or aren't present
+// THEN true is returned if they are, false if not
+func TestCheckCRDsExist(t *testing.T) {
+	asserts := assert.New(t)
+
+	testCRDs := []string{
+		"foo",
+		"bar",
+	}
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1.ApiextensionsV1Interface, error) {
+		return nil, fmt.Errorf("unexpected error")
+	}
+
+	exist, err := checkCRDsExist(testCRDs)
+	asserts.Error(err)
+	asserts.False(exist)
+
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
+	}
+
+	exist, err = checkCRDsExist(testCRDs)
+	asserts.NoError(err)
+	asserts.False(exist)
+
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset(newTestCRDs(testCRDs...)...).ApiextensionsV1(), nil
+	}
+
+	exist, err = checkCRDsExist(testCRDs)
+	asserts.NoError(err)
+	asserts.True(exist)
+}
+
+func newTestCRDs(crds ...string) []runtime.Object {
+	var runtimeObjs []runtime.Object
+	for _, crd := range crds {
+		runtimeObjs = append(runtimeObjs, newCRD(crd))
+	}
+	return runtimeObjs
+}
+
 func createCertManagerCRDs() []runtime.Object {
 	var runtimeObjs []runtime.Object
 	for _, crd := range GetRequiredCertManagerCRDNames() {

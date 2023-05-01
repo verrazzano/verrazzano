@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
 
@@ -50,6 +51,65 @@ func TestValidateInstall(t *testing.T) {
 	validationTests(t, false)
 }
 
+// TestDryRun tests PostUninstall func, mainly for code coverage; more exhaustive testing is done in another unit test
+// GIVEN a call to PostUninstall
+//
+//	WHEN the there are no objects to clean up
+//	THEN no error is returned
+func TestPostUninstall(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, defaultVZConfig, nil, true)
+
+	assert.NoError(t, fakeComponent.PostUninstall(ctx))
+}
+
+// TestMonitorOverridesl tests the MonitorOverrides function
+// GIVEN a call to MonitorOverrides
+//
+//	WHEN for various CM configurations
+//	THEN true is returned only if the CM component is not nil or MonitorChanges == true
+func TestMonitorOverridesl(t *testing.T) {
+
+	assert.False(t, fakeComponent.MonitorOverrides(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false)))
+
+	assert.True(t, fakeComponent.MonitorOverrides(spi.NewFakeContext(nil,
+		&vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					CertManager: &vzapi.CertManagerComponent{},
+				},
+			},
+		}, nil, false)))
+
+	assert.True(t, fakeComponent.MonitorOverrides(spi.NewFakeContext(nil,
+		&vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					CertManager: &vzapi.CertManagerComponent{
+						InstallOverrides: vzapi.InstallOverrides{MonitorChanges: &enabled},
+					},
+				},
+			},
+		}, nil, false)))
+}
+
+// TestDryRun tests the behavior when DryRun is enabled, mainly for code coverage
+// GIVEN a call to PostInstall/PostUpgrade/PreInstall
+//
+//	WHEN the ComponentContext has DryRun set to true
+//	THEN no error is returned
+func TestDryRun(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, defaultVZConfig, nil, true)
+
+	assert.NoError(t, fakeComponent.PreInstall(ctx))
+	assert.True(t, fakeComponent.IsReady(ctx))
+
+	assert.NoError(t, fakeComponent.PreInstall(ctx))
+
+	assert.NoError(t, fakeComponent.PostUninstall(ctx))
+}
+
 func createFakeClient(objs ...runtime.Object) *k8sfake.Clientset {
 	return k8sfake.NewSimpleClientset(objs...)
 }
@@ -64,7 +124,10 @@ type validationTestStruct struct {
 	wantErr   bool
 }
 
-var disabled = false
+var (
+	enabled  = true
+	disabled = false
+)
 
 const secretName = "newsecret"
 const secretNamespace = "ns"
@@ -99,6 +162,87 @@ var tests = []validationTestStruct{
 		new:       &vzapi.Verrazzano{},
 		coreV1Cli: mockNamespaceWithoutLabelClient,
 		wantErr:   true,
+	},
+	{
+		name: "Cert Manager and External CertManager Enabled",
+		old: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					CertManager: &vzapi.CertManagerComponent{
+						Enabled: &enabled,
+					},
+					ExternalCertManager: &vzapi.ExternalCertManagerComponent{
+						Enabled: &enabled,
+					},
+				},
+			},
+		},
+		new: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					CertManager: &vzapi.CertManagerComponent{
+						Enabled: &enabled,
+					},
+					ExternalCertManager: &vzapi.ExternalCertManagerComponent{
+						Enabled: &enabled,
+					},
+				},
+			},
+		},
+		coreV1Cli: mockNamespaceCoreV1Client,
+		wantErr:   true,
+	},
+	{
+		name: "Cert Manager Implicitly Enabled and External CertManager Enabled",
+		old: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					ExternalCertManager: &vzapi.ExternalCertManagerComponent{
+						Enabled: &enabled,
+					},
+				},
+			},
+		},
+		new: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					ExternalCertManager: &vzapi.ExternalCertManagerComponent{
+						Enabled: &enabled,
+					},
+				},
+			},
+		},
+		coreV1Cli: mockNamespaceCoreV1Client,
+		wantErr:   true,
+	},
+	{
+		name: "External CertManager Enabled Only",
+		old: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					CertManager: &vzapi.CertManagerComponent{
+						Enabled: &disabled,
+					},
+					ExternalCertManager: &vzapi.ExternalCertManagerComponent{
+						Enabled: &enabled,
+					},
+				},
+			},
+		},
+		new: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					CertManager: &vzapi.CertManagerComponent{
+						Enabled: &disabled,
+					},
+					ExternalCertManager: &vzapi.ExternalCertManagerComponent{
+						Enabled: &enabled,
+					},
+				},
+			},
+		},
+		coreV1Cli: mockNamespaceCoreV1Client,
+		wantErr:   false,
 	},
 	{
 		name: "disable",

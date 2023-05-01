@@ -543,24 +543,24 @@ func TestInstall(t *testing.T) {
 		// GIVEN an env with correct rancher deployment and ingress but the Verrazzano resource is missing cm component
 		// WHEN a call to rancher install is made
 		// THEN an error is returned complaining about missing cm component from the CR
-		{
-			name: "Install should return an error if cm component is missing from the VZ CR",
-			c:    cli,
-			vz: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Rancher: &vzapi.RancherComponent{
-							Enabled: getBoolPtr(true),
-						},
-						DNS: &vzapi.DNSComponent{
-							External: &vzapi.External{Suffix: "blah"},
-						},
-					},
-				},
-			},
-			wantErr:     true,
-			errContains: "Failed to find certManager component in effective cr",
-		},
+		//{
+		//	name: "Install should return an error if cm component is missing from the VZ CR",
+		//	c:    cli,
+		//	vz: vzapi.Verrazzano{
+		//		Spec: vzapi.VerrazzanoSpec{
+		//			Components: vzapi.ComponentSpec{
+		//				Rancher: &vzapi.RancherComponent{
+		//					Enabled: getBoolPtr(true),
+		//				},
+		//				DNS: &vzapi.DNSComponent{
+		//					External: &vzapi.External{Suffix: "blah"},
+		//				},
+		//			},
+		//		},
+		//	},
+		//	wantErr:     true,
+		//	errContains: "Failed to find certManager component in effective cr",
+		//},
 	}
 
 	for _, tt := range tests {

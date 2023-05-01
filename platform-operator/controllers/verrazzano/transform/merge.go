@@ -48,6 +48,13 @@ func GetEffectiveCR(actualCR *v1alpha1.Verrazzano) (*v1alpha1.Verrazzano, error)
 			ClusterResourceNamespace: constants.CertManagerNamespace,
 		}
 	}
+	externalCertManager := effectiveCR.Spec.Components.ExternalCertManager
+	if externalCertManager != nil && externalCertManager.Certificate == emptyCertConfig {
+		externalCertManager.Certificate.CA = v1alpha1.CA{
+			SecretName:               constants.DefaultVerrazzanoCASecretName,
+			ClusterResourceNamespace: constants.CertManagerNamespace,
+		}
+	}
 	return effectiveCR, nil
 }
 
@@ -77,6 +84,13 @@ func GetEffectiveV1beta1CR(actualCR *v1beta1.Verrazzano) (*v1beta1.Verrazzano, e
 	var emptyCertConfig = v1beta1.Certificate{}
 	if effectiveCR.Spec.Components.CertManager.Certificate == emptyCertConfig {
 		effectiveCR.Spec.Components.CertManager.Certificate.CA = v1beta1.CA{
+			SecretName:               constants.DefaultVerrazzanoCASecretName,
+			ClusterResourceNamespace: constants.CertManagerNamespace,
+		}
+	}
+	externalCertManager := effectiveCR.Spec.Components.ExternalCertManager
+	if externalCertManager != nil && externalCertManager.Certificate == emptyCertConfig {
+		externalCertManager.Certificate.CA = v1beta1.CA{
 			SecretName:               constants.DefaultVerrazzanoCASecretName,
 			ClusterResourceNamespace: constants.CertManagerNamespace,
 		}

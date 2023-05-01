@@ -55,6 +55,7 @@ func NewMinimalContext(c clipkg.Client, log vzlog.VerrazzanoLogger) (ComponentCo
 func NewFakeContext(c clipkg.Client, actualCR *v1alpha1.Verrazzano, actualV1beta1CR *v1beta1.Verrazzano, dryRun bool, profilesDir ...string) ComponentContext {
 	effectiveCR := actualCR
 	effectiveV1beta1CR := actualV1beta1CR
+
 	log := vzlog.DefaultLogger()
 	if len(profilesDir) > 0 {
 		config.TestProfilesDir = profilesDir[0]
@@ -72,6 +73,15 @@ func NewFakeContext(c clipkg.Client, actualCR *v1alpha1.Verrazzano, actualV1beta
 			log.Errorf("Failed, unexpected error building fake context: %v", err)
 			return nil
 		}
+	}
+
+	if effectiveCR != nil && effectiveV1beta1CR == nil {
+		effectiveV1beta1CR = &v1beta1.Verrazzano{}
+		effectiveCR.ConvertTo(effectiveV1beta1CR)
+	}
+	if effectiveV1beta1CR != nil && effectiveCR == nil {
+		effectiveCR = &v1alpha1.Verrazzano{}
+		effectiveCR.ConvertFrom(effectiveV1beta1CR)
 	}
 
 	return componentContext{

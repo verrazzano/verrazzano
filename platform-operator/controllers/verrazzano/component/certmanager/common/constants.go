@@ -17,3 +17,6 @@ const ExternalDNSComponentJSONName = "externalCertManager"
 
 // CertManagerOCIDNSComponentName is the name of the OCI DNS webhook component
 const CertManagerOCIDNSComponentName = "verrazzano-ocidns-webhook"
+
+// DefaultCACertificateSecretName is the default Verrazzano self-signed CA secret
+const DefaultCACertificateSecretName = "verrazzano-ca-certificate-secret" //nolint:gosec //#gosec G101

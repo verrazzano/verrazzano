@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	common2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	networking "k8s.io/api/networking/v1"
@@ -43,7 +44,12 @@ func patchRancherIngress(c client.Client, vz *vzapi.Verrazzano) error {
 	ingress.Annotations["nginx.ingress.kubernetes.io/force-ssl-redirect"] = "true"
 	ingress.Annotations["cert-manager.io/cluster-issuer"] = constants.VerrazzanoClusterIssuerName
 	ingress.Annotations["cert-manager.io/common-name"] = fmt.Sprintf("%s.%s.%s", common.RancherName, vz.Spec.EnvironmentName, dnsSuffix)
-	if (cm.Certificate.Acme != vzapi.Acme{}) {
+
+	cmConfig, err := common2.GetCertManagerConfiguration(vz)
+	if err != nil {
+		return err
+	}
+	if (cmConfig.Certificate.Acme != vzapi.Acme{}) {
 		addAcmeIngressAnnotations(vz.Spec.EnvironmentName, dnsSuffix, ingress)
 	} else {
 		addCAIngressAnnotations(vz.Spec.EnvironmentName, dnsSuffix, ingress)

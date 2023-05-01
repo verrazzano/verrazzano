@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -6,10 +6,10 @@ package rancher
 import (
 	"context"
 
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,9 +43,13 @@ func createCattleSystemNamespace(log vzlog.VerrazzanoLogger, c client.Client) er
 // copyDefaultCACertificate copies the defaultVerrazzanoName TLS Secret to the ComponentNamespace for use by Rancher
 // This method will only copy defaultVerrazzanoName if default CA certificates are being used.
 func copyDefaultCACertificate(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.Verrazzano) error {
-	cm := vz.Spec.Components.CertManager
-	if isUsingDefaultCACertificate(cm) {
-		namespacedName := types.NamespacedName{Namespace: defaultSecretNamespace, Name: defaultVerrazzanoName}
+	cmConfig, err := cmcommon.GetCertManagerConfiguration(vz)
+	if err != nil {
+		return err
+	}
+
+	if isUsingDefaultCACertificate(cmConfig.Certificate) {
+		namespacedName := types.NamespacedName{Namespace: cmConfig.ClusterResourceNamespace, Name: defaultVerrazzanoName}
 		defaultSecret := &v1.Secret{}
 		if err := c.Get(context.TODO(), namespacedName, defaultSecret); err != nil {
 			return err
@@ -73,9 +77,6 @@ func copyDefaultCACertificate(log vzlog.VerrazzanoLogger, c client.Client, vz *v
 	return nil
 }
 
-func isUsingDefaultCACertificate(cm *vzapi.CertManagerComponent) bool {
-	return cm != nil &&
-		cm.Certificate.CA != vzapi.CA{} &&
-		cm.Certificate.CA.SecretName == defaultVerrazzanoName &&
-		cm.Certificate.CA.ClusterResourceNamespace == defaultSecretNamespace
+func isUsingDefaultCACertificate(certConfig vzapi.Certificate) bool {
+	return certConfig.CA != vzapi.CA{} && certConfig.CA.SecretName == defaultVerrazzanoName
 }

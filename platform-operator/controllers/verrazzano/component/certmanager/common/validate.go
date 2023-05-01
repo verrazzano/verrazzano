@@ -15,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,13 +40,8 @@ func ResetCoreV1ClientFunc() {
 }
 
 // IsCA - Check if cert-type is CA, if not it is assumed to be Acme
-func IsCA(compContext spi.ComponentContext) (bool, error) {
-	componentSpec := compContext.EffectiveCR().Spec.Components
-	if componentSpec.CertManager != nil {
-		return checkExactlyOneIssuerConfiguration(componentSpec.CertManager.Certificate)
-	}
-	// If the stanza isn't present assume the Self-signed CA issuer config
-	return true, nil
+func IsCAConfig(certConfig vzapi.Certificate) (bool, error) {
+	return checkExactlyOneIssuerConfiguration(certConfig)
 }
 
 // IsACMEConfig - Check if cert-type is ACME
@@ -121,26 +115,16 @@ func getDNSSuffix(effectiveCR runtime.Object) (string, bool) {
 // - Verifies that only one of either the CA or ACME fields is set
 // - Validates the CA or ACME configurations if necessary
 // - returns an error if anything is misconfigured
-func ValidateConfiguration(vz interface{}) (err error) {
-	vzv1alpha1, err := convertIfNecessary(vz)
-	if err != nil {
-		return err
-	}
-
-	certManager := vzv1alpha1.Spec.Components.CertManager
-	if certManager == nil {
-		return nil
-	}
-
+func ValidateConfiguration(cmConfig CertManagerConfiguration) (err error) {
 	// Check if Ca or Acme is empty
-	certConfig := certManager.Certificate
+	certConfig := cmConfig.Certificate
 	isCAConfig, err := checkExactlyOneIssuerConfiguration(certConfig)
 	if err != nil {
 		return err
 	}
 
 	if isCAConfig { // only validate the CA config if that's what's configured
-		if err := validateCAConfiguration(certConfig.CA, constants.CertManagerNamespace); err != nil {
+		if err := validateCASecretExists(certConfig.CA, cmConfig.ClusterResourceNamespace); err != nil {
 			return err
 		}
 		return nil
@@ -149,6 +133,8 @@ func ValidateConfiguration(vz interface{}) (err error) {
 	return validateAcmeConfiguration(certConfig.Acme)
 }
 
+// checkExactlyOneIssuerConfiguration Validates the certificate configuration to ensure there are no errors
+// and returns whether or not the configuration is for the self-signed CA
 func checkExactlyOneIssuerConfiguration(certConfig vzapi.Certificate) (isCAConfig bool, err error) {
 	// Check if Ca or Acme is empty
 	caNotEmpty := certConfig.CA != vzapi.CA{}
@@ -161,8 +147,10 @@ func checkExactlyOneIssuerConfiguration(certConfig vzapi.Certificate) (isCAConfi
 	return caNotEmpty, nil
 }
 
-func validateCAConfiguration(ca vzapi.CA, componentNamespace string) error {
-	if ca.SecretName == constants.DefaultVerrazzanoCASecretName && ca.ClusterResourceNamespace == componentNamespace {
+// validateCASecretExists ensures that if the CA configuration references a CA secret provided by a customer
+// that the secret exists
+func validateCASecretExists(ca vzapi.CA, cmClusterResourceNamespace string) error {
+	if ca.SecretName == constants.DefaultVerrazzanoCASecretName && ca.ClusterResourceNamespace == cmClusterResourceNamespace {
 		// if it's the default self-signed config the secret won't exist until created by CertManager
 		return nil
 	}
@@ -171,6 +159,7 @@ func validateCAConfiguration(ca vzapi.CA, componentNamespace string) error {
 	return err
 }
 
+// GetCASecret returns the secret object in the CA config from the Cert-Manager clusterResourceNamespace
 func GetCASecret(ca vzapi.CA) (*corev1.Secret, error) {
 	name := ca.SecretName
 	namespace := ca.ClusterResourceNamespace
@@ -209,8 +198,4 @@ func isLetsEncryptStagingEnv(acme vzapi.Acme) bool {
 
 func isLetsEncryptProductionEnv(acme vzapi.Acme) bool {
 	return strings.ToLower(acme.Environment) == letsencryptProduction
-}
-
-func IsOCIDNS(vz *vzapi.Verrazzano) bool {
-	return vz.Spec.Components.DNS != nil && vz.Spec.Components.DNS.OCI != nil
 }

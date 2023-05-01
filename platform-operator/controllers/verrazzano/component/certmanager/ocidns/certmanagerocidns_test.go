@@ -5,8 +5,10 @@ package ocidns
 
 import (
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -19,7 +21,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -120,6 +121,88 @@ func Test_isCertManagerOciDNSReadyDisabled(t *testing.T) {
 		Build()
 	vz := &vzapi.Verrazzano{}
 	assert.True(t, isCertManagerOciDNSReady(spi.NewFakeContext(client, vz, nil, false)))
+}
+
+// All of this below is to make Sonar happy
+type deriveNamespaceTestStruct struct {
+	testName          string
+	config            *vzapi.Verrazzano
+	expectedNamespace string
+}
+
+var (
+	enabled  = true
+	disabled = false
+)
+
+// GIVEN a call to resolveCertManagerNamespace
+// WHEN CertManager or ExternalCertManager are configured
+// THEN the appropriate CertManager namespace is returned
+func Test_resolveCertManagerNamespace(t *testing.T) {
+	asserts := assert.New(t)
+	mycmNamespace := constants.VerrazzanoSystemNamespace
+	defaultNamespace := constants.VerrazzanoSystemNamespace
+	tests := []deriveNamespaceTestStruct{
+		{
+			testName:          "Default CM",
+			config:            &vzapi.Verrazzano{},
+			expectedNamespace: defaultNamespace,
+		},
+		{
+			testName: "Enabled CM",
+			config: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						CertManager: &vzapi.CertManagerComponent{
+							Enabled: &enabled,
+						},
+					},
+				},
+			},
+			expectedNamespace: defaultNamespace,
+		},
+		{
+			testName: "External CM",
+			config: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						CertManager: &vzapi.CertManagerComponent{
+							Enabled: &disabled,
+						},
+						ExternalCertManager: &vzapi.ExternalCertManagerComponent{
+							Enabled: &enabled,
+						},
+					},
+				},
+			},
+			expectedNamespace: defaultNamespace,
+		},
+		{
+			testName: "External CM Namespace Override",
+			config: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						CertManager: &vzapi.CertManagerComponent{
+							Enabled: &disabled,
+						},
+						ExternalCertManager: &vzapi.ExternalCertManagerComponent{
+							Enabled:   &enabled,
+							Namespace: mycmNamespace,
+						},
+					},
+				},
+			},
+			expectedNamespace: mycmNamespace,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+			fakeContext := spi.NewFakeContext(client, tt.config, nil, false)
+			resolvedNamespace := resolveCertManagerNamespace(fakeContext, "cert-manager")
+			asserts.Equal(tt.expectedNamespace, resolvedNamespace)
+		})
+	}
 }
 
 // Create a new deployment object for testing

@@ -112,6 +112,26 @@ func IsCertManagerEnabled(cr runtime.Object) bool {
 	return true
 }
 
+// IsExternalCertManagerEnabled - Returns true IFF the ExternalCertManager component is explicitly enabled
+func IsExternalCertManagerEnabled(cr runtime.Object) bool {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.ExternalCertManager != nil &&
+			vzv1alpha1.Spec.Components.ExternalCertManager.Enabled != nil {
+			return *vzv1alpha1.Spec.Components.ExternalCertManager.Enabled
+		}
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 != nil && vzv1beta1.Spec.Components.ExternalCertManager != nil &&
+			vzv1beta1.Spec.Components.ExternalCertManager.Enabled != nil {
+			return *vzv1beta1.Spec.Components.ExternalCertManager.Enabled
+		}
+	}
+	return false
+}
+
+func IsAnyCertManagerEnabled(cr runtime.Object) bool {
+	return IsExternalCertManagerEnabled(cr) || IsCertManagerEnabled(cr)
+}
+
 // IsKialiEnabled - Returns false only if explicitly disabled in the CR
 func IsKialiEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
