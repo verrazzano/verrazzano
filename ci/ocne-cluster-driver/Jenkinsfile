@@ -481,19 +481,19 @@ def createImagePullSecrets() {
 def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
-            VCN_ID=$(oci network vcn list \
+            VCN_ID=\$(oci network vcn list \
                 --compartment-id "${TF_VAR_compartment_id}" \
                 --display-name "${TF_VAR_label_prefix}-oke-vcn" \
                 | jq -r '.data[0].id')
-            SUBNNET_ID=$(oci network subnet list \
+            SUBNNET_ID=\$(oci network subnet list \
                 --compartment-id ${TF_VAR_compartment_id} \
                 --vcn-id ${VCN_ID} \
                 --display-name ${TF_VAR_label_prefix}-workers \
                 | jq -r '.data[0].id')
-            POD_CIDR=$(oci network subnet list \
+            POD_CIDR=\$(oci network subnet list \
                 --compartment-id ${TF_VAR_compartment_id} \
                 --vcn-id ${VCN_ID} \
-                --display-name ${TF_VAR_label_prefix}-workers \
+                --display-name \${TF_VAR_label_prefix}-workers \
                 | jq -r '.data[0]."cidr-block"')
 
             cd ${WORKSPACE}/tests/e2e
