@@ -36,6 +36,9 @@ var (
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	Expect(err).ShouldNot(HaveOccurred())
+	if !pkg.IsRancherEnabled(kubeconfigPath) || !pkg.IsCAPIEnabled(kubeconfigPath) {
+		Skip("Skipping ocne cluster driver test suite since either of rancher and capi components are not enabled")
+	}
 	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
 	rancherURL = pkg.EventuallyGetURLForIngress(t.Logs, api, "cattle-system", "rancher", "https")
