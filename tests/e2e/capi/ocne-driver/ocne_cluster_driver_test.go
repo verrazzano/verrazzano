@@ -22,8 +22,61 @@ import (
 )
 
 const (
-	waitTimeout     = 30 * time.Minute
-	pollingInterval = 1 * time.Minute
+	waitTimeout                  = 30 * time.Minute
+	pollingInterval              = 1 * time.Minute
+	createClusterPayloadTemplate = `{
+		"description": "testing cluster",
+		"name": "{{.ClusterName}}",
+		"ociocneEngineConfig": {
+			"displayName": "{{.ClusterName}}",
+			"driverName": "ociocneengine",
+			"vcnId": "{{.VcnId}}",
+			"nodePublicKeyContents": "{{.NodePublicKeyContents}}",
+			"compartmentId": "{{.CompartmentId}}",
+			"workerNodeSubnet": "{{.WorkerNodeSubnet}}",
+			"controlPlaneSubnet": "{{.ControlPlaneSubnet}}",
+			"loadBalancerSubnet": "{{.LoadBalancerSubnet}}",
+			"imageDisplayName": "Oracle-Linux-8.7-2023.01.31-3",
+			"kubernetesVersion": "v1.24.8",
+			"useNodePvEncryption": true,
+			"cloudCredentialId": "{{.CloudCredentialId}}",
+			"region": "us-ashburn-1",
+
+			"nodeShape": "VM.Standard.E4.Flex",
+			"numWorkerNodes": 1,
+			"nodeOcpus": 2,
+			"nodeMemoryGbs": 32,
+
+			"nodeVolumeGbs": 50,
+			"controlPlaneVolumeGbs": 100,
+
+			"podCidr": "{{.PodCIDR}}",
+			"controlPlaneShape": "VM.Standard.E4.Flex",
+			"numControlPlaneNodes": 1,
+			"controlPlaneMemoryGbs": 16,
+			"controlPlaneOcpus": 1
+		}
+	}`
+	cloudCredentialsRequestBodyTemplate = `{
+		"_name": "{{.CredentialName}}",
+		"_type": "provisioning.cattle.io/cloud-credential",
+		"type": "provisioning.cattle.io/cloud-credential",
+		"name": "{{.CredentialName}}",
+		"description": "dummy description",
+		"metadata": {
+			"generateName": "cc-",
+			"namespace": "fleet-default"
+		},
+		"annotations": {
+			"provisioning.cattle.io/driver": "oracle"
+		},
+		"ocicredentialConfig": {
+			"fingerprint": "{{.Fingerprint}}",
+			"privateKeyContents": "{{.PrivateKeyContents}}",
+			"tenancyId": "{{.TenancyId}}",
+			"userId": "{{.UserId}}"
+		}
+	}`
 )
 
 var (
@@ -34,34 +87,26 @@ var (
 	cloudCredentialID string
 )
 
-const cloudCredentialsRequestBodyTemplate := `{
-	"_name": "{{.CredentialName}}",
-	"_type": "provisioning.cattle.io/cloud-credential",
-	"type": "provisioning.cattle.io/cloud-credential",
-	"name": "{{.CredentialName}}",
-	"description": "dummy description",
-	"metadata": {
-		"generateName": "cc-",
-		"namespace": "fleet-default"
-	},
-	"annotations": {
-		"provisioning.cattle.io/driver": "oracle"
-	},
-	"ocicredentialConfig": {
-		"fingerprint": "{{.Fingerprint}}",
-		"privateKeyContents": "{{.PrivateKeyContents}}",
-		"tenancyId": "{{.TenancyId}}",
-		"userId": "{{.UserId}}"
-	}
-}`
-
 // cloudCredentialsData needed for template rendering
 type cloudCredentialsData struct {
-	CredentialName string
-	Fingerprint string
+	CredentialName     string
+	Fingerprint        string
 	PrivateKeyContents string
-	TenancyId string
-	UserId string
+	TenancyId          string
+	UserId             string
+}
+
+// capiClusterData needed for template rendering
+type capiClusterData struct {
+	ClusterName           string
+	VcnId                 string
+	NodePublicKeyContents string
+	CompartmentId         string
+	WorkerNodeSubnet      string
+	ControlPlaneSubnet    string
+	LoadBalancerSubnet    string
+	CloudCredentialId     string
+	PodCIDR               string
 }
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -126,46 +171,36 @@ func createCloudCredential(credentialName string) string {
 	return credID
 }
 
+func executeCreateClusterTemplate(data *capiClusterData, buffer *bytes.Buffer) error {
+	createClusterTemplate, err := template.New("cloudCredentials").Parse(createClusterPayloadTemplate)
+	if err != nil {
+		return fmt.Errorf("failed to create the create cluster template: %v", err)
+	}
+	return createClusterTemplate.Execute(buffer, *data)
+}
+
 // Creates an OCNE cluster through CAPI
 func createCluster(clusterName string) {
 	requestURL := rancherURL + "/v3/cluster"
 	// FIXME: which vcn, compartment, etc. to use
-	requestBody := []byte(fmt.Sprintf(`{
-		"description": "testing cluster",
-		"name": "%s",
-		"ociocneEngineConfig": {
-			"displayName": "%s",
-			"driverName": "ociocneengine",
-			"vcnId": "<<FILL IN>>",
-			"nodePublicKeyContents": "<<FILL IN>>",
-			"compartmentId": "<<FILL IN>>",
-			"workerNodeSubnet": "<<FILL IN>>",
-			"controlPlaneSubnet": "<<FILL IN>>",
-			"loadBalancerSubnet": "<<FILL IN>>",
-			"imageDisplayName": "Oracle-Linux-8.7-2023.01.31-3",
-			"kubernetesVersion": "v1.24.8",
-			"useNodePvEncryption": true,
-			"cloudCredentialId": "%s",
-			"region": "us-ashburn-1",
-
-			"nodeShape": "VM.Standard.E4.Flex",
-			"numWorkerNodes": 1,
-			"nodeOcpus": 2,
-			"nodeMemoryGbs": 32,
-
-			"nodeVolumeGbs": 50,
-			"controlPlaneVolumeGbs": 100,
-
-			"podCidr": "<<FILL IN>>",
-			"controlPlaneShape": "VM.Standard.E4.Flex",
-			"numControlPlaneNodes": 1,
-			"controlPlaneMemoryGbs": 16,
-			"controlPlaneOcpus": 1
-		}
-	}`, clusterName, clusterName, cloudCredentialID))
-
+	capiClusterData := capiClusterData{
+		ClusterName:           clusterName,
+		VcnId:                 vcnId,
+		NodePublicKeyContents: nodePublicKeyContents,
+		CompartmentId:         compartmentId,
+		WorkerNodeSubnet:      workerNodeSubnet,
+		ControlPlaneSubnet:    controlPlaneSubnet,
+		LoadBalancerSubnet:    loadBalancerSubnet,
+		CloudCredentialId:     cloudCredentialID,
+		PodCIDR:               podCidr,
+	}
+	buf := &bytes.Buffer{}
+	err := executeCreateClusterTemplate(&capiClusterData, buf)
+	if err != nil {
+		Fail("failed to parse the cloud credentials template: " + err.Error())
+	}
 	// FIXME: add error checking
-	request, _ := retryablehttp.NewRequest(http.MethodPost, requestURL, bytes.NewBuffer(requestBody))
+	request, _ := retryablehttp.NewRequest(http.MethodPost, requestURL, buf)
 	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminToken))
 	httpClient.Do(request)
 }
