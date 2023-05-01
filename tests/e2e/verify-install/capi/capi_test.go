@@ -20,16 +20,18 @@ import (
 )
 
 const (
-	waitTimeout     = 10 * time.Minute
-	pollingInterval = 10 * time.Second
-	capiLabelValue  = "controller-manager"
-	capiLabelKey    = "control-plane"
+	waitTimeout       = 10 * time.Minute
+	pollingInterval   = 10 * time.Second
+	capiLabelValue    = "controller-manager"
+	capiLabelKey      = "control-plane"
+	minimumK8sVersion = "1.25.0-0"
 )
 
 var (
-	isCAPISupported bool
-	isCAPIEnabled   bool
-	inClusterVZ     *v1beta1.Verrazzano
+	isCAPISupported     bool
+	isCAPIEnabled       bool
+	inClusterVZ         *v1beta1.Verrazzano
+	isMinimumK8sVersion bool
 )
 
 type CAPIEnabledModifier struct {
@@ -80,10 +82,11 @@ var _ = t.AfterEach(func() {})
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	m := CAPIDisabledModifierV1beta1{}
-
-	if isCAPIEnabled {
-		update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
-		//update.ValidatePods(capiLabelValue, capiLabelKey, constants.VerrazzanoCAPINamespace, uint32(0), false)
+	if isMinimumK8sVersion {
+		if isCAPIEnabled {
+			update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
+			//update.ValidatePods(capiLabelValue, capiLabelKey, constants.VerrazzanoCAPINamespace, uint32(0), false)
+		}
 	}
 })
 
@@ -91,20 +94,23 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	m := CAPIEnabledModifierV1beta1{}
 	var err error
 	kubeconfigPath := getKubeConfigOrAbort()
-
-	isCAPIEnabled = vzcr.IsComponentStatusEnabled(inClusterVZ, capi.ComponentName)
-	isCAPISupported, err = pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfigPath)
+	isMinimumK8sVersion, err := k8sutil.IsMinimumk8sVersion(minimumK8sVersion)
 	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %v", err))
+		AbortSuite(fmt.Sprintf("Failed to get/parse kubernetes version: %s", err.Error()))
 	}
-
-	if isCAPISupported && !isCAPIEnabled {
-		update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
+	if isMinimumK8sVersion {
 		isCAPIEnabled = vzcr.IsComponentStatusEnabled(inClusterVZ, capi.ComponentName)
-	}
-
-	if isCAPISupported && isCAPIEnabled {
-		update.ValidatePods(capiLabelValue, capiLabelKey, constants.VerrazzanoCAPINamespace, uint32(4), false)
+		isCAPISupported, err = pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfigPath)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %v", err))
+		}
+		if isCAPISupported && !isCAPIEnabled {
+			update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
+			isCAPIEnabled = vzcr.IsComponentStatusEnabled(inClusterVZ, capi.ComponentName)
+		}
+		if isCAPISupported && isCAPIEnabled {
+			update.ValidatePods(capiLabelValue, capiLabelKey, constants.VerrazzanoCAPINamespace, uint32(4), false)
+		}
 	}
 })
 
@@ -115,16 +121,18 @@ var _ = t.Describe("Cluster API ", Label("f:platform-lcm.install"), func() {
 		// GIVEN the Cluster API is installed
 		// WHEN we check to make sure the pods exist
 		// THEN we successfully find the pods in the cluster
-		WhenCapiInstalledIt("expected pods are running", func() {
-			pods := []string{"capi-controller-manager", "capi-ocne-bootstrap-controller-manager", "capi-ocne-control-plane-controller-manager", "capoci-controller-manager"}
-			Eventually(func() (bool, error) {
-				result, err := pkg.PodsRunning(constants.VerrazzanoCAPINamespace, pods)
-				if err != nil {
-					t.Logs.Errorf("Pods %v are not running in the namespace: %v, error: %v", pods, constants.VerrazzanoCAPINamespace, err)
-				}
-				return result, err
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected CAPI Pods should be running")
-		})
+		if isMinimumK8sVersion {
+			WhenCapiInstalledIt("expected pods are running", func() {
+				pods := []string{"capi-controller-manager", "capi-ocne-bootstrap-controller-manager", "capi-ocne-control-plane-controller-manager", "capoci-controller-manager"}
+				Eventually(func() (bool, error) {
+					result, err := pkg.PodsRunning(constants.VerrazzanoCAPINamespace, pods)
+					if err != nil {
+						t.Logs.Errorf("Pods %v are not running in the namespace: %v, error: %v", pods, constants.VerrazzanoCAPINamespace, err)
+					}
+					return result, err
+				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected CAPI Pods should be running")
+			})
+		}
 	})
 })
 
