@@ -7,6 +7,7 @@ def DOCKER_IMAGE_TAG
 //def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 def agentLabel = "blocked-large"
 def ocirRegion = "fra"
+def ociRegionFull     = "eu-frankfurt-1"
 def ocirRegistry = "${ocirRegion}.ocir.io"
 def imageRepoSubPath=""
 def baseImageRepo=""
@@ -583,11 +584,11 @@ pipeline {
                 }
             }
             sh """
-                echo "Current execution region: $ocirRegion"
+                echo "Current execution region: ${ociRegionFull}"
                 echo "OCIR Repository: ${ocirRegistry}"
                 echo "Image repo subpath: ${imageRepoSubPath}"
                 echo "Base image repo: ${baseImageRepo}"
-                sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
+                sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -r ${ociRegionFull}" -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
 
                 # Copy the generated test reports to WORKSPACE to archive them
                 mkdir -p ${TEST_REPORT_DIR}
