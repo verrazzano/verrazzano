@@ -34,7 +34,7 @@ var (
 	cloudCredentialID string
 )
 
-const cloudCredentialsRequestBodyTemplate := `{
+const cloudCredentialsRequestBodyTemplate = `{
 	"_name": "{{.CredentialName}}",
 	"_type": "provisioning.cattle.io/cloud-credential",
 	"type": "provisioning.cattle.io/cloud-credential",
