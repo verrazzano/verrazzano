@@ -1985,8 +1985,8 @@ def setInitValues() {
         VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-        // The above command grabs the commit hash from the checked-out branch but for an upgrade from 
-        // the tip of release to master, we need to grab the shortten commit hash passed through by GIT_COMMIT_TO_USE
+        // GIT_COMMIT_TO_USE: contains release branch sha which is used to download the release operator for the tip of a release branch.
+        // If condition is executed only if the upgrade target branch is master.
         if(params.VERSION_FOR_UPGRADE == 'master'){
             SHORT_COMMIT_HASH = params.GIT_COMMIT_TO_USE[0..7]
         }
