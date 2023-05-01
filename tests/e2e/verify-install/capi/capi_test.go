@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	waitTimeout     = 6 * time.Minute
+	waitTimeout     = 10 * time.Minute
 	pollingInterval = 10 * time.Second
 	capiLabelValue  = "controller-manager"
 	capiLabelKey    = "control-plane"
@@ -100,6 +100,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 
 	if isCAPISupported && !isCAPIEnabled {
 		update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
+		isCAPIEnabled = vzcr.IsComponentStatusEnabled(inClusterVZ, capi.ComponentName)
 	}
 
 	if isCAPISupported && isCAPIEnabled {
