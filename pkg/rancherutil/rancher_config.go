@@ -42,6 +42,12 @@ const (
 	tokensPath = "/v3/tokens" //nolint:gosec
 )
 
+// DefaultRancherIngressHostPrefix is the default internal Ingress host prefix used for Rancher API requests
+const DefaultRancherIngressHostPrefix = "ingress-controller-ingress-nginx-controller."
+
+// DefaultRancherIngressHost is the default internal Ingress host used for Rancher API requests
+const DefaultRancherIngressHost = DefaultRancherIngressHostPrefix + constants.IngressNginxNamespace
+
 type RancherConfig struct {
 	Host                     string
 	BaseURL                  string
@@ -400,5 +406,5 @@ func doRequest(req *http.Request, rc *RancherConfig, log vzlog.VerrazzanoLogger)
 
 // RancherIngressServiceHost returns the internal service host name of the Rancher ingress
 func RancherIngressServiceHost() string {
-	return cons.DefaultRancherIngressHostPrefix + nginxutil.IngressNGINXNamespace()
+	return DefaultRancherIngressHostPrefix + nginxutil.IngressNGINXNamespace()
 }

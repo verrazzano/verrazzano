@@ -4,7 +4,6 @@
 package constants
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"time"
 )
 
@@ -178,12 +177,6 @@ const ArgoCDClusterRancherSecretName = "verrazzano-argocd-secret"
 
 // ArgoCDClusterRancherUsername is the username in Rancher used to identify the Verrazzano Argo CD cluster user
 const ArgoCDClusterRancherUsername = "vz-argoCD-reg"
-
-// DefaultRancherIngressHostPrefix is the default internal Ingress host prefix used for Rancher API requests
-const DefaultRancherIngressHostPrefix = "ingress-controller-ingress-nginx-controller."
-
-// DefaultRancherIngressHost is the default internal Ingress host used for Rancher API requests
-const DefaultRancherIngressHost = DefaultRancherIngressHostPrefix + constants.IngressNginxNamespace
 
 // Components Names
 const (
