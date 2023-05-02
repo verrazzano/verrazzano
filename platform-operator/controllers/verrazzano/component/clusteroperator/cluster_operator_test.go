@@ -356,8 +356,6 @@ func adminTokenMock(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender 
 
 // TestCreateVZClusterUser tests the creation of the VZ cluster user through the Rancher API
 func TestCreateVZArgoCDClusterUser(t *testing.T) {
-	// clear any cached user auth tokens when the test completes
-	defer rancherutil.DeleteStoredTokens()
 
 	cli := createClusterUserTestObjects().Build()
 	mocker := gomock.NewController(t)

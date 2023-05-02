@@ -58,7 +58,9 @@ var DefaultRetry = wait.Backoff{
 	Jitter:   0.1,
 }
 
-var userToken = make(map[string]string)
+// The userTokenCache stores rancher auth tokens for a given user if it exists
+// This reuses tokens when possible instead of creating a new one every reconcile loop
+var userTokenCache = make(map[string]string)
 var userLock = &sync.RWMutex{}
 
 // requestSender is an interface for sending requests to Rancher that allows us to mock during unit testing
@@ -138,14 +140,14 @@ func NewRancherConfigForUser(rdr client.Reader, username, password, host string,
 func newStoredToken(username string, token string) {
 	userLock.Lock()
 	defer userLock.Unlock()
-	userToken[username] = token
+	userTokenCache[username] = token
 }
 
 // getStoredToken gets the token for the given user from memory
 func getStoredToken(username string) (string, bool) {
 	userLock.RLock()
 	defer userLock.RUnlock()
-	token, exists := userToken[username]
+	token, exists := userTokenCache[username]
 	return token, exists
 }
 
@@ -153,14 +155,14 @@ func getStoredToken(username string) (string, bool) {
 func deleteStoredToken(username string) {
 	userLock.Lock()
 	defer userLock.Unlock()
-	delete(userToken, username)
+	delete(userTokenCache, username)
 }
 
 // DeleteStoredTokens clears the map of stored tokens.
 func DeleteStoredTokens() {
 	userLock.Lock()
 	defer userLock.Unlock()
-	userToken = make(map[string]string)
+	userTokenCache = make(map[string]string)
 }
 
 // getRancherIngressHostname gets the Rancher ingress host name. This is used to set the host for TLS.
