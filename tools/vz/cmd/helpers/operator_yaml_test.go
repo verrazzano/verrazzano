@@ -33,7 +33,7 @@ func TestUpdateOperatorYAMLPrivateRegistry(t *testing.T) {
 	assert.NotEqual(t, -1, webhookIdx)
 	vpoDeploy := opYAML[vpoIdx]
 	webhookDeploy := opYAML[webhookIdx]
-	expectedImagePrefix := fmt.Sprintf("%s/%s/verrazzano-platform-operator:", myReg, myPrefix)
+	expectedImagePrefix := fmt.Sprintf("%s/%s/verrazzano/verrazzano-platform-operator:", myReg, myPrefix)
 	assertAllPrivateRegImageNames(t, vpoDeploy, expectedImagePrefix)
 	assertAllPrivateRegImageNames(t, webhookDeploy, expectedImagePrefix)
 	assertPrivateRegEnvVars(t, vpoDeploy, myReg, myPrefix)

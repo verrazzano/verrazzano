@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	os2 "github.com/verrazzano/verrazzano/pkg/os"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -74,7 +75,7 @@ func findVPODeploymentIndices(objectsInYAML []unstructured.Unstructured) (int, i
 }
 
 // updatePrivateRegistryVPODeploy updates the private registry information in the
-// verrazzano-platform-operator deployment YAML. Returns true if vpoDeploy was modified
+// given verrazzano-platform-operator (or webhook) deployment YAML. Returns true if vpoDeploy was modified
 func updatePrivateRegistryVPODeploy(vpoDeploy *unstructured.Unstructured, imageRegistry string, imagePrefix string, addRegistryEnvVars bool) (bool, error) {
 	vpoDeployObj := vpoDeploy.Object
 	containersFields := containersFields()
@@ -169,8 +170,9 @@ func addRegistryEnvVarsToContainer(container map[string]interface{}, imageRegist
 
 func updatePrivateRegistryOnContainer(container map[string]interface{}, imageRegistry string, imagePrefix string) bool {
 	curImage := container["image"].(string)
-	imageNameAndTag := curImage[strings.LastIndex(curImage, "/")+1:]
-	newImage := fmt.Sprintf("%s/%s/%s", imageRegistry, imagePrefix, imageNameAndTag)
+	suffixPattern := fmt.Sprintf("/verrazzano/%s", constants.VerrazzanoPlatformOperator)
+	imageSuffix := curImage[strings.LastIndex(curImage, suffixPattern)+1:]
+	newImage := fmt.Sprintf("%s/%s/%s", imageRegistry, imagePrefix, imageSuffix)
 	if newImage == curImage {
 		// no update needed
 		return false
