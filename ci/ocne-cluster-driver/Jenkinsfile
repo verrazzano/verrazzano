@@ -324,7 +324,7 @@ pipeline {
                     --compartment-id ${TF_VAR_compartment_id} \
                     --vcn-id ${VCN_ID} \
                     --display-name ${TF_VAR_label_prefix}-workers \
-                    | jq -r '.data[0]."cidr-block"'")
+                    | jq -r '.data[0].\"cidr-block\"'")
             }
             steps {
                 script {
