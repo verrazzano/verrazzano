@@ -94,7 +94,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	m := CAPIEnabledModifierV1beta1{}
 	var err error
 	kubeconfigPath := getKubeConfigOrAbort()
-	isMinimumK8sVersion, err := k8sutil.IsMinimumk8sVersion(minimumK8sVersion)
+	isMinimumK8sVersion, err = k8sutil.IsMinimumk8sVersion(minimumK8sVersion)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get/parse kubernetes version: %s", err.Error()))
 	}
