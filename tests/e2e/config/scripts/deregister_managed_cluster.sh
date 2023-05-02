@@ -24,5 +24,5 @@ echo MANAGED_CLUSTER_NAME: ${MANAGED_CLUSTER_NAME}
 echo MANAGED_KUBECONFIG: ${MANAGED_KUBECONFIG}
 
 echo "Deleting VMC on admin cluster ${MANAGED_CLUSTER_NAME}"
-kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc delete vmc ${MANAGED_CLUSTER_NAME}
+kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc delete vmc ${MANAGED_CLUSTER_NAME} --timeout=10m
 echo "Deleted VMC, relying on automatic cleanup on managed cluster"
