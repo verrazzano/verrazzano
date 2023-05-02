@@ -211,6 +211,7 @@ func createCluster(clusterName string) {
 func clusterIsActive(clusterName string) bool {
 	// FIXME: add error checking
 	jsonBody := getCluster(clusterName)
+	fmt.Println("jsonBody: " + jsonBody.String())
 	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
 	fmt.Println("State: " + state)
 	return state == "active"
