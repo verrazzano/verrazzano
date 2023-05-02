@@ -78,6 +78,23 @@
       ]
     },
     {
+      "name": "verrazzano-ocidns-webhook",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "verrazzano-ocidns-webhook",
+          "images": [
+            {
+              "image": "cert-manager-ocidns-provider",
+              "tag": "v1.6.0-20230428193926-c0caff3",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "external-dns",
       "version": "v0.12.2",
       "subcomponents": [
@@ -223,7 +240,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.6.0-20230425170228-81fcd30",
+              "tag": "v1.6.0-20230428170552-b70d524",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
