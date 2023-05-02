@@ -80,7 +80,7 @@ create_kind_cluster() {
     echo "  - role: worker" >> ${KIND_CONFIG_FILE}
     echo "    image: kindest/node:KIND_IMAGE" >> ${KIND_CONFIG_FILE}
   done
-  sed -i "s|KIND_IMAGE|${KIND_IMAGE}/g" ${KIND_CONFIG_FILE}
+  sed -i "s|KIND_IMAGE|${KIND_IMAGE}|g" ${KIND_CONFIG_FILE}
   cat ${KIND_CONFIG_FILE}
   HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster --retain -v 9 --name ${CLUSTER_NAME} --config=${KIND_CONFIG_FILE}
   kubectl config set-context kind-${CLUSTER_NAME}
