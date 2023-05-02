@@ -44,10 +44,20 @@ const (
 	testOCIDNSName = "ociDNS"
 )
 
+// TestIsInstalledCMNotPresent tests the IsInstalled function
+// GIVEN a call to IsInstalled
+//
+//	WHEN the CM CRDs are not present
+//	THEN an error is returned if anything is misconfigured
 func TestIsInstalledCMNotPresent(t *testing.T) {
 	runIsInstalledTest(t, false, true)
 }
 
+// TestIsInstalledCMNotPresent tests the IsInstalled function
+// GIVEN a call to IsInstalled
+//
+//	WHEN the CM CRDs are present and the VZ cluster issuer exists
+//	THEN no error is returned and the result is true
 func TestIsInstalledCMAndIssuerArePresent(t *testing.T) {
 	runIsInstalledTest(t, true, false, createCertManagerCRDs()...)
 }
@@ -76,14 +86,29 @@ func runIsInstalledTest(t *testing.T, expectInstalled bool, expectErr bool, objs
 	}
 }
 
+// TestIsNotReadyNoCertManagerResourcesPresent tests the IsReady function
+// GIVEN a call to IsReady
+//
+//	WHEN the CM CRDs are NOT present
+//	THEN false is returned
 func TestIsNotReadyNoCertManagerResourcesPresent(t *testing.T) {
 	runIsReadyTest(t, false)
 }
 
+// TestIsNotReady tests the IsReady function
+// GIVEN a call to IsReady
+//
+//	WHEN the CM CRDs are present but the issuer is not
+//	THEN false is returned
 func TestIsNotReady(t *testing.T) {
 	runIsReadyTest(t, false, createCertManagerCRDs()...)
 }
 
+// TestIsReady tests the IsReady function
+// GIVEN a call to IsReady
+//
+//	WHEN the CM CRDs and the ClusterIssuer are present
+//	THEN true is returned
 func TestIsReady(t *testing.T) {
 	runIsReadyTest(t, true, createCertManagerCRDs()...)
 }
@@ -235,7 +260,7 @@ func TestPostInstallAcme(t *testing.T) {
 //	WHEN the cert type is Acme and the config has been updated
 //	THEN the ClusterIssuer is updated as expected no error is returned
 func TestPostUpgradeAcmeUpdate(t *testing.T) {
-	runAcmeUpdateTest(t, true)
+	runAcmeUpdateTest(t, true, false)
 }
 
 // TestPostInstallAcme tests the PostInstall function
@@ -244,10 +269,19 @@ func TestPostUpgradeAcmeUpdate(t *testing.T) {
 //	WHEN the cert type is Acme and the config has been updated
 //	THEN the ClusterIssuer is updated as expected no error is returned
 func TestPostInstallAcmeUpdate(t *testing.T) {
-	runAcmeUpdateTest(t, false)
+	runAcmeUpdateTest(t, false, false)
 }
 
-func runAcmeUpdateTest(t *testing.T, upgrade bool) {
+// TestPostInstallIPAuthAcmeUpdate tests the PostInstall function
+// GIVEN a call to PostInstall
+//
+//	WHEN the cert type is Acme with IP auth and the config has been updated
+//	THEN the ClusterIssuer is updated as expected no error is returned
+func TestPostInstallIPAuthAcmeUpdate(t *testing.T) {
+	runAcmeUpdateTest(t, false, true)
+}
+
+func runAcmeUpdateTest(t *testing.T, upgrade bool, useIPInSecret bool) {
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
 	// set OCI DNS secret value and create secret
@@ -266,6 +300,7 @@ func runAcmeUpdateTest(t *testing.T, upgrade bool) {
 			Name:      testOCIDNSName,
 			Namespace: ComponentNamespace,
 		},
+		Data: map[string][]byte{},
 	}
 
 	newSecret := &corev1.Secret{
@@ -273,15 +308,26 @@ func runAcmeUpdateTest(t *testing.T, upgrade bool) {
 			Name:      "newociDNSSecret",
 			Namespace: ComponentNamespace,
 		},
+		Data: map[string][]byte{},
 	}
 
-	existingIssuer, _ := createAcmeClusterIssuer(vzlog.DefaultLogger(), templateData{
+	if useIPInSecret {
+		ipAuthSnippet := `
+auth: 
+  authtype: instance_principal 
+`
+		oldSecret.Data["oci.yaml"] = []byte(ipAuthSnippet)
+		newSecret.Data["oci.yaml"] = []byte(ipAuthSnippet)
+	}
+
+	existingIssuerTemplateData := templateData{
 		Email:          acme.EmailAddress,
 		AcmeSecretName: caAcmeSecretName,
 		Server:         acme.Environment,
 		SecretName:     oci.OCIConfigSecret,
 		OCIZoneName:    oci.DNSZoneName,
-	})
+	}
+	existingIssuer, _ := createAcmeClusterIssuer(vzlog.DefaultLogger(), existingIssuerTemplateData)
 
 	updatedVz := defaultVZConfig.DeepCopy()
 	newAcme := vzapi.Acme{
@@ -298,14 +344,18 @@ func runAcmeUpdateTest(t *testing.T, upgrade bool) {
 	updatedVz.Spec.Components.CertManager.Certificate.Acme = newAcme
 	updatedVz.Spec.Components.DNS = &vzapi.DNSComponent{OCI: newOCI}
 
-	expectedIssuer, _ := createAcmeClusterIssuer(vzlog.DefaultLogger(), templateData{
+	expectedIssuerTemplateData := templateData{
 		Email:           newAcme.EmailAddress,
 		AcmeSecretName:  caAcmeSecretName,
 		Server:          letsEncryptProdEndpoint,
 		SecretName:      newOCI.OCIConfigSecret,
 		OCIZoneName:     newOCI.DNSZoneName,
 		CompartmentOCID: newCompartmentOCID,
-	})
+	}
+	if useIPInSecret {
+		expectedIssuerTemplateData.UseInstancePrincipals = true
+	}
+	expectedIssuer, _ := createAcmeClusterIssuer(vzlog.DefaultLogger(), expectedIssuerTemplateData)
 
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(localvz, oldSecret, newSecret, existingIssuer).Build()
 	ctx := spi.NewFakeContext(client, updatedVz, nil, false)
@@ -491,10 +541,20 @@ func TestClusterIssuerUpdated(t *testing.T) {
 	asserts.NotNil(otherReq)
 }
 
+// TestUninstallNoCRDs tests the Uninstall function
+// GIVEN a call to Uninstall
+//
+//	WHEN the CM are NOT CRDs are present
+//	THEN no error is returned
 func TestUninstallNoCRDs(t *testing.T) {
 	runUninstallTest(t)
 }
 
+// TestUninstall tests the Uninstall function
+// GIVEN a call to Uninstall
+//
+//	WHEN the CM CRDs are present
+//	THEN no error is returned
 func TestUninstall(t *testing.T) {
 	runUninstallTest(t, createCertManagerCRDs()...)
 }

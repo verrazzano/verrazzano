@@ -10,7 +10,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	v12 "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
+	acmev1 "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"net/mail"
@@ -176,11 +176,11 @@ func UninstallCleanup(log vzlog.VerrazzanoLogger, cli crtclient.Client, namespac
 		return err
 	}
 
-	if err := deleteResources(log, cli, namespace, &v12.Order{}, createAcmeGVK("OrderList")); err != nil {
+	if err := deleteResources(log, cli, namespace, &acmev1.Order{}, createAcmeGVK("OrderList")); err != nil {
 		return err
 	}
 
-	if err := deleteResources(log, cli, namespace, &v12.Challenge{}, createAcmeGVK("ChallengeList")); err != nil {
+	if err := deleteResources(log, cli, namespace, &acmev1.Challenge{}, createAcmeGVK("ChallengeList")); err != nil {
 		return err
 	}
 

@@ -5,6 +5,7 @@ package certmanagerconfig
 
 import (
 	"context"
+	acmev1 "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
 	"testing"
 
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -69,6 +70,7 @@ var testScheme = runtime.NewScheme()
 func init() {
 	_ = k8scheme.AddToScheme(testScheme)
 	_ = certv1.AddToScheme(testScheme)
+	_ = acmev1.AddToScheme(testScheme)
 	_ = vzapi.AddToScheme(testScheme)
 	_ = apiextv1.AddToScheme(testScheme)
 }
@@ -450,13 +452,6 @@ func TestCustomCAConfigCleanupUnusedResources(t *testing.T) {
 // WHEN the objects exist in the cluster
 // THEN no error is returned and all objects are deleted
 func TestUninstallCertManager(t *testing.T) {
-	//client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(createCertManagerCRDs()...).Build()
-	//
-	//defer func() { common.ResetNewClientFunc() }()
-	//common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
-	//	return client, nil
-	//})
-
 	vz := defaultVZConfig.DeepCopy()
 
 	certNS := v1.Namespace{
@@ -571,6 +566,65 @@ func TestUninstallCertManager(t *testing.T) {
 			err = c.Get(context.TODO(), types.NamespacedName{Name: caAcmeSecretName, Namespace: ComponentNamespace}, &v1.Secret{})
 			assert.Error(t, err, "Expected the Secret %s to be deleted", ComponentNamespace)
 		})
+	}
+}
+
+// TestUninstallCleanupNoCRDs tests the UninstallCleanup function
+// GIVEN a call to UninstallCleanup
+// WHEN No CM CRDs exist in the cluster
+// THEN no error is returned
+func TestUninstallCleanupNoCRDs(t *testing.T) {
+	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects().Build()
+	assert.NoError(t, UninstallCleanup(vzlog.DefaultLogger(), cli, "myns"))
+}
+
+// TestUninstallCleanupNoResourcesExistInNamespace tests the UninstallCleanup function
+// GIVEN a call to UninstallCleanup
+// WHEN The CM CRDs exist in the cluster but there are no resources in the target namespace
+// THEN no error is returned
+func TestUninstallCleanupNoResourcesExistInNamespace(t *testing.T) {
+	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(createCertManagerCRDs()...).Build()
+	assert.NoError(t, UninstallCleanup(vzlog.DefaultLogger(), cli, "myns"))
+}
+
+// TestUninstallCleanupNoCRDs tests the UninstallCleanup function
+// GIVEN a call to UninstallCleanup
+// WHEN The CM CRDs exist in the cluster but there are no resources
+// THEN no error is returned
+func TestUninstallCleanup(t *testing.T) {
+	objs := createCertManagerCRDs()
+
+	const targetNamespace = "myns"
+	objsToDelete := []clipkg.Object{
+		&certv1.Issuer{ObjectMeta: metav1.ObjectMeta{Name: "deleteme", Namespace: targetNamespace}},
+		&certv1.CertificateRequest{ObjectMeta: metav1.ObjectMeta{Name: "deleteme", Namespace: targetNamespace}},
+		&certv1.Certificate{ObjectMeta: metav1.ObjectMeta{Name: "deleteme", Namespace: targetNamespace}},
+		&acmev1.Order{ObjectMeta: metav1.ObjectMeta{Name: "deleteme", Namespace: targetNamespace}},
+		&acmev1.Challenge{ObjectMeta: metav1.ObjectMeta{Name: "deleteme", Namespace: targetNamespace}},
+	}
+	objs = append(objs, objsToDelete...)
+
+	const ignoreNamespace = "otherns"
+	objsToIgnore := []clipkg.Object{
+		&certv1.Issuer{ObjectMeta: metav1.ObjectMeta{Name: "keepme", Namespace: ignoreNamespace}},
+		&certv1.CertificateRequest{ObjectMeta: metav1.ObjectMeta{Name: "keepme", Namespace: ignoreNamespace}},
+		&certv1.Certificate{ObjectMeta: metav1.ObjectMeta{Name: "keepme", Namespace: ignoreNamespace}},
+		&acmev1.Order{ObjectMeta: metav1.ObjectMeta{Name: "keepme", Namespace: ignoreNamespace}},
+		&acmev1.Challenge{ObjectMeta: metav1.ObjectMeta{Name: "keepme", Namespace: ignoreNamespace}},
+	}
+	objs = append(objs, objsToIgnore...)
+
+	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(objs...).Build()
+	assert.NoError(t, UninstallCleanup(vzlog.DefaultLogger(), cli, targetNamespace))
+
+	for _, obj := range objsToDelete {
+		getObj := obj.DeepCopyObject().(clipkg.Object)
+		assertNotFound(t, cli, obj.GetName(), obj.GetNamespace(), getObj)
+	}
+
+	for _, obj := range objsToIgnore {
+		getObj := obj.DeepCopyObject().(clipkg.Object)
+		assertFound(t, cli, obj.GetName(), obj.GetNamespace(), getObj)
 	}
 }
 

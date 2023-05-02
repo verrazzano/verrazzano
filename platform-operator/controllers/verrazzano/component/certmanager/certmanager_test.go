@@ -430,6 +430,10 @@ func TestUninstallCertManager(t *testing.T) {
 	}
 }
 
+// TestGetOverrides tests the GetOverrides function in various permutations
+// GIVEN a call to GetOverrides
+//
+//	THEN the overrides are merged and returned correctly
 func TestGetOverrides(t *testing.T) {
 	ref := &v1.ConfigMapKeySelector{
 		Key: "foo",
