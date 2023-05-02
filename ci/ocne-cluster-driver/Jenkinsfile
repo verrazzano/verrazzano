@@ -232,18 +232,18 @@ pipeline {
                         TF_VAR_region = RUNNER_REGION
                         env.OCI_CLI_REGION = RUNNER_REGION
                     }
-                    // println("runner region is ${RUNNER_REGION}, tf var region is ${env.TF_VAR_REGION}")
-                        // sh """
-                            // # get the ssh public key
-                            // ssh-keygen -y -e -f ${OPC_USER_KEY_FILE} > /tmp/opc_ssh2.pub
-                            // # convert SSH2 public key into an OpenSSH format
-                            // ssh-keygen -i -f /tmp/opc_ssh2.pub > /tmp/opc_ssh.pub
-                            // # set the ssh public key value for terraform
-                            // export TF_VAR_ssh_public_key_path=/tmp/opc_ssh.pub
-                            // export TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME}
-                            // # call create_oke_cluster with cluster access private
-                            // ${WORKSPACE}/tests/e2e/config/scripts/create_oke_cluster.sh true ${params.CREATE_CLUSTER_USE_CALICO}
-                        // """
+                    println("runner region is ${RUNNER_REGION}, tf var region is ${env.TF_VAR_REGION}")
+                        sh """
+                            # get the ssh public key
+                            ssh-keygen -y -e -f ${OPC_USER_KEY_FILE} > /tmp/opc_ssh2.pub
+                            # convert SSH2 public key into an OpenSSH format
+                            ssh-keygen -i -f /tmp/opc_ssh2.pub > /tmp/opc_ssh.pub
+                            # set the ssh public key value for terraform
+                            export TF_VAR_ssh_public_key_path=/tmp/opc_ssh.pub
+                            export TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME}
+                            # call create_oke_cluster with cluster access private
+                            ${WORKSPACE}/tests/e2e/config/scripts/create_oke_cluster.sh true ${params.CREATE_CLUSTER_USE_CALICO}
+                        """
                     }
                 }
             }
@@ -256,63 +256,63 @@ pipeline {
             }
         }
 
-        // stage("Create Image Pull Secrets") {
-        //     steps {
-        //         createImagePullSecrets()
-        //     }
-        // }
+        stage("Create Image Pull Secrets") {
+            steps {
+                createImagePullSecrets()
+            }
+        }
 
-        // stage("Install Platform Operator") {
-        //     environment {
-        //         OCI_CLI_AUTH="instance_principal"
-        //     }
-        //     steps {
-        //         sh """
-        //             echo "Install Platform Operator"
-        //             oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-        //             cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+        stage("Install Platform Operator") {
+            environment {
+                OCI_CLI_AUTH="instance_principal"
+            }
+            steps {
+                sh """
+                    echo "Install Platform Operator"
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                    cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
 
-        //             # Install the verrazzano-platform-operator
-        //             kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
+                    # Install the verrazzano-platform-operator
+                    kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
 
-        //             # make sure ns exists
-        //             ${WORKSPACE}/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
-        //             # create secret in verrazzano-install ns
-        //             ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}" "verrazzano-install"
-        //         """
-        //     }
-        //     post {
-        //         always {
-        //             archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
-        //         }
-        //     }
-        // }
+                    # make sure ns exists
+                    ${WORKSPACE}/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+                    # create secret in verrazzano-install ns
+                    ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}" "verrazzano-install"
+                """
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
+                }
+            }
+        }
 
-        // stage("Setup VZ Config") {
-        //     steps {
-        //         script {
-        //             sh """
-        //                 ${WORKSPACE}/tests/e2e/config/scripts/process_nipio_install_yaml.sh $INSTALL_CONFIG_FILE_NIPIO
-        //                 # enable CAPI component
-        //                 yq -i eval '.spec.components.capi.enabled = true' ${INSTALL_CONFIG_FILE_NIPIO}
-        //             """
-        //         }
-        //     }
-        // }
+        stage("Setup VZ Config") {
+            steps {
+                script {
+                    sh """
+                        ${WORKSPACE}/tests/e2e/config/scripts/process_nipio_install_yaml.sh $INSTALL_CONFIG_FILE_NIPIO
+                        # enable CAPI component
+                        yq -i eval '.spec.components.capi.enabled = true' ${INSTALL_CONFIG_FILE_NIPIO}
+                    """
+                }
+            }
+        }
 
-        // stage("Install Verrazzano") {
-        //     steps {
-        //         sh """
-        //             echo "Waiting for Operator to be ready"
-        //             kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-        //             echo "Installing Verrazzano on ${TEST_ENV}"
-        //             # apply config to create cluster
-        //             kubectl apply -f ${INSTALL_CONFIG_FILE_NIPIO}
-        //             # wait for Verrazzano install to complete
-        //             ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
-        //         """
-        //     }
-        // }
+        stage("Install Verrazzano") {
+            steps {
+                sh """
+                    echo "Waiting for Operator to be ready"
+                    kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+                    echo "Installing Verrazzano on ${TEST_ENV}"
+                    # apply config to create cluster
+                    kubectl apply -f ${INSTALL_CONFIG_FILE_NIPIO}
+                    # wait for Verrazzano install to complete
+                    ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+                """
+            }
+        }
 
         stage("OCNE Cluster Driver Tests") {
             environment {
