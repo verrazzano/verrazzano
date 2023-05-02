@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 set -x
@@ -19,6 +19,7 @@ KIND_IMAGE=""
 CALICO_SUFFIX=""
 
 create_kind_cluster() {
+  echo "Testing new kind image !!!!"
   if [ "${K8S_VERSION}" == "1.21" ]; then
     KIND_IMAGE="v1.21.12@sha256:f316b33dd88f8196379f38feb80545ef3ed44d9197dca1bfd48bcb1583210207"
   elif [ "${K8S_VERSION}" == "1.22" ]; then
@@ -26,11 +27,14 @@ create_kind_cluster() {
   elif [ "${K8S_VERSION}" == "1.23" ]; then
     KIND_IMAGE="v1.23.6@sha256:b1fa224cc6c7ff32455e0b1fd9cbfd3d3bc87ecaa8fcb06961ed1afb3db0f9ae"
   elif [ "${K8S_VERSION}" == "1.24" ]; then
-    KIND_IMAGE="v1.24.0@sha256:0866296e693efe1fed79d5e6c7af8df71fc73ae45e3679af05342239cdc5bc8e"
+    KIND_IMAGE="ghcr.io/verrazzano/kind:v1.24.10-20230501225451-bd4d75ca"
   else
     echo "ERROR: Invalid value for Kubernetes Version ${K8S_VERSION}."
     exit 1
   fi
+
+  echo "Display kind version..."
+  kind version
 
   if [ $SETUP_CALICO == true ] ; then
     CALICO_SUFFIX="-calico"
