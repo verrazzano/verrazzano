@@ -310,7 +310,7 @@ pipeline {
         stage("OCNE Cluster Driver Tests") {
             environment {
                 TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
-                API_PRIVATE_KEY_CONTENTS=sh(returnStdout: true, script: "cat ${TF_VAR_private_key_path}")
+                API_PRIVATE_KEY_CONTENTS=sh(returnStdout: true, script: "cat ${TF_VAR_api_private_key_path}")
                 VCN_ID=sh(returnStdout: true, script: "oci network vcn list \
                     --compartment-id ${TF_VAR_compartment_id} \
                     --display-name ${TF_VAR_label_prefix}-oke-vcn \
