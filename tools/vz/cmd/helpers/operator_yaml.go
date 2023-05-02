@@ -27,12 +27,17 @@ func updateOperatorYAMLPrivateRegistry(operatorFilename string, imageRegistry st
 		return operatorFilename, err
 	}
 	objectsInYAML, err := k8sutil.Unmarshall(bufio.NewReader(fileObj))
-
+	if err != nil {
+		return "", err
+	}
 	vpoDeployIdx, vpoWebhookDeployIdx := findVPODeploymentIndices(objectsInYAML)
 	vpoDeploy := &objectsInYAML[vpoDeployIdx]
 	vpoWebhookDeploy := &objectsInYAML[vpoWebhookDeployIdx]
 
 	vpoDeployUpdated, err := updatePrivateRegistryVPODeploy(vpoDeploy, imageRegistry, imagePrefix, true)
+	if err != nil {
+		return "", err
+	}
 	vpoWebhookDeployUpdated, err := updatePrivateRegistryVPODeploy(vpoWebhookDeploy, imageRegistry, imagePrefix, false)
 	if err != nil {
 		return "", err
@@ -92,7 +97,7 @@ func updatePrivateRegistryVPODeploy(vpoDeploy *unstructured.Unstructured, imageR
 	}
 
 	updated := false
-	for idx, _ := range initContainers {
+	for idx := range initContainers {
 		// Use indexing on the slice to get a reference to the initCtr so we can edit it. By default
 		// range returns copies so our edits won't stick
 		initCtr := initContainers[idx].(map[string]interface{})
@@ -100,7 +105,7 @@ func updatePrivateRegistryVPODeploy(vpoDeploy *unstructured.Unstructured, imageR
 		updated = updated || ctrUpdated
 	}
 
-	for idx, _ := range containers {
+	for idx := range containers {
 		// Use indexing on the slice to get a reference to the container so we can edit it. By default
 		// range returns copies so our edits won't stick
 		container := containers[idx].(map[string]interface{})
@@ -133,7 +138,7 @@ func addRegistryEnvVarsToContainer(container map[string]interface{}, imageRegist
 	if env == nil {
 		env = make([]interface{}, 2)
 	}
-	for idx, _ := range env {
+	for idx := range env {
 		envVar := env[idx].(map[string]interface{})
 		if envVar["name"] == vpoconst.RegistryOverrideEnvVar {
 			foundRegistry = true

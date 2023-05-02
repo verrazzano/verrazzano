@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package helpers
 
@@ -455,7 +455,7 @@ func TestValidatePrivateRegistry(t *testing.T) {
 
 func getVpoDeploymentWithEnvVars(envVarsMap map[string]string) *appsv1.Deployment {
 	vpoDeploy := getVpoDeployment("1.5.0", 1, 1)
-	for idx, _ := range vpoDeploy.Spec.Template.Spec.Containers {
+	for idx := range vpoDeploy.Spec.Template.Spec.Containers {
 		container := &vpoDeploy.Spec.Template.Spec.Containers[idx]
 		if container.Name == constants.VerrazzanoPlatformOperator {
 			for envName, envValue := range envVarsMap {

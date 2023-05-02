@@ -565,12 +565,12 @@ func imageRegistryMismatchError(existingRegistry, existingPrefix, newRegistry, n
 	existingRegistryMsg := ""
 	newRegistryMsg := ""
 	if existingRegistry == "" && existingPrefix == "" {
-		existingRegistryMsg = fmt.Sprintf("public Verrazzano image repository")
+		existingRegistryMsg = "the public Verrazzano image repository"
 	} else {
 		existingRegistryMsg = fmt.Sprintf("image-registry %s and image-prefix %s", existingRegistry, existingPrefix)
 	}
 	if newRegistry == "" && newPrefix == "" {
-		newRegistryMsg = fmt.Sprintf("the public Verrazzano image repository")
+		newRegistryMsg = "the public Verrazzano image repository"
 	} else {
 		newRegistryMsg = fmt.Sprintf("image-registry %s and image-prefix %s", newRegistry, newPrefix)
 	}
