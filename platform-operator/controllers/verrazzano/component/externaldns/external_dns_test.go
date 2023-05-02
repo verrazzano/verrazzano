@@ -320,6 +320,7 @@ func TestResolveDefaultNamespace(t *testing.T) {
 	isInstalledFunc = func(_ string, _ string) (found bool, err error) {
 		return false, nil
 	}
+
 	asserts.Equal(ComponentNamespace, resolveExernalDNSNamespace(""))
 }
 
