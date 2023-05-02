@@ -17,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafanadashboards"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -68,6 +69,7 @@ func ResetGetComponentsFn() {
 func InitRegistry() {
 	componentsRegistry = []spi.Component{
 		networkpolicies.NewComponent(), // This must be first, don't move it.  see netpol_components.go
+		fluentoperator.NewComponent(),
 		oam.NewComponent(),
 		appoper.NewComponent(),
 		istio.NewComponent(),
