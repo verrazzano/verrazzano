@@ -39,8 +39,8 @@ create_kind_cluster() {
   fi
 
   if [ $SETUP_PRIVATE_REGISTRY == true ] ; then
-      PRIVATE_REGISTRY_SUFFIX="-private-registry"
-    fi
+    PRIVATE_REGISTRY_SUFFIX="-private-registry"
+  fi
 
   # Set CLEANUP_KIND_CONTAINERS to true, while second cluster and onwards
   if [ ${CLEANUP_KIND_CONTAINERS} == true ]; then
