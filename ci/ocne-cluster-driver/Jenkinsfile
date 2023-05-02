@@ -309,18 +309,18 @@ pipeline {
 
         stage("OCNE Cluster Driver Tests") {
             environment {
-                env.TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
-                env.API_PRIVATE_KEY_CONTENTS=sh(returnStdout: true, script: "cat ${TF_VAR_private_key_path}")
-                env.VCN_ID=sh(returnStdout: true, script: "oci network vcn list \
+                TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
+                API_PRIVATE_KEY_CONTENTS=sh(returnStdout: true, script: "cat ${TF_VAR_private_key_path}")
+                VCN_ID=sh(returnStdout: true, script: "oci network vcn list \
                     --compartment-id ${TF_VAR_compartment_id} \
                     --display-name ${TF_VAR_label_prefix}-oke-vcn \
                     | jq -r '.data[0].id'")
-                env.SUBNET_ID=sh(returnStdout: true, script: "oci network subnet list \
+                SUBNET_ID=sh(returnStdout: true, script: "oci network subnet list \
                     --compartment-id ${TF_VAR_compartment_id} \
                     --vcn-id ${VCN_ID} \
                     --display-name ${TF_VAR_label_prefix}-workers \
                     | jq -r '.data[0].id'")
-                env.POD_CIDR=sh(returnStdout: true, script: "oci network subnet list \
+                POD_CIDR=sh(returnStdout: true, script: "oci network subnet list \
                     --compartment-id ${TF_VAR_compartment_id} \
                     --vcn-id ${VCN_ID} \
                     --display-name ${TF_VAR_label_prefix}-workers \
