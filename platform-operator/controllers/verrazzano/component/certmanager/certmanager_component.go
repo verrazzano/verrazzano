@@ -197,9 +197,6 @@ func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error
 	if err != nil {
 		return log.ErrorfNewErr("Failed to apply the cert-manager manifest: %v", err)
 	}
-	//if err := common.ProcessAdditionalCertificates(log, cli, vz); err != nil {
-	//	return err
-	//}
 	return c.HelmComponent.PreInstall(compContext)
 }
 
