@@ -98,6 +98,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get/parse kubernetes version: %s", err.Error()))
 	}
+	t.Logs.Infof("isMinimumK8sVersion", isMinimumK8sVersion)
 	if isMinimumK8sVersion {
 		isCAPIEnabled = vzcr.IsComponentStatusEnabled(inClusterVZ, capi.ComponentName)
 		isCAPISupported, err = pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfigPath)
@@ -105,10 +106,13 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 			AbortSuite(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %v", err))
 		}
 		if isCAPISupported && !isCAPIEnabled {
+			t.Logs.Infof("!isCAPIEnabled")
 			update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
-			isCAPIEnabled = vzcr.IsComponentStatusEnabled(inClusterVZ, capi.ComponentName)
+			isCAPIEnabled = vzcr.IsCAPIEnabled(inClusterVZ)
+			t.Logs.Infof("Is update done?", isCAPIEnabled)
 		}
 		if isCAPISupported && isCAPIEnabled {
+			t.Logs.Infof("isCAPIEnabled: validatePods")
 			update.ValidatePods(capiLabelValue, capiLabelKey, constants.VerrazzanoCAPINamespace, uint32(4), false)
 		}
 	}
@@ -121,6 +125,7 @@ var _ = t.Describe("Cluster API ", Label("f:platform-lcm.install"), func() {
 		// GIVEN the Cluster API is installed
 		// WHEN we check to make sure the pods exist
 		// THEN we successfully find the pods in the cluster
+		t.Logs.Infof("Context: isMinimumK8sVersion", isMinimumK8sVersion)
 		if isMinimumK8sVersion {
 			WhenCapiInstalledIt("expected pods are running", func() {
 				pods := []string{"capi-controller-manager", "capi-ocne-bootstrap-controller-manager", "capi-ocne-control-plane-controller-manager", "capoci-controller-manager"}
@@ -142,6 +147,7 @@ var _ = AfterSuite(afterSuite)
 func WhenCapiInstalledIt(description string, f func()) {
 	t.It(description, func() {
 		isCAPIEnabled = vzcr.IsCAPIEnabled(inClusterVZ)
+		t.Logs.Infof("WhenCapiInstalledIt", isCAPIEnabled)
 		if isCAPISupported && isCAPIEnabled {
 			f()
 		} else {
