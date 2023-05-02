@@ -321,8 +321,8 @@ func TestGetExistingVPODeployment(t *testing.T) {
 					},
 				})
 		}
-		client := clientBuilder.Build()
-		vpo, err := GetExistingVPODeployment(client)
+		fakeClient := clientBuilder.Build()
+		vpo, err := GetExistingVPODeployment(fakeClient)
 		assert.NoError(t, err)
 		if tt.vpoExists {
 			assert.Equal(t, vpoconst.VerrazzanoInstallNamespace, vpo.Namespace)
@@ -333,7 +333,7 @@ func TestGetExistingVPODeployment(t *testing.T) {
 	}
 }
 
-// getExistingPrivateRegistrySettings
+// TestGetExistingPrivateRegistrySettings
 // GIVEN a K8S client
 //
 //	WHEN I call getExistingPrivateRegistrySettings
@@ -382,19 +382,88 @@ func TestGetExistingPrivateRegistrySettings(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		vpoDeploy := getVpoDeployment("1.5.0", 1, 1)
-		for idx, _ := range vpoDeploy.Spec.Template.Spec.Containers {
-			container := &vpoDeploy.Spec.Template.Spec.Containers[idx]
-			if container.Name == constants.VerrazzanoPlatformOperator {
-				for envName, envValue := range tt.envVarsMap {
-					container.Env = append(container.Env, corev1.EnvVar{Name: envName, Value: envValue})
-				}
-			}
-		}
+		vpoDeploy := getVpoDeploymentWithEnvVars(tt.envVarsMap)
 		reg, prefix := getExistingPrivateRegistrySettings(vpoDeploy)
 		assert.Equal(t, tt.expectedRegistry, reg)
 		assert.Equal(t, tt.expectedPrefix, prefix)
 	}
+}
+
+// TestValidatePrivateRegistry
+// GIVEN a VZ command with/without private registry settings
+//
+//	WHEN I call ValidatePrivateRegistry
+//	THEN expect it to return an error if the settings in the command don't match existing
+//	VPO deployment env vars, nil if they match
+func TestValidatePrivateRegistry(t *testing.T) {
+	var tests = []struct {
+		name            string
+		existingEnvVars map[string]string
+		newRegistry     string
+		newPrefix       string
+		expectErr       bool
+		expectMsg       string
+	}{
+		{
+			"no private registry existing or new",
+			map[string]string{},
+			"",
+			"",
+			false,
+			"",
+		},
+		{
+			"no private registry existing VPO, but supplied in new command",
+			map[string]string{},
+			"somereg.example.io",
+			"someprefix",
+			true,
+			imageRegistryMismatchError("", "", "somereg.example.io", "someprefix"),
+		},
+		{
+			"private registry existing VPO, but NOT supplied in new command",
+			map[string]string{vpoconst.RegistryOverrideEnvVar: "myreg.example.io", vpoconst.ImageRepoOverrideEnvVar: "myprefix"},
+			"",
+			"",
+			true,
+			imageRegistryMismatchError("myreg.example.io", "myprefix", "", ""),
+		},
+		{
+			"private registry settings in existing VPO and new command match",
+			map[string]string{vpoconst.RegistryOverrideEnvVar: "myreg.example.io", vpoconst.ImageRepoOverrideEnvVar: "myprefix"},
+			"myreg.example.io",
+			"myprefix",
+			false,
+			"",
+		},
+	}
+	for _, tt := range tests {
+		vpoDeploy := getVpoDeploymentWithEnvVars(tt.existingEnvVars)
+		fakeClient := fake.NewClientBuilder().WithObjects(vpoDeploy).Build()
+		myCmd := getCommandWithoutFlags()
+		myCmd.PersistentFlags().String(constants.ImageRegistryFlag, tt.newRegistry, "")
+		myCmd.PersistentFlags().String(constants.ImagePrefixFlag, tt.newPrefix, "")
+		err := ValidatePrivateRegistry(myCmd, fakeClient)
+		if tt.expectErr {
+			assert.Error(t, err)
+			assert.Equal(t, tt.expectMsg, err.Error())
+		} else {
+			assert.NoError(t, err)
+		}
+	}
+}
+
+func getVpoDeploymentWithEnvVars(envVarsMap map[string]string) *appsv1.Deployment {
+	vpoDeploy := getVpoDeployment("1.5.0", 1, 1)
+	for idx, _ := range vpoDeploy.Spec.Template.Spec.Containers {
+		container := &vpoDeploy.Spec.Template.Spec.Containers[idx]
+		if container.Name == constants.VerrazzanoPlatformOperator {
+			for envName, envValue := range envVarsMap {
+				container.Env = append(container.Env, corev1.EnvVar{Name: envName, Value: envValue})
+			}
+		}
+	}
+	return vpoDeploy
 }
 
 // getVpoDeployment returns just the deployment object simulating a Verrazzano Platform Operator deployment.
