@@ -6,17 +6,17 @@ package externaldns
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/namespace"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/namespace"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"hash/fnv"
 	v1 "k8s.io/api/core/v1"
@@ -31,9 +31,6 @@ import (
 
 // ComponentName is the name of the component
 const (
-	ociSecretFileName      = "oci.yaml"
-	dnsGlobal              = "GLOBAL" //default
-	dnsPrivate             = "PRIVATE"
 	imagePullSecretHelmKey = "global.imagePullSecrets[0]"
 	ownerIDHelmKey         = "txtOwnerId"
 	prefixKey              = "txtPrefix"
@@ -61,52 +58,8 @@ func preInstall(compContext spi.ComponentContext) error {
 		return compContext.Log().ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
 	}
 
-	if err := CopyOCIDNSSecret(compContext, ComponentNamespace); err != nil {
+	if err := common.CopyOCIDNSSecret(compContext, ComponentNamespace); err != nil {
 		return err
-	}
-	return nil
-}
-
-func CopyOCIDNSSecret(compContext spi.ComponentContext, targetNamespace string) error {
-	dns := compContext.EffectiveCR().Spec.Components.DNS
-	if dns == nil || dns.OCI == nil {
-		return nil
-	}
-	ociDNS := dns.OCI
-
-	// Get OCI DNS secret from the verrazzano-install namespace
-	dnsSecret := v1.Secret{}
-	if err := compContext.Client().Get(context.TODO(), client.ObjectKey{Name: ociDNS.OCIConfigSecret, Namespace: constants.VerrazzanoInstallNamespace}, &dnsSecret); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to find secret %s in the %s namespace: %v", ociDNS.OCIConfigSecret, constants.VerrazzanoInstallNamespace, err)
-	}
-
-	//check if scope value is valid
-	scope := ociDNS.DNSScope
-	if scope != dnsGlobal && scope != dnsPrivate && scope != "" {
-		return compContext.Log().ErrorfNewErr("Failed, invalid OCI DNS scope value: %s. If set, value can only be 'GLOBAL' or 'PRIVATE", ociDNS.DNSScope)
-	}
-
-	// Attach compartment field to secret and apply it in the external DNS namespace
-	targetDNSSecret := v1.Secret{}
-	compContext.Log().Debug("Creating the external DNS secret")
-	targetDNSSecret.Namespace = targetNamespace
-	targetDNSSecret.Name = dnsSecret.Name
-	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &targetDNSSecret, func() error {
-		targetDNSSecret.Data = make(map[string][]byte)
-
-		// Verify that the oci secret has one value
-		if len(dnsSecret.Data) != 1 {
-			return compContext.Log().ErrorNewErr("Failed, OCI secret for OCI DNS should be created from one file")
-		}
-
-		// Extract data and create secret in the external DNS namespace
-		for k := range dnsSecret.Data {
-			targetDNSSecret.Data[ociSecretFileName] = append(dnsSecret.Data[k], []byte(fmt.Sprintf("compartment: %s", ociDNS.DNSZoneCompartmentOCID))...)
-		}
-
-		return nil
-	}); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to create or update the external DNS secret: %v", err)
 	}
 	return nil
 }

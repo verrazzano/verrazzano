@@ -8,7 +8,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
@@ -53,7 +52,7 @@ func NewComponent() spi.Component {
 }
 
 func (c certManagerOciDNSComponent) PreInstall(ctx spi.ComponentContext) error {
-	if err := externaldns.CopyOCIDNSSecret(ctx, ComponentNamespace); err != nil {
+	if err := common.CopyOCIDNSSecret(ctx, ComponentNamespace); err != nil {
 		return err
 	}
 	return nil

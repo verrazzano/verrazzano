@@ -5,8 +5,8 @@ package externaldns
 
 import (
 	"fmt"
-
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -26,7 +26,7 @@ const ComponentName = "external-dns"
 const ComponentJSONName = "dns"
 
 // ComponentNamespace is the namespace of the component
-const ComponentNamespace = constants.VerrazzanoSystemNamespace
+const ComponentNamespace = constants.ExternalDNSNamespace
 
 // legacyNamespace is the namespace used for external-dns in older releases
 const legacyNamespace = vzconst.CertManagerNamespace
