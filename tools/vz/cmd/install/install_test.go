@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -841,25 +840,18 @@ func TestInstallFromPrivateRegistry(t *testing.T) {
 	assert.Equal(t, "", errBuf.String())
 
 	// Verify that the VPO deployment has the expected environment variables to enable pulling images from a private registry
-	vpoDeployment := &appsv1.Deployment{}
-	err = c.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoInstall, Name: constants.VerrazzanoPlatformOperator}, vpoDeployment)
+	deployment, err := cmdHelpers.GetExistingVPODeployment(c)
 	assert.NoError(t, err)
-
-	envVar := corev1.EnvVar{Name: "REGISTRY", Value: imageRegistry}
-	assert.Contains(t, vpoDeployment.Spec.Template.Spec.Containers[0].Env, envVar)
-	envVar = corev1.EnvVar{Name: "IMAGE_REPO", Value: imagePrefix}
-	assert.Contains(t, vpoDeployment.Spec.Template.Spec.Containers[0].Env, envVar)
+	assert.NotNil(t, deployment)
+	testhelpers.AssertPrivateRegistryEnvVars(t, c, deployment, imageRegistry, imagePrefix)
 
 	// Verify that the VPO image has been updated
-	vpoRepo := imageRegistry + "/" + imagePrefix + "/" + constants.VerrazzanoPlatformOperator
-	assert.True(t, strings.HasPrefix(vpoDeployment.Spec.Template.Spec.InitContainers[0].Image, vpoRepo))
-	assert.True(t, strings.HasPrefix(vpoDeployment.Spec.Template.Spec.Containers[0].Image, vpoRepo))
+	testhelpers.AssertPrivateRegistryImage(t, c, deployment, imageRegistry, imagePrefix)
 
 	// Verify that the VPO webhook image has been updated
-	vpoWebhookDeployment := &appsv1.Deployment{}
-	err = c.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoInstall, Name: constants.VerrazzanoPlatformOperatorWebhook}, vpoWebhookDeployment)
+	deployment, err = cmdHelpers.GetExistingVPOWebhookDeployment(c)
 	assert.NoError(t, err)
+	assert.NotNil(t, deployment)
 
-	assert.True(t, strings.HasPrefix(vpoWebhookDeployment.Spec.Template.Spec.InitContainers[0].Image, vpoRepo))
-	assert.True(t, strings.HasPrefix(vpoWebhookDeployment.Spec.Template.Spec.Containers[0].Image, vpoRepo))
+	testhelpers.AssertPrivateRegistryImage(t, c, deployment, imageRegistry, imagePrefix)
 }

@@ -83,7 +83,21 @@ func GetExistingVPODeployment(client clipkg.Client) (*appsv1.Deployment, error) 
 	return &deploy, nil
 }
 
-// getExistingPrivateRegistrySettings gets the private registry env var settings on the
+// GetExistingVPOWebhookDeployment - get existing Verrazzano Platform operator webhook deployment from the cluster
+func GetExistingVPOWebhookDeployment(client clipkg.Client) (*appsv1.Deployment, error) {
+	deploy := appsv1.Deployment{}
+	namespacedName := types.NamespacedName{Name: constants.VerrazzanoPlatformOperatorWebhook, Namespace: vzconstants.VerrazzanoInstallNamespace}
+	if err := client.Get(context.TODO(), namespacedName, &deploy); err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to get existing %s deployment: %s", constants.VerrazzanoPlatformOperatorWebhook, err.Error())
+
+	}
+	return &deploy, nil
+}
+
+// GetExistingPrivateRegistrySettings gets the private registry env var settings on existing
 // VPO Deployment, if present
 func getExistingPrivateRegistrySettings(vpoDeploy *appsv1.Deployment) (string, string) {
 	registry := ""
