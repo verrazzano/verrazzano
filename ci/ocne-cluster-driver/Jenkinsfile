@@ -234,7 +234,7 @@ pipeline {
                         TF_VAR_region = RUNNER_REGION
                         env.OCI_CLI_REGION = RUNNER_REGION
                     }
-                    println("runner region is ${RUNNER_REGION}, tf var region is ${env.TF_VAR_REGION}")
+                    println("runner region is ${RUNNER_REGION}, tf var region is ${TF_VAR_REGION}")
                         sh """
                             # get the ssh public key
                             ssh-keygen -y -e -f ${OPC_USER_KEY_FILE} > /tmp/opc_ssh2.pub
