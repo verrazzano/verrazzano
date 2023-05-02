@@ -548,7 +548,7 @@ func IsMinimumk8sVersion(expectedK8sVersion string) (bool, error) {
 	}
 	k8sVersion, err := k8sversionutil.ParseSemantic(version)
 	if err != nil {
-		return false, fmt.Errorf("Failed to parse Kubernetes version %q: %v", version, err)
+		return false, fmt.Errorf("Failed to parse Kubernetes version %q: %v", k8sVersion, err)
 	}
 	parsedExpectedK8sVersion := k8sversionutil.MustParseSemantic(expectedK8sVersion)
 	if k8sVersion.AtLeast(parsedExpectedK8sVersion) {

@@ -93,17 +93,16 @@ var afterSuite = t.AfterSuiteFunc(func() {
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	m := CAPIEnabledModifierV1beta1{}
 	var err error
-	kubeconfigPath := getKubeConfigOrAbort()
-	inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
-	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
-	}
-
 	isMinimumK8sVersion, err = k8sutil.IsMinimumk8sVersion(minimumK8sVersion)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get/parse kubernetes version: %s", err.Error()))
 	}
 	if isMinimumK8sVersion {
+		kubeconfigPath := getKubeConfigOrAbort()
+		inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
+		}
 		isCAPIEnabled = vzcr.IsComponentStatusEnabled(inClusterVZ, capi.ComponentName)
 		isCAPISupported, err = pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfigPath)
 		if err != nil {
