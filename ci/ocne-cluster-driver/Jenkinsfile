@@ -286,6 +286,8 @@ pipeline {
                         ${WORKSPACE}/tests/e2e/config/scripts/process_nipio_install_yaml.sh $INSTALL_CONFIG_FILE_NIPIO
                         # enable CAPI component
                         yq -i eval '.spec.components.capi.enabled = true' ${INSTALL_CONFIG_FILE_NIPIO}
+                        # enable rancher component
+                        yq -i eval '.spec.components.rancher.enabled = true' ${INSTALL_CONFIG_FILE_NIPIO}
                     """
                 }
             }
