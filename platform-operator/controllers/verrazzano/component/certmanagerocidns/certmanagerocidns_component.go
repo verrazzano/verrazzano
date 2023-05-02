@@ -64,6 +64,10 @@ func (c certManagerOciDNSComponent) IsEnabled(effectiveCR runtime.Object) bool {
 
 // IsReady component check
 func (c certManagerOciDNSComponent) IsReady(ctx spi.ComponentContext) bool {
+	if ctx.IsDryRun() {
+		ctx.Log().Debug("cert-manager-config PostInstall dry run")
+		return true
+	}
 	if c.HelmComponent.IsReady(ctx) {
 		return isCertManagerOciDNSReady(ctx)
 	}

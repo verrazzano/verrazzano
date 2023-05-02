@@ -5,9 +5,14 @@ package certmanagerocidns
 
 import (
 	"context"
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -36,30 +41,61 @@ var vz = &vzapi.Verrazzano{
 	},
 }
 
-// Fake certManagerComponent resource for function calls
-var fakeComponent = certManagerOciDNSComponent{}
+var testScheme = runtime.NewScheme()
+
+func init() {
+	_ = k8scheme.AddToScheme(testScheme)
+	_ = certv1.AddToScheme(testScheme)
+	_ = vzapi.AddToScheme(testScheme)
+	_ = apiextv1.AddToScheme(testScheme)
+}
 
 // TestIsCertManagerOciDNSEnabled tests the IsCertManagerEnabled fn
 // GIVEN a call to IsCertManagerEnabled
 // WHEN cert-manager is enabled
 // THEN the function returns true
-//func TestIsCertManagerOciDNSEnabled(t *testing.T) {
-//	localvz := vz.DeepCopy()
-//	bt := true
-//	localvz.Spec.Components.CertManager.Enabled = &bt
-//	localvz.Spec.Components.DNS = &vzapi.DNSComponent{OCI: &vzapi.OCI{}}
-//	assert.True(t, fakeComponent.IsEnabled(localvz))
-//}
+func TestIsCertManagerOciDNSEnabled(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(createCertManagerCRDs()...).Build()
+	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
+		return client, nil
+	})
+	defer func() { common.ResetNewClientFunc() }()
 
-// TestIsCertManagerDisabled tests the IsCertManagerEnabled fn
+	localvz := vz.DeepCopy()
+	bt := true
+	localvz.Spec.Components.CertManager.Enabled = &bt
+	localvz.Spec.Components.DNS = &vzapi.DNSComponent{OCI: &vzapi.OCI{}}
+	assert.True(t, NewComponent().IsEnabled(localvz))
+}
+
+// TestIsCertManagerOciDNSDisabledNoCRDs tests the IsCertManagerEnabled fn
 // GIVEN a call to IsCertManagerEnabled
 // WHEN cert-manager is disabled
 // THEN the function returns false
-func TestIsCertManagerOciDNSDisabled(t *testing.T) {
+func TestIsCertManagerOciDNSDisabledNoCRDs(t *testing.T) {
 	localvz := vz.DeepCopy()
 	bf := false
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
+		return client, nil
+	})
+	defer func() { common.ResetNewClientFunc() }()
+
 	localvz.Spec.Components.CertManager.Enabled = &bf
-	assert.False(t, fakeComponent.IsEnabled(localvz))
+	assert.False(t, NewComponent().IsEnabled(localvz))
+}
+
+func TestIsCertManagerOciDNSDisabled(t *testing.T) {
+	localvz := vz.DeepCopy()
+	bt := true
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(createCertManagerCRDs()...).Build()
+	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
+		return client, nil
+	})
+	defer func() { common.ResetNewClientFunc() }()
+
+	localvz.Spec.Components.CertManager.Enabled = &bt
+	assert.False(t, NewComponent().IsEnabled(localvz))
 }
 
 // TestCertManagerPreInstall tests the PreInstall fn
@@ -67,8 +103,8 @@ func TestIsCertManagerOciDNSDisabled(t *testing.T) {
 // WHEN I call PreInstall with dry-run = true
 // THEN no errors are returned
 func TestCertManagerOciDNSPreInstallDryRun(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, true))
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	err := NewComponent().PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, true))
 	assert.NoError(t, err)
 }
 
@@ -145,7 +181,7 @@ func TestIsCertManagerOciDNSReadyDisabled(t *testing.T) {
 func TestPostInstallAcme(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	// set OCI DNS secret value and create secret
 	localvz.Spec.Components.DNS = &vzapi.DNSComponent{
 		OCI: &vzapi.OCI{
@@ -153,14 +189,27 @@ func TestPostInstallAcme(t *testing.T) {
 			DNSZoneName:     "example.dns.io",
 		},
 	}
-	client.Create(context.TODO(), &corev1.Secret{
+	_ = client.Create(context.TODO(), &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "ociDNSSecret",
 			Namespace: ComponentNamespace,
 		},
 	})
-	err := fakeComponent.PostInstall(spi.NewFakeContext(client, localvz, nil, false))
+	err := NewComponent().PostInstall(spi.NewFakeContext(client, localvz, nil, false))
 	assert.NoError(t, err)
+}
+
+// TestDryRun tests the behavior when DryRun is enabled, mainly for code coverage
+// GIVEN a call to PostInstall/PostUpgrade/PreInstall
+//
+//	WHEN the ComponentContext has DryRun set to true
+//	THEN no error is returned
+func TestDryRun(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, true)
+
+	comp := certManagerOciDNSComponent{}
+	assert.True(t, comp.IsReady(ctx))
 }
 
 // Create a new deployment object for testing
@@ -216,4 +265,21 @@ func newReplicaSet(namespace string, name string) *appsv1.ReplicaSet {
 			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 		},
 	}
+}
+
+func createCertManagerCRDs() []clipkg.Object {
+	var cmCRDs []clipkg.Object
+	for _, crd := range common.GetRequiredCertManagerCRDNames() {
+		cmCRDs = append(cmCRDs, newCRD(crd))
+	}
+	return cmCRDs
+}
+
+func newCRD(name string) clipkg.Object {
+	crd := &apiextv1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	return crd
 }
