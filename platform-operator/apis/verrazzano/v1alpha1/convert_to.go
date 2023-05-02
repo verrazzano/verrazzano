@@ -125,6 +125,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		DNS:                    convertDNSToV1Beta1(src.DNS),
 		OpenSearch:             opensearchComponent,
 		Fluentd:                convertFluentdToV1Beta1(src.Fluentd),
+		FluentOperator:         convertFluentOperatorToV1Beta1(src.FluentOperator),
 		Grafana:                convertGrafanaToV1Beta1(src.Grafana),
 		IngressNGINX:           ingressComponent,
 		Istio:                  istioComponent,
@@ -452,6 +453,16 @@ func convertFluentdToV1Beta1(src *FluentdComponent) *v1beta1.FluentdComponent {
 		OpenSearchSecret:  src.ElasticsearchSecret,
 		OCI:               convertOCILoggingConfigurationToV1Beta1(src.OCI),
 		InstallOverrides:  convertInstallOverridesToV1Beta1(src.InstallOverrides),
+	}
+}
+
+func convertFluentOperatorToV1Beta1(src *FluentOperatorComponent) *v1beta1.FluentOperatorComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.FluentOperatorComponent{
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
 	}
 }
 
