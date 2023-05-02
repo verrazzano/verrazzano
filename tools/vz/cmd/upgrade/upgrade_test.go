@@ -518,6 +518,7 @@ func TestUpgradeFromPrivateRegistry(t *testing.T) {
 // TestUpgradeFromDifferentPrivateRegistry tests upgrading from a different private registry
 func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	// First install using a private registry
+	const proceedQuestionText = "Proceed to upgrade with new settings? [Y/n]"
 	const imageRegistry = "testreg.io"
 	const imagePrefix = "testrepo"
 
@@ -577,7 +578,8 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	// and we reply with "n"
 	err = cmd.Execute()
 	assert.NoError(t, err)
-	assert.Contains(t, outBuf.String(), "Continue with install?")
+	assert.Contains(t, outBuf.String(), proceedQuestionText)
+	assert.Contains(t, outBuf.String(), "Upgrade canceled")
 	assert.Equal(t, "", errBuf.String())
 
 	// Verify that the VPO deployment has the expected environment variables to enable pulling images from a private registry
@@ -619,7 +621,8 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	// and we reply with "y"
 	err = cmd.Execute()
 	assert.NoError(t, err)
-	assert.Contains(t, outBuf.String(), "Continue with install?")
+	assert.Contains(t, outBuf.String(), proceedQuestionText)
+	assert.Contains(t, outBuf.String(), "Upgrading Verrazzano")
 	assert.Equal(t, "", errBuf.String())
 
 	// Verify that the VPO deployment has the expected environment variables to enable pulling images from a private registry
