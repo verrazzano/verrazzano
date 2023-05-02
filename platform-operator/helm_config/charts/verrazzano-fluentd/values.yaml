@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 name: verrazzano-fluentd
 
@@ -24,3 +24,15 @@ fluentd:
 monitoring:
   enabled: true
   useIstioCerts: true
+
+# In the environment where SELinux is enforcing, you can consider to override the default SELinux security context for the Fluentd so that it can have the required read/write privileges.
+# By customizing these options, you can ensure that Fluentd operates within the appropriate SELinux security context.
+seLinuxOptions:
+  # -- String to override the SELinux type for the Fluentd process. This determines the access permissions and restrictions for the Fluentd.
+  type: "" # spc_t
+  # -- String to override the  SELinux level for the Fluentd process. It represents the sensitivity level of the Fluentd in relation to other SELinux-labeled objects.
+  level: "" # s0
+  # -- String to override the SELinux role for the Fluentd process. It defines the role or set of permissions that the process running the Fluentd can have.
+  role: "" # system_r
+  # -- String to override the SELinux user for the Fluentd process. It specifies the SELinux user identity that the process should run as.
+  user: "" # system_u
