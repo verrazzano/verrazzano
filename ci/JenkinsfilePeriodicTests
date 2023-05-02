@@ -298,6 +298,19 @@ pipeline {
                         }
                     }
                 }
+                stage('Verrazzano a-la-carte') {
+                    steps {
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "/verrazzano-a-la-carte/${CLEAN_BRANCH_NAME}",
+                                        parameters: [
+                                                string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
+                                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                        ], wait: true
+                            }
+                        }
+                    }
+                }
                 stage('HA tests') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
