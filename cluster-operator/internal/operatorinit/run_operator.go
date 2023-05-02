@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
+	"github.com/verrazzano/verrazzano/pkg/rancherutil"
 	"go.uber.org/zap"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -80,6 +81,10 @@ func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAd
 			log.Errorf("Failed to create Rancher cluster controller: %v", err)
 			os.Exit(1)
 		}
+	}
+
+	if ingressHost == "" {
+		ingressHost = rancherutil.DefaultRancherIngressHostPrefix + nginxutil.IngressNGINXNamespace()
 	}
 
 	// Set up the reconciler for VerrazzanoManagedCluster objects

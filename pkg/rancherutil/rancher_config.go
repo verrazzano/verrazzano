@@ -45,9 +45,6 @@ const (
 // DefaultRancherIngressHostPrefix is the default internal Ingress host prefix used for Rancher API requests
 const DefaultRancherIngressHostPrefix = "ingress-controller-ingress-nginx-controller."
 
-// DefaultRancherIngressHost is the default internal Ingress host used for Rancher API requests
-var DefaultRancherIngressHost = DefaultRancherIngressHostPrefix + nginxutil.IngressNGINXNamespace()
-
 type RancherConfig struct {
 	Host                     string
 	BaseURL                  string
