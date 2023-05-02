@@ -224,7 +224,7 @@ pipeline {
                     if (params.NGINX_LB_SCOPE == "PRIVATE" || params.ISTIO_LB_SCOPE == "PRIVATE")  {
                         env.TF_VAR_region = RUNNER_REGION
                         env.OCI_CLI_REGION = RUNNER_REGION
-                   }
+                    }
                     // println("runner region is ${RUNNER_REGION}, tf var region is ${env.TF_VAR_REGION}")
                         // sh """
                             // # get the ssh public key
@@ -237,7 +237,7 @@ pipeline {
                             // # call create_oke_cluster with cluster access private
                             // ${WORKSPACE}/tests/e2e/config/scripts/create_oke_cluster.sh true ${params.CREATE_CLUSTER_USE_CALICO}
                         // """
-                    // }
+                    }
                 }
             }
             post {
