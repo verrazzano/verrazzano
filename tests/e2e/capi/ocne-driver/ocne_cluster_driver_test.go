@@ -32,14 +32,14 @@ const (
 			"driverName": "ociocneengine",
 			"vcnId": "{{.VcnId}}",
 			"nodePublicKeyContents": "{{.NodePublicKeyContents}}",
-			"compartmentId": "{{.CompartmentId}}",
+			"compartmentId": "{{.CompartmentID}}",
 			"workerNodeSubnet": "{{.WorkerNodeSubnet}}",
 			"controlPlaneSubnet": "{{.ControlPlaneSubnet}}",
 			"loadBalancerSubnet": "{{.LoadBalancerSubnet}}",
 			"imageDisplayName": "Oracle-Linux-8.7-2023.01.31-3",
 			"kubernetesVersion": "v1.24.8",
 			"useNodePvEncryption": true,
-			"cloudCredentialId": "{{.CloudCredentialId}}",
+			"cloudCredentialId": "{{.CloudCredentialID}}",
 			"region": "us-ashburn-1",
 
 			"nodeShape": "VM.Standard.E4.Flex",
@@ -73,8 +73,8 @@ const (
 		"ocicredentialConfig": {
 			"fingerprint": "{{.Fingerprint}}",
 			"privateKeyContents": "{{.PrivateKeyContents}}",
-			"tenancyId": "{{.TenancyId}}",
-			"userId": "{{.UserId}}"
+			"tenancyId": "{{.TenancyID}}",
+			"userId": "{{.UserID}}"
 		}
 	}`
 )
@@ -92,8 +92,8 @@ type cloudCredentialsData struct {
 	CredentialName     string
 	Fingerprint        string
 	PrivateKeyContents string
-	TenancyId          string
-	UserId             string
+	TenancyID          string
+	UserID             string
 }
 
 // capiClusterData needed for template rendering
@@ -101,11 +101,11 @@ type capiClusterData struct {
 	ClusterName           string
 	VcnId                 string
 	NodePublicKeyContents string
-	CompartmentId         string
+	CompartmentID         string
 	WorkerNodeSubnet      string
 	ControlPlaneSubnet    string
 	LoadBalancerSubnet    string
-	CloudCredentialId     string
+	CloudCredentialID     string
 	PodCIDR               string
 }
 
@@ -151,8 +151,8 @@ func createCloudCredential(credentialName string) string {
 		CredentialName:     credentialName,
 		Fingerprint:        fingerprint,
 		PrivateKeyContents: privateKeyContents,
-		TenancyId:          tenancyId,
-		UserId:             userId,
+		TenancyID:          tenancyId,
+		UserID:             userId,
 	}
 	buf := &bytes.Buffer{}
 	err := executeCloudCredentialsTemplate(&credentialsData, buf)
@@ -187,11 +187,11 @@ func createCluster(clusterName string) {
 		ClusterName:           clusterName,
 		VcnId:                 vcnId,
 		NodePublicKeyContents: nodePublicKeyContents,
-		CompartmentId:         compartmentId,
+		CompartmentID:         compartmentId,
 		WorkerNodeSubnet:      workerNodeSubnet,
 		ControlPlaneSubnet:    controlPlaneSubnet,
 		LoadBalancerSubnet:    loadBalancerSubnet,
-		CloudCredentialId:     cloudCredentialID,
+		CloudCredentialID:     cloudCredentialID,
 		PodCIDR:               podCidr,
 	}
 	buf := &bytes.Buffer{}
