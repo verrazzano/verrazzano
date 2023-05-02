@@ -150,6 +150,7 @@ pipeline {
         // for running the OCNE Driver Ginkgo suite
         TF_VAR_label_prefix=""
         API_PRIVATE_KEY_CONTENTS=""
+        NODE_PUBLIC_KEY_CONTENTS=""
         VCN_ID=""
         SUBNET_ID=""
         POD_CIDR=""
@@ -319,6 +320,7 @@ pipeline {
             environment {
                 TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
                 API_PRIVATE_KEY_CONTENTS=sh(returnStdout: true, script: "cat ${TF_VAR_api_private_key_path}")
+                NODE_PUBLIC_KEY_CONTENTS=sh(returnStdout: true, script: "cat ${TF_VAR_ssh_public_key_path}")
                 VCN_ID=sh(returnStdout: true, script: "oci network vcn list \
                     --compartment-id ${TF_VAR_compartment_id} \
                     --display-name ${TF_VAR_label_prefix}-oke-vcn \
@@ -516,7 +518,7 @@ def runGinkgo(testSuitePath) {
                 --vcnID=${VCN_ID} \
                 --fingerprint=${TF_VAR_api_fingerprint} \
                 --privateKeyContents=${API_PRIVATE_KEY_CONTENTS} \
-                --nodePublicKeyContents=${TF_VAR_ssh_public_key_path} \
+                --nodePublicKeyContents=${NODE_PUBLIC_KEY_CONTENTS} \
                 --workerNodeSubnet=${SUBNET_ID} \
                 --controlPlaneSubnet=${SUBNET_ID} \
                 --loadBalancerSubnet=${SUBNET_ID} \
