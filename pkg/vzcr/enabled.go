@@ -212,6 +212,11 @@ func IsRancherEnabled(cr runtime.Object) bool {
 
 // IsExternalDNSEnabled Indicates if the external-dns service is expected to be deployed, true if OCI DNS is configured
 func IsExternalDNSEnabled(cr runtime.Object) bool {
+	return IsOCIDNSEnabled(cr)
+}
+
+// IsOCIDNSEnabled Returns true if OCI DNS is configured
+func IsOCIDNSEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.DNS != nil && vzv1alpha1.Spec.Components.DNS.OCI != nil {
 			return true

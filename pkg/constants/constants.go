@@ -7,6 +7,9 @@ import (
 	"time"
 )
 
+// VerrazzanoClusterIssuerName Name of the Verrazzano Cert-Manager cluster issuer
+const VerrazzanoClusterIssuerName = "verrazzano-cluster-issuer"
+
 // RestartVersionAnnotation - the annotation used by user to tell Verrazzano application to restart its components
 const RestartVersionAnnotation = "verrazzano.io/restart-version"
 
