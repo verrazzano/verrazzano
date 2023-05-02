@@ -21,6 +21,8 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+// nolint: gosec // auth constants, not credentials
+// gosec: G101: Potential hardcoded credentials
 const (
 	waitTimeout                  = 30 * time.Minute
 	pollingInterval              = 1 * time.Minute
