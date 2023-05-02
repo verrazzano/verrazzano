@@ -1866,3 +1866,39 @@ func TestAddClientRoleToUser(t *testing.T) {
 	err := addClientRoleToUser(ctx, cfg, cli, "testuser", "test-client", "test-realm", "test-role")
 	assert.NoError(t, err)
 }
+
+func fakeAddRealmRoleCommand(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], kcAdminScript) &&
+			strings.Contains(commands[2], "add-roles") &&
+			strings.Contains(commands[2], "test-realm") &&
+			strings.Contains(commands[2], "test-role") {
+			return "Added new realm role: test-role'", "", nil
+		}
+	}
+	return "", "", fmt.Errorf("Failed to add realm role")
+}
+
+// TestAddRealmRoleToUser adds a realm role to a user
+// GIVEN a client, and a k8s environment
+// WHEN I call addRealmRoleToUser
+// THEN confirm that the function doesn't return an error
+func TestAddRealmRoleToUser(t *testing.T) {
+	k8sutil.ClientConfig = fakeRESTConfig
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	podExecFunc := k8sutilfake.PodExecResult
+	k8sutilfake.PodExecResult = fakeAddRealmRoleCommand
+	defer func() { k8sutilfake.PodExecResult = podExecFunc }()
+	cfg, cli, _ := fakeRESTConfig()
+
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	ctx := spi.NewFakeContext(c, testVZ, nil, false)
+
+	err := addRealmRoleToUser(ctx, cfg, cli, "test-user", "test-realm", "test-role")
+	assert.NoError(t, err)
+
+	err = addRealmRoleToUser(ctx, cfg, cli, "test-user", "test-realm", "invalid-role")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Failed to add realm role")
+}

@@ -131,6 +131,12 @@ const DefaultOpensearchURL = "http://verrazzano-authproxy-opensearch:8775"
 // Default Jaeger OpenSearch URL
 const DefaultJaegerOSURL = "http://verrazzano-authproxy-opensearch.verrazzano-system:8775"
 
+// DefaultOperatorOSURL is the default OpenSearch URL for opensearch-operator based OpenSearch
+const DefaultOperatorOSURL = "http://verrazzano-authproxy-opensearch-logging:8775"
+
+// DefaultOperatorOSURLWithNS is the default OpenSearch URL for opensearch-operator based OpenSearch with namespace suffix
+const DefaultOperatorOSURLWithNS = "http://verrazzano-authproxy-opensearch-logging.verrazzano-system:8775"
+
 // DefaultJaegerSecretName is the Jaeger secret name used by the default Jaeger instance
 // #nosec
 const DefaultJaegerSecretName = "verrazzano-jaeger-secret"

@@ -82,6 +82,13 @@ spec:
           image: {{ .Values.logging.fluentdImage }}
           imagePullPolicy: IfNotPresent
           securityContext:
+{{- if .Values.seLinuxOptions }}
+            seLinuxOptions:
+              type: {{ .Values.seLinuxOptions.type }}
+              level: {{ .Values.seLinuxOptions.level }}
+              role: {{ .Values.seLinuxOptions.role }}
+              user: {{ .Values.seLinuxOptions.user }}
+{{- end }}
             privileged: false
             allowPrivilegeEscalation: false
             capabilities:
