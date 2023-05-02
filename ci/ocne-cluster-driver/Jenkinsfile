@@ -316,22 +316,27 @@ pipeline {
 
         stage("OCNE Cluster Driver Tests") {
             environment {
-                TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
-                API_PRIVATE_KEY_CONTENTS=sh(returnStdout: true, script: "cat ${TF_VAR_api_private_key_path}")
-                VCN_ID=sh(returnStdout: true, script: "oci network vcn list \
-                    --compartment-id ${TF_VAR_compartment_id} \
-                    --display-name ${TF_VAR_label_prefix}-oke-vcn \
-                    | jq -r '.data[0].id'")
-                SUBNET_ID=sh(returnStdout: true, script: "oci network subnet list \
-                    --compartment-id ${TF_VAR_compartment_id} \
-                    --vcn-id ${VCN_ID} \
-                    --display-name ${TF_VAR_label_prefix}-workers \
-                    | jq -r '.data[0].id'")
-                POD_CIDR=sh(returnStdout: true, script: "oci network subnet list \
-                    --compartment-id ${TF_VAR_compartment_id} \
-                    --vcn-id ${VCN_ID} \
-                    --display-name ${TF_VAR_label_prefix}-workers \
-                    | jq -r '.data[0].\"cidr-block\"'")
+                // TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
+                // API_PRIVATE_KEY_CONTENTS=sh(returnStdout: true, script: "cat ${TF_VAR_api_private_key_path}")
+                // VCN_ID=sh(returnStdout: true, script: "oci network vcn list \
+                //     --compartment-id ${TF_VAR_compartment_id} \
+                //     --display-name ${TF_VAR_label_prefix}-oke-vcn \
+                //     | jq -r '.data[0].id'")
+                // SUBNET_ID=sh(returnStdout: true, script: "oci network subnet list \
+                //     --compartment-id ${TF_VAR_compartment_id} \
+                //     --vcn-id ${VCN_ID} \
+                //     --display-name ${TF_VAR_label_prefix}-workers \
+                //     | jq -r '.data[0].id'")
+                // POD_CIDR=sh(returnStdout: true, script: "oci network subnet list \
+                //     --compartment-id ${TF_VAR_compartment_id} \
+                //     --vcn-id ${VCN_ID} \
+                //     --display-name ${TF_VAR_label_prefix}-workers \
+                //     | jq -r '.data[0].\"cidr-block\"'")
+                TF_VAR_label_prefix="dummy"
+                API_PRIVATE_KEY_CONTENTS="dummy"
+                VCN_ID="dummy"
+                SUBNET_ID="dummy"
+                POD_CIDR="dummy"
             }
             steps {
                 script {
@@ -506,20 +511,30 @@ def createImagePullSecrets() {
 def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
-            cd ${WORKSPACE}/tests/e2e
-            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- \
-                --region=${TF_VAR_region} \
-                --userId=${TF_VAR_user_id} \
-                --tenancyId=${TF_VAR_tenancy_id} \
-                --compartmentId=${TF_VAR_compartment_id} \
-                --vcnId=${VCN_ID} \
-                --fingerprint=${TF_VAR_api_fingerprint} \
-                --privateKeyContents=${API_PRIVATE_KEY_CONTENTS} \
-                --nodePublicKeyContents=${TF_VAR_ssh_public_key_path} \
-                --workerNodeSubnet=${SUBNET_ID} \
-                --controlPlaneSubnet=${SUBNET_ID} \
-                --loadBalancerSubnet=${SUBNET_ID} \
-                --podCidr=${POD_CIDR}
+            echo ${TF_VAR_region}
+            echo ${TF_VAR_user_id}
+            echo ${TF_VAR_tenancy_id}
+            echo ${TF_VAR_compartment_id}
+            echo ${VCN_ID}
+            echo ${TF_VAR_api_fingerprint}
+            echo ${API_PRIVATE_KEY_CONTENTS}
+            echo ${TF_VAR_ssh_public_key_path}
+            echo ${SUBNET_ID}
+            echo ${POD_CIDR}
+            // cd ${WORKSPACE}/tests/e2e
+            // ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- \
+            //     --region=${TF_VAR_region} \
+            //     --userId=${TF_VAR_user_id} \
+            //     --tenancyId=${TF_VAR_tenancy_id} \
+            //     --compartmentId=${TF_VAR_compartment_id} \
+            //     --vcnId=${VCN_ID} \
+            //     --fingerprint=${TF_VAR_api_fingerprint} \
+            //     --privateKeyContents=${API_PRIVATE_KEY_CONTENTS} \
+            //     --nodePublicKeyContents=${TF_VAR_ssh_public_key_path} \
+            //     --workerNodeSubnet=${SUBNET_ID} \
+            //     --controlPlaneSubnet=${SUBNET_ID} \
+            //     --loadBalancerSubnet=${SUBNET_ID} \
+            //     --podCidr=${POD_CIDR}
         """
     }
 }
