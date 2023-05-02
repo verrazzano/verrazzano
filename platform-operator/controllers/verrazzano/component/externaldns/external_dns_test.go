@@ -145,11 +145,11 @@ func createReleaseWithoutValues(name string, status release.Status) *release.Rel
 	}
 }
 
-func testActionConfigWithInstallationAndValues(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+func testActionConfigWithInstallationAndValues(_ vzlog.VerrazzanoLogger, _ *cli.EnvSettings, _ string) (*action.Configuration, error) {
 	return helm.CreateActionConfig(true, "external-dns", release.StatusDeployed, vzlog.DefaultLogger(), createReleaseWithValues)
 }
 
-func testActionConfigWithInstallationNoValues(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+func testActionConfigWithInstallationNoValues(_ vzlog.VerrazzanoLogger, _ *cli.EnvSettings, _ string) (*action.Configuration, error) {
 	return helm.CreateActionConfig(true, "external-dns", release.StatusDeployed, vzlog.DefaultLogger(), createReleaseWithoutValues)
 }
 
@@ -171,18 +171,54 @@ func TestIsExternalDNSDisabled(t *testing.T) {
 	assert.False(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, vz, nil, false).EffectiveCR()))
 }
 
-// TestIsExternalDNSReady tests the isExternalDNSReady fn
+// TestIsExternalDNSReadyLegacyNamespace tests the isExternalDNSReady fn
 // GIVEN a call to isExternalDNSReady
-// WHEN the external dns deployment is ready
+// WHEN the external dns deployment is ready and the installed namespace is cert-manager
 // THEN the function returns true
-func TestIsExternalDNSReady(t *testing.T) {
-	resolvedNamespace = "cert-manager"
-	defer func() { resolvedNamespace = "" }()
+func TestIsExternalDNSReadyLegacyNamespace(t *testing.T) {
+	runIsReadyTest(t, legacyNamespace)
+}
+
+// TestIsExternalDNSReadyDefaultNamespace tests the isExternalDNSReady fn
+// GIVEN a call to isExternalDNSReady
+// WHEN the external dns deployment is ready and the installed namespace is the component default ns
+// THEN the function returns true
+func TestIsExternalDNSReadyDefaultNamespace(t *testing.T) {
+	runIsReadyTest(t, ComponentNamespace)
+}
+
+func runIsReadyTest(t *testing.T, ns string) {
+	k8sutil.GetCoreV1Func = func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset(
+			&v1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: ns,
+					Labels: map[string]string{
+						constants.VerrazzanoManagedKey: ns,
+					},
+				},
+			},
+		).CoreV1(), nil
+	}
+	if ns == legacyNamespace {
+		isLegacyNamespaceInstalledFunc = func(releaseName string, namespace string) (found bool, err error) {
+			return true, nil
+		}
+	} else {
+		isLegacyNamespaceInstalledFunc = func(releaseName string, namespace string) (found bool, err error) {
+			return false, nil
+		}
+	}
+	defer func() {
+		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+		isLegacyNamespaceInstalledFunc = helm.IsReleaseInstalled
+	}()
+
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		newDeployment(ComponentName, resolvedNamespace, true), newPod(ComponentName, resolvedNamespace), newReplicaSet(ComponentName, resolvedNamespace),
+		newDeployment(ComponentName, ns, true), newPod(ComponentName, ns), newReplicaSet(ComponentName, ns),
 	).Build()
-	externalDNS := NewComponent().(externalDNSComponent)
-	assert.True(t, externalDNS.isExternalDNSReady(spi.NewFakeContext(client, nil, nil, false)))
+	externalDNS := NewComponent().(*externalDNSComponent)
+	assert.True(t, externalDNS.isExternalDNSReady(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestIsExternalDNSNotReady tests the isExternalDNSReady fn
@@ -191,10 +227,10 @@ func TestIsExternalDNSReady(t *testing.T) {
 // THEN the function returns false
 func TestIsExternalDNSNotReady(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		newDeployment(ComponentName, "cert-manager", false),
+		newDeployment(ComponentName, ComponentNamespace, false),
 	).Build()
-	externalDNS := NewComponent().(externalDNSComponent)
-	assert.False(t, externalDNS.isExternalDNSReady(spi.NewFakeContext(client, nil, nil, false)))
+	externalDNS := NewComponent().(*externalDNSComponent)
+	assert.False(t, externalDNS.isExternalDNSReady(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestAppendExternalDNSOverrides tests the AppendOverrides fn
@@ -316,10 +352,27 @@ func TestExternalDNSPreInstallPrivateScope(t *testing.T) {
 // WHEN the Helm release nor the legacy namespace exist
 // THEN the function returns the default namespace
 func TestResolveDefaultNamespace(t *testing.T) {
-	asserts := assert.New(t)
-	isInstalledFunc = func(_ string, _ string) (found bool, err error) {
+	k8sutil.GetCoreV1Func = func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset(
+			&v1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: ComponentNamespace,
+					Labels: map[string]string{
+						constants.VerrazzanoManagedKey: ComponentNamespace,
+					},
+				},
+			},
+		).CoreV1(), nil
+	}
+	isLegacyNamespaceInstalledFunc = func(_ string, _ string) (found bool, err error) {
 		return false, nil
 	}
+	defer func() {
+		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+		isLegacyNamespaceInstalledFunc = helm.IsReleaseInstalled
+	}()
+
+	asserts := assert.New(t)
 
 	asserts.Equal(ComponentNamespace, resolveExernalDNSNamespace(""))
 }
@@ -330,7 +383,7 @@ func TestResolveDefaultNamespace(t *testing.T) {
 // THEN the function returns the legacy namespace
 func TestPreserveLegacyNamespaceOnUpgrade(t *testing.T) {
 	asserts := assert.New(t)
-	isInstalledFunc = func(_ string, _ string) (found bool, err error) {
+	isLegacyNamespaceInstalledFunc = func(_ string, _ string) (found bool, err error) {
 		return true, nil
 	}
 	k8sutil.GetCoreV1Func = func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
@@ -345,7 +398,7 @@ func TestPreserveLegacyNamespaceOnUpgrade(t *testing.T) {
 			},
 		).CoreV1(), nil
 	}
-	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client; resolvedNamespace = "" }()
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 	asserts.Equal(legacyNamespace, resolveExernalDNSNamespace(""))
 }
 
@@ -355,13 +408,13 @@ func TestPreserveLegacyNamespaceOnUpgrade(t *testing.T) {
 // THEN the function returns an empty string
 func TestResolveNamespaceError(t *testing.T) {
 	asserts := assert.New(t)
-	isInstalledFunc = func(_ string, _ string) (found bool, err error) {
+	isLegacyNamespaceInstalledFunc = func(_ string, _ string) (found bool, err error) {
 		return false, fmt.Errorf("test error")
 	}
 	k8sutil.GetCoreV1Func = func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
 		return k8sfake.NewSimpleClientset().CoreV1(), nil
 	}
-	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client; resolvedNamespace = "" }()
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 	asserts.Equal("", resolveExernalDNSNamespace(""))
 }
 
@@ -371,7 +424,7 @@ func TestResolveNamespaceError(t *testing.T) {
 // THEN the function returns the default namespace
 func TestResolveNamespaceUnmanagedLegacyNamespaceExits(t *testing.T) {
 	asserts := assert.New(t)
-	isInstalledFunc = func(_ string, _ string) (found bool, err error) {
+	isLegacyNamespaceInstalledFunc = func(_ string, _ string) (found bool, err error) {
 		return true, nil
 	}
 	k8sutil.GetCoreV1Func = func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
@@ -383,7 +436,7 @@ func TestResolveNamespaceUnmanagedLegacyNamespaceExits(t *testing.T) {
 			},
 		).CoreV1(), nil
 	}
-	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client; resolvedNamespace = "" }()
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 
 	asserts.Equal(ComponentNamespace, resolveExernalDNSNamespace(""))
 }

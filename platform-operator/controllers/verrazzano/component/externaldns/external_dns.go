@@ -42,11 +42,9 @@ const (
 	clusterRoleBindingName = ComponentName
 )
 
-var resolvedNamespace string
-
 type isInstalledFuncType func(releaseName string, namespace string) (found bool, err error)
 
-var isInstalledFunc isInstalledFuncType = helm.IsReleaseInstalled
+var isLegacyNamespaceInstalledFunc isInstalledFuncType = helm.IsReleaseInstalled
 
 func preInstall(compContext spi.ComponentContext) error {
 	// If it is a dry-run, do nothing
@@ -113,18 +111,20 @@ func CopyOCIDNSSecret(compContext spi.ComponentContext, targetNamespace string) 
 	return nil
 }
 
+// resolveExernalDNSNamespace implements the HelmComponent contract to resolve a component namespace dynamically
 func resolveExernalDNSNamespace(_ string) string {
 	return ResolveExernalDNSNamespace()
 }
 
+// ResolveExernalDNSNamespace Resolves the namespace for External DNS based on an existing legacy instance vs a new one;
+// if External-DNS exists in the cert-manager namespace AND the namespace is owned by Verrazzano, use the existing
+// installed namespace; otherwise we will install it into the verrazzano-system namespace
+//
+// HelmComponent will cache the results when called from that context
 func ResolveExernalDNSNamespace() string {
-	if len(resolvedNamespace) > 0 {
-		// Only resolve the namespace once per instance
-		return resolvedNamespace
-	}
 	resolvedNamespace := ComponentNamespace
 	logger := vzlog.DefaultLogger()
-	releaseFound, err := isInstalledFunc(ComponentName, legacyNamespace)
+	releaseFound, err := isLegacyNamespaceInstalledFunc(ComponentName, legacyNamespace)
 	if err != nil {
 		logger.ErrorfThrottled("Error listing %s helm release %v", err)
 		return ""
@@ -161,15 +161,15 @@ func postUninstall(log vzlog.VerrazzanoLogger, cli client.Client) error {
 	}.Delete()
 }
 
-func getDeploymentNames() []types.NamespacedName {
+func (c *externalDNSComponent) getDeploymentNames(ctx spi.ComponentContext) []types.NamespacedName {
 	return []types.NamespacedName{
-		{Name: ComponentName, Namespace: resolveExernalDNSNamespace("")},
+		{Name: ComponentName, Namespace: c.HelmComponent.ResolveNamespace(ctx)},
 	}
 }
 
-func (c externalDNSComponent) isExternalDNSReady(compContext spi.ComponentContext) bool {
+func (c *externalDNSComponent) isExternalDNSReady(compContext spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", compContext.GetComponent())
-	return ready.DeploymentsAreReady(compContext.Log(), compContext.Client(), getDeploymentNames(), 1, prefix)
+	return ready.DeploymentsAreReady(compContext.Log(), compContext.Client(), c.getDeploymentNames(compContext), 1, prefix)
 }
 
 // AppendOverrides builds the set of external-dns overrides for the helm install

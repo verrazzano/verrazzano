@@ -36,11 +36,11 @@ type externalDNSComponent struct {
 }
 
 // Verify that nginxComponent implements Component
-var _ spi.Component = externalDNSComponent{}
+var _ spi.Component = &externalDNSComponent{}
 
 func NewComponent() spi.Component {
-	return externalDNSComponent{
-		helm.HelmComponent{
+	return &externalDNSComponent{
+		HelmComponent: helm.HelmComponent{
 			JSONName:                  ComponentJSONName,
 			ReleaseName:               ComponentName,
 			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ComponentName),
@@ -61,31 +61,43 @@ func NewComponent() spi.Component {
 	}
 }
 
-func (c externalDNSComponent) PreInstall(compContext spi.ComponentContext) error {
+func (c *externalDNSComponent) PreInstall(compContext spi.ComponentContext) error {
+	if compContext.IsDryRun() {
+		compContext.Log().Debug("%s PreInstall dry run", ComponentName)
+		return nil
+	}
 	if err := preInstall(compContext); err != nil {
 		return err
 	}
 	return c.HelmComponent.PreInstall(compContext)
 }
 
-func (c externalDNSComponent) IsReady(ctx spi.ComponentContext) bool {
+func (c *externalDNSComponent) IsReady(ctx spi.ComponentContext) bool {
+	if ctx.IsDryRun() {
+		ctx.Log().Debug("%s IsReady dry run", ComponentName)
+		return true
+	}
 	if c.HelmComponent.IsReady(ctx) {
 		return c.isExternalDNSReady(ctx)
 	}
 	return false
 }
 
-func (c externalDNSComponent) IsEnabled(effectiveCR runtime.Object) bool {
+func (c *externalDNSComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzcr.IsExternalDNSEnabled(effectiveCR)
 }
 
 // PostUninstall Clean up external-dns resources not removed by Uninstall()
-func (c externalDNSComponent) PostUninstall(ctx spi.ComponentContext) error {
+func (c *externalDNSComponent) PostUninstall(ctx spi.ComponentContext) error {
+	if ctx.IsDryRun() {
+		ctx.Log().Debug("%s PostUninstall dry run", ComponentName)
+		return nil
+	}
 	return postUninstall(ctx.Log(), ctx.Client())
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c externalDNSComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c *externalDNSComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling an existing OCI DNS configuration is not allowed")
@@ -94,7 +106,7 @@ func (c externalDNSComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.V
 }
 
 // ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c externalDNSComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+func (c *externalDNSComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling an existing OCI DNS configuration is not allowed")
@@ -103,7 +115,7 @@ func (c externalDNSComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazza
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
-func (c externalDNSComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+func (c *externalDNSComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	if ctx.EffectiveCR().Spec.Components.DNS != nil {
 		if ctx.EffectiveCR().Spec.Components.DNS.MonitorChanges != nil {
 			return *ctx.EffectiveCR().Spec.Components.DNS.MonitorChanges
@@ -114,6 +126,6 @@ func (c externalDNSComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 }
 
 // IsAvailable indicates whether a component is Available for end users.
-func (c externalDNSComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {
-	return (&ready.AvailabilityObjects{DeploymentNames: getDeploymentNames()}).IsAvailable(ctx.Log(), ctx.Client())
+func (c *externalDNSComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {
+	return (&ready.AvailabilityObjects{DeploymentNames: c.getDeploymentNames(ctx)}).IsAvailable(ctx.Log(), ctx.Client())
 }
