@@ -101,7 +101,6 @@ pipeline {
         TF_VAR_s3_bucket_secret_key = credentials('oci-s3-bucket-secret-key')
         TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
         TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
-        TF_VAR_region = ""
 
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
@@ -311,7 +310,7 @@ pipeline {
         stage("OCNE Cluster Driver Tests") {
             environment {
                 TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
-                API_PRIVATE_KEY_CONTENTS=$(cat ${TF_VAR_private_key_path})
+                API_PRIVATE_KEY_CONTENTS=$(cat "${TF_VAR_private_key_path}")
                 VCN_ID=$(oci network vcn list \
                     --compartment-id "${TF_VAR_compartment_id}" \
                     --display-name "${TF_VAR_label_prefix}-oke-vcn" \
