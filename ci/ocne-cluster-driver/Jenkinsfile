@@ -145,6 +145,13 @@ pipeline {
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
+
+        // for running the OCNE Driver Ginkgo suite
+        TF_VAR_label_prefix=""
+        API_PRIVATE_KEY_CONTENTS=""
+        VCN_ID=""
+        SUBNET_ID=""
+        POD_CIDR=""
     }
 
     stages {
