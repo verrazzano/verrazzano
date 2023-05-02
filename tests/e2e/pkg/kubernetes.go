@@ -1000,7 +1000,8 @@ func IsRancherEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	if vz.Spec.Components.Rancher == nil || vz.Spec.Components.Rancher.Enabled == nil {
-		return false
+		// Rancher component is enabled by default
+		return true
 	}
 	return *vz.Spec.Components.Rancher.Enabled
 }
