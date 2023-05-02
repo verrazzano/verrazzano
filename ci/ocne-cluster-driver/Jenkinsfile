@@ -101,7 +101,6 @@ pipeline {
         TF_VAR_s3_bucket_secret_key = credentials('oci-s3-bucket-secret-key')
         TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
         TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
-        TF_VAR_region = ""
 
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
@@ -146,14 +145,6 @@ pipeline {
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
-
-        // for running the OCNE Driver Ginkgo suite
-        TF_VAR_label_prefix=""
-        API_PRIVATE_KEY_CONTENTS=""
-        NODE_PUBLIC_KEY_CONTENTS=""
-        VCN_ID=""
-        SUBNET_ID=""
-        POD_CIDR=""
     }
 
     stages {
@@ -221,11 +212,9 @@ pipeline {
         }
 
         stage("Create OKE Cluster") {
-            environment {
-                TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
-            }
             steps {
                 script {
+                    env.TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
                     withCredentials([sshUserPrivateKey(credentialsId: '5fcc03de-31ce-4566-b11f-9de38e5d98fd', keyFileVariable: 'OPC_USER_KEY_FILE', passphraseVariable: 'OPC_USER_PASSPHRASE', usernameVariable: 'OPC_USERNAME')]) {
                     def RUNNER_REGION = sh(returnStdout: true, script: "curl -s -H \"Authorization: Bearer Oracle\" http://169.254.169.254/opc/v2/instance/canonicalRegionName").trim()
                     env.TF_VAR_region = "${params.DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
@@ -318,22 +307,22 @@ pipeline {
 
         stage("OCNE Cluster Driver Tests") {
             environment {
-                TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
+                env.TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
                 env.API_PRIVATE_KEY_CONTENTS=sh(returnStdout: true, script: "cat ${TF_VAR_api_private_key_path}")
                 env.NODE_PUBLIC_KEY_CONTENTS=sh(returnStdout: true, script: "cat ${TF_VAR_ssh_public_key_path}")
                 env.VCN_ID=sh(returnStdout: true, script: "oci network vcn list \
                     --compartment-id ${env.TF_VAR_compartment_id} \
-                    --display-name ${TF_VAR_label_prefix}-oke-vcn \
+                    --display-name ${env.TF_VAR_label_prefix}-oke-vcn \
                     | jq -r '.data[0].id'")
                 env.SUBNET_ID=sh(returnStdout: true, script: "oci network subnet list \
                     --compartment-id ${env.TF_VAR_compartment_id} \
                     --vcn-id ${env.VCN_ID} \
-                    --display-name ${TF_VAR_label_prefix}-workers \
+                    --display-name ${env.TF_VAR_label_prefix}-workers \
                     | jq -r '.data[0].id'")
                 env.POD_CIDR=sh(returnStdout: true, script: "oci network subnet list \
                     --compartment-id ${env.TF_VAR_compartment_id} \
                     --vcn-id ${env.VCN_ID} \
-                    --display-name ${TF_VAR_label_prefix}-workers \
+                    --display-name ${env.TF_VAR_label_prefix}-workers \
                     | jq -r '.data[0].\"cidr-block\"'")
             }
             steps {
@@ -364,7 +353,7 @@ pipeline {
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             sh """
                 if [ "${keepOKEClusterOnFailure}" == "false" ]; then
-                  TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/delete_oke_cluster.sh || true
+                  env.TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/delete_oke_cluster.sh || true
                 fi
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                   echo "Failures seen during dumping of artifacts, treat post as failed"
