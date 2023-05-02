@@ -514,3 +514,128 @@ func TestUpgradeFromPrivateRegistry(t *testing.T) {
 
 	testhelpers.AssertPrivateRegistryImage(t, c, deployment, imageRegistry, imagePrefix)
 }
+
+// TestUpgradeFromDifferentPrivateRegistry tests upgrading from a different private registry
+func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
+	// First install using a private registry
+	const imageRegistry = "testreg.io"
+	const imagePrefix = "testrepo"
+
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
+	errBuf := new(bytes.Buffer)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: new(bytes.Buffer), ErrOut: errBuf})
+	rc.SetClient(c)
+	cmd := install.NewCmdInstall(rc)
+	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.5.0")
+	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, imageRegistry)
+	cmd.PersistentFlags().Set(constants.ImagePrefixFlag, imagePrefix)
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
+	// Run install command
+	err := cmd.Execute()
+	assert.NoError(t, err)
+	assert.Equal(t, "", errBuf.String())
+
+	// Need to update the VZ status version otherwise upgrade fails
+	vz := &v1beta1.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, vz)
+	assert.NoError(t, err)
+
+	vz.Status.Version = "v1.5.0"
+	err = c.Status().Update(context.TODO(), vz)
+	assert.NoError(t, err)
+
+	// GIVEN Verrazzano is installed from a private registry
+	//
+	//	WHEN I call cmd.Execute for upgrade with different private registry settings and answer "n" when asked to proceed
+	//	THEN the upgrade is cancelled
+	const imageRegistryForUpgrade = "newreg.io"
+	const imagePrefixForUpgrade = "newrepo"
+
+	// Create a buffer for Stdin that simulates the user typing an "n" in response to the question on whether the CLI
+	// should continue with the upgrade because the registry settings are different from the settings used during install
+	inBuf := new(bytes.Buffer)
+	inBuf.WriteString("n")
+
+	outBuf := new(bytes.Buffer)
+	errBuf = new(bytes.Buffer)
+	rc = testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: inBuf, Out: outBuf, ErrOut: errBuf})
+	rc.SetClient(c)
+
+	cmd = NewCmdUpgrade(rc)
+	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.5.2")
+	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, imageRegistryForUpgrade)
+	cmd.PersistentFlags().Set(constants.ImagePrefixFlag, imagePrefixForUpgrade)
+
+	// Run upgrade command - expect that the CLI asks us if we want to continue with the existing registry settings
+	// and we reply with "n"
+	err = cmd.Execute()
+	assert.NoError(t, err)
+	assert.Contains(t, outBuf.String(), "Continue with install?")
+	assert.Equal(t, "", errBuf.String())
+
+	// Verify that the VPO deployment has the expected environment variables to enable pulling images from a private registry
+	// and that they are the settings from the install, not the upgrade
+	deployment, err := cmdHelpers.GetExistingVPODeployment(c)
+	assert.NoError(t, err)
+	assert.NotNil(t, deployment)
+	testhelpers.AssertPrivateRegistryEnvVars(t, c, deployment, imageRegistry, imagePrefix)
+
+	// Verify that the VPO image is using the install private registry settings
+	testhelpers.AssertPrivateRegistryImage(t, c, deployment, imageRegistry, imagePrefix)
+
+	// Verify that the VPO webhook image is using the install private registry settings
+	deployment, err = cmdHelpers.GetExistingVPOWebhookDeployment(c)
+	assert.NoError(t, err)
+	assert.NotNil(t, deployment)
+
+	testhelpers.AssertPrivateRegistryImage(t, c, deployment, imageRegistry, imagePrefix)
+
+	// GIVEN Verrazzano is installed from a private registry
+	//
+	//	WHEN I call cmd.Execute for upgrade with different private registry settings and answer "y" when asked to proceed
+	//	THEN the upgrade succeeds and the new registry settings are configured on the VPO
+	inBuf = new(bytes.Buffer)
+	inBuf.WriteString("y")
+
+	outBuf = new(bytes.Buffer)
+	errBuf = new(bytes.Buffer)
+	rc = testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: inBuf, Out: outBuf, ErrOut: errBuf})
+	rc.SetClient(c)
+
+	cmd = NewCmdUpgrade(rc)
+	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.5.2")
+	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, imageRegistryForUpgrade)
+	cmd.PersistentFlags().Set(constants.ImagePrefixFlag, imagePrefixForUpgrade)
+
+	// Run upgrade command - expect that the CLI asks us if we want to continue with the existing registry settings
+	// and we reply with "y"
+	err = cmd.Execute()
+	assert.NoError(t, err)
+	assert.Contains(t, outBuf.String(), "Continue with install?")
+	assert.Equal(t, "", errBuf.String())
+
+	// Verify that the VPO deployment has the expected environment variables to enable pulling images from a private registry
+	// and that they are the new settings from the upgrade
+	deployment, err = cmdHelpers.GetExistingVPODeployment(c)
+	assert.NoError(t, err)
+	assert.NotNil(t, deployment)
+	testhelpers.AssertPrivateRegistryEnvVars(t, c, deployment, imageRegistryForUpgrade, imagePrefixForUpgrade)
+
+	// Verify that the VPO image is using the upgrade private registry settings
+	testhelpers.AssertPrivateRegistryImage(t, c, deployment, imageRegistryForUpgrade, imagePrefixForUpgrade)
+
+	// Verify that the VPO webhook image is using the upgrade private registry settings
+	deployment, err = cmdHelpers.GetExistingVPOWebhookDeployment(c)
+	assert.NoError(t, err)
+	assert.NotNil(t, deployment)
+
+	testhelpers.AssertPrivateRegistryImage(t, c, deployment, imageRegistryForUpgrade, imagePrefixForUpgrade)
+}
