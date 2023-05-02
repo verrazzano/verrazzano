@@ -6,21 +6,22 @@ package system
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"regexp"
 	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
 
 const (
 	systemNamespace           = "verrazzano-system"
 	installNamespace          = "verrazzano-install"
+	capiNamespace             = "verrazzano-capi"
 	certMgrNamespace          = "cert-manager"
 	keycloakNamespace         = "keycloak"
 	cattleSystemNamespace     = "cattle-system"
@@ -34,7 +35,7 @@ const (
 )
 
 var (
-	noExceptions    = []*regexp.Regexp{}
+	noExceptions    []*regexp.Regexp
 	istioExceptions = []*regexp.Regexp{
 		regexp.MustCompile(`^-A .*$`),
 		regexp.MustCompile(`^-N .*$`),
@@ -280,6 +281,22 @@ var _ = t.Describe("Opensearch system component data", Label("f:observability.lo
 		}
 	})
 
+	t.It("contains capi index with valid records", func() {
+		// GIVEN existing system logs
+		// WHEN the Opensearch index for the verrazzano-capi namespace is retrieved
+		// THEN verify that it is found
+		indexName, err := pkg.GetOpenSearchSystemIndex(capiNamespace)
+		Expect(err).To(BeNil())
+		Eventually(func() bool {
+			return pkg.LogIndexFound(indexName)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to find Opensearch index %s", capiNamespace))
+
+		if !validateCapiSystemLogs() {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info(fmt.Sprintf("Found problems with log records in %s index", capiNamespace))
+		}
+	})
+
 	t.It("contains monitoring index with valid records", func() {
 		// GIVEN existing system logs
 		// WHEN the Opensearch index for the monitoring namespace is retrieved
@@ -511,6 +528,16 @@ func validateFleetSystemLogs() bool {
 	return validateOpensearchRecords(
 		allOpensearchRecordValidator,
 		func() (string, error) { return pkg.GetOpenSearchSystemIndex(fleetLocalSystemNamespace) },
+		"kubernetes.namespace_name",
+		"fleet-system",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateCapiSystemLogs() bool {
+	return validateOpensearchRecords(
+		allOpensearchRecordValidator,
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(capiNamespace) },
 		"kubernetes.namespace_name",
 		"fleet-system",
 		searchTimeWindow,
