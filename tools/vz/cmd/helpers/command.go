@@ -6,7 +6,6 @@ package helpers
 import (
 	"bufio"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -89,13 +88,13 @@ func GetVersion(cmd *cobra.Command, vzHelper helpers.VZHelper) (string, error) {
 
 // ConfirmWithUser asks the user a yes/no question and returns true if the user answered yes, false
 // otherwise.
-func ConfirmWithUser(questionText string, skipQuestion bool) (bool, error) {
+func ConfirmWithUser(vzHelper helpers.VZHelper, questionText string, skipQuestion bool) (bool, error) {
 	if skipQuestion {
 		return true, nil
 	}
 	var response string
-	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Printf("%s [Y/n]: ", questionText)
+	scanner := bufio.NewScanner(vzHelper.GetInputStream())
+	fmt.Fprintf(vzHelper.GetOutputStream(), "%s [Y/n]: ", questionText)
 	if scanner.Scan() {
 		response = scanner.Text()
 	}

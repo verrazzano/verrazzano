@@ -176,7 +176,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			if errConfirm != nil {
 				return errConfirm
 			}
-			proceed, err := cmdhelpers.ConfirmWithUser(fmt.Sprintf("%s\nContinue with install?", err.Error()), skipConfirm)
+			proceed, err := cmdhelpers.ConfirmWithUser(vzHelper, fmt.Sprintf("%s\nContinue with install?", err.Error()), skipConfirm)
 			if err != nil {
 				return err
 			}
