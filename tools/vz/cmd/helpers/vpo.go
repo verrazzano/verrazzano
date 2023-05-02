@@ -556,8 +556,23 @@ func ValidatePrivateRegistry(cmd *cobra.Command, client clipkg.Client) error {
 	}
 	if existingImageRegistry != newRegistry || existingImagePrefix != newImagePrefix {
 		return fmt.Errorf(
-			"Existing Verrazzano install in progress uses different private registry settings from the ones you specified. The install will continue with the existing registry %s and image prefix %s",
-			existingImageRegistry, existingImagePrefix)
+			imageRegistryMismatchError(existingImageRegistry, existingImagePrefix, newRegistry, newImagePrefix))
 	}
 	return nil
+}
+
+func imageRegistryMismatchError(existingRegistry, existingPrefix, newRegistry, newPrefix string) string {
+	existingRegistryMsg := ""
+	newRegistryMsg := ""
+	if existingRegistry == "" && existingPrefix == "" {
+		existingRegistryMsg = fmt.Sprintf("public Verrazzano image repository")
+	} else {
+		existingRegistryMsg = fmt.Sprintf("image-registry %s and image-prefix %s", existingRegistry, existingPrefix)
+	}
+	if newRegistry == "" && newPrefix == "" {
+		newRegistryMsg = fmt.Sprintf("the public Verrazzano image repository")
+	} else {
+		newRegistryMsg = fmt.Sprintf("image-registry %s and image-prefix %s", newRegistry, newPrefix)
+	}
+	return fmt.Sprintf("The existing Verrazzano installation uses %s, but you provided %s", existingRegistryMsg, newRegistryMsg)
 }

@@ -95,11 +95,12 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		if errConfirm != nil {
 			return errConfirm
 		}
-		proceed, err := cmdhelpers.ConfirmWithUser(vzHelper, fmt.Sprintf("%s\nContinue with install?", err.Error()), skipConfirm)
+		proceed, err := cmdhelpers.ConfirmWithUser(vzHelper, fmt.Sprintf("%s\nProceed to upgrade with new settings?", err.Error()), skipConfirm)
 		if err != nil {
 			return err
 		}
 		if !proceed {
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Upgrade canceled.")
 			return nil
 		}
 	}
