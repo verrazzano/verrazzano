@@ -30,7 +30,7 @@ const (
 		"ociocneEngineConfig": {
 			"displayName": "{{.ClusterName}}",
 			"driverName": "ociocneengine",
-			"vcnId": "{{.VcnId}}",
+			"vcnId": "{{.VcnID}}",
 			"nodePublicKeyContents": "{{.NodePublicKeyContents}}",
 			"compartmentId": "{{.CompartmentID}}",
 			"workerNodeSubnet": "{{.WorkerNodeSubnet}}",
@@ -99,7 +99,7 @@ type cloudCredentialsData struct {
 // capiClusterData needed for template rendering
 type capiClusterData struct {
 	ClusterName           string
-	VcnId                 string
+	VcnID                 string
 	NodePublicKeyContents string
 	CompartmentID         string
 	WorkerNodeSubnet      string
@@ -151,8 +151,8 @@ func createCloudCredential(credentialName string) string {
 		CredentialName:     credentialName,
 		Fingerprint:        fingerprint,
 		PrivateKeyContents: privateKeyContents,
-		TenancyID:          tenancyId,
-		UserID:             userId,
+		TenancyID:          tenancyID,
+		UserID:             userID,
 	}
 	buf := &bytes.Buffer{}
 	err := executeCloudCredentialsTemplate(&credentialsData, buf)
@@ -185,9 +185,9 @@ func createCluster(clusterName string) {
 	// FIXME: which vcn, compartment, etc. to use
 	capiClusterData := capiClusterData{
 		ClusterName:           clusterName,
-		VcnId:                 vcnId,
+		VcnID:                 vcnID,
 		NodePublicKeyContents: nodePublicKeyContents,
-		CompartmentID:         compartmentId,
+		CompartmentID:         compartmentID,
 		WorkerNodeSubnet:      workerNodeSubnet,
 		ControlPlaneSubnet:    controlPlaneSubnet,
 		LoadBalancerSubnet:    loadBalancerSubnet,

@@ -11,13 +11,13 @@ import (
 )
 
 var region string
-var vcnId string
-var userId string
-var tenancyId string
+var vcnID string
+var userID string
+var tenancyID string
 var fingerprint string
 var privateKeyContents string
 var nodePublicKeyContents string
-var compartmentId string
+var compartmentID string
 var workerNodeSubnet string
 var controlPlaneSubnet string
 var loadBalancerSubnet string
@@ -25,10 +25,10 @@ var podCidr string
 
 func init() {
 	flag.StringVar(&region, "region", "", "region represents the region where the CAPI cluster will be created")
-	flag.StringVar(&userId, "userId", "", "userId represents the user ID")
-	flag.StringVar(&tenancyId, "tenancyId", "", "tenancyId represents the tenancy ID")
-	flag.StringVar(&compartmentId, "compartmentId", "", "compartmentId represents the compartment ID")
-	flag.StringVar(&vcnId, "vcnId", "", "vcnId represents the VCN ID")
+	flag.StringVar(&userID, "userID", "", "userID represents the user ID")
+	flag.StringVar(&tenancyID, "tenancyID", "", "tenancyID represents the tenancy ID")
+	flag.StringVar(&compartmentID, "compartmentID", "", "compartmentID represents the compartment ID")
+	flag.StringVar(&vcnID, "vcnID", "", "vcnID represents the VCN ID")
 	flag.StringVar(&fingerprint, "fingerprint", "", "fingerprint represents the OCI Credential config fingerprint")
 	flag.StringVar(&privateKeyContents, "privateKeyContents", "", "privateKeyContents represents the OCI Credential config private key contents")
 	flag.StringVar(&nodePublicKeyContents, "nodePublicKeyContents", "", "privateKeyContents represents the node public key contents")
