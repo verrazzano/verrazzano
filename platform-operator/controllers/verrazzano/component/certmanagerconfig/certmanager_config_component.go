@@ -5,6 +5,7 @@ package certmanagerconfig
 
 import (
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
@@ -60,6 +61,10 @@ func (c certManagerConfigComponent) IsEnabled(_ runtime.Object) bool {
 
 // IsReady component check
 func (c certManagerConfigComponent) IsReady(ctx spi.ComponentContext) bool {
+	if ctx.IsDryRun() {
+		ctx.Log().Debug("cert-manager-config PostInstall dry run")
+		return true
+	}
 	if !c.cmCRDsExist(ctx.Log(), ctx.Client()) {
 		return false
 	}
@@ -67,6 +72,14 @@ func (c certManagerConfigComponent) IsReady(ctx spi.ComponentContext) bool {
 }
 
 func (c certManagerConfigComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
+	if ctx.IsDryRun() {
+		ctx.Log().Debug("cert-manager-config PostInstall dry run")
+		return true, nil
+	}
+	if err := common.CertManagerExistsInCluster(ctx.Log(), ctx.Client()); err != nil {
+		ctx.Log().ErrorfThrottled("Error checking if CertManager CRDs exist: %s", err.Error())
+		return false, spi2.RetryableError{}
+	}
 	return c.verrazzanoCertManagerResourcesReady(ctx), nil
 }
 
@@ -87,16 +100,28 @@ func (c certManagerConfigComponent) PreInstall(compContext spi.ComponentContext)
 }
 
 func (c certManagerConfigComponent) Install(compContext spi.ComponentContext) error {
+	if compContext.IsDryRun() {
+		compContext.Log().Debug("cert-manager-config PostInstall dry run")
+		return nil
+	}
 	// Set up cluster issuer, eventually perhaps move resource config to a chart or a different controller
 	return c.createOrUpdateClusterIssuer(compContext)
 }
 
 func (c certManagerConfigComponent) Upgrade(compContext spi.ComponentContext) error {
+	if compContext.IsDryRun() {
+		compContext.Log().Debug("cert-manager-config PostInstall dry run")
+		return nil
+	}
 	// Update cluster issuer and certs if necessary, eventually perhaps move resource config to a chart or a different controller
 	return c.Install(compContext)
 }
 
 func (c certManagerConfigComponent) PreUpgrade(compContext spi.ComponentContext) error {
+	if compContext.IsDryRun() {
+		compContext.Log().Debug("cert-manager-config PostInstall dry run")
+		return nil
+	}
 	return common.CertManagerExistsInCluster(compContext.Log(), compContext.Client())
 }
 

@@ -10,8 +10,11 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"math/big"
 	"net"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 	"time"
 
@@ -41,14 +44,77 @@ const (
 	testOCIDNSName = "ociDNS"
 )
 
+func TestIsInstalledCMNotPresent(t *testing.T) {
+	runIsInstalledTest(t, false, true)
+}
+
+func TestIsInstalledCMAndIssuerArePresent(t *testing.T) {
+	runIsInstalledTest(t, true, false, createCertManagerCRDs()...)
+}
+
+func runIsInstalledTest(t *testing.T, expectInstalled bool, expectErr bool, objs ...clipkg.Object) {
+	var clientObjs []clipkg.Object
+	if expectInstalled {
+		clientObjs = append(clientObjs, &certv1.ClusterIssuer{ObjectMeta: metav1.ObjectMeta{Name: constants2.VerrazzanoClusterIssuerName}})
+	}
+	if len(objs) > 0 {
+		clientObjs = append(clientObjs, objs...)
+	}
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(clientObjs...).Build()
+	defer func() { common.ResetNewClientFunc() }()
+	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
+		return client, nil
+	})
+
+	fakeContext := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
+	installed, err := fakeComponent.IsInstalled(fakeContext)
+	assert.Equal(t, expectInstalled, installed, "Did not get expected result")
+	if expectErr {
+		assert.Error(t, err, "Did not get expected error")
+	} else {
+		assert.NoError(t, err, "Got unexpected error")
+	}
+}
+
+func TestIsNotReadyNoCertManagerResourcesPresent(t *testing.T) {
+	runIsReadyTest(t, false)
+}
+
+func TestIsNotReady(t *testing.T) {
+	runIsReadyTest(t, false, createCertManagerCRDs()...)
+}
+
+func TestIsReady(t *testing.T) {
+	runIsReadyTest(t, true, createCertManagerCRDs()...)
+}
+
+func runIsReadyTest(t *testing.T, expectedReady bool, objs ...clipkg.Object) {
+	var clientObjs []clipkg.Object
+	if expectedReady {
+		clientObjs = append(clientObjs, &certv1.ClusterIssuer{ObjectMeta: metav1.ObjectMeta{Name: constants2.VerrazzanoClusterIssuerName}})
+	}
+	if len(objs) > 0 {
+		clientObjs = append(clientObjs, objs...)
+	}
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(clientObjs...).Build()
+	defer func() { common.ResetNewClientFunc() }()
+	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
+		return client, nil
+	})
+
+	fakeContext := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
+	ready := fakeComponent.IsReady(fakeContext)
+	assert.Equal(t, expectedReady, ready, "Did not get expected result")
+}
+
 // TestValidateInstall tests the ValidateInstall function
 // GIVEN a call to ValidateInstall
 //
 //	WHEN for various CM configurations
 //	THEN an error is returned if anything is misconfigured
-//func TestValidateInstall(t *testing.T) {
-//	validationTests(t, false)
-//}
+func TestValidateInstall(t *testing.T) {
+	validationTests(t, false)
+}
 
 // TestPostInstallCA tests the PostInstall function
 // GIVEN a call to PostInstall
@@ -168,91 +234,94 @@ func TestPostInstallAcme(t *testing.T) {
 //
 //	WHEN the cert type is Acme and the config has been updated
 //	THEN the ClusterIssuer is updated as expected no error is returned
-//func TestPostUpgradeAcmeUpdate(t *testing.T) {
-//	runAcmeUpdateTest(t, true)
-//}
+func TestPostUpgradeAcmeUpdate(t *testing.T) {
+	runAcmeUpdateTest(t, true)
+}
 
 // TestPostInstallAcme tests the PostInstall function
 // GIVEN a call to PostInstall
 //
 //	WHEN the cert type is Acme and the config has been updated
 //	THEN the ClusterIssuer is updated as expected no error is returned
-//func TestPostInstallAcmeUpdate(t *testing.T) {
-//	runAcmeUpdateTest(t, false)
-//}
+func TestPostInstallAcmeUpdate(t *testing.T) {
+	runAcmeUpdateTest(t, false)
+}
 
-//func runAcmeUpdateTest(t *testing.T, upgrade bool) {
-//	localvz := defaultVZConfig.DeepCopy()
-//	localvz.Spec.Components.CertManager.Certificate.Acme = acme
-//	// set OCI DNS secret value and create secret
-//	oci := &vzapi.OCI{
-//		OCIConfigSecret: testOCIDNSName,
-//		DNSZoneName:     testDNSDomain,
-//	}
-//	localvz.Spec.Components.DNS = &vzapi.DNSComponent{
-//		OCI: oci,
-//	}
-//
-//	oldSecret := &corev1.Secret{
-//		ObjectMeta: metav1.ObjectMeta{
-//			Name:      testOCIDNSName,
-//			Namespace: ComponentNamespace,
-//		},
-//	}
-//
-//	newSecret := &corev1.Secret{
-//		ObjectMeta: metav1.ObjectMeta{
-//			Name:      "newociDNSSecret",
-//			Namespace: ComponentNamespace,
-//		},
-//	}
-//
-//	existingIssuer, _ := createAcmeClusterIssuer(vzlog.DefaultLogger(), templateData{
-//		Email:          acme.EmailAddress,
-//		AcmeSecretName: caAcmeSecretName,
-//		Server:         acme.Environment,
-//		SecretName:     oci.OCIConfigSecret,
-//		OCIZoneName:    oci.DNSZoneName,
-//	})
-//
-//	updatedVz := defaultVZConfig.DeepCopy()
-//	newAcme := vzapi.Acme{
-//		Provider:     "letsEncrypt",
-//		EmailAddress: "slbronkowitz@gmail.com",
-//		Environment:  "production",
-//	}
-//	newOCI := &vzapi.OCI{
-//		DNSZoneCompartmentOCID: "somenewocid",
-//		OCIConfigSecret:        newSecret.Name,
-//		DNSZoneName:            "newzone.dns.io",
-//	}
-//	updatedVz.Spec.Components.CertManager.Certificate.Acme = newAcme
-//	updatedVz.Spec.Components.DNS = &vzapi.DNSComponent{OCI: newOCI}
-//
-//	expectedIssuer, _ := createAcmeClusterIssuer(vzlog.DefaultLogger(), templateData{
-//		Email:          newAcme.EmailAddress,
-//		AcmeSecretName: caAcmeSecretName,
-//		Server:         letsEncryptProdEndpoint,
-//		SecretName:     newOCI.OCIConfigSecret,
-//		OCIZoneName:    newOCI.DNSZoneName,
-//	})
-//
-//	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(localvz, oldSecret, newSecret, existingIssuer).Build()
-//	ctx := spi.NewFakeContext(client, updatedVz, nil, false)
-//
-//	var err error
-//	if upgrade {
-//		err = fakeComponent.PostUpgrade(ctx)
-//	} else {
-//		err = fakeComponent.PostInstall(ctx)
-//	}
-//	assert.NoError(t, err)
-//
-//	actualIssuer, _ := createACMEIssuerObject(ctx)
-//	assert.Equal(t, expectedIssuer.Object["spec"], actualIssuer.Object["spec"])
-//	assert.NoError(t, client.Get(context.TODO(), types.NamespacedName{Name: constants2.VerrazzanoClusterIssuerName}, actualIssuer))
-//
-//}
+func runAcmeUpdateTest(t *testing.T, upgrade bool) {
+	localvz := defaultVZConfig.DeepCopy()
+	localvz.Spec.Components.CertManager.Certificate.Acme = acme
+	// set OCI DNS secret value and create secret
+	compartmentOCID := "compartmentID"
+	oci := &vzapi.OCI{
+		OCIConfigSecret:        testOCIDNSName,
+		DNSZoneName:            testDNSDomain,
+		DNSZoneCompartmentOCID: compartmentOCID,
+	}
+	localvz.Spec.Components.DNS = &vzapi.DNSComponent{
+		OCI: oci,
+	}
+
+	oldSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testOCIDNSName,
+			Namespace: ComponentNamespace,
+		},
+	}
+
+	newSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "newociDNSSecret",
+			Namespace: ComponentNamespace,
+		},
+	}
+
+	existingIssuer, _ := createAcmeClusterIssuer(vzlog.DefaultLogger(), templateData{
+		Email:          acme.EmailAddress,
+		AcmeSecretName: caAcmeSecretName,
+		Server:         acme.Environment,
+		SecretName:     oci.OCIConfigSecret,
+		OCIZoneName:    oci.DNSZoneName,
+	})
+
+	updatedVz := defaultVZConfig.DeepCopy()
+	newAcme := vzapi.Acme{
+		Provider:     "letsEncrypt",
+		EmailAddress: "slbronkowitz@gmail.com",
+		Environment:  "production",
+	}
+	const newCompartmentOCID = "somenewocid"
+	newOCI := &vzapi.OCI{
+		DNSZoneCompartmentOCID: newCompartmentOCID,
+		OCIConfigSecret:        newSecret.Name,
+		DNSZoneName:            "newzone.dns.io",
+	}
+	updatedVz.Spec.Components.CertManager.Certificate.Acme = newAcme
+	updatedVz.Spec.Components.DNS = &vzapi.DNSComponent{OCI: newOCI}
+
+	expectedIssuer, _ := createAcmeClusterIssuer(vzlog.DefaultLogger(), templateData{
+		Email:           newAcme.EmailAddress,
+		AcmeSecretName:  caAcmeSecretName,
+		Server:          letsEncryptProdEndpoint,
+		SecretName:      newOCI.OCIConfigSecret,
+		OCIZoneName:     newOCI.DNSZoneName,
+		CompartmentOCID: newCompartmentOCID,
+	})
+
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(localvz, oldSecret, newSecret, existingIssuer).Build()
+	ctx := spi.NewFakeContext(client, updatedVz, nil, false)
+
+	var err error
+	if upgrade {
+		err = fakeComponent.PostUpgrade(ctx)
+	} else {
+		err = fakeComponent.PostInstall(ctx)
+	}
+	assert.NoError(t, err)
+
+	actualIssuer, err := createACMEIssuerObject(ctx)
+	assert.Equal(t, expectedIssuer.Object["spec"], actualIssuer.Object["spec"])
+	assert.NoError(t, err)
+}
 
 // TestClusterIssuerUpdated tests the createOrUpdateClusterIssuer function
 // GIVEN a call to createOrUpdateClusterIssuer
@@ -286,7 +355,7 @@ func TestClusterIssuerUpdated(t *testing.T) {
 		},
 	}
 
-	// The a certificate that we expect to be renewed
+	// The certificate that we expect to be renewed
 	certName := "mycert"
 	certNamespace := "certns"
 	certificate := &certv1.Certificate{
@@ -422,6 +491,30 @@ func TestClusterIssuerUpdated(t *testing.T) {
 	asserts.NotNil(otherReq)
 }
 
+func TestUninstallNoCRDs(t *testing.T) {
+	runUninstallTest(t)
+}
+
+func TestUninstall(t *testing.T) {
+	runUninstallTest(t, createCertManagerCRDs()...)
+}
+
+func runUninstallTest(t *testing.T, objs ...clipkg.Object) {
+	defer func() { common.ResetNewClientFunc() }()
+
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(objs...).Build()
+	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
+		return client, nil
+	})
+
+	fakeContext := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
+
+	// We do more exhaustive testing of uninstall in the tests for uninstallVerrazzanoCertManagerResources, so
+	// we don't expect errors here
+	err := fakeComponent.Uninstall(fakeContext)
+	assert.NoError(t, err, "Got unexpected error")
+}
+
 // TestDryRun tests the behavior when DryRun is enabled, mainly for code coverage
 // GIVEN a call to PostInstall/PostUpgrade/PreInstall
 //
@@ -433,7 +526,18 @@ func TestDryRun(t *testing.T) {
 
 	assert.NoError(t, fakeComponent.PreInstall(ctx))
 	assert.NoError(t, fakeComponent.PostInstall(ctx))
+	assert.True(t, fakeComponent.IsReady(ctx))
+
+	installed, err := fakeComponent.IsInstalled(ctx)
+	assert.True(t, installed)
+	assert.NoError(t, err)
+
+	assert.NoError(t, fakeComponent.Install(ctx))
+	assert.NoError(t, fakeComponent.PreUpgrade(ctx))
+	assert.NoError(t, fakeComponent.Upgrade(ctx))
 	assert.NoError(t, fakeComponent.PostUpgrade(ctx))
+
+	assert.NoError(t, fakeComponent.Uninstall(ctx))
 }
 
 func createCertSecret(name string, namespace string, fakeCertBytes []byte) (*corev1.Secret, error) {
@@ -537,121 +641,132 @@ func createFakeCertificate(cn string) *x509.Certificate {
 	return cert
 }
 
-//// All of this below is to make Sonar happy
-//type validationTestStruct struct {
-//	name      string
-//	old       *vzapi.Verrazzano
-//	new       *vzapi.Verrazzano
-//	coreV1Cli func(_ ...vzlog.VerrazzanoLogger) (v1.CoreV1Interface, error)
-//	wantErr   bool
-//	cmObjs    []runtime.Object
-//}
-//
-//var tests = []validationTestStruct{
-//	{
-//		name: "No CertManager present",
-//		old: &vzapi.Verrazzano{
-//			Spec: vzapi.VerrazzanoSpec{
-//				Components: vzapi.ComponentSpec{
-//					CertManager: &vzapi.CertManagerComponent{
-//						Enabled: getBoolPtr(false),
-//					},
-//				},
-//			},
-//		},
-//		new: &vzapi.Verrazzano{
-//			Spec: vzapi.VerrazzanoSpec{
-//				Components: vzapi.ComponentSpec{
-//					CertManager: &vzapi.CertManagerComponent{
-//						Enabled: getBoolPtr(false),
-//					},
-//				},
-//			},
-//		},
-//		wantErr: true,
-//	},
-//	{
-//		name: "CertManager Component enabled",
-//		old:  &vzapi.Verrazzano{},
-//		new: &vzapi.Verrazzano{
-//			Spec: vzapi.VerrazzanoSpec{
-//				Components: vzapi.ComponentSpec{
-//					CertManager: &vzapi.CertManagerComponent{
-//						Enabled: getBoolPtr(true),
-//					},
-//				},
-//			},
-//		},
-//		wantErr: false,
-//	},
-//	{
-//		name: "CertManager Component enabled",
-//		old:  &vzapi.Verrazzano{},
-//		new: &vzapi.Verrazzano{
-//			Spec: vzapi.VerrazzanoSpec{
-//				Components: vzapi.ComponentSpec{
-//					CertManager: &vzapi.CertManagerComponent{
-//						Enabled: getBoolPtr(true),
-//					},
-//				},
-//			},
-//		},
-//		wantErr: false,
-//	},
-//	{
-//		name:    "Externally provisioned CM",
-//		old:     &vzapi.Verrazzano{},
-//		new:     &vzapi.Verrazzano{},
-//		cmObjs:  createCertManagerCRDsRuntimeObjs(),
-//		wantErr: false,
-//	},
-//}
-//
-//func validationTests(t *testing.T, isUpdate bool) {
-//	defer func() { getAPIExtV1ClientFunc = k8sutil.GetAPIExtV1Func }()
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			if tt.name == "Cert Manager Namespace already exists" && isUpdate { // will throw error only during installation
-//				tt.wantErr = false
-//			}
-//			c := NewComponent()
-//			getAPIExtV1ClientFunc = getTestClient(tt.cmObjs...)
-//			runValidationTest(t, tt, isUpdate, c)
-//		})
-//	}
-//}
+// All of this below is to make Sonar happy
+type validationTestStruct struct {
+	name      string
+	old       *vzapi.Verrazzano
+	new       *vzapi.Verrazzano
+	coreV1Cli func(_ ...vzlog.VerrazzanoLogger) (v1.CoreV1Interface, error)
+	wantErr   bool
+}
 
-//func runValidationTest(t *testing.T, tt validationTestStruct, isUpdate bool, c spi.Component) {
-//	//	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
-//	if isUpdate {
-//		if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
-//			t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
-//		}
-//		v1beta1New := &v1beta1.Verrazzano{}
-//		v1beta1Old := &v1beta1.Verrazzano{}
-//		err := tt.new.ConvertTo(v1beta1New)
-//		assert.NoError(t, err)
-//		err = tt.old.ConvertTo(v1beta1Old)
-//		assert.NoError(t, err)
-//		if err := c.ValidateUpdateV1Beta1(v1beta1Old, v1beta1New); (err != nil) != tt.wantErr {
-//			t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
-//		}
-//
-//	} else {
-//		wantErr := tt.name != "disable" && tt.wantErr // hack for disable validation, allowed on initial install but not on update
-//		if tt.coreV1Cli != nil {
-//			k8sutil.GetCoreV1Func = tt.coreV1Cli
-//		} else {
-//			k8sutil.GetCoreV1Func = common.MockGetCoreV1()
-//		}
-//		if err := c.ValidateInstall(tt.new); (err != nil) != wantErr {
-//			t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
-//		}
-//		v1beta1Vz := &v1beta1.Verrazzano{}
-//		err := tt.new.ConvertTo(v1beta1Vz)
-//		assert.NoError(t, err)
-//		if err := c.ValidateInstallV1Beta1(v1beta1Vz); (err != nil) != wantErr {
-//			t.Errorf("ValidateInstallV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
-//		}
-//	}
-//}
+var tests = []validationTestStruct{
+	{
+		name:    "No OCI DNS or CertManager present",
+		old:     &vzapi.Verrazzano{},
+		new:     &vzapi.Verrazzano{},
+		wantErr: false,
+	},
+	{
+		name: "CertManager and OCI DNS webhook enabled",
+		old:  &vzapi.Verrazzano{},
+		new: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					CertManager: &vzapi.CertManagerComponent{
+						Enabled: getBoolPtr(true),
+					},
+					DNS: &vzapi.DNSComponent{
+						OCI: &vzapi.OCI{
+							DNSScope:               "GLOBAL",
+							DNSZoneCompartmentOCID: "ocid",
+							DNSZoneOCID:            "zoneOcid",
+							DNSZoneName:            "zoneName",
+							OCIConfigSecret:        "oci",
+						},
+					},
+				},
+			},
+		},
+		wantErr: false,
+	},
+	{
+		name: "CertManager Disabled and OCI DNS webhook enabled",
+		old:  &vzapi.Verrazzano{},
+		new: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					CertManager: &vzapi.CertManagerComponent{
+						Enabled: getBoolPtr(false),
+					},
+					DNS: &vzapi.DNSComponent{
+						OCI: &vzapi.OCI{
+							DNSScope:               "GLOBAL",
+							DNSZoneCompartmentOCID: "ocid",
+							DNSZoneOCID:            "zoneOcid",
+							DNSZoneName:            "zoneName",
+							OCIConfigSecret:        "oci",
+						},
+					},
+				},
+			},
+		},
+		wantErr: false,
+	},
+	{
+		name: "CertManager Component enabled",
+		old:  &vzapi.Verrazzano{},
+		new: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					CertManager: &vzapi.CertManagerComponent{
+						Enabled: getBoolPtr(true),
+					},
+				},
+			},
+		},
+		wantErr: false,
+	},
+}
+
+func validationTests(t *testing.T, isUpdate bool) {
+	defer func() { common.ResetNewClientFunc() }()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.name == "Cert Manager Namespace already exists" && isUpdate { // will throw error only during installation
+				tt.wantErr = false
+			}
+			client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(createCertManagerCRDs()...).Build()
+			common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
+				return client, nil
+			})
+			c := NewComponent()
+			runValidationTest(t, tt, isUpdate, c)
+		})
+	}
+}
+
+func runValidationTest(t *testing.T, tt validationTestStruct, isUpdate bool, c spi.Component) {
+	//	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+	if isUpdate {
+		if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
+			t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+		}
+		v1beta1New := &v1beta1.Verrazzano{}
+		v1beta1Old := &v1beta1.Verrazzano{}
+		err := tt.new.ConvertTo(v1beta1New)
+		assert.NoError(t, err)
+		err = tt.old.ConvertTo(v1beta1Old)
+		assert.NoError(t, err)
+		if err := c.ValidateUpdateV1Beta1(v1beta1Old, v1beta1New); (err != nil) != tt.wantErr {
+			t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
+		}
+
+	} else {
+		wantErr := tt.name != "disable" && tt.wantErr // hack for disable validation, allowed on initial install but not on update
+		if tt.coreV1Cli != nil {
+			k8sutil.GetCoreV1Func = tt.coreV1Cli
+		} else {
+			k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+		}
+		if err := c.ValidateInstall(tt.new); (err != nil) != wantErr {
+			t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
+		}
+		v1beta1Vz := &v1beta1.Verrazzano{}
+		err := tt.new.ConvertTo(v1beta1Vz)
+		assert.NoError(t, err)
+		if err := c.ValidateInstallV1Beta1(v1beta1Vz); (err != nil) != wantErr {
+			t.Errorf("ValidateInstallV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
+		}
+	}
+}

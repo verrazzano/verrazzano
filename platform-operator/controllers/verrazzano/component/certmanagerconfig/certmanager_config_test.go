@@ -108,33 +108,78 @@ func TestIsCertManagerDisabled(t *testing.T) {
 	assert.False(t, fakeComponent.IsEnabled(localvz))
 }
 
-// TestCertManagerPreInstall tests the PreInstall fn
+// TestCertManagerOCIDNSPreInstall tests the PreInstall fn
 // GIVEN a call to this fn
 // WHEN I call PreInstall with dry-run = true
 // THEN no errors are returned
-func TestCertManagerPreInstallDryRun(t *testing.T) {
+func TestCertManagerOCIDNSPreInstallDryRun(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, true))
 	assert.NoError(t, err)
 }
 
-// TestCertManagerPreInstall tests the PreInstall fn
+// TestCertManagerOCIDNSPreInstall tests the PreInstall fn
 // GIVEN a call to this fn
 // WHEN I call PreInstall
 // THEN no errors are returned
-func TestCertManagerPreInstall(t *testing.T) {
+func TestCertManagerOCIDNSPreInstall(t *testing.T) {
+	defaultConfig := config.Get()
 	config.Set(config.OperatorConfig{
 		VerrazzanoRootDir: "../../../../..", //since we are running inside the cert manager package, root is up 5 directories
 	})
-	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(createCertManagerCRDs()...).Build()
+	defer func() { common.ResetNewClientFunc(); config.Set(defaultConfig) }()
 
+	runPreChecksTest(t, false, false, createCertManagerCRDs()...)
+}
+
+// TestCertManagerOCIDNSPreUpgrade tests the PreInstall fn
+// GIVEN a call to this fn
+// WHEN I call PreInstall
+// THEN no errors are returned
+func TestCertManagerOCIDNSPreUpgrade(t *testing.T) {
+	defaultConfig := config.Get()
+	config.Set(config.OperatorConfig{
+		VerrazzanoRootDir: "../../../../..", //since we are running inside the cert manager package, root is up 5 directories
+	})
+	defer func() { common.ResetNewClientFunc(); config.Set(defaultConfig) }()
+
+	runPreChecksTest(t, true, false, createCertManagerCRDs()...)
+}
+
+// TestCertManagerOCIDNSPreInstallNoCertManagerCRDs tests the PreInstall fn
+// GIVEN a call to this fn
+// WHEN I call PreInstall and the CertManager CRDs are not present in the cluster
+// THEN An error is returned
+func TestCertManagerOCIDNSPreInstallNoCertManagerCRDs(t *testing.T) {
+	runPreChecksTest(t, false, true)
+}
+
+// TestCertManagerOCIDNSPreUpgradeNoCertManagerCRDs tests the PreUpgrade fn
+// GIVEN a call to this fn
+// WHEN I call PreInstall and the CertManager CRDs are not present in the cluster
+// THEN An error is returned
+func TestCertManagerOCIDNSPreUpgradeNoCertManagerCRDs(t *testing.T) {
+	runPreChecksTest(t, true, true)
+}
+
+func runPreChecksTest(t *testing.T, isUpgrade bool, expectErr bool, crdObjs ...clipkg.Object) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(crdObjs...).Build()
 	defer func() { common.ResetNewClientFunc() }()
 	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
 		return client, nil
 	})
 
-	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false))
-	assert.NoError(t, err)
+	var err error
+	if !isUpgrade {
+		err = fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false))
+	} else {
+		err = fakeComponent.PreUpgrade(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false))
+	}
+	if expectErr {
+		assert.Error(t, err, "Did not get expected error")
+	} else {
+		assert.NoError(t, err, "Got unexpected error")
+	}
 }
 
 // TestIsCertManagerConfigReady tests the verrazzanoCertManagerResourcesReady function
@@ -504,7 +549,7 @@ func TestUninstallCertManager(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			objs := createCertManagerCRDsRuntimeObjs()
+			objs := createCertManagerCRDs()
 			objs = append(objs, tt.objects...)
 			c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(objs...).Build()
 			fakeContext := spi.NewFakeContext(c, vz, nil, false, profileDir)
@@ -599,14 +644,6 @@ func certificateExists(client clipkg.Client, name string, namespace string) (boo
 		return false, clipkg.IgnoreNotFound(err)
 	}
 	return true, nil
-}
-
-func createCertManagerCRDsRuntimeObjs() []clipkg.Object {
-	var cmCRDs []clipkg.Object
-	for _, crd := range common.GetRequiredCertManagerCRDNames() {
-		cmCRDs = append(cmCRDs, newCRD(crd))
-	}
-	return cmCRDs
 }
 
 func createCertManagerCRDs() []clipkg.Object {

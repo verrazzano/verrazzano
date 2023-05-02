@@ -415,28 +415,3 @@ func getSingleOverrideCR() *vzapi.Verrazzano {
 		},
 	}
 }
-
-//func createCertManagerCRDsRuntimeObjs() []runtime.Object {
-//	var cmCRDs []runtime.Object
-//	for _, crd := range common.GetRequiredCertManagerCRDNames() {
-//		cmCRDs = append(cmCRDs, newCRD(crd))
-//	}
-//	return cmCRDs
-//}
-//
-//func createCertManagerCRDs() []clipkg.Object {
-//	var cmCRDs []clipkg.Object
-//	for _, crd := range common.GetRequiredCertManagerCRDNames() {
-//		cmCRDs = append(cmCRDs, newCRD(crd))
-//	}
-//	return cmCRDs
-//}
-//
-//func newCRD(name string) clipkg.Object {
-//	crd := &apiextv1.CustomResourceDefinition{
-//		ObjectMeta: metav1.ObjectMeta{
-//			Name: name,
-//		},
-//	}
-//	return crd
-//}

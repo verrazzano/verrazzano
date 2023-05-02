@@ -18,9 +18,11 @@ const (
 // isCertManagerReady checks the state of the expected cert-manager deployments and returns true if they are in a ready state
 func isCertManagerOciDNSReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{}
-	if vzcr.IsOCIDNSEnabled(context.EffectiveCR()) {
-		deployments = append(deployments, types.NamespacedName{Name: ocidnsDeploymentName, Namespace: ComponentNamespace})
+	if !vzcr.IsOCIDNSEnabled(context.EffectiveCR()) {
+		context.Log().Oncef("OCI DNS is not enabled, skipping ready check")
+		return true
 	}
+	deployments = append(deployments, types.NamespacedName{Name: ocidnsDeploymentName, Namespace: ComponentNamespace})
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
 	return ready.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 }

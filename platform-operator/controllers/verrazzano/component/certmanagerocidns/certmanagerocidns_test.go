@@ -4,6 +4,10 @@
 package certmanagerocidns
 
 import (
+	"context"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -72,116 +76,144 @@ func TestCertManagerOciDNSPreInstallDryRun(t *testing.T) {
 // GIVEN a call to IsReady
 // WHEN the deployment object has enough replicas available
 // THEN true is returned
-//func TestIsCertManagerOciDNSReady(t *testing.T) {
-//	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).
-//		WithObjects(newDeployment(ocidnsDeploymentName, false)).
-//		Build()
-//	vz := vzapi.Verrazzano{
-//		Spec: vzapi.VerrazzanoSpec{
-//			Components: vzapi.ComponentSpec{
-//				DNS: &vzapi.DNSComponent{
-//					OCI: &vzapi.OCI{
-//						OCIConfigSecret: "oci",
-//					},
-//				},
-//			},
-//		},
-//	}
-//	assert.False(t, isCertManagerOciDNSReady(spi.NewFakeContext(client, &vz, nil, false)))
-//
-//	client = fake.NewClientBuilder().WithScheme(k8scheme.Scheme).
-//		WithObjects(
-//			newDeployment(ocidnsDeploymentName, true),
-//			newPod(ComponentNamespace, "cert-manager-ocidns-provider"),
-//			newReplicaSet(ComponentNamespace, "cert-manager-ocidns-provider"),
-//		).
-//		Build()
-//	assert.True(t, isCertManagerOciDNSReady(spi.NewFakeContext(client, &vz, nil, false)))
-//}
+func TestIsCertManagerOciDNSReady(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).
+		WithObjects(newDeployment(ocidnsDeploymentName, false)).
+		Build()
+	vz := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				DNS: &vzapi.DNSComponent{
+					OCI: &vzapi.OCI{
+						OCIConfigSecret: "oci",
+					},
+				},
+			},
+		},
+	}
+	assert.False(t, isCertManagerOciDNSReady(spi.NewFakeContext(client, &vz, nil, false)))
+
+	client = fake.NewClientBuilder().WithScheme(k8scheme.Scheme).
+		WithObjects(
+			newDeployment(ocidnsDeploymentName, true),
+			newPod(ComponentNamespace, "cert-manager-ocidns-provider"),
+			newReplicaSet(ComponentNamespace, "cert-manager-ocidns-provider"),
+		).
+		Build()
+	assert.True(t, isCertManagerOciDNSReady(spi.NewFakeContext(client, &vz, nil, false)))
+}
 
 // TestIsCertManagerNotReady tests the isCertManagerReady function
 // GIVEN a call to isCertManagerReady
 // WHEN the deployment object does not have enough replicas available
 // THEN false is returned
-//func TestIsCertManagerOciDNSNotReady(t *testing.T) {
-//	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).
-//		WithObjects(newDeployment(ocidnsDeploymentName, true)).
-//		Build()
-//	assert.False(t, isCertManagerOciDNSReady(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)))
-//}
+func TestIsCertManagerOciDNSNotReady(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).
+		WithObjects(newDeployment(ocidnsDeploymentName, false)).
+		Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				DNS: &vzapi.DNSComponent{
+					OCI: &vzapi.OCI{
+						OCIConfigSecret: "oci",
+					},
+				},
+			},
+		},
+	}
+	assert.False(t, isCertManagerOciDNSReady(spi.NewFakeContext(client, vz, nil, false)))
+}
+
+// TestIsCertManagerNotReady tests the isCertManagerReady function
+// GIVEN a call to isCertManagerReady
+// WHEN the deployment object does not have enough replicas available
+// THEN false is returned
+func TestIsCertManagerOciDNSReadyDisabled(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).
+		WithObjects(newDeployment(ocidnsDeploymentName, false)).
+		Build()
+	vz := &vzapi.Verrazzano{}
+	assert.True(t, isCertManagerOciDNSReady(spi.NewFakeContext(client, vz, nil, false)))
+}
 
 // TestPostInstallAcme tests the PostInstall function
 // GIVEN a call to PostInstall
 //
 //	WHEN the cert type is Acme
 //	THEN no error is returned
-//func TestPostInstallAcme(t *testing.T) {
-//	localvz := vz.DeepCopy()
-//	localvz.Spec.Components.CertManager.Certificate.Acme = acme
-//	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-//	// set OCI DNS secret value and create secret
-//	localvz.Spec.Components.DNS = &vzapi.DNSComponent{
-//		OCI: &vzapi.OCI{
-//			OCIConfigSecret: "ociDNSSecret",
-//			DNSZoneName:     "example.dns.io",
-//		},
-//	}
-//	client.Create(context.TODO(), &v1.Secret{
-//		ObjectMeta: metav1.ObjectMeta{
-//			Name:      "ociDNSSecret",
-//			Namespace: ComponentNamespace,
-//		},
-//	})
-//	err := fakeComponent.PostInstall(spi.NewFakeContext(client, localvz, nil, false))
-//	assert.NoError(t, err)
-//}
+func TestPostInstallAcme(t *testing.T) {
+	localvz := vz.DeepCopy()
+	localvz.Spec.Components.CertManager.Certificate.Acme = acme
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	// set OCI DNS secret value and create secret
+	localvz.Spec.Components.DNS = &vzapi.DNSComponent{
+		OCI: &vzapi.OCI{
+			OCIConfigSecret: "ociDNSSecret",
+			DNSZoneName:     "example.dns.io",
+		},
+	}
+	client.Create(context.TODO(), &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ociDNSSecret",
+			Namespace: ComponentNamespace,
+		},
+	})
+	err := fakeComponent.PostInstall(spi.NewFakeContext(client, localvz, nil, false))
+	assert.NoError(t, err)
+}
 
 // Create a new deployment object for testing
-//func newDeployment(name string, ready bool) *appsv1.Deployment {
-//	deployment := &appsv1.Deployment{
-//		ObjectMeta: metav1.ObjectMeta{
-//			Namespace: ComponentNamespace,
-//			Name:      name,
-//		},
-//		Status: appsv1.DeploymentStatus{
-//			Replicas:            1,
-//			UpdatedReplicas:     1,
-//			ReadyReplicas:       1,
-//			AvailableReplicas:   1,
-//			UnavailableReplicas: 0,
-//		},
-//	}
-//
-//	if !ready {
-//		deployment.Status = appsv1.DeploymentStatus{
-//			Replicas:            1,
-//			ReadyReplicas:       0,
-//			AvailableReplicas:   0,
-//			UnavailableReplicas: 1,
-//		}
-//	}
-//	return deployment
-//}
-//
-//func newPod(namespace string, name string) *corev1.Pod {
-//	return &corev1.Pod{
-//		ObjectMeta: metav1.ObjectMeta{
-//			Namespace: namespace,
-//			Name:      name + "-95d8c5d96-m6mbr",
-//			Labels: map[string]string{
-//				"pod-template-hash": "95d8c5d96",
-//				"app":               name,
-//			},
-//		},
-//	}
-//}
-//
-//func newReplicaSet(namespace string, name string) *appsv1.ReplicaSet {
-//	return &appsv1.ReplicaSet{
-//		ObjectMeta: metav1.ObjectMeta{
-//			Namespace:   namespace,
-//			Name:        name + "-95d8c5d96",
-//			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
-//		},
-//	}
-//}
+func newDeployment(name string, ready bool) *appsv1.Deployment {
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      name,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": name},
+			},
+		},
+		Status: appsv1.DeploymentStatus{
+			Replicas:            1,
+			UpdatedReplicas:     1,
+			ReadyReplicas:       1,
+			AvailableReplicas:   1,
+			UnavailableReplicas: 0,
+		},
+	}
+
+	if !ready {
+		deployment.Status = appsv1.DeploymentStatus{
+			Replicas:            1,
+			ReadyReplicas:       0,
+			AvailableReplicas:   0,
+			UnavailableReplicas: 1,
+		}
+	}
+	return deployment
+}
+
+func newPod(namespace string, name string) *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name + "-95d8c5d96-m6mbr",
+			Labels: map[string]string{
+				"pod-template-hash": "95d8c5d96",
+				"app":               name,
+			},
+		},
+	}
+}
+
+func newReplicaSet(namespace string, name string) *appsv1.ReplicaSet {
+	return &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   namespace,
+			Name:        name + "-95d8c5d96",
+			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+		},
+	}
+}
