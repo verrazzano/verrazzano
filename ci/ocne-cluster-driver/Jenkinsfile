@@ -220,10 +220,10 @@ pipeline {
                 script {
                     withCredentials([sshUserPrivateKey(credentialsId: '5fcc03de-31ce-4566-b11f-9de38e5d98fd', keyFileVariable: 'OPC_USER_KEY_FILE', passphraseVariable: 'OPC_USER_PASSPHRASE', usernameVariable: 'OPC_USERNAME')]) {
                     def RUNNER_REGION = sh(returnStdout: true, script: "curl -s -H \"Authorization: Bearer Oracle\" http://169.254.169.254/opc/v2/instance/canonicalRegionName").trim()
-                    env.TF_VAR_region = "${params.DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
+                    TF_VAR_region = "${params.DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
                     env.OCI_CLI_REGION = "${params.DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
                     if (params.NGINX_LB_SCOPE == "PRIVATE" || params.ISTIO_LB_SCOPE == "PRIVATE")  {
-                        env.TF_VAR_region = RUNNER_REGION
+                        TF_VAR_region = RUNNER_REGION
                         env.OCI_CLI_REGION = RUNNER_REGION
                    }
                     println("runner region is ${RUNNER_REGION}, tf var region is ${env.TF_VAR_REGION}")
@@ -330,7 +330,7 @@ pipeline {
             steps {
                 script {
                     argsMap = [:]
-                    argsMap["region"] = "${params.OKE_CLUSTER_REGION}"
+                    argsMap["region"] = "${TF_VAR_region}"
                     argsMap["userId"] = "${TF_VAR_user_id}"
                     argsMap["tenancyId"] = "${TF_VAR_tenancy_id}"
                     argsMap["compartmentId"] = "${TF_VAR_compartment_id}"
