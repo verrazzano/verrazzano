@@ -1281,10 +1281,10 @@ func createVerrazzanoRole(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 	}
 	role := "name=" + roleName
 	createRoleCmd := kcAdminScript + " create roles -r " + vzSysRealm + " -s " + role
-	ctx.Log().Debugf("createVerrazzanoRole: Create %s Role Cmd = %s", roleName, createRoleCmd)
+	ctx.Log().Debugf("createVerrazzanoRole: Create %s role cmd = %s", roleName, createRoleCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(createRoleCmd))
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed creating %s Role: stdout = %s, stderr = %s", roleName, stdout, stderr)
+		ctx.Log().Errorf("Component Keycloak failed creating %s role: stdout = %s, stderr = %s", roleName, stdout, stderr)
 		return err
 	}
 	ctx.Log().Once("Component Keycloak successfully created the %s role", roleName)
