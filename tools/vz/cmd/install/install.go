@@ -171,7 +171,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			}
 		}
 
-		if err := validatePrivateRegistry(cmd, client); err != nil {
+		if err := cmdhelpers.ValidatePrivateRegistry(cmd, client); err != nil {
 			skipConfirm, errConfirm := cmd.PersistentFlags().GetBool(constants.SkipConfirmationFlag)
 			if errConfirm != nil {
 				return errConfirm
@@ -218,24 +218,6 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	err = waitForInstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vzNamespace, Name: vzName}, timeout, vpoTimeout, logFormat)
 	if err != nil {
 		return bugreport.AutoBugReport(cmd, vzHelper, err)
-	}
-	return nil
-}
-
-func validatePrivateRegistry(cmd *cobra.Command, client clipkg.Client) error {
-	existingImageRegistry, existingImagePrefix := cmdhelpers.GetExistingPrivateRegistrySettings(client)
-	newRegistry, err := cmd.PersistentFlags().GetString(constants.ImageRegistryFlag)
-	if err != nil {
-		return err
-	}
-	newImagePrefix, err := cmd.PersistentFlags().GetString(constants.ImagePrefixFlag)
-	if err != nil {
-		return err
-	}
-	if existingImageRegistry != newRegistry || existingImagePrefix != newImagePrefix {
-		return fmt.Errorf(
-			"Existing Verrazzano install in progress uses different private registry settings from the ones you specified. The install will continue with the existing registry %s and image prefix %s",
-			existingImageRegistry, existingImagePrefix)
 	}
 	return nil
 }

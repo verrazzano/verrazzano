@@ -333,10 +333,10 @@ func TestGetExistingVPODeployment(t *testing.T) {
 	}
 }
 
-// GetExistingPrivateRegistrySettings
+// getExistingPrivateRegistrySettings
 // GIVEN a K8S client
 //
-//	WHEN I call GetExistingPrivateRegistrySettings
+//	WHEN I call getExistingPrivateRegistrySettings
 //	THEN expect it to return the Verrazzano Platform operator deployment's REGISTRY and IMAGE_REPO
 //	environment variables from the verrazzano-platform-operator container, empty strings for missing
 //	 values
@@ -391,8 +391,7 @@ func TestGetExistingPrivateRegistrySettings(t *testing.T) {
 				}
 			}
 		}
-		client := fake.NewClientBuilder().WithObjects(vpoDeploy).Build()
-		reg, prefix := GetExistingPrivateRegistrySettings(client)
+		reg, prefix := getExistingPrivateRegistrySettings(vpoDeploy)
 		assert.Equal(t, tt.expectedRegistry, reg)
 		assert.Equal(t, tt.expectedPrefix, prefix)
 	}

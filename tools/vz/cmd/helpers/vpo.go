@@ -83,13 +83,9 @@ func GetExistingVPODeployment(client clipkg.Client) (*appsv1.Deployment, error) 
 	return &deploy, nil
 }
 
-// GetExistingPrivateRegistrySettings gets the private registry env var settings on existing
+// getExistingPrivateRegistrySettings gets the private registry env var settings on the
 // VPO Deployment, if present
-func GetExistingPrivateRegistrySettings(client clipkg.Client) (string, string) {
-	vpoDeploy, err := GetExistingVPODeployment(client)
-	if err != nil || vpoDeploy == nil {
-		return "", ""
-	}
+func getExistingPrivateRegistrySettings(vpoDeploy *appsv1.Deployment) (string, string) {
 	registry := ""
 	imagePrefix := ""
 	for _, container := range vpoDeploy.Spec.Template.Spec.Containers {
@@ -520,5 +516,34 @@ func deleteLeftoverPlatformOperator(client clipkg.Client) error {
 		}
 	}
 
+	return nil
+}
+
+// ValidatePrivateRegistry - Validate private registry settings in command against
+// those in existing VPO deployment, if any
+func ValidatePrivateRegistry(cmd *cobra.Command, client clipkg.Client) error {
+	vpoDeploy, err := GetExistingVPODeployment(client)
+	if err != nil {
+		return fmt.Errorf("Failed to get existing %s deployment: %v",
+			constants.VerrazzanoPlatformOperator, err)
+	}
+	if vpoDeploy == nil {
+		// no existing VPO deployment, nothing to validate
+		return nil
+	}
+	existingImageRegistry, existingImagePrefix := getExistingPrivateRegistrySettings(vpoDeploy)
+	newRegistry, err := cmd.PersistentFlags().GetString(constants.ImageRegistryFlag)
+	if err != nil {
+		return err
+	}
+	newImagePrefix, err := cmd.PersistentFlags().GetString(constants.ImagePrefixFlag)
+	if err != nil {
+		return err
+	}
+	if existingImageRegistry != newRegistry || existingImagePrefix != newImagePrefix {
+		return fmt.Errorf(
+			"Existing Verrazzano install in progress uses different private registry settings from the ones you specified. The install will continue with the existing registry %s and image prefix %s",
+			existingImageRegistry, existingImagePrefix)
+	}
 	return nil
 }

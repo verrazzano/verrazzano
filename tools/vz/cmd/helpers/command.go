@@ -9,9 +9,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/semver"
-
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 )
