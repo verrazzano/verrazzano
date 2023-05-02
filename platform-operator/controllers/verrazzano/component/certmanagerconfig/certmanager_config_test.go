@@ -93,6 +93,24 @@ func TestIsCertManagerEnabled(t *testing.T) {
 	assert.True(t, fakeComponent.IsEnabled(localvz))
 }
 
+// TestIsCertManagerEnabledCRDsNotPresent tests the IsCertManagerEnabled fn
+// GIVEN a call to IsCertManagerEnabled
+// WHEN no CertManager CRDs are present
+// THEN the function returns false
+func TestIsCertManagerEnabledCRDsNotPresent(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+
+	defer func() { common.ResetNewClientFunc() }()
+	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
+		return client, nil
+	})
+
+	localvz := defaultVZConfig.DeepCopy()
+	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(true)
+
+	assert.False(t, fakeComponent.IsEnabled(localvz))
+}
+
 // TestIsCertManagerDisabled tests the IsCertManagerEnabled fn
 // GIVEN a call to IsCertManagerEnabled
 // WHEN cert-manager is disabled
@@ -194,7 +212,9 @@ func TestIsCertManagerConfigReady(t *testing.T) {
 			Name: constants.VerrazzanoClusterIssuerName,
 		},
 	}
-	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(clusterIssuer).Build()
+	objects := createCertManagerCRDs()
+	objects = append(objects, clusterIssuer)
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(objects...).Build()
 	certManager := NewComponent().(certManagerConfigComponent)
 	assert.True(t, certManager.verrazzanoCertManagerResourcesReady(spi.NewFakeContext(client, nil, nil, false)))
 }

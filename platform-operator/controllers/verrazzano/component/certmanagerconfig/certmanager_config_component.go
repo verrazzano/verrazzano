@@ -5,7 +5,6 @@ package certmanagerconfig
 
 import (
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
@@ -75,10 +74,6 @@ func (c certManagerConfigComponent) IsInstalled(ctx spi.ComponentContext) (bool,
 	if ctx.IsDryRun() {
 		ctx.Log().Debug("cert-manager-config IsInstalled dry run")
 		return true, nil
-	}
-	if err := common.CertManagerExistsInCluster(ctx.Log(), ctx.Client()); err != nil {
-		ctx.Log().ErrorfThrottled("Error checking if CertManager CRDs exist: %s", err.Error())
-		return false, spi2.RetryableError{}
 	}
 	return c.verrazzanoCertManagerResourcesReady(ctx), nil
 }

@@ -50,7 +50,7 @@ const (
 //	WHEN the CM CRDs are not present
 //	THEN an error is returned if anything is misconfigured
 func TestIsInstalledCMNotPresent(t *testing.T) {
-	runIsInstalledTest(t, false, true)
+	runIsInstalledTest(t, false, false)
 }
 
 // TestIsInstalledCMNotPresent tests the IsInstalled function

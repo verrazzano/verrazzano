@@ -341,6 +341,10 @@ func cleanupFailedCertificateRequests(ctx context.Context, cmclientv1 certv1clie
 func (c certManagerConfigComponent) verrazzanoCertManagerResourcesReady(ctx spi.ComponentContext) bool {
 	logger := ctx.Log()
 
+	if !c.cmCRDsExist(ctx.Log(), ctx.Client()) {
+		return false
+	}
+
 	exists, err := vzresource.Resource{
 		Name:   constants.VerrazzanoClusterIssuerName,
 		Client: ctx.Client(),
