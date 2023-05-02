@@ -9,7 +9,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 
@@ -190,10 +189,6 @@ func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error
 		return nil
 	}); err != nil {
 		return log.ErrorfNewErr("Failed to create or update the cert-manager namespace: %v", err)
-	}
-
-	if err := externaldns.CopyOCIDNSSecret(compContext, ComponentNamespace); err != nil {
-		return err
 	}
 
 	// Apply the cert-manager manifest, patching if needed

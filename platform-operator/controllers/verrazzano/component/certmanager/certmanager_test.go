@@ -299,10 +299,6 @@ func TestCertManagerPreInstallOCIDNS(t *testing.T) {
 	}
 	err := fakeComponent.PreInstall(spi.NewFakeContext(client, vz, nil, false))
 	assert.NoError(t, err)
-
-	secret := &v1.Secret{}
-	err = client.Get(context.TODO(), types.NamespacedName{Name: "oci", Namespace: ComponentNamespace}, secret)
-	assert.NoError(t, err)
 }
 
 // TestIsCertManagerReady tests the isCertManagerReady function
