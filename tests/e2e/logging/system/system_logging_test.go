@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -282,18 +284,23 @@ var _ = t.Describe("Opensearch system component data", Label("f:observability.lo
 	})
 
 	t.It("contains capi index with valid records", func() {
-		// GIVEN existing system logs
-		// WHEN the Opensearch index for the verrazzano-capi namespace is retrieved
-		// THEN verify that it is found
-		indexName, err := pkg.GetOpenSearchSystemIndex(capiNamespace)
-		Expect(err).To(BeNil())
-		Eventually(func() bool {
-			return pkg.LogIndexFound(indexName)
-		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to find Opensearch index %s", capiNamespace))
+		// Only run test if capi is enabled
+		vz, err := pkg.GetVerrazzanoV1beta1()
+		Expect(err).To(Not(HaveOccurred()))
+		if vzcr.IsCAPIEnabled(vz) {
+			// GIVEN existing system logs
+			// WHEN the Opensearch index for the verrazzano-capi namespace is retrieved
+			// THEN verify that it is found
+			indexName, err := pkg.GetOpenSearchSystemIndex(capiNamespace)
+			Expect(err).To(BeNil())
+			Eventually(func() bool {
+				return pkg.LogIndexFound(indexName)
+			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to find Opensearch index %s", capiNamespace))
 
-		if !validateCapiSystemLogs() {
-			// Don't fail for invalid logs until this is stable.
-			t.Logs.Info(fmt.Sprintf("Found problems with log records in %s index", capiNamespace))
+			if !validateCapiSystemLogs() {
+				// Don't fail for invalid logs until this is stable.
+				t.Logs.Info(fmt.Sprintf("Found problems with log records in %s index", capiNamespace))
+			}
 		}
 	})
 
