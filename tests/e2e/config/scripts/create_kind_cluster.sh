@@ -20,6 +20,19 @@ CALICO_SUFFIX=""
 
 create_kind_cluster() {
   echo "Testing new kind image !!!!"
+
+  echo "Display os details..."
+  cat /etc/redhat-release
+  cat /etc/oracle-release
+  uname -a 
+  echo "Display docker version..."
+  docker version
+  echo "Display kind version..."
+  kind version
+  echo "Display docker info..."
+  docker info
+
+
   if [ "${K8S_VERSION}" == "1.21" ]; then
     KIND_IMAGE="v1.21.12@sha256:f316b33dd88f8196379f38feb80545ef3ed44d9197dca1bfd48bcb1583210207"
   elif [ "${K8S_VERSION}" == "1.22" ]; then
@@ -33,8 +46,7 @@ create_kind_cluster() {
     exit 1
   fi
 
-  echo "Display kind version..."
-  kind version
+
 
   if [ $SETUP_CALICO == true ] ; then
     CALICO_SUFFIX="-calico"
