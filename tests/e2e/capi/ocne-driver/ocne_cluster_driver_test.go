@@ -30,6 +30,7 @@ const (
 	shortPollingInterval         = 10 * time.Second
 	waitTimeout                  = 30 * time.Minute
 	pollingInterval              = 1 * time.Minute
+	clusterName                  = "strudel"
 	createClusterPayloadTemplate = `{
 		"description": "testing cluster",
 		"name": "{{.ClusterName}}",
@@ -140,16 +141,17 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("OCNE Cluster Driver", Label("TODO: appropriate label"), Serial, func() {
-	t.Context("Cluster Creation", func() {
-		t.It("creates an active cluster", func() {
+	t.Context("OCNE cluster creation", func() {
+		t.It("create OCNE cluster", func() {
 			// Create the cluster
-			clusterName := "strudel"
 			Eventually(func() error {
 				return createCluster(clusterName)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+		})
 
+		t.It("Check OCNE cluster is active", func() {
 			// Verify the cluster is active
-			Eventually(func() (bool, error) { return IsClusterActive(clusterName) }, waitTimeout, pollingInterval).Should(
+			Eventually(func() (bool, error) { return IsClusterActive(clusterName) }, shortWaitTimeout, pollingInterval).Should(
 				BeTrue(), BeNil(), fmt.Sprintf("Cluster %s is not active", clusterName))
 		})
 	})
