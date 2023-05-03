@@ -24,8 +24,8 @@ import (
 // nolint: gosec // auth constants, not credentials
 // gosec: G101: Potential hardcoded credentials
 const (
-	shortWaitTimeout     = 5 * time.Minute
-	shortPollingInterval = 10 * time.Second
+	shortWaitTimeout             = 5 * time.Minute
+	shortPollingInterval         = 10 * time.Second
 	waitTimeout                  = 30 * time.Minute
 	pollingInterval              = 1 * time.Minute
 	createClusterPayloadTemplate = `{
@@ -141,8 +141,8 @@ var _ = t.Describe("OCNE Cluster Driver", Label("TODO: appropriate label"), Seri
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 			// Verify the cluster is active
-			Eventually(func() bool { return clusterIsActive(clusterName) }, waitTimeout, pollingInterval).Should(
-				BeTrue(), fmt.Sprintf("Cluster %s is not active", clusterName))
+			Eventually(func() (bool, error) { return IsClusterActive(clusterName) }, waitTimeout, pollingInterval).Should(
+				BeTrue(), BeNil(), fmt.Sprintf("Cluster %s is not active", clusterName))
 		})
 	})
 })
@@ -232,24 +232,37 @@ func createCluster(clusterName string) error {
 }
 
 // Returns true if the cluster currently exists and is Active
-func clusterIsActive(clusterName string) bool {
-	// FIXME: add error checking
-	jsonBody := getCluster(clusterName)
+func IsClusterActive(clusterName string) (bool, error) {
+	jsonBody, err := getCluster(clusterName)
+	if err != nil {
+		return false, err
+	}
 	fmt.Println("jsonBody: " + jsonBody.String())
 	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
 	fmt.Println("State: " + state)
-	return state == "active"
+	return state == "active", nil
 }
 
 // Gets a specified cluster by using the Rancher REST API
-func getCluster(clusterName string) *gabs.Container {
-	// FIXME: add error checking
+func getCluster(clusterName string) (*gabs.Container, error) {
 	requestURL := rancherURL + "/v3/cluster?name=" + clusterName
-	request, _ := retryablehttp.NewRequest(http.MethodGet, requestURL, nil)
+	request, err := retryablehttp.NewRequest(http.MethodGet, requestURL, nil)
+	if err != nil {
+		return nil, err
+	}
 	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminToken))
-	response, _ := httpClient.Do(request)
+	response, err := httpClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
 	defer response.Body.Close()
-	body, _ := io.ReadAll(response.Body)
-	jsonBody, _ := gabs.ParseJSON(body)
-	return jsonBody
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+	jsonBody, err := gabs.ParseJSON(body)
+	if err != nil {
+		return nil, err
+	}
+	return jsonBody, nil
 }
