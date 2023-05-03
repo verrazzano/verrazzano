@@ -90,26 +90,28 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}
 })
 
-var beforeSuite = t.BeforeSuiteFunc(func() {
+var _ = AfterSuite(afterSuite)
+
+var _ = BeforeSuite(func() {
 	m := CAPIEnabledModifierV1beta1{}
 	var err error
-	isMinimumK8sVersion, err = k8sutil.IsMinimumk8sVersion(minimumK8sVersion)
+
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get/parse kubernetes version: %s", err.Error()))
 	}
-
 	kubeconfigPath := getKubeConfigOrAbort()
 	inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
 	}
-
+	isMinimumK8sVersion, err = k8sutil.IsMinimumk8sVersion(minimumK8sVersion)
 	if isMinimumK8sVersion {
 		isCAPIEnabled = vzcr.IsComponentStatusEnabled(inClusterVZ, capi.ComponentName)
 		isCAPISupported, err = pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfigPath)
 		if err != nil {
 			AbortSuite(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %v", err))
 		}
+
 		if isCAPISupported && !isCAPIEnabled {
 			update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
 			inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
@@ -118,13 +120,12 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 			}
 			isCAPIEnabled = vzcr.IsCAPIEnabled(inClusterVZ)
 		}
+
 		if isCAPISupported && isCAPIEnabled {
 			update.ValidatePods(capiLabelValue, capiLabelKey, constants.VerrazzanoCAPINamespace, uint32(4), false)
 		}
 	}
 })
-
-var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("Cluster API ", Label("f:platform-lcm.install"), func() {
 	t.Context("after successful installation", func() {
@@ -145,8 +146,6 @@ var _ = t.Describe("Cluster API ", Label("f:platform-lcm.install"), func() {
 	})
 })
 
-var _ = AfterSuite(afterSuite)
-
 // 'It' Wrapper to only run spec if the CAPI is supported on the current Verrazzano version and is installed
 func WhenCapiInstalledIt(description string, f func()) {
 	t.It(description, func() {
@@ -155,7 +154,7 @@ func WhenCapiInstalledIt(description string, f func()) {
 		if isMinimumK8sVersion && isCAPISupported && isCAPIEnabled {
 			f()
 		} else {
-			t.Logs.Infof("Skipping chgeck '%v', Cluster API  is not installed on this cluster", description)
+			t.Logs.Infof("Skipping chgeck '%v', Cluster API  is not installed/supported on this cluster", description)
 		}
 	})
 }
