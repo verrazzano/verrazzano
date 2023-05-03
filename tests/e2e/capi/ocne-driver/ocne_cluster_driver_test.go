@@ -124,6 +124,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
 	rancherURL = pkg.EventuallyGetURLForIngress(t.Logs, api, "cattle-system", "rancher", "https")
 	adminToken = pkg.GetRancherAdminToken(t.Logs, httpClient, rancherURL)
+	t.Logs.Infof("adminToken: %s", adminToken)
 	Eventually(func() error {
 		cloudCredentialID, err = createCloudCredential("testing-creds")
 		return err
@@ -174,6 +175,7 @@ func createCloudCredential(credentialName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	request.Header.Add("Content-Type", "application/json")
 	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminToken))
 	response, err := httpClient.Do(request)
 	if err != nil {
