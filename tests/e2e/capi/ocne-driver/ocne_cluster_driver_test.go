@@ -14,6 +14,7 @@ import (
 	"github.com/Jeffail/gabs/v2"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 
@@ -123,7 +124,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
 	rancherURL = pkg.EventuallyGetURLForIngress(t.Logs, api, "cattle-system", "rancher", "https")
-	adminToken = pkg.GetRancherAdminToken(t.Logs, httpClient, rancherURL)
+	adminToken = helpers.GetRancherLoginToken(t.Logs)
 	t.Logs.Infof("adminToken: %s", adminToken)
 	Eventually(func() error {
 		cloudCredentialID, err = createCloudCredential("testing-creds")
