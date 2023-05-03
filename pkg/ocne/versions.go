@@ -65,6 +65,9 @@ func CreateOCNEMetadataConfigMap(ctx context.Context, metadataFile string) error
 		cmDataKey: string(mappingBytes),
 	}
 	client, err := k8sutil.GetCoreV1Func()
+	if err != nil {
+		return err
+	}
 	cm, getErr := client.ConfigMaps(vzconst.VerrazzanoInstallNamespace).Get(ctx, configMapName, metav1.GetOptions{})
 	if getErr != nil {
 		// create new configmap if not found
