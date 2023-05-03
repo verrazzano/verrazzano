@@ -31,6 +31,7 @@ rancher:
 
 externaldns:
   enabled: false
+  namespace: verrazzano-system
 
 jaegerOperator:
   enabled: false

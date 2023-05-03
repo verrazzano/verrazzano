@@ -1,13 +1,18 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package externaldns
 
 import (
+	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
+	corev1Cli "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os/exec"
 	"strings"
 	"testing"
@@ -26,11 +31,20 @@ import (
 
 const (
 	profileDir = "../../../../manifests/profiles"
+
+	// Fix the code smells
+	cmNamespace      = "cert-manager"
+	myvz             = "my-verrazzano"
+	myvzns           = "default"
+	zoneName         = "zone.name.io"
+	ociDNSSecretName = "oci"
+	zoneID           = "zoneID"
+	compartmentID    = "compartmentID"
 )
 
 // Default Verrazzano object
 var vz = &vzapi.Verrazzano{
-	ObjectMeta: metav1.ObjectMeta{Name: "my-verrazzano", Namespace: "default", CreationTimestamp: metav1.Now()},
+	ObjectMeta: metav1.ObjectMeta{Name: myvz, Namespace: myvzns, CreationTimestamp: metav1.Now()},
 	Spec: vzapi.VerrazzanoSpec{
 		EnvironmentName: "myenv",
 		Components: vzapi.ComponentSpec{
@@ -40,32 +54,32 @@ var vz = &vzapi.Verrazzano{
 }
 
 var oci = &vzapi.OCI{
-	OCIConfigSecret:        "oci",
-	DNSZoneCompartmentOCID: "compartmentID",
-	DNSZoneOCID:            "zoneID",
-	DNSZoneName:            "zone.name.io",
+	OCIConfigSecret:        ociDNSSecretName,
+	DNSZoneCompartmentOCID: compartmentID,
+	DNSZoneOCID:            zoneID,
+	DNSZoneName:            zoneName,
 }
 
 var ociGlobalScope = &vzapi.OCI{
-	OCIConfigSecret:        "oci",
-	DNSZoneCompartmentOCID: "compartmentID",
-	DNSZoneOCID:            "zoneID",
-	DNSZoneName:            "zone.name.io",
+	OCIConfigSecret:        ociDNSSecretName,
+	DNSZoneCompartmentOCID: compartmentID,
+	DNSZoneOCID:            zoneID,
+	DNSZoneName:            zoneName,
 	DNSScope:               "GLOBAL",
 }
 var ociPrivateScope = &vzapi.OCI{
-	OCIConfigSecret:        "oci",
-	DNSZoneCompartmentOCID: "compartmentID",
-	DNSZoneOCID:            "zoneID",
-	DNSZoneName:            "zone.name.io",
+	OCIConfigSecret:        ociDNSSecretName,
+	DNSZoneCompartmentOCID: compartmentID,
+	DNSZoneOCID:            zoneID,
+	DNSZoneName:            zoneName,
 	DNSScope:               "PRIVATE",
 }
 
 var ociInvalidScope = &vzapi.OCI{
-	OCIConfigSecret:        "oci",
-	DNSZoneCompartmentOCID: "compartmentID",
-	DNSZoneOCID:            "zoneID",
-	DNSZoneName:            "zone.name.io",
+	OCIConfigSecret:        ociDNSSecretName,
+	DNSZoneCompartmentOCID: compartmentID,
+	DNSZoneOCID:            zoneID,
+	DNSZoneName:            zoneName,
 	DNSScope:               "#jhwuyusj!!!",
 }
 
@@ -108,16 +122,54 @@ func TestIsExternalDNSDisabled(t *testing.T) {
 	assert.False(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, vz, nil, false).EffectiveCR()))
 }
 
-// TestIsExternalDNSReady tests the isExternalDNSReady fn
+// TestIsExternalDNSReadyLegacyNamespace tests the isExternalDNSReady fn
 // GIVEN a call to isExternalDNSReady
-// WHEN the external dns deployment is ready
+// WHEN the external dns deployment is ready and the installed namespace is cert-manager
 // THEN the function returns true
-func TestIsExternalDNSReady(t *testing.T) {
+func TestIsExternalDNSReadyLegacyNamespace(t *testing.T) {
+	runIsReadyTest(t, legacyNamespace)
+}
+
+// TestIsExternalDNSReadyDefaultNamespace tests the isExternalDNSReady fn
+// GIVEN a call to isExternalDNSReady
+// WHEN the external dns deployment is ready and the installed namespace is the component default ns
+// THEN the function returns true
+func TestIsExternalDNSReadyDefaultNamespace(t *testing.T) {
+	runIsReadyTest(t, ComponentNamespace)
+}
+
+func runIsReadyTest(t *testing.T, ns string) {
+	k8sutil.GetCoreV1Func = func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset(
+			&v1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: ns,
+					Labels: map[string]string{
+						constants.VerrazzanoManagedKey: ns,
+					},
+				},
+			},
+		).CoreV1(), nil
+	}
+	if ns == legacyNamespace {
+		isLegacyNamespaceInstalledFunc = func(releaseName string, namespace string) (found bool, err error) {
+			return true, nil
+		}
+	} else {
+		isLegacyNamespaceInstalledFunc = func(releaseName string, namespace string) (found bool, err error) {
+			return false, nil
+		}
+	}
+	defer func() {
+		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+		isLegacyNamespaceInstalledFunc = helm.IsReleaseInstalled
+	}()
+
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		newDeployment(ComponentName, true), newPod(ComponentName), newReplicaSet(ComponentName),
+		newDeployment(ComponentName, ns, true), newPod(ComponentName, ns), newReplicaSet(ComponentName, ns),
 	).Build()
-	externalDNS := NewComponent().(externalDNSComponent)
-	assert.True(t, externalDNS.isExternalDNSReady(spi.NewFakeContext(client, nil, nil, false)))
+	externalDNS := NewComponent().(*externalDNSComponent)
+	assert.True(t, externalDNS.isExternalDNSReady(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestIsExternalDNSNotReady tests the isExternalDNSReady fn
@@ -126,10 +178,10 @@ func TestIsExternalDNSReady(t *testing.T) {
 // THEN the function returns false
 func TestIsExternalDNSNotReady(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		newDeployment(ComponentName, false),
+		newDeployment(ComponentName, ComponentNamespace, false),
 	).Build()
-	externalDNS := NewComponent().(externalDNSComponent)
-	assert.False(t, externalDNS.isExternalDNSReady(spi.NewFakeContext(client, nil, nil, false)))
+	externalDNS := NewComponent().(*externalDNSComponent)
+	assert.False(t, externalDNS.isExternalDNSReady(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestAppendExternalDNSOverrides tests the AppendOverrides fn
@@ -154,7 +206,7 @@ func TestAppendExternalDNSOverrides(t *testing.T) {
 
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, nil, false, profileDir), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 9)
+	assert.Len(t, kvs, 11)
 }
 
 // TestExternalDNSPreInstallDryRun tests the PreInstall fn
@@ -175,7 +227,7 @@ func TestExternalDNSPreInstall(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "oci",
+				Name:      ociDNSSecretName,
 				Namespace: constants.VerrazzanoInstallNamespace,
 			},
 			Data: map[string][]byte{"oci.yaml": []byte("fake data")},
@@ -190,7 +242,7 @@ func TestExternalDNSPreInstallGlobalScope(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "oci",
+				Name:      ociDNSSecretName,
 				Namespace: constants.VerrazzanoInstallNamespace,
 			},
 			Data: map[string][]byte{"oci.yaml": []byte("fake data")},
@@ -205,7 +257,7 @@ func TestExternalDNSPreInstallPrivateScope(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "oci",
+				Name:      ociDNSSecretName,
 				Namespace: constants.VerrazzanoInstallNamespace,
 			},
 			Data: map[string][]byte{"oci.yaml": []byte("fake data")},
@@ -216,11 +268,105 @@ func TestExternalDNSPreInstallPrivateScope(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestResolveDefaultNamespace tests the resolveExernalDNSNamespace fn
+// GIVEN a call to resolveExernalDNSNamespace
+// WHEN the Helm release nor the legacy namespace exist
+// THEN the function returns the default namespace
+func TestResolveDefaultNamespace(t *testing.T) {
+	k8sutil.GetCoreV1Func = func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset(
+			&v1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: ComponentNamespace,
+					Labels: map[string]string{
+						constants.VerrazzanoManagedKey: ComponentNamespace,
+					},
+				},
+			},
+		).CoreV1(), nil
+	}
+	isLegacyNamespaceInstalledFunc = func(_ string, _ string) (found bool, err error) {
+		return false, nil
+	}
+	defer func() {
+		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+		isLegacyNamespaceInstalledFunc = helm.IsReleaseInstalled
+	}()
+
+	asserts := assert.New(t)
+
+	asserts.Equal(ComponentNamespace, resolveExernalDNSNamespace(""))
+}
+
+// TestPreserveLegacyNamespaceOnUpgrade tests the resolveExernalDNSNamespace fn
+// GIVEN a call to resolveExernalDNSNamespace
+// WHEN the Helm release exists in the legacy namespace and the legacy namespace exists and is managed by Verrazzano
+// THEN the function returns the legacy namespace
+func TestPreserveLegacyNamespaceOnUpgrade(t *testing.T) {
+	asserts := assert.New(t)
+	isLegacyNamespaceInstalledFunc = func(_ string, _ string) (found bool, err error) {
+		return true, nil
+	}
+	k8sutil.GetCoreV1Func = func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset(
+			&v1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: legacyNamespace,
+					Labels: map[string]string{
+						"verrazzano.io/namespace": legacyNamespace,
+					},
+				},
+			},
+		).CoreV1(), nil
+	}
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+	asserts.Equal(legacyNamespace, resolveExernalDNSNamespace(""))
+}
+
+// TestResolveNamespaceError tests the resolveExernalDNSNamespace fn
+// GIVEN a call to resolveExernalDNSNamespace
+// WHEN the Helm release check returns an error
+// THEN the function returns an empty string
+func TestResolveNamespaceError(t *testing.T) {
+	asserts := assert.New(t)
+	isLegacyNamespaceInstalledFunc = func(_ string, _ string) (found bool, err error) {
+		return false, fmt.Errorf("test error")
+	}
+	k8sutil.GetCoreV1Func = func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset().CoreV1(), nil
+	}
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+	asserts.Equal("", resolveExernalDNSNamespace(""))
+}
+
+// TestResolveNamespaceUnmanagedLegacyNamespaceExits tests the resolveExernalDNSNamespace fn
+// GIVEN a call to resolveExernalDNSNamespace
+// WHEN the Helm release exists in the legacy namespace but the namespace is NOT managed by Verrazzano
+// THEN the function returns the default namespace
+func TestResolveNamespaceUnmanagedLegacyNamespaceExits(t *testing.T) {
+	asserts := assert.New(t)
+	isLegacyNamespaceInstalledFunc = func(_ string, _ string) (found bool, err error) {
+		return true, nil
+	}
+	k8sutil.GetCoreV1Func = func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset(
+			&v1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: legacyNamespace,
+				},
+			},
+		).CoreV1(), nil
+	}
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+
+	asserts.Equal(ComponentNamespace, resolveExernalDNSNamespace(""))
+}
+
 func TestExternalDNSPreInstall3InvalidScope(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "oci",
+				Name:      ociDNSSecretName,
 				Namespace: constants.VerrazzanoInstallNamespace,
 			},
 			Data: map[string][]byte{"oci.yaml": []byte("fake data")},
@@ -317,10 +463,13 @@ func Test_getOrBuildOwnerID_NoHelmValueExists(t *testing.T) {
 }
 
 // Create a new deployment object for testing
-func newDeployment(name string, updated bool) *appsv1.Deployment {
+func newDeployment(name string, ns string, updated bool) *appsv1.Deployment {
+	if len(ns) == 0 {
+		ns = cmNamespace
+	}
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
+			Namespace: ns,
 			Name:      name,
 			Labels:    map[string]string{"app.kubernetes.io/instance": "external-dns"},
 		},
@@ -333,6 +482,7 @@ func newDeployment(name string, updated bool) *appsv1.Deployment {
 			AvailableReplicas: 1,
 			Replicas:          1,
 			UpdatedReplicas:   1,
+			ReadyReplicas:     1,
 		},
 	}
 
@@ -346,10 +496,13 @@ func newDeployment(name string, updated bool) *appsv1.Deployment {
 	return deployment
 }
 
-func newPod(name string) *v1.Pod {
+func newPod(name string, ns string) *v1.Pod {
+	if len(ns) == 0 {
+		ns = cmNamespace
+	}
 	return &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
+			Namespace: ns,
 			Name:      name + "-95d8c5d96-m6mbr",
 			Labels: map[string]string{
 				"app.kubernetes.io/instance": "external-dns",
@@ -359,10 +512,13 @@ func newPod(name string) *v1.Pod {
 	}
 }
 
-func newReplicaSet(name string) *appsv1.ReplicaSet {
+func newReplicaSet(name string, ns string) *appsv1.ReplicaSet {
+	if len(ns) == 0 {
+		ns = cmNamespace
+	}
 	return &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace:   ComponentNamespace,
+			Namespace:   ns,
 			Name:        name + "-95d8c5d96",
 			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 		},

@@ -13,7 +13,7 @@ provider: oci
 sources:
   - service
   - ingress
-  - istio-gateway
+
 triggerLoopOnEvent: true
 
 # Verrazzano container security standards

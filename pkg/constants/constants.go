@@ -55,8 +55,14 @@ const VerrazzanoSystemNamespace = "verrazzano-system"
 // VerrazzanoMultiClusterNamespace is the multi-cluster namespace for Verrazzano
 const VerrazzanoMultiClusterNamespace = "verrazzano-mc"
 
+// VerrazzanoMonitoringNamespace is the namespace for monitoring components
+const VerrazzanoMonitoringNamespace = "verrazzano-monitoring"
+
 // CertManagerNamespace - the CertManager namespace
 const CertManagerNamespace = "cert-manager"
+
+// ExternalDNSNamespace - the ExternalDNS namespace
+const ExternalDNSNamespace = VerrazzanoSystemNamespace
 
 // KeycloakNamespace - the keycloak namespace
 const KeycloakNamespace = "keycloak"
