@@ -30,6 +30,15 @@ defaultBackendTag=$(cat platform-operator/verrazzano-bom.json | jq '.components[
 
 helm upgrade ingress-controller -n ingress-nginx platform-operator/thirdparty/charts/ingress-nginx \
 --set controller.image.repository=ghcr.io/verrazzano/nginx-ingress-controller --set controller.image.tag=${controllerTag}  \
---set defaultBackend.image.repository=ghcr.io/nginx-ingress-default-backend --set defaultBackend.image.tag=${defaultBackendTag} \
+--set controller.service.type=LoadBalancer -f platform-operator/helm_config/overrides/ingress-nginx-values.yaml \
+--set defaultBackend.image.repository=ghcr.io/verrazzano/nginx-ingress-default-backend --set defaultBackend.image.tag=${defaultBackendTag} \
 --set defaultBackend.enabled=true --install --create-namespace
 
+echo "ensure cert-manager using ghcr.io images"
+if [ ! -z "$(kubectl get po -n cert-manager -o yaml | grep registry.k8s.io)" ]
+then
+  kubectl get po -n ingress-nginx -o yaml | grep registry.k8s.io
+  exit 1
+fi
+
+kubectl get pods -n ingress-nginx
