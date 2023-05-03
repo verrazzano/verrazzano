@@ -26,7 +26,7 @@ const ComponentName = "external-dns"
 const ComponentJSONName = "dns"
 
 // ComponentNamespace is the namespace of the component
-const ComponentNamespace = constants.ExternalDNSNamespace
+const ComponentNamespace = vzconst.ExternalDNSNamespace
 
 // legacyNamespace is the namespace used for external-dns in older releases
 const legacyNamespace = vzconst.CertManagerNamespace
