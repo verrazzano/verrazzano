@@ -97,12 +97,14 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get/parse kubernetes version: %s", err.Error()))
 	}
+
+	kubeconfigPath := getKubeConfigOrAbort()
+	inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
+	}
+	
 	if isMinimumK8sVersion {
-		kubeconfigPath := getKubeConfigOrAbort()
-		inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
-		if err != nil {
-			AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
-		}
 		isCAPIEnabled = vzcr.IsComponentStatusEnabled(inClusterVZ, capi.ComponentName)
 		isCAPISupported, err = pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfigPath)
 		if err != nil {
