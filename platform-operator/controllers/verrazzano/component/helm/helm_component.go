@@ -671,7 +671,7 @@ func (h HelmComponent) resolveNamespace(ctx spi.ComponentContext) string {
 		h.resolvedNamespace = h.ResolveNamespaceFunc(h.resolvedNamespace)
 	}
 	// Only resolve the namespace once per instance
-	ctx.Log().Oncef("Using resolved namespace %s for component %s", h.resolvedNamespace, h.ReleaseName)
+	ctx.Log().Debugf("Using resolved namespace %s for component %s", h.resolvedNamespace, h.ReleaseName)
 	return h.resolvedNamespace
 }
 
