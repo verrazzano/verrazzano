@@ -746,8 +746,6 @@ github.com/verrazzano/kind v0.0.0-20221129215948-885481909133 h1:B4UOVPaicKuN8xU
 github.com/verrazzano/kind v0.0.0-20221129215948-885481909133/go.mod h1:t5GndzzvtTW702bHZ/6dpkbd/eC4SaTenEmivLVnBKA=
 github.com/verrazzano/oam-kubernetes-runtime v0.3.3-3 h1:bxHzLJ7CtPOQ8RKVEGbxb3q1Zoq7wMH60AF6vSEXdEo=
 github.com/verrazzano/oam-kubernetes-runtime v0.3.3-3/go.mod h1:yw2g1lpW2qcQPPVI/0pcgmnRQL2KU9CucT06laPlG24=
-github.com/verrazzano/verrazzano-monitoring-operator v0.0.31-0.20230420073255-b9a1675f973d h1:tV6jJMl5ipXsZXU5J+JGLpJkehr5oqdI30xkiWaTVKI=
-github.com/verrazzano/verrazzano-monitoring-operator v0.0.31-0.20230420073255-b9a1675f973d/go.mod h1:xvQSMEAZ4XsURzSfWOiadnGRIFTRfBUaNXckZO0UeWw=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.31-0.20230425042339-1243c1ab0595 h1:+4buE2SAKOJbTavB6zJhNd95wkfQ22NY95SvBJF0YlQ=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.31-0.20230425042339-1243c1ab0595/go.mod h1:xvQSMEAZ4XsURzSfWOiadnGRIFTRfBUaNXckZO0UeWw=
 github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f h1:J9EGpcZtP0E/raorCMxlFGSTBrsSlaDGf3jU/qvAE2c=
