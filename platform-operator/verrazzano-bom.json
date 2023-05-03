@@ -78,6 +78,23 @@
       ]
     },
     {
+      "name": "verrazzano-ocidns-webhook",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "verrazzano-ocidns-webhook",
+          "images": [
+            {
+              "image": "cert-manager-ocidns-provider",
+              "tag": "v1.6.0-20230428193926-c0caff3",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "external-dns",
       "version": "v0.12.2",
       "subcomponents": [
@@ -131,13 +148,13 @@
             {
               "image": "rancher",
               "dashboard": "v2.7.2-20230425195240-488d868b8",
-              "tag": "v2.7.2-20230427184801-bec0efe35",
+              "tag": "v2.7.2-20230501183211-0825d781d",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.2-20230427184801-bec0efe35"
+              "tag": "v2.7.2-20230501183211-0825d781d"
             }
           ]
         },
@@ -223,7 +240,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.6.0-20230425170228-81fcd30",
+              "tag": "v1.6.0-20230428170552-b70d524",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -244,7 +261,7 @@
             },
             {
               "image": "opensearch",
-              "tag": "2.3.0-20230324071613-ae6dc07e5dd",
+              "tag": "2.3.0-20230428051711-2c1119c9188",
               "helmFullImageKey": "monitoringOperator.osImage"
             },
             {

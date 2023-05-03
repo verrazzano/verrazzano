@@ -1,0 +1,21 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cert-manager-webhook-oci.fullname" . }}
+  labels:
+    app: {{ include "cert-manager-webhook-oci.name" . }}
+    chart: {{ include "cert-manager-webhook-oci.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: https
+      protocol: TCP
+      name: https
+  selector:
+    app: {{ include "cert-manager-webhook-oci.name" . }}
+    release: {{ .Release.Name }}
