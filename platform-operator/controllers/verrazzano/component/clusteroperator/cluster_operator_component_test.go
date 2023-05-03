@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusteroperator
@@ -105,6 +105,9 @@ func TestClusterOperatorEnabled(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// clear any cached user auth tokens when the test completes
+			defer rancherutil.DeleteStoredTokens()
+
 			if tt.verrazzanoA1 != nil {
 				tt.assertion(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, tt.verrazzanoA1, tt.verrazzanoB1, false, profilesRelativePath).EffectiveCR()))
 			}
@@ -131,6 +134,9 @@ func TestIsReadyFalse(t *testing.T) {
 
 // TestPostInstall that the RoleTemplate gets created
 func TestPostInstall(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	clustOpComp := clusterOperatorComponent{}
 
 	cli := createClusterUserTestObjects().WithObjects(
@@ -173,6 +179,9 @@ func TestPostInstall(t *testing.T) {
 
 // TestPostUpgrade that the RoleTemplate gets created
 func TestPostUpgrade(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	clustOpComp := clusterOperatorComponent{}
 
 	cli := createClusterUserTestObjects().WithObjects(

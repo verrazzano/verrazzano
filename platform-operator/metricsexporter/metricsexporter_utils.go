@@ -35,7 +35,8 @@ const (
 	EnabledComponents   metricName = "enabled components"
 )
 
-func init() {
+// Init cannot be called until the NGINX namespace is determined at startup
+func Init() {
 	RequiredInitialization()
 	RegisterMetrics(zap.S())
 }

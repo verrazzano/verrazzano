@@ -109,7 +109,7 @@ func TestAppendVMOOverrides(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ingress-nginx",
+			Namespace: "verrazzano-ingress-nginx",
 			Name:      "ingress-controller-ingress-nginx-controller",
 		},
 		Spec: corev1.ServiceSpec{
@@ -184,7 +184,7 @@ func TestAppendVmoOverridesOidcAuthDisabled(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ingress-nginx",
+			Namespace: "verrazzano-ingress-nginx",
 			Name:      "ingress-controller-ingress-nginx-controller",
 		},
 		Spec: corev1.ServiceSpec{

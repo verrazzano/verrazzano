@@ -13,6 +13,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
@@ -27,7 +29,6 @@ const (
 	keycloakNamespace         = "keycloak"
 	cattleSystemNamespace     = "cattle-system"
 	fleetLocalSystemNamespace = "cattle-fleet-local-system"
-	nginxNamespace            = "ingress-nginx"
 	monitoringNamespace       = "monitoring"
 	shortPollingInterval      = 10 * time.Second
 	shortWaitTimeout          = 5 * time.Minute
@@ -60,9 +61,18 @@ var (
 	}
 )
 
+var ingressNGINXNamespace string
+
 var t = framework.NewTestFramework("system-logging")
 
-var beforeSuite = t.BeforeSuiteFunc(func() {})
+var beforeSuite = t.BeforeSuiteFunc(func() {
+	var err error
+	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	if err != nil {
+		Fail("Error determining ingress-nginx namespace")
+	}
+
+})
 var _ = BeforeSuite(beforeSuite)
 var failed = false
 var _ = t.AfterEach(func() {
@@ -217,7 +227,7 @@ var _ = t.Describe("Opensearch system component data", Label("f:observability.lo
 		// GIVEN existing system logs
 		// WHEN the index for the ingress-nginx namespace is retrieved
 		// THEN verify that it is found
-		indexName, err := pkg.GetOpenSearchSystemIndex(nginxNamespace)
+		indexName, err := pkg.GetOpenSearchSystemIndex(ingressNGINXNamespace)
 		Expect(err).To(BeNil())
 		Eventually(func() bool {
 			return pkg.LogIndexFound(indexName)
@@ -494,7 +504,7 @@ func validateKeycloakLogs() bool {
 func validateIngressNginxLogs() bool {
 	return validateOpensearchRecords(
 		noLevelOpensearchRecordValidator,
-		func() (string, error) { return pkg.GetOpenSearchSystemIndex(nginxNamespace) },
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(ingressNGINXNamespace) },
 		"kubernetes.labels.app_kubernetes_io/name",
 		"ingress-nginx",
 		searchTimeWindow,

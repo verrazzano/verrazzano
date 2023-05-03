@@ -51,7 +51,8 @@ type consoleValues struct {
 }
 
 type nginxValues struct {
-	Enabled bool `json:"enabled"` // Always write
+	Enabled   bool   `json:"enabled"`
+	Namespace string `json:"namespace"`
 }
 
 type elasticsearchValues struct {
