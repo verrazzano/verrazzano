@@ -81,6 +81,7 @@ pipeline {
         NETRC_FILE = credentials('netrc')
         OCR_REPO = 'container-registry.oracle.com'
         GHCR_REPO = 'ghcr.io'
+        VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
         INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
         GITHUB_PKGS_CREDS = credentials('github-packages-credentials-rw')
         OCIR_CREDS = credentials('ocir-pull-and-push-account')
@@ -198,6 +199,15 @@ pipeline {
                     // derive the prefix for the OKE cluster
                     OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_oke_cluster_name.sh").trim()
                 }
+                script {
+                    sh """
+                        echo "Downloading VZ CLI from object storage"
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+                        mkdir -p ${GO_REPO_PATH}
+                        tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
+                        ${GO_REPO_PATH}/vz version
+                    """
+                }
             }
         }
 
@@ -250,14 +260,8 @@ pipeline {
             steps {
                 sh """
                     echo "Install Platform Operator"
-
-                    if [ "NONE" == "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
-                        echo "Downloading operator.yaml from branch ${env.BRANCH_NAME} for commit ${SHORT_COMMIT_HASH}"
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/acceptance-test-operator.yaml
-                    else
-                        echo "Generating operator.yaml based on image name provided: ${params.VERRAZZANO_OPERATOR_IMAGE}"
-                        env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${params.VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
-                    fi
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                    cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
 
                     # Install the verrazzano-platform-operator
                     kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
