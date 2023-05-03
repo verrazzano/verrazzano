@@ -34,6 +34,8 @@ var (
 	isMinimumK8sVersion bool
 )
 
+var t = framework.NewTestFramework("capi")
+
 type CAPIEnabledModifier struct {
 }
 
@@ -76,8 +78,6 @@ func (c CAPIEnabledModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
 	t.Logs.Debugf("CAPIEnabledModifierV1beta1 CR: %v", cr.Spec)
 }
 
-var t = framework.NewTestFramework("capi")
-
 var _ = t.AfterEach(func() {})
 
 var afterSuite = t.AfterSuiteFunc(func() {
@@ -103,7 +103,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
 	}
-	
+
 	if isMinimumK8sVersion {
 		isCAPIEnabled = vzcr.IsComponentStatusEnabled(inClusterVZ, capi.ComponentName)
 		isCAPISupported, err = pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfigPath)
