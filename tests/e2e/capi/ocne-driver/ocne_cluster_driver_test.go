@@ -6,7 +6,6 @@ package ocnedriver
 import (
 	"bytes"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"io"
 	"net/http"
 	"text/template"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/Jeffail/gabs/v2"
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -126,6 +126,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed getting rancherURL: %v", err))
 	}
+	t.Logs.Infof("rancherToken: %s", rancherURL)
 	httpClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed getting http client: %v", err))
