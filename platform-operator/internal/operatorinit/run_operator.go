@@ -107,7 +107,7 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 	if config.ExperimentalModules {
 		log.Infof("Experimental Modules API enabled")
 	}
-	
+
 	// +kubebuilder:scaffold:builder
 	log.Info("Starting controller-runtime manager")
 	if err := mgr.Start(controllerruntime.SetupSignalHandler()); err != nil {
