@@ -221,31 +221,40 @@ func getOrDownloadOperatorYAML(cmd *cobra.Command, version string, vzHelper help
 	}
 
 	userVisibleFilename := operatorFile
+	// if we have a URL, download the file
 	if len(url) > 0 {
-		userVisibleFilename = url
-		// Get the Verrazzano operator.yaml and store it in a temp file
-		httpClient := vzHelper.GetHTTPClient()
-		resp, err := httpClient.Get(url)
-		if err != nil {
-			return "", "", false, fmt.Errorf(accessErrorMsg, userVisibleFilename, err.Error())
-		}
-		if resp.StatusCode != http.StatusOK {
-			return "", "", false, fmt.Errorf(accessErrorMsg, userVisibleFilename, resp.Status)
-		}
-		// Store response in a temporary file
-		tmpFile, err := os.CreateTemp("", "vz")
-		if err != nil {
-			return "", "", false, fmt.Errorf(applyErrorMsg, userVisibleFilename, err.Error())
-		}
-		_, err = tmpFile.ReadFrom(resp.Body)
-		if err != nil {
-			os.Remove(tmpFile.Name())
-			return "", "", false, fmt.Errorf(applyErrorMsg, userVisibleFilename, err.Error())
-		}
 		isTempFile = true
-		localOperatorFilename = tmpFile.Name()
+		userVisibleFilename = url
+		if localOperatorFilename, err = downloadOperatorYAML(url, vzHelper); err != nil {
+			return localOperatorFilename, userVisibleFilename, isTempFile, err
+		}
 	}
 	return localOperatorFilename, userVisibleFilename, isTempFile, nil
+}
+
+// downloadOperatorYAML downloads the operator YAML file from the given URL and returns the
+// path to the temp file where it is stored.
+func downloadOperatorYAML(url string, vzHelper helpers.VZHelper) (string, error) {
+	// Get the Verrazzano operator.yaml and store it in a temp file
+	httpClient := vzHelper.GetHTTPClient()
+	resp, err := httpClient.Get(url)
+	if err != nil {
+		return "", fmt.Errorf(accessErrorMsg, url, err.Error())
+	}
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf(accessErrorMsg, url, resp.Status)
+	}
+	// Store response in a temporary file
+	tmpFile, err := os.CreateTemp("", "vz")
+	if err != nil {
+		return "", fmt.Errorf(applyErrorMsg, url, err.Error())
+	}
+	_, err = tmpFile.ReadFrom(resp.Body)
+	if err != nil {
+		os.Remove(tmpFile.Name())
+		return "", fmt.Errorf(applyErrorMsg, url, err.Error())
+	}
+	return tmpFile.Name(), nil
 }
 
 // WaitForPlatformOperator waits for the verrazzano-platform-operator to be ready

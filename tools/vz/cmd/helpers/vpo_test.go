@@ -31,6 +31,8 @@ const (
 	deploymentRevisionAnnotation = "deployment.kubernetes.io/revision"
 	defaultTimeout               = time.Duration(1) * time.Second
 	vpoPodName                   = "verrazzano-platform-operator-95d8c5d96-m6mbr"
+	testRegistry                 = "myreg.example.io"
+	testImagePrefix              = "myprefix"
 )
 
 var (
@@ -361,8 +363,8 @@ func TestGetExistingPrivateRegistrySettings(t *testing.T) {
 		},
 		{
 			"only registry env var",
-			map[string]string{vpoconst.RegistryOverrideEnvVar: "myreg.example.io"},
-			"myreg.example.io",
+			map[string]string{vpoconst.RegistryOverrideEnvVar: testRegistry},
+			testRegistry,
 			"",
 		},
 		{
@@ -374,11 +376,11 @@ func TestGetExistingPrivateRegistrySettings(t *testing.T) {
 		{
 			"registry and prefix env vars",
 			map[string]string{
-				vpoconst.RegistryOverrideEnvVar:  "myregistry.example.io",
-				vpoconst.ImageRepoOverrideEnvVar: "someprefix",
+				vpoconst.RegistryOverrideEnvVar:  testRegistry,
+				vpoconst.ImageRepoOverrideEnvVar: testImagePrefix,
 			},
-			"myregistry.example.io",
-			"someprefix",
+			testRegistry,
+			testImagePrefix,
 		},
 	}
 	for _, tt := range tests {
@@ -415,24 +417,24 @@ func TestValidatePrivateRegistry(t *testing.T) {
 		{
 			"no private registry existing VPO, but supplied in new command",
 			map[string]string{},
-			"somereg.example.io",
-			"someprefix",
+			testRegistry,
+			testImagePrefix,
 			true,
-			imageRegistryMismatchError("", "", "somereg.example.io", "someprefix"),
+			imageRegistryMismatchError("", "", testRegistry, testImagePrefix),
 		},
 		{
 			"private registry existing VPO, but NOT supplied in new command",
-			map[string]string{vpoconst.RegistryOverrideEnvVar: "myreg.example.io", vpoconst.ImageRepoOverrideEnvVar: "myprefix"},
+			map[string]string{vpoconst.RegistryOverrideEnvVar: testRegistry, vpoconst.ImageRepoOverrideEnvVar: testImagePrefix},
 			"",
 			"",
 			true,
-			imageRegistryMismatchError("myreg.example.io", "myprefix", "", ""),
+			imageRegistryMismatchError(testRegistry, testImagePrefix, "", ""),
 		},
 		{
 			"private registry settings in existing VPO and new command match",
-			map[string]string{vpoconst.RegistryOverrideEnvVar: "myreg.example.io", vpoconst.ImageRepoOverrideEnvVar: "myprefix"},
-			"myreg.example.io",
-			"myprefix",
+			map[string]string{vpoconst.RegistryOverrideEnvVar: testRegistry, vpoconst.ImageRepoOverrideEnvVar: testImagePrefix},
+			testRegistry,
+			testImagePrefix,
 			false,
 			"",
 		},
