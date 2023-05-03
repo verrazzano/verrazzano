@@ -132,18 +132,16 @@ var _ = t.Describe("Cluster API ", Label("f:platform-lcm.install"), func() {
 		// WHEN we check to make sure the pods exist
 		// THEN we successfully find the pods in the cluster
 		t.Logs.Infof("Context: isMinimumK8sVersion", isMinimumK8sVersion)
-		if isMinimumK8sVersion {
-			WhenCapiInstalledIt("expected pods are running", func() {
-				pods := []string{"capi-controller-manager", "capi-ocne-bootstrap-controller-manager", "capi-ocne-control-plane-controller-manager", "capoci-controller-manager"}
-				Eventually(func() (bool, error) {
-					result, err := pkg.PodsRunning(constants.VerrazzanoCAPINamespace, pods)
-					if err != nil {
-						t.Logs.Errorf("Pods %v are not running in the namespace: %v, error: %v", pods, constants.VerrazzanoCAPINamespace, err)
-					}
-					return result, err
-				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected CAPI Pods should be running")
-			})
-		}
+		WhenCapiInstalledIt("expected pods are running", func() {
+			pods := []string{"capi-controller-manager", "capi-ocne-bootstrap-controller-manager", "capi-ocne-control-plane-controller-manager", "capoci-controller-manager"}
+			Eventually(func() (bool, error) {
+				result, err := pkg.PodsRunning(constants.VerrazzanoCAPINamespace, pods)
+				if err != nil {
+					t.Logs.Errorf("Pods %v are not running in the namespace: %v, error: %v", pods, constants.VerrazzanoCAPINamespace, err)
+				}
+				return result, err
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected CAPI Pods should be running")
+		})
 	})
 })
 
@@ -154,7 +152,8 @@ func WhenCapiInstalledIt(description string, f func()) {
 	t.It(description, func() {
 		isCAPIEnabled = vzcr.IsCAPIEnabled(inClusterVZ)
 		t.Logs.Infof("WhenCapiInstalledIt", isCAPIEnabled)
-		if isCAPISupported && isCAPIEnabled {
+		
+		if isMinimumK8sVersion && isCAPISupported && isCAPIEnabled {
 			f()
 		} else {
 			t.Logs.Infof("Skipping check '%v', Cluster API  is not installed on this cluster", description)
