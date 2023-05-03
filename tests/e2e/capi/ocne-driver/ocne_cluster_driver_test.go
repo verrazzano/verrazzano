@@ -6,6 +6,7 @@ package ocnedriver
 import (
 	"bytes"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"io"
 	"net/http"
 	"text/template"
@@ -187,8 +188,11 @@ func createCloudCredential(credentialName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	defer response.Body.Close()
+	err = httputil.ValidateResponseCode(response, http.StatusCreated)
+	if err != nil {
+		t.Logs.Errorf("expected response code %v, got %v instead", http.StatusCreated, response.StatusCode)
+	}
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return "", err
@@ -233,6 +237,7 @@ func createCluster(clusterName string) error {
 	if err != nil {
 		return err
 	}
+	request.Header.Add("Content-Type", "application/json")
 	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminToken))
 	response, err := httpClient.Do(request)
 	if err != nil {
@@ -263,6 +268,7 @@ func getCluster(clusterName string) (*gabs.Container, error) {
 		return nil, err
 	}
 	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminToken))
+	request.Header.Add("Content-Type", "application/json")
 	response, err := httpClient.Do(request)
 	if err != nil {
 		return nil, err
