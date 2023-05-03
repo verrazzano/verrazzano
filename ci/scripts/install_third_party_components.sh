@@ -25,7 +25,6 @@ fi
 kubectl get pods -n cert-manager
 
 echo "Installing ingress-nginx via helm chart"
-kubectl create ns ingress-nginx
 controllerTag=$(cat platform-operator/verrazzano-bom.json | jq '.components[] | select(.name=="ingress-nginx")' | jq '.subcomponents[0].images[] | select(.image=="nginx-ingress-controller")' | jq .tag -r)
 defaultBackendTag=$(cat platform-operator/verrazzano-bom.json | jq '.components[] | select(.name=="ingress-nginx")' | jq '.subcomponents[0].images[] | select(.image=="nginx-ingress-default-backend")' | jq .tag -r)
 
