@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/gertd/go-pluralize"
-	"github.com/google/uuid"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -29,6 +28,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	k8net "k8s.io/api/networking/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -68,24 +68,28 @@ const cattleShellImageName = "rancher-shell"
 // cattleUIEnvName is the environment variable name to set for the Rancher dashboard
 const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
 
-const streamSnippetAnnotation = `ingress.extraAnnotations.nginx\.ingress\.kubernetes\.io/stream-snippet`
+const rancherStreamSnippetAnnotation = `ingress.extraAnnotations.nginx\.ingress\.kubernetes\.io/stream-snippet`
+
+const nginxExtraAnnotations = "ingress.extraAnnotations"
+
+const nginxStreamSnippetAnnotation = "nginx.ingress.kubernetes.io/stream-snippet"
 
 const streamSnippet = `
-    upstream rancher_stream_servers_http_%[3]s {
+    upstream rancher_stream_servers_http {
         least_conn;
         server %[1]s.%[2]s.svc.cluster.local:80 max_fails=3 fail_timeout=5s;
     }
     server {
         listen 80;
-        proxy_pass rancher_stream_servers_http_%[3]s;
+        proxy_pass rancher_stream_servers_http;
     }
-    upstream rancher_stream_servers_https_%[3]s {
+    upstream rancher_stream_servers_https {
         least_conn;
         server %[1]s.%[2]s.svc.cluster.local:443 max_fails=3 fail_timeout=5s;
     }
     server {
         listen 443;
-        proxy_pass rancher_stream_servers_https_%[3]s;
+        proxy_pass rancher_stream_servers_https;
     }
 `
 
@@ -206,14 +210,33 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		Key:   rancherIngressClassNameKey,
 		Value: vzconfig.GetIngressClassName(ctx.EffectiveCR()),
 	})
-	ctx.Log().Info("Adding the stream snippet annotation")
-	id := uuid.New().String()
-	uniqueID := strings.Split(id, "-")[len(strings.Split(id, "-"))-1]
-	kvs = append(kvs, bom.KeyValue{
-		Key:       streamSnippetAnnotation,
-		Value:     fmt.Sprintf(streamSnippet, ComponentName, ComponentNamespace, uniqueID),
-		SetString: true,
-	})
+
+	ingress := &k8net.Ingress{}
+	nsName := types.NamespacedName{
+		Namespace: ComponentNamespace,
+		Name:      ComponentName}
+	if err := ctx.Client().Get(context.TODO(), nsName, ingress); err != nil {
+		if !kerrs.IsNotFound(err) {
+			return kvs, err
+		}
+	}
+	// see if ingress already contains annotation
+	_, ok := ingress.Annotations[nginxStreamSnippetAnnotation]
+	if !ok {
+		ctx.Log().Info("Adding the stream snippet annotation")
+		kvs = append(kvs, bom.KeyValue{
+			Key:       rancherStreamSnippetAnnotation,
+			Value:     fmt.Sprintf(streamSnippet, ComponentName, ComponentNamespace),
+			SetString: true,
+		})
+	} else {
+		kvs = append(kvs, bom.KeyValue{
+			Key:       nginxExtraAnnotations,
+			Value:     "{}",
+			SetString: true,
+		})
+	}
+
 	kvs, err = appendPSPEnabledOverrides(ctx, kvs)
 	if err != nil {
 		return kvs, err
