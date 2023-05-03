@@ -665,7 +665,7 @@ func (h HelmComponent) resolveNamespace(ctx spi.ComponentContext) string {
 	}
 	if h.IgnoreNamespaceOverride {
 		h.resolvedNamespace = h.ChartNamespace
-		ctx.Log().Oncef("Ignoring namespace overrides for component %s", h.ReleaseName)
+		ctx.Log().Debugf("Ignoring namespace overrides for component %s", h.ReleaseName)
 	} else if h.ResolveNamespaceFunc != nil {
 		ctx.Log().Progressf("Resolving namespace for component %s", h.ReleaseName)
 		h.resolvedNamespace = h.ResolveNamespaceFunc(h.resolvedNamespace)
