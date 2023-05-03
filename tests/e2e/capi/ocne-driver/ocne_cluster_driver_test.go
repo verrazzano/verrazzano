@@ -191,7 +191,8 @@ func createCloudCredential(credentialName string) (string, error) {
 	defer response.Body.Close()
 	err = httputil.ValidateResponseCode(response, http.StatusCreated)
 	if err != nil {
-		t.Logs.Errorf("expected response code %v, got %v instead", http.StatusCreated, response.StatusCode)
+		t.Logs.Errorf(err.Error())
+		return "", err
 	}
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
@@ -244,6 +245,12 @@ func createCluster(clusterName string) error {
 		t.Logs.Errorf("error create cluster POST response: %v", response)
 		return err
 	}
+	defer response.Body.Close()
+	err = httputil.ValidateResponseCode(response, http.StatusCreated)
+	if err != nil {
+		t.Logs.Errorf(err.Error())
+		return err
+	}
 	t.Logs.Info("Create Cluster POST response: %v", response)
 	return err
 }
@@ -274,6 +281,11 @@ func getCluster(clusterName string) (*gabs.Container, error) {
 		return nil, err
 	}
 	defer response.Body.Close()
+	err = httputil.ValidateResponseCode(response, http.StatusOK)
+	if err != nil {
+		t.Logs.Errorf(err.Error())
+		return nil, err
+	}
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, err
