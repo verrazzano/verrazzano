@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package nginx
@@ -39,7 +39,7 @@ func TestAppendNGINXOverrides(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, nil, false), ComponentName, nginxutil.IngressNGINXNamespace(), "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 2)
+	assert.Len(t, kvs, 1)
 }
 
 // TestAppendNGINXOverridesWithInstallArgs tests the AppendOverrides fn
@@ -63,7 +63,7 @@ func TestAppendNGINXOverridesWithInstallArgs(t *testing.T) {
 	}
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, nil, false), ComponentName, nginxutil.IngressNGINXNamespace(), "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 5)
+	assert.Len(t, kvs, 4)
 }
 
 // TestAppendNGINXOverridesExtraKVs tests the AppendOverrides fn
@@ -93,7 +93,7 @@ func TestAppendNGINXOverridesWithExternalDNS(t *testing.T) {
 	}
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, nil, false), ComponentName, nginxutil.IngressNGINXNamespace(), "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 7)
+	assert.Len(t, kvs, 6)
 }
 
 // TestAppendNGINXOverridesExtraKVs tests the AppendOverrides fn
@@ -112,7 +112,7 @@ func TestAppendNGINXOverridesExtraKVs(t *testing.T) {
 	}
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, nil, false), ComponentName, nginxutil.IngressNGINXNamespace(), "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 3)
+	assert.Len(t, kvs, 2)
 }
 
 // TestNGINXPreInstall tests the PreInstall fn
