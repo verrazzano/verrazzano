@@ -43,6 +43,9 @@ const (
 //	and mutateArgoCDClusterSecret is called immediately
 //	THEN we skip obtaining new token
 func TestMutateArgoCDClusterSecretWithoutRefresh(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	cli := generateClientObject()
 	log := vzlog.DefaultLogger()
 
@@ -96,7 +99,7 @@ func TestMutateArgoCDClusterSecretWithoutRefresh(t *testing.T) {
 
 	caData := []byte("ca")
 
-	rc, err := rancherutil.NewRancherConfigForUser(cli, constants.ArgoCDClusterRancherUsername, "foobar", constants.DefaultRancherIngressHost, log)
+	rc, err := rancherutil.NewRancherConfigForUser(cli, constants.ArgoCDClusterRancherUsername, "foobar", rancherutil.RancherIngressServiceHost(), log)
 	assert.NoError(t, err)
 
 	err = r.mutateArgoCDClusterSecret(secret, rc, vmc.Name, clusterID, rancherURL, caData)
@@ -116,6 +119,9 @@ func TestMutateArgoCDClusterSecretWithoutRefresh(t *testing.T) {
 //	and we sleep for 4(s)
 //	THEN we obtain new token and the annotation createTimestamp/expiresAtTimestamp are updated accordingly
 func TestMutateArgoCDClusterSecretWithRefresh(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	cli := generateClientObject()
 	log := vzlog.DefaultLogger()
 
@@ -169,7 +175,7 @@ func TestMutateArgoCDClusterSecretWithRefresh(t *testing.T) {
 
 	caData := []byte("ca")
 
-	rc, err := rancherutil.NewRancherConfigForUser(cli, constants.ArgoCDClusterRancherUsername, "foobar", constants.DefaultRancherIngressHost, log)
+	rc, err := rancherutil.NewRancherConfigForUser(cli, constants.ArgoCDClusterRancherUsername, "foobar", rancherutil.RancherIngressServiceHost(), log)
 	assert.NoError(t, err)
 
 	err = r.mutateArgoCDClusterSecret(secret, rc, vmc.Name, clusterID, rancherURL, caData)
@@ -337,7 +343,7 @@ func TestUpdateArgoCDClusterRoleBindingTemplate(t *testing.T) {
 				Client: cli,
 				log:    vzlog.DefaultLogger(),
 			}
-			rc, err := rancherutil.NewAdminRancherConfig(cli, constants.DefaultRancherIngressHost, vzlog.DefaultLogger())
+			rc, err := rancherutil.NewAdminRancherConfig(cli, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 			assert.NoError(t, err)
 
 			err = r.updateArgoCDClusterRoleBindingTemplate(rc, tt.vmc)

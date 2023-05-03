@@ -1,0 +1,1535 @@
+{
+    "kind": "PodList",
+    "apiVersion": "v1",
+    "metadata": {
+        "resourceVersion": "21257"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "ingress-controller-ingress-nginx-controller-6b8bb69d6d-54w5j",
+                "generateName": "ingress-controller-ingress-nginx-controller-6b8bb69d6d-",
+                "namespace": "verrazzano-ingress-nginx",
+                "uid": "af6bc166-0643-4565-85e5-6e387fc956d8",
+                "resourceVersion": "4707",
+                "creationTimestamp": "2022-05-19T20:36:06Z",
+                "labels": {
+                    "app.kubernetes.io/component": "controller",
+                    "app.kubernetes.io/instance": "ingress-controller",
+                    "app.kubernetes.io/name": "ingress-nginx",
+                    "pod-template-hash": "6b8bb69d6d",
+                    "security.istio.io/tlsMode": "istio",
+                    "service.istio.io/canonical-name": "ingress-nginx",
+                    "service.istio.io/canonical-revision": "latest"
+                },
+                "annotations": {
+                    "kubectl.kubernetes.io/default-container": "controller",
+                    "kubectl.kubernetes.io/default-logs-container": "controller",
+                    "prometheus.io/port": "10254",
+                    "prometheus.io/scrape": "true",
+                    "sidecar.istio.io/rewriteAppHTTPProbers": "true",
+                    "sidecar.istio.io/status": "{\"initContainers\":[\"istio-init\"],\"containers\":[\"istio-proxy\"],\"volumes\":[\"istio-envoy\",\"istio-data\",\"istio-podinfo\",\"istio-token\",\"istiod-ca-cert\"],\"imagePullSecrets\":[\"verrazzano-container-registry\"],\"revision\":\"default\"}",
+                    "system.io/scrape": "true",
+                    "traffic.sidecar.istio.io/excludeInboundPorts": "80,443",
+                    "traffic.sidecar.istio.io/includeInboundPorts": ""
+                },
+                "ownerReferences": [
+                    {
+                        "apiVersion": "apps/v1",
+                        "kind": "ReplicaSet",
+                        "name": "ingress-controller-ingress-nginx-controller-6b8bb69d6d",
+                        "uid": "965405be-887f-428a-a8e9-9e1892fcc99e",
+                        "controller": true,
+                        "blockOwnerDeletion": true
+                    }
+                ]
+            },
+            "spec": {
+                "volumes": [
+                    {
+                        "name": "istio-envoy",
+                        "emptyDir": {
+                            "medium": "Memory"
+                        }
+                    },
+                    {
+                        "name": "istio-data",
+                        "emptyDir": {}
+                    },
+                    {
+                        "name": "istio-podinfo",
+                        "downwardAPI": {
+                            "items": [
+                                {
+                                    "path": "labels",
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.labels"
+                                    }
+                                },
+                                {
+                                    "path": "annotations",
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.annotations"
+                                    }
+                                }
+                            ],
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "istio-token",
+                        "projected": {
+                            "sources": [
+                                {
+                                    "serviceAccountToken": {
+                                        "audience": "istio-ca",
+                                        "expirationSeconds": 43200,
+                                        "path": "istio-token"
+                                    }
+                                }
+                            ],
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "istiod-ca-cert",
+                        "configMap": {
+                            "name": "istio-ca-root-cert",
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "custom-400-error",
+                        "configMap": {
+                            "name": "ingress-controller-ingress-nginx-defaultbackend-custom-error-pages",
+                            "items": [
+                                {
+                                    "key": "400.html",
+                                    "path": "400.html"
+                                }
+                            ],
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "kube-api-access-vjlmd",
+                        "projected": {
+                            "sources": [
+                                {
+                                    "serviceAccountToken": {
+                                        "expirationSeconds": 3607,
+                                        "path": "token"
+                                    }
+                                },
+                                {
+                                    "configMap": {
+                                        "name": "kube-root-ca.crt",
+                                        "items": [
+                                            {
+                                                "key": "ca.crt",
+                                                "path": "ca.crt"
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "downwardAPI": {
+                                        "items": [
+                                            {
+                                                "path": "namespace",
+                                                "fieldRef": {
+                                                    "apiVersion": "v1",
+                                                    "fieldPath": "metadata.namespace"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ],
+                            "defaultMode": 420
+                        }
+                    }
+                ],
+                "initContainers": [
+                    {
+                        "name": "istio-init",
+                        "image": "ghcr.io/verrazzano/proxyv2:1.13.2",
+                        "args": [
+                            "istio-iptables",
+                            "-p",
+                            "15001",
+                            "-z",
+                            "15006",
+                            "-u",
+                            "1337",
+                            "-m",
+                            "REDIRECT",
+                            "-i",
+                            "*",
+                            "-x",
+                            "",
+                            "-b",
+                            "",
+                            "-d",
+                            "15090,15021,80,443,15020"
+                        ],
+                        "resources": {
+                            "limits": {
+                                "cpu": "2",
+                                "memory": "1Gi"
+                            },
+                            "requests": {
+                                "cpu": "100m",
+                                "memory": "128Mi"
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "name": "kube-api-access-vjlmd",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent",
+                        "securityContext": {
+                            "capabilities": {
+                                "add": [
+                                    "NET_ADMIN",
+                                    "NET_RAW"
+                                ],
+                                "drop": [
+                                    "ALL"
+                                ]
+                            },
+                            "privileged": false,
+                            "runAsUser": 0,
+                            "runAsGroup": 0,
+                            "runAsNonRoot": false,
+                            "readOnlyRootFilesystem": false,
+                            "allowPrivilegeEscalation": false
+                        }
+                    }
+                ],
+                "containers": [
+                    {
+                        "name": "controller",
+                        "image": "ghcr.io/verrazzano/nginx-ingress-controller:1.1.1-20220413170248-b60724ed1",
+                        "args": [
+                            "/nginx-ingress-controller",
+                            "--default-backend-service=$(POD_NAMESPACE)/ingress-controller-ingress-nginx-defaultbackend",
+                            "--publish-service=$(POD_NAMESPACE)/ingress-controller-ingress-nginx-controller",
+                            "--election-id=ingress-controller-leader",
+                            "--controller-class=k8s.io/ingress-nginx",
+                            "--configmap=$(POD_NAMESPACE)/ingress-controller-ingress-nginx-controller",
+                            "--watch-ingress-without-class=true"
+                        ],
+                        "ports": [
+                            {
+                                "name": "http",
+                                "containerPort": 80,
+                                "protocol": "TCP"
+                            },
+                            {
+                                "name": "https",
+                                "containerPort": 443,
+                                "protocol": "TCP"
+                            },
+                            {
+                                "name": "metrics",
+                                "containerPort": 10254,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "env": [
+                            {
+                                "name": "POD_NAME",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.name"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "POD_NAMESPACE",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.namespace"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "LD_PRELOAD",
+                                "value": "/usr/local/lib/libmimalloc.so"
+                            }
+                        ],
+                        "resources": {
+                            "requests": {
+                                "cpu": "100m",
+                                "memory": "90Mi"
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "name": "custom-400-error",
+                                "mountPath": "/usr/local/nginx/html"
+                            },
+                            {
+                                "name": "kube-api-access-vjlmd",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "livenessProbe": {
+                            "httpGet": {
+                                "path": "/app-health/controller/livez",
+                                "port": 15020,
+                                "scheme": "HTTP"
+                            },
+                            "initialDelaySeconds": 10,
+                            "timeoutSeconds": 1,
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "failureThreshold": 5
+                        },
+                        "readinessProbe": {
+                            "httpGet": {
+                                "path": "/app-health/controller/readyz",
+                                "port": 15020,
+                                "scheme": "HTTP"
+                            },
+                            "initialDelaySeconds": 10,
+                            "timeoutSeconds": 1,
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "failureThreshold": 3
+                        },
+                        "lifecycle": {
+                            "preStop": {
+                                "exec": {
+                                    "command": [
+                                        "/wait-shutdown"
+                                    ]
+                                }
+                            }
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent",
+                        "securityContext": {
+                            "capabilities": {
+                                "add": [
+                                    "NET_BIND_SERVICE"
+                                ],
+                                "drop": [
+                                    "ALL"
+                                ]
+                            },
+                            "runAsUser": 101,
+                            "allowPrivilegeEscalation": true
+                        }
+                    },
+                    {
+                        "name": "istio-proxy",
+                        "image": "ghcr.io/verrazzano/proxyv2:1.13.2",
+                        "args": [
+                            "proxy",
+                            "sidecar",
+                            "--domain",
+                            "$(POD_NAMESPACE).svc.cluster.local",
+                            "--proxyLogLevel=warning",
+                            "--proxyComponentLogLevel=misc:error",
+                            "--log_output_level=default:info",
+                            "--concurrency",
+                            "2"
+                        ],
+                        "ports": [
+                            {
+                                "name": "http-envoy-prom",
+                                "containerPort": 15090,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "env": [
+                            {
+                                "name": "JWT_POLICY",
+                                "value": "third-party-jwt"
+                            },
+                            {
+                                "name": "PILOT_CERT_PROVIDER",
+                                "value": "istiod"
+                            },
+                            {
+                                "name": "CA_ADDR",
+                                "value": "istiod.istio-system.svc:15012"
+                            },
+                            {
+                                "name": "POD_NAME",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.name"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "POD_NAMESPACE",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.namespace"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "INSTANCE_IP",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "status.podIP"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "SERVICE_ACCOUNT",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "spec.serviceAccountName"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "HOST_IP",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "status.hostIP"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "PROXY_CONFIG",
+                                "value": "{}\n"
+                            },
+                            {
+                                "name": "ISTIO_META_POD_PORTS",
+                                "value": "[\n    {\"name\":\"http\",\"containerPort\":80,\"protocol\":\"TCP\"}\n    ,{\"name\":\"https\",\"containerPort\":443,\"protocol\":\"TCP\"}\n    ,{\"name\":\"metrics\",\"containerPort\":10254,\"protocol\":\"TCP\"}\n]"
+                            },
+                            {
+                                "name": "ISTIO_META_APP_CONTAINERS",
+                                "value": "controller"
+                            },
+                            {
+                                "name": "ISTIO_META_CLUSTER_ID",
+                                "value": "Kubernetes"
+                            },
+                            {
+                                "name": "ISTIO_META_INTERCEPTION_MODE",
+                                "value": "REDIRECT"
+                            },
+                            {
+                                "name": "ISTIO_META_WORKLOAD_NAME",
+                                "value": "ingress-controller-ingress-nginx-controller"
+                            },
+                            {
+                                "name": "ISTIO_META_OWNER",
+                                "value": "kubernetes://apis/apps/v1/namespaces/ingress-nginx/deployments/ingress-controller-ingress-nginx-controller"
+                            },
+                            {
+                                "name": "ISTIO_META_MESH_ID",
+                                "value": "cluster.local"
+                            },
+                            {
+                                "name": "TRUST_DOMAIN",
+                                "value": "cluster.local"
+                            },
+                            {
+                                "name": "ISTIO_KUBE_APP_PROBERS",
+                                "value": "{\"/app-health/controller/livez\":{\"httpGet\":{\"path\":\"/healthz\",\"port\":10254,\"scheme\":\"HTTP\"},\"timeoutSeconds\":1},\"/app-health/controller/readyz\":{\"httpGet\":{\"path\":\"/healthz\",\"port\":10254,\"scheme\":\"HTTP\"},\"timeoutSeconds\":1}}"
+                            }
+                        ],
+                        "resources": {
+                            "limits": {
+                                "cpu": "2",
+                                "memory": "1Gi"
+                            },
+                            "requests": {
+                                "cpu": "100m",
+                                "memory": "128Mi"
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "name": "istiod-ca-cert",
+                                "mountPath": "/var/run/secrets/istio"
+                            },
+                            {
+                                "name": "istio-data",
+                                "mountPath": "/var/lib/istio/data"
+                            },
+                            {
+                                "name": "istio-envoy",
+                                "mountPath": "/etc/istio/proxy"
+                            },
+                            {
+                                "name": "istio-token",
+                                "mountPath": "/var/run/secrets/tokens"
+                            },
+                            {
+                                "name": "istio-podinfo",
+                                "mountPath": "/etc/istio/pod"
+                            },
+                            {
+                                "name": "kube-api-access-vjlmd",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "readinessProbe": {
+                            "httpGet": {
+                                "path": "/healthz/ready",
+                                "port": 15021,
+                                "scheme": "HTTP"
+                            },
+                            "initialDelaySeconds": 1,
+                            "timeoutSeconds": 3,
+                            "periodSeconds": 2,
+                            "successThreshold": 1,
+                            "failureThreshold": 90
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent",
+                        "securityContext": {
+                            "capabilities": {
+                                "drop": [
+                                    "ALL"
+                                ]
+                            },
+                            "privileged": false,
+                            "runAsUser": 1337,
+                            "runAsGroup": 1337,
+                            "runAsNonRoot": true,
+                            "readOnlyRootFilesystem": true,
+                            "allowPrivilegeEscalation": false
+                        }
+                    }
+                ],
+                "restartPolicy": "Always",
+                "terminationGracePeriodSeconds": 300,
+                "dnsPolicy": "ClusterFirst",
+                "nodeSelector": {
+                    "kubernetes.io/os": "linux"
+                },
+                "serviceAccountName": "ingress-controller-ingress-nginx",
+                "serviceAccount": "ingress-controller-ingress-nginx",
+                "nodeName": "REDACTED-IP4-ADDRESS",
+                "securityContext": {},
+                "imagePullSecrets": [
+                    {
+                        "name": "verrazzano-container-registry"
+                    }
+                ],
+                "schedulerName": "default-scheduler",
+                "tolerations": [
+                    {
+                        "key": "node.kubernetes.io/not-ready",
+                        "operator": "Exists",
+                        "effect": "NoExecute",
+                        "tolerationSeconds": 300
+                    },
+                    {
+                        "key": "node.kubernetes.io/unreachable",
+                        "operator": "Exists",
+                        "effect": "NoExecute",
+                        "tolerationSeconds": 300
+                    }
+                ],
+                "priority": 0,
+                "enableServiceLinks": true,
+                "preemptionPolicy": "PreemptLowerPriority"
+            },
+            "status": {
+                "phase": "Running",
+                "conditions": [
+                    {
+                        "type": "Initialized",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2022-05-19T20:36:08Z"
+                    },
+                    {
+                        "type": "Ready",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2022-05-19T20:36:46Z"
+                    },
+                    {
+                        "type": "ContainersReady",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2022-05-19T20:36:46Z"
+                    },
+                    {
+                        "type": "PodScheduled",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2022-05-19T20:36:06Z"
+                    }
+                ],
+                "hostIP": "REDACTED-IP4-ADDRESS",
+                "podIP": "REDACTED-IP4-ADDRESS",
+                "podIPs": [
+                    {
+                        "ip": "REDACTED-IP4-ADDRESS"
+                    }
+                ],
+                "startTime": "2022-05-19T20:36:06Z",
+                "initContainerStatuses": [
+                    {
+                        "name": "istio-init",
+                        "state": {
+                            "terminated": {
+                                "exitCode": 0,
+                                "reason": "Completed",
+                                "startedAt": "2022-05-19T20:36:07Z",
+                                "finishedAt": "2022-05-19T20:36:07Z",
+                                "containerID": "cri-o://c94faf323d1d5a6167a5796527d69020833106d6f4ed4567073d30cd644204a2"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": true,
+                        "restartCount": 0,
+                        "image": "ghcr.io/verrazzano/proxyv2:1.13.2",
+                        "imageID": "ghcr.io/verrazzano/proxyv2@sha256:6ef03b1904cde5bb20c12321b5ec5910a50e08ff67a1b5c7c48c16e9ad265f5f",
+                        "containerID": "cri-o://c94faf323d1d5a6167a5796527d69020833106d6f4ed4567073d30cd644204a2"
+                    }
+                ],
+                "containerStatuses": [
+                    {
+                        "name": "controller",
+                        "state": {
+                            "running": {
+                                "startedAt": "2022-05-19T20:36:33Z"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": true,
+                        "restartCount": 0,
+                        "image": "ghcr.io/verrazzano/nginx-ingress-controller:1.1.1-20220413170248-b60724ed1",
+                        "imageID": "ghcr.io/verrazzano/nginx-ingress-controller@sha256:20bc39d2dafed3b8c74e84e6523dde0995f2759445b562372adc14e2f4fce59f",
+                        "containerID": "cri-o://cac0cf523bad58b67114009052fe359f55f224472c24cad5cc5c0f7801e05e17",
+                        "started": true
+                    },
+                    {
+                        "name": "istio-proxy",
+                        "state": {
+                            "running": {
+                                "startedAt": "2022-05-19T20:36:33Z"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": true,
+                        "restartCount": 0,
+                        "image": "ghcr.io/verrazzano/proxyv2:1.13.2",
+                        "imageID": "ghcr.io/verrazzano/proxyv2@sha256:6ef03b1904cde5bb20c12321b5ec5910a50e08ff67a1b5c7c48c16e9ad265f5f",
+                        "containerID": "cri-o://b356a4d92979d9c4f99317126dc98295778a88080b239d664f92efe234363e0e",
+                        "started": true
+                    }
+                ],
+                "qosClass": "Burstable"
+            }
+        },
+        {
+            "metadata": {
+                "name": "ingress-controller-ingress-nginx-defaultbackend-56c5fbc6b88w5ll",
+                "generateName": "ingress-controller-ingress-nginx-defaultbackend-56c5fbc6b8-",
+                "namespace": "verrazzano-ingress-nginx",
+                "uid": "29ef83f0-976d-4fa6-9a2a-bd7fc95ddd18",
+                "resourceVersion": "4572",
+                "creationTimestamp": "2022-05-19T20:36:06Z",
+                "labels": {
+                    "app.kubernetes.io/component": "default-backend",
+                    "app.kubernetes.io/instance": "ingress-controller",
+                    "app.kubernetes.io/name": "ingress-nginx",
+                    "pod-template-hash": "56c5fbc6b8",
+                    "security.istio.io/tlsMode": "istio",
+                    "service.istio.io/canonical-name": "ingress-nginx",
+                    "service.istio.io/canonical-revision": "latest"
+                },
+                "annotations": {
+                    "kubectl.kubernetes.io/default-container": "ingress-nginx-default-backend",
+                    "kubectl.kubernetes.io/default-logs-container": "ingress-nginx-default-backend",
+                    "sidecar.istio.io/status": "{\"initContainers\":[\"istio-init\"],\"containers\":[\"istio-proxy\"],\"volumes\":[\"istio-envoy\",\"istio-data\",\"istio-podinfo\",\"istio-token\",\"istiod-ca-cert\"],\"imagePullSecrets\":[\"verrazzano-container-registry\"],\"revision\":\"default\"}",
+                    "traffic.sidecar.istio.io/excludeInboundPorts": "8080"
+                },
+                "ownerReferences": [
+                    {
+                        "apiVersion": "apps/v1",
+                        "kind": "ReplicaSet",
+                        "name": "ingress-controller-ingress-nginx-defaultbackend-56c5fbc6b8",
+                        "uid": "a61f24e7-6e03-43a5-81e6-5ff59bbb2995",
+                        "controller": true,
+                        "blockOwnerDeletion": true
+                    }
+                ]
+            },
+            "spec": {
+                "volumes": [
+                    {
+                        "name": "istio-envoy",
+                        "emptyDir": {
+                            "medium": "Memory"
+                        }
+                    },
+                    {
+                        "name": "istio-data",
+                        "emptyDir": {}
+                    },
+                    {
+                        "name": "istio-podinfo",
+                        "downwardAPI": {
+                            "items": [
+                                {
+                                    "path": "labels",
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.labels"
+                                    }
+                                },
+                                {
+                                    "path": "annotations",
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.annotations"
+                                    }
+                                }
+                            ],
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "istio-token",
+                        "projected": {
+                            "sources": [
+                                {
+                                    "serviceAccountToken": {
+                                        "audience": "istio-ca",
+                                        "expirationSeconds": 43200,
+                                        "path": "istio-token"
+                                    }
+                                }
+                            ],
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "istiod-ca-cert",
+                        "configMap": {
+                            "name": "istio-ca-root-cert",
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "error-pages",
+                        "configMap": {
+                            "name": "ingress-controller-ingress-nginx-defaultbackend-custom-error-pages",
+                            "items": [
+                                {
+                                    "key": "301.html",
+                                    "path": "301.html"
+                                },
+                                {
+                                    "key": "302.html",
+                                    "path": "302.html"
+                                },
+                                {
+                                    "key": "304.html",
+                                    "path": "304.html"
+                                },
+                                {
+                                    "key": "307.html",
+                                    "path": "307.html"
+                                },
+                                {
+                                    "key": "308.html",
+                                    "path": "308.html"
+                                },
+                                {
+                                    "key": "400.html",
+                                    "path": "400.html"
+                                },
+                                {
+                                    "key": "401.html",
+                                    "path": "401.html"
+                                },
+                                {
+                                    "key": "403.html",
+                                    "path": "403.html"
+                                },
+                                {
+                                    "key": "404.html",
+                                    "path": "404.html"
+                                },
+                                {
+                                    "key": "407.html",
+                                    "path": "407.html"
+                                },
+                                {
+                                    "key": "408.html",
+                                    "path": "408.html"
+                                },
+                                {
+                                    "key": "409.html",
+                                    "path": "409.html"
+                                },
+                                {
+                                    "key": "413.html",
+                                    "path": "413.html"
+                                },
+                                {
+                                    "key": "414.html",
+                                    "path": "414.html"
+                                },
+                                {
+                                    "key": "415.html",
+                                    "path": "415.html"
+                                },
+                                {
+                                    "key": "416.html",
+                                    "path": "416.html"
+                                },
+                                {
+                                    "key": "418.html",
+                                    "path": "418.html"
+                                },
+                                {
+                                    "key": "421.html",
+                                    "path": "421.html"
+                                },
+                                {
+                                    "key": "429.html",
+                                    "path": "429.html"
+                                },
+                                {
+                                    "key": "431.html",
+                                    "path": "431.html"
+                                },
+                                {
+                                    "key": "500.html",
+                                    "path": "500.html"
+                                },
+                                {
+                                    "key": "501.html",
+                                    "path": "501.html"
+                                },
+                                {
+                                    "key": "502.html",
+                                    "path": "502.html"
+                                },
+                                {
+                                    "key": "503.html",
+                                    "path": "503.html"
+                                },
+                                {
+                                    "key": "504.html",
+                                    "path": "504.html"
+                                },
+                                {
+                                    "key": "505.html",
+                                    "path": "505.html"
+                                },
+                                {
+                                    "key": "301.html",
+                                    "path": "301.htm"
+                                },
+                                {
+                                    "key": "302.html",
+                                    "path": "302.htm"
+                                },
+                                {
+                                    "key": "304.html",
+                                    "path": "304.htm"
+                                },
+                                {
+                                    "key": "307.html",
+                                    "path": "307.htm"
+                                },
+                                {
+                                    "key": "308.html",
+                                    "path": "308.htm"
+                                },
+                                {
+                                    "key": "400.html",
+                                    "path": "400.htm"
+                                },
+                                {
+                                    "key": "401.html",
+                                    "path": "401.htm"
+                                },
+                                {
+                                    "key": "403.html",
+                                    "path": "403.htm"
+                                },
+                                {
+                                    "key": "404.html",
+                                    "path": "404.htm"
+                                },
+                                {
+                                    "key": "407.html",
+                                    "path": "407.htm"
+                                },
+                                {
+                                    "key": "408.html",
+                                    "path": "408.htm"
+                                },
+                                {
+                                    "key": "409.html",
+                                    "path": "409.htm"
+                                },
+                                {
+                                    "key": "413.html",
+                                    "path": "413.htm"
+                                },
+                                {
+                                    "key": "414.html",
+                                    "path": "414.htm"
+                                },
+                                {
+                                    "key": "415.html",
+                                    "path": "415.htm"
+                                },
+                                {
+                                    "key": "416.html",
+                                    "path": "416.htm"
+                                },
+                                {
+                                    "key": "418.html",
+                                    "path": "418.htm"
+                                },
+                                {
+                                    "key": "421.html",
+                                    "path": "421.htm"
+                                },
+                                {
+                                    "key": "429.html",
+                                    "path": "429.htm"
+                                },
+                                {
+                                    "key": "431.html",
+                                    "path": "431.htm"
+                                },
+                                {
+                                    "key": "500.html",
+                                    "path": "500.htm"
+                                },
+                                {
+                                    "key": "501.html",
+                                    "path": "501.htm"
+                                },
+                                {
+                                    "key": "502.html",
+                                    "path": "502.htm"
+                                },
+                                {
+                                    "key": "503.html",
+                                    "path": "503.htm"
+                                },
+                                {
+                                    "key": "504.html",
+                                    "path": "504.htm"
+                                },
+                                {
+                                    "key": "505.html",
+                                    "path": "505.htm"
+                                },
+                                {
+                                    "key": "301.json",
+                                    "path": "301.json"
+                                },
+                                {
+                                    "key": "302.json",
+                                    "path": "302.json"
+                                },
+                                {
+                                    "key": "304.json",
+                                    "path": "304.json"
+                                },
+                                {
+                                    "key": "307.json",
+                                    "path": "307.json"
+                                },
+                                {
+                                    "key": "308.json",
+                                    "path": "308.json"
+                                },
+                                {
+                                    "key": "400.json",
+                                    "path": "400.json"
+                                },
+                                {
+                                    "key": "401.json",
+                                    "path": "401.json"
+                                },
+                                {
+                                    "key": "403.json",
+                                    "path": "403.json"
+                                },
+                                {
+                                    "key": "404.json",
+                                    "path": "404.json"
+                                },
+                                {
+                                    "key": "407.json",
+                                    "path": "407.json"
+                                },
+                                {
+                                    "key": "408.json",
+                                    "path": "408.json"
+                                },
+                                {
+                                    "key": "409.json",
+                                    "path": "409.json"
+                                },
+                                {
+                                    "key": "413.json",
+                                    "path": "413.json"
+                                },
+                                {
+                                    "key": "414.json",
+                                    "path": "414.json"
+                                },
+                                {
+                                    "key": "415.json",
+                                    "path": "415.json"
+                                },
+                                {
+                                    "key": "416.json",
+                                    "path": "416.json"
+                                },
+                                {
+                                    "key": "418.json",
+                                    "path": "418.json"
+                                },
+                                {
+                                    "key": "421.json",
+                                    "path": "421.json"
+                                },
+                                {
+                                    "key": "429.json",
+                                    "path": "429.json"
+                                },
+                                {
+                                    "key": "431.json",
+                                    "path": "431.json"
+                                },
+                                {
+                                    "key": "500.json",
+                                    "path": "500.json"
+                                },
+                                {
+                                    "key": "501.json",
+                                    "path": "501.json"
+                                },
+                                {
+                                    "key": "502.json",
+                                    "path": "502.json"
+                                },
+                                {
+                                    "key": "503.json",
+                                    "path": "503.json"
+                                },
+                                {
+                                    "key": "504.json",
+                                    "path": "504.json"
+                                },
+                                {
+                                    "key": "505.json",
+                                    "path": "505.json"
+                                }
+                            ],
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "kube-api-access-287jp",
+                        "projected": {
+                            "sources": [
+                                {
+                                    "serviceAccountToken": {
+                                        "expirationSeconds": 3607,
+                                        "path": "token"
+                                    }
+                                },
+                                {
+                                    "configMap": {
+                                        "name": "kube-root-ca.crt",
+                                        "items": [
+                                            {
+                                                "key": "ca.crt",
+                                                "path": "ca.crt"
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "downwardAPI": {
+                                        "items": [
+                                            {
+                                                "path": "namespace",
+                                                "fieldRef": {
+                                                    "apiVersion": "v1",
+                                                    "fieldPath": "metadata.namespace"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ],
+                            "defaultMode": 420
+                        }
+                    }
+                ],
+                "initContainers": [
+                    {
+                        "name": "istio-init",
+                        "image": "ghcr.io/verrazzano/proxyv2:1.13.2",
+                        "args": [
+                            "istio-iptables",
+                            "-p",
+                            "15001",
+                            "-z",
+                            "15006",
+                            "-u",
+                            "1337",
+                            "-m",
+                            "REDIRECT",
+                            "-i",
+                            "*",
+                            "-x",
+                            "",
+                            "-b",
+                            "*",
+                            "-d",
+                            "15090,15021,8080,15020"
+                        ],
+                        "resources": {
+                            "limits": {
+                                "cpu": "2",
+                                "memory": "1Gi"
+                            },
+                            "requests": {
+                                "cpu": "100m",
+                                "memory": "128Mi"
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "name": "kube-api-access-287jp",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent",
+                        "securityContext": {
+                            "capabilities": {
+                                "add": [
+                                    "NET_ADMIN",
+                                    "NET_RAW"
+                                ],
+                                "drop": [
+                                    "ALL"
+                                ]
+                            },
+                            "privileged": false,
+                            "runAsUser": 0,
+                            "runAsGroup": 0,
+                            "runAsNonRoot": false,
+                            "readOnlyRootFilesystem": false,
+                            "allowPrivilegeEscalation": false
+                        }
+                    }
+                ],
+                "containers": [
+                    {
+                        "name": "ingress-nginx-default-backend",
+                        "image": "ghcr.io/verrazzano/nginx-ingress-default-backend:1.1.1-20220413170248-b60724ed1",
+                        "ports": [
+                            {
+                                "name": "http",
+                                "containerPort": 8080,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "resources": {},
+                        "volumeMounts": [
+                            {
+                                "name": "error-pages",
+                                "mountPath": "/www"
+                            },
+                            {
+                                "name": "kube-api-access-287jp",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "livenessProbe": {
+                            "httpGet": {
+                                "path": "/app-health/ingress-nginx-default-backend/livez",
+                                "port": 15020,
+                                "scheme": "HTTP"
+                            },
+                            "initialDelaySeconds": 30,
+                            "timeoutSeconds": 5,
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "failureThreshold": 3
+                        },
+                        "readinessProbe": {
+                            "httpGet": {
+                                "path": "/app-health/ingress-nginx-default-backend/readyz",
+                                "port": 15020,
+                                "scheme": "HTTP"
+                            },
+                            "timeoutSeconds": 5,
+                            "periodSeconds": 5,
+                            "successThreshold": 1,
+                            "failureThreshold": 6
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent",
+                        "securityContext": {
+                            "capabilities": {
+                                "drop": [
+                                    "ALL"
+                                ]
+                            },
+                            "runAsUser": 65534,
+                            "runAsNonRoot": true,
+                            "readOnlyRootFilesystem": true,
+                            "allowPrivilegeEscalation": false
+                        }
+                    },
+                    {
+                        "name": "istio-proxy",
+                        "image": "ghcr.io/verrazzano/proxyv2:1.13.2",
+                        "args": [
+                            "proxy",
+                            "sidecar",
+                            "--domain",
+                            "$(POD_NAMESPACE).svc.cluster.local",
+                            "--proxyLogLevel=warning",
+                            "--proxyComponentLogLevel=misc:error",
+                            "--log_output_level=default:info",
+                            "--concurrency",
+                            "2"
+                        ],
+                        "ports": [
+                            {
+                                "name": "http-envoy-prom",
+                                "containerPort": 15090,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "env": [
+                            {
+                                "name": "JWT_POLICY",
+                                "value": "third-party-jwt"
+                            },
+                            {
+                                "name": "PILOT_CERT_PROVIDER",
+                                "value": "istiod"
+                            },
+                            {
+                                "name": "CA_ADDR",
+                                "value": "istiod.istio-system.svc:15012"
+                            },
+                            {
+                                "name": "POD_NAME",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.name"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "POD_NAMESPACE",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.namespace"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "INSTANCE_IP",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "status.podIP"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "SERVICE_ACCOUNT",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "spec.serviceAccountName"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "HOST_IP",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "status.hostIP"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "PROXY_CONFIG",
+                                "value": "{}\n"
+                            },
+                            {
+                                "name": "ISTIO_META_POD_PORTS",
+                                "value": "[\n    {\"name\":\"http\",\"containerPort\":8080,\"protocol\":\"TCP\"}\n]"
+                            },
+                            {
+                                "name": "ISTIO_META_APP_CONTAINERS",
+                                "value": "ingress-nginx-default-backend"
+                            },
+                            {
+                                "name": "ISTIO_META_CLUSTER_ID",
+                                "value": "Kubernetes"
+                            },
+                            {
+                                "name": "ISTIO_META_INTERCEPTION_MODE",
+                                "value": "REDIRECT"
+                            },
+                            {
+                                "name": "ISTIO_META_WORKLOAD_NAME",
+                                "value": "ingress-controller-ingress-nginx-defaultbackend"
+                            },
+                            {
+                                "name": "ISTIO_META_OWNER",
+                                "value": "kubernetes://apis/apps/v1/namespaces/ingress-nginx/deployments/ingress-controller-ingress-nginx-defaultbackend"
+                            },
+                            {
+                                "name": "ISTIO_META_MESH_ID",
+                                "value": "cluster.local"
+                            },
+                            {
+                                "name": "TRUST_DOMAIN",
+                                "value": "cluster.local"
+                            },
+                            {
+                                "name": "ISTIO_KUBE_APP_PROBERS",
+                                "value": "{\"/app-health/ingress-nginx-default-backend/livez\":{\"httpGet\":{\"path\":\"/healthz\",\"port\":8080,\"scheme\":\"HTTP\"},\"timeoutSeconds\":5},\"/app-health/ingress-nginx-default-backend/readyz\":{\"httpGet\":{\"path\":\"/healthz\",\"port\":8080,\"scheme\":\"HTTP\"},\"timeoutSeconds\":5}}"
+                            }
+                        ],
+                        "resources": {
+                            "limits": {
+                                "cpu": "2",
+                                "memory": "1Gi"
+                            },
+                            "requests": {
+                                "cpu": "100m",
+                                "memory": "128Mi"
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "name": "istiod-ca-cert",
+                                "mountPath": "/var/run/secrets/istio"
+                            },
+                            {
+                                "name": "istio-data",
+                                "mountPath": "/var/lib/istio/data"
+                            },
+                            {
+                                "name": "istio-envoy",
+                                "mountPath": "/etc/istio/proxy"
+                            },
+                            {
+                                "name": "istio-token",
+                                "mountPath": "/var/run/secrets/tokens"
+                            },
+                            {
+                                "name": "istio-podinfo",
+                                "mountPath": "/etc/istio/pod"
+                            },
+                            {
+                                "name": "kube-api-access-287jp",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "readinessProbe": {
+                            "httpGet": {
+                                "path": "/healthz/ready",
+                                "port": 15021,
+                                "scheme": "HTTP"
+                            },
+                            "initialDelaySeconds": 1,
+                            "timeoutSeconds": 3,
+                            "periodSeconds": 2,
+                            "successThreshold": 1,
+                            "failureThreshold": 90
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent",
+                        "securityContext": {
+                            "capabilities": {
+                                "drop": [
+                                    "ALL"
+                                ]
+                            },
+                            "privileged": false,
+                            "runAsUser": 1337,
+                            "runAsGroup": 1337,
+                            "runAsNonRoot": true,
+                            "readOnlyRootFilesystem": true,
+                            "allowPrivilegeEscalation": false
+                        }
+                    }
+                ],
+                "restartPolicy": "Always",
+                "terminationGracePeriodSeconds": 60,
+                "dnsPolicy": "ClusterFirst",
+                "nodeSelector": {
+                    "kubernetes.io/os": "linux"
+                },
+                "serviceAccountName": "ingress-controller-ingress-nginx-backend",
+                "serviceAccount": "ingress-controller-ingress-nginx-backend",
+                "nodeName": "REDACTED-IP4-ADDRESS",
+                "securityContext": {},
+                "imagePullSecrets": [
+                    {
+                        "name": "verrazzano-container-registry"
+                    }
+                ],
+                "schedulerName": "default-scheduler",
+                "tolerations": [
+                    {
+                        "key": "node.kubernetes.io/not-ready",
+                        "operator": "Exists",
+                        "effect": "NoExecute",
+                        "tolerationSeconds": 300
+                    },
+                    {
+                        "key": "node.kubernetes.io/unreachable",
+                        "operator": "Exists",
+                        "effect": "NoExecute",
+                        "tolerationSeconds": 300
+                    }
+                ],
+                "priority": 0,
+                "enableServiceLinks": true,
+                "preemptionPolicy": "PreemptLowerPriority"
+            },
+            "status": {
+                "phase": "Running",
+                "conditions": [
+                    {
+                        "type": "Initialized",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2022-05-19T20:36:08Z"
+                    },
+                    {
+                        "type": "Ready",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2022-05-19T20:36:37Z"
+                    },
+                    {
+                        "type": "ContainersReady",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2022-05-19T20:36:37Z"
+                    },
+                    {
+                        "type": "PodScheduled",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2022-05-19T20:36:06Z"
+                    }
+                ],
+                "hostIP": "REDACTED-IP4-ADDRESS",
+                "podIP": "REDACTED-IP4-ADDRESS",
+                "podIPs": [
+                    {
+                        "ip": "REDACTED-IP4-ADDRESS"
+                    }
+                ],
+                "startTime": "2022-05-19T20:36:06Z",
+                "initContainerStatuses": [
+                    {
+                        "name": "istio-init",
+                        "state": {
+                            "terminated": {
+                                "exitCode": 0,
+                                "reason": "Completed",
+                                "startedAt": "2022-05-19T20:36:08Z",
+                                "finishedAt": "2022-05-19T20:36:08Z",
+                                "containerID": "cri-o://b9f417e2ca5033d76d64530f8bad9dbee4c07ff972a71e33150408f059dc1161"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": true,
+                        "restartCount": 0,
+                        "image": "ghcr.io/verrazzano/proxyv2:1.13.2",
+                        "imageID": "ghcr.io/verrazzano/proxyv2@sha256:6ef03b1904cde5bb20c12321b5ec5910a50e08ff67a1b5c7c48c16e9ad265f5f",
+                        "containerID": "cri-o://b9f417e2ca5033d76d64530f8bad9dbee4c07ff972a71e33150408f059dc1161"
+                    }
+                ],
+                "containerStatuses": [
+                    {
+                        "name": "ingress-nginx-default-backend",
+                        "state": {
+                            "running": {
+                                "startedAt": "2022-05-19T20:36:33Z"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": true,
+                        "restartCount": 0,
+                        "image": "ghcr.io/verrazzano/nginx-ingress-default-backend:1.1.1-20220413170248-b60724ed1",
+                        "imageID": "ghcr.io/verrazzano/nginx-ingress-default-backend@sha256:d0fcc9b3018aa943e06d91baca63b9ae35e6d90279807dbab69a2470581bc985",
+                        "containerID": "cri-o://6523d22b06eaf60917b8780535e96cc54bb6a11dcf165cd0960428b7b223a680",
+                        "started": true
+                    },
+                    {
+                        "name": "istio-proxy",
+                        "state": {
+                            "running": {
+                                "startedAt": "2022-05-19T20:36:33Z"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": true,
+                        "restartCount": 0,
+                        "image": "ghcr.io/verrazzano/proxyv2:1.13.2",
+                        "imageID": "ghcr.io/verrazzano/proxyv2@sha256:6ef03b1904cde5bb20c12321b5ec5910a50e08ff67a1b5c7c48c16e9ad265f5f",
+                        "containerID": "cri-o://448d3e095ba8c0472bbec0bad656cd75717b99f9f44f53ad808f93cabb0f4e70",
+                        "started": true
+                    }
+                ],
+                "qosClass": "Burstable"
+            }
+        }
+    ]
+}

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package verify
@@ -8,12 +8,11 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
@@ -34,6 +33,9 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"k8s.io/apimachinery/pkg/api/errors"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 const (
@@ -50,7 +52,7 @@ var t = framework.NewTestFramework("verify")
 var vzcr *vzapi.Verrazzano
 var kubeconfigPath string
 var envoyImage string
-
+var ingressNGINXNamespace string
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
@@ -76,6 +78,12 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		}
 		return err
 	}, shortWait, pollingInterval).Should(BeNil(), "Expected to get envoy proxy image name and tag")
+
+	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get Ingress NGINX namespace: %s", err.Error()))
+	}
+
 })
 var _ = BeforeSuite(beforeSuite)
 var afterSuite = t.AfterSuiteFunc(func() {})
@@ -218,9 +226,8 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 			t.Entry("Checking Deployment vmi-system-kiali", constants.VerrazzanoSystemNamespace, kiali.ComponentName, "vmi-system-kiali"),
 
 			t.Entry("Checking Deployment mysql", mysql.ComponentNamespace, mysql.ComponentName, "mysql"),
-
-			t.Entry("Checking Deployment ingress-controller-ingress-nginx-controller", nginx.ComponentNamespace, nginx.ComponentName, "ingress-controller-ingress-nginx-controller"),
-			t.Entry("Checking Deployment ingress-controller-ingress-nginx-defaultbackend", nginx.ComponentNamespace, nginx.ComponentName, "ingress-controller-ingress-nginx-defaultbackend"),
+			t.Entry("Checking Deployment ingress-controller-ingress-nginx-controller", ingressNGINXNamespace, nginx.ComponentName, "ingress-controller-ingress-nginx-controller"),
+			t.Entry("Checking Deployment ingress-controller-ingress-nginx-defaultbackend", ingressNGINXNamespace, nginx.ComponentName, "ingress-controller-ingress-nginx-defaultbackend"),
 
 			t.Entry("Checking Deployment rancher", rancher.ComponentNamespace, rancher.ComponentName, "rancher"),
 			t.Entry("Checking Deployment rancher", rancher.ComponentNamespace, rancher.ComponentName, "rancher-webhook"),

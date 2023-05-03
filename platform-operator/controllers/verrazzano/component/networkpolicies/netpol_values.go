@@ -51,7 +51,8 @@ type consoleValues struct {
 }
 
 type nginxValues struct {
-	Enabled bool `json:"enabled"` // Always write
+	Enabled   bool   `json:"enabled"`
+	Namespace string `json:"namespace"`
 }
 
 type elasticsearchValues struct {
@@ -79,7 +80,8 @@ type grafanaValues struct {
 }
 
 type externalDNSValues struct {
-	Enabled bool `json:"enabled"` // Always write
+	Enabled   bool   `json:"enabled"`   // Always write
+	Namespace string `json:"namespace"` // Always write
 }
 
 type jaegerOperatorValues struct {

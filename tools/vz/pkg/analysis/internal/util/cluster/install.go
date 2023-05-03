@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strings"
 
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
@@ -47,7 +48,6 @@ const verrazzanoResource = "verrazzano-resources.json"
 const eventsJSON = "events.json"
 const servicesJSON = "services.json"
 const podsJSON = "pods.json"
-const ingressNginx = "ingress-nginx"
 const istioSystem = "istio-system"
 
 const installErrorNotFound = "Component specific error(s) not found in the Verrazzano install log for - "
@@ -138,7 +138,14 @@ func analyzeVerrazzanoInstallIssue(log *zap.SugaredLogger, clusterRoot string, i
 	// before verifying that the NGINX service is in good standing
 	analyzeIstioIngressService(log, clusterRoot, issueReporter)
 	analyzeExternalDNS(log, clusterRoot, issueReporter)
-	podFile := files.FindFileInNamespace(clusterRoot, ingressNginx, podsJSON)
+
+	ingressNGINXNamespace, err := checkIngressNGINXNamespace(clusterRoot)
+	if err != nil {
+		log.Errorf("Unexpected error checking for Ingress NGINX namespace: %v", err)
+		return err
+	}
+
+	podFile := files.FindFileInNamespace(clusterRoot, ingressNGINXNamespace, podsJSON)
 
 	podList, err := GetPodList(log, podFile)
 	if err != nil {
@@ -175,7 +182,13 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 	// If we have a start/end time for the install containerStatus, then we can use that to only look at logs which are in that time range
 
 	// Look at the ingress-controller-ingress-nginx-controller, and look at the events related to it
-	services, err := GetServiceList(log, files.FindFileInNamespace(clusterRoot, ingressNginx, servicesJSON))
+	ingressNGINXNamespace, err := checkIngressNGINXNamespace(clusterRoot)
+	if err != nil {
+		log.Errorf("Unexpected error checking for Ingress NGINX namespace: %v", err)
+		return err
+	}
+
+	services, err := GetServiceList(log, files.FindFileInNamespace(clusterRoot, ingressNGINXNamespace, servicesJSON))
 	if err != nil {
 		return err
 	}
@@ -290,7 +303,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 		messages[0] = fmt.Sprintf("Namespace %s, Pod %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 		// TODO: Time correlation on error search here
 
-		fileName := files.FindFileInClusterRoot(clusterRoot, ingressNginx)
+		fileName := files.FindFileInClusterRoot(clusterRoot, ingressNGINXNamespace)
 		nginxPodErrors, err := files.FindFilesAndSearch(log, fileName, LogFilesMatchRe, WideErrorSearchRe, nil)
 		if err != nil {
 			log.Debugf("Failed searching NGINX Ingress namespace log files for supporting error log data", err)
@@ -536,7 +549,9 @@ func getUniqueNamespaces(log *zap.SugaredLogger, compsNoMessages []string) []str
 func analyzeExternalDNS(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) {
 	errorMessagesRegex := []string{}
 	errorMessagesRegex = append(errorMessagesRegex, `.*level=error.*"getting zones: listing zones in.*Service error:NotAuthorizedOrNotFound.*`)
-	externalDnslogRegExp := regexp.MustCompile(constants.ExternalDNSNamespace + `/external-dns-.*/logs.txt`)
+	// External DNS will be in the cert-manager ns prior to 1.6, afterwards in verrazzano-system, but we must account for both
+	pattern := fmt.Sprintf("(%s|%s)", vzconst.ExternalDNSNamespace, vzconst.CertManagerNamespace) + `/external-dns-.*/logs.txt`
+	externalDnslogRegExp := regexp.MustCompile(pattern)
 	allPodFiles, err := files.GetMatchingFiles(log, clusterRoot, externalDnslogRegExp)
 	if err != nil {
 		return
@@ -559,4 +574,14 @@ func analyzeExternalDNS(log *zap.SugaredLogger, clusterRoot string, issueReporte
 			issueReporter.AddKnownIssueMessagesFiles(report.ExternalDNSConfigureIssue, clusterRoot, messages, servFiles)
 		}
 	}
+}
+
+func checkIngressNGINXNamespace(clusterRoot string) (string, error) {
+	_, err := os.Stat(fmt.Sprintf("%s/%s", clusterRoot, constants.IngressNginxNamespace))
+	if err == nil {
+		return constants.IngressNginxNamespace, nil
+	} else if os.IsNotExist(err) {
+		return constants.LegacyIngressNginxNamespace, nil
+	}
+	return "", err
 }

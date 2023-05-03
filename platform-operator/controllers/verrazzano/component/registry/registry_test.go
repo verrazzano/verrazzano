@@ -6,12 +6,16 @@ package registry
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerconfig"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerocidns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/time"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -95,7 +99,7 @@ func TestGetComponents(t *testing.T) {
 	comps := GetComponents()
 
 	var i int
-	a.Len(comps, 35, "Wrong number of components")
+	a.Len(comps, 37, "Wrong number of components")
 	a.Equal(comps[i].Name(), networkpolicies.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), oam.ComponentName)
@@ -109,6 +113,10 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[i].Name(), nginx.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), certmanager.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), certmanagerocidns.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), certmanagerconfig.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), externaldns.ComponentName)
 	i++
@@ -648,6 +656,11 @@ func TestComponentDependenciesMetStateCheckCompDisabled(t *testing.T) {
 // WHEN Newcontext is called
 // THEN all components referred from the registry are disabled except for network-policies
 func TestNoneProfileInstalledAllComponentsDisabled(t *testing.T) {
+	defer func() { common.ResetNewClientFunc() }()
+	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
+		return fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), nil
+	})
+
 	config.TestProfilesDir = profileDir
 	defer func() { config.TestProfilesDir = "" }()
 	t.Run("TestNoneProfileInstalledAllComponentsDisabled", func(t *testing.T) {
