@@ -67,6 +67,27 @@ const cattleShellImageName = "rancher-shell"
 // cattleUIEnvName is the environment variable name to set for the Rancher dashboard
 const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
 
+const streamSnippetAnnotation = `ingress.extraAnnotations.nginx\.ingress\.kubernetes\.io/stream-snippet`
+
+const streamSnippet = `
+    upstream rancher_stream_servers_http {
+        least_conn;
+        server %[1]s.%[2]s.svc.cluster.local:80 max_fails=3 fail_timeout=5s;
+    }
+    server {
+        listen 80;
+        proxy_pass rancher_stream_servers_http;
+    }
+    upstream rancher_stream_servers_https {
+        least_conn;
+        server %[1]s.%[2]s.svc.cluster.local:443 max_fails=3 fail_timeout=5s;
+    }
+    server {
+        listen 443;
+        proxy_pass rancher_stream_servers_https;
+    }
+`
+
 // Environment variables for the Rancher images
 // format: imageName: baseEnvVar
 var imageEnvVars = map[string]string{
@@ -183,6 +204,12 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	kvs = append(kvs, bom.KeyValue{
 		Key:   rancherIngressClassNameKey,
 		Value: vzconfig.GetIngressClassName(ctx.EffectiveCR()),
+	})
+	ctx.Log().Info("Adding the stream snippet annotation")
+	kvs = append(kvs, bom.KeyValue{
+		Key:       streamSnippetAnnotation,
+		Value:     fmt.Sprintf(streamSnippet, ComponentName, ComponentNamespace),
+		SetString: true,
 	})
 	kvs, err = appendPSPEnabledOverrides(ctx, kvs)
 	if err != nil {
