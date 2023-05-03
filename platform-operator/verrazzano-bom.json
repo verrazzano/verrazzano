@@ -369,6 +369,36 @@
       ]
     },
     {
+      "name": "fluent-operator",
+      "version": "2.2.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "fluent-operator",
+          "images": [
+            {
+              "image": "fluent-operator",
+              "tag": "v24",
+              "helmImageKey": "operator.container.repository",
+              "helmTagKey": "operator.container.tag"
+            },
+            {
+              "image": "fluent-bit",
+              "tag": "v2.0.9-10",
+              "helmImageKey": "fluentbit.image.repository",
+              "helmTagKey": "fluentbit.image.tag"
+            },
+            {
+              "image": "oraclelinux",
+              "tag": "8",
+              "helmImageKey": "operator.initcontainer.repository",
+              "helmTagKey": "operator.initcontainer.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "kiali-server",
       "version": "1.57.1",
       "subcomponents": [

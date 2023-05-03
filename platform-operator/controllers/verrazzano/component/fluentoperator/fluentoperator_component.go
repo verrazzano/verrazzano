@@ -138,14 +138,12 @@ func (c fluentOperatorComponent) checkEnabled(old *v1beta1.Verrazzano, new *v1be
 
 // PostInstall - post-install, clean up temp files
 func (c fluentOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
-	cleanTempFiles(ctx)
 	return c.HelmComponent.PostInstall(ctx)
 }
 
 // PostUpgrade Fluent-Operator component post-upgrade processing
 func (c fluentOperatorComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Fluentd-Operator component post-upgrade")
-	cleanTempFiles(ctx)
 	return c.HelmComponent.PostUpgrade(ctx)
 }
 
@@ -257,19 +255,4 @@ func (c fluentOperatorComponent) MonitorOverrides(ctx spi.ComponentContext) bool
 		return true
 	}
 	return false
-}
-
-// GetOverrides returns install overrides for a component
-func GetOverrides(object runtime.Object) interface{} {
-	if effectiveCR, ok := object.(*v1alpha1.Verrazzano); ok {
-		if effectiveCR.Spec.Components.FluentOperator != nil {
-			return effectiveCR.Spec.Components.FluentOperator.ValueOverrides
-		}
-		return []v1alpha1.Overrides{}
-	}
-	effectiveCR := object.(*v1beta1.Verrazzano)
-	if effectiveCR.Spec.Components.FluentOperator != nil {
-		return effectiveCR.Spec.Components.FluentOperator.ValueOverrides
-	}
-	return []v1beta1.Overrides{}
 }
