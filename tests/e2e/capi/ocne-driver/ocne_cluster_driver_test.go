@@ -29,7 +29,7 @@ const (
 	shortWaitTimeout             = 5 * time.Minute
 	shortPollingInterval         = 10 * time.Second
 	waitTimeout                  = 30 * time.Minute
-	pollingInterval              = 1 * time.Minute
+	pollingInterval              = 30 * time.Second
 	clusterName                  = "strudel"
 	createClusterPayloadTemplate = `{
 		"description": "testing cluster",
@@ -147,12 +147,12 @@ var _ = t.Describe("OCNE Cluster Driver", Label("TODO: appropriate label"), Seri
 			// Create the cluster
 			Eventually(func() error {
 				return createCluster(clusterName)
-			}, waitTimeout, shortPollingInterval).Should(BeNil())
+			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 		})
 
 		t.It("Check OCNE cluster is active", func() {
 			// Verify the cluster is active
-			Eventually(func() (bool, error) { return IsClusterActive(clusterName) }, shortWaitTimeout, shortPollingInterval).Should(
+			Eventually(func() (bool, error) { return IsClusterActive(clusterName) }, waitTimeout, pollingInterval).Should(
 				BeTrue(), fmt.Sprintf("Cluster %s is not active", clusterName))
 		})
 	})
