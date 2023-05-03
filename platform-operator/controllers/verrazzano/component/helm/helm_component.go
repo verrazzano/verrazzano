@@ -656,7 +656,7 @@ func (h HelmComponent) ResolveNamespace(ctx spi.ComponentContext) string {
 func (h HelmComponent) resolveNamespace(ctx spi.ComponentContext) string {
 	if len(h.resolvedNamespace) > 0 {
 		// Only resolve the namespace once per instance
-		ctx.Log().Oncef("Using cached resolved namespace %s for component %s", h.ReleaseName, h.resolvedNamespace)
+		ctx.Log().Debugf("Using cached resolved namespace %s for component %s", h.resolvedNamespace, h.ReleaseName)
 		return h.resolvedNamespace
 	}
 	effectiveCR := ctx.EffectiveCR()
@@ -671,7 +671,7 @@ func (h HelmComponent) resolveNamespace(ctx spi.ComponentContext) string {
 		h.resolvedNamespace = h.ResolveNamespaceFunc(h.resolvedNamespace)
 	}
 	// Only resolve the namespace once per instance
-	ctx.Log().Oncef("Using cached resolved namespace %s for component %s", h.ReleaseName, h.resolvedNamespace)
+	ctx.Log().Oncef("Using resolved namespace %s for component %s", h.resolvedNamespace, h.ReleaseName)
 	return h.resolvedNamespace
 }
 
