@@ -6,7 +6,7 @@ package helm
 import (
 	ctx "context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/pkg/namespace"
 	"os"
 	"sort"
 	"strings"
@@ -216,7 +216,7 @@ func (h HelmComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 		return true, nil
 	}
 	// check to make sure we own the namespace first
-	vzManaged, err := common.CheckIfVerrazzanoManagedNamespaceExists(ctx, h.resolveNamespace(ctx))
+	vzManaged, err := namespace.CheckIfVerrazzanoManagedNamespaceExists(h.resolveNamespace(ctx))
 	if err != nil {
 		return false, err
 	}
