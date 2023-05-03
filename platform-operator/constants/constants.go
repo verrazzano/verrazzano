@@ -255,8 +255,6 @@ const RancherBackupNamesSpace = "cattle-resources-system"
 // VerrazzanoManagedKey indicates the label key to the Verrazzano managed namespaces
 const VerrazzanoManagedKey = "verrazzano.io/namespace"
 
-const ExternalDNSNamespace = "cert-manager"
-
 // ServiceMonitorNameKubelet indicates the name of serviceMonitor resource for kubelet monitoring
 const ServiceMonitorNameKubelet = "prometheus-operator-kube-p-kubelet"
 

@@ -14,14 +14,14 @@ import (
 
 // CheckIfVerrazzanoManagedNamespaceExists returns true if the namespace exists and has the verrazzano.io/namespace label
 func CheckIfVerrazzanoManagedNamespaceExists(nsName string) (bool, error) {
-	client, err := k8sutil.GetCoreV1Client()
+	client, err := k8sutil.GetCoreV1Func()
 	if err != nil {
 		return false, fmt.Errorf("Failure creating corev1 client: %v", err)
 	}
 
 	namespace, err := client.Namespaces().Get(context.TODO(), nsName, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
-		return false, fmt.Errorf("Failure checking for namespace %s: %v", nsName, err)
+		return false, fmt.Errorf("Unexpected error checking for namespace %s: %v", nsName, err)
 	}
 	if namespace == nil || namespace.Labels[constants.VerrazzanoManagedKey] == "" {
 		return false, nil

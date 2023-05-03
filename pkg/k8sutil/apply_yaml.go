@@ -294,7 +294,7 @@ func (y *YAMLApplier) doTemplatedFileAction(filePath string, f action, args map[
 
 // doAction executes the action on a YAML reader
 func (y *YAMLApplier) doAction(reader *bufio.Reader, f action) error {
-	objs, err := y.unmarshall(reader)
+	objs, err := Unmarshall(reader)
 	if err != nil {
 		return err
 	}
@@ -307,8 +307,8 @@ func (y *YAMLApplier) doAction(reader *bufio.Reader, f action) error {
 	return nil
 }
 
-// unmarshall a reader containing YAML to a list of unstructured objects
-func (y *YAMLApplier) unmarshall(reader *bufio.Reader) ([]unstructured.Unstructured, error) {
+// Unmarshall a reader containing YAML to a list of unstructured objects
+func Unmarshall(reader *bufio.Reader) ([]unstructured.Unstructured, error) {
 	buffer := bytes.Buffer{}
 	objs := []unstructured.Unstructured{}
 
