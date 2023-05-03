@@ -5,7 +5,6 @@
 #
 
 echo "Installing cert-manager via helm chart"
-kubectl create ns cert-manager
 controllerTag=$(cat platform-operator/verrazzano-bom.json | jq '.components[] | select(.name=="cert-manager")' | jq '.subcomponents[0].images[] | select(.image=="cert-manager-controller")' | jq .tag -r)
 cainjectorTag=$(cat platform-operator/verrazzano-bom.json | jq '.components[] | select(.name=="cert-manager")' | jq '.subcomponents[0].images[] | select(.image=="cert-manager-cainjector")' | jq .tag -r)
 webhookTag=$(cat platform-operator/verrazzano-bom.json | jq '.components[] | select(.name=="cert-manager")' | jq '.subcomponents[0].images[] | select(.image=="cert-manager-webhook")' | jq .tag -r)
@@ -14,7 +13,7 @@ helm upgrade cert-manager -n cert-manager platform-operator/thirdparty/charts/ce
 --set cainjector.image.repository=ghcr.io/verrazzano/cert-manager-cainjector --set cainjector.image.tag=${cainjectorTag}  \
 --set webhook.image.repository=ghcr.io/verrazzano/cert-manager-webhook --set webhook.image.tag=${webhookTag} \
 --set startupapicheck.enabled=false \
---install
+--install --create-namespace
 
 echo "ensure cert-manager using ghcr.io images"
 if [ ! -z "$(kubectl get po -n cert-manager -o yaml | grep quay.io)" ]
@@ -24,3 +23,14 @@ then
 fi
 
 kubectl get pods -n cert-manager
+
+echo "Installing ingress-nginx via helm chart"
+kubectl create ns ingress-nginx
+controllerTag=$(cat platform-operator/verrazzano-bom.json | jq '.components[] | select(.name=="ingress-nginx")' | jq '.subcomponents[0].images[] | select(.image=="nginx-ingress-controller")' | jq .tag -r)
+defaultBackendTag=$(cat platform-operator/verrazzano-bom.json | jq '.components[] | select(.name=="ingress-nginx")' | jq '.subcomponents[0].images[] | select(.image=="nginx-ingress-default-backend")' | jq .tag -r)
+
+helm upgrade ingress-controller -n ingress-nginx platform-operator/thirdparty/charts/ingress-nginx \
+--set controller.image.repository=ghcr.io/verrazzano/nginx-ingress-controller --set controller.image.tag=${controllerTag}  \
+--set defaultBackend.image.repository=ghcr.io/nginx-ingress-default-backend --set defaultBackend.image.tag=${defaultBackendTag} \
+--set defaultBackend.enabled=true --install --create-namespace
+

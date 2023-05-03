@@ -265,7 +265,7 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 }
 
 // IsEnabled Indicates whether a component is enabled for installation
-func (h HelmComponent) IsEnabled(effectiveCR runtime.Object) bool {
+func (h HelmComponent) IsEnabled(_ runtime.Object) bool {
 	return true
 }
 
