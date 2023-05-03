@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"strings"
 	"testing"
 
@@ -156,7 +157,7 @@ func TestAppendOverrides(t *testing.T) {
 	defer config.SetDefaultBomFilePath(oldBomPath)
 
 	service := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: constants.NGINXControllerServiceName, Namespace: vzconst.IngressNamespace},
+		ObjectMeta: metav1.ObjectMeta{Name: constants.NGINXControllerServiceName, Namespace: nginxutil.IngressNGINXNamespace()},
 		Spec: corev1.ServiceSpec{
 			Type: corev1.ServiceTypeLoadBalancer,
 		},

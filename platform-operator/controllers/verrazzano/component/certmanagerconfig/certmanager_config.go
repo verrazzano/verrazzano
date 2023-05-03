@@ -1,19 +1,19 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package certmanagerconfig
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io"
+	acmev1 "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"net/mail"
-	"os"
 	"strings"
 	"text/template"
 
@@ -22,7 +22,6 @@ import (
 	certmetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	cmclient "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned"
 	certv1client "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
-	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzresource "github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -32,7 +31,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -44,14 +42,9 @@ import (
 )
 
 const (
-	caSelfSignedIssuerName      = "verrazzano-selfsigned-issuer"
-	caCertificateName           = "verrazzano-ca-certificate"
-	caCertCommonName            = "verrazzano-root-ca"
-	verrazzanoClusterIssuerName = "verrazzano-cluster-issuer"
-	clusterResourceNamespaceKey = "clusterResourceNamespace"
-
-	longestSystemURLPrefix = "elasticsearch.vmi.system"
-	preOccupiedspace       = len(longestSystemURLPrefix) + 2
+	caSelfSignedIssuerName = "verrazzano-selfsigned-issuer"
+	caCertificateName      = "verrazzano-ca-certificate"
+	caCertCommonName       = "verrazzano-root-ca"
 
 	// ACME-related constants
 	defaultCACertificateSecretName = "verrazzano-ca-certificate-secret" //nolint:gosec //#gosec G101
@@ -67,13 +60,6 @@ const (
 
 	// InstancePrincipal is used for instance principle auth type
 	instancePrincipal authenticationType = "instance_principal"
-
-	extraArgsKey  = "extraArgs[0]"
-	acmeSolverArg = "--acme-http01-solver-image="
-
-	// Uninstall resources
-	controllerConfigMap = "cert-manager-controller"
-	caInjectorConfigMap = "cert-manager-cainjector-leader-election"
 )
 
 type authenticationType string
@@ -121,43 +107,15 @@ spec:
       name: {{.AcmeSecretName}}
     solvers:
       - dns01:
-          ocidns:
-            useInstancePrincipals: {{ .UseInstancePrincipals}}
-            serviceAccountSecretRef:
-              name: {{.SecretName}}
-              key: "oci.yaml"
-            ocizonename: {{.OCIZoneName}}`
-
-const snippetSubstring = "rfc2136:\n"
-
-var ociDNSSnippet = strings.Split(`ocidns:
-  description:
-    ACMEIssuerDNS01ProviderOCIDNS is a structure containing
-    the DNS configuration for OCIDNS DNS—Zone Record
-    Management API
-  properties:
-    compartmentid:
-      type: string
-    ocizonename:
-      type: string
-    serviceAccountSecretRef:
-      properties:
-        key:
-          description:
-            The key of the secret to select from. Must be a
-            valid secret key.
-          type: string
-        name:
-          description: Name of the referent.
-          type: string
-      required:
-        - name
-      type: object
-    useInstancePrincipals:
-      type: boolean
-  required:
-    - ocizonename
-  type: object`, "\n")
+          webhook:
+            groupName: verrazzano.io
+            solverName: oci
+            config:
+              compartmentOCID: {{ .CompartmentOCID }}
+              useInstancePrincipals: {{ .UseInstancePrincipals }}
+              ociProfileSecretName: {{.SecretName}}
+              ociProfileSecretKey: "oci.yaml"
+              ociZoneName: {{.OCIZoneName}}`
 
 // Template data for ClusterIssuer
 type templateData struct {
@@ -167,6 +125,7 @@ type templateData struct {
 	Server                string
 	SecretName            string
 	OCIZoneName           string
+	CompartmentOCID       string
 	UseInstancePrincipals bool
 }
 
@@ -192,6 +151,73 @@ func GetCertManagerClientset() (certv1client.CertmanagerV1Interface, error) {
 		return nil, err
 	}
 	return clientset.CertmanagerV1(), nil
+}
+
+func UninstallCleanup(log vzlog.VerrazzanoLogger, cli crtclient.Client, namespace string) error {
+	crdsExist, err := common.CertManagerCrdsExist(cli)
+	if err != nil {
+		return err
+	}
+	if !crdsExist {
+		return nil
+	}
+
+	log.Debugf("Cleaning up any dangling Cert-Manager resources in namespace %s", namespace)
+
+	if err := deleteResources(log, cli, namespace, &certv1.Issuer{}, createCertManagerGVK("IssuerList")); err != nil {
+		return err
+	}
+
+	if err := deleteResources(log, cli, namespace, &certv1.CertificateRequest{}, createCertManagerGVK("CertificateRequestList")); err != nil {
+		return err
+	}
+
+	if err := deleteResources(log, cli, namespace, &certv1.Certificate{}, createCertManagerGVK("CertificateList")); err != nil {
+		return err
+	}
+
+	if err := deleteResources(log, cli, namespace, &acmev1.Order{}, createAcmeGVK("OrderList")); err != nil {
+		return err
+	}
+
+	if err := deleteResources(log, cli, namespace, &acmev1.Challenge{}, createAcmeGVK("ChallengeList")); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func createAcmeGVK(kind string) schema.GroupVersionKind {
+	return schema.GroupVersionKind{Group: "acme.cert-manager.io", Version: "v1", Kind: kind}
+}
+
+func createCertManagerGVK(kind string) schema.GroupVersionKind {
+	return schema.GroupVersionKind{Group: "cert-manager.io", Version: "v1", Kind: kind}
+}
+
+func deleteResources(log vzlog.VerrazzanoLogger, cli crtclient.Client, namespace string, obj crtclient.Object, gvk schema.GroupVersionKind) error {
+	// Use an unstructured object to get the list of resources
+	objectList := &unstructured.UnstructuredList{}
+	objectList.SetGroupVersionKind(gvk)
+	if err := cli.List(context.TODO(), objectList, crtclient.InNamespace(namespace)); err != nil {
+		return err
+	}
+	for _, item := range objectList.Items {
+		itemNamespace := item.GetNamespace()
+		itemName := item.GetName()
+		log.Progressf("Cleaning up Cert-Manager resource %s in namespace %s", itemName, itemNamespace)
+		err := vzresource.Resource{
+			Name:      itemName,
+			Namespace: itemNamespace,
+			Client:    cli,
+			Object:    obj,
+			Log:       log,
+		}.RemoveFinalizersAndDelete()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // checkRenewAllCertificates Update the status field for each certificate generated by the Verrazzano ClusterIssuer
@@ -231,7 +257,7 @@ func updateCerts(ctx context.Context, log vzlog.VerrazzanoLogger, cmClient certv
 			log.Oncef("Skip renewal of CA certificate")
 			continue
 		}
-		if currentCert.Spec.IssuerRef.Name != verrazzanoClusterIssuerName {
+		if currentCert.Spec.IssuerRef.Name != constants.VerrazzanoClusterIssuerName {
 			log.Oncef("Certificate %s/%s not issued by the Verrazzano cluster issuer, skipping", currentCert.Namespace, currentCert.Name)
 			continue
 		}
@@ -311,122 +337,34 @@ func cleanupFailedCertificateRequests(ctx context.Context, cmclientv1 certv1clie
 	return nil
 }
 
-func cleanTempFiles(tempFiles ...string) error {
-	for _, file := range tempFiles {
-		if err := os.Remove(file); err != nil {
-			return err
-		}
+// verrazzanoCertManagerResourcesReady Verifies that the Verrazzano ClusterIssuer exists
+func (c certManagerConfigComponent) verrazzanoCertManagerResourcesReady(ctx spi.ComponentContext) bool {
+	logger := ctx.Log()
+
+	if !c.cmCRDsExist(ctx.Log(), ctx.Client()) {
+		return false
 	}
-	return nil
-}
 
-func isOCIDNS(vz *vzapi.Verrazzano) bool {
-	return vz.Spec.Components.DNS != nil && vz.Spec.Components.DNS.OCI != nil
-}
-
-// AppendOverrides Build the set of cert-manager overrides for the helm install
-func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	// use image value for arg override
-	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	exists, err := vzresource.Resource{
+		Name:   constants.VerrazzanoClusterIssuerName,
+		Client: ctx.Client(),
+		Object: &certv1.ClusterIssuer{},
+		Log:    logger,
+	}.Exists()
 	if err != nil {
-		return kvs, compContext.Log().ErrorNewErr("Failed to get the BOM file for the cert-manager image overrides: ", err)
+		logger.ErrorfThrottled("Error checking for ClusterIssuer %s existence: %v", constants.VerrazzanoClusterIssuerName, err)
 	}
 
-	images, err := bomFile.BuildImageOverrides("cert-manager")
-	if err != nil {
-		return nil, err
-	}
-
-	for _, image := range images {
-		if image.Key == extraArgsKey {
-			kvs = append(kvs, bom.KeyValue{Key: extraArgsKey, Value: acmeSolverArg + image.Value})
-		}
-	}
-
-	// Verify that we are using CA certs before appending override
-	isCAValue, err := isCA(compContext)
-	if err != nil {
-		err = compContext.Log().ErrorfNewErr("Failed to verify the config type: %v", err)
-		return []bom.KeyValue{}, err
-	}
-	if isCAValue {
-		ns := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace
-		kvs = append(kvs, bom.KeyValue{Key: clusterResourceNamespaceKey, Value: ns})
-	}
-	return kvs, nil
+	return exists
 }
 
-// isCertManagerReady checks the state of the expected cert-manager deployments and returns true if they are in a ready state
-func (c certManagerConfigComponent) isCertManagerReady(context spi.ComponentContext) bool {
-	return true
-}
-
-// writeCRD writes out CertManager CRD manifests with OCI DNS specifications added
-// reads the input CRD file line by line, adding OCI DNS snippets
-func writeCRD(inFilePath, outFilePath string, useOCIDNS bool) error {
-	infile, err := os.Open(inFilePath)
+func (c certManagerConfigComponent) cmCRDsExist(log vzlog.VerrazzanoLogger, cli crtclient.Client) bool {
+	crdsExist, err := common.CertManagerCrdsExist(cli)
 	if err != nil {
-		return err
+		log.ErrorfThrottled("Error checking if CertManager CRDs exist: %v", err.Error())
+		return false
 	}
-	defer infile.Close()
-	buffer := bytes.Buffer{}
-	reader := bufio.NewReader(infile)
-
-	// Flush the current buffer to the filesystem, creating a new manifest file
-	flushBuffer := func() error {
-		if buffer.Len() < 1 {
-			return nil
-		}
-		outfile, err := os.Create(outFilePath)
-		if err != nil {
-			return err
-		}
-		if _, err := outfile.Write(buffer.Bytes()); err != nil {
-			return err
-		}
-		if err := outfile.Close(); err != nil {
-			return err
-		}
-		buffer.Reset()
-		return nil
-	}
-
-	for {
-		// Read the input file line by line
-		line, err := reader.ReadBytes('\n')
-		if err != nil {
-			// If at the end of the file, flush any buffered data
-			if err == io.EOF {
-				flushErr := flushBuffer()
-				return flushErr
-			}
-			return err
-		}
-		lineStr := string(line)
-		// If the line specifies that the OCI DNS snippet should be written, write it
-		if useOCIDNS && strings.HasSuffix(lineStr, snippetSubstring) {
-			padding := strings.Repeat(" ", len(strings.TrimSuffix(lineStr, snippetSubstring)))
-			snippet := createSnippetWithPadding(padding)
-			if _, err := buffer.Write(snippet); err != nil {
-				return err
-			}
-		}
-		if _, err := buffer.Write(line); err != nil {
-			return err
-		}
-	}
-}
-
-// createSnippetWithPadding left pads the OCI DNS snippet with a fixed amount of padding
-func createSnippetWithPadding(padding string) []byte {
-	builder := strings.Builder{}
-	for _, line := range ociDNSSnippet {
-		builder.WriteString(padding)
-		builder.WriteString(line)
-		builder.WriteString("\n")
-	}
-
-	return []byte(builder.String())
+	return crdsExist
 }
 
 // Check if cert-type is CA, if not it is assumed to be Acme
@@ -447,7 +385,7 @@ func validateConfiguration(comp *v1beta1.CertManagerComponent) (isCA bool, err e
 	caNotEmpty := comp.Certificate.CA != v1beta1.CA{}
 	acmeNotEmpty := comp.Certificate.Acme != v1beta1.Acme{}
 	if caNotEmpty && acmeNotEmpty {
-		return false, errors.New("Certificate object Acme and CA cannot be simultaneously populated")
+		return false, errors.New("certificate object Acme and CA cannot be simultaneously populated")
 	}
 	if caNotEmpty {
 		if err := validateCAConfiguration(comp.Certificate.CA); err != nil {
@@ -460,7 +398,7 @@ func validateConfiguration(comp *v1beta1.CertManagerComponent) (isCA bool, err e
 		}
 		return false, nil
 	}
-	return false, errors.New("Either Acme or CA certificate authorities must be configured")
+	return false, errors.New("either Acme or CA certificate authorities must be configured")
 }
 
 func validateCAConfiguration(ca v1beta1.CA) error {
@@ -490,10 +428,10 @@ func getSecret(namespace string, name string) (*v1.Secret, error) {
 // validateAcmeConfiguration Validate the ACME/LetsEncrypt values
 func validateAcmeConfiguration(acme v1beta1.Acme) error {
 	if !isLetsEncryptProvider(acme) {
-		return fmt.Errorf("Invalid ACME certificate provider %v", acme.Provider)
+		return fmt.Errorf("invalid ACME certificate provider %v", acme.Provider)
 	}
 	if len(acme.Environment) > 0 && !isLetsEncryptProductionEnv(acme) && !isLetsEncryptStagingEnv(acme) {
-		return fmt.Errorf("Invalid Let's Encrypt environment: %s", acme.Environment)
+		return fmt.Errorf("invalid Let's Encrypt environment: %s", acme.Environment)
 	}
 	if _, err := mail.ParseAddress(acme.EmailAddress); err != nil {
 		return err
@@ -548,11 +486,13 @@ func createACMEIssuerObject(compContext spi.ComponentContext) (*unstructured.Uns
 	// Initialize Acme variables for the cluster issuer
 	var ociDNSConfigSecret string
 	var ociDNSZoneName string
+	var ociDNSCompartmentID string
 	vzDNS := compContext.EffectiveCR().Spec.Components.DNS
 	vzCertAcme := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.Acme
 	if vzDNS != nil && vzDNS.OCI != nil {
 		ociDNSConfigSecret = vzDNS.OCI.OCIConfigSecret
 		ociDNSZoneName = vzDNS.OCI.DNSZoneName
+		ociDNSCompartmentID = vzDNS.OCI.DNSZoneCompartmentOCID
 	}
 	// Verify that the secret exists
 	secret := v1.Secret{}
@@ -570,12 +510,13 @@ func createACMEIssuerObject(compContext spi.ComponentContext) (*unstructured.Uns
 
 	// Create the buffer and the cluster issuer data struct
 	clusterIssuerData := templateData{
-		ClusterIssuerName: verrazzanoClusterIssuerName,
+		ClusterIssuerName: constants.VerrazzanoClusterIssuerName,
 		AcmeSecretName:    caAcmeSecretName,
 		Email:             emailAddress,
 		Server:            acmeServer,
 		SecretName:        ociDNSConfigSecret,
 		OCIZoneName:       ociDNSZoneName,
+		CompartmentOCID:   ociDNSCompartmentID,
 	}
 
 	for key := range secret.Data {
@@ -688,7 +629,7 @@ func createOrUpdateCAResources(compContext spi.ComponentContext) (controllerutil
 	compContext.Log().Debug("Applying ClusterIssuer")
 	clusterIssuer := certv1.ClusterIssuer{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: verrazzanoClusterIssuerName,
+			Name: constants.VerrazzanoClusterIssuerName,
 		},
 	}
 
@@ -736,7 +677,7 @@ func extractCACommonName(ca v1beta1.CA) ([]string, error) {
 func extractCommonNameFromCertSecret(secret *v1.Secret) (string, error) {
 	certBytes, found := secret.Data[v1.TLSCertKey]
 	if !found {
-		return "", fmt.Errorf("No Certificate data found in secret %s/%s", secret.Namespace, secret.Name)
+		return "", fmt.Errorf("no Certificate data found in secret %s/%s", secret.Namespace, secret.Name)
 	}
 	leafCACertBytes := []byte{}
 	for {
@@ -791,35 +732,86 @@ func cleanupUnusedResources(compContext spi.ComponentContext, isCAValue bool) er
 	return nil
 }
 
-// uninstallCertManager is the implementation for the cert-manager uninstall step
+func (c certManagerConfigComponent) createOrUpdateClusterIssuer(compContext spi.ComponentContext) error {
+	isCAValue, err := isCA(compContext)
+	if err != nil {
+		return compContext.Log().ErrorfNewErr("Failed to verify the config type: %v", err)
+	}
+	var opResult controllerutil.OperationResult
+	if !isCAValue {
+		// Create resources needed for Acme certificates
+		if opResult, err = createOrUpdateAcmeResources(compContext); err != nil {
+			return compContext.Log().ErrorfNewErr("Failed creating Acme resources: %v", err)
+		}
+	} else {
+		// Create resources needed for CA certificates
+		if opResult, err = createOrUpdateCAResources(compContext); err != nil {
+			msg := fmt.Sprintf("Failed creating CA resources: %v", err)
+			compContext.Log().Once(msg)
+			return fmt.Errorf(msg)
+		}
+	}
+	if opResult == controllerutil.OperationResultCreated {
+		// We're in the initial install phase, and created the ClusterIssuer for the first time,
+		// so skip the renewal checks
+		compContext.Log().Oncef("Initial install, skipping certificate renewal checks")
+		return nil
+	}
+	// CertManager configuration was updated, cleanup any old resources from previous configuration
+	// and renew certificates against the new ClusterIssuer
+	if err := cleanupUnusedResources(compContext, isCAValue); err != nil {
+		return err
+	}
+	if err := checkRenewAllCertificates(compContext, isCAValue); err != nil {
+		compContext.Log().Errorf("Error requesting certificate renewal: %s", err.Error())
+		return err
+	}
+	return nil
+}
+
+// uninstallVerrazzanoCertManagerResources is the implementation for the cert-manager uninstall step
 // this removes cert-manager ConfigMaps from the cluster and after the helm uninstall, deletes the namespace
-func uninstallCertManager(compContext spi.ComponentContext) error {
-	// Delete the kube-system cert-manager configMaps [controller, caInjector]
-	//err := vzresource.Resource{
-	//	Name:      controllerConfigMap,
-	//	Namespace: constants.KubeSystem,
-	//	Client:    compContext.Client(),
-	//	Object:    &v1.ConfigMap{},
-	//	Log:       compContext.Log(),
-	//}.Delete()
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//err = vzresource.Resource{
-	//	Name:      caInjectorConfigMap,
-	//	Namespace: constants.KubeSystem,
-	//	Client:    compContext.Client(),
-	//	Object:    &v1.ConfigMap{},
-	//	Log:       compContext.Log(),
-	//}.Delete()
-	//if err != nil {
-	//	return err
-	//}
+func (c certManagerConfigComponent) uninstallVerrazzanoCertManagerResources(compContext spi.ComponentContext) error {
+
+	if err := c.deleteCertManagerIssuerResources(compContext); err != nil {
+		return err
+	}
+
+	err := vzresource.Resource{
+		Name:      defaultCACertificateSecretName,
+		Namespace: ComponentNamespace,
+		Client:    compContext.Client(),
+		Object:    &v1.Secret{},
+		Log:       compContext.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	// Delete the ACME secret if present
+	err = vzresource.Resource{
+		Name:      caAcmeSecretName,
+		Namespace: ComponentNamespace,
+		Client:    compContext.Client(),
+		Object:    &v1.Secret{},
+		Log:       compContext.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c certManagerConfigComponent) deleteCertManagerIssuerResources(compContext spi.ComponentContext) error {
 
 	// Delete the ClusterIssuer created by Verrazzano
+	if !c.cmCRDsExist(compContext.Log(), compContext.Client()) {
+		compContext.Log().Progressf("CertManager CRDs do not exist, skipping ClusterIssuer cleanup")
+		return nil
+	}
+
 	err := vzresource.Resource{
-		Name:   verrazzanoClusterIssuerName,
+		Name:   constants.VerrazzanoClusterIssuerName,
 		Client: compContext.Client(),
 		Object: &certv1.ClusterIssuer{},
 		Log:    compContext.Log(),
@@ -849,28 +841,7 @@ func uninstallCertManager(compContext spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	err = vzresource.Resource{
-		Name:      defaultCACertificateSecretName,
-		Namespace: ComponentNamespace,
-		Client:    compContext.Client(),
-		Object:    &v1.Secret{},
-		Log:       compContext.Log(),
-	}.Delete()
-	if err != nil {
-		return err
-	}
 
-	// Delete the ACME secret if present
-	err = vzresource.Resource{
-		Name:      caAcmeSecretName,
-		Namespace: ComponentNamespace,
-		Client:    compContext.Client(),
-		Object:    &v1.Secret{},
-		Log:       compContext.Log(),
-	}.Delete()
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -882,72 +853,3 @@ func deleteObject(client crtclient.Client, name string, namespace string, object
 	}
 	return nil
 }
-
-//// GetOverrides gets the install overrides
-//func GetOverrides(object runtime.Object) interface{} {
-//	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
-//		if effectiveCR.Spec.Components.CertManager != nil {
-//			return effectiveCR.Spec.Components.CertManager.ValueOverrides
-//		}
-//		return []vzapi.Overrides{}
-//	}
-//	effectiveCR := object.(*v1beta1.Verrazzano)
-//	if effectiveCR.Spec.Components.CertManager != nil {
-//		return effectiveCR.Spec.Components.CertManager.ValueOverrides
-//	}
-//	return []v1beta1.Overrides{}
-//}
-
-// validateLongestHostName validates that the longest possible host name for a system endpoint
-// is not greater than 64 characters
-//func validateLongestHostName(effectiveCR runtime.Object) error {
-//	envName := getEnvironmentName(effectiveCR)
-//	dnsSuffix, wildcard := getDNSSuffix(effectiveCR)
-//	spaceOccupied := preOccupiedspace
-//	longestHostName := fmt.Sprintf("%s.%s.%s", longestSystemURLPrefix, envName, dnsSuffix)
-//	if len(longestHostName) > 64 {
-//		if wildcard {
-//			spaceOccupied = spaceOccupied + len(dnsSuffix)
-//			return fmt.Errorf("spec.environmentName %s is too long. For the given configuration it must have at most %v characters", envName, 64-spaceOccupied)
-//		}
-//
-//		return fmt.Errorf("spec.environmentName %s and DNS suffix %s are too long. For the given configuration they must have at most %v characters in combination", envName, dnsSuffix, 64-spaceOccupied)
-//	}
-//	return nil
-//}
-//
-//func getEnvironmentName(effectiveCR runtime.Object) string {
-//	if cr, ok := effectiveCR.(*vzapi.Verrazzano); ok {
-//		return cr.Spec.EnvironmentName
-//	}
-//	cr := effectiveCR.(*v1beta1.Verrazzano)
-//	return cr.Spec.EnvironmentName
-//}
-//
-//func getDNSSuffix(effectiveCR runtime.Object) (string, bool) {
-//	dnsSuffix, wildcard := "0.0.0.0", true
-//	if cr, ok := effectiveCR.(*vzapi.Verrazzano); ok {
-//		if cr.Spec.Components.DNS == nil || cr.Spec.Components.DNS.Wildcard != nil {
-//			return fmt.Sprintf("%s.%s", dnsSuffix, vzconfig.GetWildcardDomain(cr.Spec.Components.DNS)), wildcard
-//		} else if cr.Spec.Components.DNS.OCI != nil {
-//			wildcard = false
-//			dnsSuffix = cr.Spec.Components.DNS.OCI.DNSZoneName
-//		} else if cr.Spec.Components.DNS.External != nil {
-//			wildcard = false
-//			dnsSuffix = cr.Spec.Components.DNS.External.Suffix
-//		}
-//		return dnsSuffix, wildcard
-//	}
-//
-//	cr := effectiveCR.(*v1beta1.Verrazzano)
-//	if cr.Spec.Components.DNS == nil || cr.Spec.Components.DNS.Wildcard != nil {
-//		return fmt.Sprintf("%s.%s", dnsSuffix, vzconfig.GetWildcardDomain(cr.Spec.Components.DNS)), wildcard
-//	} else if cr.Spec.Components.DNS.OCI != nil {
-//		wildcard = false
-//		dnsSuffix = cr.Spec.Components.DNS.OCI.DNSZoneName
-//	} else if cr.Spec.Components.DNS.External != nil {
-//		wildcard = false
-//		dnsSuffix = cr.Spec.Components.DNS.External.Suffix
-//	}
-//	return dnsSuffix, wildcard
-//}

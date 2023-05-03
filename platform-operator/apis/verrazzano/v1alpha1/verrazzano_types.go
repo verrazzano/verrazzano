@@ -536,6 +536,9 @@ type GrafanaComponent struct {
 	// The number of pods to replicate. The default is `1`.
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
+	// The SMTP notification settings.
+	// +optional
+	SMTP *vmov1.SMTPInfo `json:"smtp,omitempty"`
 }
 
 // PrometheusComponent specifies the Prometheus configuration.

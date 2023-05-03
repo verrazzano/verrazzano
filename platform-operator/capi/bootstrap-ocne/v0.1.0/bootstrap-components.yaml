@@ -1,3 +1,6 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -547,6 +550,47 @@ spec:
                         type: boolean
                     type: object
                 type: object
+              imageConfiguration:
+                description: ImageConfiguration contains configuration required for
+                  the base image.
+                properties:
+                  dependencies:
+                    description: Dependencies contains details about dependencies
+                      on the image that can be configured at boot time.
+                    properties:
+                      skipInstall:
+                        description: SkipInstall is the flag that can be used to tell
+                          the provider to skip install of OCNE dependencies. The value,
+                          if set to true, will be used to skip the overrides installation
+                          on OCNEConfigSpec. By default, this value is false.
+                        type: boolean
+                    type: object
+                  proxy:
+                    description: Proxy contains proxy server info that may be required
+                      for installing dependencies. The value, if specified is used
+                      in conjunction with preOCNECommands to install and configure
+                      repositories.
+                    properties:
+                      httpProxy:
+                        description: HttpProxy contains http proxy server info that
+                          may be required for installing dependencies. The value,
+                          if specified is used in conjunction with preOCNECommands
+                          to install and configure repositories.
+                        type: string
+                      httpsProxy:
+                        description: HttpsProxy contains https proxy server info that
+                          may be required for installing dependencies. The value,
+                          if specified is used in conjunction with preOCNECommands
+                          to install and configure repositories.
+                        type: string
+                      noProxy:
+                        description: NoProxy contains addresses that needs to be skipped
+                          when proxy server is being used. The value, if specified
+                          is used in conjunction with preOCNECommands to install and
+                          configure repositories.
+                        type: string
+                    type: object
+                type: object
               initConfiguration:
                 description: InitConfiguration along with ClusterConfiguration are
                   the configurations necessary for the init command
@@ -977,30 +1021,6 @@ spec:
                 items:
                   type: string
                 type: array
-              proxy:
-                description: Proxy contains proxy server info that may be required
-                  for installing dependencies. The value, if specified is used in
-                  conjunction with preOCNECommands to install and configure repositories.
-                properties:
-                  httpProxy:
-                    description: HttpProxy contains http proxy server info that may
-                      be required for installing dependencies. The value, if specified
-                      is used in conjunction with preOCNECommands to install and configure
-                      repositories.
-                    type: string
-                  httpsProxy:
-                    description: HttpsProxy contains https proxy server info that
-                      may be required for installing dependencies. The value, if specified
-                      is used in conjunction with preOCNECommands to install and configure
-                      repositories.
-                    type: string
-                  noProxy:
-                    description: NoProxy contains addresses that needs to be skipped
-                      when proxy server is being used. The value, if specified is
-                      used in conjunction with preOCNECommands to install and configure
-                      repositories.
-                    type: string
-                type: object
               useExperimentalRetryJoin:
                 description: "UseExperimentalRetryJoin replaces a basic kubeadm command
                   with a shell script with retries for joins. \n This is meant to
@@ -1741,6 +1761,48 @@ spec:
                                 type: boolean
                             type: object
                         type: object
+                      imageConfiguration:
+                        description: ImageConfiguration contains configuration required
+                          for the base image.
+                        properties:
+                          dependencies:
+                            description: Dependencies contains details about dependencies
+                              on the image that can be configured at boot time.
+                            properties:
+                              skipInstall:
+                                description: SkipInstall is the flag that can be used
+                                  to tell the provider to skip install of OCNE dependencies.
+                                  The value, if set to true, will be used to skip
+                                  the overrides installation on OCNEConfigSpec. By
+                                  default, this value is false.
+                                type: boolean
+                            type: object
+                          proxy:
+                            description: Proxy contains proxy server info that may
+                              be required for installing dependencies. The value,
+                              if specified is used in conjunction with preOCNECommands
+                              to install and configure repositories.
+                            properties:
+                              httpProxy:
+                                description: HttpProxy contains http proxy server
+                                  info that may be required for installing dependencies.
+                                  The value, if specified is used in conjunction with
+                                  preOCNECommands to install and configure repositories.
+                                type: string
+                              httpsProxy:
+                                description: HttpsProxy contains https proxy server
+                                  info that may be required for installing dependencies.
+                                  The value, if specified is used in conjunction with
+                                  preOCNECommands to install and configure repositories.
+                                type: string
+                              noProxy:
+                                description: NoProxy contains addresses that needs
+                                  to be skipped when proxy server is being used. The
+                                  value, if specified is used in conjunction with
+                                  preOCNECommands to install and configure repositories.
+                                type: string
+                            type: object
+                        type: object
                       initConfiguration:
                         description: InitConfiguration along with ClusterConfiguration
                           are the configurations necessary for the init command
@@ -2202,31 +2264,6 @@ spec:
                         items:
                           type: string
                         type: array
-                      proxy:
-                        description: Proxy contains proxy server info that may be
-                          required for installing dependencies. The value, if specified
-                          is used in conjunction with preOCNECommands to install and
-                          configure repositories.
-                        properties:
-                          httpProxy:
-                            description: HttpProxy contains http proxy server info
-                              that may be required for installing dependencies. The
-                              value, if specified is used in conjunction with preOCNECommands
-                              to install and configure repositories.
-                            type: string
-                          httpsProxy:
-                            description: HttpsProxy contains https proxy server info
-                              that may be required for installing dependencies. The
-                              value, if specified is used in conjunction with preOCNECommands
-                              to install and configure repositories.
-                            type: string
-                          noProxy:
-                            description: NoProxy contains addresses that needs to
-                              be skipped when proxy server is being used. The value,
-                              if specified is used in conjunction with preOCNECommands
-                              to install and configure repositories.
-                            type: string
-                        type: object
                       useExperimentalRetryJoin:
                         description: "UseExperimentalRetryJoin replaces a basic kubeadm
                           command with a shell script with retries for joins. \n This
@@ -2497,7 +2534,7 @@ spec:
         - --bootstrap-token-ttl=${KUBEADM_BOOTSTRAP_TOKEN_TTL:=15m}
         command:
         - /manager
-        image: ghcr.io/verrazzano/cluster-api-ocne-bootstrap-controller:v0.1.0-20230417200213-babd8e5
+        image: ghcr.io/verrazzano/cluster-api-ocne-bootstrap-controller:v0.1.0-20230421153459-16a5418
         imagePullPolicy: Always
         livenessProbe:
           httpGet:

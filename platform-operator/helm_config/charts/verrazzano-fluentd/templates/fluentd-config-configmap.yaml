@@ -674,6 +674,27 @@ data:
       </parse>
     </filter>
 
+    # filter to parse verrazzano-capi namespace container log files
+    <filter kubernetes.**verrazzano-capi**>
+      @type parser
+      @id capi
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        @type multi_format
+        # Kubernetes klog format
+        <pattern>
+          format /^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %H:%M:%S.%N
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
     # filter to parse External-dns container log files
     <filter kubernetes.**external-dns**external-dns**>
       @type parser

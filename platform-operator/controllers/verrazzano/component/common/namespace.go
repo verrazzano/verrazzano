@@ -6,15 +6,15 @@ package common
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
+
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -42,8 +42,9 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 		}
 	}
 
-	if err := namespace.CreateIngressNginxNamespace(ctx.Client(), istioInject); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.IngressNamespace, err)
+	IngressNGINXNamespace := nginxutil.IngressNGINXNamespace()
+	if err := namespace.CreateIngressNginxNamespace(ctx.Client(), istioInject, IngressNGINXNamespace); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", IngressNGINXNamespace, err)
 	}
 
 	if vzcr.IsIstioEnabled(ctx.EffectiveCR()) {
@@ -118,17 +119,4 @@ func CheckExistingNamespace(ns []corev1.Namespace, includeNamespace func(*corev1
 		}
 	}
 	return nil
-}
-
-// CheckIfVerrazzanoManagedNamespaceExists returns true if the namespace exists and has the verrazzano.io/namespace label
-func CheckIfVerrazzanoManagedNamespaceExists(ctx spi.ComponentContext, nsName string) (bool, error) {
-	var ns *corev1.Namespace
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: nsName}, ns)
-	if err != nil && !errors.IsNotFound(err) {
-		return false, err
-	}
-	if ns == nil || ns.Labels[constants.VerrazzanoManagedKey] == "" {
-		return false, nil
-	}
-	return true, nil
 }

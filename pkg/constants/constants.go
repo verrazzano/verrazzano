@@ -7,6 +7,9 @@ import (
 	"time"
 )
 
+// VerrazzanoClusterIssuerName Name of the Verrazzano Cert-Manager cluster issuer
+const VerrazzanoClusterIssuerName = "verrazzano-cluster-issuer"
+
 // RestartVersionAnnotation - the annotation used by user to tell Verrazzano application to restart its components
 const RestartVersionAnnotation = "verrazzano.io/restart-version"
 
@@ -66,9 +69,6 @@ const RancherSystemNamespace = "cattle-system"
 
 // IstioSystemNamespace - the Istio system namespace
 const IstioSystemNamespace = "istio-system"
-
-// IngressNamespace - the NGINX ingress namespace
-const IngressNamespace = "ingress-nginx"
 
 // PrometheusOperatorNamespace - the namespace where Verrazzano installs Prometheus Operator
 // and its related components.
@@ -131,6 +131,12 @@ const DefaultOpensearchURL = "http://verrazzano-authproxy-opensearch:8775"
 // Default Jaeger OpenSearch URL
 const DefaultJaegerOSURL = "http://verrazzano-authproxy-opensearch.verrazzano-system:8775"
 
+// DefaultOperatorOSURL is the default OpenSearch URL for opensearch-operator based OpenSearch
+const DefaultOperatorOSURL = "http://verrazzano-authproxy-opensearch-logging:8775"
+
+// DefaultOperatorOSURLWithNS is the default OpenSearch URL for opensearch-operator based OpenSearch with namespace suffix
+const DefaultOperatorOSURLWithNS = "http://verrazzano-authproxy-opensearch-logging.verrazzano-system:8775"
+
 // DefaultJaegerSecretName is the Jaeger secret name used by the default Jaeger instance
 // #nosec
 const DefaultJaegerSecretName = "verrazzano-jaeger-secret"
@@ -180,9 +186,6 @@ const ArgoCDClusterRancherSecretName = "verrazzano-argocd-secret"
 
 // ArgoCDClusterRancherUsername is the username in Rancher used to identify the Verrazzano Argo CD cluster user
 const ArgoCDClusterRancherUsername = "vz-argoCD-reg"
-
-// DefaultRancherIngressHost is the default host used for Rancher API requests
-const DefaultRancherIngressHost = "ingress-controller-ingress-nginx-controller.ingress-nginx"
 
 // Components Names
 const (

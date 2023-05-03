@@ -78,6 +78,23 @@
       ]
     },
     {
+      "name": "verrazzano-ocidns-webhook",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "verrazzano-ocidns-webhook",
+          "images": [
+            {
+              "image": "cert-manager-ocidns-provider",
+              "tag": "v1.6.0-20230428193926-c0caff3",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "external-dns",
       "version": "v0.12.2",
       "subcomponents": [
@@ -122,7 +139,7 @@
     },
     {
       "name": "rancher",
-      "version": "v2.7.1",
+      "version": "v2.7.2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -130,14 +147,14 @@
           "images": [
             {
               "image": "rancher",
-              "dashboard": "v2.7.1-20230314212735-270d0ef83",
-              "tag": "v2.7.1-20230419220836-0d8500a70",
+              "dashboard": "v2.7.2-20230425195240-488d868b8",
+              "tag": "v2.7.2-20230501183211-0825d781d",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.1-20230419220836-0d8500a70"
+              "tag": "v2.7.2-20230501183211-0825d781d"
             }
           ]
         },
@@ -151,15 +168,15 @@
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.2.6-20230403210635-b6c499e"
+              "tag": "v0.3.2-20230420144706-e94a4e1"
             },
             {
               "image": "rancher-fleet-agent",
-              "tag": "v0.3.11-20230403202924-a3d42f2"
+              "tag": "v0.6.0-20230420145436-06e19ee"
             },
             {
               "image": "rancher-fleet",
-              "tag": "v0.3.11-20230403202924-a3d42f2"
+              "tag": "v0.6.0-20230420145436-06e19ee"
             },
             {
               "image": "rancher-gitjob",
@@ -223,7 +240,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.6.0-20230417130938-b565f8e",
+              "tag": "v1.6.0-20230428170552-b70d524",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -244,12 +261,12 @@
             },
             {
               "image": "opensearch",
-              "tag": "2.3.0-20230324071613-ae6dc07e5dd",
+              "tag": "2.3.0-20230428051711-2c1119c9188",
               "helmFullImageKey": "monitoringOperator.osImage"
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "2.3.0-20230324072109-f9e6353395",
+              "tag": "2.3.0-20230424094216-cff07fd190",
               "helmFullImageKey": "monitoringOperator.osdImage"
             },
             {
@@ -720,7 +737,7 @@
     },
     {
       "name": "rancher-backup",
-      "version": "2.1.3",
+      "version": "3.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -728,7 +745,7 @@
           "images": [
             {
               "image": "rancher-backup-restore-operator",
-              "tag": "v2.1.3-20230208201830-0977be7",
+              "tag": "v3.1.0-20230420145739-385811a",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -798,10 +815,5 @@
       ]
     }
   ],
-  "supportedKubernetesVersions": [
-    "v1.21.0",
-    "v1.22.0",
-    "v1.23.0",
-    "v1.24.0"
-  ]
+  "supportedKubernetesVersions": ["v1.21.0", "v1.22.0", "v1.23.0", "v1.24.0", "v1.25.0"]
 }

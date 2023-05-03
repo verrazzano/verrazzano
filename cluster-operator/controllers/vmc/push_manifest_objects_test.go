@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vmc
@@ -97,6 +97,9 @@ func TestPushManifestObjects(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// clear any cached user auth tokens when the test completes
+			defer rancherutil.DeleteStoredTokens()
+
 			rancherutil.RancherHTTPClient = tt.mock
 			updated, err := r.pushManifestObjects(tt.vmc)
 			a.Equal(tt.updated, updated)
