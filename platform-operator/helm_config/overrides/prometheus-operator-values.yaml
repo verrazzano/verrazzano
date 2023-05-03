@@ -180,6 +180,7 @@ kubelet:
         sourceLabels:
           - namespace
           - pod
+        targetLabel: verrazzano_component
       - action: replace
         regex: (verrazzano-system);(clusterOperator);(verrazzano-cluster-operator-[a-z0-9-]+)(.*)
         replacement: $2
