@@ -70,9 +70,6 @@ const RancherSystemNamespace = "cattle-system"
 // IstioSystemNamespace - the Istio system namespace
 const IstioSystemNamespace = "istio-system"
 
-// IngressNamespace - the NGINX ingress namespace
-const IngressNamespace = "ingress-nginx"
-
 // PrometheusOperatorNamespace - the namespace where Verrazzano installs Prometheus Operator
 // and its related components.
 const PrometheusOperatorNamespace = "verrazzano-monitoring"

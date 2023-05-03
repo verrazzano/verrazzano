@@ -123,6 +123,7 @@ func TestGetUninstallJobName(t *testing.T) {
 //
 //	ensure a finalizer is added if it doesn't exist
 func TestInstall(t *testing.T) {
+	metricsexporter.Init()
 	tests := []struct {
 		namespace string
 		name      string

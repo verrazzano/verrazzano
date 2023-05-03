@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"path"
 	"strconv"
@@ -523,7 +524,7 @@ func applySystemMonitors(ctx spi.ComponentContext) error {
 	args := make(map[string]interface{})
 	args["systemNamespace"] = constants.VerrazzanoSystemNamespace
 	args["monitoringNamespace"] = constants.VerrazzanoMonitoringNamespace
-	args["nginxNamespace"] = constants.IngressNginxNamespace
+	args["nginxNamespace"] = nginxutil.IngressNGINXNamespace()
 	args["istioNamespace"] = constants.IstioSystemNamespace
 	args["installNamespace"] = constants.VerrazzanoInstallNamespace
 
@@ -623,7 +624,7 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 					}},
 					To: []*securityv1beta1.Rule_To{{
 						Operation: &securityv1beta1.Operation{
-							Ports: []string{"9090"},
+							Ports: []string{"9090", "10901"},
 						},
 					}},
 				},

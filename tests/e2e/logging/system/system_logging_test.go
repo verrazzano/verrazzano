@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package system
@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"regexp"
 	"strings"
@@ -25,7 +27,6 @@ const (
 	keycloakNamespace         = "keycloak"
 	cattleSystemNamespace     = "cattle-system"
 	fleetLocalSystemNamespace = "cattle-fleet-local-system"
-	nginxNamespace            = "ingress-nginx"
 	monitoringNamespace       = "monitoring"
 	shortPollingInterval      = 10 * time.Second
 	shortWaitTimeout          = 5 * time.Minute
@@ -58,9 +59,18 @@ var (
 	}
 )
 
+var ingressNGINXNamespace string
+
 var t = framework.NewTestFramework("system-logging")
 
-var beforeSuite = t.BeforeSuiteFunc(func() {})
+var beforeSuite = t.BeforeSuiteFunc(func() {
+	var err error
+	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	if err != nil {
+		Fail("Error determining ingress-nginx namespace")
+	}
+
+})
 var _ = BeforeSuite(beforeSuite)
 var failed = false
 var _ = t.AfterEach(func() {
@@ -215,7 +225,7 @@ var _ = t.Describe("Opensearch system component data", Label("f:observability.lo
 		// GIVEN existing system logs
 		// WHEN the index for the ingress-nginx namespace is retrieved
 		// THEN verify that it is found
-		indexName, err := pkg.GetOpenSearchSystemIndex(nginxNamespace)
+		indexName, err := pkg.GetOpenSearchSystemIndex(ingressNGINXNamespace)
 		Expect(err).To(BeNil())
 		Eventually(func() bool {
 			return pkg.LogIndexFound(indexName)
@@ -471,7 +481,7 @@ func validateKeycloakLogs() bool {
 func validateIngressNginxLogs() bool {
 	return validateOpensearchRecords(
 		noLevelOpensearchRecordValidator,
-		func() (string, error) { return pkg.GetOpenSearchSystemIndex(nginxNamespace) },
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(ingressNGINXNamespace) },
 		"kubernetes.labels.app_kubernetes_io/name",
 		"ingress-nginx",
 		searchTimeWindow,

@@ -4,6 +4,7 @@
 package config
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -228,7 +229,7 @@ func GetDefaultBOMFilePath() string {
 }
 
 func GetInjectedSystemNamespaces() []string {
-	return []string{constants.VerrazzanoSystemNamespace, constants.VerrazzanoMonitoringNamespace, constants.IngressNginxNamespace, constants.KeycloakNamespace}
+	return []string{constants.VerrazzanoSystemNamespace, constants.VerrazzanoMonitoringNamespace, nginxutil.IngressNGINXNamespace(), constants.KeycloakNamespace}
 }
 
 func GetNoInjectionComponents() []string {

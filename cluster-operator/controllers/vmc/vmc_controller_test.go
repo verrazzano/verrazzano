@@ -859,6 +859,14 @@ func TestDeleteVMC(t *testing.T) {
 			return nil
 		})
 
+	mock.EXPECT().
+		List(gomock.Any(), &v1beta1.VerrazzanoList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, list *v1beta1.VerrazzanoList, opts ...client.ListOption) error {
+			vz := v1beta1.Verrazzano{}
+			list.Items = append(list.Items, vz)
+			return nil
+		})
+
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
@@ -927,6 +935,14 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 			return nil
 		})
 
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, list *v1beta1.VerrazzanoList, opts ...client.ListOption) error {
+			vz := v1beta1.Verrazzano{}
+			list.Items = append(list.Items, vz)
+			return nil
+		})
+
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
@@ -974,6 +990,14 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.Equal(v1alpha1.DeleteFailed, vmc.Status.RancherRegistration.Status)
 			asserts.Equal("Failed deleting cluster", vmc.Status.RancherRegistration.Message)
+			return nil
+		})
+
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, list *v1beta1.VerrazzanoList, opts ...client.ListOption) error {
+			vz := v1beta1.Verrazzano{}
+			list.Items = append(list.Items, vz)
 			return nil
 		})
 
@@ -1219,7 +1243,7 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 			return nil
 		})
 
-	rc, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1257,7 +1281,7 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 			return nil
 		})
 
-	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1301,7 +1325,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	rc, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1345,7 +1369,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 	asserts.NoError(err)
 
 	regYAML, _, err := registerManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
@@ -1422,7 +1446,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 	asserts.NoError(err)
 
 	regYAML, _, err = registerManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
@@ -1500,7 +1524,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 	asserts.NoError(err)
 
 	regYAML, _, err = registerManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
@@ -1559,7 +1583,7 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 			return resp, nil
 		}).Times(retrySteps)
 
-	_, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, vzlog.DefaultLogger())
+	_, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)

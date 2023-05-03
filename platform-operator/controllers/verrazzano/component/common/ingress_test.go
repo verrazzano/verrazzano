@@ -5,10 +5,10 @@ package common
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -67,7 +67,7 @@ func TestCreateOrUpdateSystemComponentIngress(t *testing.T) {
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.NGINXControllerServiceName,
-			Namespace: globalconst.IngressNamespace,
+			Namespace: nginxutil.IngressNGINXNamespace(),
 		},
 		Spec: corev1.ServiceSpec{
 			ExternalIPs: []string{"1.2.3.4"},

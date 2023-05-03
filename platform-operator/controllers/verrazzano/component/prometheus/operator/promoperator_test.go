@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package operator
@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"strings"
 	"testing"
 
@@ -155,7 +156,21 @@ func TestAppendOverrides(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer config.SetDefaultBomFilePath(oldBomPath)
 
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{Name: constants.NGINXControllerServiceName, Namespace: nginxutil.IngressNGINXNamespace()},
+		Spec: corev1.ServiceSpec{
+			Type: corev1.ServiceTypeLoadBalancer,
+		},
+		Status: corev1.ServiceStatus{
+			LoadBalancer: corev1.LoadBalancerStatus{
+				Ingress: []corev1.LoadBalancerIngress{
+					{IP: "11.22.33.44"},
+				},
+			},
+		},
+	}
+
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(service).Build()
 	kvs := make([]bom.KeyValue, 0)
 
 	// GIVEN a Verrazzano CR with the CertManager component enabled

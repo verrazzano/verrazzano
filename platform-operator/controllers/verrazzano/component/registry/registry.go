@@ -106,7 +106,6 @@ func InitRegistry() {
 
 // GetComponents returns the list of components that are installable and upgradeable.
 // The components will be processed in the order items in the array
-// The components will be processed in the order items in the array
 func GetComponents() []spi.Component {
 	if len(componentsRegistry) == 0 {
 		InitRegistry()

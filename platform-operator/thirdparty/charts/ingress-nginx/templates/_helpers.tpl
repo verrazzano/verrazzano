@@ -183,3 +183,11 @@ IngressClass parameters.
 {{ toYaml .Values.controller.ingressClassResource.parameters | indent 4}}
   {{ end }}
 {{- end -}}
+
+{{/*
+Create a default fully qualified name with the release namesapce.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+*/}}
+{{- define "ingress-nginx.namespacedfullname" -}}
+{{- printf "%s-%s" .Release.Namespace (include "ingress-nginx.fullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- end -}}

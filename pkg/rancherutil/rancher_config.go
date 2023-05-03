@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"io"
 	"net"
 	"net/http"
@@ -40,10 +41,10 @@ const (
 
 	loginPath  = "/v3-public/localProviders/local?action=login"
 	tokensPath = "/v3/tokens" //nolint:gosec
-
-	// this host resolves to the cluster IP
-	nginxIngressHostName = "ingress-controller-ingress-nginx-controller.ingress-nginx"
 )
+
+// DefaultRancherIngressHostPrefix is the default internal Ingress host prefix used for Rancher API requests
+const DefaultRancherIngressHostPrefix = "ingress-controller-ingress-nginx-controller."
 
 type RancherConfig struct {
 	Host                     string
@@ -83,26 +84,26 @@ func (*HTTPRequestSender) Do(httpClient *http.Client, req *http.Request) (*http.
 }
 
 // NewAdminRancherConfig creates A rancher config that authenticates with the admin user
-func NewAdminRancherConfig(rdr client.Reader, log vzlog.VerrazzanoLogger) (*RancherConfig, error) {
+func NewAdminRancherConfig(rdr client.Reader, host string, log vzlog.VerrazzanoLogger) (*RancherConfig, error) {
 	secret, err := GetAdminSecret(rdr)
 	if err != nil {
 		return nil, log.ErrorfNewErr("Failed to get the admin secret from the cluster: %v", err)
 	}
-	return NewRancherConfigForUser(rdr, rancherAdminUsername, secret, log)
+	return NewRancherConfigForUser(rdr, rancherAdminUsername, secret, host, log)
 }
 
 // NewVerrazzanoClusterRancherConfig creates A rancher config that authenticates with the Verrazzano cluster user
-func NewVerrazzanoClusterRancherConfig(rdr client.Reader, log vzlog.VerrazzanoLogger) (*RancherConfig, error) {
+func NewVerrazzanoClusterRancherConfig(rdr client.Reader, host string, log vzlog.VerrazzanoLogger) (*RancherConfig, error) {
 	secret, err := GetVerrazzanoClusterUserSecret(rdr)
 	if err != nil {
 		return nil, log.ErrorfNewErr("Failed to get the Verrazzano cluster secret from the cluster: %v", err)
 	}
-	return NewRancherConfigForUser(rdr, cons.VerrazzanoClusterRancherUsername, secret, log)
+	return NewRancherConfigForUser(rdr, cons.VerrazzanoClusterRancherUsername, secret, host, log)
 }
 
 // NewRancherConfigForUser returns a populated RancherConfig struct that can be used to make calls to the Rancher API
-func NewRancherConfigForUser(rdr client.Reader, username, password string, log vzlog.VerrazzanoLogger) (*RancherConfig, error) {
-	rc := &RancherConfig{BaseURL: "https://" + nginxIngressHostName}
+func NewRancherConfigForUser(rdr client.Reader, username, password, host string, log vzlog.VerrazzanoLogger) (*RancherConfig, error) {
+	rc := &RancherConfig{BaseURL: "https://" + host}
 	// Needed to populate userToken[] map
 	rc.User = username
 
@@ -447,4 +448,9 @@ func doRequest(req *http.Request, rc *RancherConfig, log vzlog.VerrazzanoLogger)
 	}
 
 	return resp, string(body), err
+}
+
+// RancherIngressServiceHost returns the internal service host name of the Rancher ingress
+func RancherIngressServiceHost() string {
+	return DefaultRancherIngressHostPrefix + nginxutil.IngressNGINXNamespace()
 }
