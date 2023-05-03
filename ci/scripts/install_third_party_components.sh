@@ -30,8 +30,8 @@ controllerTag=$(cat platform-operator/verrazzano-bom.json | jq '.components[] | 
 defaultBackendTag=$(cat platform-operator/verrazzano-bom.json | jq '.components[] | select(.name=="ingress-nginx")' | jq '.subcomponents[0].images[] | select(.image=="nginx-ingress-default-backend")' | jq .tag -r)
 
 helm upgrade ingress-controller -n ingress-nginx platform-operator/thirdparty/charts/ingress-nginx \
---set controller.image.repository=ghcr.io/verrazzano/nginx-ingress-controller --set controller.image.tag=${controllerTag}  \
---set controller.service.type=LoadBalancer -f platform-operator/helm_config/overrides/ingress-nginx-values.yaml \
+--set controller.image="" --set controller.image.repository=ghcr.io/verrazzano/nginx-ingress-controller --set controller.image.tag=${controllerTag}  \
+--set controller.service.type=LoadBalancer  \
 --set defaultBackend.image.repository=ghcr.io/verrazzano/nginx-ingress-default-backend --set defaultBackend.image.tag=${defaultBackendTag} \
 --set defaultBackend.enabled=true --install --create-namespace
 
