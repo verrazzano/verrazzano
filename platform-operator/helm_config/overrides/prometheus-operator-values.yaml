@@ -174,14 +174,6 @@ kubelet:
         - pod
         targetLabel: verrazzano_component
       - action: replace
-        regex: (verrazzano-capi);(capiControllerManager);(capi-controller-manager-[a-z0-9-]+)(.*)
-        replacement: $2
-        separator: ;capiControllerManager;
-        sourceLabels:
-          - namespace
-          - pod
-        targetLabel: verrazzano_component
-      - action: replace
         regex: (verrazzano-system);(clusterOperator);(verrazzano-cluster-operator-[a-z0-9-]+)(.*)
         replacement: $2
         separator: ;clusterOperator;
@@ -462,14 +454,6 @@ kubelet:
         sourceLabels:
         - namespace
         - pod
-        targetLabel: verrazzano_component
-      - action: replace
-        regex: (verrazzano-capi);(capiControllerManager);(capi-controller-manager-[a-z0-9-]+)(.*)
-        replacement: $2
-        separator: ;capiControllerManager;
-        sourceLabels:
-          - namespace
-          - pod
         targetLabel: verrazzano_component
       - action: replace
         regex: (verrazzano-system);(clusterOperator);(verrazzano-cluster-operator-[a-z0-9-]+)(.*)
