@@ -12,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -44,11 +43,18 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
+			InstallBeforeUpgrade:      true,
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0].name",
-			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_0_0,
 			Dependencies:              []string{networkpolicies.ComponentName, certmanager.ComponentName},
 		},
 	}
+}
+
+func (c certManagerOciDNSComponent) PreInstall(ctx spi.ComponentContext) error {
+	if err := common.CopyOCIDNSSecret(ctx, ComponentNamespace); err != nil {
+		return err
+	}
+	return nil
 }
 
 // IsEnabled returns true if the cert-manager is enabled, which is the default
