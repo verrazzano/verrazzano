@@ -153,7 +153,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("TODO: appropriate label"), Seri
 		t.It("Check OCNE cluster is active", func() {
 			// Verify the cluster is active
 			Eventually(func() (bool, error) { return IsClusterActive(clusterName) }, shortWaitTimeout, pollingInterval).Should(
-				BeTrue(), BeNil(), fmt.Sprintf("Cluster %s is not active", clusterName))
+				BeTrue(), fmt.Sprintf("Cluster %s is not active", clusterName))
 		})
 	})
 })
