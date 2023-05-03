@@ -214,7 +214,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 			t.Entry("Checking Deployment cert-manager-cainjector", certmanager.ComponentNamespace, certmanager.ComponentName, "cert-manager-cainjector"),
 			t.Entry("Checking Deployment cert-manager-webhook", certmanager.ComponentNamespace, certmanager.ComponentName, "cert-manager-webhook"),
 
-			t.Entry("Checking Deployment external-dns", externaldns.ComponentNamespace, externaldns.ComponentName, "external-dns"),
+			t.Entry("Checking Deployment external-dns", externaldns.ResolveExernalDNSNamespace(), externaldns.ComponentName, "external-dns"),
 
 			t.Entry("Checking Deployment istiod", compistio.IstioNamespace, compistio.ComponentName, "istiod"),
 			t.Entry("Checking Deployment istio-ingressgateway", compistio.IstioNamespace, compistio.ComponentName, "istio-ingressgateway"),
