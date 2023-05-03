@@ -6,13 +6,14 @@ package verifydistribution
 import (
 	"bufio"
 	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+
 	"github.com/onsi/gomega"
 	. "github.com/verrazzano/verrazzano/pkg/files"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	"os"
-	"path/filepath"
-	"regexp"
 )
 
 const SLASH = string(filepath.Separator)
