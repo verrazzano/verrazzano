@@ -255,7 +255,7 @@ pipeline {
         }
 
 
-        stage('Install App stack with third party cert-manager') {
+        stage('Install App stack with third party cert-manager and ingress-nginx') {
             environment {
                 KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
