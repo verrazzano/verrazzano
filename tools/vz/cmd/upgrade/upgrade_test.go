@@ -521,7 +521,7 @@ func TestUpgradeFromPrivateRegistry(t *testing.T) {
 // TestUpgradeFromDifferentPrivateRegistry tests upgrading from a different private registry
 func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	// First install using a private registry
-	const proceedQuestionText = "Proceed to upgrade with new settings? [Y/n]"
+	const proceedQuestionText = "Proceed to upgrade with new settings? [y/N]"
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: new(bytes.Buffer), ErrOut: errBuf})
