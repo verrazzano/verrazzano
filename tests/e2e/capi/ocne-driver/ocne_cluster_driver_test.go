@@ -42,7 +42,7 @@ const (
 			"kubernetesVersion": "v1.24.8",
 			"useNodePvEncryption": true,
 			"cloudCredentialId": "{{.CloudCredentialID}}",
-			"region": "us-ashburn-1",
+			"region": "{{.Region}}",
 
 			"nodeShape": "VM.Standard.E4.Flex",
 			"numWorkerNodes": 1,
@@ -101,6 +101,7 @@ type cloudCredentialsData struct {
 // capiClusterData needed for template rendering
 type capiClusterData struct {
 	ClusterName           string
+	Region                string
 	VcnID                 string
 	NodePublicKeyContents string
 	CompartmentID         string
@@ -187,6 +188,7 @@ func createCluster(clusterName string) {
 	// FIXME: which vcn, compartment, etc. to use
 	capiClusterData := capiClusterData{
 		ClusterName:           clusterName,
+		Region:                region,
 		VcnID:                 vcnID,
 		NodePublicKeyContents: nodePublicKeyContents,
 		CompartmentID:         compartmentID,
