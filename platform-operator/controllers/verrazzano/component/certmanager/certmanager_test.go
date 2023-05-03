@@ -47,9 +47,19 @@ const (
 	fooDomainSuffix = "foo.com"
 )
 
+const (
+	// Make the code smells go away
+	myvz             = "my-verrazzano"
+	myvzns           = "default"
+	zoneName         = "zone.name.io"
+	ociDNSSecretName = "oci"
+	zoneID           = "zoneID"
+	compartmentID    = "compartmentID"
+)
+
 // Default Verrazzano object
 var vz = &vzapi.Verrazzano{
-	ObjectMeta: metav1.ObjectMeta{Name: "my-verrazzano", Namespace: "default", CreationTimestamp: metav1.Now()},
+	ObjectMeta: metav1.ObjectMeta{Name: myvz, Namespace: myvzns, CreationTimestamp: metav1.Now()},
 	Spec: vzapi.VerrazzanoSpec{
 		EnvironmentName: "myenv",
 		Components: vzapi.ComponentSpec{
@@ -60,7 +70,7 @@ var vz = &vzapi.Verrazzano{
 
 // Default Verrazzano v1beta1 object
 var vzv1beta1 = &v1beta1.Verrazzano{
-	ObjectMeta: metav1.ObjectMeta{Name: "my-verrazzano", Namespace: "default", CreationTimestamp: metav1.Now()},
+	ObjectMeta: metav1.ObjectMeta{Name: myvz, Namespace: myvzns, CreationTimestamp: metav1.Now()},
 	Spec: v1beta1.VerrazzanoSpec{
 		EnvironmentName: "myenv",
 		Components: v1beta1.ComponentSpec{
@@ -70,31 +80,31 @@ var vzv1beta1 = &v1beta1.Verrazzano{
 }
 
 var oci = &vzapi.OCI{
-	OCIConfigSecret:        "oci",
-	DNSZoneCompartmentOCID: "compartmentID",
-	DNSZoneOCID:            "zoneID",
-	DNSZoneName:            "zone.name.io",
+	OCIConfigSecret:        ociDNSSecretName,
+	DNSZoneCompartmentOCID: compartmentID,
+	DNSZoneOCID:            zoneID,
+	DNSZoneName:            zoneName,
 }
 
 var ociV1Beta1 = &v1beta1.OCI{
-	OCIConfigSecret:        "oci",
-	DNSZoneCompartmentOCID: "compartmentID",
-	DNSZoneOCID:            "zoneID",
-	DNSZoneName:            "zone.name.io",
+	OCIConfigSecret:        ociDNSSecretName,
+	DNSZoneCompartmentOCID: compartmentID,
+	DNSZoneOCID:            zoneID,
+	DNSZoneName:            zoneName,
 }
 
 var ociLongDNSZoneName = &vzapi.OCI{
-	OCIConfigSecret:        "oci",
-	DNSZoneCompartmentOCID: "compartmentID",
-	DNSZoneOCID:            "zoneID",
+	OCIConfigSecret:        ociDNSSecretName,
+	DNSZoneCompartmentOCID: compartmentID,
+	DNSZoneOCID:            zoneID,
 	DNSZoneName:            "veryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryverylong.name.io",
 	DNSScope:               "#jhwuyusj!!!",
 }
 
 var ociLongDNSZoneNameV1Beta1 = &v1beta1.OCI{
-	OCIConfigSecret:        "oci",
-	DNSZoneCompartmentOCID: "compartmentID",
-	DNSZoneOCID:            "zoneID",
+	OCIConfigSecret:        ociDNSSecretName,
+	DNSZoneCompartmentOCID: compartmentID,
+	DNSZoneOCID:            zoneID,
 	DNSZoneName:            "veryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryverylong.name.io",
 	DNSScope:               "#jhwuyusj!!!",
 }
@@ -260,7 +270,7 @@ func TestCertManagerPreInstall(t *testing.T) {
 	assert.NoError(t, err)
 
 	secret := &v1.Secret{}
-	err = client.Get(context.TODO(), types.NamespacedName{Name: "oci", Namespace: ComponentNamespace}, secret)
+	err = client.Get(context.TODO(), types.NamespacedName{Name: ociDNSSecretName, Namespace: ComponentNamespace}, secret)
 	assert.Error(t, err)
 	assert.True(t, errors.IsNotFound(err))
 }
@@ -276,22 +286,22 @@ func TestCertManagerPreInstallOCIDNS(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "oci",
+				Name:      ociDNSSecretName,
 				Namespace: constants.VerrazzanoInstallNamespace,
 			},
 			Data: map[string][]byte{"oci.yaml": []byte("fake data")},
 		}).Build()
 	vz := &vzapi.Verrazzano{
-		ObjectMeta: metav1.ObjectMeta{Name: "my-verrazzano", Namespace: "default", CreationTimestamp: metav1.Now()},
+		ObjectMeta: metav1.ObjectMeta{Name: myvz, Namespace: myvzns, CreationTimestamp: metav1.Now()},
 		Spec: vzapi.VerrazzanoSpec{
 			EnvironmentName: "myenv",
 			Components: vzapi.ComponentSpec{
 				DNS: &vzapi.DNSComponent{
 					OCI: &vzapi.OCI{
-						OCIConfigSecret:        "oci",
-						DNSZoneCompartmentOCID: "compartmentID",
-						DNSZoneOCID:            "zoneID",
-						DNSZoneName:            "zone.name.io",
+						OCIConfigSecret:        ociDNSSecretName,
+						DNSZoneCompartmentOCID: compartmentID,
+						DNSZoneOCID:            zoneID,
+						DNSZoneName:            zoneName,
 					},
 				},
 			},

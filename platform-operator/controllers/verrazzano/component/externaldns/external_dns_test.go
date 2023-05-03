@@ -36,11 +36,20 @@ import (
 
 const (
 	profileDir = "../../../../manifests/profiles"
+
+	// Fix the code smells
+	cmNamespace      = "cert-manager"
+	myvz             = "my-verrazzano"
+	myvzns           = "default"
+	zoneName         = "zone.name.io"
+	ociDNSSecretName = "oci"
+	zoneID           = "zoneID"
+	compartmentID    = "compartmentID"
 )
 
 // Default Verrazzano object
 var vz = &vzapi.Verrazzano{
-	ObjectMeta: metav1.ObjectMeta{Name: "my-verrazzano", Namespace: "default", CreationTimestamp: metav1.Now()},
+	ObjectMeta: metav1.ObjectMeta{Name: myvz, Namespace: myvzns, CreationTimestamp: metav1.Now()},
 	Spec: vzapi.VerrazzanoSpec{
 		EnvironmentName: "myenv",
 		Components: vzapi.ComponentSpec{
@@ -50,32 +59,32 @@ var vz = &vzapi.Verrazzano{
 }
 
 var oci = &vzapi.OCI{
-	OCIConfigSecret:        "oci",
-	DNSZoneCompartmentOCID: "compartmentID",
-	DNSZoneOCID:            "zoneID",
-	DNSZoneName:            "zone.name.io",
+	OCIConfigSecret:        ociDNSSecretName,
+	DNSZoneCompartmentOCID: compartmentID,
+	DNSZoneOCID:            zoneID,
+	DNSZoneName:            zoneName,
 }
 
 var ociGlobalScope = &vzapi.OCI{
-	OCIConfigSecret:        "oci",
-	DNSZoneCompartmentOCID: "compartmentID",
-	DNSZoneOCID:            "zoneID",
-	DNSZoneName:            "zone.name.io",
+	OCIConfigSecret:        ociDNSSecretName,
+	DNSZoneCompartmentOCID: compartmentID,
+	DNSZoneOCID:            zoneID,
+	DNSZoneName:            zoneName,
 	DNSScope:               "GLOBAL",
 }
 var ociPrivateScope = &vzapi.OCI{
-	OCIConfigSecret:        "oci",
-	DNSZoneCompartmentOCID: "compartmentID",
-	DNSZoneOCID:            "zoneID",
-	DNSZoneName:            "zone.name.io",
+	OCIConfigSecret:        ociDNSSecretName,
+	DNSZoneCompartmentOCID: compartmentID,
+	DNSZoneOCID:            zoneID,
+	DNSZoneName:            zoneName,
 	DNSScope:               "PRIVATE",
 }
 
 var ociInvalidScope = &vzapi.OCI{
-	OCIConfigSecret:        "oci",
-	DNSZoneCompartmentOCID: "compartmentID",
-	DNSZoneOCID:            "zoneID",
-	DNSZoneName:            "zone.name.io",
+	OCIConfigSecret:        ociDNSSecretName,
+	DNSZoneCompartmentOCID: compartmentID,
+	DNSZoneOCID:            zoneID,
+	DNSZoneName:            zoneName,
 	DNSScope:               "#jhwuyusj!!!",
 }
 
@@ -268,13 +277,13 @@ func runOverridesTest(t *testing.T, localvz *vzapi.Verrazzano, asserts *assert.A
 	assert.NoError(t, err)
 
 	expectedLength := 11
-	asserts.Equal(kvs[0], bom.KeyValue{Key: "domainFilters[0]", Value: "zone.name.io"})
-	asserts.Equal(kvs[1], bom.KeyValue{Key: "zoneIDFilters[0]", Value: "zoneID"})
+	asserts.Equal(kvs[0], bom.KeyValue{Key: "domainFilters[0]", Value: zoneName})
+	asserts.Equal(kvs[1], bom.KeyValue{Key: "zoneIDFilters[0]", Value: zoneID})
 	asserts.Equal(kvs[2], bom.KeyValue{Key: "ociDnsScope", Value: ""})
 	asserts.Equal(kvs[3], bom.KeyValue{Key: "txtOwnerId", Value: "v8o-811c9dc5"})
 	asserts.Equal(kvs[4], bom.KeyValue{Key: "txtPrefix", Value: "_v8o-811c9dc5-"})
 	asserts.Equal(kvs[5], bom.KeyValue{Key: "extraVolumes[0].name", Value: "config"})
-	asserts.Equal(kvs[6], bom.KeyValue{Key: "extraVolumes[0].secret.secretName", Value: "oci"})
+	asserts.Equal(kvs[6], bom.KeyValue{Key: "extraVolumes[0].secret.secretName", Value: ociDNSSecretName})
 	asserts.Equal(kvs[7], bom.KeyValue{Key: "extraVolumeMounts[0].name", Value: "config"})
 	asserts.Equal(kvs[8], bom.KeyValue{Key: "extraVolumeMounts[0].mountPath", Value: "/etc/kubernetes/"})
 	asserts.Equal(kvs[9], bom.KeyValue{Key: "sources[0]", Value: "ingress"})
@@ -306,7 +315,7 @@ func TestExternalDNSPreInstall(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "oci",
+				Name:      ociDNSSecretName,
 				Namespace: constants.VerrazzanoInstallNamespace,
 			},
 			Data: map[string][]byte{"oci.yaml": []byte("fake data")},
@@ -321,7 +330,7 @@ func TestExternalDNSPreInstallGlobalScope(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "oci",
+				Name:      ociDNSSecretName,
 				Namespace: constants.VerrazzanoInstallNamespace,
 			},
 			Data: map[string][]byte{"oci.yaml": []byte("fake data")},
@@ -336,7 +345,7 @@ func TestExternalDNSPreInstallPrivateScope(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "oci",
+				Name:      ociDNSSecretName,
 				Namespace: constants.VerrazzanoInstallNamespace,
 			},
 			Data: map[string][]byte{"oci.yaml": []byte("fake data")},
@@ -445,7 +454,7 @@ func TestExternalDNSPreInstall3InvalidScope(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "oci",
+				Name:      ociDNSSecretName,
 				Namespace: constants.VerrazzanoInstallNamespace,
 			},
 			Data: map[string][]byte{"oci.yaml": []byte("fake data")},
@@ -512,7 +521,7 @@ func Test_getOrBuildOwnerID_NoHelmValueExists(t *testing.T) {
 // Create a new deployment object for testing
 func newDeployment(name string, ns string, updated bool) *appsv1.Deployment {
 	if len(ns) == 0 {
-		ns = "cert-manager"
+		ns = cmNamespace
 	}
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -545,7 +554,7 @@ func newDeployment(name string, ns string, updated bool) *appsv1.Deployment {
 
 func newPod(name string, ns string) *v1.Pod {
 	if len(ns) == 0 {
-		ns = "cert-manager"
+		ns = cmNamespace
 	}
 	return &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -561,7 +570,7 @@ func newPod(name string, ns string) *v1.Pod {
 
 func newReplicaSet(name string, ns string) *appsv1.ReplicaSet {
 	if len(ns) == 0 {
-		ns = "cert-manager"
+		ns = cmNamespace
 	}
 	return &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
