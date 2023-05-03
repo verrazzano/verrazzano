@@ -24,6 +24,8 @@ import (
 // nolint: gosec // auth constants, not credentials
 // gosec: G101: Potential hardcoded credentials
 const (
+	shortWaitTimeout     = 10 * time.Minute
+	shortPollingInterval = 10 * time.Second
 	waitTimeout                  = 30 * time.Minute
 	pollingInterval              = 1 * time.Minute
 	createClusterPayloadTemplate = `{
@@ -131,7 +133,9 @@ var _ = t.Describe("OCNE Cluster Driver", Label("TODO: appropriate label"), Seri
 		t.It("creates an active cluster", func() {
 			// Create the cluster
 			clusterName := "strudel"
-			createCluster(clusterName)
+			Eventually(func() error {
+				return createCluster(clusterName)
+			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 			// Verify the cluster is active
 			Eventually(func() bool { return clusterIsActive(clusterName) }, waitTimeout, pollingInterval).Should(
@@ -183,9 +187,8 @@ func executeCreateClusterTemplate(data *capiClusterData, buffer *bytes.Buffer) e
 }
 
 // Creates an OCNE cluster through CAPI
-func createCluster(clusterName string) {
+func createCluster(clusterName string) error {
 	requestURL := rancherURL + "/v3/cluster"
-	// FIXME: which vcn, compartment, etc. to use
 	capiClusterData := capiClusterData{
 		ClusterName:           clusterName,
 		Region:                region,
@@ -203,10 +206,14 @@ func createCluster(clusterName string) {
 	if err != nil {
 		Fail("failed to parse the cloud credentials template: " + err.Error())
 	}
-	// FIXME: add error checking
-	request, _ := retryablehttp.NewRequest(http.MethodPost, requestURL, buf)
+	request, err := retryablehttp.NewRequest(http.MethodPost, requestURL, buf)
+	if err != nil {
+		return err
+	}
 	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminToken))
-	httpClient.Do(request)
+	response, err := httpClient.Do(request)
+	fmt.Printf("Create Cluster POST response: %v", response)
+	return err
 }
 
 // Returns true if the cluster currently exists and is Active
