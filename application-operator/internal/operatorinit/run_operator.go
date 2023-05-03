@@ -25,7 +25,10 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/mcagent"
 	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/scheme"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,6 +36,12 @@ import (
 )
 
 func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, defaultMetricsScraper string, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
+	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog2.DefaultLogger())
+	if err != nil {
+		return err
+	}
+	nginxutil.SetIngressNGINXNamespace(ingressNGINXNamespace)
+
 	mgr, err := ctrl.NewManager(k8sutil.GetConfigOrDieFromController(), ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,

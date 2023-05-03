@@ -59,6 +59,10 @@ controller:
             path: 400.html
   extraArgs:
     ingress-class: verrazzano-nginx
+  # controller.ingressClas must be overridden or the pod params wil have nginx as an ingressClass
+  # in addition to verrazzano-nginx
+  ingressClass: verrazzano-nginx
+
   # -- Process Ingress objects without ingressClass annotation/ingressClassName field
   # Overrides value for --watch-ingress-without-class flag of the controller binary
   # Defaults to false

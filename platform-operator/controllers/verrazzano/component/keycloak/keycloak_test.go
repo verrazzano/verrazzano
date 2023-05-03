@@ -80,7 +80,7 @@ func createTestNginxService() *v1.Service {
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "ingress-controller-ingress-nginx-controller",
-			Namespace: "ingress-nginx",
+			Namespace: constants.IngressNginxNamespace,
 		},
 		Spec: v1.ServiceSpec{},
 		Status: v1.ServiceStatus{

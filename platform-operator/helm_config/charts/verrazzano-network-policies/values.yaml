@@ -18,6 +18,7 @@ certManager:
 
 ingressNGINX:
   enabled: true
+  namespace: "verrazzano-ingress-nginx"
 
 istio:
   enabled: true

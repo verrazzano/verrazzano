@@ -1,14 +1,15 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package apiconversion
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
@@ -44,9 +45,15 @@ var t = framework.NewTestFramework("apiconversion")
 
 var nodeCount uint32
 
+var ingressNGINXNamespace string
+
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	nodeCount, err = pkg.GetNodeCount()
+	if err != nil {
+		Fail(err.Error())
+	}
+	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
 	if err != nil {
 		Fail(err.Error())
 	}
@@ -58,7 +65,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	m := IngressNGINXDefaultModifierV1beta1{}
 	update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
 	expectedRunning := uint32(2)
-	update.ValidatePods(ingressNGINXNameLabelValue, ingressNGINXNameLabelKey, constants.IngressNamespace, expectedRunning, false)
+	update.ValidatePods(ingressNGINXNameLabelValue, ingressNGINXNameLabelKey, ingressNGINXNamespace, expectedRunning, false)
 
 })
 
@@ -88,7 +95,7 @@ var _ = t.Describe("Update ingressNGINX", Label("f:platform-lcm.update"), func()
 			m := IngressNGINXBackendReplicasModifierV1beta1{replicas: nodeCount}
 			update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
 			expectedRunning := nodeCount
-			update.ValidatePods(ingressNGINXComponentBackendValue, ingressNGINXComponentLabelKey, constants.IngressNamespace, expectedRunning, false)
+			update.ValidatePods(ingressNGINXComponentBackendValue, ingressNGINXComponentLabelKey, ingressNGINXNamespace, expectedRunning, false)
 
 		})
 	})
@@ -98,7 +105,7 @@ var _ = t.Describe("Update ingressNGINX", Label("f:platform-lcm.update"), func()
 			m := IngressNGINXControllerReplicasModifierV1beta1{replicas: nodeCount}
 			update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
 			expectedRunning := nodeCount
-			update.ValidatePods(ingressNGINXComponentControllerValue, ingressNGINXComponentLabelKey, constants.IngressNamespace, expectedRunning, false)
+			update.ValidatePods(ingressNGINXComponentControllerValue, ingressNGINXComponentLabelKey, ingressNGINXNamespace, expectedRunning, false)
 
 		})
 	})

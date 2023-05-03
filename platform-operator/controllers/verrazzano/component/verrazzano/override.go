@@ -1,10 +1,11 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package verrazzano
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"io/fs"
 	"os"
 
@@ -108,6 +109,7 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValue
 	overrides.PrometheusPushgateway = &prometheusPushgatewayValues{Enabled: vzcr.IsPrometheusPushgatewayEnabled(effectiveCR)}
 	overrides.PrometheusNodeExporter = &prometheusNodeExporterValues{Enabled: vzcr.IsPrometheusNodeExporterEnabled(effectiveCR)}
 	overrides.JaegerOperator = &jaegerOperatorValues{Enabled: vzcr.IsJaegerOperatorEnabled(effectiveCR)}
+	overrides.IngressNGINX = &ingressNGINXValues{Namespace: nginxutil.IngressNGINXNamespace()}
 	return nil
 }
 

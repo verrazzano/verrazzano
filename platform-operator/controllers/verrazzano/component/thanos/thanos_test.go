@@ -6,12 +6,12 @@ package thanos
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"strconv"
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -103,7 +103,7 @@ func TestAppendOverrides(t *testing.T) {
 	trueVal := true
 
 	service := &v1.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: constants.NGINXControllerServiceName, Namespace: globalconst.IngressNamespace},
+		ObjectMeta: metav1.ObjectMeta{Name: constants.NGINXControllerServiceName, Namespace: nginxutil.IngressNGINXNamespace()},
 		Spec: v1.ServiceSpec{
 			Type: v1.ServiceTypeLoadBalancer,
 		},

@@ -96,7 +96,10 @@ const PrometheusIngress = "vmi-system-prometheus"
 const GlobalImagePullSecName = "verrazzano-container-registry"
 
 // IngressNginxNamespace is the nginx ingress namespace name
-const IngressNginxNamespace = "ingress-nginx"
+const IngressNginxNamespace = "verrazzano-ingress-nginx"
+
+// LegacyIngressNginxNamespace is the old nginx ingress namespace name
+const LegacyIngressNginxNamespace = "ingress-nginx"
 
 // IstioSystemNamespace - the Istio system namespace
 const IstioSystemNamespace = "istio-system"

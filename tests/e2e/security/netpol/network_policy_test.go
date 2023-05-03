@@ -155,7 +155,7 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				t.Logs.Info("Test rancher ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "rancher"}}, "cattle-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "rancher"}}, "cattle-system", 443, true, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test rancher ingress failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/instance": "ingress-controller"}}, "ingress-nginx", metav1.LabelSelector{MatchLabels: map[string]string{"app": "rancher"}}, "cattle-system", 443, true, true)
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/instance": "ingress-controller"}}, constants.IngressNginxNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": "rancher"}}, "cattle-system", 443, true, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test rancher ingress failed: reason = %s", err))
 			},
 			func() {
@@ -170,18 +170,18 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 			},
 			func() {
 				t.Logs.Info("Test ingress-nginx-controller ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{kubernetesCompLabel: "controller"}}, "ingress-nginx", 443, false, true)
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{kubernetesCompLabel: "controller"}}, constants.IngressNginxNamespace, 443, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test ingress-nginx-controller ingress failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{kubernetesCompLabel: "controller"}}, "ingress-nginx", ingressControllerMetricsPort, false, true)
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{kubernetesCompLabel: "controller"}}, constants.IngressNginxNamespace, ingressControllerMetricsPort, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test ingress-nginx-controller ingress failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{kubernetesCompLabel: "controller"}}, "ingress-nginx", envoyStatsMetricsPort, false, true)
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{kubernetesCompLabel: "controller"}}, constants.IngressNginxNamespace, envoyStatsMetricsPort, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test ingress-nginx-controller ingress failed: reason = %s", err))
 			},
 			func() {
 				t.Logs.Info("Test ingress-nginx-default-backend ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesCompLabel: "controller"}}, "ingress-nginx", metav1.LabelSelector{MatchLabels: map[string]string{kubernetesCompLabel: defaultBackend}}, "ingress-nginx", 8080, false, true)
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesCompLabel: "controller"}}, constants.IngressNginxNamespace, metav1.LabelSelector{MatchLabels: map[string]string{kubernetesCompLabel: defaultBackend}}, constants.IngressNginxNamespace, 8080, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test ingress-nginx-default-backend ingress failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{kubernetesCompLabel: defaultBackend}}, "ingress-nginx", envoyStatsMetricsPort, false, true)
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{kubernetesCompLabel: defaultBackend}}, constants.IngressNginxNamespace, envoyStatsMetricsPort, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test ingress-nginx-default-backend ingress failed: reason = %s", err))
 			},
 			func() {
@@ -198,7 +198,7 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 			},
 			func() {
 				t.Logs.Info("Test keycloak ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/instance": "ingress-controller"}}, "ingress-nginx", metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "keycloak"}}, "keycloak", 8080, false, true)
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/instance": "ingress-controller"}}, constants.IngressNginxNamespace, metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "keycloak"}}, "keycloak", 8080, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test keycloak ingress rules failed: reason = %s", err))
 				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "keycloak"}}, "keycloak", envoyStatsMetricsPort, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test keycloak ingress rules failed: reason = %s", err))
@@ -238,7 +238,7 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 			},
 			func() {
 				t.Logs.Info("Test verrazzano-authproxy ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/instance": "ingress-controller"}}, "ingress-nginx", metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.VerrazzanoAuthProxyServiceName}}, vzconst.VerrazzanoSystemNamespace, 8775, false, true)
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/instance": "ingress-controller"}}, constants.IngressNginxNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.VerrazzanoAuthProxyServiceName}}, vzconst.VerrazzanoSystemNamespace, 8775, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test verrazzano-authproxy ingress rules failed: reason = %s", err))
 				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "fluentd"}}, vzconst.VerrazzanoSystemNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.VerrazzanoAuthProxyServiceName}}, vzconst.VerrazzanoSystemNamespace, 8775, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test verrazzano-authproxy ingress rules failed: reason = %s", err))
@@ -379,12 +379,12 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 			},
 			func() {
 				t.Logs.Info("Negative test ingress-nginx-controller ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{kubernetesCompLabel: "controller"}}, "ingress-nginx", 80, false, false)
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{kubernetesCompLabel: "controller"}}, constants.IngressNginxNamespace, 80, false, false)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test ingress-nginx-controller ingress failed: reason = %s", err))
 			},
 			func() {
 				t.Logs.Info("Negative test ingress-nginx-default-backend ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{kubernetesCompLabel: defaultBackend}}, "ingress-nginx", 8080, false, false)
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{kubernetesCompLabel: defaultBackend}}, constants.IngressNginxNamespace, 8080, false, false)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test ingress-nginx-default-backend ingress failed: reason = %s", err))
 			},
 			func() {
