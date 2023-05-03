@@ -70,6 +70,16 @@ func ClearFakeClient() {
 	fakeClient = nil
 }
 
+// NewControllerRuntimeClient Create a new controller runtime client
+func NewControllerRuntimeClient(opts client.Options) (client.Client, error) {
+	config, err := GetConfigFromController()
+	if err != nil {
+		return nil, err
+	}
+
+	return client.New(config, opts)
+}
+
 // GetConfigFromController get the config from the Controller Runtime and set the default QPS and burst.
 func GetConfigFromController() (*rest.Config, error) {
 	cfg, err := controllerruntime.GetConfig()

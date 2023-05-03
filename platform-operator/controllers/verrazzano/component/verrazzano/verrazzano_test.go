@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"io/fs"
 	"os"
 	"strings"
@@ -595,7 +596,7 @@ func createFakeClientWithIngress() client.Client {
 
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{Name: vpoconst.NGINXControllerServiceName, Namespace: globalconst.IngressNamespace},
+			ObjectMeta: metav1.ObjectMeta{Name: vpoconst.NGINXControllerServiceName, Namespace: nginxutil.IngressNGINXNamespace()},
 			Spec: corev1.ServiceSpec{
 				Type: corev1.ServiceTypeLoadBalancer,
 			},

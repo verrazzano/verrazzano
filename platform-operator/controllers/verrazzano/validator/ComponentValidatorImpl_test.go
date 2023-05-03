@@ -79,7 +79,10 @@ func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
 			c := ComponentValidatorImpl{}
 			got := c.ValidateInstall(tt.vz)
 			if len(got) != tt.numberOfErrors {
-				t.Errorf("ValidateInstall() = %v, numberOfErrors %v", len(got), tt.numberOfErrors)
+				for _, err := range got {
+					t.Logf("Unexpected error: %s", err.Error())
+				}
+				t.Errorf("ValidateInstall() = %v, numberOfErrors %v", tt.numberOfErrors, len(got))
 			}
 		})
 	}
@@ -101,6 +104,7 @@ func TestComponentValidatorImpl_ValidateInstallV1Beta1(t *testing.T) {
 		return k8sfake.NewSimpleClientset().AppsV1(), nil
 	}
 	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
+
 	tests := []struct {
 		name           string
 		vz             *vzapibeta.Verrazzano
@@ -141,7 +145,10 @@ func TestComponentValidatorImpl_ValidateInstallV1Beta1(t *testing.T) {
 			c := ComponentValidatorImpl{}
 			got := c.ValidateInstallV1Beta1(tt.vz)
 			if len(got) != tt.numberOfErrors {
-				t.Errorf("ValidateInstallV1Beta1() = %v, numberOfErrors %v", len(got), tt.numberOfErrors)
+				for _, err := range got {
+					t.Logf("Unexpected error: %s", err.Error())
+				}
+				t.Errorf("ValidateInstallV1Beta1() = %v, numberOfErrors %v", tt.numberOfErrors, len(got))
 			}
 		})
 	}

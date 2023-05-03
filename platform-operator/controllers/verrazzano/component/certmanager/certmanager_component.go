@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package certmanager
@@ -131,7 +131,7 @@ func (c certManagerComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
 	return c.ValidateInstallV1Beta1(vzV1Beta1)
 }
 
-// ValidateInstall checks if the specified new Verrazzano CR is valid for this component to be installed
+// ValidateInstallV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be installed
 func (c certManagerComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
 	if err := checkExistingCertManager(vz); err != nil {
 		return err
@@ -148,7 +148,7 @@ func (c certManagerComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) err
 	return c.HelmComponent.ValidateInstallV1Beta1(vz)
 }
 
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+// ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c certManagerComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
@@ -173,7 +173,7 @@ func (c certManagerComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new
 // The cert-manager namespace is created
 // The cert-manager manifest is patched if needed and applied to create necessary CRDs
 func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error {
-	vz := compContext.EffectiveCR()
+	//vz := compContext.EffectiveCR()
 	cli := compContext.Client()
 	log := compContext.Log()
 	// If it is a dry-run, do nothing
@@ -197,34 +197,7 @@ func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error
 	if err != nil {
 		return log.ErrorfNewErr("Failed to apply the cert-manager manifest: %v", err)
 	}
-	if err := common.ProcessAdditionalCertificates(log, cli, vz); err != nil {
-		return err
-	}
 	return c.HelmComponent.PreInstall(compContext)
-}
-
-// PostInstall applies necessary cert-manager resources after the install has occurred
-// In the case of an Acme cert, we install Acme resources
-// In the case of a CA cert, we install CA resources
-func (c certManagerComponent) PostInstall(compContext spi.ComponentContext) error {
-	// If it is a dry-run, do nothing
-	if compContext.IsDryRun() {
-		compContext.Log().Debug("cert-manager PostInstall dry run")
-		return nil
-	}
-	return c.createOrUpdateClusterIssuer(compContext)
-}
-
-// PostUpgrade applies necessary cert-manager resources after upgrade has occurred
-// In the case of an Acme cert, we install/update Acme resources
-// In the case of a CA cert, we install/update CA resources
-func (c certManagerComponent) PostUpgrade(compContext spi.ComponentContext) error {
-	// If it is a dry-run, do nothing
-	if compContext.IsDryRun() {
-		compContext.Log().Debug("cert-manager PostInstall dry run")
-		return nil
-	}
-	return c.createOrUpdateClusterIssuer(compContext)
 }
 
 // PostUninstall removes cert-manager objects that are created outside of Helm
@@ -234,43 +207,6 @@ func (c certManagerComponent) PostUninstall(compContext spi.ComponentContext) er
 		return nil
 	}
 	return uninstallCertManager(compContext)
-}
-
-func (c certManagerComponent) createOrUpdateClusterIssuer(compContext spi.ComponentContext) error {
-	isCAValue, err := isCA(compContext)
-	if err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to verify the config type: %v", err)
-	}
-	var opResult controllerutil.OperationResult
-	if !isCAValue {
-		// Create resources needed for Acme certificates
-		if opResult, err = createOrUpdateAcmeResources(compContext); err != nil {
-			return compContext.Log().ErrorfNewErr("Failed creating Acme resources: %v", err)
-		}
-	} else {
-		// Create resources needed for CA certificates
-		if opResult, err = createOrUpdateCAResources(compContext); err != nil {
-			msg := fmt.Sprintf("Failed creating CA resources: %v", err)
-			compContext.Log().Once(msg)
-			return fmt.Errorf(msg)
-		}
-	}
-	if opResult == controllerutil.OperationResultCreated {
-		// We're in the initial install phase, and created the ClusterIssuer for the first time,
-		// so skip the renewal checks
-		compContext.Log().Oncef("Initial install, skipping certificate renewal checks")
-		return nil
-	}
-	// CertManager configuration was updated, cleanup any old resources from previous configuration
-	// and renew certificates against the new ClusterIssuer
-	if err := cleanupUnusedResources(compContext, isCAValue); err != nil {
-		return err
-	}
-	if err := checkRenewAllCertificates(compContext, isCAValue); err != nil {
-		compContext.Log().Errorf("Error requesting certificate renewal: %s", err.Error())
-		return err
-	}
-	return nil
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
@@ -288,6 +224,8 @@ func checkExistingCertManager(vz runtime.Object) error {
 	if !vzcr.IsCertManagerEnabled(vz) {
 		return nil
 	}
+
+	// Check if the cert-manager namespace already exists and is not owned by Verrazzano
 	client, err := k8sutil.GetCoreV1Func()
 	if err != nil {
 		return err
@@ -307,5 +245,6 @@ func checkExistingCertManager(vz runtime.Object) error {
 	}); err != nil {
 		return err
 	}
+
 	return nil
 }

@@ -6,6 +6,7 @@ package authproxy
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"io/fs"
 	"os"
@@ -301,7 +302,7 @@ func TestAppendOverridesIfManagedCluster(t *testing.T) {
 			Data: map[string][]byte{vpoconst.ClusterNameData: []byte("managed1")},
 		},
 		&corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{Name: vpoconst.NGINXControllerServiceName, Namespace: globalconst.IngressNamespace},
+			ObjectMeta: metav1.ObjectMeta{Name: vpoconst.NGINXControllerServiceName, Namespace: nginxutil.IngressNGINXNamespace()},
 			Spec: corev1.ServiceSpec{
 				Type: corev1.ServiceTypeLoadBalancer,
 			},
@@ -451,7 +452,7 @@ func TestGetOverrides(t *testing.T) {
 func createFakeClientWithIngress() client.Client {
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{Name: vpoconst.NGINXControllerServiceName, Namespace: globalconst.IngressNamespace},
+			ObjectMeta: metav1.ObjectMeta{Name: vpoconst.NGINXControllerServiceName, Namespace: nginxutil.IngressNGINXNamespace()},
 			Spec: corev1.ServiceSpec{
 				Type: corev1.ServiceTypeLoadBalancer,
 			},

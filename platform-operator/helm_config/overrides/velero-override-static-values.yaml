@@ -11,9 +11,9 @@ restic:
   containerSecurityContext:
     allowPrivilegeEscalation: false
     capabilities:
-      drop: ["ALL"]
-      add: ["NET_BIND_SERVICE"]
-    readOnlyRootFilesystem: false
+      drop: [ "ALL" ]
+      add: [ "DAC_OVERRIDE","CHOWN" ]
+    privileged: false
 metrics:
   serviceMonitor:
     enabled: true
