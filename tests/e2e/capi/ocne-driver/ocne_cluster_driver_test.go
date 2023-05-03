@@ -167,7 +167,7 @@ func createCloudCredential(credentialName string) (string, error) {
 	buf := &bytes.Buffer{}
 	err := executeCloudCredentialsTemplate(&credentialsData, buf)
 	if err != nil {
-		Fail("failed to parse the cloud credentials template: " + err.Error())
+		return "", fmt.Errorf("failed to parse the cloud credentials template: " + err.Error())
 	}
 
 	request, err := retryablehttp.NewRequest(http.MethodPost, requestURL, buf)
@@ -219,7 +219,7 @@ func createCluster(clusterName string) error {
 	buf := &bytes.Buffer{}
 	err := executeCreateClusterTemplate(&capiClusterData, buf)
 	if err != nil {
-		Fail("failed to parse the cloud credentials template: " + err.Error())
+		return fmt.Errorf("failed to parse the cloud credentials template: " + err.Error())
 	}
 	request, err := retryablehttp.NewRequest(http.MethodPost, requestURL, buf)
 	if err != nil {
@@ -227,7 +227,11 @@ func createCluster(clusterName string) error {
 	}
 	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminToken))
 	response, err := httpClient.Do(request)
-	fmt.Printf("Create Cluster POST response: %v", response)
+	if err != nil {
+		t.Logs.Errorf("error create cluster POST response: %v", response)
+		return err
+	}
+	t.Logs.Info("Create Cluster POST response: %v", response)
 	return err
 }
 
@@ -237,9 +241,9 @@ func IsClusterActive(clusterName string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	fmt.Println("jsonBody: " + jsonBody.String())
+	t.Logs.Infof("jsonBody: %v" + jsonBody.String())
 	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
-	fmt.Println("State: " + state)
+	t.Logs.Infof("State: " + state)
 	return state == "active", nil
 }
 
