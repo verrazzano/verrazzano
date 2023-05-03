@@ -8,7 +8,7 @@ Fixed:
 
 - Disabled the startupapicheck job in cert-manager startup.
 - Fixed an install bug related to incorrect ingress names in certain configurations.
-- Fixed a Rancher bug to reuse auth tokens when applicable.
+- Fixed an ArgoCD bug to reuse Rancher auth tokens when applicable.
 
 Features:
 
