@@ -51,6 +51,13 @@ func NewComponent() spi.Component {
 	}
 }
 
+func (c certManagerOciDNSComponent) PreInstall(ctx spi.ComponentContext) error {
+	if err := common.CopyOCIDNSSecret(ctx, ComponentNamespace); err != nil {
+		return err
+	}
+	return nil
+}
+
 // IsEnabled returns true if the cert-manager is enabled, which is the default
 func (c certManagerOciDNSComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	logger := vzlog.DefaultLogger()

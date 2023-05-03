@@ -16,8 +16,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -25,10 +23,12 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -46,9 +46,19 @@ const (
 	fooDomainSuffix = "foo.com"
 )
 
+const (
+	// Make the code smells go away
+	myvz             = "my-verrazzano"
+	myvzns           = "default"
+	zoneName         = "zone.name.io"
+	ociDNSSecretName = "oci"
+	zoneID           = "zoneID"
+	compartmentID    = "compartmentID"
+)
+
 // Default Verrazzano object
 var vz = &vzapi.Verrazzano{
-	ObjectMeta: metav1.ObjectMeta{Name: "my-verrazzano", Namespace: "default", CreationTimestamp: metav1.Now()},
+	ObjectMeta: metav1.ObjectMeta{Name: myvz, Namespace: myvzns, CreationTimestamp: metav1.Now()},
 	Spec: vzapi.VerrazzanoSpec{
 		EnvironmentName: "myenv",
 		Components: vzapi.ComponentSpec{
@@ -59,7 +69,7 @@ var vz = &vzapi.Verrazzano{
 
 // Default Verrazzano v1beta1 object
 var vzv1beta1 = &v1beta1.Verrazzano{
-	ObjectMeta: metav1.ObjectMeta{Name: "my-verrazzano", Namespace: "default", CreationTimestamp: metav1.Now()},
+	ObjectMeta: metav1.ObjectMeta{Name: myvz, Namespace: myvzns, CreationTimestamp: metav1.Now()},
 	Spec: v1beta1.VerrazzanoSpec{
 		EnvironmentName: "myenv",
 		Components: v1beta1.ComponentSpec{
@@ -69,31 +79,31 @@ var vzv1beta1 = &v1beta1.Verrazzano{
 }
 
 var oci = &vzapi.OCI{
-	OCIConfigSecret:        "oci",
-	DNSZoneCompartmentOCID: "compartmentID",
-	DNSZoneOCID:            "zoneID",
-	DNSZoneName:            "zone.name.io",
+	OCIConfigSecret:        ociDNSSecretName,
+	DNSZoneCompartmentOCID: compartmentID,
+	DNSZoneOCID:            zoneID,
+	DNSZoneName:            zoneName,
 }
 
 var ociV1Beta1 = &v1beta1.OCI{
-	OCIConfigSecret:        "oci",
-	DNSZoneCompartmentOCID: "compartmentID",
-	DNSZoneOCID:            "zoneID",
-	DNSZoneName:            "zone.name.io",
+	OCIConfigSecret:        ociDNSSecretName,
+	DNSZoneCompartmentOCID: compartmentID,
+	DNSZoneOCID:            zoneID,
+	DNSZoneName:            zoneName,
 }
 
 var ociLongDNSZoneName = &vzapi.OCI{
-	OCIConfigSecret:        "oci",
-	DNSZoneCompartmentOCID: "compartmentID",
-	DNSZoneOCID:            "zoneID",
+	OCIConfigSecret:        ociDNSSecretName,
+	DNSZoneCompartmentOCID: compartmentID,
+	DNSZoneOCID:            zoneID,
 	DNSZoneName:            "veryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryverylong.name.io",
 	DNSScope:               "#jhwuyusj!!!",
 }
 
 var ociLongDNSZoneNameV1Beta1 = &v1beta1.OCI{
-	OCIConfigSecret:        "oci",
-	DNSZoneCompartmentOCID: "compartmentID",
-	DNSZoneOCID:            "zoneID",
+	OCIConfigSecret:        ociDNSSecretName,
+	DNSZoneCompartmentOCID: compartmentID,
+	DNSZoneOCID:            zoneID,
 	DNSZoneName:            "veryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryverylong.name.io",
 	DNSScope:               "#jhwuyusj!!!",
 }
@@ -256,6 +266,47 @@ func TestCertManagerPreInstall(t *testing.T) {
 	})
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false))
+	assert.NoError(t, err)
+
+	secret := &v1.Secret{}
+	err = client.Get(context.TODO(), types.NamespacedName{Name: ociDNSSecretName, Namespace: ComponentNamespace}, secret)
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
+}
+
+// TestCertManagerPreInstallOCIDNS tests the PreInstall fn
+// GIVEN a call to this fn
+// WHEN I call PreInstall and OCI DNS is enabled
+// THEN no errors are returned and the DNS secret is set up
+func TestCertManagerPreInstallOCIDNS(t *testing.T) {
+	config.Set(config.OperatorConfig{
+		VerrazzanoRootDir: "../../../../..", //since we are running inside the cert manager package, root is up 5 directories
+	})
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ociDNSSecretName,
+				Namespace: constants.VerrazzanoInstallNamespace,
+			},
+			Data: map[string][]byte{"oci.yaml": []byte("fake data")},
+		}).Build()
+	vz := &vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Name: myvz, Namespace: myvzns, CreationTimestamp: metav1.Now()},
+		Spec: vzapi.VerrazzanoSpec{
+			EnvironmentName: "myenv",
+			Components: vzapi.ComponentSpec{
+				DNS: &vzapi.DNSComponent{
+					OCI: &vzapi.OCI{
+						OCIConfigSecret:        ociDNSSecretName,
+						DNSZoneCompartmentOCID: compartmentID,
+						DNSZoneOCID:            zoneID,
+						DNSZoneName:            zoneName,
+					},
+				},
+			},
+		},
+	}
+	err := fakeComponent.PreInstall(spi.NewFakeContext(client, vz, nil, false))
 	assert.NoError(t, err)
 }
 
