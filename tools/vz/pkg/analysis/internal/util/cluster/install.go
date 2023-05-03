@@ -7,13 +7,14 @@ package cluster
 import (
 	encjson "encoding/json"
 	"fmt"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"io"
 	"os"
 	"regexp"
 	"strings"
 
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
