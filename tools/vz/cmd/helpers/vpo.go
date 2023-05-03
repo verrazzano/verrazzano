@@ -20,7 +20,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	constants2 "github.com/verrazzano/verrazzano/platform-operator/constants"
+	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	appsv1 "k8s.io/api/apps/v1"
@@ -105,9 +105,9 @@ func getExistingPrivateRegistrySettings(vpoDeploy *appsv1.Deployment) (string, s
 	for _, container := range vpoDeploy.Spec.Template.Spec.Containers {
 		if container.Name == constants.VerrazzanoPlatformOperator {
 			for _, env := range container.Env {
-				if env.Name == constants2.RegistryOverrideEnvVar {
+				if env.Name == vpoconst.RegistryOverrideEnvVar {
 					registry = env.Value
-				} else if env.Name == constants2.ImageRepoOverrideEnvVar {
+				} else if env.Name == vpoconst.ImageRepoOverrideEnvVar {
 					imagePrefix = env.Value
 				}
 			}

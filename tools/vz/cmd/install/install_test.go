@@ -420,15 +420,15 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 
 	// Verify the objects in the operator-file got added
 	sa := corev1.ServiceAccount{}
-	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &sa)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: vzconstants.VerrazzanoInstallNamespace, Name: constants.VerrazzanoPlatformOperator}, &sa)
 	assert.NoError(t, err)
 
 	ns := corev1.Namespace{}
-	err = c.Get(context.TODO(), types.NamespacedName{Name: "verrazzano-install"}, &ns)
+	err = c.Get(context.TODO(), types.NamespacedName{Name: vzconstants.VerrazzanoInstallNamespace}, &ns)
 	assert.NoError(t, err)
 
 	svc := corev1.Service{}
-	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &svc)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: vzconstants.VerrazzanoInstallNamespace, Name: constants.VerrazzanoPlatformOperator}, &svc)
 	assert.NoError(t, err)
 
 	// Verify the vz resource is as expected

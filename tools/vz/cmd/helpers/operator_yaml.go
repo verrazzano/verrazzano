@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	os2 "github.com/verrazzano/verrazzano/pkg/os"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -42,7 +42,6 @@ func updateOperatorYAMLPrivateRegistry(operatorFilename string, imageRegistry st
 	if err != nil {
 		return "", err
 	}
-	// vpoWebhookDeployUpdated, err := updatePrivateRegistryWebhookDeploy(vpoWebhookDeploy, imageRegistry, imagePrefix)
 	if !vpoDeployUpdated && !vpoWebhookDeployUpdated {
 		return operatorFilename, nil
 	}
@@ -54,7 +53,7 @@ func updateOperatorYAMLPrivateRegistry(operatorFilename string, imageRegistry st
 	}
 
 	var tempFile *os.File
-	if tempFile, err = os2.CreateTempFile("vz-operator-file", nil); err != nil {
+	if tempFile, err = vzos.CreateTempFile("vz-operator-file", nil); err != nil {
 		return "", err
 	}
 	editedOperatorFile := tempFile.Name()
@@ -69,9 +68,9 @@ func findVPODeploymentIndices(objectsInYAML []unstructured.Unstructured) (int, i
 	vpoWebhookDeployIdx := -1
 	for idx, yamlObj := range objectsInYAML {
 		if yamlObj.GetObjectKind().GroupVersionKind().Kind == "Deployment" {
-			if yamlObj.GetName() == "verrazzano-platform-operator" {
+			if yamlObj.GetName() == constants.VerrazzanoPlatformOperator {
 				vpoDeployIdx = idx
-			} else if yamlObj.GetName() == "verrazzano-platform-operator-webhook" {
+			} else if yamlObj.GetName() == constants.VerrazzanoPlatformOperatorWebhook {
 				vpoWebhookDeployIdx = idx
 			}
 		}
@@ -111,9 +110,9 @@ func updatePrivateRegistryVPODeploy(vpoDeploy *unstructured.Unstructured, imageR
 		container := containers[idx].(map[string]interface{})
 		ctrUpdated := updatePrivateRegistryOnContainer(container, imageRegistry, imagePrefix)
 		updated = updated || ctrUpdated
-		if container["name"] == "verrazzano-platform-operator" {
+		if container["name"] == constants.VerrazzanoPlatformOperator {
 			envUpdated := addRegistryEnvVarsToContainer(container, imageRegistry, imagePrefix)
-			updated = envUpdated
+			updated = updated || envUpdated
 		}
 	}
 

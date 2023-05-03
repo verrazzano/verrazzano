@@ -13,13 +13,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func TestUpdateOperatorYAMLPrivateRegistry(t *testing.T) {
 	myReg := "fra.ocir.io"
 	myPrefix := "mypref"
-	fname, err := updateOperatorYAMLPrivateRegistry("./testdata/verrazzano-platform-operator.yaml", myReg, myPrefix)
+	fname, err := updateOperatorYAMLPrivateRegistry("../../test/testdata/operator-file-fake.yaml", myReg, myPrefix)
 	assert.NoError(t, err)
 	fmt.Printf("finished processing file, wrote %s\n", fname)
 	editedOperatorFile, err := os.Open(fname)
@@ -46,7 +47,7 @@ func assertPrivateRegEnvVars(t *testing.T, deployment unstructured.Unstructured,
 	prefixOk := false
 	for _, ctr := range containers {
 		container := ctr.(map[string]interface{})
-		if container["name"] == "verrazzano-platform-operator" {
+		if container["name"] == constants.VerrazzanoPlatformOperator {
 			env := container["env"].([]interface{})
 			for _, eachEnv := range env {
 				envVar := eachEnv.(map[string]interface{})

@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmdHelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/install"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -281,7 +282,7 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 
 	// Verify the objects in the operator-file got added
 	sa := corev1.ServiceAccount{}
-	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &sa)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: vpoconst.VerrazzanoInstallNamespace, Name: constants.VerrazzanoPlatformOperator}, &sa)
 	assert.NoError(t, err)
 	expectedLastAppliedConfigAnnotation := "{\"apiVersion\":\"v1\",\"kind\":\"ServiceAccount\",\"metadata\":{\"annotations\":{},\"name\":\"verrazzano-platform-operator\",\"namespace\":\"verrazzano-install\"}}\n"
 	testhelpers.VerifyLastAppliedConfigAnnotation(t, sa.ObjectMeta, expectedLastAppliedConfigAnnotation)
@@ -293,7 +294,7 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 	testhelpers.VerifyLastAppliedConfigAnnotation(t, ns.ObjectMeta, expectedLastAppliedConfigAnnotation)
 
 	svc := corev1.Service{}
-	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &svc)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: vpoconst.VerrazzanoInstallNamespace, Name: constants.VerrazzanoPlatformOperator}, &svc)
 	assert.NoError(t, err)
 	expectedLastAppliedConfigAnnotation = "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"verrazzano-platform-operator\"},\"name\":\"verrazzano-platform-operator\",\"namespace\":\"verrazzano-install\"},\"spec\":{\"ports\":[{\"name\":\"http-metric\",\"port\":9100,\"protocol\":\"TCP\",\"targetPort\":9100}],\"selector\":{\"app\":\"verrazzano-platform-operator\"}}}\n"
 	testhelpers.VerifyLastAppliedConfigAnnotation(t, svc.ObjectMeta, expectedLastAppliedConfigAnnotation)
