@@ -147,12 +147,12 @@ var _ = t.Describe("OCNE Cluster Driver", Label("TODO: appropriate label"), Seri
 			// Create the cluster
 			Eventually(func() error {
 				return createCluster(clusterName)
-			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+			}, waitTimeout, shortPollingInterval).Should(BeNil())
 		})
 
 		t.It("Check OCNE cluster is active", func() {
 			// Verify the cluster is active
-			Eventually(func() (bool, error) { return IsClusterActive(clusterName) }, shortWaitTimeout, pollingInterval).Should(
+			Eventually(func() (bool, error) { return IsClusterActive(clusterName) }, shortWaitTimeout, shortPollingInterval).Should(
 				BeTrue(), fmt.Sprintf("Cluster %s is not active", clusterName))
 		})
 	})
