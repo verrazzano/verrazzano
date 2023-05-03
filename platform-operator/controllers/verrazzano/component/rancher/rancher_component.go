@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gertd/go-pluralize"
+	"github.com/google/uuid"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -70,21 +71,21 @@ const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
 const streamSnippetAnnotation = `ingress.extraAnnotations.nginx\.ingress\.kubernetes\.io/stream-snippet`
 
 const streamSnippet = `
-    upstream rancher_stream_servers_http {
+    upstream rancher_stream_servers_http_%[3]s {
         least_conn;
         server %[1]s.%[2]s.svc.cluster.local:80 max_fails=3 fail_timeout=5s;
     }
     server {
         listen 80;
-        proxy_pass rancher_stream_servers_http;
+        proxy_pass rancher_stream_servers_http_%[3]s;
     }
-    upstream rancher_stream_servers_https {
+    upstream rancher_stream_servers_https_%[3]s {
         least_conn;
         server %[1]s.%[2]s.svc.cluster.local:443 max_fails=3 fail_timeout=5s;
     }
     server {
         listen 443;
-        proxy_pass rancher_stream_servers_https;
+        proxy_pass rancher_stream_servers_https_%[3]s;
     }
 `
 
@@ -206,9 +207,11 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		Value: vzconfig.GetIngressClassName(ctx.EffectiveCR()),
 	})
 	ctx.Log().Info("Adding the stream snippet annotation")
+	id := uuid.New().String()
+	uniqueID := strings.Split(id, "-")[len(strings.Split(id, "-"))-1]
 	kvs = append(kvs, bom.KeyValue{
 		Key:       streamSnippetAnnotation,
-		Value:     fmt.Sprintf(streamSnippet, ComponentName, ComponentNamespace),
+		Value:     fmt.Sprintf(streamSnippet, ComponentName, ComponentNamespace, uniqueID),
 		SetString: true,
 	})
 	kvs, err = appendPSPEnabledOverrides(ctx, kvs)
