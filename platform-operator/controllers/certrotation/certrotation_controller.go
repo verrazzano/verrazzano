@@ -7,9 +7,9 @@ import (
 	"context"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	string2 "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
+	vzcert "github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -216,8 +216,11 @@ func (r *CertificateRotationManagerReconciler) createComponentCertificatePredica
 }
 
 func (r *CertificateRotationManagerReconciler) isCertificateSecret(o clipkg.Object) bool {
-	if o == nil {
-		return false
-	}
-	return r.WatchNamespace == o.GetNamespace() && string2.SliceContainsString(r.CertificatesList, o.GetName())
+	certificate := o.(*corev1.Secret)
+	return certificate.Labels[vzcert.OperatorCertLabelKey] == vzcert.OperatorCertLabel &&
+		certificate.Labels[vzcert.OperatorCertLabelKey] != ""
+	//if o == nil {
+	//	return false
+	//}
+	//return r.WatchNamespace == o.GetNamespace() && string2.SliceContainsString(r.CertificatesList, o.GetName())
 }
