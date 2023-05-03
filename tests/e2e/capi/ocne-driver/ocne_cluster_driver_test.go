@@ -24,7 +24,7 @@ import (
 // nolint: gosec // auth constants, not credentials
 // gosec: G101: Potential hardcoded credentials
 const (
-	shortWaitTimeout     = 10 * time.Minute
+	shortWaitTimeout     = 5 * time.Minute
 	shortPollingInterval = 10 * time.Second
 	waitTimeout                  = 30 * time.Minute
 	pollingInterval              = 1 * time.Minute
@@ -124,7 +124,10 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
 	rancherURL = pkg.EventuallyGetURLForIngress(t.Logs, api, "cattle-system", "rancher", "https")
 	adminToken = pkg.GetRancherAdminToken(t.Logs, httpClient, rancherURL)
-	cloudCredentialID = createCloudCredential("testing-creds")
+	Eventually(func() error {
+		cloudCredentialID, err = createCloudCredential("testing-creds")
+		return err
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 })
 var _ = BeforeSuite(beforeSuite)
 
@@ -152,7 +155,7 @@ func executeCloudCredentialsTemplate(data *cloudCredentialsData, buffer *bytes.B
 	return cloudCredentialsTemplate.Execute(buffer, *data)
 }
 
-func createCloudCredential(credentialName string) string {
+func createCloudCredential(credentialName string) (string, error) {
 	requestURL := rancherURL + "/v3/cloudcredentials"
 	credentialsData := cloudCredentialsData{
 		CredentialName:     credentialName,
@@ -167,15 +170,27 @@ func createCloudCredential(credentialName string) string {
 		Fail("failed to parse the cloud credentials template: " + err.Error())
 	}
 
-	// FIXME: add error checking
-	request, _ := retryablehttp.NewRequest(http.MethodPost, requestURL, buf)
+	request, err := retryablehttp.NewRequest(http.MethodPost, requestURL, buf)
+	if err != nil {
+		return "", err
+	}
 	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminToken))
-	response, _ := httpClient.Do(request)
+	response, err := httpClient.Do(request)
+	if err != nil {
+		return "", err
+	}
+
 	defer response.Body.Close()
-	body, _ := io.ReadAll(response.Body)
-	jsonBody, _ := gabs.ParseJSON(body)
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return "", err
+	}
+	jsonBody, err := gabs.ParseJSON(body)
+	if err != nil {
+		return "", err
+	}
 	credID := fmt.Sprint(jsonBody.Path("id").Data())
-	return credID
+	return credID, nil
 }
 
 func executeCreateClusterTemplate(data *capiClusterData, buffer *bytes.Buffer) error {
