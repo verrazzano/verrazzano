@@ -125,6 +125,10 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed getting rancherURL: %v", err))
 	}
+	httpClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed getting http client: %v", err))
+	}
 	adminToken = helpers.GetRancherLoginToken(t.Logs)
 	t.Logs.Infof("adminToken: %s", adminToken)
 	Eventually(func() error {
