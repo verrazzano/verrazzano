@@ -1,23 +1,29 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package externaldns
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/helm"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	corev1Cli "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
 const fooDomainSuffix = "foo.com"
@@ -361,4 +367,114 @@ func TestValidateUpdateV1beta1(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestIsAvailableDefaultNamespace tests the IsAvailable fn
+// GIVEN a call to IsAvailable
+// WHEN ExternalDNS is installed in the default ns and its pod is ready
+// THEN it is reported as available
+func TestIsAvailableDefaultNamespace(t *testing.T) {
+	ns := ComponentNamespace
+
+	k8sutil.GetCoreV1Func = func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset(
+			&v1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: ns,
+					Labels: map[string]string{
+						constants.VerrazzanoManagedKey: ns,
+					},
+				},
+			},
+		).CoreV1(), nil
+	}
+	isLegacyNamespaceInstalledFunc = func(_ string, _ string) (found bool, err error) {
+		return false, nil
+	}
+	defer func() {
+		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+		isLegacyNamespaceInstalledFunc = helm.IsReleaseInstalled
+	}()
+
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		newDeployment(ComponentName, ns, true), newPod(ComponentName, ns), newReplicaSet(ComponentName, ns),
+	).Build()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
+
+	_, availability := NewComponent().IsAvailable(ctx)
+	assert.Equal(t, vzapi.ComponentAvailable, string(availability))
+}
+
+// TestIsAvailableLegacy tests the IsAvailable fn
+// GIVEN a call to IsAvailable
+// WHEN ExternalDNS is installed in the legacy ns and its pod is ready
+// THEN it is reported as available
+func TestIsAvailableLegacy(t *testing.T) {
+	ns := legacyNamespace
+	k8sutil.GetCoreV1Func = func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset(
+			&v1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: ns,
+					Labels: map[string]string{
+						constants.VerrazzanoManagedKey: ns,
+					},
+				},
+			},
+		).CoreV1(), nil
+	}
+	isLegacyNamespaceInstalledFunc = func(_ string, _ string) (found bool, err error) {
+		return true, nil
+	}
+	defer func() {
+		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+		isLegacyNamespaceInstalledFunc = helm.IsReleaseInstalled
+	}()
+
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		newDeployment(ComponentName, ns, true), newPod(ComponentName, ns), newReplicaSet(ComponentName, ns),
+	).Build()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
+
+	_, availability := NewComponent().IsAvailable(ctx)
+	assert.Equal(t, vzapi.ComponentAvailable, string(availability))
+}
+
+// TestDryRun tests the behavior when DryRun is enabled, mainly for code coverage
+// GIVEN a call to overridden Component methods with a ComponentContext
+//
+//	WHEN the ComponentContext has DryRun set to true
+//	THEN no error is returned
+func TestDryRun(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, true)
+
+	assert.NoError(t, fakeComponent.PreInstall(ctx))
+	assert.True(t, fakeComponent.IsReady(ctx))
+	assert.NoError(t, fakeComponent.PostUninstall(ctx))
+}
+
+// TestMonitorOverrides tests the MonitorOverrides fn
+// GIVEN a call to MonitorOverrides
+// THEN it returns true if DNS is defined or the value of DNS.MonitorChanges is true
+func TestMonitorOverrides(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+
+	cr := &vzapi.Verrazzano{}
+	ctx := spi.NewFakeContext(client, cr, nil, true)
+	assert.False(t, fakeComponent.MonitorOverrides(ctx))
+
+	cr.Spec.Components.DNS = &vzapi.DNSComponent{}
+	ctx = spi.NewFakeContext(client, cr, nil, true)
+	assert.True(t, fakeComponent.MonitorOverrides(ctx))
+
+	falseVal := false
+	cr.Spec.Components.DNS.MonitorChanges = &falseVal
+	ctx = spi.NewFakeContext(client, cr, nil, true)
+	assert.False(t, fakeComponent.MonitorOverrides(ctx))
+
+	trueVal := true
+	cr.Spec.Components.DNS.MonitorChanges = &trueVal
+	ctx = spi.NewFakeContext(client, cr, nil, true)
+	assert.True(t, fakeComponent.MonitorOverrides(ctx))
 }

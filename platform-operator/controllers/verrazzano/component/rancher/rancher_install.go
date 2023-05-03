@@ -7,7 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -41,6 +41,8 @@ func patchRancherIngress(c client.Client, vz *vzapi.Verrazzano) error {
 	ingress.Annotations["kubernetes.io/tls-acme"] = "true"
 	ingress.Annotations["nginx.ingress.kubernetes.io/backend-protocol"] = "HTTPS"
 	ingress.Annotations["nginx.ingress.kubernetes.io/force-ssl-redirect"] = "true"
+	ingress.Annotations["cert-manager.io/cluster-issuer"] = constants.VerrazzanoClusterIssuerName
+	ingress.Annotations["cert-manager.io/common-name"] = fmt.Sprintf("%s.%s.%s", common.RancherName, vz.Spec.EnvironmentName, dnsSuffix)
 	if (cm.Certificate.Acme != vzapi.Acme{}) {
 		addAcmeIngressAnnotations(vz.Spec.EnvironmentName, dnsSuffix, ingress)
 	} else {
@@ -54,7 +56,7 @@ func addAcmeIngressAnnotations(name, dnsSuffix string, ingress *networking.Ingre
 	ingress.Annotations["nginx.ingress.kubernetes.io/auth-realm"] = fmt.Sprintf("%s auth", dnsSuffix)
 	ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = fmt.Sprintf("verrazzano-ingress.%s.%s", name, dnsSuffix)
 	ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"
-	// Remove any existing cert manage annotations
+	// Remove any existing cert manager annotations
 	delete(ingress.Annotations, "cert-manager.io/issuer")
 	delete(ingress.Annotations, "cert-manager.io/issuer-kind")
 }
@@ -62,6 +64,4 @@ func addAcmeIngressAnnotations(name, dnsSuffix string, ingress *networking.Ingre
 // addCAIngressAnnotations annotate ingress with custom CA specific values
 func addCAIngressAnnotations(name, dnsSuffix string, ingress *networking.Ingress) {
 	ingress.Annotations["nginx.ingress.kubernetes.io/auth-realm"] = fmt.Sprintf("%s.%s auth", name, dnsSuffix)
-	ingress.Annotations["cert-manager.io/cluster-issuer"] = "verrazzano-cluster-issuer"
-	ingress.Annotations["cert-manager.io/common-name"] = fmt.Sprintf("%s.%s.%s", common.RancherName, name, dnsSuffix)
 }

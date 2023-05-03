@@ -9,7 +9,6 @@ import (
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/cluster-operator/internal/operatorinit"
-	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"go.uber.org/zap"
@@ -80,7 +79,7 @@ func handleFlags() {
 	flag.BoolVar(&runWebhookInit, "run-webhook-init", false,
 		"Runs the webhook initialization code")
 	flag.StringVar(&certDir, "cert-dir", "/etc/certs/", "The directory containing tls.crt and tls.key.")
-	flag.StringVar(&ingressHost, "ingress-host", constants.DefaultRancherIngressHost, "The host used for Rancher API requests.")
+	flag.StringVar(&ingressHost, "ingress-host", "", "The host used for Rancher API requests.")
 
 	opts := kzap.Options{}
 	opts.BindFlags(flag.CommandLine)

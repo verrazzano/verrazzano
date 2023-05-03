@@ -1202,7 +1202,7 @@ func getIngressTests(isUpgradeOperation bool) []ingressTestStruct {
 			"should return error when ingress service is not up",
 			&vzapi.Verrazzano{},
 			createFakeClient(),
-			fmt.Errorf("Failed create/update Jaeger ingress: Failed building DNS domain name: services \"ingress-controller-ingress-nginx-controller\" not found"),
+			fmt.Errorf("Failed create/update Jaeger ingress: Failed building DNS domain name: Error getting service verrazzano-ingress-nginx/ingress-controller-ingress-nginx-controller: services \"ingress-controller-ingress-nginx-controller\" not found"),
 		},
 		{
 			// GIVEN a default Verrazzano custom resource, with ingress controller running,

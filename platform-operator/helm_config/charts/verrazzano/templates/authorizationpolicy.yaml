@@ -19,8 +19,8 @@ spec:
     # verrazzano-authproxy:8775,8776 <- ingress-controller-ingress-nginx-controller
     - from:
         - source:
-            namespaces: ["ingress-nginx"]
-            principals: ["cluster.local/ns/ingress-nginx/sa/ingress-controller-ingress-nginx"]
+            namespaces: ["{{ .Values.ingressNGINX.namespace }}"]
+            principals: ["cluster.local/ns/{{ .Values.ingressNGINX.namespace }}/sa/ingress-controller-ingress-nginx"]
       to:
         - operation:
             ports: ["{{ .Values.api.port }}", "{{ .Values.api.grpcPort }}"]

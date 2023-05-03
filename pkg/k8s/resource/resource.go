@@ -1,10 +1,11 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package resource
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"reflect"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -67,4 +68,16 @@ func (r Resource) RemoveFinalizers() error {
 		}
 	}
 	return nil
+}
+
+// Exists returns true if the Resource exists
+func (r Resource) Exists() (bool, error) {
+	err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: r.Namespace, Name: r.Name}, r.Object)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
