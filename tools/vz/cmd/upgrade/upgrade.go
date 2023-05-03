@@ -46,6 +46,12 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Duration(constants.VPOTimeoutFlag, time.Minute*5, constants.VPOTimeoutFlagHelp)
 	cmd.PersistentFlags().String(constants.VersionFlag, constants.VersionFlagDefault, constants.VersionFlagUpgradeHelp)
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
+	// Private registry support
+	cmd.PersistentFlags().String(constants.ImageRegistryFlag, constants.ImageRegistryFlagDefault, constants.ImageRegistryFlagHelp)
+	cmd.PersistentFlags().String(constants.ImagePrefixFlag, constants.ImagePrefixFlagDefault, constants.ImagePrefixFlagHelp)
+
+	// Flag to skip any confirmation questions
+	cmd.PersistentFlags().BoolP(constants.SkipConfirmationFlag, constants.SkipConfirmationShort, false, constants.SkipConfirmationFlagHelp)
 
 	// Initially the operator-file flag may be for internal use, hide from help until
 	// a decision is made on supporting this option.
@@ -63,6 +69,10 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+	if err := validateCmd(cmd); err != nil {
+		return fmt.Errorf("Command validation failed: %s", err.Error())
+	}
+
 	// Get the controller runtime client
 	client, err := vzHelper.GetClient(cmd)
 	if err != nil {
@@ -73,6 +83,22 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	vz, err := helpers.FindVerrazzanoResource(client)
 	if err != nil {
 		return fmt.Errorf("Verrazzano is not installed: %s", err.Error())
+	}
+
+	// Validate any existing private registry settings against new ones and get confirmation from the user
+	if err := cmdhelpers.ValidatePrivateRegistry(cmd, client); err != nil {
+		skipConfirm, errConfirm := cmd.PersistentFlags().GetBool(constants.SkipConfirmationFlag)
+		if errConfirm != nil {
+			return errConfirm
+		}
+		proceed, err := cmdhelpers.ConfirmWithUser(vzHelper, fmt.Sprintf("%s\nProceed to upgrade with new settings?", err.Error()), skipConfirm)
+		if err != nil {
+			return err
+		}
+		if !proceed {
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Upgrade canceled.")
+			return nil
+		}
 	}
 
 	// Get the version Verrazzano is being upgraded to
@@ -187,7 +213,7 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	}
 
 	// If we already started the upgrade no need to apply the operator.yaml, wait for VPO, and update the verrazzano
-	// install resource. This could happen if the upgrade command was aborted and the rerun. We anly wait for the upgrade
+	// install resource. This could happen if the upgrade command was aborted and then rerun. We only wait for the upgrade
 	// to complete.
 	if !vzStatusVersion.IsEqualTo(vzSpecVersion) {
 		return waitForUpgradeToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat)
@@ -201,4 +227,20 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 // Wait for the upgrade operation to complete
 func waitForUpgradeToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, namespacedName types.NamespacedName, timeout time.Duration, vpoTimeout time.Duration, logFormat cmdhelpers.LogFormat) error {
 	return cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, namespacedName, timeout, vpoTimeout, logFormat, v1beta1.CondUpgradeComplete)
+}
+
+// validateCmd - validate the command line options
+func validateCmd(cmd *cobra.Command) error {
+	prefix, err := cmd.PersistentFlags().GetString(constants.ImagePrefixFlag)
+	if err != nil {
+		return err
+	}
+	reg, err := cmd.PersistentFlags().GetString(constants.ImageRegistryFlag)
+	if err != nil {
+		return err
+	}
+	if prefix != constants.ImagePrefixFlagDefault && reg == constants.ImageRegistryFlagDefault {
+		return fmt.Errorf("%s cannot be specified without also specifying %s", constants.ImagePrefixFlag, constants.ImageRegistryFlag)
+	}
+	return nil
 }

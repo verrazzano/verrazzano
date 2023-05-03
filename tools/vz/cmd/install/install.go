@@ -72,6 +72,13 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
 	cmd.PersistentFlags().StringArrayP(constants.SetFlag, constants.SetFlagShorthand, []string{}, constants.SetFlagHelp)
 
+	// Private registry support
+	cmd.PersistentFlags().String(constants.ImageRegistryFlag, constants.ImageRegistryFlagDefault, constants.ImageRegistryFlagHelp)
+	cmd.PersistentFlags().String(constants.ImagePrefixFlag, constants.ImagePrefixFlagDefault, constants.ImagePrefixFlagHelp)
+
+	// Flag to skip any confirmation questions
+	cmd.PersistentFlags().BoolP(constants.SkipConfirmationFlag, constants.SkipConfirmationShort, false, constants.SkipConfirmationFlagHelp)
+
 	// Initially the operator-file flag may be for internal use, hide from help until
 	// a decision is made on supporting this option.
 	cmd.PersistentFlags().String(constants.OperatorFileFlag, "", constants.OperatorFileFlagHelp)
@@ -161,6 +168,20 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			}
 		}
 
+		if err := cmdhelpers.ValidatePrivateRegistry(cmd, client); err != nil {
+			skipConfirm, errConfirm := cmd.PersistentFlags().GetBool(constants.SkipConfirmationFlag)
+			if errConfirm != nil {
+				return errConfirm
+			}
+			proceed, err := cmdhelpers.ConfirmWithUser(vzHelper, fmt.Sprintf("%s\nYour new settings will be ignored. Continue?", err.Error()), skipConfirm)
+			if err != nil {
+				return err
+			}
+			if !proceed {
+				fmt.Fprintf(vzHelper.GetOutputStream(), "Operation canceled.")
+				return nil
+			}
+		}
 		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Install of Verrazzano version %s is already in progress\n", version))
 
 		vzNamespace = existingvz.Namespace
@@ -342,6 +363,17 @@ func waitForInstallToComplete(client clipkg.Client, kubeClient kubernetes.Interf
 func validateCmd(cmd *cobra.Command) error {
 	if cmd.PersistentFlags().Changed(constants.VersionFlag) && cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
 		return fmt.Errorf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.OperatorFileFlag)
+	}
+	prefix, err := cmd.PersistentFlags().GetString(constants.ImagePrefixFlag)
+	if err != nil {
+		return err
+	}
+	reg, err := cmd.PersistentFlags().GetString(constants.ImageRegistryFlag)
+	if err != nil {
+		return err
+	}
+	if prefix != constants.ImagePrefixFlagDefault && reg == constants.ImageRegistryFlagDefault {
+		return fmt.Errorf("%s cannot be specified without also specifying %s", constants.ImagePrefixFlag, constants.ImageRegistryFlag)
 	}
 	return nil
 }
