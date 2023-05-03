@@ -152,11 +152,10 @@ func WhenCapiInstalledIt(description string, f func()) {
 	t.It(description, func() {
 		isCAPIEnabled = vzcr.IsCAPIEnabled(inClusterVZ)
 		t.Logs.Infof("WhenCapiInstalledIt", isCAPIEnabled)
-		
 		if isMinimumK8sVersion && isCAPISupported && isCAPIEnabled {
 			f()
 		} else {
-			t.Logs.Infof("Skipping check '%v', Cluster API  is not installed on this cluster", description)
+			t.Logs.Infof("Skipping chgeck '%v', Cluster API  is not installed on this cluster", description)
 		}
 	})
 }
