@@ -119,6 +119,9 @@ func TestAppendOverrides(t *testing.T) {
 
 // TestPostInstallUpgrade tests the PostInstallUpgrade creation of the RoleTemplate
 func TestPostInstallUpgrade(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	clustOpComp := clusterOperatorComponent{}
 
 	cli := createClusterUserTestObjects().WithObjects(
@@ -253,6 +256,9 @@ func TestCreateVZClusterUser(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// clear any cached user auth tokens when the test completes
+			defer rancherutil.DeleteStoredTokens()
+
 			rancherutil.RancherHTTPClient = tt.mock
 			err := createVZClusterUser(spi.NewFakeContext(cli, vz, nil, false))
 			if tt.expectErr {
@@ -350,6 +356,7 @@ func adminTokenMock(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender 
 
 // TestCreateVZClusterUser tests the creation of the VZ cluster user through the Rancher API
 func TestCreateVZArgoCDClusterUser(t *testing.T) {
+
 	cli := createClusterUserTestObjects().Build()
 	mocker := gomock.NewController(t)
 
@@ -411,6 +418,9 @@ func TestCreateVZArgoCDClusterUser(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// clear any cached user auth tokens when the test completes
+			defer rancherutil.DeleteStoredTokens()
+
 			rancherutil.RancherHTTPClient = tt.mock
 			err := createVZArgoCDUser(spi.NewFakeContext(cli, vz, nil, false))
 			if tt.expectErr {
