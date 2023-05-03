@@ -11,7 +11,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"math/big"
 	"net"
 	"testing"
