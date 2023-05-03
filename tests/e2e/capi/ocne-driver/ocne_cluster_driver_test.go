@@ -121,6 +121,10 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !pkg.IsRancherEnabled(kubeconfigPath) || !pkg.IsCAPIEnabled(kubeconfigPath) {
 		Skip("Skipping ocne cluster driver test suite since either of rancher and capi components are not enabled")
 	}
+	rancherURL, err = helpers.GetRancherURL(t.Logs)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed getting rancherURL: %v", err))
+	}
 	adminToken = helpers.GetRancherLoginToken(t.Logs)
 	t.Logs.Infof("adminToken: %s", adminToken)
 	Eventually(func() error {
