@@ -327,6 +327,9 @@ pipeline {
 
         stage("OCNE Cluster Driver Tests") {
             steps {
+                sh """
+                    kubectl get pod -A
+                """
                 script {
                     env.TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
                     env.API_PRIVATE_KEY_CONTENTS=sh(returnStdout: true, script: "cat ${TF_VAR_api_private_key_path}")

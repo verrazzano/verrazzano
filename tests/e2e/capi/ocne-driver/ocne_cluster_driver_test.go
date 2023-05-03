@@ -127,7 +127,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed getting rancherURL: %v", err))
 	}
-	t.Logs.Infof("rancherToken: %s", rancherURL)
+	t.Logs.Infof("rancherURL: %s", rancherURL)
 	httpClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed getting http client: %v", err))
@@ -168,6 +168,7 @@ func executeCloudCredentialsTemplate(data *cloudCredentialsData, buffer *bytes.B
 
 func createCloudCredential(credentialName string) (string, error) {
 	requestURL := rancherURL + "/v3/cloudcredentials"
+	t.Logs.Infof("Cloud credential requestURL: %s", requestURL)
 	credentialsData := cloudCredentialsData{
 		CredentialName:     credentialName,
 		Fingerprint:        fingerprint,
@@ -220,6 +221,7 @@ func executeCreateClusterTemplate(data *capiClusterData, buffer *bytes.Buffer) e
 // Creates an OCNE cluster through CAPI
 func createCluster(clusterName string) error {
 	requestURL := rancherURL + "/v3/cluster"
+	t.Logs.Infof("createCluster requestURL: %s", requestURL)
 	capiClusterData := capiClusterData{
 		ClusterName:           clusterName,
 		Region:                region,
@@ -273,6 +275,7 @@ func IsClusterActive(clusterName string) (bool, error) {
 // Gets a specified cluster by using the Rancher REST API
 func getCluster(clusterName string) (*gabs.Container, error) {
 	requestURL := rancherURL + "/v3/cluster?name=" + clusterName
+	t.Logs.Infof("getCluster requestURL: %s", requestURL)
 	request, err := retryablehttp.NewRequest(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return nil, err
