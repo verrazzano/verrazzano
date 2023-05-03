@@ -25,8 +25,12 @@ import (
 )
 
 const (
-	testKubeConfig = "kubeconfig"
-	testK8sContext = "testcontext"
+	testKubeConfig     = "kubeconfig"
+	testK8sContext     = "testcontext"
+	testImageRegistry  = "testreg.io"
+	testImagePrefix    = "testrepo"
+	testVZMajorRelease = "v1.5.0"
+	testVZPatchRelease = "v1.5.2"
 )
 
 // TestUpgradeCmdDefaultNoWait
@@ -454,8 +458,6 @@ func TestUpgradeCmdInProgress(t *testing.T) {
 //	THEN the CLI upgrade command is successful and the VPO and VPO webhook deployments have the expected private registry configuration
 func TestUpgradeFromPrivateRegistry(t *testing.T) {
 	// First install using a private registry
-	const imageRegistry = "testreg.io"
-	const imagePrefix = "testrepo"
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	errBuf := new(bytes.Buffer)
@@ -463,9 +465,9 @@ func TestUpgradeFromPrivateRegistry(t *testing.T) {
 	rc.SetClient(c)
 	cmd := install.NewCmdInstall(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
-	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.5.0")
-	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, imageRegistry)
-	cmd.PersistentFlags().Set(constants.ImagePrefixFlag, imagePrefix)
+	cmd.PersistentFlags().Set(constants.VersionFlag, testVZMajorRelease)
+	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, testImageRegistry)
+	cmd.PersistentFlags().Set(constants.ImagePrefixFlag, testImagePrefix)
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
@@ -482,16 +484,16 @@ func TestUpgradeFromPrivateRegistry(t *testing.T) {
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, vz)
 	assert.NoError(t, err)
 
-	vz.Status.Version = "v1.5.0"
+	vz.Status.Version = testVZMajorRelease
 	err = c.Status().Update(context.TODO(), vz)
 	assert.NoError(t, err)
 
 	// Now do the upgrade using the same private registry settings
 	cmd = NewCmdUpgrade(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
-	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.5.2")
-	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, imageRegistry)
-	cmd.PersistentFlags().Set(constants.ImagePrefixFlag, imagePrefix)
+	cmd.PersistentFlags().Set(constants.VersionFlag, testVZPatchRelease)
+	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, testImageRegistry)
+	cmd.PersistentFlags().Set(constants.ImagePrefixFlag, testImagePrefix)
 
 	// Run upgrade command
 	err = cmd.Execute()
@@ -502,35 +504,32 @@ func TestUpgradeFromPrivateRegistry(t *testing.T) {
 	deployment, err := cmdHelpers.GetExistingVPODeployment(c)
 	assert.NoError(t, err)
 	assert.NotNil(t, deployment)
-	testhelpers.AssertPrivateRegistryEnvVars(t, c, deployment, imageRegistry, imagePrefix)
+	testhelpers.AssertPrivateRegistryEnvVars(t, c, deployment, testImageRegistry, testImagePrefix)
 
 	// Verify that the VPO image has been updated
-	testhelpers.AssertPrivateRegistryImage(t, c, deployment, imageRegistry, imagePrefix)
+	testhelpers.AssertPrivateRegistryImage(t, c, deployment, testImageRegistry, testImagePrefix)
 
 	// Verify that the VPO webhook image has been updated
 	deployment, err = cmdHelpers.GetExistingVPOWebhookDeployment(c)
 	assert.NoError(t, err)
 	assert.NotNil(t, deployment)
 
-	testhelpers.AssertPrivateRegistryImage(t, c, deployment, imageRegistry, imagePrefix)
+	testhelpers.AssertPrivateRegistryImage(t, c, deployment, testImageRegistry, testImagePrefix)
 }
 
 // TestUpgradeFromDifferentPrivateRegistry tests upgrading from a different private registry
 func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	// First install using a private registry
 	const proceedQuestionText = "Proceed to upgrade with new settings? [Y/n]"
-	const imageRegistry = "testreg.io"
-	const imagePrefix = "testrepo"
-
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: new(bytes.Buffer), ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := install.NewCmdInstall(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
-	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.5.0")
-	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, imageRegistry)
-	cmd.PersistentFlags().Set(constants.ImagePrefixFlag, imagePrefix)
+	cmd.PersistentFlags().Set(constants.VersionFlag, testVZMajorRelease)
+	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, testImageRegistry)
+	cmd.PersistentFlags().Set(constants.ImagePrefixFlag, testImagePrefix)
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
@@ -547,7 +546,7 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, vz)
 	assert.NoError(t, err)
 
-	vz.Status.Version = "v1.5.0"
+	vz.Status.Version = testVZMajorRelease
 	err = c.Status().Update(context.TODO(), vz)
 	assert.NoError(t, err)
 
@@ -570,7 +569,7 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 
 	cmd = NewCmdUpgrade(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
-	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.5.2")
+	cmd.PersistentFlags().Set(constants.VersionFlag, testVZPatchRelease)
 	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, imageRegistryForUpgrade)
 	cmd.PersistentFlags().Set(constants.ImagePrefixFlag, imagePrefixForUpgrade)
 
@@ -587,17 +586,17 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	deployment, err := cmdHelpers.GetExistingVPODeployment(c)
 	assert.NoError(t, err)
 	assert.NotNil(t, deployment)
-	testhelpers.AssertPrivateRegistryEnvVars(t, c, deployment, imageRegistry, imagePrefix)
+	testhelpers.AssertPrivateRegistryEnvVars(t, c, deployment, testImageRegistry, testImagePrefix)
 
 	// Verify that the VPO image is using the install private registry settings
-	testhelpers.AssertPrivateRegistryImage(t, c, deployment, imageRegistry, imagePrefix)
+	testhelpers.AssertPrivateRegistryImage(t, c, deployment, testImageRegistry, testImagePrefix)
 
 	// Verify that the VPO webhook image is using the install private registry settings
 	deployment, err = cmdHelpers.GetExistingVPOWebhookDeployment(c)
 	assert.NoError(t, err)
 	assert.NotNil(t, deployment)
 
-	testhelpers.AssertPrivateRegistryImage(t, c, deployment, imageRegistry, imagePrefix)
+	testhelpers.AssertPrivateRegistryImage(t, c, deployment, testImageRegistry, testImagePrefix)
 
 	// GIVEN Verrazzano is installed from a private registry
 	//
@@ -613,7 +612,7 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 
 	cmd = NewCmdUpgrade(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
-	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.5.2")
+	cmd.PersistentFlags().Set(constants.VersionFlag, testVZPatchRelease)
 	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, imageRegistryForUpgrade)
 	cmd.PersistentFlags().Set(constants.ImagePrefixFlag, imagePrefixForUpgrade)
 
@@ -651,18 +650,15 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 //	THEN the CLI upgrade command is successful and the VPO and VPO webhook deployments have the expected private registry configuration
 func TestUpgradeFromPrivateRegistryWithSkipConfirmation(t *testing.T) {
 	// First install using a private registry
-	const imageRegistry = "testreg.io"
-	const imagePrefix = "testrepo"
-
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: new(bytes.Buffer), ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := install.NewCmdInstall(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
-	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.5.0")
-	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, imageRegistry)
-	cmd.PersistentFlags().Set(constants.ImagePrefixFlag, imagePrefix)
+	cmd.PersistentFlags().Set(constants.VersionFlag, testVZMajorRelease)
+	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, testImageRegistry)
+	cmd.PersistentFlags().Set(constants.ImagePrefixFlag, testImagePrefix)
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
@@ -679,7 +675,7 @@ func TestUpgradeFromPrivateRegistryWithSkipConfirmation(t *testing.T) {
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, vz)
 	assert.NoError(t, err)
 
-	vz.Status.Version = "v1.5.0"
+	vz.Status.Version = testVZMajorRelease
 	err = c.Status().Update(context.TODO(), vz)
 	assert.NoError(t, err)
 
@@ -694,7 +690,7 @@ func TestUpgradeFromPrivateRegistryWithSkipConfirmation(t *testing.T) {
 
 	cmd = NewCmdUpgrade(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
-	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.5.2")
+	cmd.PersistentFlags().Set(constants.VersionFlag, testVZPatchRelease)
 	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, imageRegistryForUpgrade)
 	cmd.PersistentFlags().Set(constants.ImagePrefixFlag, imagePrefixForUpgrade)
 
