@@ -84,7 +84,7 @@ func ResolveExernalDNSNamespace() string {
 	}
 	isVerrazzanoManaged, err := namespace.CheckIfVerrazzanoManagedNamespaceExists(legacyNamespace)
 	if err != nil {
-		logger.ErrorfThrottled("Error listing %s helm release %v", err)
+		logger.ErrorfThrottled("Error checking if namespace %s is Verrazzano-managed: %v", legacyNamespace, err)
 		return ""
 	}
 	if releaseFound && isVerrazzanoManaged {
