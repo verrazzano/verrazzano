@@ -94,7 +94,7 @@ func ConfirmWithUser(vzHelper helpers.VZHelper, questionText string, skipQuestio
 	}
 	var response string
 	scanner := bufio.NewScanner(vzHelper.GetInputStream())
-	fmt.Fprintf(vzHelper.GetOutputStream(), "%s [Y/n]: ", questionText)
+	fmt.Fprintf(vzHelper.GetOutputStream(), "%s [y/N]: ", questionText)
 	if scanner.Scan() {
 		response = scanner.Text()
 	}
