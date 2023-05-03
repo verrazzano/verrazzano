@@ -80,7 +80,7 @@ func (c CAPIEnabledModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
 
 var _ = t.AfterEach(func() {})
 
-var afterSuite = t.AfterSuiteFunc(func() {
+var _ = AfterSuite(func() {
 	m := CAPIDisabledModifierV1beta1{}
 	if isMinimumK8sVersion {
 		if isCAPIEnabled {
@@ -89,8 +89,6 @@ var afterSuite = t.AfterSuiteFunc(func() {
 		}
 	}
 })
-
-var _ = AfterSuite(afterSuite)
 
 var _ = BeforeSuite(func() {
 	m := CAPIEnabledModifierV1beta1{}
@@ -106,13 +104,12 @@ var _ = BeforeSuite(func() {
 	}
 	isMinimumK8sVersion, err = k8sutil.IsMinimumk8sVersion(minimumK8sVersion)
 	if isMinimumK8sVersion {
-		isCAPIEnabled = vzcr.IsComponentStatusEnabled(inClusterVZ, capi.ComponentName)
+		isCAPIComponentStatusEnabled := vzcr.IsComponentStatusEnabled(inClusterVZ, capi.ComponentName)
 		isCAPISupported, err = pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfigPath)
 		if err != nil {
 			AbortSuite(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %v", err))
 		}
-
-		if isCAPISupported && !isCAPIEnabled {
+		if isCAPISupported && !isCAPIComponentStatusEnabled {
 			update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
 			inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 			if err != nil {
@@ -120,7 +117,6 @@ var _ = BeforeSuite(func() {
 			}
 			isCAPIEnabled = vzcr.IsCAPIEnabled(inClusterVZ)
 		}
-
 		if isCAPISupported && isCAPIEnabled {
 			update.ValidatePods(capiLabelValue, capiLabelKey, constants.VerrazzanoCAPINamespace, uint32(4), false)
 		}
