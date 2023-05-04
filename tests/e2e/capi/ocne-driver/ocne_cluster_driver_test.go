@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"text/template"
 	"time"
 
@@ -171,10 +172,11 @@ func executeCloudCredentialsTemplate(data *cloudCredentialsData, buffer *bytes.B
 func createCloudCredential(credentialName string) (string, error) {
 	requestURL := rancherURL + "/v3/cloudcredentials"
 	t.Logs.Infof("Cloud credential requestURL: %s", requestURL)
+	privateKeyContentsOneLine := replaceNewlinesToLiteral(privateKeyContents)
 	credentialsData := cloudCredentialsData{
 		CredentialName:     credentialName,
 		Fingerprint:        fingerprint,
-		PrivateKeyContents: privateKeyContents,
+		PrivateKeyContents: privateKeyContentsOneLine,
 		TenancyID:          tenancyID,
 		UserID:             userID,
 	}
@@ -224,11 +226,13 @@ func executeCreateClusterTemplate(data *capiClusterData, buffer *bytes.Buffer) e
 func createCluster(clusterName string) error {
 	requestURL := rancherURL + "/v3/cluster"
 	t.Logs.Infof("createCluster requestURL: %s", requestURL)
+	nodePublicKeyContentsOneLine := replaceNewlinesToLiteral(nodePublicKeyContents)
+	t.Logs.Infof("nodePublicKeyContentsOneLine: %s", nodePublicKeyContentsOneLine)
 	capiClusterData := capiClusterData{
 		ClusterName:           clusterName,
 		Region:                region,
 		VcnID:                 vcnID,
-		NodePublicKeyContents: nodePublicKeyContents,
+		NodePublicKeyContents: nodePublicKeyContentsOneLine,
 		CompartmentID:         compartmentID,
 		WorkerNodeSubnet:      workerNodeSubnet,
 		ControlPlaneSubnet:    controlPlaneSubnet,
@@ -303,4 +307,8 @@ func getCluster(clusterName string) (*gabs.Container, error) {
 		return nil, err
 	}
 	return jsonBody, nil
+}
+
+func replaceNewlinesToLiteral(s string) string {
+	return strings.Replace(s, "\n", `\n`, -1)
 }
