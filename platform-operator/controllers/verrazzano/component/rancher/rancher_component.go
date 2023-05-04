@@ -238,7 +238,7 @@ func appendStreamingOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]b
 	// see if ingress already contains the streaming annotation
 	_, ok := ingress.Annotations[nginxStreamSnippetAnnotation]
 	if !ok {
-		ctx.Log().Info("Adding the stream snippet annotation")
+		ctx.Log().Debug("Adding the stream snippet annotation")
 		kvs = append(kvs, bom.KeyValue{
 			Key:       rancherStreamSnippetAnnotation,
 			Value:     fmt.Sprintf(streamSnippet, ComponentName, ComponentNamespace),
