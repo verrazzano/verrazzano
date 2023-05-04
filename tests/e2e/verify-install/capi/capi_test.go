@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	waitTimeout       = 5 * time.Minute
+	waitTimeout       = 10 * time.Minute
 	pollingInterval   = 10 * time.Second
 	capiLabelValue    = "controller-manager"
 	capiLabelKey      = "control-plane"
@@ -50,20 +50,26 @@ type CAPIDisabledModifierV1beta1 struct {
 }
 
 func (c CAPIDisabledModifier) ModifyCR(cr *v1alpha1.Verrazzano) {
-	cr.Spec.Components.CAPI = &v1alpha1.CAPIComponent{}
+	if cr.Spec.Components.CAPI == nil {
+		cr.Spec.Components.CAPI = &v1alpha1.CAPIComponent{}
+	}
+	enabled := false
+	cr.Spec.Components.CAPI.Enabled = &enabled
 	t.Logs.Debugf("CAPIDisabledModifier CR: %v", cr.Spec)
 }
 
 func (c CAPIDisabledModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
-	cr.Spec.Components.CAPI = &v1beta1.CAPIComponent{}
-	disabled := false
-	cr.Spec.Components.CAPI.Enabled = &disabled
+	if cr.Spec.Components.CAPI == nil {
+		cr.Spec.Components.CAPI = &v1beta1.CAPIComponent{}
+	}
+	enabled := false
+	cr.Spec.Components.CAPI.Enabled = &enabled
 	t.Logs.Debugf("CAPIDisabledModifierV1beta1 CR: %v", cr.Spec)
 }
 
-func (c CAPIEnabledModifier) ModifyCR(cr *v1beta1.Verrazzano) {
+func (c CAPIEnabledModifier) ModifyCR(cr *v1alpha1.Verrazzano) {
 	if cr.Spec.Components.CAPI == nil {
-		cr.Spec.Components.CAPI = &v1beta1.CAPIComponent{}
+		cr.Spec.Components.CAPI = &v1alpha1.CAPIComponent{}
 	}
 	enabled := true
 	cr.Spec.Components.CAPI.Enabled = &enabled
@@ -112,7 +118,6 @@ var _ = BeforeSuite(func() {
 	if isMinimumK8sVersion && isCAPISupported && !isCAPIComponentStatusEnabled {
 		m := CAPIEnabledModifierV1beta1{}
 		update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
-
 		inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
 		if err != nil {
 			AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
