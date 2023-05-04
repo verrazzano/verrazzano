@@ -119,7 +119,7 @@ type capiClusterData struct {
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	//todo oci get to check it's working
-	
+
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	Expect(err).ShouldNot(HaveOccurred())
 	if !pkg.IsRancherEnabled(kubeconfigPath) || !pkg.IsCAPIEnabled(kubeconfigPath) {
