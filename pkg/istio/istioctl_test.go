@@ -6,7 +6,6 @@ package istio
 import (
 	"errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"os/exec"
 	"testing"
 
@@ -94,7 +93,7 @@ func TestIsInstalled(t *testing.T) {
 	assert := assert.New(t)
 
 	SetCmdRunner(fakeIstioInstalledRunner{})
-	b, err := IsInstalled(spi.NewFakeContext(nil, nil, nil, false))
+	b, err := IsInstalled(vzlog.DefaultLogger())
 	assert.NoError(err, "IsInstalled returned an error")
 	assert.True(b, "IsInstalled returned false")
 }

@@ -411,7 +411,7 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 		return false
 	}
 
-	verified, err := isInstalledFunc(context)
+	verified, err := isInstalledFunc(context.Log())
 	if err != nil && !isIstioManifestNotInstalledError(err) {
 		context.Log().ErrorfThrottled("Unexpected error checking Istio status: %s", err)
 		return false

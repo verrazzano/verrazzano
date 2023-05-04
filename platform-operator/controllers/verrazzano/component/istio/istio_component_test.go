@@ -538,7 +538,7 @@ func TestIsReady(t *testing.T) {
 		},
 	).Build()
 
-	isInstalledFunc = func(ctx spi.ComponentContext) (bool, error) {
+	isInstalledFunc = func(log vzlog.VerrazzanoLogger) (bool, error) {
 		return true, nil
 	}
 	defer func() { isInstalledFunc = istio.IsInstalled }()
