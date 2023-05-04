@@ -5,6 +5,7 @@ package thanos
 
 import (
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -156,12 +157,16 @@ func formatIngressOverrides(ctx spi.ComponentContext, props ingressOverridePrope
 		{Key: fmt.Sprintf("%s.extraTls[0].hosts[0]", props.KeyPrefix), Value: props.HostName},
 		{Key: fmt.Sprintf("%s.extraTls[0].secretName", props.KeyPrefix), Value: props.TLSSecretName},
 	}...)
+	ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", props.Subdomain)
 	if vzcr.IsExternalDNSEnabled(ctx.EffectiveCR()) {
-		ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", props.Subdomain)
 		kvs = append(kvs, []bom.KeyValue{
 			{Key: fmt.Sprintf(`%s.annotations.external-dns\.alpha\.kubernetes\.io/target`, props.KeyPrefix), Value: ingressTarget},
 			{Key: fmt.Sprintf(`%s.annotations.external-dns\.alpha\.kubernetes\.io/ttl`, props.KeyPrefix), Value: "60", SetString: true},
 		}...)
 	}
+	kvs = append(kvs, []bom.KeyValue{
+		{Key: fmt.Sprintf(`%s.annotations.cert-manager\.io/common-name`, props.KeyPrefix), Value: props.HostName},
+		{Key: fmt.Sprintf(`%s.annotations.cert-manager\.io/cluster-issuer`, props.KeyPrefix), Value: vzconst.VerrazzanoClusterIssuerName},
+	}...)
 	return kvs
 }

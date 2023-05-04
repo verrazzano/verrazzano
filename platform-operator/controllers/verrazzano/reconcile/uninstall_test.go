@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"reflect"
 	"testing"
@@ -33,7 +34,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
@@ -555,6 +555,18 @@ func assertProjectRoleBindings(c client.Client, asserts *assert.Assertions) {
 // WHEN deleteNamespaces is called
 // THEN ensure all the component and shared namespaces are deleted
 func TestDeleteNamespaces(t *testing.T) {
+	runDeleteNamespacesTest(t, true)
+}
+
+// TestDeleteNamespacesCertManagerDisabled tests the deleteNamespaces method for when an externally provisioned CertManager might be in play
+// GIVEN a request to deleteNamespaces
+// WHEN deleteNamespaces is called and CertManager is disabled and the cert-manager namespace exists
+// THEN ensure all the component and shared namespaces are deleted EXCEPT for cert-manager
+func TestDeleteNamespacesCertManagerDisabled(t *testing.T) {
+	runDeleteNamespacesTest(t, false)
+}
+
+func runDeleteNamespacesTest(t *testing.T, cmEnabled bool) {
 	asserts := assert.New(t)
 
 	const fakeNS = "foo"
@@ -574,7 +586,7 @@ func TestDeleteNamespaces(t *testing.T) {
 		keycloak.ComponentNamespace,
 		kiali.ComponentNamespace,
 		mysql.ComponentNamespace,
-		nginx.ComponentNamespace,
+		nginxutil.IngressNGINXNamespace(),
 		oam.ComponentNamespace,
 		opensearch.ComponentNamespace,
 		opensearchdashboards.ComponentNamespace,
@@ -608,8 +620,26 @@ func TestDeleteNamespaces(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(nameSpaces...).Build()
 
+	cr := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				CertManager: &vzapi.CertManagerComponent{
+					Enabled: &cmEnabled,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(c, cr, nil, false)
+
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.deleteNamespaces(vzlog.DefaultLogger(), false)
+	result, err := reconciler.deleteNamespaces(ctx, false)
+
+	expectedRemainingNamespaces := []string{
+		fakeNS,
+	}
+	if !cmEnabled {
+		expectedRemainingNamespaces = append(expectedRemainingNamespaces, certmanager.ComponentNamespace)
+	}
 
 	// Validate the results
 	asserts.NoError(err)
@@ -618,7 +648,11 @@ func TestDeleteNamespaces(t *testing.T) {
 		ns := &corev1.Namespace{}
 		err = c.Get(context.TODO(), types.NamespacedName{Name: n}, ns)
 		if err == nil {
-			asserts.Equal(ns.Name, fakeNS, fmt.Sprintf("Namespace %s should exist", fakeNS))
+			asserts.Contains(expectedRemainingNamespaces, ns.Name, "Namespace %s should exist", ns.Name)
+			//asserts.Equal(ns.Name, fakeNS, fmt.Sprintf("Namespace %s should exist", fakeNS))
+			//if !cmEnabled {
+			//	asserts.Equal(ns.Name, certmanager.ComponentNamespace, fmt.Sprintf("Namespace %s should exist", certmanager.ComponentNamespace))
+			//}
 		} else {
 			asserts.True(errors.IsNotFound(err), fmt.Sprintf("Namespace %s should not exist", n))
 		}

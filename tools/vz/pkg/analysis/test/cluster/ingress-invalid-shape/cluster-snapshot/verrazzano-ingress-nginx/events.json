@@ -1,0 +1,109 @@
+{
+    "kind": "EventList",
+    "apiVersion": "v1",
+    "metadata": {
+        "resourceVersion": "11175672"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "ingress-controller-ingress-nginx-controller.16f4ff26e98da97d",
+                "namespace": "verrazzano-ingress-nginx",
+                "uid": "86372612-8152-495b-9bf0-a937941f2831",
+                "resourceVersion": "11174384",
+                "creationTimestamp": "2022-06-03T03:38:25Z",
+                "managedFields": [
+                    {
+                        "manager": "cloud-provider-oci",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2022-06-03T03:38:25Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {},
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "Service",
+                "namespace": "verrazzano-ingress-nginx",
+                "name": "ingress-controller-ingress-nginx-controller",
+                "uid": "50979946-dbb7-4f5c-a01d-6bbea0135e8c",
+                "apiVersion": "v1",
+                "resourceVersion": "11145869"
+            },
+            "reason": "EnsuringLoadBalancer",
+            "message": "Ensuring load balancer",
+            "source": {
+                "component": "service-controller"
+            },
+            "firstTimestamp": "2022-06-03T03:38:25Z",
+            "lastTimestamp": "2022-06-03T04:58:48Z",
+            "count": 22,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "ingress-controller-ingress-nginx-controller.16f50042a8f6ee01",
+                "namespace": "verrazzano-ingress-nginx",
+                "uid": "bca2c75e-8240-4c5f-b893-fc7d2bfb5053",
+                "resourceVersion": "11169157",
+                "creationTimestamp": "2022-06-03T03:58:44Z",
+                "managedFields": [
+                    {
+                        "manager": "cloud-provider-oci",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2022-06-03T03:58:44Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {},
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "Service",
+                "namespace": "verrazzano-ingress-nginx",
+                "name": "ingress-controller-ingress-nginx-controller",
+                "uid": "50979946-dbb7-4f5c-a01d-6bbea0135e8c",
+                "apiVersion": "v1",
+                "resourceVersion": "11145876"
+            },
+            "reason": "SyncLoadBalancerFailed",
+            "message": "(combined from similar events): Error syncing load balancer: failed to ensure load balancer: creating load balancer: Service error:InvalidParameter. Limits-Service returned 400, InvalidParameter. Error: 'Invalid service/quota load-balancer - lb-8gbps-count'. http status code: 400. Opc request id: 0524951027d0ea8be5eb9d2db7316d52/DDE2CB2F6AA4E3FC5D25171A2A84F1C0/6C704767A81814BA3054147961DB83F3",
+            "source": {
+                "component": "service-controller"
+            },
+            "firstTimestamp": "2022-06-03T03:58:44Z",
+            "lastTimestamp": "2022-06-03T04:43:47Z",
+            "count": 10,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        }
+    ]
+}

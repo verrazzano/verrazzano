@@ -4,9 +4,8 @@ package namespace
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -31,8 +30,8 @@ func CreateCertManagerNamespace(client client.Client) error {
 }
 
 // CreateIngressNginxNamespace - Create/Update and label the ingres-nginx namespace
-func CreateIngressNginxNamespace(client client.Client, istioInjectionEnabled bool) error {
-	return CreateAndLabelNamespace(client, globalconst.IngressNamespace, true, istioInjectionEnabled)
+func CreateIngressNginxNamespace(client client.Client, istioInjectionEnabled bool, namespace string) error {
+	return CreateAndLabelNamespace(client, namespace, true, istioInjectionEnabled)
 }
 
 // CreateIstioNamespace - Create/Update and label the Istio namespace

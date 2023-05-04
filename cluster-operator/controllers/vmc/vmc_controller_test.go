@@ -78,6 +78,13 @@ spec:
 type AssertFn func(configMap *corev1.ConfigMap) error
 type secretAssertFn func(secret *corev1.Secret) error
 
+func init() {
+	// stub out keycloak client creation for these tests
+	createClient = func(r *VerrazzanoManagedClusterReconciler, vmc *v1alpha1.VerrazzanoManagedCluster) error {
+		return nil
+	}
+}
+
 // TestCreateVMC tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an VerrazzanoManagedCluster resource
 // WHEN a VerrazzanoManagedCluster resource has been applied in a cluster where Rancher is enabled
@@ -96,6 +103,9 @@ func TestCreateVMCRancherDisabled(t *testing.T) {
 }
 
 func doTestCreateVMC(t *testing.T, rancherEnabled bool) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -123,9 +133,8 @@ func doTestCreateVMC(t *testing.T, rancherEnabled bool) {
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectRancherConfigK8sCalls(t, mock, false)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
-	expectPushManifestRequests(mockRequestSender)
+	expectPushManifestRequests(t, mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
@@ -157,11 +166,6 @@ func doTestCreateVMC(t *testing.T, rancherEnabled bool) {
 	// expect status updated with condition Ready=true
 	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "", false)
 
-	// stub out keycloak client creation for these tests
-	createClient = func(r *VerrazzanoManagedClusterReconciler, vmc *v1alpha1.VerrazzanoManagedCluster) error {
-		return nil
-	}
-
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
@@ -179,6 +183,9 @@ func doTestCreateVMC(t *testing.T, rancherEnabled bool) {
 // WHEN a VerrazzanoManagedCluster resource has been applied on a Verrazzano install configured with external ES
 // THEN ensure all the objects are created
 func TestCreateVMCWithExternalES(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -204,9 +211,8 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 	expectSyncRegistration(t, mock, testManagedCluster, true)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectRancherConfigK8sCalls(t, mock, false)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
-	expectPushManifestRequests(mockRequestSender)
+	expectPushManifestRequests(t, mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
@@ -255,6 +261,9 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 // WHEN a VerrazzanoManagedCluster resource has been applied
 // THEN ensure all the objects are created
 func TestCreateVMCOCIDNS(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := "verrazzano-mc"
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -280,9 +289,8 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectRancherConfigK8sCalls(t, mock, false)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
-	expectPushManifestRequests(mockRequestSender)
+	expectPushManifestRequests(t, mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, "", func(configMap *corev1.ConfigMap) error {
@@ -331,6 +339,9 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 // WHEN a VerrazzanoManagedCluster resource has been applied with no CA Cert
 // THEN ensure all the objects are created
 func TestCreateVMCNoCACert(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -356,12 +367,10 @@ func TestCreateVMCNoCACert(t *testing.T) {
 	expectSyncRegistration(t, mock, testManagedCluster, true)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectRancherConfigK8sCalls(t, mock, true)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectSyncCACertRancherHTTPCalls(t, mockRequestSender, "")
 	expectRancherConfigK8sCalls(t, mock, false)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
-	expectPushManifestRequests(mockRequestSender)
+	expectPushManifestRequests(t, mockRequestSender)
 	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", false, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
@@ -409,6 +418,9 @@ func TestCreateVMCNoCACert(t *testing.T) {
 // WHEN a VerrazzanoManagedCluster resource has been applied and the caSecret field is empty
 // THEN ensure that we fetch the CA cert secret from the managed cluster and populate the caSecret field
 func TestCreateVMCFetchCACertFromManagedCluster(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -436,9 +448,8 @@ func TestCreateVMCFetchCACertFromManagedCluster(t *testing.T) {
 	expectSyncCACertRancherHTTPCalls(t, mockRequestSender, `{"data":{"ca.crt":"base64-ca-cert"}}`)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, true)
 	expectRancherConfigK8sCalls(t, mock, false)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
-	expectPushManifestRequests(mockRequestSender)
+	expectPushManifestRequests(t, mockRequestSender)
 	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
@@ -485,6 +496,9 @@ func TestCreateVMCFetchCACertFromManagedCluster(t *testing.T) {
 // WHEN a VerrazzanoManagedCluster resource has been applied and prometheus is already configured with a scrape config for the cluster
 // THEN ensure all the objects are created
 func TestCreateVMCWithExistingScrapeConfiguration(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := "verrazzano-mc"
 	jobs := `  - ` + constants.PrometheusJobNameKey + `: cluster1
     scrape_interval: 20s
@@ -520,9 +534,8 @@ scrape_configs:
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectRancherConfigK8sCalls(t, mock, false)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
-	expectPushManifestRequests(mockRequestSender)
+	expectPushManifestRequests(t, mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, jobs, true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
@@ -573,6 +586,9 @@ scrape_configs:
 // WHEN a VerrazzanoManagedCluster resource has been applied and prometheus is already configured with a scrape configuration for the same cluster
 // THEN ensure all the objects are created (existing configuration is replaced)
 func TestReplaceExistingScrapeConfiguration(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := "verrazzano-mc"
 	jobs := `  - ` + constants.PrometheusJobNameKey + `: test
     scrape_interval: 20s
@@ -608,9 +624,8 @@ scrape_configs:
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectRancherConfigK8sCalls(t, mock, false)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
-	expectPushManifestRequests(mockRequestSender)
+	expectPushManifestRequests(t, mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, jobs, true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
@@ -661,6 +676,9 @@ scrape_configs:
 // AND the cluster has already been registered with Rancher
 // THEN ensure all the objects are created
 func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -686,9 +704,8 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, true, rancherManifestYAML)
 	expectRancherConfigK8sCalls(t, mock, false)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
-	expectPushManifestRequests(mockRequestSender)
+	expectPushManifestRequests(t, mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
@@ -737,6 +754,9 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 // WHEN syncing of service account fails
 // THEN ensure that the VMC status is updated to Ready=false with an appropriate message
 func TestCreateVMCSyncSvcAccountFailed(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -770,6 +790,9 @@ func TestCreateVMCSyncSvcAccountFailed(t *testing.T) {
 // WHEN syncing of role binding fails
 // THEN ensure that the VMC status is updated to Ready=false with an appropriate message
 func TestCreateVMCSyncRoleBindingFailed(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	name := "test"
 
@@ -806,6 +829,9 @@ func TestCreateVMCSyncRoleBindingFailed(t *testing.T) {
 // WHEN a VerrazzanoManagedCluster resource has been deleted
 // THEN ensure the object is not processed
 func TestDeleteVMC(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := "verrazzano-install"
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -820,7 +846,7 @@ func TestDeleteVMC(t *testing.T) {
 
 	// Expect all of the calls when deleting a VMC
 	expectMockCallsForDelete(t, mock, namespace)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectRancherGetAuthTokenHTTPCall(t, mockRequestSender)
 	expectThanosDelete(t, mock)
 
 	// Expect an API call to delete the Rancher cluster
@@ -866,6 +892,9 @@ func TestDeleteVMC(t *testing.T) {
 // TestDeleteVMCFailedDeletingRancherCluster tests deleting a VMC when there are errors attempting to
 // delete the Rancher cluster.
 func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := "verrazzano-install"
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -946,7 +975,7 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 
 	// Expect all of the calls when deleting a VMC
 	expectMockCallsForDelete(t, mock, namespace)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectRancherGetAuthTokenHTTPCall(t, mockRequestSender)
 	expectThanosDelete(t, mock)
 
 	// Expect an API call to delete the Rancher cluster - return an error
@@ -1001,6 +1030,9 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 // WHEN Rancher registration fails
 // THEN the manifest secret is still created and syncManifestSecret returns no error
 func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1110,6 +1142,9 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 // WHEN Rancher returns an empty manifest
 // THEN the status is set to failed on the VMC with an appropriate message and the syncManifestSecret call returns an error
 func TestSyncManifestSecretEmptyRancherManifest(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1192,6 +1227,9 @@ func TestSyncManifestSecretEmptyRancherManifest(t *testing.T) {
 // TestRegisterClusterWithRancherK8sErrorCases tests errors cases using the Kubernetes
 // client when registering with Rancher.
 func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1217,7 +1255,7 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 			return nil
 		})
 
-	rc, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, constants.DefaultRancherIngressHost, vzlog.DefaultLogger())
+	rc, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1255,7 +1293,7 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 			return nil
 		})
 
-	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, constants.DefaultRancherIngressHost, vzlog.DefaultLogger())
+	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1265,6 +1303,9 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 // TestRegisterClusterWithRancherHTTPErrorCases tests errors cases using the HTTP
 // client when registering with Rancher.
 func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1296,11 +1337,12 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	rc, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, constants.DefaultRancherIngressHost, vzlog.DefaultLogger())
+	rc, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
 	asserts.Nil(rc)
+	rancherutil.DeleteStoredTokens()
 
 	// GIVEN a call to register a managed cluster with Rancher
 	// WHEN the call to import the cluster into Rancher fails
@@ -1339,7 +1381,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, constants.DefaultRancherIngressHost, vzlog.DefaultLogger())
+	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 	asserts.NoError(err)
 
 	regYAML, _, err := registerManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
@@ -1347,6 +1389,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	mocker.Finish()
 	asserts.Error(err)
 	asserts.Empty(regYAML)
+	rancherutil.DeleteStoredTokens()
 
 	// GIVEN a call to register a managed cluster with Rancher
 	// WHEN the call to create the Rancher registration token fails
@@ -1415,7 +1458,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, constants.DefaultRancherIngressHost, vzlog.DefaultLogger())
+	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 	asserts.NoError(err)
 
 	regYAML, _, err = registerManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
@@ -1423,6 +1466,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	mocker.Finish()
 	asserts.Error(err)
 	asserts.Empty(regYAML)
+	rancherutil.DeleteStoredTokens()
 
 	// GIVEN a call to register a managed cluster with Rancher
 	// WHEN the call to get the Rancher manifest YAML fails
@@ -1492,7 +1536,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, constants.DefaultRancherIngressHost, vzlog.DefaultLogger())
+	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 	asserts.NoError(err)
 
 	regYAML, _, err = registerManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
@@ -1507,6 +1551,9 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 // AND the error is retryable
 // THEN ensure that the request is retried
 func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1548,7 +1595,7 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 			return resp, nil
 		}).Times(retrySteps)
 
-	_, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, constants.DefaultRancherIngressHost, vzlog.DefaultLogger())
+	_, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1556,6 +1603,9 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 
 // TestUpateStatus tests the updateStatus function
 func TestUpateStatus(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -2068,7 +2118,10 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 		})
 }
 
-func expectPushManifestRequests(mockRequestSender *mocks.MockRequestSender) {
+func expectPushManifestRequests(t *testing.T, mockRequestSender *mocks.MockRequestSender) {
+	// expect a login request for the vz-cluster-reg user
+	expectRancherGetAuthTokenHTTPCall(t, mockRequestSender)
+
 	mockRequestSender.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clustersPath+"/"+unitTestRancherClusterID)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
@@ -2209,7 +2262,7 @@ func expectRegisterClusterWithRancher(t *testing.T,
 func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *mocks.MockRequestSender, clusterName string, clusterAlreadyRegistered bool, rancherManifestYAML string) {
 	asserts := assert.New(t)
 
-	expectRancherGetAdminTokenHTTPCall(t, requestSenderMock)
+	expectRancherGetAuthTokenHTTPCall(t, requestSenderMock)
 
 	if !clusterAlreadyRegistered {
 		// Cluster is not already registered - we now only expect import to happen if the cluster is NOT already registered
@@ -2292,7 +2345,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 		})
 }
 
-func expectRancherGetAdminTokenHTTPCall(t *testing.T, requestSenderMock *mocks.MockRequestSender) {
+func expectRancherGetAuthTokenHTTPCall(t *testing.T, requestSenderMock *mocks.MockRequestSender) {
 	asserts := assert.New(t)
 
 	// Expect an HTTP request to fetch the admin token from Rancher
@@ -2383,9 +2436,6 @@ func expectSyncCACertRancherK8sCalls(t *testing.T, k8sMock *mocks.MockClient, mo
 	asserts := assert.New(t)
 
 	if shouldSyncCACert {
-		// Expect K8S calls and admin token call to create new Rancher config
-		expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
-
 		expectRancherConfigK8sCalls(t, k8sMock, true)
 
 		// Expect a call to get the CA cert secret for the managed cluster - return not found
