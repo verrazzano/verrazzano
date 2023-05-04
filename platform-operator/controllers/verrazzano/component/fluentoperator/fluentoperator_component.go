@@ -6,7 +6,6 @@ package fluentoperator
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -44,10 +43,10 @@ const (
 	HelmChartDir = "fluent-operator"
 )
 
-var (
-	// For Unit test purposes
-	writeFileFunc = os.WriteFile
-)
+//var (
+//	// For Unit test purposes
+//	writeFileFunc = os.WriteFile
+//)
 
 // fluentOperatorComponent represents an Fluent-Operator component
 type fluentOperatorComponent struct {
