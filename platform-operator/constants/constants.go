@@ -8,9 +8,6 @@ import "time"
 // VerrazzanoSystemNamespace is the system namespace for verrazzano
 const VerrazzanoSystemNamespace = "verrazzano-system"
 
-// VerrazzanoCAPINamespace is the system namespace for Cluster API resources
-const VerrazzanoCAPINamespace = "verrazzano-capi"
-
 // VerrazzanoInstallNamespace is the namespace that the platform operator lives in
 const VerrazzanoInstallNamespace = "verrazzano-install"
 
