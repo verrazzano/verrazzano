@@ -323,10 +323,15 @@ loadExampleTarFiles() {
 
   mkdir "${generatedDir}"
 
-  image=$(grep -r 'image:' "${VZ_REPO_ROOT}/examples/hello-helidon" | grep -Eo 'ghcr\.io(/.+)+:[^"]+' | uniq)
-  docker pull "${image}"
+  example_dirs=("${VZ_REPO_ROOT}/examples/hello-helidon" "${VZ_REPO_ROOT}/examples/todo-list")
+  mapfile images < <(grep -r 'image:' "${example_dirs[@]}" | grep -Eo '(ghcr\.io|container\-registry\.oracle\.com)(/.+)+:[^"]+' | uniq)
 
-  docker save -o "${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE}" "${image}"
+  for image in "${images[@]}"; do
+    echo "pulling ${image}"
+    docker pull "${image}"
+  done
+
+  docker save -o "${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE}" "${images[@]}"
   sha256sum "${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE}" > "${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE_SHA256}"
   cd "${generatedDir}"
   echo "Uploading example images bundle to $OCI_OS_DIST_REGION in bucket ${OCI_OS_COMMIT_BUCKET} with name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_EXAMPLE_IMAGES_BUNDLE} ..."
