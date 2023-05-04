@@ -139,7 +139,7 @@ func TestApplyPlatformOperatorYaml(t *testing.T) {
 	// WHEN ApplyPlatformOperatorYaml is invoked,
 	// THEN an error is returned as the VZ resource is not in InstallComplete state.
 	cmdWithOperatorYaml := getCommandWithoutFlags()
-	cmdWithOperatorYaml.PersistentFlags().String(constants.OperatorFileFlag, "operator.yaml", "")
+	cmdWithOperatorYaml.PersistentFlags().String(constants.ManifestsFlag, "operator.yaml", "")
 	err = ApplyPlatformOperatorYaml(cmdWithOperatorYaml, fakeClient, rc, "1.5.0")
 	assert.Error(t, err)
 }

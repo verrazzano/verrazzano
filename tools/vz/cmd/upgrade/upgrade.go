@@ -54,13 +54,11 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().String(constants.ImageRegistryFlag, constants.ImageRegistryFlagDefault, constants.ImageRegistryFlagHelp)
 	cmd.PersistentFlags().String(constants.ImagePrefixFlag, constants.ImagePrefixFlagDefault, constants.ImagePrefixFlagHelp)
 
+	// Add flags related to specifying the platform operator manifests as a local file or a URL
+	cmdhelpers.AddManifestsFlags(cmd)
+
 	// Flag to skip any confirmation questions
 	cmd.PersistentFlags().BoolP(constants.SkipConfirmationFlag, constants.SkipConfirmationShort, false, constants.SkipConfirmationFlagHelp)
-
-	// Initially the operator-file flag may be for internal use, hide from help until
-	// a decision is made on supporting this option.
-	cmd.PersistentFlags().String(constants.OperatorFileFlag, "", constants.OperatorFileFlagHelp)
-	cmd.PersistentFlags().MarkHidden(constants.OperatorFileFlag)
 
 	// Dry run flag is still being discussed - keep hidden for now
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an upgrade.")

@@ -28,8 +28,11 @@ const (
 	SetFlag                  = "set"
 	SetFlagShorthand         = "s"
 	SetFlagHelp              = "Override a Verrazzano resource value (e.g. --set profile=dev).  This flag can be specified multiple times."
-	OperatorFileFlag         = "operator-file"
-	OperatorFileFlagHelp     = "The path to the file for installing the Verrazzano platform operator. The default is derived from the version string."
+	OperatorFileFlag         = "operator-file" // an alias for the manifests flag
+	OperatorFileDeprecateMsg = "Use --manifests instead"
+	ManifestsFlag            = "manifests"
+	ManifestsShorthand       = "m"
+	ManifestsFlagHelp        = "The location of the manifests used to install or upgrade Verrazzano. This can be a URL or the path to a local file. The default is the verrazzano-platform-operator.yaml file of the specified (or most recent) version of Verrazzano."
 	ImageRegistryFlag        = "image-registry"
 	ImageRegistryFlagHelp    = "The private registry where Verrazzano image repositories are located. If unspecified, the public Verrazzano image registry will be used."
 	ImageRegistryFlagDefault = ""
