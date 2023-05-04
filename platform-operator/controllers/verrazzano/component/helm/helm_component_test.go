@@ -424,8 +424,9 @@ func TestIsInstalled(t *testing.T) {
 	a := assert.New(t)
 
 	comp := HelmComponent{
-		ReleaseName:    releaseName,
-		ChartNamespace: "test-namespace",
+		ReleaseName:             releaseName,
+		ChartNamespace:          "test-namespace",
+		IgnoreNamespaceOverride: true,
 	}
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
