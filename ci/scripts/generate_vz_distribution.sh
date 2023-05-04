@@ -324,7 +324,7 @@ loadExampleTarFiles() {
   mkdir "${generatedDir}"
 
   example_dirs=("${VZ_REPO_ROOT}/examples/hello-helidon" "${VZ_REPO_ROOT}/examples/todo-list")
-  mapfile images < <(grep -r 'image:' "${example_dirs[@]}" | grep -Eo '(ghcr\.io|container\-registry\.oracle\.com)(/.+)+:[^"]+' | uniq)
+  mapfile -t images < <(grep -r 'image:' "${example_dirs[@]}" | grep -Eo '(ghcr\.io|container\-registry\.oracle\.com)(/.+)+:[^"]+' | uniq)
 
   for image in "${images[@]}"; do
     echo "pulling ${image}"
