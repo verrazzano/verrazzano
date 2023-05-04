@@ -89,8 +89,9 @@ pipeline {
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
-        OCR_CREDS = credentials('ocr-pull-and-push-account')
-        OCR_REPO = 'container-registry.oracle.com'
+        OCR_CREDS_USR = "${OCIR_CREDS_USR}"
+        OCR_CREDS_PSW = "${OCIR_CREDS_PSW}"
+        OCR_REPO = "${ocirRegistry}"
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
