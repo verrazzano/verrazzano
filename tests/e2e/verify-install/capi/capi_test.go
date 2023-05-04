@@ -171,6 +171,14 @@ func WhenCapiInstalledIt(description string, f func()) {
 			AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
 		}
 		isCAPIEnabled = vzcr.IsCAPIEnabled(inClusterVZ)
+		isMinimumK8sVersion, err = k8sutil.IsMinimumk8sVersion(minimumK8sVersion)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Failed to check Minimum k8s version: %v", err))
+		}
+		isCAPISupported, err = pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfig)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %v", err))
+		}
 		if isMinimumK8sVersion && isCAPISupported && isCAPIEnabled {
 			f()
 		} else {
@@ -192,10 +200,14 @@ func WhenCapiNotInstalledIt(description string, f func()) {
 			AbortSuite(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %v", err))
 		}
 		isCAPIComponentStatusEnabled := vzcr.IsComponentStatusEnabled(inClusterVZ, capi.ComponentName)
+		isMinimumK8sVersion, err = k8sutil.IsMinimumk8sVersion(minimumK8sVersion)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Failed to check Minimum k8s version: %v", err))
+		}
 		if isMinimumK8sVersion && isCAPISupported && !isCAPIComponentStatusEnabled {
 			f()
 		} else {
-			t.Logs.Infof("Skipping chgeck '%v', Cluster API  is not supported/installed on this cluster", description)
+			t.Logs.Infof("Skipping check '%v', Cluster API  is not supported or already installed on this cluster", description)
 		}
 	})
 }
