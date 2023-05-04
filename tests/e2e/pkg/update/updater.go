@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/client-go/rest"
-	"sync"
 	"time"
 
 	"github.com/onsi/gomega"
@@ -24,8 +23,6 @@ const (
 	waitTimeout     = 5 * time.Minute
 	pollingInterval = 5 * time.Second
 )
-
-var updateOnce = sync.Once{}
 
 type CRModifier interface {
 	ModifyCR(cr *vzapi.Verrazzano)
@@ -111,39 +108,37 @@ func UpdateCR(m CRModifier) error {
 // Any error during the process will cause Ginkgo Fail.
 func UpdateCRV1beta1WithRetries(m CRModifierV1beta1, pollingInterval, waitTime time.Duration) {
 	// Update the CR
-	updateOnce.Do(func() {
-		gomega.Eventually(func() bool {
-			// GetCRV1beta1 gets the CR using v1beta1 client.
-			cr := GetCRV1beta1()
+	gomega.Eventually(func() bool {
+		// GetCRV1beta1 gets the CR using v1beta1 client.
+		cr := GetCRV1beta1()
 
-			// Modify the CR
-			m.ModifyCRV1beta1(cr)
+		// Modify the CR
+		m.ModifyCRV1beta1(cr)
 
-			path, err := k8sutil.GetKubeConfigLocation()
-			if err != nil {
-				pkg.Log(pkg.Error, err.Error())
-				return false
-			}
-			config, err := k8sutil.GetKubeConfigGivenPath(path)
-			if err != nil {
-				pkg.Log(pkg.Error, err.Error())
-				return false
-			}
-			addWarningHandlerIfNecessary(m, config)
-			client, err := vpoClient.NewForConfig(config)
-			if err != nil {
-				pkg.Log(pkg.Error, err.Error())
-				return false
-			}
-			vzClient := client.VerrazzanoV1beta1().Verrazzanos(cr.Namespace)
-			_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
-			if err != nil {
-				pkg.Log(pkg.Error, err.Error())
-				return false
-			}
-			return true
-		}).WithPolling(pollingInterval).WithTimeout(waitTime).Should(gomega.BeTrue())
-	})
+		path, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+			return false
+		}
+		config, err := k8sutil.GetKubeConfigGivenPath(path)
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+			return false
+		}
+		addWarningHandlerIfNecessary(m, config)
+		client, err := vpoClient.NewForConfig(config)
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+			return false
+		}
+		vzClient := client.VerrazzanoV1beta1().Verrazzanos(cr.Namespace)
+		_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+			return false
+		}
+		return true
+	}).WithPolling(pollingInterval).WithTimeout(waitTime).Should(gomega.BeTrue())
 }
 
 func addWarningHandlerIfNecessary(m interface{}, config *rest.Config) {
