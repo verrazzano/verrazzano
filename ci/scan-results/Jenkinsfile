@@ -93,14 +93,14 @@ pipeline {
             }
         }
     }
-    //post {
-    //    success {
-    //        script {
-    //            build job: '/upload-scan-report', parameters: [
-    //                string(name: 'UPSTREAM_JOB', value: "${env.JOB_NAME}"),
-    //                string(name: 'UPSTREAM_BUILD', value: "${env.BUILD_NUMBER}")
-    //            ], propagate: false, wait: false
-    //        }
-    //    }
-    //}
+    post {
+        success {
+            script {
+                build job: '/upload-scan-report', parameters: [
+                    string(name: 'UPSTREAM_JOB', value: "${env.JOB_NAME}"),
+                    string(name: 'UPSTREAM_BUILD', value: "${env.BUILD_NUMBER}")
+                ], propagate: false, wait: false
+            }
+        }
+    }
 }
