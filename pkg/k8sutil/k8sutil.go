@@ -18,7 +18,6 @@ import (
 	istioClient "istio.io/client-go/pkg/clientset/versioned"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -60,9 +59,6 @@ var ClientConfig ClientConfigFunc = func() (*rest.Config, kubernetes.Interface, 
 
 // fakeClient is for unit testing
 var fakeClient kubernetes.Interface
-
-// fakeAPIExtClient is for unit testing
-var fakeAPIExtClient apiextv1.Interface
 
 // SetFakeClient for unit tests
 func SetFakeClient(client kubernetes.Interface) {
@@ -433,33 +429,6 @@ func GetGoClient(log ...vzlog.VerrazzanoLogger) (kubernetes.Interface, error) {
 	}
 
 	return kubeClient, err
-}
-
-// GetGoAPIExtClient returns a go-client for the API Extensions interface
-func GetGoAPIExtClient(log ...vzlog.VerrazzanoLogger) (apiextv1.Interface, error) {
-	if fakeClient != nil {
-		return fakeAPIExtClient, nil
-	}
-
-	var logger vzlog.VerrazzanoLogger
-	if len(log) > 0 {
-		logger = log[0]
-	}
-
-	config, err := buildRESTConfig(logger)
-	if err != nil {
-		return nil, err
-	}
-
-	apiExtClient, err := apiextv1.NewForConfig(config)
-	if err != nil {
-		if logger != nil {
-			logger.Errorf("Failed to get clientset: %v", err)
-		}
-		return nil, err
-	}
-
-	return apiExtClient, err
 }
 
 func buildRESTConfig(logger vzlog.VerrazzanoLogger) (*rest.Config, error) {
