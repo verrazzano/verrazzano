@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"os"
 	"path/filepath"
 	"strings"
@@ -62,8 +61,8 @@ var ClientConfig ClientConfigFunc = func() (*rest.Config, kubernetes.Interface, 
 // fakeClient is for unit testing
 var fakeClient kubernetes.Interface
 
-// fakeApiExtClient is for unit testing
-var fakeApiExtClient apiextv1.Interface
+// fakeAPIExtClient is for unit testing
+var fakeAPIExtClient apiextv1.Interface
 
 // SetFakeClient for unit tests
 func SetFakeClient(client kubernetes.Interface) {
@@ -225,15 +224,6 @@ func GetAppsV1Client(log ...vzlog.VerrazzanoLogger) (appsv1.AppsV1Interface, err
 		return nil, err
 	}
 	return goClient.AppsV1(), nil
-}
-
-// GetAPIExtV1Client returns the AppsV1Interface
-func GetAPIExtV1Client(log ...vzlog.VerrazzanoLogger) (apiextensionsv1client.ApiextensionsV1Interface, error) {
-	goClient, err := GetGoAPIExtClient(log...)
-	if err != nil {
-		return nil, err
-	}
-	return goClient.ApiextensionsV1(), nil
 }
 
 // GetDynamicClientFunc is the function to return the Dynamic Interface
@@ -448,7 +438,7 @@ func GetGoClient(log ...vzlog.VerrazzanoLogger) (kubernetes.Interface, error) {
 // GetGoAPIExtClient returns a go-client for the API Extensions interface
 func GetGoAPIExtClient(log ...vzlog.VerrazzanoLogger) (apiextv1.Interface, error) {
 	if fakeClient != nil {
-		return fakeApiExtClient, nil
+		return fakeAPIExtClient, nil
 	}
 
 	var logger vzlog.VerrazzanoLogger
