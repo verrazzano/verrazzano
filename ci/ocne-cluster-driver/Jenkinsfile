@@ -247,6 +247,14 @@ pipeline {
             }
         }
 
+        stage("Setting up environment vars for OCNE cluster creation") {
+            steps {
+                script {
+                    setUpEnvVarsForOCNEClusterCreation()
+                }
+            }
+        }
+
         stage("Create Image Pull Secrets") {
             steps {
                 createImagePullSecrets()
@@ -332,35 +340,6 @@ pipeline {
                 """
                 script {
                     env.TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
-                    env.API_PRIVATE_KEY_CONTENTS=sh(returnStdout: true, script: "cat ${TF_VAR_api_private_key_path}")
-                    env.NODE_PUBLIC_KEY_CONTENTS=sh(returnStdout: true, script: "cat ${TF_VAR_ssh_public_key_path}")
-
-                    env.VCN_ID_JSON=sh(returnStdout: true, script: "oci network vcn list \
-                        --compartment-id ${env.TF_VAR_compartment_id} \
-                        --display-name ${env.TF_VAR_label_prefix}-oke-vcn")
-                    env.VCN_ID=readJSON(text: env.VCN_ID_JSON).data[0].id
-
-                    env.SUBNET_ID_JSON=sh(returnStdout: true, script: "oci network subnet list \
-                       --compartment-id ${env.TF_VAR_compartment_id} \
-                       --vcn-id ${env.VCN_ID} \
-                       --display-name ${env.TF_VAR_label_prefix}-workers")
-                    env.SUBNET_ID=readJSON(text: env.SUBNET_ID_JSON).data[0].id
-                    env.POD_CIDR=readJSON(text: env.SUBNET_ID_JSON).data[0].cidr-block
-
-                    println("VCN_ID_JSON=${env.VCN_ID_JSON}")
-                    println("SUBNET_ID_JSON=${env.SUBNET_ID_JSON}")
-
-                    println("region=${env.TF_VAR_region}")
-                    println("userID=${env.TF_VAR_user_id}")
-                    println("tenancyID=${env.TF_VAR_tenancy_id}")
-                    println("compartmentID=${env.TF_VAR_compartment_id}")
-                    println("vcnID=${env.VCN_ID}")
-                    println("fingerprint=${env.TF_VAR_api_fingerprint}")
-                    println("nodePublicKeyContents=${env.NODE_PUBLIC_KEY_CONTENTS}")
-                    println("workerNodeSubnet=${env.SUBNET_ID}")
-                    println("controlPlaneSubnet=${env.SUBNET_ID}")
-                    println("loadBalancerSubnet=${env.SUBNET_ID}")
-                    println("podCidr=${env.POD_CIDR}")
 
                     runGinkgo('capi/ocne-driver')
                 }
@@ -549,4 +528,28 @@ def runGinkgo(testSuitePath) {
                 --podCidr=${env.POD_CIDR}
         """
     }
+}
+
+def setUpEnvVarsForOCNEClusterCreation() {
+    env.API_PRIVATE_KEY_CONTENTS=sh(returnStdout: true, script: "cat ${TF_VAR_api_private_key_path}")
+    env.NODE_PUBLIC_KEY_CONTENTS=sh(returnStdout: true, script: "cat ${TF_VAR_ssh_public_key_path}")
+
+    env.VCN_ID=sh(returnStdout: true, script: """ oci network vcn list --compartment-id ${env.TF_VAR_compartment_id} --display-name ${env.TF_VAR_label_prefix}-oke-vcn | jq -r '.data[0].id' """).trim()
+    println("VCN_ID=${env.VCN_ID}")
+
+    env.SUBNET_ID=sh(returnStdout: true, script: """ oci network subnet list --compartment-id ${env.TF_VAR_compartment_id} --vcn-id ${env.VCN_ID} --display-name ${env.TF_VAR_label_prefix}-workers | jq -r '.data[0].id' """).trim()
+    println("SUBNET_ID=${env.SUBNET_ID}")
+
+    env.POD_CIDR=sh(returnStdout: true, script: """ oci network subnet list --compartment-id ${env.TF_VAR_compartment_id} --vcn-id ${env.VCN_ID} --display-name ${env.TF_VAR_label_prefix}-workers | jq -r '.data."cidr-block"' """).trim()
+    println("POD_CIDR=${env.POD_CIDR}")
+
+    println("region=${env.TF_VAR_region}")
+    println("userID=${env.TF_VAR_user_id}")
+    println("tenancyID=${env.TF_VAR_tenancy_id}")
+    println("compartmentID=${env.TF_VAR_compartment_id}")
+    println("fingerprint=${env.TF_VAR_api_fingerprint}")
+    println("nodePublicKeyContents=${env.NODE_PUBLIC_KEY_CONTENTS}")
+
+    println("controlPlaneSubnet=${env.SUBNET_ID}")
+    println("loadBalancerSubnet=${env.SUBNET_ID}")
 }
