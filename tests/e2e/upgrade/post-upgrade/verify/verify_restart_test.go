@@ -52,7 +52,6 @@ var t = framework.NewTestFramework("verify")
 var vzcr *vzapi.Verrazzano
 var kubeconfigPath string
 var envoyImage string
-var ingressNGINXNamespace string
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
@@ -78,12 +77,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		}
 		return err
 	}, shortWait, pollingInterval).Should(BeNil(), "Expected to get envoy proxy image name and tag")
-
-	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to get Ingress NGINX namespace: %s", err.Error()))
-	}
-
 })
 var _ = BeforeSuite(beforeSuite)
 var afterSuite = t.AfterSuiteFunc(func() {})
@@ -174,6 +167,10 @@ var _ = t.Describe("Istio helm releases", Label("f:platform-lcm.upgrade"), func(
 
 var _ = t.Describe("Checking if Verrazzano system components are ready, post-upgrade", Label("f:platform-lcm.upgrade"), func() {
 	Context("Checking Deployments for post-upgrade", func() {
+		ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+		if err != nil {
+			Fail(fmt.Sprintf("Failed to get Ingress NGINX namespace: %s", err.Error()))
+		}
 		t.DescribeTable("Deployment should be ready post-upgrade",
 			func(namespace string, componentName string, deploymentName string) {
 				// Currently we have no way of determining if some components are installed by looking at the status (grafana)
@@ -217,7 +214,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 			t.Entry("Checking Deployment cert-manager-cainjector", certmanager.ComponentNamespace, certmanager.ComponentName, "cert-manager-cainjector"),
 			t.Entry("Checking Deployment cert-manager-webhook", certmanager.ComponentNamespace, certmanager.ComponentName, "cert-manager-webhook"),
 
-			t.Entry("Checking Deployment external-dns", externaldns.ComponentNamespace, externaldns.ComponentName, "external-dns"),
+			t.Entry("Checking Deployment external-dns", externaldns.ResolveExernalDNSNamespace(), externaldns.ComponentName, "external-dns"),
 
 			t.Entry("Checking Deployment istiod", compistio.IstioNamespace, compistio.ComponentName, "istiod"),
 			t.Entry("Checking Deployment istio-ingressgateway", compistio.IstioNamespace, compistio.ComponentName, "istio-ingressgateway"),
