@@ -993,8 +993,11 @@ def getPlatformOperatorForRelease(){
         //Command to retrieve the platform operator yaml of the current branch.
         def operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file"
 
+        if(params.VERSION_FOR_UPGRADE == "master"){
+            operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/operator.yaml --file"
+        
         //Command to retrieve the platform operator yaml of the release branch for patch release upgrade testing.
-        if(params.VERSION_FOR_UPGRADE != "current_branch" && params.IS_TRIGGERED_MANUALLY != "YES" && params.VERSION_FOR_UPGRADE != "NONE"){
+        }else if(params.VERSION_FOR_UPGRADE != "current_branch" && params.IS_TRIGGERED_MANUALLY != "YES" && params.VERSION_FOR_UPGRADE != "NONE"){
 
             def latestReleaseBranch = getLatestReleaseVersion()
 
@@ -1003,8 +1006,6 @@ def getPlatformOperatorForRelease(){
         }else if(params.IS_TRIGGERED_MANUALLY == "YES" && params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
             OPERATOR_YAML_FILE=sh(returnStdout: true, script: "ci/scripts/derive_operator_yaml.sh v${VERSION_FOR_UPGRADE_ENV}").trim()
             operatorCMD = "curl -L ${OPERATOR_YAML_FILE} --output"
-        }else if(params.VERSION_FOR_UPGRADE == "master"){
-            operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/operator.yaml --file"
         }
 
         sh(script: "$operatorCMD $TARGET_UPGRADE_OPERATOR_YAML")
