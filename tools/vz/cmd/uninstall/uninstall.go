@@ -7,6 +7,11 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"regexp"
+	"time"
+
 	"github.com/spf13/cobra"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -14,7 +19,6 @@ import (
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	"io"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -25,10 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	"os"
-	"regexp"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
 )
 
 const (
@@ -87,7 +88,7 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().MarkHidden(constants.VPOTimeoutFlag)
 
 	// When set to false, uninstall prompt can be suppressed
-	cmd.PersistentFlags().BoolP(ConfirmUninstallFlag, ConfirmUninstallFlagShorthand, false, "Used to confirm uninstall and suppress prompt")
+	cmd.PersistentFlags().BoolP(constants.SkipConfirmationFlag, constants.SkipConfirmationShort, false, "Used to confirm uninstall and suppress prompt")
 	return cmd
 }
 

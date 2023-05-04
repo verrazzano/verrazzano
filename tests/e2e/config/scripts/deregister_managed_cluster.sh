@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -24,5 +24,5 @@ echo MANAGED_CLUSTER_NAME: ${MANAGED_CLUSTER_NAME}
 echo MANAGED_KUBECONFIG: ${MANAGED_KUBECONFIG}
 
 echo "Deleting VMC on admin cluster ${MANAGED_CLUSTER_NAME}"
-kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc delete vmc ${MANAGED_CLUSTER_NAME}
+kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc delete vmc ${MANAGED_CLUSTER_NAME} --timeout=10m
 echo "Deleted VMC, relying on automatic cleanup on managed cluster"

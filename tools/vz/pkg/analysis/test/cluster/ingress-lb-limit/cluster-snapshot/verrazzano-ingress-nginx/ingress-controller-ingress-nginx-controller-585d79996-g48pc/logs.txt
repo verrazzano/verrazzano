@@ -1,0 +1,101 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+==== START logs for container controller of pod ingress-nginx/ingress-controller-ingress-nginx-controller-585d79996-g48pc ====
+-------------------------------------------------------------------------------
+NGINX Ingress controller
+  Release:       1.1.1-20220413170248-b60724ed1
+  Build:         git-b60724ed1
+  Repository:    https://github.com/verrazzano/ingress-nginx.git
+  nginx version: nginx/1.19.9
+
+-------------------------------------------------------------------------------
+
+W0603 14:15:51.505544       7 client_config.go:615] Neither --kubeconfig nor --master was specified.  Using the inClusterConfig.  This might not work.
+I0603 14:15:51.506020       7 main.go:223] "Creating API client" host="https://REDACTED-IP4-ADDRESS:443"
+W0603 14:15:54.191543       7 main.go:264] Initial connection to the Kubernetes API server was retried 2 times.
+I0603 14:15:54.191605       7 main.go:267] "Running in Kubernetes cluster" major="1" minor="22" git="v1.22.5" state="clean" commit="c999fea1e6dbf111d64000dfaaff45edaa4c34d2" platform="linux/amd64"
+I0603 14:15:54.202541       7 main.go:86] "Valid default backend" service="ingress-nginx/ingress-controller-ingress-nginx-defaultbackend"
+I0603 14:15:54.506571       7 main.go:104] "SSL fake certificate created" file="/etc/ingress-controller/ssl/default-fake-certificate.pem"
+I0603 14:15:54.582449       7 nginx.go:255] "Starting NGINX Ingress controller"
+I0603 14:15:54.609568       7 event.go:282] Event(v1.ObjectReference{Kind:"ConfigMap", Namespace:"ingress-nginx", Name:"ingress-controller-ingress-nginx-controller", UID:"a3b62f6f-fdf3-4049-8e28-dd9d0bdfb5f3", APIVersion:"v1", ResourceVersion:"18681", FieldPath:""}): type: 'Normal' reason: 'CREATE' ConfigMap ingress-nginx/ingress-controller-ingress-nginx-controller
+I0603 14:15:55.785111       7 nginx.go:297] "Starting NGINX process"
+I0603 14:15:55.785151       7 leaderelection.go:248] attempting to acquire leader lease ingress-nginx/ingress-controller-leader...
+I0603 14:15:55.786145       7 controller.go:155] "Configuration changes detected, backend reload required"
+I0603 14:15:55.813436       7 leaderelection.go:258] successfully acquired lease ingress-nginx/ingress-controller-leader
+I0603 14:15:55.813514       7 status.go:84] "New leader elected" identity="ingress-controller-ingress-nginx-controller-585d79996-g48pc"
+I0603 14:15:55.879764       7 controller.go:172] "Backend successfully reloaded"
+I0603 14:15:55.879882       7 controller.go:183] "Initial sync, sleeping for 1 second"
+I0603 14:15:55.879972       7 event.go:282] Event(v1.ObjectReference{Kind:"Pod", Namespace:"ingress-nginx", Name:"ingress-controller-ingress-nginx-controller-585d79996-g48pc", UID:"4a7e75e3-4bfa-4756-9d1d-3a59ca415552", APIVersion:"v1", ResourceVersion:"19217", FieldPath:""}): type: 'Normal' reason: 'RELOAD' NGINX reload triggered due to a change in configuration
+==== END logs for container controller of pod ingress-nginx/ingress-controller-ingress-nginx-controller-585d79996-g48pc ====
+==== START logs for container istio-proxy of pod ingress-nginx/ingress-controller-ingress-nginx-controller-585d79996-g48pc ====
+2022-06-03T14:15:51.876384Z	info	FLAG: --concurrency="2"
+2022-06-03T14:15:51.876619Z	info	FLAG: --domain="ingress-nginx.svc.cluster.local"
+2022-06-03T14:15:51.879142Z	info	FLAG: --help="false"
+2022-06-03T14:15:51.879227Z	info	FLAG: --log_as_json="false"
+2022-06-03T14:15:51.879268Z	info	FLAG: --log_caller=""
+2022-06-03T14:15:51.879306Z	info	FLAG: --log_output_level="default:info"
+2022-06-03T14:15:51.879356Z	info	FLAG: --log_rotate=""
+2022-06-03T14:15:51.879395Z	info	FLAG: --log_rotate_max_age="30"
+2022-06-03T14:15:51.879431Z	info	FLAG: --log_rotate_max_backups="1000"
+2022-06-03T14:15:51.879469Z	info	FLAG: --log_rotate_max_size="104857600"
+2022-06-03T14:15:51.879505Z	info	FLAG: --log_stacktrace_level="default:none"
+2022-06-03T14:15:51.879548Z	info	FLAG: --log_target="[stdout]"
+2022-06-03T14:15:51.879585Z	info	FLAG: --meshConfig="./etc/istio/config/mesh"
+2022-06-03T14:15:51.879621Z	info	FLAG: --outlierLogPath=""
+2022-06-03T14:15:51.879657Z	info	FLAG: --proxyComponentLogLevel="misc:error"
+2022-06-03T14:15:51.879695Z	info	FLAG: --proxyLogLevel="warning"
+2022-06-03T14:15:51.879736Z	info	FLAG: --serviceCluster="istio-proxy"
+2022-06-03T14:15:51.879777Z	info	FLAG: --stsPort="0"
+2022-06-03T14:15:51.879816Z	info	FLAG: --templateFile=""
+2022-06-03T14:15:51.879835Z	info	FLAG: --tokenManagerPlugin="GoogleTokenExchange"
+2022-06-03T14:15:51.879857Z	info	FLAG: --vklog="0"
+2022-06-03T14:15:51.879866Z	info	Version 1.13.2-f84f69d1028e874d568f2942c5bab5271fcdeda7-Clean
+2022-06-03T14:15:51.880337Z	info	Proxy role	ips=[REDACTED-IP4-ADDRESS fe80::80df:63ff:fe1d:e1b7] type=sidecar id=ingress-controller-ingress-nginx-controller-585d79996-g48pc.ingress-nginx domain=ingress-nginx.svc.cluster.local
+2022-06-03T14:15:51.880455Z	info	Apply proxy config from env {}
+
+2022-06-03T14:15:51.882058Z	info	Effective config: binaryPath: /usr/local/bin/envoy
+concurrency: 2
+configPath: ./etc/istio/proxy
+controlPlaneAuthPolicy: MUTUAL_TLS
+discoveryAddress: istiod.istio-system.svc:15012
+drainDuration: 45s
+parentShutdownDuration: 60s
+proxyAdminPort: 15000
+serviceCluster: istio-proxy
+statNameLength: 189
+statusPort: 15020
+terminationDrainDuration: 5s
+tracing:
+  zipkin:
+    address: zipkin.istio-system:9411
+
+2022-06-03T14:15:51.882184Z	info	JWT policy is third-party-jwt
+2022-06-03T14:15:51.905744Z	info	Opening status port 15020
+2022-06-03T14:15:51.905862Z	info	CA Endpoint istiod.istio-system.svc:15012, provider Citadel
+2022-06-03T14:15:51.906171Z	info	Using CA istiod.istio-system.svc:15012 cert with certs: var/run/secrets/istio/root-cert.pem
+2022-06-03T14:15:51.906394Z	info	citadelclient	Citadel client using custom root cert: var/run/secrets/istio/root-cert.pem
+2022-06-03T14:15:51.928869Z	info	ads	All caches have been synced up in 64.921356ms, marking server ready
+2022-06-03T14:15:51.929704Z	info	sds	SDS server for workload certificates started, listening on "etc/istio/proxy/SDS"
+2022-06-03T14:15:51.929746Z	info	xdsproxy	Initializing with upstream address "istiod.istio-system.svc:15012" and cluster "Kubernetes"
+2022-06-03T14:15:51.930163Z	info	sds	Starting SDS grpc server
+2022-06-03T14:15:51.930439Z	info	starting Http service at REDACTED-IP4-ADDRESS:15004
+2022-06-03T14:15:51.932459Z	info	Pilot SAN: [istiod.istio-system.svc]
+2022-06-03T14:15:51.934756Z	info	Starting proxy agent
+2022-06-03T14:15:51.934850Z	info	Epoch 0 starting
+2022-06-03T14:15:51.934913Z	info	Envoy command: [-c etc/istio/proxy/envoy-rev0.json --restart-epoch 0 --drain-time-s 45 --drain-strategy immediate --parent-shutdown-time-s 60 --local-address-ip-version v4 --file-flush-interval-msec 1000 --disable-hot-restart --log-format %Y-%m-%dT%T.%fZ	%l	envoy %n	%v -l warning --component-log-level misc:error --concurrency 2]
+2022-06-03T14:15:52.264247Z	info	cache	generated new workload certificate	latency=334.707893ms ttl=23h59m59.735839066s
+2022-06-03T14:15:52.264321Z	info	cache	Root cert has changed, start rotating root cert
+2022-06-03T14:15:52.264366Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:0 Version:
+2022-06-03T14:15:52.264456Z	info	cache	returned workload trust anchor from cache	ttl=23h59m59.735548997s
+2022-06-03T14:15:52.806278Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-06-03T14:15:53.062046Z	info	ads	ADS: new connection for node:ingress-controller-ingress-nginx-controller-585d79996-g48pc.ingress-nginx-1
+2022-06-03T14:15:53.062259Z	info	cache	returned workload trust anchor from cache	ttl=23h59m58.937755723s
+2022-06-03T14:15:53.062899Z	info	ads	SDS: PUSH request for node:ingress-controller-ingress-nginx-controller-585d79996-g48pc.ingress-nginx resources:1 size:2.0kB resource:ROOTCA
+2022-06-03T14:15:53.102172Z	info	ads	ADS: new connection for node:ingress-controller-ingress-nginx-controller-585d79996-g48pc.ingress-nginx-2
+2022-06-03T14:15:53.102310Z	info	cache	returned workload certificate from cache	ttl=23h59m58.897698768s
+2022-06-03T14:15:53.102505Z	info	ads	SDS: PUSH request for node:ingress-controller-ingress-nginx-controller-585d79996-g48pc.ingress-nginx resources:1 size:9.2kB resource:default
+2022-06-03T14:15:54.136333Z	info	Readiness succeeded in 2.271166207s
+2022-06-03T14:15:54.137066Z	info	Envoy proxy is ready
+2022-06-03T14:47:44.079515Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+==== END logs for container istio-proxy of pod ingress-nginx/ingress-controller-ingress-nginx-controller-585d79996-g48pc ====

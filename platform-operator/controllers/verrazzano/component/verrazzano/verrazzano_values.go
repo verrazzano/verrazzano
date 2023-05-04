@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package verrazzano
@@ -42,6 +42,7 @@ type verrazzanoValues struct {
 	PrometheusPushgateway  *prometheusPushgatewayValues  `json:"prometheusPushgateway,omitempty"`
 	PrometheusNodeExporter *prometheusNodeExporterValues `json:"prometheusNodeExporter,omitempty"`
 	JaegerOperator         *jaegerOperatorValues         `json:"jaegerOperator,omitempty"`
+	IngressNGINX           *ingressNGINXValues           `json:"ingressNGINX,omitempty"`
 }
 
 type subject struct {
@@ -156,4 +157,8 @@ type prometheusNodeExporterValues struct {
 
 type jaegerOperatorValues struct {
 	Enabled bool `json:"enabled"` // Always write
+}
+
+type ingressNGINXValues struct {
+	Namespace string `json:"namespace"`
 }

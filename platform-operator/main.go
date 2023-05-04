@@ -19,7 +19,6 @@ import (
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/operatorinit"
 	"go.uber.org/zap"
@@ -125,8 +124,6 @@ func main() {
 	} else {
 		log.Errorf("Failed to get the Verrazzano version from the BOM: %v", err)
 	}
-
-	registry.InitRegistry()
 
 	// This allows separation of webhooks and operator
 	var exitErr error

@@ -4,8 +4,7 @@ package vzconfig
 
 import (
 	"fmt"
-
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -96,7 +95,7 @@ func GetIngressIP(client client.Client, vz *vzapi.Verrazzano) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return GetExternalIP(client, serviceType, vpoconst.NGINXControllerServiceName, globalconst.IngressNamespace)
+	return GetExternalIP(client, serviceType, vpoconst.NGINXControllerServiceName, nginxutil.IngressNGINXNamespace())
 }
 
 // BuildDNSDomain Constructs the full DNS subdomain for the deployment

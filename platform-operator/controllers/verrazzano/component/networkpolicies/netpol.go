@@ -10,13 +10,16 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
@@ -36,8 +39,6 @@ const (
 var netpolNamespaceNames = []types.NamespacedName{
 	{Namespace: vzconst.CertManagerNamespace, Name: "cert-manager"},
 	{Namespace: vzconst.CertManagerNamespace, Name: "external-dns"},
-	{Namespace: constants.IngressNginxNamespace, Name: "ingress-nginx-controller"},
-	{Namespace: constants.IngressNginxNamespace, Name: "ingress-nginx-default-backend"},
 	{Namespace: vzconst.IstioSystemNamespace, Name: "istio-ingressgateway"},
 	{Namespace: vzconst.IstioSystemNamespace, Name: "istio-egressgateway"},
 	{Namespace: vzconst.IstioSystemNamespace, Name: "allow-same-namespace"},
@@ -74,10 +75,6 @@ var (
 	// For Unit test purposes
 	writeFileFunc = os.WriteFile
 )
-
-// func resetWriteFileFunc() {
-//	writeFileFunc = os.WriteFile
-// }
 
 // appendOverrides appends the overrides for this component
 func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
@@ -130,9 +127,9 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *chartValues) er
 	overrides.CoherenceOperator = &coherenceOperatorValues{Enabled: vzcr.IsCoherenceOperatorEnabled(effectiveCR)}
 	overrides.ClusterOperator = &clusterOperatorValues{Enabled: vzcr.IsClusterOperatorEnabled(effectiveCR)}
 	overrides.CertManager = &certManagerValues{Enabled: vzcr.IsCertManagerEnabled(effectiveCR)}
-	overrides.NGINX = &nginxValues{Enabled: vzcr.IsNGINXEnabled(effectiveCR)}
+	overrides.NGINX = &nginxValues{Enabled: vzcr.IsNGINXEnabled(effectiveCR), Namespace: nginxutil.IngressNGINXNamespace()}
 	overrides.ElasticSearch = &elasticsearchValues{Enabled: vzcr.IsOpenSearchEnabled(effectiveCR)}
-	overrides.Externaldns = &externalDNSValues{Enabled: vzcr.IsExternalDNSEnabled(effectiveCR)}
+	overrides.Externaldns = &externalDNSValues{Enabled: vzcr.IsExternalDNSEnabled(effectiveCR), Namespace: externaldns.ResolveExernalDNSNamespace()}
 	overrides.Grafana = &grafanaValues{Enabled: vzcr.IsGrafanaEnabled(effectiveCR)}
 	overrides.Istio = &istioValues{Enabled: vzcr.IsIstioEnabled(effectiveCR)}
 	overrides.JaegerOperator = &jaegerOperatorValues{Enabled: vzcr.IsJaegerOperatorEnabled(effectiveCR)}
@@ -154,6 +151,8 @@ func associateNetworkPoliciesWithHelm(ctx spi.ComponentContext) error {
 
 	// specify helm release nsn
 	releaseNsn := types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}
+
+	ensureIngressNGINXNamespace(ctx.EffectiveCR().ObjectMeta)
 
 	// Loop through the all the network policies
 	for _, nsn := range netpolNamespaceNames {
@@ -187,6 +186,8 @@ func associateNetworkPoliciesWithHelm(ctx spi.ComponentContext) error {
 func removeResourcePolicyFromHelm(ctx spi.ComponentContext) error {
 	cli := ctx.Client()
 	log := ctx.Log()
+
+	ensureIngressNGINXNamespace(ctx.EffectiveCR().ObjectMeta)
 
 	// Loop through the all the network policies
 	for _, nsn := range netpolNamespaceNames {
@@ -255,4 +256,16 @@ func fixKeycloakMySQLNetPolicy(ctx spi.ComponentContext) error {
 	}
 
 	return nil
+}
+
+// ensureIngressNGINXNamespace ensures that Ingress NGINX NS is on the list
+func ensureIngressNGINXNamespace(meta metav1.ObjectMeta) {
+	namespace := nginxutil.IngressNGINXNamespace()
+	for _, nsn := range netpolNamespaceNames {
+		if nsn.Namespace == namespace {
+			return
+		}
+	}
+	netpolNamespaceNames = append(netpolNamespaceNames, types.NamespacedName{Namespace: namespace, Name: "ingress-nginx-controller"})
+	netpolNamespaceNames = append(netpolNamespaceNames, types.NamespacedName{Namespace: namespace, Name: "ingress-nginx-default-backend"})
 }
