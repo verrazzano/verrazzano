@@ -9,26 +9,19 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"time"
 )
 
 const (
-	waitTimeout       = 10 * time.Minute
+	waitTimeout       = 5 * time.Minute
 	pollingInterval   = 10 * time.Second
 	minimumK8sVersion = "1.22.0"
 )
 
-var (
-	isCAPISupported     bool
-	inClusterVZ         *v1beta1.Verrazzano
-	isMinimumK8sVersion bool
-	kubeconfig          = getKubeConfigOrAbort()
-)
+var kubeconfig = getKubeConfigOrAbort()
 
 var t = framework.NewTestFramework("capi")
 
@@ -53,24 +46,23 @@ var _ = t.Describe("Cluster API ", Label("f:platform-lcm.install"), func() {
 // 'It' Wrapper to only run spec if the CAPI is supported on the current Verrazzano version and is installed
 func WhenCapiInstalledIt(description string, f func()) {
 	t.It(description, func() {
-		var err error
-		inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
+		inClusterVZ, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
 		if err != nil {
 			AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
 		}
-		isMinimumK8sVersion, err = k8sutil.IsMinimumk8sVersion(minimumK8sVersion)
+		isCAPIEnabled := vzcr.IsCAPIEnabled(inClusterVZ)
+		isMinimumK8sVersion, err := k8sutil.IsMinimumk8sVersion(minimumK8sVersion)
 		if err != nil {
 			AbortSuite(fmt.Sprintf("Failed to check Minimum k8s version: %v", err))
 		}
-		isCAPISupported, err = pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfig)
+		isCAPISupported, err := pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfig)
 		if err != nil {
 			AbortSuite(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %v", err))
 		}
-		isCAPIComponentStatusEnabled := vzcr.IsComponentStatusEnabled(inClusterVZ, capi.ComponentName)
-		if isMinimumK8sVersion && isCAPISupported && !isCAPIComponentStatusEnabled {
+		if isMinimumK8sVersion && isCAPISupported && isCAPIEnabled {
 			f()
 		} else {
-			t.Logs.Infof("Skipping check '%v', Cluster API  is not installed/supported on this cluster", description)
+			t.Logs.Infof("Skipping test '%v', Cluster API  is not installed/supported on this cluster", description)
 		}
 	})
 }
