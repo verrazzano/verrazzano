@@ -61,6 +61,9 @@ func AppendOverrides(context spi.ComponentContext, _ string, _ string, _ string,
 
 	// Convert NGINX install-args to helm overrides
 	newKvs = append(newKvs, helm.GetInstallArgs(getInstallArgs(cr))...)
+
+	newKvs = append(newKvs, bom.KeyValue{Key: "controller.allowSnippetAnnotations", Value: "true"})
+
 	return newKvs, nil
 }
 

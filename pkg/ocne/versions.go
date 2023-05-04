@@ -91,6 +91,19 @@ func CreateOCNEMetadataConfigMap(ctx context.Context, metadataFile string) error
 	return nil
 }
 
+func DeleteOCNEMetadataConfigMap(ctx context.Context) error {
+	client, err := k8sutil.GetCoreV1Func()
+	if err != nil {
+		return err
+	}
+
+	err = client.ConfigMaps(vzconst.VerrazzanoInstallNamespace).Delete(ctx, configMapName, metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+	return nil
+}
+
 func buildMapping(rawMapping map[string]OCNEMetadata) (map[string]OCNEImages, error) {
 	minSupportedVersion, err := semver.NewSemVersion(minOCNEVersion)
 	if err != nil {
