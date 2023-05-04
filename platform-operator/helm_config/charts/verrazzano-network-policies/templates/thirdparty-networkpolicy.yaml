@@ -799,7 +799,7 @@ spec:
 {{- if .Values.capi.enabled }}
 ---
 # Network policy for capi-controller-manager
-# Ingress:
+# Ingress: allow connection from Kubernetes API server to port 9443
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

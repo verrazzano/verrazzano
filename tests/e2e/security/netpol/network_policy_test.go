@@ -359,6 +359,12 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": "kiali"}}, vzconst.VerrazzanoSystemNamespace, envoyStatsMetricsPort, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test Kiali network ingress from prometheus failed: reason = %s", err))
 			},
+			func() {
+				t.Logs.Info("Test Capi ingress rules")
+
+				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"cluster.x-k8s.io/provider": "cluster-api", "control-plane": "controller-manager"}}, vzconst.VerrazzanoCapiNamespace, 9443, false, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test capi ingress rules failed: reason = %s", err))
+			},
 		)
 	})
 
@@ -471,6 +477,12 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				t.Logs.Info("Negative test kiali ingress rules")
 				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "kiali"}}, vzconst.VerrazzanoSystemNamespace, envoyStatsMetricsPort, false, false)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test kiali ingress rules failed: reason = %s", err))
+			},
+			func() {
+				t.Logs.Info("Negative Capi ingress rules")
+
+				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"cluster.x-k8s.io/provider": "cluster-api", "control-plane": "controller-manager"}}, vzconst.VerrazzanoCapiNamespace, 9440, false, false)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test capi ingress rules failed: reason = %s", err))
 			},
 		}
 
