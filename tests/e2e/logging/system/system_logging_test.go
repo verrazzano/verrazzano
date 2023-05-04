@@ -25,7 +25,7 @@ import (
 const (
 	systemNamespace           = constants.VerrazzanoSystemNamespace
 	installNamespace          = constants.VerrazzanoInstallNamespace
-	capiNamespace             = constants.VerrazzanoCapiNamespace
+	capiNamespace             = constants.VerrazzanoCAPINamespace
 	certMgrNamespace          = constants.CertManagerNamespace
 	keycloakNamespace         = constants.KeycloakNamespace
 	cattleSystemNamespace     = constants.RancherSystemNamespace
