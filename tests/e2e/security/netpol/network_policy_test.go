@@ -365,13 +365,13 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 			func() {
 				t.Logs.Info("Test Capi ingress rules")
 
-				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{providerLabel: "cluster-api", controlPlane: controllerManager}}, vzconst.VerrazzanoCapiNamespace, 9443, false, true)
+				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{providerLabel: "cluster-api", controlPlane: controllerManager}}, vzconst.VerrazzanoCAPINamespace, 9443, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test capi ingress rules failed for capi-controller-manager: reason = %s", err))
-				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{providerLabel: "bootstrap-ocne", controlPlane: controllerManager}}, vzconst.VerrazzanoCapiNamespace, 9443, false, true)
+				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{providerLabel: "bootstrap-ocne", controlPlane: controllerManager}}, vzconst.VerrazzanoCAPINamespace, 9443, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test capi ingress rules failed for capi-ocne-bootstrap-controller-manager: reason = %s", err))
-				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{providerLabel: "control-plane-ocne", controlPlane: controllerManager}}, vzconst.VerrazzanoCapiNamespace, 9443, false, true)
+				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{providerLabel: "control-plane-ocne", controlPlane: controllerManager}}, vzconst.VerrazzanoCAPINamespace, 9443, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test capi ingress rules failed for capi-ocne-control-plane-controller-manager: reason = %s", err))
-				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{providerLabel: "infrastructure-oci", controlPlane: controllerManager}}, vzconst.VerrazzanoCapiNamespace, 9443, false, true)
+				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{providerLabel: "infrastructure-oci", controlPlane: controllerManager}}, vzconst.VerrazzanoCAPINamespace, 9443, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test capi ingress rules failed for capoci-controller-manager: reason = %s", err))
 			},
 		)
@@ -490,13 +490,13 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 			func() {
 				t.Logs.Info("Negative Capi ingress rules")
 
-				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{providerLabel: "cluster-api", controlPlane: controllerManager}}, vzconst.VerrazzanoCapiNamespace, 9440, false, false)
+				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{providerLabel: "cluster-api", controlPlane: controllerManager}}, vzconst.VerrazzanoCAPINamespace, 9440, false, false)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test capi ingress rules for capi-controller-manager failed: reason = %s", err))
-				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{providerLabel: "bootstrap-ocne", controlPlane: controllerManager}}, vzconst.VerrazzanoCapiNamespace, 9440, false, false)
+				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{providerLabel: "bootstrap-ocne", controlPlane: controllerManager}}, vzconst.VerrazzanoCAPINamespace, 9440, false, false)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test capi ingress rules failed for capi-ocne-bootstrap-controller-manager: reason = %s", err))
-				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{providerLabel: "control-plane-ocne", controlPlane: controllerManager}}, vzconst.VerrazzanoCapiNamespace, 9440, false, false)
+				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{providerLabel: "control-plane-ocne", controlPlane: controllerManager}}, vzconst.VerrazzanoCAPINamespace, 9440, false, false)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test capi ingress rules failed for capi-ocne-control-plane-controller-manager: reason = %s", err))
-				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{providerLabel: "infrastructure-oci", controlPlane: controllerManager}}, vzconst.VerrazzanoCapiNamespace, 9440, false, false)
+				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{providerLabel: "infrastructure-oci", controlPlane: controllerManager}}, vzconst.VerrazzanoCAPINamespace, 9440, false, false)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test capi ingress rules failed for capoci-controller-manager: reason = %s", err))
 			},
 		}
