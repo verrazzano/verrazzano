@@ -16,7 +16,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
-	"sync"
 	"time"
 )
 
@@ -33,7 +32,7 @@ var (
 	isCAPIEnabled       bool
 	inClusterVZ         *v1beta1.Verrazzano
 	isMinimumK8sVersion bool
-	mutex               = &sync.Mutex{}
+	kubeconfig          = getKubeConfigOrAbort()
 )
 
 var t = framework.NewTestFramework("capi")
@@ -92,48 +91,64 @@ var _ = AfterSuite(func() {
 	}
 })
 
-var _ = BeforeSuite(func() {
-	mutex.Lock()
-	defer mutex.Unlock()
-	m := CAPIEnabledModifierV1beta1{}
-	var err error
+//var _ = BeforeSuite(func() {
+//	mutex.Lock()
+//	defer mutex.Unlock()
+//	m := CAPIEnabledModifierV1beta1{}
+//	var err error
+//
+//	if err != nil {
+//		AbortSuite(fmt.Sprintf("Failed to get/parse kubernetes version: %s", err.Error()))
+//	}
+//	kubeconfigPath := getKubeConfigOrAbort()
+//	inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
+//	if err != nil {
+//		AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
+//	}
+//
+//	isMinimumK8sVersion, err = k8sutil.IsMinimumk8sVersion(minimumK8sVersion)
+//	if isMinimumK8sVersion {
+//		isCAPIComponentStatusEnabled := vzcr.IsComponentStatusEnabled(inClusterVZ, capi.ComponentName)
+//		isCAPISupported, err = pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfigPath)
+//		if err != nil {
+//			AbortSuite(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %v", err))
+//		}
+//		if isCAPISupported && !isCAPIComponentStatusEnabled {
+//			update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
+//			inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
+//			if err != nil {
+//				AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
+//			}
+//			isCAPIEnabled = vzcr.IsCAPIEnabled(inClusterVZ)
+//		}
+//		if isCAPISupported && isCAPIEnabled {
+//			update.ValidatePods(capiLabelValue, capiLabelKey, constants.VerrazzanoCAPINamespace, uint32(4), false)
+//		}
+//	}
+//})
 
-	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to get/parse kubernetes version: %s", err.Error()))
-	}
-	kubeconfigPath := getKubeConfigOrAbort()
-	inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
-	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
-	}
+var _ = t.Describe("Cluster API ", Label("f:platform-lcm.install"), func() {
 
-	isMinimumK8sVersion, err = k8sutil.IsMinimumk8sVersion(minimumK8sVersion)
-	if isMinimumK8sVersion {
-		isCAPIComponentStatusEnabled := vzcr.IsComponentStatusEnabled(inClusterVZ, capi.ComponentName)
-		isCAPISupported, err = pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfigPath)
-		if err != nil {
-			AbortSuite(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %v", err))
-		}
-		if isCAPISupported && !isCAPIComponentStatusEnabled {
+	t.Context("when not installed", func() {
+		WhenCapiNotInstalledIt("install Cluster API", func() {
+			m := CAPIEnabledModifierV1beta1{}
 			update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
-			inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
+			var err error
+			inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
 			if err != nil {
 				AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
 			}
 			isCAPIEnabled = vzcr.IsCAPIEnabled(inClusterVZ)
-		}
-		if isCAPISupported && isCAPIEnabled {
-			update.ValidatePods(capiLabelValue, capiLabelKey, constants.VerrazzanoCAPINamespace, uint32(4), false)
-		}
-	}
-})
+			if isCAPIEnabled {
+				update.ValidatePods(capiLabelValue, capiLabelKey, constants.VerrazzanoCAPINamespace, uint32(4), false)
+			}
+		})
+	})
 
-var _ = t.Describe("Cluster API ", Label("f:platform-lcm.install"), func() {
 	t.Context("after successful installation", func() {
 		// GIVEN the Cluster API is installed
 		// WHEN we check to make sure the pods exist
 		// THEN we successfully find the pods in the cluster
-		t.Logs.Infof("Context: isMinimumK8sVersion", isMinimumK8sVersion)
 		WhenCapiInstalledIt("expected pods are running", func() {
 			pods := []string{"capi-controller-manager", "capi-ocne-bootstrap-controller-manager", "capi-ocne-control-plane-controller-manager", "capoci-controller-manager"}
 			Eventually(func() (bool, error) {
@@ -150,12 +165,37 @@ var _ = t.Describe("Cluster API ", Label("f:platform-lcm.install"), func() {
 // 'It' Wrapper to only run spec if the CAPI is supported on the current Verrazzano version and is installed
 func WhenCapiInstalledIt(description string, f func()) {
 	t.It(description, func() {
+		var err error
+		inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
+		}
 		isCAPIEnabled = vzcr.IsCAPIEnabled(inClusterVZ)
-		t.Logs.Infof("WhenCapiInstalledIt", isCAPIEnabled)
 		if isMinimumK8sVersion && isCAPISupported && isCAPIEnabled {
 			f()
 		} else {
 			t.Logs.Infof("Skipping chgeck '%v', Cluster API  is not installed/supported on this cluster", description)
+		}
+	})
+}
+
+// 'It' Wrapper to only run spec if the CAPI is supported on the current Verrazzano version and is not installed
+func WhenCapiNotInstalledIt(description string, f func()) {
+	t.It(description, func() {
+		var err error
+		inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
+		}
+		isCAPISupported, err = pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfig)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %v", err))
+		}
+		isCAPIComponentStatusEnabled := vzcr.IsComponentStatusEnabled(inClusterVZ, capi.ComponentName)
+		if isMinimumK8sVersion && isCAPISupported && !isCAPIComponentStatusEnabled {
+			f()
+		} else {
+			t.Logs.Infof("Skipping chgeck '%v', Cluster API  is not supported/installed on this cluster", description)
 		}
 	})
 }
