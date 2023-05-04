@@ -461,6 +461,14 @@ pipeline {
                                         runGinkgoKeepGoing('examples/helidon')
                                     }
                                 }
+                                stage('examples todo-list') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
+                                    }
+                                    steps {
+                                        runGinkgoKeepGoing('examples/todo')
+                                    }
+                                }
                             }
                             post {
                                 always {
