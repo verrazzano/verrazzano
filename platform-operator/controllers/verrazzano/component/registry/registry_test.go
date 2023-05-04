@@ -6,8 +6,9 @@ package registry
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerconfig"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerocidns"
+	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/config"
+	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
+	cmocidns "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/ocidns"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"helm.sh/helm/v3/pkg/action"
@@ -26,7 +27,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
@@ -112,11 +112,11 @@ func TestGetComponents(t *testing.T) {
 	i++
 	a.Equal(comps[i].Name(), nginx.ComponentName)
 	i++
-	a.Equal(comps[i].Name(), certmanager.ComponentName)
+	a.Equal(comps[i].Name(), cmcontroller.ComponentName)
 	i++
-	a.Equal(comps[i].Name(), certmanagerocidns.ComponentName)
+	a.Equal(comps[i].Name(), cmocidns.ComponentName)
 	i++
-	a.Equal(comps[i].Name(), certmanagerconfig.ComponentName)
+	a.Equal(comps[i].Name(), cmconfig.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), externaldns.ComponentName)
 	i++
@@ -414,7 +414,7 @@ func TestComponentMultipleDependenciesMet(t *testing.T) {
 		ReleaseName:    "foo",
 		ChartDir:       "chartDir",
 		ChartNamespace: "bar",
-		Dependencies:   []string{oam.ComponentName, certmanager.ComponentName},
+		Dependencies:   []string{oam.ComponentName, cmcontroller.ComponentName},
 	}
 	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	assert.True(t, ready)
