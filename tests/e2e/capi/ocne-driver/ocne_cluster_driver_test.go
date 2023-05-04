@@ -118,6 +118,8 @@ type capiClusterData struct {
 }
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
+	//todo oci get to check it's working
+	
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	Expect(err).ShouldNot(HaveOccurred())
 	if !pkg.IsRancherEnabled(kubeconfigPath) || !pkg.IsCAPIEnabled(kubeconfigPath) {
@@ -250,13 +252,13 @@ func createCluster(clusterName string) error {
 		t.Logs.Errorf("error create cluster POST response: %v", response)
 		return err
 	}
+	t.Logs.Info("Create Cluster POST response: %v", response)
 	defer response.Body.Close()
 	err = httputil.ValidateResponseCode(response, http.StatusCreated)
 	if err != nil {
 		t.Logs.Errorf(err.Error())
 		return err
 	}
-	t.Logs.Info("Create Cluster POST response: %v", response)
 	return err
 }
 
