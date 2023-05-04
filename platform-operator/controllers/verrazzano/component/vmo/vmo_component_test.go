@@ -7,8 +7,11 @@ import (
 	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"helm.sh/helm/v3/pkg/action"
@@ -261,6 +264,8 @@ func testActionConfigWithoutInstallation(log vzlog.VerrazzanoLogger, settings *c
 func TestUninstallHelmChartInstalled(t *testing.T) {
 	defer helm.SetDefaultActionConfigFunction()
 	helm.SetActionConfigFunction(testActionConfigWithInstallation)
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.VerrazzanoSystemNamespace)
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 }
@@ -273,6 +278,8 @@ func TestUninstallHelmChartInstalled(t *testing.T) {
 func TestUninstallHelmChartNotInstalled(t *testing.T) {
 	defer helm.SetDefaultActionConfigFunction()
 	helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.VerrazzanoSystemNamespace)
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 
 	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)

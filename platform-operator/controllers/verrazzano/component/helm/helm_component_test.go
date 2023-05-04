@@ -6,6 +6,7 @@ package helm
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	corev1Cli "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
@@ -1443,6 +1444,9 @@ func TestUninstall(t *testing.T) {
 	a := assert.New(t)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(testNs)
+			defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+
 			tt.helmOverride()
 			if tt.expectSuccess {
 				a.NoError(tt.helmComponent.Uninstall(tt.ctx))
