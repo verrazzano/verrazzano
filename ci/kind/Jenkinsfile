@@ -177,6 +177,9 @@ pipeline {
                 script {
                     try {
                     sh """
+                        docker ps -a
+                        docker version
+                        docker info
                         echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
                     """
                     } catch(error) {
