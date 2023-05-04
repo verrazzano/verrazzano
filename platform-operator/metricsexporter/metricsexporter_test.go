@@ -4,13 +4,13 @@
 package metricsexporter
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
 )
 
 // Constants that hold the times that are used to test various cases of component timestamps being passed
@@ -23,12 +23,14 @@ const (
 	unregisteredTestComponent string = "unregistered test component"
 )
 
+func init() {
+	Init()
+}
+
 // TestReconcileCounterIncrement tests the Inc fn of the reconcile counter and the reconcile error counter metrics objects
 // GIVEN a call to Inc
 // THEN the function should update that internal metric by one
 func TestReconcileCounterAndErrorIncrement(t *testing.T) {
-	Init()
-
 	assert := asserts.New(t)
 	test := struct {
 		name                             string
@@ -60,8 +62,6 @@ func TestReconcileCounterAndErrorIncrement(t *testing.T) {
 // WHEN a VZ CR with or without timestamps is passed to the fn
 // THEN the function properly updates or does nothing to the component's metric
 func TestAnalyzeVerrazzanoResourceMetrics(t *testing.T) {
-	Init()
-
 	assert := asserts.New(t)
 	emptyVZCR := installv1alpha1.Verrazzano{}
 	disabledComponentVZCR := installv1alpha1.Verrazzano{
