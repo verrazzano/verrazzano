@@ -102,6 +102,8 @@ var _ = BeforeSuite(func() {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
 	}
+	isCAPIEnabled = vzcr.IsCAPIEnabled(inClusterVZ)
+
 	isMinimumK8sVersion, err = k8sutil.IsMinimumk8sVersion(minimumK8sVersion)
 	if isMinimumK8sVersion {
 		isCAPIComponentStatusEnabled := vzcr.IsComponentStatusEnabled(inClusterVZ, capi.ComponentName)
@@ -109,7 +111,7 @@ var _ = BeforeSuite(func() {
 		if err != nil {
 			AbortSuite(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %v", err))
 		}
-		if isCAPISupported && !isCAPIComponentStatusEnabled {
+		if isCAPISupported && (isCAPIEnabled && !isCAPIComponentStatusEnabled) {
 			update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
 			inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 			if err != nil {
