@@ -59,7 +59,8 @@ func WhenCapiInstalledIt(description string, f func()) {
 		if err != nil {
 			AbortSuite(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %v", err))
 		}
-		if isMinimumK8sVersion && isCAPISupported && isCAPIEnabled {
+		isComponentStatusEnabled := vzcr.IsComponentStatusEnabled(inClusterVZ, constants.VerrazzanoCAPINamespace
+		if isMinimumK8sVersion && isCAPISupported && (isCAPIEnabled && isComponentStatusEnabled) {
 			f()
 		} else {
 			t.Logs.Infof("Skipping test '%v', Cluster API  is not installed/supported on this cluster", description)
