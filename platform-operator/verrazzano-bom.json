@@ -200,7 +200,7 @@
           "images": [
             {
               "image": "cluster-api-controller",
-              "tag": "amd64-v1.3.3-20230324202819-5e71a53d9"
+              "tag": "v1.3.3-20230427222746-876fe3dc9"
             }
           ]
         }
@@ -232,11 +232,11 @@
           "images": [
             {
               "image": "cluster-api-ocne-bootstrap-controller",
-              "tag": "v0.1.0-20230421153459-16a5418"
+              "tag": "v0.1.0-20230427222244-4ef1141"
             },
             {
               "image": "cluster-api-ocne-control-plane-controller",
-              "tag": "v0.1.0-20230421153459-16a5418"
+              "tag": "v0.1.0-20230427222244-4ef1141"
             }
           ]
         }

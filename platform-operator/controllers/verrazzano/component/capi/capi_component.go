@@ -24,7 +24,7 @@ import (
 const ComponentName = "capi"
 
 // Namespace for CAPI providers
-const VerrazzanoCAPINamespace = "verrazzano-capi"
+const ComponentNamespace = "verrazzano-capi"
 
 // ComponentJSONName is the JSON name of the component in CRD
 const ComponentJSONName = "capi"
@@ -39,19 +39,19 @@ const (
 var capiDeployments = []types.NamespacedName{
 	{
 		Name:      capiCMDeployment,
-		Namespace: VerrazzanoCAPINamespace,
+		Namespace: ComponentNamespace,
 	},
 	{
 		Name:      capiOcneBootstrapCMDeployment,
-		Namespace: VerrazzanoCAPINamespace,
+		Namespace: ComponentNamespace,
 	},
 	{
 		Name:      capiOcneControlPlaneCMDeployment,
-		Namespace: VerrazzanoCAPINamespace,
+		Namespace: ComponentNamespace,
 	},
 	{
 		Name:      capiociCMDeployment,
-		Namespace: VerrazzanoCAPINamespace,
+		Namespace: ComponentNamespace,
 	},
 }
 
@@ -83,7 +83,7 @@ func (c capiComponent) Name() string {
 
 // Namespace returns the component namespace.
 func (c capiComponent) Namespace() string {
-	return VerrazzanoCAPINamespace
+	return ComponentNamespace
 }
 
 // ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done.
@@ -149,12 +149,12 @@ func (c capiComponent) IsOperatorInstallSupported() bool {
 // IsInstalled checks to see if CAPI is installed
 func (c capiComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	daemonSet := &appsv1.Deployment{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: VerrazzanoCAPINamespace, Name: capiCMDeployment}, daemonSet)
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: capiCMDeployment}, daemonSet)
 	if errors.IsNotFound(err) {
 		return false, nil
 	}
 	if err != nil {
-		ctx.Log().Errorf("Failed to get %s/%s deployment: %v", VerrazzanoCAPINamespace, capiCMDeployment, err)
+		ctx.Log().Errorf("Failed to get %s/%s deployment: %v", ComponentNamespace, capiCMDeployment, err)
 		return false, err
 	}
 	return true, nil
@@ -177,7 +177,7 @@ func (c capiComponent) Install(_ spi.ComponentContext) error {
 		BootstrapProviders:      []string{"ocne:v0.1.0"},
 		ControlPlaneProviders:   []string{"ocne:v0.1.0"},
 		InfrastructureProviders: []string{"oci:v0.8.1"},
-		TargetNamespace:         VerrazzanoCAPINamespace,
+		TargetNamespace:         ComponentNamespace,
 	}
 
 	_, err = capiClient.Init(initOptions)

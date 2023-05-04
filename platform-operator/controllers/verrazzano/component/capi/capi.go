@@ -45,6 +45,13 @@ providers:
     type: "ControlPlaneProvider"
 `
 
+const (
+	clusterTopology         = "CLUSTER_TOPOLOGY"
+	expClusterResourceSet   = "EXP_CLUSTER_RESOURCE_SET"
+	expMachinePool          = "EXP_MACHINE_POOL"
+	initOCIClientsOnStartup = "INIT_OCI_CLIENTS_ON_STARTUP"
+)
+
 type ImageConfig struct {
 	Version    string
 	Repository string
@@ -66,20 +73,57 @@ type TemplateInput struct {
 	OCNEControlPlaneTag        string
 }
 
+const (
+	defaultClusterAPIDir = "/verrazzano/.cluster-api"
+)
+
+var clusterAPIDir = defaultClusterAPIDir
+
+// Function needed for unit testing to set and reset .cluster-api directory
+func setClusterAPIDir(dir string) {
+	clusterAPIDir = dir
+}
+func resetClusterAPIDir() {
+	clusterAPIDir = defaultClusterAPIDir
+}
+
 // PreInstall implementation for the CAPI Component
 func preInstall(ctx spi.ComponentContext) error {
+	err := setEnvVariables()
+	if err != nil {
+		return err
+	}
+
+	// Create the clusterctl.yaml used when initializing CAPI.
+	return createClusterctlYaml(ctx)
+}
+
+// setEnvVariables sets the environment variables needed for CAPI providers.
+func setEnvVariables() error {
 	// Startup the OCI infrastructure provider without requiring OCI credentials
-	os.Setenv("INIT_OCI_CLIENTS_ON_STARTUP", "false")
+	err := os.Setenv(initOCIClientsOnStartup, "false")
+	if err != nil {
+		return err
+	}
 
 	// Enable experimental feature cluster resource set at boot up
-	os.Setenv("EXP_CLUSTER_RESOURCE_SET", "true")
+	err = os.Setenv(expClusterResourceSet, "true")
+	if err != nil {
+		return err
+	}
 
 	// Enable experimental feature machine pool at boot up
-	os.Setenv("EXP_MACHINE_POOL", "true")
+	err = os.Setenv(expMachinePool, "true")
+	if err != nil {
+		return err
+	}
 
 	// Enable experimental feature cluster topology at boot up
-	os.Setenv("CLUSTER_TOPOLOGY", "true")
+	return os.Setenv(clusterTopology, "true")
+}
 
+// createClusterctlYaml create the clusterctl.yaml with image overrides from the Verrazzano BOM
+func createClusterctlYaml(ctx spi.ComponentContext) error {
 	// Get the image overrides and versions for the CAPI images.
 	templateInput, err := getImageOverrides(ctx)
 	if err != nil {
@@ -92,13 +136,13 @@ func preInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	err = os.Mkdir("/verrazzano/.cluster-api", 0755)
+	err = os.Mkdir(clusterAPIDir, 0755)
 	if err != nil {
 		return err
 	}
 
 	// Create the clusterctl.yaml used when initializing CAPI.
-	return os.WriteFile("/verrazzano/.cluster-api/clusterctl.yaml", result.Bytes(), 0600)
+	return os.WriteFile(clusterAPIDir+"/clusterctl.yaml", result.Bytes(), 0600)
 }
 
 // getImageOverrides returns the CAPI provider image overrides and versions from the Verrazzano bom
