@@ -1,18 +1,18 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package istio
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/namespace"
 	"os/exec"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-
+	"github.com/verrazzano/verrazzano/pkg/namespace"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
+
+	"github.com/pkg/errors"
 )
 
 // cmdRunner needed for unit tests
