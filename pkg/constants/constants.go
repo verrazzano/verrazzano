@@ -52,14 +52,14 @@ const VerrazzanoInstallNamespace = "verrazzano-install"
 // VerrazzanoSystemNamespace is the system namespace for Verrazzano
 const VerrazzanoSystemNamespace = "verrazzano-system"
 
+// VerrazzanoCAPINamespace is the system namespace for Cluster API resources
+const VerrazzanoCAPINamespace = "verrazzano-capi"
+
 // VerrazzanoMultiClusterNamespace is the multi-cluster namespace for Verrazzano
 const VerrazzanoMultiClusterNamespace = "verrazzano-mc"
 
 // VerrazzanoMonitoringNamespace is the namespace for monitoring components
 const VerrazzanoMonitoringNamespace = "verrazzano-monitoring"
-
-// VerrazzanoCapiNamespace - the name of the Capi namespace
-const VerrazzanoCapiNamespace = "verrazzano-capi"
 
 // CertManagerNamespace - the CertManager namespace
 const CertManagerNamespace = "cert-manager"

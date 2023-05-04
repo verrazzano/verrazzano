@@ -73,7 +73,7 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 
 	if vzcr.IsCAPIEnabled(ctx.EffectiveCR()) {
 		if err := namespace.CreateVerrazzanoCapiNamespace(ctx.Client()); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.VerrazzanoCapiNamespace, err)
+			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.VerrazzanoCAPINamespace, err)
 		}
 	}
 

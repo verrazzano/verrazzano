@@ -69,7 +69,7 @@ var netpolNamespaceNames = []types.NamespacedName{
 	{Namespace: constants.VeleroNameSpace, Name: "allow-same-namespace"},
 	{Namespace: constants.VeleroNameSpace, Name: "velero"},
 	{Namespace: vzconst.ArgoCDNamespace, Name: "argocd"},
-	{Namespace: vzconst.VerrazzanoCapiNamespace, Name: "capi"},
+	{Namespace: vzconst.VerrazzanoCAPINamespace, Name: "capi"},
 }
 
 var (

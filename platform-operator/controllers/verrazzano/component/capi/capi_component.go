@@ -7,12 +7,12 @@ import (
 	"context"
 	"fmt"
 
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
@@ -25,8 +25,8 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "capi"
 
-// Namespace for CAPI providers
-const VerrazzanoCAPINamespace = vzconst.VerrazzanoCapiNamespace
+// VerrazzanoCAPINamespace is the namespace for CAPI providers
+const VerrazzanoCAPINamespace = constants.VerrazzanoCAPINamespace
 
 // ComponentJSONName is the JSON name of the component in CRD
 const ComponentJSONName = "capi"
@@ -116,7 +116,7 @@ func (c capiComponent) IsEnabled(effectiveCR runtime.Object) bool {
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
 func (c capiComponent) GetMinVerrazzanoVersion() string {
-	return constants.VerrazzanoVersion1_6_0
+	return vpoconstants.VerrazzanoVersion1_6_0
 }
 
 // GetIngressNames returns the list of ingress names associated with the component
