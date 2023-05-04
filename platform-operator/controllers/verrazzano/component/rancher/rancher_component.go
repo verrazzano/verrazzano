@@ -205,12 +205,27 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	if err != nil {
 		return kvs, err
 	}
+
 	kvs = appendRegistryOverrides(kvs)
 	kvs = append(kvs, bom.KeyValue{
 		Key:   rancherIngressClassNameKey,
 		Value: vzconfig.GetIngressClassName(ctx.EffectiveCR()),
 	})
 
+	kvs, err = appendStreamingOverrides(ctx, kvs)
+	if err != nil {
+		return kvs, err
+	}
+
+	kvs, err = appendPSPEnabledOverrides(ctx, kvs)
+	if err != nil {
+		return kvs, err
+	}
+	return appendCAOverrides(log, kvs, ctx)
+}
+
+// appendStreamingOverrides appends the Rancher streaming related overrides
+func appendStreamingOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	ingress := &k8net.Ingress{}
 	nsName := types.NamespacedName{
 		Namespace: ComponentNamespace,
@@ -220,7 +235,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 			return kvs, err
 		}
 	}
-	// see if ingress already contains annotation
+	// see if ingress already contains the streaming annotation
 	_, ok := ingress.Annotations[nginxStreamSnippetAnnotation]
 	if !ok {
 		ctx.Log().Info("Adding the stream snippet annotation")
@@ -232,16 +247,12 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	} else {
 		kvs = append(kvs, bom.KeyValue{
 			Key:       nginxExtraAnnotations,
-			Value:     "{}",
+			Value:     "",
 			SetString: true,
 		})
 	}
 
-	kvs, err = appendPSPEnabledOverrides(ctx, kvs)
-	if err != nil {
-		return kvs, err
-	}
-	return appendCAOverrides(log, kvs, ctx)
+	return kvs, nil
 }
 
 // appendRegistryOverrides appends overrides if a custom registry is being used
