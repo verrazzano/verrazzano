@@ -80,6 +80,9 @@ const (
 	letsEncryptIngressClassKey = "letsEncrypt.ingress.class"
 	letsEncryptEmailKey        = "letsEncrypt.email"
 	letsEncryptEnvironmentKey  = "letsEncrypt.environment"
+
+	// PSP Enabled key
+	pspEnabledKey = "global.cattle.psp.enabled"
 )
 
 const (

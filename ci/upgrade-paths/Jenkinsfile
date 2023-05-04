@@ -889,13 +889,15 @@ def deleteOkeClusters() {
 def getVerrazzanoOperatorYaml() {
     script {
         OPERATOR_YAML_FILE=sh(returnStdout: true, script: "ci/scripts/derive_operator_yaml.sh ${params.VERSION_FOR_INSTALL}").trim()
+        RELEASE_NUMBER=sh(returnStdout: true, script: "echo ${VERSION_FOR_INSTALL} | tail -c4").trim()
+
         sh """
             echo "Platform Operator Configuration"
             cd ${GO_REPO_PATH}/verrazzano
             if [ "NONE" == "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
-                 if [ "current_branch" == "${VERSION_FOR_INSTALL}" ]; then
-                    echo "Trying to download from object storage . . ."
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-release-operator.yaml
+                if [ "master" == $VERSION_FOR_UPGRADE_ENV ]; then
+                    echo "Downloading operator from object storage"
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/release-${RELEASE_NUMBER}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-release-operator.yaml
                 else
                     echo "Downloading ${OPERATOR_YAML_FILE} for release ${params.VERSION_FOR_INSTALL}"
                     wget "${OPERATOR_YAML_FILE}" -O "${WORKSPACE}"/downloaded-release-operator.yaml
@@ -990,10 +992,9 @@ def getPlatformOperatorForRelease(){
         VERSION_FOR_UPGRADE_ENV = VERSION_FOR_UPGRADE_ENV - "v"
         //Command to retrieve the platform operator yaml of the current branch.
         def operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file"
-        if(params.VERSION_FOR_UPGRADE == "master"){
-            operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/operator.yaml --file"
+
         //Command to retrieve the platform operator yaml of the release branch for patch release upgrade testing.
-        }else if(params.VERSION_FOR_UPGRADE != "current_branch" && params.IS_TRIGGERED_MANUALLY != "YES" && params.VERSION_FOR_UPGRADE != "NONE"){
+        if(params.VERSION_FOR_UPGRADE != "current_branch" && params.IS_TRIGGERED_MANUALLY != "YES" && params.VERSION_FOR_UPGRADE != "NONE"){
 
             def latestReleaseBranch = getLatestReleaseVersion()
 
@@ -1003,6 +1004,7 @@ def getPlatformOperatorForRelease(){
             OPERATOR_YAML_FILE=sh(returnStdout: true, script: "ci/scripts/derive_operator_yaml.sh v${VERSION_FOR_UPGRADE_ENV}").trim()
             operatorCMD = "curl -L ${OPERATOR_YAML_FILE} --output"
         }
+
         sh(script: "$operatorCMD $TARGET_UPGRADE_OPERATOR_YAML")
     }
 }
@@ -1067,10 +1069,8 @@ def upgradeVerrazzano() {
         // Download the bom for the target version that we are upgrading to, then extract the version
         // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
         VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
-        
-        if(params.VERSION_FOR_UPGRADE == "master"){
-            VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
-        }else if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
+
+        if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
             VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE_ENV
         }
 
@@ -1964,9 +1964,13 @@ def isVZOperatorMinimumCompatibleVersion(minimumOperatorVersion){
 
 def downloadCLI() {
     script {
+        sh "echo Downloading VZ CLI from object storage"
+        if(VERSION_FOR_UPGRADE_ENV == "master"){
+            sh "oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}"           
+        }else{
+            sh "oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}"
+        }
         sh """
-            echo "Downloading VZ CLI from object storage"
-            oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
             tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
             ${GO_REPO_PATH}/vz version
         """
@@ -1979,6 +1983,11 @@ def setInitValues() {
         VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+        // GIT_COMMIT_TO_USE: contains release branch sha which is used to download the release operator for the tip of a release branch.
+        // If condition is executed only if the upgrade target branch is master.
+        if(params.VERSION_FOR_UPGRADE == 'master'){
+            SHORT_COMMIT_HASH = params.GIT_COMMIT_TO_USE[0..7]
+        }
         DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
         // update the description with some meaningful info
         setDisplayName()
@@ -2018,7 +2027,21 @@ def performSourceCodeCheckout() {
             def scmInfo = checkout scm
             env.GIT_COMMIT = scmInfo.GIT_COMMIT
             env.GIT_BRANCH = scmInfo.GIT_BRANCH
-        } else {
+        // The master branch is checked out specifically when the upgrade target branch is master. 
+        // This is done to ensure the master branch upgrade test suites are run after the upgrade is completed.
+        // Since the target upgrade branch is the master, then the tests run after upgrade must also be from the master branch.
+        // This is here to ensure that happens.
+        }else if(params.VERSION_FOR_UPGRADE == 'master'){
+            def scmInfo = checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: 'master']],
+                    doGenerateSubmoduleConfigurations: false,
+                    extensions: [],
+                    submoduleCfg: [],
+                    userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+            env.GIT_COMMIT = scmInfo.GIT_COMMIT
+            env.GIT_BRANCH = scmInfo.GIT_BRANCH
+        }else {
             echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
             def scmInfo = checkout([
                     $class: 'GitSCM',

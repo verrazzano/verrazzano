@@ -1,11 +1,12 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package grafana
 
 import (
-	"github.com/verrazzano/verrazzano-monitoring-operator/pkg/resources"
 	"testing"
+
+	"github.com/verrazzano/verrazzano-monitoring-operator/pkg/resources"
 
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
@@ -26,6 +27,20 @@ var grafanaEnabledCR = vzapi.Verrazzano{
 				Database: &vzapi.DatabaseInfo{
 					Host: "testhost:3032",
 					Name: "grafanadb",
+				},
+				SMTP: &vmov1.SMTPInfo{
+					Enabled:        &trueValue,
+					Host:           "testhost:25",
+					ExistingSecret: "smtp-secret",
+					UserKey:        "user",
+					PasswordKey:    "pass",
+					CertFileKey:    "certificate.crt",
+					KeyFileKey:     "key.file",
+					SkipVerify:     &trueValue,
+					FromAddress:    "test@test.com",
+					FromName:       "test",
+					EHLOIdentity:   "EHLO",
+					StartTLSPolicy: "OpportunisticStartTLS",
 				},
 			},
 		},
@@ -54,6 +69,7 @@ func TestNewGrafana(t *testing.T) {
 	assert.Equal(t, "grafana-db", vmi.Spec.Grafana.Database.PasswordSecret)
 	assert.Equal(t, "testhost:3032", vmi.Spec.Grafana.Database.Host)
 	assert.Equal(t, "grafanadb", vmi.Spec.Grafana.Database.Name)
+	assert.Equal(t, grafanaEnabledCR.Spec.Components.Grafana.SMTP, vmi.Spec.Grafana.SMTP)
 }
 
 // TestNewGrafanaWithExistingVMI tests that storage values in the VMI are not erased when a new Grafana is created

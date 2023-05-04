@@ -26,3 +26,5 @@ jaegerOperator:
   enabled: false
 istio:
   enabled: true
+ingressNGINX:
+  namespace: "verrazzano-ingress-nginx"

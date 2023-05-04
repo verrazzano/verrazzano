@@ -46,10 +46,10 @@ logging:
 
 keycloak:
   enabled: true
-  
+
 rancher:
   enabled: true
-  
+
 console:
   enabled: true
   name: verrazzano-console
@@ -83,7 +83,7 @@ security:
     "subject-0":
       kind: Group
       name: *default_monitorsGroup
-      
+
 kubernetes:
   service:
     endpoint:
@@ -100,3 +100,6 @@ jaegerOperator:
   enabled: false
   namespace: verrazzano-monitoring
   jaegerServiceAccount: jaeger-operator-jaeger
+
+ingressNGINX:
+  namespace: verrazzano-ingress-nginx

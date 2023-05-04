@@ -71,9 +71,20 @@ func (r *VerrazzanoManagedClusterReconciler) getJaegerOpenSearchConfig(vzList *v
 
 	// Decide which OpenSearch URL to use.
 	// If the Jaeger OpenSearch URL is the default URL, use VMI OpenSearch ingress URL.
+	// If the Jaeger OpenSearch URL is the default operator based URL, use operator based OpenSearch ingress URL.
 	// If the Jaeger OpenSearch URL  is not the default, meaning it is a custom OpenSearch, use the external OpenSearch URL.
 	if jsc.OSURL == vzconstants.DefaultJaegerOSURL {
-		jc.URL, err = r.getVmiESURL(*vzList)
+		jc.URL, err = r.getESURL(*vzList, vmiIngest)
+		if err != nil {
+			return jc, err
+		}
+		// Get the CA bundle needed to connect to the admin keycloak
+		jc.CA, err = r.getAdminCaBundle()
+		if err != nil {
+			return jc, r.log.ErrorfNewErr("Failed to get the CA bundle used by Verrazzano ingress %v", err)
+		}
+	} else if jsc.OSURL == vzconstants.DefaultOperatorOSURLWithNS {
+		jc.URL, err = r.getESURL(*vzList, operatorOSIngress)
 		if err != nil {
 			return jc, err
 		}
