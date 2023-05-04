@@ -71,10 +71,6 @@ spec:
             - name: CLUSTER_OPERATOR_IMAGE
               value: {{ .Values.global.clusterOperatorImage }}
             {{- end }}
-            {{- if .Values.global.imagePullSecrets }}
-            - name: IMAGE_PULL_SECRETS
-              value: {{ join "," .Values.global.imagePullSecrets }}
-            {{- end }}
           resources:
             requests:
               memory: 72Mi
