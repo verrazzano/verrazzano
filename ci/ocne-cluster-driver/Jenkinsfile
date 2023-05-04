@@ -511,18 +511,18 @@ def runGinkgo(testSuitePath) {
         sh """
             cd ${WORKSPACE}/tests/e2e
             ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- \
-                --region=${env.TF_VAR_region} \
-                --userID=${env.TF_VAR_user_id} \
-                --tenancyID=${env.TF_VAR_tenancy_id} \
-                --compartmentID=${env.TF_VAR_compartment_id} \
-                --vcnID=${env.VCN_ID} \
-                --fingerprint=${env.TF_VAR_api_fingerprint} \
-                --privateKeyContents=${env.API_PRIVATE_KEY_CONTENTS} \
-                --nodePublicKeyContents=${env.NODE_PUBLIC_KEY_CONTENTS} \
-                --workerNodeSubnet=${env.SUBNET_ID} \
-                --controlPlaneSubnet=${env.SUBNET_ID} \
-                --loadBalancerSubnet=${env.SUBNET_ID} \
-                --podCidr=${env.POD_CIDR}
+                --region="${env.TF_VAR_region}" \
+                --userID="${env.TF_VAR_user_id}" \
+                --tenancyID="${env.TF_VAR_tenancy_id}" \
+                --compartmentID="${env.TF_VAR_compartment_id}" \
+                --vcnID="${env.VCN_ID}" \
+                --fingerprint="${env.TF_VAR_api_fingerprint}" \
+                --privateKeyContents="${env.API_PRIVATE_KEY_CONTENTS}" \
+                --nodePublicKeyContents="${env.NODE_PUBLIC_KEY_CONTENTS}" \
+                --workerNodeSubnet="${env.SUBNET_ID}" \
+                --controlPlaneSubnet="${env.SUBNET_ID}" \
+                --loadBalancerSubnet="${env.SUBNET_ID}" \
+                --podCidr="${env.POD_CIDR}"
         """
     }
 }
