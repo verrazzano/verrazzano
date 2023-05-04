@@ -6,7 +6,6 @@ package certmanagerconfig
 import (
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerocidns"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -43,7 +42,6 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
-			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_0_0,
 			Dependencies:              []string{networkpolicies.ComponentName, certmanager.ComponentName, certmanagerocidns.ComponentName},
 		},
 	}

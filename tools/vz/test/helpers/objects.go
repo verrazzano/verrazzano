@@ -1,10 +1,11 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
 
 import (
 	"fmt"
+
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -40,22 +41,6 @@ func CreateTestVPOObjects() []client.Object {
 	return []client.Object{
 		CreateVPOPod(constants.VerrazzanoPlatformOperator),
 		CreateVPOReplicaset(constants.VerrazzanoPlatformOperator),
-		&appsv1.Deployment{
-			TypeMeta: metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: vzconstants.VerrazzanoInstallNamespace,
-				Name:      constants.VerrazzanoPlatformOperator,
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
-				},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				UpdatedReplicas:   1,
-			},
-		},
 	}
 }
 
