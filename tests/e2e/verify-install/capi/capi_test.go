@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
+	"sync"
 	"time"
 )
 
@@ -32,6 +33,7 @@ var (
 	isCAPIEnabled       bool
 	inClusterVZ         *v1beta1.Verrazzano
 	isMinimumK8sVersion bool
+	mutex               = &sync.Mutex{}
 )
 
 var t = framework.NewTestFramework("capi")
@@ -91,6 +93,8 @@ var _ = AfterSuite(func() {
 })
 
 var _ = BeforeSuite(func() {
+	mutex.Lock()
+	defer mutex.Unlock()
 	m := CAPIEnabledModifierV1beta1{}
 	var err error
 
@@ -102,7 +106,6 @@ var _ = BeforeSuite(func() {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
 	}
-	isCAPIEnabled = vzcr.IsCAPIEnabled(inClusterVZ)
 
 	isMinimumK8sVersion, err = k8sutil.IsMinimumk8sVersion(minimumK8sVersion)
 	if isMinimumK8sVersion {
@@ -111,7 +114,7 @@ var _ = BeforeSuite(func() {
 		if err != nil {
 			AbortSuite(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %v", err))
 		}
-		if isCAPISupported && (isCAPIEnabled && !isCAPIComponentStatusEnabled) {
+		if isCAPISupported && !isCAPIComponentStatusEnabled {
 			update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
 			inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 			if err != nil {
