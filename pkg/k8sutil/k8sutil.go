@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	k8sversionutil "k8s.io/apimachinery/pkg/util/version"
 	"os"
 	"path/filepath"
 	"strings"
@@ -529,4 +530,39 @@ func ErrorIfServiceExists(namespace string, names ...string) error {
 func setConfigQPSBurst(config *rest.Config) {
 	config.Burst = APIServerBurst
 	config.QPS = APIServerQPS
+}
+
+// GetKubernetesVersion returns the version of Kubernetes cluster in which operator is deployed
+func GetKubernetesVersion() (string, error) {
+	config, err := GetConfigFromController()
+	if err != nil {
+		return "", fmt.Errorf("Failed to get kubernetes client config %v", err.Error())
+	}
+
+	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return "", fmt.Errorf("Failed to get kubernetes client %v", err.Error())
+	}
+
+	versionInfo, err := client.ServerVersion()
+	if err != nil {
+		return "", fmt.Errorf("Failed to get kubernetes version %v", err.Error())
+	}
+	return versionInfo.String(), nil
+}
+
+func IsMinimumk8sVersion(expectedK8sVersion string) (bool, error) {
+	version, err := GetKubernetesVersion()
+	if err != nil {
+		return false, fmt.Errorf("Failed to get the kubernetes version: %v", err)
+	}
+	k8sVersion, err := k8sversionutil.ParseSemantic(version)
+	if err != nil {
+		return false, fmt.Errorf("Failed to parse Kubernetes version %q: %v", k8sVersion, err)
+	}
+	parsedExpectedK8sVersion := k8sversionutil.MustParseSemantic(expectedK8sVersion)
+	if k8sVersion.AtLeast(parsedExpectedK8sVersion) {
+		return true, nil
+	}
+	return false, nil
 }
