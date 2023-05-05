@@ -56,7 +56,6 @@ const (
 	vzInternalEsUser        = "verrazzano-es-internal"
 	keycloakPodName         = "keycloak-0"
 	realmManagement         = "realm-management"
-	opensearchAdminRole     = "opensearch-admin"
 	viewUsersRole           = "view-users"
 	noRouterAddr            = "mysql-instances"
 	routerAddr              = "mysql"

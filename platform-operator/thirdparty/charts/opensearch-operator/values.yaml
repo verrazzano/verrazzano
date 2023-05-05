@@ -99,7 +99,6 @@ OpenSearchClusterSpec:
     serviceName: opensearch
     version: 2.3.0
     drainDataNodes: true
-    image: "iad.ocir.io/odsbuilddev/sandboxes/saket.m.mahto/opensearch-security:latest"
   dashboards:
     additionalConfig:
       server.name: opensearch-dashboards
@@ -114,7 +113,6 @@ OpenSearchClusterSpec:
     version: 2.3.0
     enable: true
     replicas: 1
-    image: "iad.ocir.io/odsbuilddev/sandboxes/isha.girdhar/osd:latest"
   nodePools:
     - component: masters
       replicas: 3
