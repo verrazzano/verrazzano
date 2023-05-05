@@ -232,6 +232,9 @@ func (c capiComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
 }
 
 func (c capiComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
 	return nil
 }
 
@@ -240,6 +243,9 @@ func (c capiComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
 }
 
 func (c capiComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
 	return nil
 }
 
