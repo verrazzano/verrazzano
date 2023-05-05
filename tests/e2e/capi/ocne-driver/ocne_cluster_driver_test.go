@@ -180,11 +180,11 @@ func createCloudCredential(credentialName string) (string, error) {
 	}
 	privateKeyContentsOneLine := replaceWhitespaceToLiteral(fileContents)
 	credentialsData := cloudCredentialsData{
-		CredentialName:     credentialName,
-		Fingerprint:        fingerprint,
+		CredentialName:     replaceWhitespaceToLiteral(credentialName),
+		Fingerprint:        replaceWhitespaceToLiteral(fingerprint),
 		PrivateKeyContents: privateKeyContentsOneLine,
-		TenancyID:          tenancyID,
-		UserID:             userID,
+		TenancyID:          replaceWhitespaceToLiteral(tenancyID),
+		UserID:             replaceWhitespaceToLiteral(userID),
 	}
 	buf := &bytes.Buffer{}
 	err = executeCloudCredentialsTemplate(&credentialsData, buf)
