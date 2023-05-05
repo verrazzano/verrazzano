@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package weblogic
@@ -7,13 +7,16 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/types"
 
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+
 	"k8s.io/apimachinery/pkg/runtime"
+
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -28,14 +31,19 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
-// ComponentName is the name of the component
-const ComponentName = "weblogic-operator"
+const (
+	// ComponentName is the name of the component
+	ComponentName = "weblogic-operator"
 
-// ComponentNamespace is the namespace of the component
-const ComponentNamespace = constants.VerrazzanoSystemNamespace
+	// ComponentNamespace is the namespace of the component
+	ComponentNamespace = constants.VerrazzanoSystemNamespace
 
-// ComponentJSONName is the JSON name of the verrazzano component in CRD
-const ComponentJSONName = "weblogicOperator"
+	// ComponentJSONName is the JSON name of the verrazzano component in CRD
+	ComponentJSONName = "weblogicOperator"
+
+	// fluentOperatorFilterFile is the file name that consiste Filter and Parser resource for Fluent-Operator
+	fluentOperatorFilterFile = "weblogic-filter-parser.yaml"
+)
 
 type weblogicComponent struct {
 	helm.HelmComponent
@@ -111,6 +119,13 @@ func (c weblogicComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	return false
 }
 
+func (c weblogicComponent) PostInstall(context spi.ComponentContext) error {
+	if err := controllers.ExecuteFluentFilterAndParser(context, fluentOperatorFilterFile, false); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c weblogicComponent) PostUninstall(context spi.ComponentContext) error {
 	err := resource.Resource{
 		Namespace: constants.VerrazzanoSystemNamespace,
@@ -119,5 +134,8 @@ func (c weblogicComponent) PostUninstall(context spi.ComponentContext) error {
 		Object:    &corev1.ServiceAccount{},
 		Log:       context.Log(),
 	}.Delete()
+	if err = controllers.ExecuteFluentFilterAndParser(context, fluentOperatorFilterFile, true); err != nil {
+		return err
+	}
 	return err
 }

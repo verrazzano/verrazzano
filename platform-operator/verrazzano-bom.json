@@ -394,19 +394,19 @@
           "name": "fluent-operator",
           "images": [
             {
-              "image": "fluent-operator",
+              "image": "iad.ocir.io/odsbuilddev/sandboxes/aditya.b.bharadwaj/fluent-operator",
               "tag": "v24",
               "helmImageKey": "operator.container.repository",
               "helmTagKey": "operator.container.tag"
             },
             {
-              "image": "fluent-bit",
+              "image": "iad.ocir.io/odsbuilddev/sandboxes/aditya.b.bharadwaj/fluent-bit",
               "tag": "v2.0.9-10",
               "helmImageKey": "fluentbit.image.repository",
               "helmTagKey": "fluentbit.image.tag"
             },
             {
-              "image": "oraclelinux",
+              "image": "ghcr.io/oracle/oraclelinux",
               "tag": "8",
               "helmImageKey": "operator.initcontainer.repository",
               "helmTagKey": "operator.initcontainer.tag"

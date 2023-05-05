@@ -1,0 +1,163 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+  name: rancherFilter
+  namespace: {{ .rancherNamespace }}
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        parser: rancherFilter1,rancherFilter2,rancherFilter3
+  match: "kubernetes.**cattle-system** kubernetes.**fleet-system** kubernetes.**local-path-provisioner**"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/fluentbit/parser: "true"
+  name: rancherFilter1
+  namespace: {{ .rancherNamespace }}
+spec:
+  regex:
+    regex: '/^time="(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)" level=(?<level>.*?) msg="(?<message>.*?)"[\s\S]*?$/'
+    timeKey: logtime
+    timeFormat: "%Y-%m-%dT%H:%M:%SZ"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/fluentbit/parser: "true"
+  name: rancherFilter2
+  namespace: {{ .rancherNamespace }}
+spec:
+  regex:
+    regex: '/^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) \[(?<level>.*?)\] (?<message>[\s\S]*?)?$/'
+    timeKey: logtime
+    timeFormat: "%Y/%m/%d %H:%M:%S"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/fluentbit/parser: "true"
+  name: rancherFilter3
+  namespace: {{ .rancherNamespace }}
+spec:
+  regex:
+    regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeFormat: "%H:%M:%S.%N"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+  name: rancherFilter
+  namespace: {{ .cattleFleetNamespace }}
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        parser: rancherFilter1,rancherFilter2,rancherFilter3
+  match: "kubernetes.**cattle-system** kubernetes.**fleet-system** kubernetes.**local-path-provisioner**"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/fluentbit/parser: "true"
+  name: rancherFilter1
+  namespace: {{ .cattleFleetNamespace }}
+spec:
+  regex:
+    regex: '/^time="(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)" level=(?<level>.*?) msg="(?<message>.*?)"[\s\S]*?$/'
+    timeKey: logtime
+    timeFormat: "%Y-%m-%dT%H:%M:%SZ"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/fluentbit/parser: "true"
+  name: rancherFilter2
+  namespace: {{ .cattleFleetNamespace }}
+spec:
+  regex:
+    regex: '/^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) \[(?<level>.*?)\] (?<message>[\s\S]*?)?$/'
+    timeKey: logtime
+    timeFormat: "%Y/%m/%d %H:%M:%S"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/fluentbit/parser: "true"
+  name: rancherFilter3
+  namespace: {{ .cattleFleetNamespace }}
+spec:
+  regex:
+    regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeFormat: "%H:%M:%S.%N"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+  name: rancherFilter
+  namespace: {{ .cattleFleetLocalNamespace }}
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        parser: rancherFilter1,rancherFilter2,rancherFilter3
+  match: "kubernetes.**cattle-system** kubernetes.**fleet-system** kubernetes.**local-path-provisioner**"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/fluentbit/parser: "true"
+  name: rancherFilter1
+  namespace: {{ .cattleFleetLocalNamespace }}
+spec:
+  regex:
+    regex: '/^time="(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)" level=(?<level>.*?) msg="(?<message>.*?)"[\s\S]*?$/'
+    timeKey: logtime
+    timeFormat: "%Y-%m-%dT%H:%M:%SZ"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/fluentbit/parser: "true"
+  name: rancherFilter2
+  namespace: {{ .cattleFleetLocalNamespace }}
+spec:
+  regex:
+    regex: '/^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) \[(?<level>.*?)\] (?<message>[\s\S]*?)?$/'
+    timeKey: logtime
+    timeFormat: "%Y/%m/%d %H:%M:%S"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/fluentbit/parser: "true"
+  name: rancherFilter3
+  namespace: {{ .cattleFleetLocalNamespace }}
+spec:
+  regex:
+    regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeFormat: "%H:%M:%S.%N"

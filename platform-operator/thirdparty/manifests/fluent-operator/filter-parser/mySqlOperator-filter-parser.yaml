@@ -1,0 +1,42 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+  name: mySqlOperatorFilter
+  namespace: mysql-operator
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        parser: mySqlOperatorParser1,mySqlOperatorParser2
+  match: "kubernetes.**mysql-operator**mysql-operator_mysql-operator**"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/fluentbit/parser: "true"
+  name: mySqlOperatorParser1
+  namespace: mysql-operator
+spec:
+  regex:
+    regex: '/^\[(?<logtime>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\]\s(?<component>.*?)\s\[(?<level>.*?)\]\s(?<message>.*?)$/'
+    timeKey: logtime
+    timeFormat: "%Y-%m-%d %H:%M:%S,%N"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/fluentbit/parser: "true"
+  name: mySqlOperatorParser2
+  namespace: mysql-operator
+spec:
+  regex:
+    regex: '/^(?<logtime>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}):\s(?<level>.*?):\s(?<message>.*?)$/'
+    timeKey: logtime
+    timeFormat: "%Y-%m-%d %H:%M:%S"

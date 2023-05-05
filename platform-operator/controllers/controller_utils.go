@@ -1,12 +1,17 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package controllers
 
 import (
 	"fmt"
-	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
+	"path"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
+	vzConstans "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
@@ -84,6 +89,34 @@ func ProcDeletedOverride(statusUpdater vzstatus.Updater, c client.Client, vz *in
 
 	if err := UpdateVerrazzanoForInstallOverrides(statusUpdater, ctx, compName); err != nil {
 		return err
+	}
+	return nil
+}
+
+// ExecuteFluentFilterAndParser checks
+func ExecuteFluentFilterAndParser(ctx spi.ComponentContext, fileName string, delete bool) error {
+	fluentOperator := ctx.EffectiveCR().Spec.Components.FluentOperator
+	if fluentOperator != nil && fluentOperator.Enabled != nil && *fluentOperator.Enabled {
+		args := make(map[string]interface{})
+		args["systemNamespace"] = vzConstans.VerrazzanoSystemNamespace
+		args["monitoringNamespace"] = vzConstans.VerrazzanoMonitoringNamespace
+		args["certManagerNamespace"] = vzConstans.CertManagerNamespace
+		args["istioNamespace"] = vzConstans.IstioSystemNamespace
+		args["keycloakNamespace"] = vzConstans.KeycloakNamespace
+		args["ingressNamespace"] = constants.IngressNginxNamespace
+		args["rancherNamespace"] = vzConstans.RancherSystemNamespace
+		args["cattleFleetNamespace"] = "cattle-fleet-system"
+		args["cattleFleetLocalNamespace"] = "cattle-fleet-local-system"
+		filterAndParser := path.Join(config.GetThirdPartyManifestsDir(), "fluent-operator/"+fileName)
+		if delete {
+			if err := k8sutil.NewYAMLApplier(ctx.Client(), "").DeleteFT(filterAndParser, args); err != nil {
+				return ctx.Log().ErrorfNewErr("Failed Deleting Filter and Parser for Fluent Operator: %v", err)
+			}
+		} else {
+			if err := k8sutil.NewYAMLApplier(ctx.Client(), "").ApplyFT(filterAndParser, args); err != nil {
+				return ctx.Log().ErrorfNewErr("Failed applying Filter and Parser for Fluent Operator: %v", err)
+			}
+		}
 	}
 	return nil
 }

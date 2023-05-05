@@ -7,11 +7,16 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -22,9 +27,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"k8s.io/apimachinery/pkg/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -40,6 +42,9 @@ const (
 	// ES secret keys
 	esUsernameKey = "username"
 	esPasswordKey = "password"
+
+	// fluentOperatorFilterFile is the file name that consiste Filter and Parser resource for Fluent-Operator
+	fluentOperatorFilterFile = "vpo-filter-parser.yaml"
 )
 
 // ComponentJSONName is the JSON name of the verrazzano component in CRD
@@ -138,9 +143,21 @@ func (c verrazzanoComponent) IsInstalled(ctx spi.ComponentContext) (bool, error)
 	return c.HelmComponent.IsInstalled(ctx)
 }
 
+// PostUninstall deletes the remaining resources after uninstallation
+func (c verrazzanoComponent) PostUninstall(context spi.ComponentContext) error {
+	if err := controllers.ExecuteFluentFilterAndParser(context, fluentOperatorFilterFile, true); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // PostInstall - post-install, clean up temp files
 func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 	cleanTempFiles(ctx)
+	if err := controllers.ExecuteFluentFilterAndParser(ctx, fluentOperatorFilterFile, false); err != nil {
+		return err
+	}
 	return c.HelmComponent.PostInstall(ctx)
 }
 

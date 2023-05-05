@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023 Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package opensearchdashboards
@@ -6,17 +6,20 @@ package opensearchdashboards
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers"
+
+	"k8s.io/apimachinery/pkg/types"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -28,6 +31,9 @@ const (
 
 	// Certificate names
 	osdCertificateName = "system-tls-osd"
+
+	// fluentOperatorFilterFile is the file name that consiste Filter and Parser resource for Fluent-Operator
+	fluentOperatorFilterFile = "osd-filter-parser.yaml"
 )
 
 // ComponentJSONName is the JSON name of the OpenSearch-Dashboards component in CRD
@@ -131,6 +137,9 @@ func (d opensearchDashboardsComponent) Uninstall(context spi.ComponentContext) e
 }
 
 func (d opensearchDashboardsComponent) PostUninstall(context spi.ComponentContext) error {
+	if err := controllers.ExecuteFluentFilterAndParser(context, fluentOperatorFilterFile, true); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -157,6 +166,9 @@ func (d opensearchDashboardsComponent) IsReady(ctx spi.ComponentContext) bool {
 // PostInstall OpenSearch-Dashboards post-install processing
 func (d opensearchDashboardsComponent) PostInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("OpenSearch-Dashboards component post-upgrade")
+	if err := controllers.ExecuteFluentFilterAndParser(ctx, fluentOperatorFilterFile, false); err != nil {
+		return err
+	}
 	return common.CheckIngressesAndCerts(ctx, d)
 
 }

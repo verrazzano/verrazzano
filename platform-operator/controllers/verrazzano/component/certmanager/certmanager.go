@@ -9,6 +9,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"net/mail"
+	"os"
+	"path/filepath"
+	"strings"
+
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -20,15 +31,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"io"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"net/mail"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 const (
@@ -55,6 +57,9 @@ const (
 	// Uninstall resources
 	controllerConfigMap = "cert-manager-controller"
 	caInjectorConfigMap = "cert-manager-cainjector-leader-election"
+
+	// fluentOperatorFilterFile is the file name that consiste Filter and Parser resource for Fluent-Operator
+	fluentOperatorFilterFile = "cert-manager-filter-parser.yaml"
 )
 
 const snippetSubstring = "rfc2136:\n"

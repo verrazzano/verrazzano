@@ -5,12 +5,14 @@ package fluentoperator
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -25,6 +27,9 @@ const (
 	fluentOperatorImageTag     = "operator.container.tag"
 	fluentOperatorInitTag      = "fluentbit.image.tag"
 	fluentBitImageTag          = "operator.initcontainer.tag"
+	clusterOutputDirectory     = "fluent-operator"
+	systemOutputFile           = "system-output.yaml"
+	applicationOutputFile      = "application-output.yaml"
 )
 
 var (
@@ -42,7 +47,7 @@ var (
 // isFluentOperatorReady checks if the Fluent operator is ready
 func isFluentOperatorReady(context spi.ComponentContext) bool {
 	return ready.DeploymentsAreReady(context.Log(), context.Client(), []types.NamespacedName{fluentOperatorDeployment}, 1, componentPrefix) &&
-		ready.DaemonSetsAreReady(context.Log(), context.Client(), []types.NamespacedName{fluentOperatorDeployment}, 1, componentPrefix)
+		ready.DaemonSetsAreReady(context.Log(), context.Client(), []types.NamespacedName{fluentBitDaemonSet}, 1, componentPrefix)
 }
 
 // GetOverrides returns install overrides for a component
@@ -89,5 +94,21 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	if len(kvs) < 1 {
 		return kvs, ctx.Log().ErrorfNewErr("Failed to construct fluent-operator related images from BOM")
 	}
+	kvs = append(kvs, bom.KeyValue{Key: "image.pullSecrets.enabled", Value: "true"})
 	return kvs, nil
+}
+
+func applyClusterOutput(compContext spi.ComponentContext) error {
+	crdManifestDir := filepath.Join(config.GetThirdPartyManifestsDir(), clusterOutputDirectory)
+	systemClusterOutput := filepath.Join(crdManifestDir, systemOutputFile)
+	applicationClusterOutput := filepath.Join(crdManifestDir, applicationOutputFile)
+	// Apply the ClusterOutput for System related logs
+	if err := k8sutil.NewYAMLApplier(compContext.Client(), "").ApplyF(systemClusterOutput); err != nil {
+		return compContext.Log().ErrorfNewErr("Failed applying ClusterOutput for System related logs: %v", err)
+
+	}
+	if err := k8sutil.NewYAMLApplier(compContext.Client(), "").ApplyF(applicationClusterOutput); err != nil {
+		return compContext.Log().ErrorfNewErr("Failed applying ClusterOutput for Application related logs: %v", err)
+	}
+	return nil
 }

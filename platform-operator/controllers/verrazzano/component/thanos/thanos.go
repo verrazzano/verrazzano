@@ -5,8 +5,12 @@ package thanos
 
 import (
 	"fmt"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"strconv"
+
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+
+	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -17,8 +21,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	netv1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -29,6 +31,9 @@ const (
 	// Thanos Query StoreAPI constants
 	queryStoreHostName        = "thanos-query-store"
 	queryStoreCertificateName = "system-tls-query-store"
+
+	// fluentOperatorFilterFile is the file name that consiste Filter and Parser resource for Fluent-Operator
+	fluentOperatorFilterFile = "thanos-filter-parser.yaml"
 )
 
 // GetOverrides gets the install overrides for the Thanos component

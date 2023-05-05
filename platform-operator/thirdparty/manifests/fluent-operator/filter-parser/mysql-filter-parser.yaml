@@ -1,0 +1,42 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+  name: mySqlFilter
+  namespace: {{ .keycloakNamespace }}
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        parser: mySqlParser1,mySqlParser2
+  match: "kubernetes.**mysql**keycloak_mysql**"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/fluentbit/parser: "true"
+  name: mySqlParser1
+  namespace: {{ .keycloakNamespace }}
+spec:
+  regex:
+    regex: '/^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{6}Z) \d+ \[(?<level>.*?)\] (\[.*?\] ){2}(?<message>.*?)$/'
+    timeKey: logtime
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%NZ"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/fluentbit/parser: "true"
+  name: mySqlParser2
+  namespace: {{ .keycloakNamespace }}
+spec:
+  regex:
+    regex: '/^(?<logtime>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\+\d{2}:\d{2} \[(?<level>.*?)\] \[.*?\]: (?<message>.*?)$/'
+    timeKey: logtime
+    timeFormat: "%Y-%m-%d %H:%M:%S"

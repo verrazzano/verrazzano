@@ -1,0 +1,29 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+  name: keycloakFilter
+  namespace: {{ .keycloakNamespace }}
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        parser: keycloakParser
+  match: 'kubernetes.**keycloak**keycloak_keycloak**'
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/fluentbit/parser: "true"
+  name: keycloakParser
+  namespace: {{ .keycloakNamespace }}
+spec:
+  regex:
+    regex: '/^.*?(?<logtime>\d{2}:\d{2}:\d{2},\d{3}) (?<level>.*?)( |\t)+\[.*?\]( |\t)+\(.*?\)( |\t)+(?<message>.*)$/'
+    timeKey: logtime
+    timeFormat: "%H:%M:%S,%N"

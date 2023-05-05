@@ -1,0 +1,55 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+  name: thanosFilter
+  namespace: {{ .monitoringNamespace }}
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        parser: thanosFilter1,thanosFilter2,thanosFilter3
+  match: "kubernetes.**thanos**verrazzano-monitoring**"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/fluentbit/parser: "true"
+  name: thanosFilter1
+  namespace: {{ .monitoringNamespace }}
+spec:
+  regex:
+    regex: '/^level=(?<level>.*?) ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3,}Z)(.*?)msg="(?<message>.*?)"([\s\S]*?)$/'
+    timeKey: logtime
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%NZ"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/fluentbit/parser: "true"
+  name: thanosFilter2
+  namespace: {{ .monitoringNamespace }}
+spec:
+  regex:
+    regex: '/^level=(?<level>.*?) ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3,}Z)(.*?)err="(?<message>.*?)"$/'
+    timeKey: logtime
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%NZ"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/fluentbit/parser: "true"
+  name: thanosFilter3
+  namespace: {{ .monitoringNamespace }}
+spec:
+  regex:
+    regex: '/^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{6}Z)\t(?<level>.*?)\t(?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%NZ"
