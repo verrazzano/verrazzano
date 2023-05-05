@@ -76,11 +76,12 @@ func (c networkPoliciesComponent) IsEnabled(effectiveCR runtime.Object) bool {
 // PreInstall performs pre-install actions
 func (c networkPoliciesComponent) PreInstall(ctx spi.ComponentContext) error {
 	// Create all namespaces needed by network policies
-	common.CreateAndLabelNamespaces(ctx)
+	if err := common.CreateAndLabelNamespaces(ctx); err != nil {
+		return err
+	}
 
 	// Associate the network policies to the verrazzano-network-policies release
-	err := associateNetworkPoliciesWithHelm(ctx)
-	if err != nil {
+	if err := associateNetworkPoliciesWithHelm(ctx); err != nil {
 		return err
 	}
 
@@ -96,7 +97,9 @@ func (c networkPoliciesComponent) PostInstall(ctx spi.ComponentContext) error {
 // PreUpgrade performs pre-upgrade actions
 func (c networkPoliciesComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	// Create all namespaces needed by network policies
-	common.CreateAndLabelNamespaces(ctx)
+	if err := common.CreateAndLabelNamespaces(ctx); err != nil {
+		return err
+	}
 
 	// Associate the network policies to the verrazzano-network-policies release
 	err := associateNetworkPoliciesWithHelm(ctx)
