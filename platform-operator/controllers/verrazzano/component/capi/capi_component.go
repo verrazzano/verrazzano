@@ -36,6 +36,9 @@ const (
 	capiOcneBootstrapCMDeployment    = "capi-ocne-bootstrap-controller-manager"
 	capiOcneControlPlaneCMDeployment = "capi-ocne-control-plane-controller-manager"
 	capiociCMDeployment              = "capoci-controller-manager"
+	ocneProviderName                 = "ocne"
+	ociProviderName                  = "oci"
+	clusterAPIProviderName           = "cluster-api"
 )
 
 var capiDeployments = []types.NamespacedName{
@@ -179,10 +182,10 @@ func (c capiComponent) Install(ctx spi.ComponentContext) error {
 
 	// Set up the init options for the CAPI init.
 	initOptions := clusterapi.InitOptions{
-		CoreProvider:            fmt.Sprintf("cluster-api:%s", overrides.APIVersion),
-		BootstrapProviders:      []string{fmt.Sprintf("ocne:%s", overrides.OCNEBootstrapVersion)},
-		ControlPlaneProviders:   []string{fmt.Sprintf("ocne:%s", overrides.OCNEControlPlaneVersion)},
-		InfrastructureProviders: []string{fmt.Sprintf("oci:%s", overrides.OCIVersion)},
+		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overrides.APIVersion),
+		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEBootstrapVersion)},
+		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEControlPlaneVersion)},
+		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overrides.OCIVersion)},
 		TargetNamespace:         ComponentNamespace,
 	}
 
@@ -215,10 +218,10 @@ func (c capiComponent) Uninstall(ctx spi.ComponentContext) error {
 
 	// Set up the delete options for the CAPI delete operation.
 	deleteOptions := clusterapi.DeleteOptions{
-		CoreProvider:            fmt.Sprintf("cluster-api:%s", overrides.APIVersion),
-		BootstrapProviders:      []string{fmt.Sprintf("ocne:%s", overrides.OCNEBootstrapVersion)},
-		ControlPlaneProviders:   []string{fmt.Sprintf("ocne:%s", overrides.OCNEControlPlaneVersion)},
-		InfrastructureProviders: []string{fmt.Sprintf("oci:%s", overrides.OCIVersion)},
+		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overrides.APIVersion),
+		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEBootstrapVersion)},
+		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEControlPlaneVersion)},
+		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overrides.OCIVersion)},
 		IncludeNamespace:        true,
 	}
 	return capiClient.Delete(deleteOptions)
