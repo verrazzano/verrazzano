@@ -16,6 +16,8 @@ import (
 
 const (
 	testBomFilePath = "../../testdata/test_bom.json"
+	verrazzanoRepo  = "ghcr.io/verrazzano"
+	oracleRepo      = "ghcr.io/oracle"
 )
 
 // TestSetEnvVariables tests the setEnvVariables function
@@ -45,16 +47,16 @@ func TestGetImageOverrides(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, templateInput)
 	assert.Equal(t, "v1.3.3", templateInput.APIVersion)
-	assert.Equal(t, "ghcr.io/verrazzano", templateInput.APIRepository)
+	assert.Equal(t, verrazzanoRepo, templateInput.APIRepository)
 	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", templateInput.APITag)
 	assert.Equal(t, "v0.8.1", templateInput.OCIVersion)
-	assert.Equal(t, "ghcr.io/oracle", templateInput.OCIRepository)
+	assert.Equal(t, oracleRepo, templateInput.OCIRepository)
 	assert.Equal(t, "v0.8.1", templateInput.OCITag)
 	assert.Equal(t, "v0.1.0", templateInput.OCNEBootstrapVersion)
-	assert.Equal(t, "ghcr.io/verrazzano", templateInput.OCNEBootstrapRepository)
+	assert.Equal(t, verrazzanoRepo, templateInput.OCNEBootstrapRepository)
 	assert.Equal(t, "v0.1.0-20230427222244-4ef1141", templateInput.OCNEBootstrapTag)
 	assert.Equal(t, "v0.1.0", templateInput.OCNEControlPlaneVersion)
-	assert.Equal(t, "ghcr.io/verrazzano", templateInput.OCNEControlPlaneRepository)
+	assert.Equal(t, verrazzanoRepo, templateInput.OCNEControlPlaneRepository)
 	assert.Equal(t, "v0.1.0-20230427222244-4ef1141", templateInput.OCNEControlPlaneTag)
 }
 
