@@ -28,6 +28,7 @@ type chartValues struct {
 	Rancher             *rancherValues           `json:"rancher,omitempty"`
 	Velero              *veleroValues            `json:"velero,omitempty"`
 	ArgoCD              *argoCDValues            `json:"argoCd,omitempty"`
+	Capi                *capiValues              `json:"capi,omitempty"`
 }
 
 type authproxyValues struct {
@@ -105,5 +106,9 @@ type veleroValues struct {
 }
 
 type argoCDValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type capiValues struct {
 	Enabled bool `json:"enabled"` // Always write
 }

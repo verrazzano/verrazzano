@@ -6,6 +6,7 @@ package capi
 import (
 	"context"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -24,7 +25,7 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "capi"
 
-// Namespace for CAPI providers
+// VerrazzanoCAPINamespace is the namespace for CAPI providers
 const VerrazzanoCAPINamespace = constants.VerrazzanoCAPINamespace
 
 // ComponentJSONName is the JSON name of the component in CRD

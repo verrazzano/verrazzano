@@ -4,6 +4,7 @@ package namespace
 
 import (
 	"context"
+
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
@@ -62,6 +63,11 @@ func CreateVerrazzanoMonitoringNamespace(client client.Client, istioInjectionEna
 // CreateVerrazzanoSystemNamespace - Create/Update and label the Verrazzano system namespace
 func CreateVerrazzanoSystemNamespace(client client.Client, istioInjectionEnabled bool) error {
 	return CreateAndLabelNamespace(client, globalconst.VerrazzanoSystemNamespace, true, istioInjectionEnabled)
+}
+
+// CreateVerrazzanoCapiNamespace - Create/Update and label the verrazzano-capi namespace
+func CreateVerrazzanoCapiNamespace(client client.Client) error {
+	return CreateAndLabelNamespace(client, globalconst.VerrazzanoCAPINamespace, false, false)
 }
 
 // CreateVerrazzanoMultiClusterNamespace - Create/Update and label the Verrazzano multi-cluster namespace
