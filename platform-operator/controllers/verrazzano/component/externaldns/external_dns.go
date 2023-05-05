@@ -82,7 +82,7 @@ func preInstall(compContext spi.ComponentContext) error {
 
 		// Extract data and create secret in the external DNS namespace
 		for k := range dnsSecret.Data {
-			externalDNSSecret.Data[ociSecretFileName] = append(dnsSecret.Data[k], []byte(fmt.Sprintf("compartment: %s", dns.OCI.DNSZoneCompartmentOCID))...)
+			externalDNSSecret.Data[ociSecretFileName] = append(dnsSecret.Data[k], []byte(fmt.Sprintf("\ncompartment: %s\n", dns.OCI.DNSZoneCompartmentOCID))...)
 		}
 
 		return nil
