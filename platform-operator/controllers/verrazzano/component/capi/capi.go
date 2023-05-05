@@ -79,7 +79,7 @@ const (
 
 var clusterAPIDir = defaultClusterAPIDir
 
-// Function needed for unit testing to set and reset .cluster-api directory
+// Functions needed for unit testing to set and reset .cluster-api directory
 func setClusterAPIDir(dir string) {
 	clusterAPIDir = dir
 }
@@ -122,7 +122,7 @@ func setEnvVariables() error {
 	return os.Setenv(clusterTopology, "true")
 }
 
-// createClusterctlYaml create the clusterctl.yaml with image overrides from the Verrazzano BOM
+// createClusterctlYaml creates clusterctl.yaml with image overrides from the Verrazzano BOM
 func createClusterctlYaml(ctx spi.ComponentContext) error {
 	// Get the image overrides and versions for the CAPI images.
 	templateInput, err := getImageOverrides(ctx)
@@ -130,7 +130,7 @@ func createClusterctlYaml(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// Apply the image overrides and version to generate clusterctl.yaml
+	// Apply the image overrides and versions to generate clusterctl.yaml
 	result, err := applyTemplate(clusterctlYamlTemplate, templateInput)
 	if err != nil {
 		return err
@@ -188,7 +188,7 @@ func getImageOverrides(ctx spi.ComponentContext) (*TemplateInput, error) {
 	return templateInput, nil
 }
 
-// getImageOverride returns the image override and version for given CAPI provider.
+// getImageOverride returns the image override and version for a given CAPI provider.
 func getImageOverride(ctx spi.ComponentContext, bomFile bom.Bom, component string, imageName string) (image *ImageConfig, err error) {
 	version, err := bomFile.GetComponentVersion(component)
 	if err != nil {
