@@ -6,6 +6,7 @@ package capi
 import (
 	"context"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"

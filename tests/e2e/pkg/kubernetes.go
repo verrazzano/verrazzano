@@ -992,6 +992,20 @@ func IsVeleroEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.Velero.Enabled
 }
 
+// IsRancherEnabled returns false if the Rancher component is not set, or the value of its Enabled field otherwise
+func IsRancherEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.Rancher == nil || vz.Spec.Components.Rancher.Enabled == nil {
+		// Rancher component is enabled by default
+		return true
+	}
+	return *vz.Spec.Components.Rancher.Enabled
+}
+
 // IsRancherBackupEnabled returns false if the Rancher Backup component is not set, or the value of its Enabled field otherwise
 func IsRancherBackupEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
@@ -1003,6 +1017,19 @@ func IsRancherBackupEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	return *vz.Spec.Components.RancherBackup.Enabled
+}
+
+// IsCAPIEnabled returns false if the CAPI component is not set, or the value of its Enabled field otherwise
+func IsCAPIEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.CAPI == nil || vz.Spec.Components.CAPI.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.CAPI.Enabled
 }
 
 // IsArgoCDEnabled returns false if the Argocd component is not set, or the value of its Enabled field otherwise

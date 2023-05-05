@@ -12,6 +12,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
@@ -22,12 +23,12 @@ import (
 )
 
 const (
-	systemNamespace           = "verrazzano-system"
-	installNamespace          = "verrazzano-install"
-	capiNamespace             = "verrazzano-capi"
-	certMgrNamespace          = "cert-manager"
-	keycloakNamespace         = "keycloak"
-	cattleSystemNamespace     = "cattle-system"
+	systemNamespace           = constants.VerrazzanoSystemNamespace
+	installNamespace          = constants.VerrazzanoInstallNamespace
+	capiNamespace             = constants.VerrazzanoCAPINamespace
+	certMgrNamespace          = constants.CertManagerNamespace
+	keycloakNamespace         = constants.KeycloakNamespace
+	cattleSystemNamespace     = constants.RancherSystemNamespace
 	fleetLocalSystemNamespace = "cattle-fleet-local-system"
 	monitoringNamespace       = "monitoring"
 	shortPollingInterval      = 10 * time.Second
