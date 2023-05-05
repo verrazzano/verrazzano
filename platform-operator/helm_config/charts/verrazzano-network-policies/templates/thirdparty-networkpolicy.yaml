@@ -819,7 +819,7 @@ spec:
         protocol: TCP
 ---
 # Network policy for capi-ocne-bootstrap-controller-manager
-# Ingress:
+# Ingress: allow connection from Kubernetes API server to port 9443
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -839,7 +839,7 @@ spec:
           protocol: TCP
 ---
 # Network policy for capi-ocne-control-plane-controller-manager
-# Ingress:
+# Ingress: allow connection from Kubernetes API server to port 9443
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -859,7 +859,7 @@ spec:
           protocol: TCP
 ---
 # Network policy for capoci-controller-manager
-# Ingress:
+# Ingress: allow connection from Kubernetes API server to port 9443
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
