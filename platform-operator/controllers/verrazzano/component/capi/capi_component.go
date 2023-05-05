@@ -164,19 +164,23 @@ func (c capiComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx)
 }
 
-func (c capiComponent) Install(_ spi.ComponentContext) error {
+func (c capiComponent) Install(ctx spi.ComponentContext) error {
 	capiClient, err := capiInitFunc("")
 	if err != nil {
 		return err
 	}
 
-	// TODO: version of providers should come from the BOM. Is kubeadm optional?
+	overrides, err := getImageOverrides(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Set up the init options for the CAPI init.
 	initOptions := clusterapi.InitOptions{
-		CoreProvider:            "cluster-api:v1.3.3",
-		BootstrapProviders:      []string{"ocne:v0.1.0"},
-		ControlPlaneProviders:   []string{"ocne:v0.1.0"},
-		InfrastructureProviders: []string{"oci:v0.8.1"},
+		CoreProvider:            fmt.Sprintf("cluster-api:%s", overrides.APIVersion),
+		BootstrapProviders:      []string{fmt.Sprintf("ocne:%s", overrides.OCNEBootstrapVersion)},
+		ControlPlaneProviders:   []string{fmt.Sprintf("ocne:%s", overrides.OCNEControlPlaneVersion)},
+		InfrastructureProviders: []string{fmt.Sprintf("oci:%s", overrides.OCIVersion)},
 		TargetNamespace:         ComponentNamespace,
 	}
 

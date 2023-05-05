@@ -337,6 +337,7 @@ func TestPreInstall(t *testing.T) {
 func TestInstall(t *testing.T) {
 	SetCAPIInitFunc(fakeCAPINew)
 	defer ResetCAPIInitFunc()
+	config.SetDefaultBomFilePath(testBomFilePath)
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
 	var comp capiComponent
