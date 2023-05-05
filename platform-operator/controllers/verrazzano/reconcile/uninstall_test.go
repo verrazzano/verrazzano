@@ -22,7 +22,7 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
@@ -575,7 +575,7 @@ func runDeleteNamespacesTest(t *testing.T, cmEnabled bool) {
 		fakeNS,
 		appoper.ComponentNamespace,
 		authproxy.ComponentNamespace,
-		certmanager.ComponentNamespace,
+		cmcontroller.ComponentNamespace,
 		coherence.ComponentNamespace,
 		console.ComponentNamespace,
 		externaldns.ComponentNamespace,
@@ -638,7 +638,7 @@ func runDeleteNamespacesTest(t *testing.T, cmEnabled bool) {
 		fakeNS,
 	}
 	if !cmEnabled {
-		expectedRemainingNamespaces = append(expectedRemainingNamespaces, certmanager.ComponentNamespace)
+		expectedRemainingNamespaces = append(expectedRemainingNamespaces, cmcontroller.ComponentNamespace)
 	}
 
 	// Validate the results

@@ -1,12 +1,12 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package certmanagerocidns
+package ocidns
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -45,7 +45,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			InstallBeforeUpgrade:      true,
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0].name",
-			Dependencies:              []string{networkpolicies.ComponentName, certmanager.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, controller.ComponentName},
 		},
 	}
 }

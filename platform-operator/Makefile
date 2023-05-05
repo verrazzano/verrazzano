@@ -160,7 +160,7 @@ endif
 #
 .PHONY: unit-test
 unit-test: go-install
-	$(GO) test -v  ./internal/... ./controllers/... ./apis/...
+	$(GO) test ./internal/... ./controllers/... ./apis/...
 
 CLUSTER_NAME ?= verrazzano
 BUILD_DEPLOY = build/deploy

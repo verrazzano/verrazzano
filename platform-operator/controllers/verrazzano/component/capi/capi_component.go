@@ -12,7 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -94,7 +94,7 @@ func (c capiComponent) ShouldInstallBeforeUpgrade() bool {
 
 // GetDependencies returns the dependencies of this component.
 func (c capiComponent) GetDependencies() []string {
-	return []string{certmanager.ComponentName}
+	return []string{cmcontroller.ComponentName}
 }
 
 // IsReady indicates whether a component is Ready for dependency components.
@@ -236,6 +236,9 @@ func (c capiComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
 }
 
 func (c capiComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
 	return nil
 }
 
@@ -244,6 +247,9 @@ func (c capiComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
 }
 
 func (c capiComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
 	return nil
 }
 
