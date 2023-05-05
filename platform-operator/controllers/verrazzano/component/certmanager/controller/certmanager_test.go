@@ -1,7 +1,7 @@
 // Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package certmanager
+package controller
 
 import (
 	"context"
@@ -40,9 +40,9 @@ import (
 )
 
 const (
-	profileDir      = "../../../../manifests/profiles"
+	profileDir      = "../../../../../manifests/profiles"
 	testNamespace   = "testNamespace"
-	testBomFile     = "../../testdata/test_bom.json"
+	testBomFile     = "../../../testdata/test_bom.json"
 	fooDomainSuffix = "foo.com"
 )
 
@@ -196,8 +196,8 @@ func TestIsOCIDNS(t *testing.T) {
 // WHEN the input file exists
 // THEN the output should have ocidns added.
 func TestWriteCRD(t *testing.T) {
-	inputFile := "../../../../thirdparty/manifests/cert-manager/cert-manager.crds.yaml"
-	outputFile := "../../../../thirdparty/manifests/cert-manager/output.crd.yaml"
+	inputFile := "../../../../../thirdparty/manifests/cert-manager/cert-manager.crds.yaml"
+	outputFile := "../../../../../thirdparty/manifests/cert-manager/output.crd.yaml"
 	err := writeCRD(inputFile, outputFile, true)
 	assert.NoError(t, err)
 }
@@ -262,7 +262,7 @@ func TestCertManagerPreInstallDryRun(t *testing.T) {
 // THEN no errors are returned
 func TestCertManagerPreInstall(t *testing.T) {
 	config.Set(config.OperatorConfig{
-		VerrazzanoRootDir: "../../../../..", //since we are running inside the cert manager package, root is up 5 directories
+		VerrazzanoRootDir: "../../../../../..", //since we are running inside the cert manager package, root is up 5 directories
 	})
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false))
@@ -280,7 +280,7 @@ func TestCertManagerPreInstall(t *testing.T) {
 // THEN no errors are returned and the DNS secret is set up
 func TestCertManagerPreInstallOCIDNS(t *testing.T) {
 	config.Set(config.OperatorConfig{
-		VerrazzanoRootDir: "../../../../..", //since we are running inside the cert manager package, root is up 5 directories
+		VerrazzanoRootDir: "../../../../../..", //since we are running inside the cert manager package, root is up 5 directories
 	})
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&v1.Secret{
