@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"text/template"
 	"time"
@@ -172,7 +173,12 @@ func executeCloudCredentialsTemplate(data *cloudCredentialsData, buffer *bytes.B
 func createCloudCredential(credentialName string) (string, error) {
 	requestURL := rancherURL + "/v3/cloudcredentials"
 	t.Logs.Infof("Cloud credential requestURL: %s", requestURL)
-	privateKeyContentsOneLine := replaceNewlinesToLiteral(privateKeyContents)
+	fileContents, err := getFileContents(privateKeyPath)
+	if err != nil {
+		t.Logs.Infof("error reading private key file: %v", err)
+		return "", err
+	}
+	privateKeyContentsOneLine := replaceNewlinesToLiteral(fileContents)
 	credentialsData := cloudCredentialsData{
 		CredentialName:     credentialName,
 		Fingerprint:        fingerprint,
@@ -181,7 +187,7 @@ func createCloudCredential(credentialName string) (string, error) {
 		UserID:             userID,
 	}
 	buf := &bytes.Buffer{}
-	err := executeCloudCredentialsTemplate(&credentialsData, buf)
+	err = executeCloudCredentialsTemplate(&credentialsData, buf)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse the cloud credentials template: " + err.Error())
 	}
@@ -226,7 +232,12 @@ func executeCreateClusterTemplate(data *capiClusterData, buffer *bytes.Buffer) e
 func createCluster(clusterName string) error {
 	requestURL := rancherURL + "/v3/cluster"
 	t.Logs.Infof("createCluster requestURL: %s", requestURL)
-	nodePublicKeyContentsOneLine := replaceNewlinesToLiteral(nodePublicKeyContents)
+	fileContents, err := getFileContents(nodePublicKeyPath)
+	if err != nil {
+		t.Logs.Infof("error reading node public key file: %v", err)
+		return err
+	}
+	nodePublicKeyContentsOneLine := replaceNewlinesToLiteral(fileContents)
 	t.Logs.Infof("nodePublicKeyContentsOneLine: %s", nodePublicKeyContentsOneLine)
 	capiClusterData := capiClusterData{
 		ClusterName:           clusterName,
@@ -241,7 +252,7 @@ func createCluster(clusterName string) error {
 		PodCIDR:               podCidr,
 	}
 	buf := &bytes.Buffer{}
-	err := executeCreateClusterTemplate(&capiClusterData, buf)
+	err = executeCreateClusterTemplate(&capiClusterData, buf)
 	if err != nil {
 		return fmt.Errorf("failed to parse the cloud credentials template: " + err.Error())
 	}
@@ -311,4 +322,13 @@ func getCluster(clusterName string) (*gabs.Container, error) {
 
 func replaceNewlinesToLiteral(s string) string {
 	return strings.Replace(s, "\n", `\n`, -1)
+}
+
+func getFileContents(file string) (string, error) {
+	data, err := os.ReadFile(file)
+	if err != nil {
+		t.Logs.Errorf("failed reading file contents: %v", err.Error())
+		return "", err
+	}
+	return string(data), nil
 }

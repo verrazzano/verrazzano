@@ -15,8 +15,8 @@ var vcnID string
 var userID string
 var tenancyID string
 var fingerprint string
-var privateKeyContents string
-var nodePublicKeyContents string
+var privateKeyPath string
+var nodePublicKeyPath string
 var compartmentID string
 var workerNodeSubnet string
 var controlPlaneSubnet string
@@ -30,8 +30,8 @@ func init() {
 	flag.StringVar(&compartmentID, "compartmentID", "", "compartmentID represents the compartment ID")
 	flag.StringVar(&vcnID, "vcnID", "", "vcnID represents the VCN ID")
 	flag.StringVar(&fingerprint, "fingerprint", "", "fingerprint represents the OCI Credential config fingerprint")
-	flag.StringVar(&privateKeyContents, "privateKeyContents", "", "privateKeyContents represents the OCI Credential config private key contents")
-	flag.StringVar(&nodePublicKeyContents, "nodePublicKeyContents", "", "privateKeyContents represents the node public key contents")
+	flag.StringVar(&privateKeyPath, "privateKeyPath", "", "privateKeyPath represents the OCI Credential config private key file path")
+	flag.StringVar(&nodePublicKeyPath, "nodePublicKeyPath", "", "privateKeyPath represents the node public key file path")
 	flag.StringVar(&workerNodeSubnet, "workerNodeSubnet", "", "workerNodeSubnet represents the worker node subnet")
 	flag.StringVar(&controlPlaneSubnet, "controlPlaneSubnet", "", "controlPlaneSubnet represents the control plane node subnet")
 	flag.StringVar(&loadBalancerSubnet, "loadBalancerSubnet", "", "loadBalancerSubnet represents the load balancer subnet")

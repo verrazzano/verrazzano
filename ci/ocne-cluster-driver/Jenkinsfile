@@ -517,8 +517,8 @@ def runGinkgo(testSuitePath) {
                 --compartmentID="${env.TF_VAR_compartment_id}" \
                 --vcnID="${env.VCN_ID}" \
                 --fingerprint="${env.TF_VAR_api_fingerprint}" \
-                --privateKeyContents="${env.API_PRIVATE_KEY_CONTENTS}" \
-                --nodePublicKeyContents="${env.NODE_PUBLIC_KEY_CONTENTS}" \
+                --privateKeyPath="${TF_VAR_api_private_key_path}" \
+                --nodePublicKeyPath="${TF_VAR_ssh_public_key_path}" \
                 --workerNodeSubnet="${env.SUBNET_ID}" \
                 --controlPlaneSubnet="${env.SUBNET_ID}" \
                 --loadBalancerSubnet="${env.SUBNET_ID}" \
@@ -528,9 +528,6 @@ def runGinkgo(testSuitePath) {
 }
 
 def setUpEnvVarsForOCNEClusterCreation() {
-    env.API_PRIVATE_KEY_CONTENTS=sh(returnStdout: true, script: "cat ${TF_VAR_api_private_key_path}")
-    env.NODE_PUBLIC_KEY_CONTENTS=sh(returnStdout: true, script: "cat ${TF_VAR_ssh_public_key_path}")
-
     env.VCN_ID=sh(returnStdout: true, script: """ oci network vcn list --compartment-id ${env.TF_VAR_compartment_id} --display-name ${env.TF_VAR_label_prefix}-oke-vcn | jq -r '.data[0].id' """).trim()
     println("VCN_ID=${env.VCN_ID}")
 
@@ -545,7 +542,6 @@ def setUpEnvVarsForOCNEClusterCreation() {
     println("TF_VAR_tenancy_id=${env.TF_VAR_tenancy_id}")
     println("TF_VAR_compartment_id=${env.TF_VAR_compartment_id}")
     println("TF_VAR_api_fingerprint=${env.TF_VAR_api_fingerprint}")
-    println("NODE_PUBLIC_KEY_CONTENTS=${env.NODE_PUBLIC_KEY_CONTENTS}")
 
     println("SUBNET_ID=${env.SUBNET_ID}")
 }
