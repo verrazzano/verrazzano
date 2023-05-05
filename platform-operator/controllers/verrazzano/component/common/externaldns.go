@@ -53,7 +53,7 @@ func CopyOCIDNSSecret(compContext spi.ComponentContext, targetNamespace string) 
 
 		// Extract data and create secret in the external DNS namespace
 		for k := range dnsSecret.Data {
-			targetDNSSecret.Data[ociSecretFileName] = append(dnsSecret.Data[k], []byte(fmt.Sprintf("compartment: %s", ociDNS.DNSZoneCompartmentOCID))...)
+			targetDNSSecret.Data[ociSecretFileName] = append(dnsSecret.Data[k], []byte(fmt.Sprintf("\ncompartment: %s\n", ociDNS.DNSZoneCompartmentOCID))...)
 		}
 
 		return nil
