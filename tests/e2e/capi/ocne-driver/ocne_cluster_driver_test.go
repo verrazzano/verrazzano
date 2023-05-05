@@ -179,7 +179,7 @@ func createCloudCredential(credentialName string) (string, error) {
 		t.Logs.Infof("error reading private key file: %v", err)
 		return "", err
 	}
-	privateKeyContentsOneLine := replaceNewlinesToLiteral(fileContents)
+	privateKeyContentsOneLine := replaceWhitespaceToLiteral(fileContents)
 	credentialsData := cloudCredentialsData{
 		CredentialName:     credentialName,
 		Fingerprint:        fingerprint,
@@ -239,7 +239,7 @@ func createCluster(clusterName string) error {
 		t.Logs.Infof("error reading node public key file: %v", err)
 		return err
 	}
-	nodePublicKeyContentsOneLine := replaceNewlinesToLiteral(fileContents)
+	nodePublicKeyContentsOneLine := replaceWhitespaceToLiteral(fileContents)
 	t.Logs.Infof("nodePublicKeyContentsOneLine: %s", nodePublicKeyContentsOneLine)
 	capiClusterData := capiClusterData{
 		ClusterName:           clusterName,
@@ -322,8 +322,13 @@ func getCluster(clusterName string) (*gabs.Container, error) {
 	return jsonBody, nil
 }
 
-func replaceNewlinesToLiteral(s string) string {
-	return strings.Replace(s, "\n", `\n`, -1)
+func replaceWhitespaceToLiteral(s string) string {
+	modified := strings.ReplaceAll(s, "\n", `\n`)
+	modified = strings.ReplaceAll(modified, "\t", `\t`)
+	modified = strings.ReplaceAll(modified, "\v", `\v`)
+	modified = strings.ReplaceAll(modified, "\r", `\r`)
+	modified = strings.ReplaceAll(modified, "\f", `\f`)
+	return modified
 }
 
 func getFileContents(file string) (string, error) {
