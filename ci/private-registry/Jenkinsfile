@@ -2,9 +2,6 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-// Pin to PHX for now for testing; tarball is located only in PHX at present, and takes 15+ mins to download to LHR at runtime
-// - at some point, we can either enable bucket replication or have the pipeline push it to more regions
-//def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 def agentLabel = "blocked-large"
 def ocirRegion = "fra"
 def ociRegionFull     = "eu-frankfurt-1"
@@ -22,7 +19,7 @@ pipeline {
 
     agent {
        docker {
-            image "${PRIV_REG_RUNNER_DOCKER_IMAGE}"
+            image "${RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "https://${ocirRegistry}"
             registryCredentialsId 'ocir-pull-and-push-account'
