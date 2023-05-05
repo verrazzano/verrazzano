@@ -509,6 +509,9 @@ def createImagePullSecrets() {
 def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
+            println("TF_VAR_api_private_key_path=${env.TF_VAR_api_private_key_path}")
+            println("TF_VAR_ssh_public_key_path=${env.TF_VAR_ssh_public_key_path}")
+
             cd ${WORKSPACE}/tests/e2e
             ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- \
                 --region="${env.TF_VAR_region}" \
@@ -544,4 +547,7 @@ def setUpEnvVarsForOCNEClusterCreation() {
     println("TF_VAR_api_fingerprint=${env.TF_VAR_api_fingerprint}")
 
     println("SUBNET_ID=${env.SUBNET_ID}")
+
+    println("TF_VAR_api_private_key_path=${env.TF_VAR_api_private_key_path}")
+    println("TF_VAR_ssh_public_key_path=${env.TF_VAR_ssh_public_key_path}")
 }

@@ -175,6 +175,7 @@ func executeCloudCredentialsTemplate(data *cloudCredentialsData, buffer *bytes.B
 func createCloudCredential(credentialName string) (string, error) {
 	requestURL := rancherURL + "/v3/cloudcredentials"
 	t.Logs.Infof("Cloud credential requestURL: %s", requestURL)
+	t.Logs.Infof("privateKeyPath: %s", privateKeyPath)
 	fileContents, err := getFileContents(privateKeyPath)
 	if err != nil {
 		t.Logs.Infof("error reading private key file: %v", err)
@@ -234,6 +235,7 @@ func executeCreateClusterTemplate(data *capiClusterData, buffer *bytes.Buffer) e
 func createCluster(clusterName string) error {
 	requestURL := rancherURL + "/v3/cluster"
 	t.Logs.Infof("createCluster requestURL: %s", requestURL)
+	t.Logs.Infof("nodePublicKeyPath: %s", nodePublicKeyPath)
 	fileContents, err := getFileContents(nodePublicKeyPath)
 	if err != nil {
 		t.Logs.Infof("error reading node public key file: %v", err)
