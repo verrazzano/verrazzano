@@ -25,8 +25,8 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "capi"
 
-// VerrazzanoCAPINamespace is the namespace for CAPI providers
-const VerrazzanoCAPINamespace = constants.VerrazzanoCAPINamespace
+// Namespace for CAPI providers
+const ComponentNamespace = constants.VerrazzanoCAPINamespace
 
 // ComponentJSONName is the JSON name of the component in CRD
 const ComponentJSONName = "capi"
@@ -41,19 +41,19 @@ const (
 var capiDeployments = []types.NamespacedName{
 	{
 		Name:      capiCMDeployment,
-		Namespace: VerrazzanoCAPINamespace,
+		Namespace: ComponentNamespace,
 	},
 	{
 		Name:      capiOcneBootstrapCMDeployment,
-		Namespace: VerrazzanoCAPINamespace,
+		Namespace: ComponentNamespace,
 	},
 	{
 		Name:      capiOcneControlPlaneCMDeployment,
-		Namespace: VerrazzanoCAPINamespace,
+		Namespace: ComponentNamespace,
 	},
 	{
 		Name:      capiociCMDeployment,
-		Namespace: VerrazzanoCAPINamespace,
+		Namespace: ComponentNamespace,
 	},
 }
 
@@ -85,7 +85,7 @@ func (c capiComponent) Name() string {
 
 // Namespace returns the component namespace.
 func (c capiComponent) Namespace() string {
-	return VerrazzanoCAPINamespace
+	return ComponentNamespace
 }
 
 // ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done.
@@ -151,12 +151,12 @@ func (c capiComponent) IsOperatorInstallSupported() bool {
 // IsInstalled checks to see if CAPI is installed
 func (c capiComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	daemonSet := &appsv1.Deployment{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: VerrazzanoCAPINamespace, Name: capiCMDeployment}, daemonSet)
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: capiCMDeployment}, daemonSet)
 	if errors.IsNotFound(err) {
 		return false, nil
 	}
 	if err != nil {
-		ctx.Log().Errorf("Failed to get %s/%s deployment: %v", VerrazzanoCAPINamespace, capiCMDeployment, err)
+		ctx.Log().Errorf("Failed to get %s/%s deployment: %v", ComponentNamespace, capiCMDeployment, err)
 		return false, err
 	}
 	return true, nil
@@ -166,20 +166,24 @@ func (c capiComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx)
 }
 
-func (c capiComponent) Install(_ spi.ComponentContext) error {
+func (c capiComponent) Install(ctx spi.ComponentContext) error {
 	capiClient, err := capiInitFunc("")
 	if err != nil {
 		return err
 	}
 
-	// TODO: version of providers should come from the BOM. Is kubeadm optional?
+	overrides, err := getImageOverrides(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Set up the init options for the CAPI init.
 	initOptions := clusterapi.InitOptions{
-		CoreProvider:            "cluster-api:v1.3.3",
-		BootstrapProviders:      []string{"ocne:v0.1.0"},
-		ControlPlaneProviders:   []string{"ocne:v0.1.0"},
-		InfrastructureProviders: []string{"oci:v0.8.1"},
-		TargetNamespace:         VerrazzanoCAPINamespace,
+		CoreProvider:            fmt.Sprintf("cluster-api:%s", overrides.APIVersion),
+		BootstrapProviders:      []string{fmt.Sprintf("ocne:%s", overrides.OCNEBootstrapVersion)},
+		ControlPlaneProviders:   []string{fmt.Sprintf("ocne:%s", overrides.OCNEControlPlaneVersion)},
+		InfrastructureProviders: []string{fmt.Sprintf("oci:%s", overrides.OCIVersion)},
+		TargetNamespace:         ComponentNamespace,
 	}
 
 	_, err = capiClient.Init(initOptions)
