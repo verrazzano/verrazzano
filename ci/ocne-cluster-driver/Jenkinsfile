@@ -544,7 +544,4 @@ def setUpEnvVarsForOCNEClusterCreation() {
     println("TF_VAR_api_fingerprint=${env.TF_VAR_api_fingerprint}")
 
     println("SUBNET_ID=${env.SUBNET_ID}")
-
-    println("TF_VAR_api_private_key_path=${env.TF_VAR_api_private_key_path}")
-    println("TF_VAR_ssh_public_key_path=${env.TF_VAR_ssh_public_key_path}")
 }
