@@ -202,16 +202,24 @@ func (c capiComponent) PreUninstall(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (c capiComponent) Uninstall(_ spi.ComponentContext) error {
+func (c capiComponent) Uninstall(ctx spi.ComponentContext) error {
 	capiClient, err := capiInitFunc("")
 	if err != nil {
 		return err
 	}
 
-	// Set up the init options for the CAPI init.
+	overrides, err := getImageOverrides(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Set up the delete options for the CAPI delete operation.
 	deleteOptions := clusterapi.DeleteOptions{
-		DeleteAll:        true,
-		IncludeNamespace: true,
+		CoreProvider:            fmt.Sprintf("cluster-api:%s", overrides.APIVersion),
+		BootstrapProviders:      []string{fmt.Sprintf("ocne:%s", overrides.OCNEBootstrapVersion)},
+		ControlPlaneProviders:   []string{fmt.Sprintf("ocne:%s", overrides.OCNEControlPlaneVersion)},
+		InfrastructureProviders: []string{fmt.Sprintf("oci:%s", overrides.OCIVersion)},
+		IncludeNamespace:        true,
 	}
 	return capiClient.Delete(deleteOptions)
 }
