@@ -173,16 +173,15 @@ func executeCloudCredentialsTemplate(data *cloudCredentialsData, buffer *bytes.B
 func createCloudCredential(credentialName string) (string, error) {
 	requestURL := rancherURL + "/v3/cloudcredentials"
 	t.Logs.Infof("Cloud credential requestURL: %s", requestURL)
-	fileContents, err := getFileContents(privateKeyPath)
+	privateKeyContents, err := getFileContents(privateKeyPath)
 	if err != nil {
 		t.Logs.Infof("error reading private key file: %v", err)
 		return "", err
 	}
-	privateKeyContentsOneLine := replaceWhitespaceToLiteral(fileContents)
 	credentialsData := cloudCredentialsData{
 		CredentialName:     replaceWhitespaceToLiteral(credentialName),
 		Fingerprint:        replaceWhitespaceToLiteral(fingerprint),
-		PrivateKeyContents: privateKeyContentsOneLine,
+		PrivateKeyContents: replaceWhitespaceToLiteral(privateKeyContents),
 		TenancyID:          replaceWhitespaceToLiteral(tenancyID),
 		UserID:             replaceWhitespaceToLiteral(userID),
 	}
@@ -232,24 +231,22 @@ func executeCreateClusterTemplate(data *capiClusterData, buffer *bytes.Buffer) e
 func createCluster(clusterName string) error {
 	requestURL := rancherURL + "/v3/cluster"
 	t.Logs.Infof("createCluster requestURL: %s", requestURL)
-	fileContents, err := getFileContents(nodePublicKeyPath)
+	nodePublicKeyContents, err := getFileContents(nodePublicKeyPath)
 	if err != nil {
 		t.Logs.Infof("error reading node public key file: %v", err)
 		return err
 	}
-	nodePublicKeyContentsOneLine := replaceWhitespaceToLiteral(fileContents)
-	t.Logs.Infof("nodePublicKeyContentsOneLine: %s", nodePublicKeyContentsOneLine)
 	capiClusterData := capiClusterData{
-		ClusterName:           clusterName,
-		Region:                region,
-		VcnID:                 vcnID,
-		NodePublicKeyContents: nodePublicKeyContentsOneLine,
-		CompartmentID:         compartmentID,
-		WorkerNodeSubnet:      workerNodeSubnet,
-		ControlPlaneSubnet:    controlPlaneSubnet,
-		LoadBalancerSubnet:    loadBalancerSubnet,
-		CloudCredentialID:     cloudCredentialID,
-		PodCIDR:               podCidr,
+		ClusterName:           replaceWhitespaceToLiteral(clusterName),
+		Region:                replaceWhitespaceToLiteral(region),
+		VcnID:                 replaceWhitespaceToLiteral(vcnID),
+		NodePublicKeyContents: replaceWhitespaceToLiteral(nodePublicKeyContents),
+		CompartmentID:         replaceWhitespaceToLiteral(compartmentID),
+		WorkerNodeSubnet:      replaceWhitespaceToLiteral(workerNodeSubnet),
+		ControlPlaneSubnet:    replaceWhitespaceToLiteral(controlPlaneSubnet),
+		LoadBalancerSubnet:    replaceWhitespaceToLiteral(loadBalancerSubnet),
+		CloudCredentialID:     replaceWhitespaceToLiteral(cloudCredentialID),
+		PodCIDR:               replaceWhitespaceToLiteral(podCidr),
 	}
 	buf := &bytes.Buffer{}
 	err = executeCreateClusterTemplate(&capiClusterData, buf)
