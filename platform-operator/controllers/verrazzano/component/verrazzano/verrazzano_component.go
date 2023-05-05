@@ -13,7 +13,7 @@ import (
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -62,7 +62,7 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:    vzImagePullSecretKeyName,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
-			Dependencies:              []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName, authproxy.ComponentName},
+			Dependencies:              []string{istio.ComponentName, nginx.ComponentName, cmcontroller.ComponentName, authproxy.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
