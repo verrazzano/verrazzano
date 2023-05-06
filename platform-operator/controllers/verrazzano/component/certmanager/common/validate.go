@@ -56,7 +56,7 @@ func ValidateLongestHostName(effectiveCR runtime.Object) error {
 	if len(longestHostName) > 64 {
 		if wildcard {
 			spaceOccupied = spaceOccupied + len(dnsSuffix)
-			return fmt.Errorf("spec.environmentName %s is too long. For the given configuration it must have at most %v characters", envName, 64-spaceOccupied)
+			return fmt.Errorf("Failed: spec.environmentName %s is too long. For the given configuration it must have at most %v characters", envName, 64-spaceOccupied)
 		}
 
 		return fmt.Errorf("spec.environmentName %s and DNS suffix %s are too long. For the given configuration they must have at most %v characters in combination", envName, dnsSuffix, 64-spaceOccupied)
@@ -100,23 +100,25 @@ func getDNSSuffix(effectiveCR runtime.Object) (string, bool) {
 	return dnsSuffix, wildcard
 }
 
-// ValidateConfiguration Checks if the configuration is valid and is a CA configuration
-// - returns true if it is a CA configuration, false if not
-// - returns an error if both CA and ACME settings are configured
+// ValidateConfiguration Validates the ClusterIssuer Certificate configuration
+// - Verifies that only one of either the CA or ACME fields is set
+// - Validates the CA or ACME configurations if necessary
+// - returns an error if anything is misconfigured
 func ValidateConfiguration(certConfig v1beta1.Certificate) (err error) {
 	// Check if Ca or Acme is empty
-	caNotEmpty, err := checkExactlyOneIssuerConfiguration(certConfig)
+	isCAConfig, err := checkExactlyOneIssuerConfiguration(certConfig)
 	if err != nil {
 		return err
 	}
 
-	if caNotEmpty {
+	if isCAConfig { // only validate the CA config if that's what's configured
 		if err := validateCAConfiguration(certConfig.CA, constants.CertManagerNamespace); err != nil {
 			return err
 		}
 		return nil
 	}
 
+	// Validate the ACME config otherwise
 	if err := validateAcmeConfiguration(certConfig.Acme); err != nil {
 		return err
 	}
