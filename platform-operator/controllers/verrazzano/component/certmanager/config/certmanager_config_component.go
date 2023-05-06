@@ -6,6 +6,7 @@ package config
 import (
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
@@ -141,22 +142,9 @@ func (c certManagerConfigComponent) ValidateInstall(vz *v1alpha1.Verrazzano) err
 
 // ValidateInstallV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be installed
 func (c certManagerConfigComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
-	if !c.IsEnabled(vz) {
-		return nil
-	}
-
-	if err := cmcommon.ValidateLongestHostName(vz); err != nil {
+	if err := c.validateConfiguration(vz); err != nil {
 		return err
 	}
-
-	// Do not allow any changes except to enable the component post-install
-	cm := vz.Spec.Components.CertManager
-	if cm != nil {
-		if err := cmcommon.ValidateConfiguration(cm.Certificate); err != nil {
-			return err
-		}
-	}
-
 	return c.HelmComponent.ValidateInstallV1Beta1(vz)
 }
 
@@ -176,14 +164,28 @@ func (c certManagerConfigComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new
 
 // ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c certManagerConfigComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
-	if !c.IsEnabled(new) {
+	if err := c.validateConfiguration(new); err != nil {
+		return err
+	}
+	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
+}
+
+func (c certManagerConfigComponent) validateConfiguration(new *v1beta1.Verrazzano) error {
+	if err := cmcommon.ValidateLongestHostName(new); err != nil {
+		return err
+	}
+
+	if !c.IsEnabled(new) && !vzcr.IsCertManagerEnabled(new) {
 		return nil
 	}
 
 	cm := new.Spec.Components.CertManager
+	if cm == nil {
+		return nil
+	}
+
 	if err := cmcommon.ValidateConfiguration(cm.Certificate); err != nil {
 		return err
 	}
-
-	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
+	return nil
 }
