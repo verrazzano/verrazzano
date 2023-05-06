@@ -198,22 +198,3 @@ const (
 	BugReportTimeFlagDefaultTime = 0
 	BugReportTimeFlagNameUsage   = "The time period during which the logs are collected in seconds, minutes, and hours."
 )
-
-// Constants for cluster operations
-const (
-	ClusterNameFlagName    = "name"
-	ClusterNameFlagDefault = "vz-capi"
-	ClusterNameFlagHelp    = "The name of the cluster"
-
-	ClusterTypeFlagName    = "type"
-	ClusterTypeFlagDefault = "ocne"
-	ClusterTypeFlagHelp    = "The type of the cluster"
-
-	ClusterImageFlagName    = "image"
-	ClusterImageFlagDefault = ""
-	ClusterImageFlagHelp    = "DEVELOPMENT ONLY - the image to use for the cluster"
-
-	KubeconfigPathFlagName    = "path"
-	KubeconfigPathFlagDefault = ""
-	KubeconfigPathFlagHelp    = "Path to the file where the kubeconfig should be saved - defaults to your current kubeconfig"
-)
