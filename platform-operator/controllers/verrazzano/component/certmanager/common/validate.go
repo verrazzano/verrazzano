@@ -117,12 +117,8 @@ func ValidateConfiguration(certConfig v1beta1.Certificate) (err error) {
 		}
 		return nil
 	}
-
 	// Validate the ACME config otherwise
-	if err := validateAcmeConfiguration(certConfig.Acme); err != nil {
-		return err
-	}
-	return nil
+	return validateAcmeConfiguration(certConfig.Acme)
 }
 
 func checkExactlyOneIssuerConfiguration(certConfig v1beta1.Certificate) (isCAConfig bool, err error) {
