@@ -255,7 +255,9 @@ func TestValidateLongestHostName(t *testing.T) {
 	cr1, cr2, cr3, cr4, cr5, cr6 := *vz.DeepCopy(), *vz.DeepCopy(), *vz.DeepCopy(), *vz.DeepCopy(), *vz.DeepCopy(), *vz.DeepCopy()
 	cr1.Spec.Components.DNS.OCI = ociLongDNSZoneName
 	cr2.Spec.Components.DNS.OCI = oci
+	// Verify that we check the hostname length even if CM is disabled
 	cr3.Spec.EnvironmentName = "veryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryverylong"
+	cr3.Spec.Components.CertManager = &vzapi.CertManagerComponent{Enabled: GetBoolPtr(false)}
 	cr3.Spec.Components.DNS = nil
 	cr4.Spec.Components.DNS = nil
 	cr5.Spec.Components.DNS = &vzapi.DNSComponent{External: &vzapi.External{Suffix: ociLongDNSZoneNameV1Beta1.DNSZoneName}}
@@ -268,7 +270,7 @@ func TestValidateLongestHostName(t *testing.T) {
 		{
 			cr:        cr1,
 			wantError: true,
-			want:      fmt.Sprintf("spec.environmentName %s and DNS suffix %s are too long. For the given configuration they must have at most %v characters in combination", cr1.Spec.EnvironmentName, cr1.Spec.Components.DNS.OCI.DNSZoneName, 64-preOccupiedspace),
+			want:      fmt.Sprintf("Failed: spec.environmentName %s and DNS suffix %s are too long. For the given configuration they must have at most %v characters in combination", cr1.Spec.EnvironmentName, cr1.Spec.Components.DNS.OCI.DNSZoneName, 64-preOccupiedspace),
 		},
 		{
 			cr:        cr2,
@@ -277,7 +279,7 @@ func TestValidateLongestHostName(t *testing.T) {
 		{
 			cr:        cr3,
 			wantError: true,
-			want:      fmt.Sprintf("spec.environmentName %s is too long. For the given configuration it must have at most %v characters", cr3.Spec.EnvironmentName, 64-(14+preOccupiedspace)),
+			want:      fmt.Sprintf("Failed: spec.environmentName %s is too long. For the given configuration it must have at most %v characters", cr3.Spec.EnvironmentName, 64-(14+preOccupiedspace)),
 		},
 		{
 			cr:        cr4,
@@ -286,7 +288,7 @@ func TestValidateLongestHostName(t *testing.T) {
 		{
 			cr:        cr5,
 			wantError: true,
-			want:      fmt.Sprintf("spec.environmentName %s and DNS suffix %s are too long. For the given configuration they must have at most %v characters in combination", cr5.Spec.EnvironmentName, cr5.Spec.Components.DNS.External.Suffix, 64-preOccupiedspace),
+			want:      fmt.Sprintf("Failed: spec.environmentName %s and DNS suffix %s are too long. For the given configuration they must have at most %v characters in combination", cr5.Spec.EnvironmentName, cr5.Spec.Components.DNS.External.Suffix, 64-preOccupiedspace),
 		},
 		{
 			cr:        cr6,
@@ -325,7 +327,7 @@ func TestValidateLongestHostNameV1Beta1(t *testing.T) {
 		{
 			cr:        cr1,
 			wantError: true,
-			want:      fmt.Sprintf("spec.environmentName %s and DNS suffix %s are too long. For the given configuration they must have at most %v characters in combination", cr1.Spec.EnvironmentName, cr1.Spec.Components.DNS.OCI.DNSZoneName, 64-preOccupiedspace),
+			want:      fmt.Sprintf("Failed: spec.environmentName %s and DNS suffix %s are too long. For the given configuration they must have at most %v characters in combination", cr1.Spec.EnvironmentName, cr1.Spec.Components.DNS.OCI.DNSZoneName, 64-preOccupiedspace),
 		},
 		{
 			cr:        cr2,
@@ -334,7 +336,7 @@ func TestValidateLongestHostNameV1Beta1(t *testing.T) {
 		{
 			cr:        cr3,
 			wantError: true,
-			want:      fmt.Sprintf("spec.environmentName %s is too long. For the given configuration it must have at most %v characters", cr3.Spec.EnvironmentName, 64-(14+preOccupiedspace)),
+			want:      fmt.Sprintf("Failed: spec.environmentName %s is too long. For the given configuration it must have at most %v characters", cr3.Spec.EnvironmentName, 64-(14+preOccupiedspace)),
 		},
 		{
 			cr:        cr4,
@@ -343,7 +345,7 @@ func TestValidateLongestHostNameV1Beta1(t *testing.T) {
 		{
 			cr:        cr5,
 			wantError: true,
-			want:      fmt.Sprintf("spec.environmentName %s and DNS suffix %s are too long. For the given configuration they must have at most %v characters in combination", cr5.Spec.EnvironmentName, cr5.Spec.Components.DNS.External.Suffix, 64-preOccupiedspace),
+			want:      fmt.Sprintf("Failed: spec.environmentName %s and DNS suffix %s are too long. For the given configuration they must have at most %v characters in combination", cr5.Spec.EnvironmentName, cr5.Spec.Components.DNS.External.Suffix, 64-preOccupiedspace),
 		},
 		{
 			cr:        cr6,

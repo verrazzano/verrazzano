@@ -59,7 +59,7 @@ func ValidateLongestHostName(effectiveCR runtime.Object) error {
 			return fmt.Errorf("Failed: spec.environmentName %s is too long. For the given configuration it must have at most %v characters", envName, 64-spaceOccupied)
 		}
 
-		return fmt.Errorf("spec.environmentName %s and DNS suffix %s are too long. For the given configuration they must have at most %v characters in combination", envName, dnsSuffix, 64-spaceOccupied)
+		return fmt.Errorf("Failed: spec.environmentName %s and DNS suffix %s are too long. For the given configuration they must have at most %v characters in combination", envName, dnsSuffix, 64-spaceOccupied)
 	}
 	return nil
 }
@@ -125,7 +125,7 @@ func ValidateConfiguration(certConfig v1beta1.Certificate) (err error) {
 	return nil
 }
 
-func checkExactlyOneIssuerConfiguration(certConfig v1beta1.Certificate) (isCA bool, err error) {
+func checkExactlyOneIssuerConfiguration(certConfig v1beta1.Certificate) (isCAConfig bool, err error) {
 	// Check if Ca or Acme is empty
 	caNotEmpty := certConfig.CA != v1beta1.CA{}
 	acmeNotEmpty := certConfig.Acme != v1beta1.Acme{}
