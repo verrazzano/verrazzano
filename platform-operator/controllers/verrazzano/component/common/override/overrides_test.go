@@ -18,6 +18,7 @@ import (
 	"k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 )
 
@@ -191,27 +192,27 @@ func TestGetInstallOverridesYAML(t *testing.T) {
 	}
 
 	a := assert.New(t)
-	mock := gomock.NewController(t)
-	client := mocks.NewMockClient(mock)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectCMGet {
-				client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).DoAndReturn(
-					func(ctx context.Context, nsn types.NamespacedName, configmap *v1.ConfigMap) error {
+				mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(
+					func(ctx context.Context, nsn types.NamespacedName, configmap *v1.ConfigMap, opts ...client.GetOption) error {
 						configmap.Data = tt.expectCMData
 						return nil
 					})
 			}
 			if tt.expectSecGet {
-				client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).DoAndReturn(
-					func(ctx context.Context, nsn types.NamespacedName, sec *v1.Secret) error {
+				mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(
+					func(ctx context.Context, nsn types.NamespacedName, sec *v1.Secret, opts ...client.GetOption) error {
 						sec.Data = tt.expectSecData
 						return nil
 					})
 			}
 
-			ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v12.ObjectMeta{Namespace: "foo"}}, nil, false)
+			ctx := spi.NewFakeContext(mock, &v1alpha1.Verrazzano{ObjectMeta: v12.ObjectMeta{Namespace: "foo"}}, nil, false)
 
 			data, err := GetInstallOverridesYAML(ctx, tt.overrides)
 			if tt.expectError {

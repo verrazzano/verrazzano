@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	networkv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
 
@@ -19,7 +20,7 @@ import (
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
@@ -67,7 +68,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "prometheus-operator-values.yaml"),
 			// the dependency on the VMO is to ensure that a persistent volume is retained and the claim is released
 			// so that persistent storage can be migrated to the new Prometheus
-			Dependencies:            []string{networkpolicies.ComponentName, nginx.ComponentName, certmanager.ComponentName, vmo.ComponentName},
+			Dependencies:            []string{networkpolicies.ComponentName, nginx.ComponentName, cmcontroller.ComponentName, vmo.ComponentName},
 			AppendOverridesFunc:     AppendOverrides,
 			GetInstallOverridesFunc: GetOverrides,
 		},
@@ -110,6 +111,9 @@ func (c prometheusComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 // PreInstall updates resources necessary for the Prometheus Operator Component installation
 func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := preInstallUpgrade(ctx); err != nil {
+		return err
+	}
+	if err := deleteNetworkPolicy(ctx); err != nil {
 		return err
 	}
 	return c.HelmComponent.PreInstall(ctx)
@@ -241,8 +245,9 @@ func (c prometheusComponent) PostUninstall(ctx spi.ComponentContext) error {
 		},
 	}
 	err := ctx.Client().Delete(context.TODO(), ingress)
-	if err != nil {
+	if err != nil && !errors.IsNotFound(err) {
 		ctx.Log().Errorf("Error deleting legacy Prometheus ingress %s, %v", constants.PrometheusIngress, err)
+		return err
 	}
-	return err
+	return nil
 }

@@ -7,21 +7,21 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
-	appsv1 "k8s.io/api/apps/v1"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
+	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	cmdHelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -49,6 +49,9 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -81,6 +84,9 @@ func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 	defer cmdHelpers.SetDefaultDeleteFunc()
 	defer os.RemoveAll(tempKubeConfigPath.Name())
 
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
 	// Run install command
 	err := cmd.Execute()
 	assert.Error(t, err)
@@ -108,6 +114,9 @@ func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer os.RemoveAll(tempKubeConfigPath.Name())
 	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -157,6 +166,10 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 	// Run install command
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
 	cmd.PersistentFlags().Set(constants.VPOTimeoutFlag, "1s")
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
@@ -183,6 +196,9 @@ func TestInstallCmdJsonLogFormat(t *testing.T) {
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
@@ -198,7 +214,7 @@ func TestInstallCmdJsonLogFormat(t *testing.T) {
 // GIVEN a CLI install command with defaults and --wait=false and --filename specified and multiple group versions in the filenames
 //
 //	WHEN I call cmd.Execute for install
-//	THEN the CLI install command is unsuccessful and a bug report should be generated
+//	THEN the CLI install command is unsuccessful but a bug report should not be generated
 func TestInstallCmdMultipleGroupVersions(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
@@ -213,7 +229,7 @@ func TestInstallCmdMultipleGroupVersions(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "cannot merge objects with different group versions")
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -225,6 +241,9 @@ func TestInstallCmdFilenamesV1Beta1(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -255,6 +274,9 @@ func TestInstallCmdFilenames(t *testing.T) {
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
@@ -279,6 +301,9 @@ func TestInstallCmdFilenamesCsv(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -306,6 +331,9 @@ func TestInstallCmdSets(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -337,6 +365,9 @@ func TestInstallCmdFilenamesAndSets(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -375,23 +406,29 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
-	assert.Contains(t, buf.String(), "Applying the file ../../test/testdata/operator-file-fake.yaml\nnamespace/verrazzano-install created\nserviceaccount/verrazzano-platform-operator created\nservice/verrazzano-platform-operator created\n")
+	assert.Contains(t, buf.String(), "Applying the file ../../test/testdata/operator-file-fake.yaml")
+	assert.Contains(t, buf.String(), "namespace/verrazzano-install created")
+	assert.Contains(t, buf.String(), "serviceaccount/verrazzano-platform-operator created")
+	assert.Contains(t, buf.String(), "service/verrazzano-platform-operator created\n")
 
 	// Verify the objects in the operator-file got added
 	sa := corev1.ServiceAccount{}
-	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &sa)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: vzconstants.VerrazzanoInstallNamespace, Name: constants.VerrazzanoPlatformOperator}, &sa)
 	assert.NoError(t, err)
 
 	ns := corev1.Namespace{}
-	err = c.Get(context.TODO(), types.NamespacedName{Name: "verrazzano-install"}, &ns)
+	err = c.Get(context.TODO(), types.NamespacedName{Name: vzconstants.VerrazzanoInstallNamespace}, &ns)
 	assert.NoError(t, err)
 
 	svc := corev1.Service{}
-	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &svc)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: vzconstants.VerrazzanoInstallNamespace, Name: constants.VerrazzanoPlatformOperator}, &svc)
 	assert.NoError(t, err)
 
 	// Verify the vz resource is as expected
@@ -404,7 +441,7 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 // GIVEN an install command
 //
 //	WHEN invalid command options exist
-//	THEN expect an error and a bug report should be generated
+//	THEN expect an error but a bug report should not be generated
 func TestInstallValidations(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
@@ -416,7 +453,7 @@ func TestInstallValidations(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), fmt.Sprintf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.OperatorFileFlag))
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -568,6 +605,9 @@ func TestInstallCmdInProgress(t *testing.T) {
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
@@ -578,7 +618,7 @@ func TestInstallCmdInProgress(t *testing.T) {
 // GIVEN a CLI install command when an install already happened
 //
 //	WHEN I call cmd.Execute for install
-//	THEN the CLI install command is unsuccessful and a bug report is generated
+//	THEN the CLI install command is unsuccessful but a bug report is not generated
 func TestInstallCmdAlreadyInstalled(t *testing.T) {
 	vz := &v1beta1.Verrazzano{
 		TypeMeta: metav1.TypeMeta{},
@@ -600,11 +640,14 @@ func TestInstallCmdAlreadyInstalled(t *testing.T) {
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
 	// Run install command
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Only one install of Verrazzano is allowed")
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -613,7 +656,7 @@ func TestInstallCmdAlreadyInstalled(t *testing.T) {
 // GIVEN a CLI install command when an install is in progress for a different version
 //
 //	WHEN I call cmd.Execute for install
-//	THEN the CLI install command is unsuccessful and a bug report is generated
+//	THEN the CLI install command is unsuccessful but a bug report is not generated
 func TestInstallCmdDifferentVersion(t *testing.T) {
 	vz := &v1beta1.Verrazzano{
 		TypeMeta: metav1.TypeMeta{},
@@ -635,11 +678,14 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
 	// Run install command
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Unable to install version v1.3.1, install of version v1.3.2 is in progress")
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -671,6 +717,9 @@ func installVZ(t *testing.T, c client.WithWatch) {
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -762,4 +811,47 @@ func getClientWithWatch() client.WithWatch {
 	}
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment, replicaset).Build()
 	return c
+}
+
+// TestInstallFromPrivateRegistry tests installing from a private registry.
+//
+// GIVEN a CLI install command with private registry flags set
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command is successful and the VPO and VPO webhook deployments have the expected private registry configuration
+func TestInstallFromPrivateRegistry(t *testing.T) {
+	const imageRegistry = "testreg.io"
+	const imagePrefix = "testrepo"
+
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
+	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, imageRegistry)
+	cmd.PersistentFlags().Set(constants.ImagePrefixFlag, imagePrefix)
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
+	// Run install command
+	err := cmd.Execute()
+	assert.NoError(t, err)
+	assert.Equal(t, "", errBuf.String())
+
+	// Verify that the VPO deployment has the expected environment variables to enable pulling images from a private registry
+	deployment, err := cmdHelpers.GetExistingVPODeployment(c)
+	assert.NoError(t, err)
+	assert.NotNil(t, deployment)
+	testhelpers.AssertPrivateRegistryEnvVars(t, c, deployment, imageRegistry, imagePrefix)
+
+	// Verify that the VPO image has been updated
+	testhelpers.AssertPrivateRegistryImage(t, c, deployment, imageRegistry, imagePrefix)
+
+	// Verify that the VPO webhook image has been updated
+	deployment, err = cmdHelpers.GetExistingVPOWebhookDeployment(c)
+	assert.NoError(t, err)
+	assert.NotNil(t, deployment)
+
+	testhelpers.AssertPrivateRegistryImage(t, c, deployment, imageRegistry, imagePrefix)
 }

@@ -104,6 +104,7 @@ go-build-linux-debug:
 go-install:
 	$(GO) install ./...
 
+manifests: export EXP_CRD_PATH ?= experimental/crds
 .PHONY: manifests
 manifests: platform-manifests
 
@@ -159,7 +160,7 @@ endif
 #
 .PHONY: unit-test
 unit-test: go-install
-	$(GO) test -v  ./internal/... ./controllers/... ./apis/...
+	$(GO) test ./internal/... ./controllers/... ./apis/...
 
 CLUSTER_NAME ?= verrazzano
 BUILD_DEPLOY = build/deploy

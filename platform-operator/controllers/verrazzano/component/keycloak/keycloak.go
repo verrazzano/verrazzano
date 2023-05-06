@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"strings"
 	"text/template"
 
@@ -48,6 +49,8 @@ const (
 	vzMonitorGroup          = "verrazzano-monitors"
 	vzSystemGroup           = "verrazzano-system-users"
 	vzAPIAccessRole         = "vz_api_access"
+	vzLogPusherRole         = "vz_log_pusher"
+	vzOpenSearchAdminRole   = "vz_opensearch_admin"
 	vzUserName              = "verrazzano"
 	vzInternalPromUser      = "verrazzano-prom-internal"
 	vzInternalEsUser        = "verrazzano-es-internal"
@@ -554,6 +557,10 @@ const pkceClientUrisTemplate = `
 	  "https://kiali.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://thanos-query-store.{{.DNSSubDomain}}/*",
 	  "https://thanos-query-store.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://opensearch.logging.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://opensearch.logging.{{.DNSSubDomain}}/*",
+	  "https://osd.logging.{{.DNSSubDomain}}/*",
+	  "https://osd.logging.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://thanos-query.{{.DNSSubDomain}}/*",
 	  "https://thanos-query.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://jaeger.{{.DNSSubDomain}}/*"{{ if .OSHostExists}},
@@ -570,6 +577,8 @@ const pkceClientUrisTemplate = `
 	  "https://osd.vmi.system.{{.DNSSubDomain}}",
 	  "https://kiali.vmi.system.{{.DNSSubDomain}}",
 	  "https://thanos-query-store.{{.DNSSubDomain}}",
+	  "https://osd.logging.{{.DNSSubDomain}}",
+	  "https://opensearch.logging.{{.DNSSubDomain}}",
 	  "https://thanos-query.{{.DNSSubDomain}}",
 	  "https://jaeger.{{.DNSSubDomain}}"{{ if .OSHostExists}},
       "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
@@ -803,6 +812,7 @@ func updateKeycloakIngress(ctx spi.ComponentContext) error {
 		dnsSuffix, _ := vzconfig.GetDNSSuffix(ctx.Client(), ctx.EffectiveCR())
 		ingress.Annotations["cert-manager.io/common-name"] = fmt.Sprintf("%s.%s.%s",
 			ComponentName, ctx.EffectiveCR().Spec.EnvironmentName, dnsSuffix)
+		ingress.Annotations["cert-manager.io/cluster-issuer"] = vzconst.VerrazzanoClusterIssuerName
 		// update target annotation on Keycloak Ingress for external DNS
 		if vzcr.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
@@ -933,6 +943,18 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	// Create Verrazzano Log Pusher Role
+	err = createVerrazzanoRole(ctx, cfg, cli, vzLogPusherRole)
+	if err != nil {
+		return err
+	}
+
+	// Create Verrazzano OpenSearch Admin role
+	err = createVerrazzanoRole(ctx, cfg, cli, vzOpenSearchAdminRole)
+	if err != nil {
+		return err
+	}
+
 	// Granting Roles to Groups
 	err = grantRolesToGroups(ctx, cfg, cli, userGroupID, adminGroupID, monitorGroupID)
 	if err != nil {
@@ -978,6 +1000,18 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 
 	// Creating verrazzano-pg client
 	err = CreateOrUpdateClient(ctx, cfg, cli, "verrazzano-pg", pgClient, "", true, nil)
+	if err != nil {
+		return err
+	}
+
+	// Grant vz_opensearch_admin role to verrazzano user
+	err = addRealmRoleToUser(ctx, cfg, cli, vzUserName, vzSysRealm, vzOpenSearchAdminRole)
+	if err != nil {
+		return err
+	}
+
+	// Grant vz_log_pusher role to verrazzano-es-internal user
+	err = addRealmRoleToUser(ctx, cfg, cli, vzInternalEsUser, vzSysRealm, vzLogPusherRole)
 	if err != nil {
 		return err
 	}
@@ -1249,13 +1283,13 @@ func createVerrazzanoRole(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 	}
 	role := "name=" + roleName
 	createRoleCmd := kcAdminScript + " create roles -r " + vzSysRealm + " -s " + role
-	ctx.Log().Debugf("createVerrazzanoRole: Create Verrazzano API Access Role Cmd = %s", createRoleCmd)
+	ctx.Log().Debugf("createVerrazzanoRole: Create %s role cmd = %s", roleName, createRoleCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(createRoleCmd))
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed creating Verrazzano API Access Role: stdout = %s, stderr = %s", stdout, stderr)
+		ctx.Log().Errorf("Component Keycloak failed creating %s role: stdout = %s, stderr = %s", roleName, stdout, stderr)
 		return err
 	}
-	ctx.Log().Once("Component Keycloak successfully created the Verrazzano API access role")
+	ctx.Log().Once("Component Keycloak successfully created the %s role", roleName)
 	return nil
 }
 
@@ -1964,6 +1998,20 @@ func updateRancherClientSecretForKeycloakAuthConfig(ctx spi.ComponentContext) er
 	authConfig := make(map[string]interface{})
 	authConfig[common.AuthConfigKeycloakAttributeClientSecret] = clientSecret
 	return common.UpdateKeycloakOIDCAuthConfig(ctx, authConfig)
+}
+
+// addRealmRoleToUser adds a realm role to the given user in the target realm
+func addRealmRoleToUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, userName, targetRealm, roleName string) error {
+	kcPod := keycloakPod()
+	addRoleCmd := fmt.Sprintf("%s add-roles -r %s --uusername %s --rolename %s", kcAdminScript, targetRealm, userName, roleName)
+	ctx.Log().Debugf("Adding realm role %s to user %s, using command: %s", roleName, userName, addRoleCmd)
+	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(addRoleCmd))
+	if err != nil {
+		ctx.Log().Errorf("Adding realm role %s to the user %s failed: stdout = &s, stderr = %s, error = %s", roleName, userName, stdout, stderr, err.Error())
+		return err
+	}
+	ctx.Log().Oncef("Added realm role %s to the user %s", roleName, userName)
+	return nil
 }
 
 // addClientRoleToUser adds client role to the given user in the target realm

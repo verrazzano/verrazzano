@@ -64,6 +64,7 @@ rules:
       - secrets
       - services
       - pods/exec
+      - namespaces
     verbs:
       - create
       - get

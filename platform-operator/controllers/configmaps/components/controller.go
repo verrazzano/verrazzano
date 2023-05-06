@@ -35,8 +35,8 @@ type ComponentConfigMapReconciler struct {
 
 func initShimComponentList() {
 	// Add any shim components here that you want to test.
-	// For example, to add a shim component to test a new CAPI component
-	//	shimComponents[capi.ComponentName] = capi.NewComponent()
+	// For example,
+	// shimComponents[capi.ComponentName] = capi.NewComponent()
 }
 
 func (r *ComponentConfigMapReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -171,7 +171,7 @@ func (r *ComponentConfigMapReconciler) processComponent(ctx spi.ComponentContext
 			ctx.Log().Errorf("Error adding finalizer %s for dev component %s: %v", constants.DevComponentFinalizer, comp.Name(), err)
 			return newRequeueWithDelay(), err
 		}
-		ctx.Log().Infof("Successfully added finalizer %s to configmap %s for dev component", constants.DevComponentFinalizer, configMap.Name, comp.Name())
+		ctx.Log().Infof("Successfully added finalizer %s to configmap %s for dev component %s", constants.DevComponentFinalizer, configMap.Name, comp.Name())
 		// adding finalizer to ConfigMap will trigger a requeue so no need to requeue here
 		return reconcile.Result{}, nil
 	}

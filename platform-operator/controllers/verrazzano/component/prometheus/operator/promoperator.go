@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"path"
 	"strconv"
 
@@ -512,7 +513,7 @@ func applySystemMonitors(ctx spi.ComponentContext) error {
 	args := make(map[string]interface{})
 	args["systemNamespace"] = constants.VerrazzanoSystemNamespace
 	args["monitoringNamespace"] = constants.VerrazzanoMonitoringNamespace
-	args["nginxNamespace"] = constants.IngressNginxNamespace
+	args["nginxNamespace"] = nginxutil.IngressNGINXNamespace()
 	args["istioNamespace"] = constants.IstioSystemNamespace
 	args["installNamespace"] = constants.VerrazzanoInstallNamespace
 
@@ -736,7 +737,7 @@ func deleteNetworkPolicy(ctx spi.ComponentContext) error {
 	netpol := &netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: networkPolicyName, Namespace: ComponentNamespace}}
 	err := client.IgnoreNotFound(ctx.Client().Delete(context.TODO(), netpol))
 	if err != nil {
-		ctx.Log().Errorf("Error deleting existing NetworkPolicy %s/%s on upgrade: %v", networkPolicyName, ComponentNamespace, err)
+		ctx.Log().Errorf("Error deleting existing NetworkPolicy %s/%s: %v", networkPolicyName, ComponentNamespace, err)
 		return err
 	}
 	return nil

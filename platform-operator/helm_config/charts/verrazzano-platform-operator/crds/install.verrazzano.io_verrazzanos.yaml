@@ -535,6 +535,11 @@ spec:
                           type: object
                         type: array
                     type: object
+                  capi:
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   certManager:
                     properties:
                       certificate:
@@ -963,6 +968,33 @@ spec:
                       replicas:
                         format: int32
                         type: integer
+                      smtp:
+                        properties:
+                          certFileKey:
+                            type: string
+                          ehloIdentity:
+                            type: string
+                          enabled:
+                            type: boolean
+                          existingSecret:
+                            type: string
+                          fromAddress:
+                            type: string
+                          fromName:
+                            type: string
+                          host:
+                            type: string
+                          keyFileKey:
+                            type: string
+                          passwordKey:
+                            type: string
+                          skipVerify:
+                            type: boolean
+                          startTLSPolicy:
+                            type: string
+                          userKey:
+                            type: string
+                        type: object
                     type: object
                   ingress:
                     properties:
@@ -4351,6 +4383,11 @@ spec:
                           type: object
                         type: array
                     type: object
+                  capi:
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   certManager:
                     properties:
                       certificate:
@@ -4676,6 +4713,33 @@ spec:
                       replicas:
                         format: int32
                         type: integer
+                      smtp:
+                        properties:
+                          certFileKey:
+                            type: string
+                          ehloIdentity:
+                            type: string
+                          enabled:
+                            type: boolean
+                          existingSecret:
+                            type: string
+                          fromAddress:
+                            type: string
+                          fromName:
+                            type: string
+                          host:
+                            type: string
+                          keyFileKey:
+                            type: string
+                          passwordKey:
+                            type: string
+                          skipVerify:
+                            type: boolean
+                          startTLSPolicy:
+                            type: string
+                          userKey:
+                            type: string
+                        type: object
                     type: object
                   ingressNGINX:
                     properties:

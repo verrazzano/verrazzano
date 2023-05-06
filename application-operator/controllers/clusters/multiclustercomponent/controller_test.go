@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package multiclustercomponent
@@ -89,7 +89,7 @@ func TestReconcileCreateComponent(t *testing.T) {
 
 	// expect a call to fetch existing OAM component, and return not found error, to test create case
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: "core.oam.dev", Resource: "Component"}, crName))
 
 	// expect a call to create the OAM component
@@ -199,7 +199,7 @@ func TestReconcileCreateComponentFailed(t *testing.T) {
 
 	// expect a call to fetch existing OAM component and return not found error, to simulate create case
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: "core.oam.dev", Resource: "Component"}, crName))
 
 	// expect a call to create the OAM component and fail the call
@@ -350,7 +350,7 @@ func TestReconcileResourceNotFound(t *testing.T) {
 	// expect a call to fetch the MultiClusterComponent
 	// and return a not found error
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: clustersv1alpha1.SchemeGroupVersion.Group, Resource: clustersv1alpha1.MultiClusterComponentResource}, crName))
 
 	// expect no further action to be taken
@@ -368,8 +368,8 @@ func TestReconcileResourceNotFound(t *testing.T) {
 // doExpectGetComponentExists expects a call to get an OAM component and return an "existing" one
 func doExpectGetComponentExists(cli *mocks.MockClient, metadata metav1.ObjectMeta, componentSpec v1alpha2.ComponentSpec) {
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *v1alpha2.Component) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *v1alpha2.Component, opts ...client.GetOption) error {
 			component.Spec = componentSpec
 			component.ObjectMeta = metadata
 			return nil
@@ -416,8 +416,8 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 // call for a MultiClusterComponent, and populate the multi cluster component with given data
 func doExpectGetMultiClusterComponent(cli *mocks.MockClient, mcCompSample clustersv1alpha1.MultiClusterComponent, addFinalizer bool) {
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.AssignableToTypeOf(&mcCompSample)).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcComp *clustersv1alpha1.MultiClusterComponent) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.AssignableToTypeOf(&mcCompSample), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcComp *clustersv1alpha1.MultiClusterComponent, opts ...client.GetOption) error {
 			mcComp.ObjectMeta = mcCompSample.ObjectMeta
 			mcComp.TypeMeta = mcCompSample.TypeMeta
 			mcComp.Spec = mcCompSample.Spec

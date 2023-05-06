@@ -50,7 +50,7 @@ var afterSuite = t.AfterSuiteFunc(func() {})
 var _ = AfterSuite(afterSuite)
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
-	metricsTest, err = pkg.NewMetricsTest([]string{adminKubeconfig, managedKubeconfig}, adminKubeconfig, map[string]string{})
+	metricsTest, err = pkg.NewMetricsTest(adminKubeconfig, map[string]string{}, managedKubeconfig)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
 	}
