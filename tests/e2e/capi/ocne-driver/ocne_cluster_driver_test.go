@@ -13,8 +13,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/Jeffail/gabs/v2"
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
@@ -92,7 +90,6 @@ var (
 	t                 = framework.NewTestFramework("capi-ocne-driver")
 	httpClient        *retryablehttp.Client
 	rancherURL        string
-	adminToken        string
 	cloudCredentialID string
 )
 
@@ -127,17 +124,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !pkg.IsRancherEnabled(kubeconfigPath) || !pkg.IsCAPIEnabled(kubeconfigPath) {
 		Skip("Skipping ocne cluster driver test suite since either of rancher and capi components are not enabled")
 	}
-	rancherURL, err = helpers.GetRancherURL(t.Logs)
-	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed getting rancherURL: %v", err))
-	}
-	t.Logs.Infof("rancherURL: %s", rancherURL)
-	httpClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
-	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed getting http client: %v", err))
-	}
-	adminToken = helpers.GetRancherLoginToken(t.Logs)
-	t.Logs.Infof("adminToken: %s", adminToken)
 	Eventually(func() error {
 		cloudCredentialID, err = createCloudCredential("testing-creds")
 		return err
@@ -171,6 +157,8 @@ func executeCloudCredentialsTemplate(data *cloudCredentialsData, buffer *bytes.B
 }
 
 func createCloudCredential(credentialName string) (string, error) {
+	adminToken := helpers.GetRancherLoginToken(t.Logs)
+	t.Logs.Infof("adminToken: %s", adminToken)
 	requestURL := rancherURL + "/v3/cloudcredentials"
 	t.Logs.Infof("Cloud credential requestURL: %s", requestURL)
 	privateKeyContents, err := getFileContents(privateKeyPath)
@@ -229,6 +217,8 @@ func executeCreateClusterTemplate(data *capiClusterData, buffer *bytes.Buffer) e
 
 // Creates an OCNE cluster through CAPI
 func createCluster(clusterName string) error {
+	adminToken := helpers.GetRancherLoginToken(t.Logs)
+	t.Logs.Infof("adminToken: %s", adminToken)
 	requestURL := rancherURL + "/v3/cluster"
 	t.Logs.Infof("createCluster requestURL: %s", requestURL)
 	nodePublicKeyContents, err := getFileContents(nodePublicKeyPath)
@@ -288,6 +278,8 @@ func IsClusterActive(clusterName string) (bool, error) {
 
 // Gets a specified cluster by using the Rancher REST API
 func getCluster(clusterName string) (*gabs.Container, error) {
+	adminToken := helpers.GetRancherLoginToken(t.Logs)
+	t.Logs.Infof("adminToken: %s", adminToken)
 	requestURL := rancherURL + "/v3/cluster?name=" + clusterName
 	t.Logs.Infof("getCluster requestURL: %s", requestURL)
 	request, err := retryablehttp.NewRequest(http.MethodGet, requestURL, nil)
