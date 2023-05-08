@@ -1223,8 +1223,8 @@ func expectCertManagerCRDChecks(mock *mocks.MockClient) {
 	// Expect a call to get the ServiceAccount - return that it exists
 	for _, crdName := range common.GetRequiredCertManagerCRDNames() {
 		mock.EXPECT().
-			Get(gomock.Any(), types.NamespacedName{Name: crdName}, gomock.Not(gomock.Nil()), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, crd *v1.CustomResourceDefinition, opts ...client.GetOption) error {
+			Get(gomock.Any(), types.NamespacedName{Name: crdName}, gomock.Not(gomock.Nil())).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, crd *v1.CustomResourceDefinition) error {
 				return nil
 			}).AnyTimes()
 	}

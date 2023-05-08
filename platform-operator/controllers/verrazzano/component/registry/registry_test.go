@@ -4,6 +4,8 @@
 package registry
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerconfig"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerocidns"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

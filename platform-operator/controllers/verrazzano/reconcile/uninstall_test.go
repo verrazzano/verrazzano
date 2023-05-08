@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"reflect"
 	"testing"
 	"time"
@@ -218,6 +219,7 @@ func TestReconcileUninstall(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	_ = v1alpha1.AddToScheme(k8scheme.Scheme)
 	_ = vzappclusters.AddToScheme(k8scheme.Scheme)
+	_ = apiextv1.AddToScheme(k8scheme.Scheme)
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		vzcr,
