@@ -231,12 +231,30 @@ func (c capiComponent) PostUninstall(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (c capiComponent) PreUpgrade(_ spi.ComponentContext) error {
-	return nil
+func (c capiComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	return preUpgrade(ctx)
 }
 
-func (c capiComponent) Upgrade(_ spi.ComponentContext) error {
-	return nil
+func (c capiComponent) Upgrade(ctx spi.ComponentContext) error {
+	capiClient, err := capiInitFunc("")
+	if err != nil {
+		return err
+	}
+
+	overrides, err := getImageOverrides(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Set up the upgrade options for the CAPI apply upgrade.
+	applyUpgradeOptions := clusterapi.ApplyUpgradeOptions{
+		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overrides.APIVersion),
+		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEBootstrapVersion)},
+		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEControlPlaneVersion)},
+		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overrides.OCIVersion)},
+	}
+
+	return capiClient.ApplyUpgrade(applyUpgradeOptions)
 }
 
 func (c capiComponent) PostUpgrade(_ spi.ComponentContext) error {

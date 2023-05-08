@@ -87,7 +87,7 @@ func resetClusterAPIDir() {
 	clusterAPIDir = defaultClusterAPIDir
 }
 
-// PreInstall implementation for the CAPI Component
+// preInstall implementation for the CAPI Component
 func preInstall(ctx spi.ComponentContext) error {
 	err := setEnvVariables()
 	if err != nil {
@@ -95,6 +95,17 @@ func preInstall(ctx spi.ComponentContext) error {
 	}
 
 	// Create the clusterctl.yaml used when initializing CAPI.
+	return createClusterctlYaml(ctx)
+}
+
+// preUpgrade implementation for the CAPI Component
+func preUpgrade(ctx spi.ComponentContext) error {
+	err := setEnvVariables()
+	if err != nil {
+		return err
+	}
+
+	// Create the clusterctl.yaml used when upgrading CAPI.
 	return createClusterctlYaml(ctx)
 }
 
