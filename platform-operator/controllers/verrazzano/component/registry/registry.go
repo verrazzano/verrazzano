@@ -9,6 +9,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerconfig"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerocidns"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
@@ -70,6 +72,8 @@ func InitRegistry() {
 		weblogic.NewComponent(),
 		nginx.NewComponent(),
 		certmanager.NewComponent(),
+		certmanagerocidns.NewComponent(),
+		certmanagerconfig.NewComponent(),
 		externaldns.NewComponent(),
 		rancher.NewComponent(),
 		verrazzano.NewComponent(),

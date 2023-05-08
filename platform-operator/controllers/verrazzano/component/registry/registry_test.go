@@ -63,6 +63,19 @@ const (
 	profileDir                = "../../../../manifests/profiles"
 )
 
+var basicNoneClusterWithStatus = v1alpha1.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "default-none",
+	},
+	Spec: v1alpha1.VerrazzanoSpec{
+		Profile: "none",
+	},
+	Status: v1alpha1.VerrazzanoStatus{
+		Version:            "v1.0.1",
+		VerrazzanoInstance: &v1alpha1.InstanceInfo{},
+	},
+}
+
 // TestGetComponents tests getting the components
 // GIVEN a component
 //
@@ -73,7 +86,7 @@ func TestGetComponents(t *testing.T) {
 	comps := GetComponents()
 
 	var i int
-	a.Len(comps, 33, "Wrong number of components")
+	a.Len(comps, 35, "Wrong number of components")
 	a.Equal(comps[i].Name(), networkpolicies.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), oam.ComponentName)
@@ -87,6 +100,10 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[i].Name(), nginx.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), certmanager.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), certmanagerocidns.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), certmanagerconfig.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), externaldns.ComponentName)
 	i++
