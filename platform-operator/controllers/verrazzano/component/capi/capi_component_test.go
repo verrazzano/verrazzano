@@ -364,6 +364,38 @@ func TestUninstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestPreUpgrade tests the PreUpgrade function
+// GIVEN a call to PreUpgrade
+//
+//	WHEN CAPI is pre-upgraded
+//	THEN no error is returned
+func TestPreUpgrade(t *testing.T) {
+	fakeClient := fake.NewClientBuilder().Build()
+	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
+	config.SetDefaultBomFilePath(testBomFilePath)
+	dir := os.TempDir() + "/" + time.Now().Format("20060102150405")
+	setClusterAPIDir(dir)
+	defer resetClusterAPIDir()
+	defer os.RemoveAll(dir)
+	var comp capiComponent
+	err := comp.PreUpgrade(compContext)
+	assert.NoError(t, err)
+}
+
+// WHEN CAPI is upgraded
+// THEN no error is returned
+func TestUpgrade(t *testing.T) {
+	SetCAPIInitFunc(fakeCAPINew)
+	defer ResetCAPIInitFunc()
+	config.SetDefaultBomFilePath(testBomFilePath)
+
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
+	var comp capiComponent
+	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
+	err := comp.Upgrade(compContext)
+	assert.NoError(t, err)
+}
+
 // TestValidateUpdate tests webhook updates
 // GIVEN a call to ValidateUpdate
 //
