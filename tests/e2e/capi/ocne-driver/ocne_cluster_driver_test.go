@@ -126,6 +126,10 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !pkg.IsRancherEnabled(kubeconfigPath) || !pkg.IsCAPIEnabled(kubeconfigPath) {
 		Skip("Skipping ocne cluster driver test suite since either of rancher and capi components are not enabled")
 	}
+	httpClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed getting http client: %v", err))
+	}
 	Eventually(func() error {
 		cloudCredentialID, err = createCloudCredential("testing-creds")
 		return err
