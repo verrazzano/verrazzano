@@ -13,6 +13,8 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/Jeffail/gabs/v2"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
@@ -217,8 +219,8 @@ func executeCreateClusterTemplate(data *capiClusterData, buffer *bytes.Buffer) e
 
 // Creates an OCNE cluster through CAPI
 func createCluster(clusterName string) error {
-	adminToken := helpers.GetRancherLoginToken(t.Logs)
-	t.Logs.Infof("adminToken: %s", adminToken)
+	adminTokenLocal := helpers.GetRancherLoginToken(t.Logs)
+	t.Logs.Infof("adminToken: %s", adminTokenLocal)
 	requestURL := rancherURL + "/v3/cluster"
 	t.Logs.Infof("createCluster requestURL: %s", requestURL)
 	nodePublicKeyContents, err := getFileContents(nodePublicKeyPath)
