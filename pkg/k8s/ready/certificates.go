@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package ready
 
@@ -77,7 +77,7 @@ func IsCertficateIsReady(log vzlog.VerrazzanoLogger, client clipkg.Client, name 
 		if mostRecent.Status == cmmeta.ConditionTrue && mostRecent.Type == certapiv1.CertificateConditionReady {
 			return true, nil
 		}
-		log.Infof("Certificate %s not ready, reason: %s, message: %s", name, mostRecent.Reason, mostRecent.Message)
+		log.Progressf("Certificate %s not ready, reason: %s, message: %s", name, mostRecent.Reason, mostRecent.Message)
 	}
 	return false, nil
 }

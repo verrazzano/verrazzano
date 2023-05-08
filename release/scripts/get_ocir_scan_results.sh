@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # Generate OCIR image scan report
@@ -98,7 +98,7 @@ function get_scan_details() {
   SCAN_RESULT_OCID=$4
   RESULT_FILE_PREFIX="$5/$RESULT_REPOSITORY_IMAGE"
   oci vulnerability-scanning container scan result get --container-scan-result-id $4 --region $OCI_REGION > $RESULT_FILE_PREFIX-ocir-details.json
-  cat $RESULT_FILE_PREFIX-ocir-details.json | jq -r '.data.problems[] | { sev: .severity, cve: ."cve-reference", description: .description } ' | jq -r '[.[]] | @csv' | sort -u > $RESULT_FILE_PREFIX-ocir-details.csv
+  cat $RESULT_FILE_PREFIX-ocir-details.json | jq -r '.data.problems[] | { sev: .severity, cve: ."cve-reference", description: .description } ' | sed 's/\\[nt]/ /g' | jq -r '[.[]] | @csv' | sort -u > $RESULT_FILE_PREFIX-ocir-details.csv
   TIME_FINISHED=$(cat $RESULT_FILE_PREFIX-ocir-details.json | jq -r '.data."time-finished"')
   generate_detail_text_report $1 $2 $3 $4 $RESULT_FILE_PREFIX $TIME_FINISHED $6
 }

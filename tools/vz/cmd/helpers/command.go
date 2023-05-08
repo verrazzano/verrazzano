@@ -4,11 +4,12 @@
 package helpers
 
 import (
+	"bufio"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/semver"
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 )
@@ -85,8 +86,29 @@ func GetVersion(cmd *cobra.Command, vzHelper helpers.VZHelper) (string, error) {
 	return version, nil
 }
 
-// GetOperatorFile returns the value for the operator-file option
-func GetOperatorFile(cmd *cobra.Command) (string, error) {
+// ConfirmWithUser asks the user a yes/no question and returns true if the user answered yes, false
+// otherwise.
+func ConfirmWithUser(vzHelper helpers.VZHelper, questionText string, skipQuestion bool) (bool, error) {
+	if skipQuestion {
+		return true, nil
+	}
+	var response string
+	scanner := bufio.NewScanner(vzHelper.GetInputStream())
+	fmt.Fprintf(vzHelper.GetOutputStream(), "%s [y/N]: ", questionText)
+	if scanner.Scan() {
+		response = scanner.Text()
+	}
+	if err := scanner.Err(); err != nil {
+		return false, err
+	}
+	if response == "y" || response == "Y" {
+		return true, nil
+	}
+	return false, nil
+}
+
+// getOperatorFileFromFlag returns the value for the operator-file option
+func getOperatorFileFromFlag(cmd *cobra.Command) (string, error) {
 	// Get the value from the command line
 	operatorFile, err := cmd.PersistentFlags().GetString(constants.OperatorFileFlag)
 	if err != nil {

@@ -28,6 +28,7 @@ type chartValues struct {
 	Rancher             *rancherValues           `json:"rancher,omitempty"`
 	Velero              *veleroValues            `json:"velero,omitempty"`
 	ArgoCD              *argoCDValues            `json:"argoCd,omitempty"`
+	Capi                *capiValues              `json:"capi,omitempty"`
 }
 
 type authproxyValues struct {
@@ -51,7 +52,8 @@ type consoleValues struct {
 }
 
 type nginxValues struct {
-	Enabled bool `json:"enabled"` // Always write
+	Enabled   bool   `json:"enabled"`
+	Namespace string `json:"namespace"`
 }
 
 type elasticsearchValues struct {
@@ -79,7 +81,8 @@ type grafanaValues struct {
 }
 
 type externalDNSValues struct {
-	Enabled bool `json:"enabled"` // Always write
+	Enabled   bool   `json:"enabled"`   // Always write
+	Namespace string `json:"namespace"` // Always write
 }
 
 type jaegerOperatorValues struct {
@@ -103,5 +106,9 @@ type veleroValues struct {
 }
 
 type argoCDValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type capiValues struct {
 	Enabled bool `json:"enabled"` // Always write
 }

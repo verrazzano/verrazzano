@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"path"
 	"strconv"
 
@@ -512,7 +513,7 @@ func applySystemMonitors(ctx spi.ComponentContext) error {
 	args := make(map[string]interface{})
 	args["systemNamespace"] = constants.VerrazzanoSystemNamespace
 	args["monitoringNamespace"] = constants.VerrazzanoMonitoringNamespace
-	args["nginxNamespace"] = constants.IngressNginxNamespace
+	args["nginxNamespace"] = nginxutil.IngressNGINXNamespace()
 	args["istioNamespace"] = constants.IstioSystemNamespace
 	args["installNamespace"] = constants.VerrazzanoInstallNamespace
 

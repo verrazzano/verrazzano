@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -90,7 +90,6 @@ create_kind_cluster() {
     fi
   fi
 
-
   # List the permissions of /dev/null.  We have seen a failure where `docker ps` gets an operation not permitted error.
   # Listing the permissions will help to analyze what is wrong, if we see the failure again.
   echo "Listing permissions for /dev/null"
@@ -108,7 +107,7 @@ create_kind_cluster() {
   yq -i eval '.networking.apiServerAddress=strenv(KIND_API_SERVER_ADDRESS)' ${KIND_CONFIG_FILE}
 
   cat ${KIND_CONFIG_FILE}
-  HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster --retain -v 1 --name ${CLUSTER_NAME} \
+  HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster --retain -v 9 --name ${CLUSTER_NAME} \
     --config=${KIND_CONFIG_FILE}
 }
 

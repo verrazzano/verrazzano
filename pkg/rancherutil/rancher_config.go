@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"io"
 	"net"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	cons "github.com/verrazzano/verrazzano/pkg/constants"
@@ -41,12 +43,16 @@ const (
 	tokensPath = "/v3/tokens" //nolint:gosec
 )
 
+// DefaultRancherIngressHostPrefix is the default internal Ingress host prefix used for Rancher API requests
+const DefaultRancherIngressHostPrefix = "ingress-controller-ingress-nginx-controller."
+
 type RancherConfig struct {
 	Host                     string
 	BaseURL                  string
 	APIAccessToken           string
 	CertificateAuthorityData []byte
 	AdditionalCA             []byte
+	User                     string
 }
 
 var DefaultRetry = wait.Backoff{
@@ -55,6 +61,11 @@ var DefaultRetry = wait.Backoff{
 	Factor:   2.0,
 	Jitter:   0.1,
 }
+
+// The userTokenCache stores rancher auth tokens for a given user if it exists
+// This reuses tokens when possible instead of creating a new one every reconcile loop
+var userTokenCache = make(map[string]string)
+var userLock = &sync.RWMutex{}
 
 // requestSender is an interface for sending requests to Rancher that allows us to mock during unit testing
 type requestSender interface {
@@ -93,6 +104,8 @@ func NewVerrazzanoClusterRancherConfig(rdr client.Reader, host string, log vzlog
 // NewRancherConfigForUser returns a populated RancherConfig struct that can be used to make calls to the Rancher API
 func NewRancherConfigForUser(rdr client.Reader, username, password, host string, log vzlog.VerrazzanoLogger) (*RancherConfig, error) {
 	rc := &RancherConfig{BaseURL: "https://" + host}
+	// Needed to populate userToken[] map
+	rc.User = username
 
 	// Rancher host name is needed for TLS
 	log.Debug("Getting Rancher ingress host name")
@@ -113,12 +126,47 @@ func NewRancherConfigForUser(rdr client.Reader, username, password, host string,
 
 	log.Debugf("Checking for Rancher additional CA in secret %s", cons.AdditionalTLS)
 	rc.AdditionalCA = common.GetAdditionalCA(rdr)
-	token, err := getUserToken(rc, log, password, username)
-	if err != nil {
-		return nil, err
+
+	token, exists := getStoredToken(username)
+	if !exists {
+		token, err = getUserToken(rc, log, password, username)
+		if err != nil {
+			return nil, err
+		}
+		newStoredToken(username, token)
 	}
+
 	rc.APIAccessToken = token
 	return rc, nil
+}
+
+// newStoredToken creates a new user:token key-pair in memory
+func newStoredToken(username string, token string) {
+	userLock.Lock()
+	defer userLock.Unlock()
+	userTokenCache[username] = token
+}
+
+// getStoredToken gets the token for the given user from memory
+func getStoredToken(username string) (string, bool) {
+	userLock.RLock()
+	defer userLock.RUnlock()
+	token, exists := userTokenCache[username]
+	return token, exists
+}
+
+// deleteStoredToken deletes the token for the given user from memory
+func deleteStoredToken(username string) {
+	userLock.Lock()
+	defer userLock.Unlock()
+	delete(userTokenCache, username)
+}
+
+// DeleteStoredTokens clears the map of stored tokens.
+func DeleteStoredTokens() {
+	userLock.Lock()
+	defer userLock.Unlock()
+	userTokenCache = make(map[string]string)
 }
 
 // getRancherIngressHostname gets the Rancher ingress host name. This is used to set the host for TLS.
@@ -302,7 +350,12 @@ func SendRequest(action string, reqURL string, headers map[string]string, payloa
 	req.Header.Add("Host", rc.Host)
 	req.Host = rc.Host
 
-	return doRequest(req, rc, log)
+	response, body, err := doRequest(req, rc, log)
+	// If we get an unauthorized response, remove the token from the cache
+	if response.StatusCode == http.StatusUnauthorized {
+		deleteStoredToken(rc.User)
+	}
+	return response, body, err
 }
 
 // doRequest configures an HTTP transport (including TLS), sends an HTTP request with retries, and returns the response
@@ -395,4 +448,9 @@ func doRequest(req *http.Request, rc *RancherConfig, log vzlog.VerrazzanoLogger)
 	}
 
 	return resp, string(body), err
+}
+
+// RancherIngressServiceHost returns the internal service host name of the Rancher ingress
+func RancherIngressServiceHost() string {
+	return DefaultRancherIngressHostPrefix + nginxutil.IngressNGINXNamespace()
 }

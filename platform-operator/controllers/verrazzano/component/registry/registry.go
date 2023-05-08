@@ -9,7 +9,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/config"
+	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
+	cmocidns "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/ocidns"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
@@ -71,7 +73,9 @@ func InitRegistry() {
 		istio.NewComponent(),
 		weblogic.NewComponent(),
 		nginx.NewComponent(),
-		certmanager.NewComponent(),
+		cmcontroller.NewComponent(),
+		cmocidns.NewComponent(),
+		cmconfig.NewComponent(),
 		externaldns.NewComponent(),
 		capi.NewComponent(),
 		rancher.NewComponent(),
@@ -105,7 +109,6 @@ func InitRegistry() {
 }
 
 // GetComponents returns the list of components that are installable and upgradeable.
-// The components will be processed in the order items in the array
 // The components will be processed in the order items in the array
 func GetComponents() []spi.Component {
 	if len(componentsRegistry) == 0 {

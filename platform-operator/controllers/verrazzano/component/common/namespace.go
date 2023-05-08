@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -41,8 +42,9 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 		}
 	}
 
-	if err := namespace.CreateIngressNginxNamespace(ctx.Client(), istioInject); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.IngressNamespace, err)
+	IngressNGINXNamespace := nginxutil.IngressNGINXNamespace()
+	if err := namespace.CreateIngressNginxNamespace(ctx.Client(), istioInject, IngressNGINXNamespace); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", IngressNGINXNamespace, err)
 	}
 
 	if vzcr.IsIstioEnabled(ctx.EffectiveCR()) {
@@ -66,6 +68,12 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 	if vzcr.IsArgoCDEnabled(ctx.EffectiveCR()) {
 		if err := namespace.CreateArgoCDNamespace(ctx.Client(), istioInject); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", constants.ArgoCDNamespace, err)
+		}
+	}
+
+	if vzcr.IsCAPIEnabled(ctx.EffectiveCR()) {
+		if err := namespace.CreateVerrazzanoCapiNamespace(ctx.Client()); err != nil {
+			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.VerrazzanoCAPINamespace, err)
 		}
 	}
 
