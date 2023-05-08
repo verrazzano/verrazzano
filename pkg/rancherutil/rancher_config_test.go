@@ -13,7 +13,6 @@ import (
 
 	pkgconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/pkg/test/mockmatchers"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 
@@ -64,7 +63,7 @@ func TestCreateRancherRequest(t *testing.T) {
 	RancherHTTPClient = httpMock
 
 	// Test with the Verrazzano cluster user
-	rc, err := NewVerrazzanoClusterRancherConfig(cli, DefaultRancherIngressHostPrefix+nginxutil.IngressNGINXNamespace(), log)
+	rc, err := NewVerrazzanoClusterRancherConfig(cli, log)
 	assert.NoError(t, err)
 
 	response, body, err := SendRequest(http.MethodGet, testPath, map[string]string{}, "", rc, log)
@@ -73,7 +72,7 @@ func TestCreateRancherRequest(t *testing.T) {
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 
 	// Test with the admin user
-	rc, err = NewAdminRancherConfig(cli, DefaultRancherIngressHostPrefix+nginxutil.IngressNGINXNamespace(), log)
+	rc, err = NewAdminRancherConfig(cli, log)
 	assert.NoError(t, err)
 
 	response, body, err = SendRequest(http.MethodGet, testPath, map[string]string{}, "", rc, log)

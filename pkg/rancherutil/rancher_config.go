@@ -84,26 +84,26 @@ func (*HTTPRequestSender) Do(httpClient *http.Client, req *http.Request) (*http.
 }
 
 // NewAdminRancherConfig creates A rancher config that authenticates with the admin user
-func NewAdminRancherConfig(rdr client.Reader, host string, log vzlog.VerrazzanoLogger) (*RancherConfig, error) {
+func NewAdminRancherConfig(rdr client.Reader, log vzlog.VerrazzanoLogger) (*RancherConfig, error) {
 	secret, err := GetAdminSecret(rdr)
 	if err != nil {
 		return nil, log.ErrorfNewErr("Failed to get the admin secret from the cluster: %v", err)
 	}
-	return NewRancherConfigForUser(rdr, rancherAdminUsername, secret, host, log)
+	return NewRancherConfigForUser(rdr, rancherAdminUsername, secret, log)
 }
 
 // NewVerrazzanoClusterRancherConfig creates A rancher config that authenticates with the Verrazzano cluster user
-func NewVerrazzanoClusterRancherConfig(rdr client.Reader, host string, log vzlog.VerrazzanoLogger) (*RancherConfig, error) {
+func NewVerrazzanoClusterRancherConfig(rdr client.Reader, log vzlog.VerrazzanoLogger) (*RancherConfig, error) {
 	secret, err := GetVerrazzanoClusterUserSecret(rdr)
 	if err != nil {
 		return nil, log.ErrorfNewErr("Failed to get the Verrazzano cluster secret from the cluster: %v", err)
 	}
-	return NewRancherConfigForUser(rdr, cons.VerrazzanoClusterRancherUsername, secret, host, log)
+	return NewRancherConfigForUser(rdr, cons.VerrazzanoClusterRancherUsername, secret, log)
 }
 
 // NewRancherConfigForUser returns a populated RancherConfig struct that can be used to make calls to the Rancher API
-func NewRancherConfigForUser(rdr client.Reader, username, password, host string, log vzlog.VerrazzanoLogger) (*RancherConfig, error) {
-	rc := &RancherConfig{BaseURL: "https://" + host}
+func NewRancherConfigForUser(rdr client.Reader, username, password string, log vzlog.VerrazzanoLogger) (*RancherConfig, error) {
+	rc := &RancherConfig{BaseURL: "https://" + RancherIngressServiceHost()}
 	// Needed to populate userToken[] map
 	rc.User = username
 

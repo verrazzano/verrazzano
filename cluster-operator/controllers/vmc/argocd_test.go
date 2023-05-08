@@ -99,7 +99,7 @@ func TestMutateArgoCDClusterSecretWithoutRefresh(t *testing.T) {
 
 	caData := []byte("ca")
 
-	rc, err := rancherutil.NewRancherConfigForUser(cli, constants.ArgoCDClusterRancherUsername, "foobar", rancherutil.RancherIngressServiceHost(), log)
+	rc, err := rancherutil.NewRancherConfigForUser(cli, constants.ArgoCDClusterRancherUsername, "foobar", log)
 	assert.NoError(t, err)
 
 	err = r.mutateArgoCDClusterSecret(secret, rc, vmc.Name, clusterID, rancherURL, caData)
@@ -175,7 +175,7 @@ func TestMutateArgoCDClusterSecretWithRefresh(t *testing.T) {
 
 	caData := []byte("ca")
 
-	rc, err := rancherutil.NewRancherConfigForUser(cli, constants.ArgoCDClusterRancherUsername, "foobar", rancherutil.RancherIngressServiceHost(), log)
+	rc, err := rancherutil.NewRancherConfigForUser(cli, constants.ArgoCDClusterRancherUsername, "foobar", log)
 	assert.NoError(t, err)
 
 	err = r.mutateArgoCDClusterSecret(secret, rc, vmc.Name, clusterID, rancherURL, caData)
@@ -343,7 +343,7 @@ func TestUpdateArgoCDClusterRoleBindingTemplate(t *testing.T) {
 				Client: cli,
 				log:    vzlog.DefaultLogger(),
 			}
-			rc, err := rancherutil.NewAdminRancherConfig(cli, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
+			rc, err := rancherutil.NewAdminRancherConfig(cli, vzlog.DefaultLogger())
 			assert.NoError(t, err)
 
 			err = r.updateArgoCDClusterRoleBindingTemplate(rc, tt.vmc)
