@@ -248,7 +248,7 @@ func createCluster(clusterName string) error {
 		return err
 	}
 	request.Header.Add("Content-Type", "application/json")
-	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminToken))
+	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminTokenLocal))
 	response, err := httpClient.Do(request)
 	if err != nil {
 		t.Logs.Errorf("error create cluster POST response: %v", response)
