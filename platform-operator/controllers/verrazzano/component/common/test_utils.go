@@ -4,9 +4,11 @@
 package common
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"testing"
 
@@ -26,6 +28,26 @@ import (
 func MockGetCoreV1(objects ...runtime.Object) func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
 	return func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
 		return k8sfake.NewSimpleClientset(objects...).CoreV1(), nil
+	}
+}
+
+// MockGetCoreV1WithNamespace mocks GetCoreV1Client function with a Get for a verrazzano managed namespace
+func MockGetCoreV1WithNamespace(namespace string, objects ...runtime.Object) func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
+	return func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
+		var newObjects = []runtime.Object{
+			&corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: namespace,
+					Labels: map[string]string{
+						constants.LabelVerrazzanoNamespace: namespace,
+					},
+				},
+			},
+		}
+		if objects != nil {
+			newObjects = append(newObjects, objects...)
+		}
+		return k8sfake.NewSimpleClientset(newObjects...).CoreV1(), nil
 	}
 }
 

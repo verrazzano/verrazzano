@@ -410,21 +410,17 @@ func ExecPodNoTty(client kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, co
 
 // GetGoClient returns a go-client
 func GetGoClient(log ...vzlog.VerrazzanoLogger) (kubernetes.Interface, error) {
+	if fakeClient != nil {
+		return fakeClient, nil
+	}
 	var logger vzlog.VerrazzanoLogger
 	if len(log) > 0 {
 		logger = log[0]
 	}
-	if fakeClient != nil {
-		return fakeClient, nil
-	}
-	config, err := GetConfigFromController()
+	config, err := buildRESTConfig(logger)
 	if err != nil {
-		if logger != nil {
-			logger.Errorf("Failed to get kubeconfig: %v", err)
-		}
 		return nil, err
 	}
-
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		if logger != nil {
@@ -434,6 +430,17 @@ func GetGoClient(log ...vzlog.VerrazzanoLogger) (kubernetes.Interface, error) {
 	}
 
 	return kubeClient, err
+}
+
+func buildRESTConfig(logger vzlog.VerrazzanoLogger) (*rest.Config, error) {
+	config, err := GetConfigFromController()
+	if err != nil {
+		if logger != nil {
+			logger.Errorf("Failed to get kubeconfig: %v", err)
+		}
+		return nil, err
+	}
+	return config, nil
 }
 
 // GetDynamicClientInCluster returns a dynamic client needed to access Unstructured data

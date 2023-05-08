@@ -255,12 +255,17 @@ pipeline {
         }
 
 
-        stage('Install App stack') {
+        stage('Install App stack with third party cert-manager and ingress-nginx') {
             environment {
                 KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
             }
             steps {
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano
+                    ci/scripts/install_third_party_components.sh
+                """
+
                 runGinkgoUpdate('update/a-la-carte', 'app-stack')
             }
 

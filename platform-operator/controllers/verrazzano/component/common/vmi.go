@@ -73,7 +73,7 @@ func CreateOrUpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error
 	if vzcr.IsNGINXEnabled(effectiveCR) {
 		dnsSuffix, err = vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
 		if err != nil {
-			return ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
+			return ctx.Log().ErrorfThrottledNewErr("Failed getting DNS suffix: %v", err)
 		}
 		envName = vzconfig.GetEnvName(effectiveCR)
 	}

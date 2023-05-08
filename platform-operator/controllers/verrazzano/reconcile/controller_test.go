@@ -2372,6 +2372,9 @@ func TestReconcilerProcReadyState(t *testing.T) {
 	for _, tt := range tests {
 		registry.OverrideGetComponentsFn(getCompFunc)
 		t.Run(tt.name, func(t *testing.T) {
+			k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace("cattle-system")
+			defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+
 			r := newVerrazzanoReconciler(tt.k8sClient)
 			if tt.setProfileFunc != nil {
 				tt.setProfileFunc()
