@@ -5,8 +5,6 @@ package syscomponents
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"os"
 	"strings"
 	"time"
@@ -124,20 +122,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	}
 
 	isMinVersion110, err = pkg.IsVerrazzanoMinVersion("1.1.0", adminKubeConfig)
-	if err != nil {
-		Fail(err.Error())
-	}
-
-	defaultLabels := map[string]string{}
-	if clusterLabelVal := getClusterNameForPromQuery(); clusterLabelVal != "" {
-		defaultLabels[getClusterNameMetricLabel()] = clusterLabelVal
-	}
-	metricsTest, err = pkg.NewMetricsTest(adminKubeConfig, defaultLabels)
-	if err != nil {
-		Fail(err.Error())
-	}
-
-	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
 	if err != nil {
 		Fail(err.Error())
 	}
