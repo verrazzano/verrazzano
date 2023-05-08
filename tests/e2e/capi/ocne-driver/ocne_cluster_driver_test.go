@@ -92,7 +92,6 @@ var (
 	t                 = framework.NewTestFramework("capi-ocne-driver")
 	httpClient        *retryablehttp.Client
 	rancherURL        string
-	adminToken        string
 	cloudCredentialID string
 )
 
@@ -136,7 +135,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed getting http client: %v", err))
 	}
-	adminToken = helpers.GetRancherLoginToken(t.Logs)
+	adminToken := helpers.GetRancherLoginToken(t.Logs)
 	t.Logs.Infof("adminToken: %s", adminToken)
 	Eventually(func() error {
 		cloudCredentialID, err = createCloudCredential("testing-creds")
@@ -229,6 +228,19 @@ func executeCreateClusterTemplate(data *capiClusterData, buffer *bytes.Buffer) e
 
 // Creates an OCNE cluster through CAPI
 func createCluster(clusterName string) error {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	Expect(err).ShouldNot(HaveOccurred())
+	rancherURL, err = helpers.GetRancherURL(t.Logs)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed getting rancherURL: %v", err))
+	}
+	t.Logs.Infof("rancherURL: %s", rancherURL)
+	httpClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed getting http client: %v", err))
+	}
+	adminTokenLocal := helpers.GetRancherLoginToken(t.Logs)
+
 	requestURL := rancherURL + "/v3/cluster"
 	t.Logs.Infof("createCluster requestURL: %s", requestURL)
 	nodePublicKeyContents, err := getFileContents(nodePublicKeyPath)
@@ -258,7 +270,7 @@ func createCluster(clusterName string) error {
 		return err
 	}
 	request.Header.Add("Content-Type", "application/json")
-	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminToken))
+	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminTokenLocal))
 	response, err := httpClient.Do(request)
 	if err != nil {
 		t.Logs.Errorf("error create cluster POST response: %v", response)
