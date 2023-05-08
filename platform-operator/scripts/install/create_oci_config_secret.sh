@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # Creates a Kubernetes secret based on an OCI CLI configuration for consumption by External-DNS and/or Cert-Manager
@@ -10,7 +10,7 @@
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
 if [ -z "${KUBECONFIG:-}" ] ; then
-  echo "Environment variable KUBECONFIG must be set an point to a valid kube config file"
+  echo "Environment variable KUBECONFIG must be set to a valid kube config file"
   exit 1
 fi
 
@@ -60,6 +60,7 @@ function usage {
     echo "  -k secret_name             The secret name containing the OCI configuration. Default is oci"
     echo "  -c context_name            The kubectl context to use"
     echo "  -a auth_type               The auth_type to be used to access OCI. Valid values are user_principal/instance_principal. Default is user_principal."
+    echo "  -n namespace               The target namespace to create the secret in. Default is \"verrazzano-install\"."
     echo "  -h                         Help"
     echo
     exit 1
@@ -71,10 +72,10 @@ OCI_CONFIG_FILE=~/.oci/config
 SECTION=DEFAULT
 OCI_CONFIG_SECRET_NAME=oci
 K8SCONTEXT=""
-VERRAZZANO_INSTALL_NS=verrazzano-install
+TARGET_NS=verrazzano-install
 OCI_AUTH_TYPE="user_principal"
 
-while getopts c:o:s:k:a:h flag
+while getopts c:n:o:s:k:a:h flag
 do
     case "${flag}" in
         o) OCI_CONFIG_FILE=${OPTARG};;
@@ -82,6 +83,7 @@ do
         k) OCI_CONFIG_SECRET_NAME=${OPTARG};;
         c) K8SCONTEXT="--context=${OPTARG}";;
         a) OCI_AUTH_TYPE_INPUT=${OPTARG};;
+        n) TARGET_NS=${OPTARG};;
         h) usage;;
         *) usage;;
     esac
@@ -120,20 +122,20 @@ if [ ${OCI_AUTH_TYPE} == "user_principal" ] ; then
   echo "  region: $region" >> $OUTPUT_FILE
   echo "  tenancy: $tenancy" >> $OUTPUT_FILE
   echo "  user: $user" >> $OUTPUT_FILE
-  echo "  key: |" >> $OUTPUT_FILE
-  cat $key_file | sed 's/^/    /' >> $OUTPUT_FILE
   echo "  fingerprint: $fingerprint" >> $OUTPUT_FILE
   echo "  authtype: ${OCI_AUTH_TYPE}" >> $OUTPUT_FILE
   if [[ ! -z "$pass_phrase" ]]; then
     echo "  passphrase: $pass_phrase" >> $OUTPUT_FILE
   fi
+  echo "  key: |" >> $OUTPUT_FILE
+  cat $key_file | sed 's/^/    /' >> $OUTPUT_FILE
 fi
 
 # create the secret in verrazzano-install namespace
-kubectl ${K8SCONTEXT} get secret $OCI_CONFIG_SECRET_NAME -n $VERRAZZANO_INSTALL_NS > /dev/null 2>&1
+kubectl ${K8SCONTEXT} get secret $OCI_CONFIG_SECRET_NAME -n $TARGET_NS > /dev/null 2>&1
 if [ $? -eq 0 ]; then
   # secret exists
-  echo "Secret $OCI_CONFIG_SECRET_NAME already exists in ${VERRAZZANO_INSTALL_NS} namespace. Please delete that and try again."
+  echo "Secret $OCI_CONFIG_SECRET_NAME already exists in ${TARGET_NS} namespace. Please delete that and try again."
   exit 1
 fi
-kubectl ${K8SCONTEXT} create secret -n $VERRAZZANO_INSTALL_NS  generic $OCI_CONFIG_SECRET_NAME --from-file=$OUTPUT_FILE
+kubectl ${K8SCONTEXT} create secret -n $TARGET_NS  generic $OCI_CONFIG_SECRET_NAME --from-file=$OUTPUT_FILE
