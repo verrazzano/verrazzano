@@ -5,6 +5,8 @@ package registry
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"os"
 	"strings"
 	"time"
@@ -32,30 +34,16 @@ var registry = os.Getenv("REGISTRY")
 // Map that contains the images present in the BOM with the associated registry URL
 var imageRegistryMap = make(map[string]string)
 
-// List of namespaces from which all the pods are queried to confirm the images are loaded from the target registry/repo
-var listOfNamespaces = []string{
-	"cattle-global-data",
-	"cattle-global-data-nt",
-	"cattle-system",
-	"cert-manager",
-	"default",
-	"fleet-default",
-	"fleet-local",
-	"fleet-system",
-	"ingress-nginx",
-	"istio-system",
-	"keycloak",
-	"local",
-	"monitoring",
-	"verrazzano-install",
-	"verrazzano-mc",
-	"argocd",
-	constants.VerrazzanoSystemNamespace,
-	constants.VerrazzanoMonitoringNamespace,
-}
+var ingressNGINXNamespace string
 
 var t = framework.NewTestFramework("registry")
-var beforeSuite = t.BeforeSuiteFunc(func() {})
+var beforeSuite = t.BeforeSuiteFunc(func() {
+	var err error
+	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	if err != nil {
+		Fail(err.Error())
+	}
+})
 var _ = BeforeSuite(beforeSuite)
 var afterSuite = t.AfterSuiteFunc(func() {})
 var _ = AfterSuite(afterSuite)
@@ -65,6 +53,27 @@ var _ = t.Describe("Image Registry Verification", Label("f:platform-lcm.private-
 	func() {
 		t.It("All the pods in the cluster have the expected registry URLs",
 			func() {
+				// List of namespaces from which all the pods are queried to confirm the images are loaded from the target registry/repo
+				var listOfNamespaces = []string{
+					"cattle-global-data",
+					"cattle-global-data-nt",
+					"cattle-system",
+					"cert-manager",
+					"default",
+					"fleet-default",
+					"fleet-local",
+					"fleet-system",
+					ingressNGINXNamespace,
+					"istio-system",
+					"keycloak",
+					"local",
+					"monitoring",
+					"verrazzano-install",
+					"verrazzano-mc",
+					"argocd",
+					constants.VerrazzanoSystemNamespace,
+					constants.VerrazzanoMonitoringNamespace,
+				}
 				foundHelmOperationPod := false
 				shellImageHasCorrectPrefix := false
 				var pod corev1.Pod

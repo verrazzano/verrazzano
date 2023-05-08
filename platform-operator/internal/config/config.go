@@ -4,6 +4,7 @@
 package config
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"path/filepath"
@@ -26,6 +27,7 @@ const (
 	helmPromOpChartsDirSuffix    = "/platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack"
 	helmOamChartsDirSuffix       = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
 	helmOverridesDirSuffix       = "/platform-operator/helm_config/overrides"
+	kubernetesVersionsFile       = "kubernetes-versions.yaml"
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
@@ -224,6 +226,10 @@ func GetProfilesDir() string {
 	return filepath.Join(instance.VerrazzanoRootDir, profilesDirSuffix)
 }
 
+func GetKubernetesVersionsFile() string {
+	return filepath.Join(instance.VerrazzanoRootDir, kubernetesVersionsFile)
+}
+
 // GetProfile returns API profiles dir
 func GetProfile(groupVersion schema.GroupVersion, profile string) string {
 	return filepath.Join(GetProfilesDir()+"/"+groupVersion.Version, profile+".yaml")
@@ -243,7 +249,7 @@ func GetDefaultBOMFilePath() string {
 }
 
 func GetInjectedSystemNamespaces() []string {
-	return []string{constants.VerrazzanoSystemNamespace, constants.VerrazzanoMonitoringNamespace, constants.IngressNginxNamespace, constants.KeycloakNamespace}
+	return []string{constants.VerrazzanoSystemNamespace, constants.VerrazzanoMonitoringNamespace, nginxutil.IngressNGINXNamespace(), constants.KeycloakNamespace}
 }
 
 func GetNoInjectionComponents() []string {

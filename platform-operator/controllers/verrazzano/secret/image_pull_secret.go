@@ -1,9 +1,10 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package secret
 
 import (
 	"context"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -24,11 +25,18 @@ func CheckImagePullSecret(client client.Client, targetNamespace string) (bool, e
 	var sourceSecret v1.Secret
 	if err := client.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: constants.GlobalImagePullSecName}, &sourceSecret); err != nil {
 		if errors.IsNotFound(err) {
-			// Global secret not found
-			return false, nil
+			// Global secret not found in default namespace, check the verrazzano-install namespace
+			if err = client.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: constants.GlobalImagePullSecName}, &sourceSecret); err != nil {
+				if errors.IsNotFound(err) {
+					return false, nil
+				}
+			}
 		}
-		// we had an unexpected error
-		return false, err
+
+		if err != nil {
+			// we had an unexpected error
+			return false, err
+		}
 	}
 
 	targetSecret := v1.Secret{

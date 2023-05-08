@@ -6,12 +6,13 @@ package thanos
 import (
 	"context"
 	"fmt"
+	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"strconv"
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -103,7 +104,7 @@ func TestAppendOverrides(t *testing.T) {
 	trueVal := true
 
 	service := &v1.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: constants.NGINXControllerServiceName, Namespace: globalconst.IngressNamespace},
+		ObjectMeta: metav1.ObjectMeta{Name: constants.NGINXControllerServiceName, Namespace: nginxutil.IngressNGINXNamespace()},
 		Spec: v1.ServiceSpec{
 			Type: v1.ServiceTypeLoadBalancer,
 		},
@@ -133,7 +134,7 @@ func TestAppendOverrides(t *testing.T) {
 		"queryFrontend.ingress.extraTls[0].hosts[0]":                                           "thanos-query.default.11.22.33.44.nip.io",
 		"queryFrontend.ingress.extraTls[0].secretName":                                         queryCertificateName,
 		`queryFrontend.ingress.annotations.nginx\.ingress\.kubernetes\.io/session-cookie-name`: queryHostName,
-		`queryFrontend.ingress.annotations.cert-manager\.io/cluster-issuer`:                    globalconst.VerrazzanoClusterIssuerName,
+		`queryFrontend.ingress.annotations.cert-manager\.io/cluster-issuer`:                    constants2.VerrazzanoClusterIssuerName,
 		`queryFrontend.ingress.annotations.cert-manager\.io/common-name`:                       "thanos-query.default.11.22.33.44.nip.io",
 		"query.ingress.grpc.namespace":                                                         constants.VerrazzanoSystemNamespace,
 		"query.ingress.grpc.ingressClassName":                                                  "verrazzano-nginx",
@@ -144,7 +145,7 @@ func TestAppendOverrides(t *testing.T) {
 		"query.ingress.grpc.extraRules[0].http.paths[0].pathType":                              string(netv1.PathTypeImplementationSpecific),
 		"query.ingress.grpc.extraTls[0].hosts[0]":                                              "thanos-query-store.default.11.22.33.44.nip.io",
 		"query.ingress.grpc.extraTls[0].secretName":                                            queryStoreCertificateName,
-		`query.ingress.grpc.annotations.cert-manager\.io/cluster-issuer`:                       globalconst.VerrazzanoClusterIssuerName,
+		`query.ingress.grpc.annotations.cert-manager\.io/cluster-issuer`:                       constants2.VerrazzanoClusterIssuerName,
 		`query.ingress.grpc.annotations.cert-manager\.io/common-name`:                          "thanos-query-store.default.11.22.33.44.nip.io",
 	}
 	sslipioKVs := map[string]string{

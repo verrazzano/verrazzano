@@ -86,7 +86,7 @@
           "images": [
             {
               "image": "cert-manager-ocidns-provider",
-              "tag": "v1.6.0-20230428193926-c0caff3",
+              "tag": "v1.6.0-20230508022415-4c191ba",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -148,13 +148,13 @@
             {
               "image": "rancher",
               "dashboard": "v2.7.2-20230425195240-488d868b8",
-              "tag": "v2.7.2-20230501183211-0825d781d",
+              "tag": "v2.7.2-20230504170352-09ec64543",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.2-20230501183211-0825d781d"
+              "tag": "v2.7.2-20230504170352-09ec64543"
             }
           ]
         },
@@ -172,19 +172,71 @@
             },
             {
               "image": "rancher-fleet-agent",
-              "tag": "v0.6.0-20230420145436-06e19ee"
+              "tag": "v0.6.0-20230503174321-22d5a53"
             },
             {
               "image": "rancher-fleet",
-              "tag": "v0.6.0-20230420145436-06e19ee"
+              "tag": "v0.6.0-20230503174321-22d5a53"
             },
             {
               "image": "rancher-gitjob",
-              "tag": "v0.1.30-20230403204344-17d2d2f"
+              "tag": "v0.1.30-20230505115129-1dd0ea0"
             },
             {
               "image": "rancher-cleanup",
               "tag": "v1.0.0-20230403191516-fa35c50"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "capi-cluster-api",
+      "version": "v1.3.3",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "capi-cluster-api",
+          "images": [
+            {
+              "image": "cluster-api-controller",
+              "tag": "v1.3.3-20230427222746-876fe3dc9"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "capi-oci",
+      "version": "v0.8.1",
+      "subcomponents": [
+        {
+          "repository": "oracle",
+          "name": "capi-oci",
+          "images": [
+            {
+              "image": "cluster-api-oci-controller",
+              "tag": "v0.8.1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "capi-ocne",
+      "version": "v0.1.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "capi-ocne",
+          "images": [
+            {
+              "image": "cluster-api-ocne-bootstrap-controller",
+              "tag": "v0.1.0-20230427222244-4ef1141"
+            },
+            {
+              "image": "cluster-api-ocne-control-plane-controller",
+              "tag": "v0.1.0-20230427222244-4ef1141"
             }
           ]
         }

@@ -13,7 +13,14 @@ COPY out/linux_amd64/verrazzano-platform-operator /usr/local/bin/verrazzano-plat
 
 RUN chmod 500 /usr/local/bin/verrazzano-platform-operator \
     && chmod +x scripts/install/*.sh \
-    && chmod +x scripts/*.sh
+    && chmod +x scripts/*.sh \
+    && microdnf install -y oracle-olcne-release-el8 cpio \
+    && microdnf install -y --enablerepo=ol8_olcne16 yq \
+    && curl https://yum.oracle.com/repo/OracleLinux/OL8/olcne16/x86_64/getPackage/olcne-api-server-1.6.0-4.el8.x86_64.rpm |\
+      rpm2cpio |\
+      cpio -idmv \
+    && sed -n '/---/q;p' ./etc/olcne/modules/kubernetes/1.0.0/kubernetes.yaml|\
+      yq r - 'data.versions' >./kubernetes-versions.yaml
 
 # Create the verrazzano-platform-operator image
 FROM ghcr.io/oracle/oraclelinux:8-slim AS final
@@ -50,7 +57,8 @@ COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/ver
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/capi/control-plane-ocne ./capi/control-plane-ocne
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/capi/infrastructure-oci ./capi/infrastructure-oci
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/capi/cluster-api ./capi/cluster-api
-COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/capi/.cluster-api ./.cluster-api
+# Copy the OCNE Kubernetes metadata
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/kubernetes-versions.yaml ./kubernetes-versions.yaml
 
 COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/platform-operator/THIRD_PARTY_LICENSES.txt /licenses/
 

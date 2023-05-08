@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"reflect"
 	"testing"
@@ -21,7 +22,7 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
@@ -33,7 +34,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
@@ -575,7 +575,7 @@ func runDeleteNamespacesTest(t *testing.T, cmEnabled bool) {
 		fakeNS,
 		appoper.ComponentNamespace,
 		authproxy.ComponentNamespace,
-		certmanager.ComponentNamespace,
+		cmcontroller.ComponentNamespace,
 		coherence.ComponentNamespace,
 		console.ComponentNamespace,
 		externaldns.ComponentNamespace,
@@ -586,7 +586,7 @@ func runDeleteNamespacesTest(t *testing.T, cmEnabled bool) {
 		keycloak.ComponentNamespace,
 		kiali.ComponentNamespace,
 		mysql.ComponentNamespace,
-		nginx.ComponentNamespace,
+		nginxutil.IngressNGINXNamespace(),
 		oam.ComponentNamespace,
 		opensearch.ComponentNamespace,
 		opensearchdashboards.ComponentNamespace,
@@ -638,7 +638,7 @@ func runDeleteNamespacesTest(t *testing.T, cmEnabled bool) {
 		fakeNS,
 	}
 	if !cmEnabled {
-		expectedRemainingNamespaces = append(expectedRemainingNamespaces, certmanager.ComponentNamespace)
+		expectedRemainingNamespaces = append(expectedRemainingNamespaces, cmcontroller.ComponentNamespace)
 	}
 
 	// Validate the results
@@ -674,7 +674,7 @@ func TestReconcileUninstall2(t *testing.T) {
 	defer helm.SetDefaultActionConfigFunction()
 	config.TestProfilesDir = relativeProfilesDir
 
-	k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.RancherSystemNamespace)
 	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
 	defer func() {
 		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client

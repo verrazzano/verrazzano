@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"io"
 	"net"
 	"net/http"
@@ -41,6 +42,9 @@ const (
 	loginPath  = "/v3-public/localProviders/local?action=login"
 	tokensPath = "/v3/tokens" //nolint:gosec
 )
+
+// DefaultRancherIngressHostPrefix is the default internal Ingress host prefix used for Rancher API requests
+const DefaultRancherIngressHostPrefix = "ingress-controller-ingress-nginx-controller."
 
 type RancherConfig struct {
 	Host                     string
@@ -444,4 +448,9 @@ func doRequest(req *http.Request, rc *RancherConfig, log vzlog.VerrazzanoLogger)
 	}
 
 	return resp, string(body), err
+}
+
+// RancherIngressServiceHost returns the internal service host name of the Rancher ingress
+func RancherIngressServiceHost() string {
+	return DefaultRancherIngressHostPrefix + nginxutil.IngressNGINXNamespace()
 }

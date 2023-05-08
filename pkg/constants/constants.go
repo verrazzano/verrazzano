@@ -52,11 +52,20 @@ const VerrazzanoInstallNamespace = "verrazzano-install"
 // VerrazzanoSystemNamespace is the system namespace for Verrazzano
 const VerrazzanoSystemNamespace = "verrazzano-system"
 
+// VerrazzanoCAPINamespace is the system namespace for Cluster API resources
+const VerrazzanoCAPINamespace = "verrazzano-capi"
+
 // VerrazzanoMultiClusterNamespace is the multi-cluster namespace for Verrazzano
 const VerrazzanoMultiClusterNamespace = "verrazzano-mc"
 
+// VerrazzanoMonitoringNamespace is the namespace for monitoring components
+const VerrazzanoMonitoringNamespace = "verrazzano-monitoring"
+
 // CertManagerNamespace - the CertManager namespace
 const CertManagerNamespace = "cert-manager"
+
+// ExternalDNSNamespace - the ExternalDNS namespace
+const ExternalDNSNamespace = VerrazzanoSystemNamespace
 
 // KeycloakNamespace - the keycloak namespace
 const KeycloakNamespace = "keycloak"
@@ -69,9 +78,6 @@ const RancherSystemNamespace = "cattle-system"
 
 // IstioSystemNamespace - the Istio system namespace
 const IstioSystemNamespace = "istio-system"
-
-// IngressNamespace - the NGINX ingress namespace
-const IngressNamespace = "ingress-nginx"
 
 // PrometheusOperatorNamespace - the namespace where Verrazzano installs Prometheus Operator
 // and its related components.
@@ -189,9 +195,6 @@ const ArgoCDClusterRancherSecretName = "verrazzano-argocd-secret"
 
 // ArgoCDClusterRancherUsername is the username in Rancher used to identify the Verrazzano Argo CD cluster user
 const ArgoCDClusterRancherUsername = "vz-argoCD-reg"
-
-// DefaultRancherIngressHost is the default host used for Rancher API requests
-const DefaultRancherIngressHost = "ingress-controller-ingress-nginx-controller.ingress-nginx"
 
 // Components Names
 const (
