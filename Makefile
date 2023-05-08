@@ -101,7 +101,7 @@ precommit-check: check check-tests copyright-check ## run precommit checks witho
 precommit-build:  ## go build the project
 	go build ./...
 
-unit-test-coverage: export COVERAGE_EXCLUSIONS ?= tests/e2e|tools/psr
+unit-test-coverage: export COVERAGE_EXCLUSIONS ?= tests/e2e|tools/psr|tools/charts-manager/vcm
 .PHONY: unit-test-coverage
 unit-test-coverage:  ## run unit tests with coverage
 	${SCRIPT_DIR}/coverage.sh html
@@ -112,7 +112,7 @@ unit-test-coverage-ratcheting:  ## run unit tests with coverage ratcheting
 
 .PHONY: unit-test
 unit-test:  ## run all unit tests in project
-	go test $$(go list ./... | grep -Ev "/tests/e2e|/tools/psr")
+	go test $$(go list ./... | grep -Ev "/tests/e2e|/tools/psr|tools/charts-manager/vcm")
 
 #
 #  Compliance check targets
