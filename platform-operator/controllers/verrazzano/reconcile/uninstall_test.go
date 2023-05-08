@@ -685,7 +685,7 @@ func TestReconcileUninstall2(t *testing.T) {
 	defer helm.SetDefaultRunner()
 	config.TestProfilesDir = relativeProfilesDir
 
-	k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.RancherSystemNamespace)
 	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
 	defer func() {
 		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client

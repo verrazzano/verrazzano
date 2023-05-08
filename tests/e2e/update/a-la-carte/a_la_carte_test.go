@@ -26,8 +26,9 @@ const (
 )
 
 var (
-	t       = framework.NewTestFramework("a_la_carte")
-	trueVal = true
+	t        = framework.NewTestFramework("a_la_carte")
+	trueVal  = true
+	falseVal = false
 )
 
 var failed = false
@@ -56,7 +57,7 @@ func (m prometheusEdgeStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
 func (m appStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.ApplicationOperator = &vzapi.ApplicationOperatorComponent{Enabled: &trueVal}
 	cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{Enabled: &trueVal}
-	cr.Spec.Components.CertManager = &vzapi.CertManagerComponent{Enabled: &trueVal}
+	cr.Spec.Components.CertManager = &vzapi.CertManagerComponent{Enabled: &falseVal}
 	cr.Spec.Components.Fluentd = &vzapi.FluentdComponent{Enabled: &trueVal}
 	cr.Spec.Components.Grafana = &vzapi.GrafanaComponent{Enabled: &trueVal}
 	cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{Enabled: &trueVal}

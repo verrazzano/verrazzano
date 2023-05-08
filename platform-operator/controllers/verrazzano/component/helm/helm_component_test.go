@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helm
@@ -6,6 +6,10 @@ package helm
 import (
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
+	corev1Cli "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
 	"os/exec"
 	"reflect"
@@ -485,7 +489,11 @@ func TestGetDependencies(t *testing.T) {
 func TestIsInstalled(t *testing.T) {
 	a := assert.New(t)
 
-	comp := HelmComponent{}
+	comp := HelmComponent{
+		ReleaseName:             releaseName,
+		ChartNamespace:          "test-namespace",
+		IgnoreNamespaceOverride: true,
+	}
 	defer helm.SetDefaultChartStatusFunction()
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
@@ -494,6 +502,21 @@ func TestIsInstalled(t *testing.T) {
 		stdErr: []byte(""),
 		err:    nil,
 	})
+
+	k8sutil.GetCoreV1Func = func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset(
+			&corev1.Namespace{
+				ObjectMeta: v1.ObjectMeta{
+					Name: "test-namespace",
+					Labels: map[string]string{
+						constants.VerrazzanoManagedKey: "test-namespace",
+					},
+				},
+			},
+		).CoreV1(), nil
+	}
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+
 	defer helm.SetDefaultRunner()
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer config.SetDefaultBomFilePath("")
@@ -1429,6 +1452,9 @@ func TestUninstall(t *testing.T) {
 	a := assert.New(t)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(testNs)
+			defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+
 			tt.helmOverride()
 			if tt.expectSuccess {
 				a.NoError(tt.helmComponent.Uninstall(tt.ctx))
