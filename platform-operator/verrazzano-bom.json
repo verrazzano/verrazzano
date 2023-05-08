@@ -85,8 +85,8 @@
           "name": "verrazzano-ocidns-webhook",
           "images": [
             {
-              "image": "cert-manager-ocidns-provider-jenkins",
-              "tag": "v1.6.0-20230507022715-b5f032a",
+              "image": "cert-manager-ocidns-provider",
+              "tag": "v1.6.0-20230508014717-8f96003",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
