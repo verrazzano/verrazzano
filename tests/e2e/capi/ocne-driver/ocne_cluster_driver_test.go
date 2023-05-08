@@ -45,7 +45,7 @@ const (
 			"workerNodeSubnet": "{{.WorkerNodeSubnet}}",
 			"controlPlaneSubnet": "{{.ControlPlaneSubnet}}",
 			"loadBalancerSubnet": "{{.LoadBalancerSubnet}}",
-			"imageDisplayName": "Oracle-Linux-8.7-2023.01.31-3",
+			"imageDisplayName": "Oracle-Linux-8.7-2023.02.28-1",
 			"kubernetesVersion": "v1.24.8",
 			"useNodePvEncryption": true,
 			"cloudCredentialId": "{{.CloudCredentialID}}",
