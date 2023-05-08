@@ -1,28 +1,29 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package certmanagerocidns
+package ocidns
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // ComponentName is the name of the component
-const ComponentName = "verrazzano-ocidns-webhook"
+const ComponentName = cmcommon.CertManagerOCIDNSComponentName
 
 // ComponentNamespace is the namespace of the component
-const ComponentNamespace = "cert-manager"
+const ComponentNamespace = constants.CertManagerNamespace
 
 const componentChartName = "verrazzano-cert-manager-ocidns-webhook"
 
@@ -44,11 +45,18 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
+			InstallBeforeUpgrade:      true,
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0].name",
-			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_0_0,
-			Dependencies:              []string{networkpolicies.ComponentName, certmanager.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, controller.ComponentName},
 		},
 	}
+}
+
+func (c certManagerOciDNSComponent) PreInstall(ctx spi.ComponentContext) error {
+	if err := common.CopyOCIDNSSecret(ctx, ComponentNamespace); err != nil {
+		return err
+	}
+	return nil
 }
 
 // IsEnabled returns true if the cert-manager is enabled, which is the default

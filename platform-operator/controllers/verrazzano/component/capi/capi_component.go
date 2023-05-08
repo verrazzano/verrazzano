@@ -6,12 +6,14 @@ package capi
 import (
 	"context"
 	"fmt"
+
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
+	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -24,7 +26,7 @@ import (
 const ComponentName = "capi"
 
 // Namespace for CAPI providers
-const VerrazzanoCAPINamespace = "verrazzano-capi"
+const ComponentNamespace = constants.VerrazzanoCAPINamespace
 
 // ComponentJSONName is the JSON name of the component in CRD
 const ComponentJSONName = "capi"
@@ -34,24 +36,27 @@ const (
 	capiOcneBootstrapCMDeployment    = "capi-ocne-bootstrap-controller-manager"
 	capiOcneControlPlaneCMDeployment = "capi-ocne-control-plane-controller-manager"
 	capiociCMDeployment              = "capoci-controller-manager"
+	ocneProviderName                 = "ocne"
+	ociProviderName                  = "oci"
+	clusterAPIProviderName           = "cluster-api"
 )
 
 var capiDeployments = []types.NamespacedName{
 	{
 		Name:      capiCMDeployment,
-		Namespace: VerrazzanoCAPINamespace,
+		Namespace: ComponentNamespace,
 	},
 	{
 		Name:      capiOcneBootstrapCMDeployment,
-		Namespace: VerrazzanoCAPINamespace,
+		Namespace: ComponentNamespace,
 	},
 	{
 		Name:      capiOcneControlPlaneCMDeployment,
-		Namespace: VerrazzanoCAPINamespace,
+		Namespace: ComponentNamespace,
 	},
 	{
 		Name:      capiociCMDeployment,
-		Namespace: VerrazzanoCAPINamespace,
+		Namespace: ComponentNamespace,
 	},
 }
 
@@ -83,7 +88,7 @@ func (c capiComponent) Name() string {
 
 // Namespace returns the component namespace.
 func (c capiComponent) Namespace() string {
-	return VerrazzanoCAPINamespace
+	return ComponentNamespace
 }
 
 // ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done.
@@ -93,7 +98,7 @@ func (c capiComponent) ShouldInstallBeforeUpgrade() bool {
 
 // GetDependencies returns the dependencies of this component.
 func (c capiComponent) GetDependencies() []string {
-	return []string{certmanager.ComponentName}
+	return []string{cmcontroller.ComponentName}
 }
 
 // IsReady indicates whether a component is Ready for dependency components.
@@ -114,7 +119,7 @@ func (c capiComponent) IsEnabled(effectiveCR runtime.Object) bool {
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
 func (c capiComponent) GetMinVerrazzanoVersion() string {
-	return constants.VerrazzanoVersion1_6_0
+	return vpoconstants.VerrazzanoVersion1_6_0
 }
 
 // GetIngressNames returns the list of ingress names associated with the component
@@ -149,12 +154,12 @@ func (c capiComponent) IsOperatorInstallSupported() bool {
 // IsInstalled checks to see if CAPI is installed
 func (c capiComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	daemonSet := &appsv1.Deployment{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: VerrazzanoCAPINamespace, Name: capiCMDeployment}, daemonSet)
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: capiCMDeployment}, daemonSet)
 	if errors.IsNotFound(err) {
 		return false, nil
 	}
 	if err != nil {
-		ctx.Log().Errorf("Failed to get %s/%s deployment: %v", VerrazzanoCAPINamespace, capiCMDeployment, err)
+		ctx.Log().Errorf("Failed to get %s/%s deployment: %v", ComponentNamespace, capiCMDeployment, err)
 		return false, err
 	}
 	return true, nil
@@ -164,20 +169,24 @@ func (c capiComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx)
 }
 
-func (c capiComponent) Install(_ spi.ComponentContext) error {
+func (c capiComponent) Install(ctx spi.ComponentContext) error {
 	capiClient, err := capiInitFunc("")
 	if err != nil {
 		return err
 	}
 
-	// TODO: version of providers should come from the BOM. Is kubeadm optional?
+	overrides, err := getImageOverrides(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Set up the init options for the CAPI init.
 	initOptions := clusterapi.InitOptions{
-		CoreProvider:            "cluster-api:v1.3.3",
-		BootstrapProviders:      []string{"ocne:v0.1.0"},
-		ControlPlaneProviders:   []string{"ocne:v0.1.0"},
-		InfrastructureProviders: []string{"oci:v0.8.1"},
-		TargetNamespace:         VerrazzanoCAPINamespace,
+		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overrides.APIVersion),
+		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEBootstrapVersion)},
+		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEControlPlaneVersion)},
+		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overrides.OCIVersion)},
+		TargetNamespace:         ComponentNamespace,
 	}
 
 	_, err = capiClient.Init(initOptions)
@@ -196,16 +205,24 @@ func (c capiComponent) PreUninstall(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (c capiComponent) Uninstall(_ spi.ComponentContext) error {
+func (c capiComponent) Uninstall(ctx spi.ComponentContext) error {
 	capiClient, err := capiInitFunc("")
 	if err != nil {
 		return err
 	}
 
-	// Set up the init options for the CAPI init.
+	overrides, err := getImageOverrides(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Set up the delete options for the CAPI delete operation.
 	deleteOptions := clusterapi.DeleteOptions{
-		DeleteAll:        true,
-		IncludeNamespace: true,
+		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overrides.APIVersion),
+		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEBootstrapVersion)},
+		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEControlPlaneVersion)},
+		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overrides.OCIVersion)},
+		IncludeNamespace:        true,
 	}
 	return capiClient.Delete(deleteOptions)
 }
@@ -231,6 +248,9 @@ func (c capiComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
 }
 
 func (c capiComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
 	return nil
 }
 
@@ -239,6 +259,9 @@ func (c capiComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
 }
 
 func (c capiComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
 	return nil
 }
 

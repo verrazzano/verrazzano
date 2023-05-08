@@ -1,20 +1,18 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package certmanagerconfig
+package config
 
 import (
 	"bytes"
 	"context"
 	"crypto/x509"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	acmev1 "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"net/mail"
-	"strings"
 	"text/template"
 
 	cmutil "github.com/cert-manager/cert-manager/pkg/api/util"
@@ -35,7 +33,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	crtclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
@@ -132,10 +129,7 @@ type templateData struct {
 // CertIssuerType identifies the certificate issuer type
 type CertIssuerType string
 
-type getCoreV1ClientFuncType func(log ...vzlog.VerrazzanoLogger) (corev1.CoreV1Interface, error)
-
-var getClientFunc getCoreV1ClientFuncType = k8sutil.GetCoreV1Client
-
+// var getClientFunc cmcommon.GetCoreV1ClientFuncType = k8sutil.GetCoreV1Client
 type getCertManagerClientFuncType func() (certv1client.CertmanagerV1Interface, error)
 
 var getCMClientFunc getCertManagerClientFuncType = GetCertManagerClientset
@@ -278,7 +272,7 @@ func updateCerts(ctx context.Context, log vzlog.VerrazzanoLogger, cmClient certv
 
 // getCertIssuerCommonName Gets the CN of the current issuer from the specified Cert secret
 func getCertIssuerCommonName(currentCert certv1.Certificate) (string, error) {
-	secret, err := getSecret(currentCert.Namespace, currentCert.Spec.SecretName)
+	secret, err := cmcommon.GetSecret(currentCert.Namespace, currentCert.Spec.SecretName)
 	if err != nil {
 		return "", err
 	}
@@ -367,95 +361,6 @@ func (c certManagerConfigComponent) cmCRDsExist(log vzlog.VerrazzanoLogger, cli 
 	return crdsExist
 }
 
-// Check if cert-type is CA, if not it is assumed to be Acme
-func isCA(compContext spi.ComponentContext) (bool, error) {
-	comp := vzapi.ConvertCertManagerToV1Beta1(compContext.EffectiveCR().Spec.Components.CertManager)
-	return validateConfiguration(comp)
-}
-
-// validateConfiguration Checks if the configuration is valid and is a CA configuration
-// - returns true if it is a CA configuration, false if not
-// - returns an error if both CA and ACME settings are configured
-func validateConfiguration(comp *v1beta1.CertManagerComponent) (isCA bool, err error) {
-	if comp == nil {
-		// Is default CA configuration
-		return true, nil
-	}
-	// Check if Ca or Acme is empty
-	caNotEmpty := comp.Certificate.CA != v1beta1.CA{}
-	acmeNotEmpty := comp.Certificate.Acme != v1beta1.Acme{}
-	if caNotEmpty && acmeNotEmpty {
-		return false, errors.New("certificate object Acme and CA cannot be simultaneously populated")
-	}
-	if caNotEmpty {
-		if err := validateCAConfiguration(comp.Certificate.CA); err != nil {
-			return true, err
-		}
-		return true, nil
-	} else if acmeNotEmpty {
-		if err := validateAcmeConfiguration(comp.Certificate.Acme); err != nil {
-			return false, err
-		}
-		return false, nil
-	}
-	return false, errors.New("either Acme or CA certificate authorities must be configured")
-}
-
-func validateCAConfiguration(ca v1beta1.CA) error {
-	if ca.SecretName == constants.DefaultVerrazzanoCASecretName && ca.ClusterResourceNamespace == ComponentNamespace {
-		// if it's the default self-signed config the secret won't exist until created by CertManager
-		return nil
-	}
-	// Otherwise validate the config exists
-	_, err := getCASecret(ca)
-	return err
-}
-
-func getCASecret(ca v1beta1.CA) (*v1.Secret, error) {
-	name := ca.SecretName
-	namespace := ca.ClusterResourceNamespace
-	return getSecret(namespace, name)
-}
-
-func getSecret(namespace string, name string) (*v1.Secret, error) {
-	v1Client, err := getClientFunc()
-	if err != nil {
-		return nil, err
-	}
-	return v1Client.Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-}
-
-// validateAcmeConfiguration Validate the ACME/LetsEncrypt values
-func validateAcmeConfiguration(acme v1beta1.Acme) error {
-	if !isLetsEncryptProvider(acme) {
-		return fmt.Errorf("invalid ACME certificate provider %v", acme.Provider)
-	}
-	if len(acme.Environment) > 0 && !isLetsEncryptProductionEnv(acme) && !isLetsEncryptStagingEnv(acme) {
-		return fmt.Errorf("invalid Let's Encrypt environment: %s", acme.Environment)
-	}
-	if _, err := mail.ParseAddress(acme.EmailAddress); err != nil {
-		return err
-	}
-	return nil
-}
-
-func isLetsEncryptProvider(acme v1beta1.Acme) bool {
-	return strings.ToLower(string(acme.Provider)) == strings.ToLower(string(vzapi.LetsEncrypt))
-}
-
-func isLetsEncryptStagingEnv(acme v1beta1.Acme) bool {
-	return strings.ToLower(acme.Environment) == letsEncryptStaging
-}
-
-func isLetsEncryptProductionEnv(acme v1beta1.Acme) bool {
-	return strings.ToLower(acme.Environment) == letsencryptProduction
-}
-
-func isLetsEncryptStaging(compContext spi.ComponentContext) bool {
-	acmeEnvironment := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.Acme.Environment
-	return acmeEnvironment != "" && strings.ToLower(acmeEnvironment) != "production"
-}
-
 // createOrUpdateAcmeResources Create or update the ACME ClusterIssuer
 // - returns OperationResultNone/error on error
 // - returns OperationResultCreated/nil if the CI is created (initial install)
@@ -504,7 +409,7 @@ func createACMEIssuerObject(compContext spi.ComponentContext) (*unstructured.Uns
 
 	// Verify the acme environment and set the server
 	acmeServer := letsEncryptProdEndpoint
-	if isLetsEncryptStaging(compContext) {
+	if cmcommon.IsLetsEncryptStaging(compContext) {
 		acmeServer = letsEncryptStageEndpoint
 	}
 
@@ -659,14 +564,14 @@ func findIssuerCommonName(certificate v1beta1.Certificate, isCAValue bool) ([]st
 
 // getACMEIssuerName Let's encrypt certificates are published, and the intermediate signing CA CNs are well-known
 func getACMEIssuerName(acme v1beta1.Acme) ([]string, error) {
-	if isLetsEncryptProductionEnv(acme) {
+	if cmcommon.IsLetsEncryptProductionEnv(acme) {
 		return letsEncryptProductionCACommonNames, nil
 	}
 	return letsEncryptStagingCACommonNames, nil
 }
 
 func extractCACommonName(ca v1beta1.CA) ([]string, error) {
-	secret, err := getCASecret(ca)
+	secret, err := cmcommon.GetCASecret(ca)
 	if err != nil {
 		return []string{}, err
 	}
@@ -733,7 +638,7 @@ func cleanupUnusedResources(compContext spi.ComponentContext, isCAValue bool) er
 }
 
 func (c certManagerConfigComponent) createOrUpdateClusterIssuer(compContext spi.ComponentContext) error {
-	isCAValue, err := isCA(compContext)
+	isCAValue, err := cmcommon.IsCA(compContext)
 	if err != nil {
 		return compContext.Log().ErrorfNewErr("Failed to verify the config type: %v", err)
 	}

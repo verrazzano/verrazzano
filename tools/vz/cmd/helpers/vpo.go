@@ -20,6 +20,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	appsv1 "k8s.io/api/apps/v1"
@@ -34,6 +35,8 @@ import (
 )
 
 const VpoSimpleLogFormatRegexp = `"level":"(.*?)","@timestamp":"(.*?)",(.*?)"message":"(.*?)",`
+const accessErrorMsg = "Failed to access the Verrazzano operator.yaml file %s: %s"
+const applyErrorMsg = "Failed to apply the Verrazzano operator.yaml file %s: %s"
 
 // deleteLeftoverPlatformOperatorSig is a function needed for unit test override
 type deleteLeftoverPlatformOperatorSig func(client clipkg.Client) error
@@ -51,6 +54,66 @@ func SetDefaultDeleteFunc() {
 
 func FakeDeleteFunc(client clipkg.Client) error {
 	return nil
+}
+
+// Allow overriding the vpoIsReady function for unit testing
+type vpoIsReadySig func(client clipkg.Client) (bool, error)
+
+var vpoIsReadyFunc vpoIsReadySig = vpoIsReady
+
+func SetVPOIsReadyFunc(f vpoIsReadySig) {
+	vpoIsReadyFunc = f
+}
+
+func SetDefaultVPOIsReadyFunc() {
+	vpoIsReadyFunc = vpoIsReady
+}
+
+// GetExistingVPODeployment - get existing Verrazzano Platform operator Deployment from the cluster
+func GetExistingVPODeployment(client clipkg.Client) (*appsv1.Deployment, error) {
+	deploy := appsv1.Deployment{}
+	namespacedName := types.NamespacedName{Name: constants.VerrazzanoPlatformOperator, Namespace: vzconstants.VerrazzanoInstallNamespace}
+	if err := client.Get(context.TODO(), namespacedName, &deploy); err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, failedToGetVPODeployment(err)
+
+	}
+	return &deploy, nil
+}
+
+// GetExistingVPOWebhookDeployment - get existing Verrazzano Platform operator webhook deployment from the cluster
+func GetExistingVPOWebhookDeployment(client clipkg.Client) (*appsv1.Deployment, error) {
+	deploy := appsv1.Deployment{}
+	namespacedName := types.NamespacedName{Name: constants.VerrazzanoPlatformOperatorWebhook, Namespace: vzconstants.VerrazzanoInstallNamespace}
+	if err := client.Get(context.TODO(), namespacedName, &deploy); err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to get existing %s deployment: %s", constants.VerrazzanoPlatformOperatorWebhook, err.Error())
+
+	}
+	return &deploy, nil
+}
+
+// GetExistingPrivateRegistrySettings gets the private registry env var settings on existing
+// VPO Deployment, if present
+func getExistingPrivateRegistrySettings(vpoDeploy *appsv1.Deployment) (string, string) {
+	registry := ""
+	imagePrefix := ""
+	for _, container := range vpoDeploy.Spec.Template.Spec.Containers {
+		if container.Name == constants.VerrazzanoPlatformOperator {
+			for _, env := range container.Env {
+				if env.Name == vpoconst.RegistryOverrideEnvVar {
+					registry = env.Value
+				} else if env.Name == vpoconst.ImageRepoOverrideEnvVar {
+					imagePrefix = env.Value
+				}
+			}
+		}
+	}
+	return registry, imagePrefix
 }
 
 // UsePlatformOperatorUninstallJob determines whether the version of the platform operator is using an uninstall job.
@@ -84,62 +147,25 @@ func UsePlatformOperatorUninstallJob(client clipkg.Client) (bool, error) {
 
 // ApplyPlatformOperatorYaml applies a given version of the platform operator yaml file
 func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelper helpers.VZHelper, version string) error {
-	// Was an operator-file passed on the command line?
-	operatorFile, err := GetOperatorFile(cmd)
+	localOperatorFilename, userVisibleFilename, isTempFile, err := getOrDownloadOperatorYAML(cmd, version, vzHelper)
 	if err != nil {
 		return err
 	}
-
-	// If the operatorFile was specified, is it a local or remote file?
-	url := ""
-	internalFilename := ""
-	if len(operatorFile) > 0 {
-		if strings.HasPrefix(strings.ToLower(operatorFile), "https://") {
-			url = operatorFile
-		} else {
-			internalFilename = operatorFile
-		}
-	} else {
-		url, err = helpers.GetOperatorYaml(version)
-		if err != nil {
-			return err
-		}
+	if isTempFile {
+		// the operator YAML is a temporary file that must be deleted after applying it
+		defer os.Remove(localOperatorFilename)
 	}
 
-	const accessErrorMsg = "Failed to access the Verrazzano operator.yaml file %s: %s"
-	const applyErrorMsg = "Failed to apply the Verrazzano operator.yaml file %s: %s"
-	userVisibleFilename := operatorFile
-	if len(url) > 0 {
-		userVisibleFilename = url
-		// Get the Verrazzano operator.yaml and store it in a temp file
-		httpClient := vzHelper.GetHTTPClient()
-		resp, err := httpClient.Get(url)
-		if err != nil {
-			return fmt.Errorf(accessErrorMsg, userVisibleFilename, err.Error())
-		}
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf(accessErrorMsg, userVisibleFilename, resp.Status)
-		}
-		// Store response in a temporary file
-		tmpFile, err := os.CreateTemp("", "vz")
-		if err != nil {
-			return fmt.Errorf(applyErrorMsg, userVisibleFilename, err.Error())
-		}
-		defer os.Remove(tmpFile.Name())
-		_, err = tmpFile.ReadFrom(resp.Body)
-		if err != nil {
-			os.Remove(tmpFile.Name())
-			return fmt.Errorf(applyErrorMsg, userVisibleFilename, err.Error())
-		}
-		internalFilename = tmpFile.Name()
+	if localOperatorFilename, err = processOperatorYAMLPrivateRegistry(cmd, localOperatorFilename); err != nil {
+		return err
 	}
 
 	// Apply the Verrazzano operator.yaml
 	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Applying the file %s\n", userVisibleFilename))
 	yamlApplier := k8sutil.NewYAMLApplier(client, "")
-	err = yamlApplier.ApplyF(internalFilename)
+	err = yamlApplier.ApplyF(localOperatorFilename)
 	if err != nil {
-		return fmt.Errorf(applyErrorMsg, internalFilename, err.Error())
+		return fmt.Errorf(applyErrorMsg, localOperatorFilename, err.Error())
 	}
 
 	// Dump out the object result messages
@@ -147,6 +173,88 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("%s\n", strings.ToLower(result)))
 	}
 	return nil
+}
+
+// processOperatorYAMLPrivateRegistry - examines private registry related command flags and processes
+// the operator YAML file as needed
+func processOperatorYAMLPrivateRegistry(cmd *cobra.Command, operatorFilename string) (string, error) {
+	// check for private registry flags
+	if !cmd.PersistentFlags().Changed(constants.ImageRegistryFlag) &&
+		!cmd.PersistentFlags().Changed(constants.ImagePrefixFlag) {
+		return operatorFilename, nil
+	}
+	var imageRegistry string
+	var imagePrefix string
+	var err error
+	if imageRegistry, err = cmd.PersistentFlags().GetString(constants.ImageRegistryFlag); err != nil {
+		return operatorFilename, err
+	}
+	if imagePrefix, err = cmd.PersistentFlags().GetString(constants.ImagePrefixFlag); err != nil {
+		return operatorFilename, err
+	}
+
+	return updateOperatorYAMLPrivateRegistry(operatorFilename, imageRegistry, imagePrefix)
+}
+
+func getOrDownloadOperatorYAML(cmd *cobra.Command, version string, vzHelper helpers.VZHelper) (string, string, bool, error) {
+	// Was an operator-file passed on the command line?
+	operatorFile, err := getOperatorFileFromFlag(cmd)
+	if err != nil {
+		return "", "", false, err
+	}
+
+	isTempFile := false
+	// If the operatorFile was specified, is it a local or remote file?
+	url := ""
+	localOperatorFilename := ""
+	if len(operatorFile) > 0 {
+		if strings.HasPrefix(strings.ToLower(operatorFile), "https://") {
+			url = operatorFile
+		} else {
+			localOperatorFilename = operatorFile
+		}
+	} else {
+		url, err = helpers.GetOperatorYaml(version)
+		if err != nil {
+			return "", "", false, err
+		}
+	}
+
+	userVisibleFilename := operatorFile
+	// if we have a URL, download the file
+	if len(url) > 0 {
+		isTempFile = true
+		userVisibleFilename = url
+		if localOperatorFilename, err = downloadOperatorYAML(url, vzHelper); err != nil {
+			return localOperatorFilename, userVisibleFilename, isTempFile, err
+		}
+	}
+	return localOperatorFilename, userVisibleFilename, isTempFile, nil
+}
+
+// downloadOperatorYAML downloads the operator YAML file from the given URL and returns the
+// path to the temp file where it is stored.
+func downloadOperatorYAML(url string, vzHelper helpers.VZHelper) (string, error) {
+	// Get the Verrazzano operator.yaml and store it in a temp file
+	httpClient := vzHelper.GetHTTPClient()
+	resp, err := httpClient.Get(url)
+	if err != nil {
+		return "", fmt.Errorf(accessErrorMsg, url, err.Error())
+	}
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf(accessErrorMsg, url, resp.Status)
+	}
+	// Store response in a temporary file
+	tmpFile, err := os.CreateTemp("", "vz")
+	if err != nil {
+		return "", fmt.Errorf(applyErrorMsg, url, err.Error())
+	}
+	_, err = tmpFile.ReadFrom(resp.Body)
+	if err != nil {
+		os.Remove(tmpFile.Name())
+		return "", fmt.Errorf(applyErrorMsg, url, err.Error())
+	}
+	return tmpFile.Name(), nil
 }
 
 // WaitForPlatformOperator waits for the verrazzano-platform-operator to be ready
@@ -173,7 +281,7 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 	secondsWaited := 0
 	maxSecondsToWait := int(timeout.Seconds())
 	for {
-		ready, err := vpoIsReady(client)
+		ready, err := vpoIsReadyFunc(client)
 		if ready {
 			break
 		}
@@ -401,6 +509,10 @@ func vpoIsReady(client clipkg.Client) (bool, error) {
 	return true, nil
 }
 
+func failedToGetVPODeployment(err error) error {
+	return fmt.Errorf("Failed to get existing %s deployment: %s", constants.VerrazzanoPlatformOperator, err.Error())
+}
+
 // deleteLeftoverPlatformOperator deletes leftover verrazzano-platform-operator deployments after an abort.
 // This allows for the verrazzano-platform-operator validatingWebhookConfiguration to be updated with an updated caBundle.
 func deleteLeftoverPlatformOperator(client clipkg.Client) error {
@@ -428,4 +540,48 @@ func deleteLeftoverPlatformOperator(client clipkg.Client) error {
 	}
 
 	return nil
+}
+
+// ValidatePrivateRegistry - Validate private registry settings in command against
+// those in existing VPO deployment, if any
+func ValidatePrivateRegistry(cmd *cobra.Command, client clipkg.Client) error {
+	vpoDeploy, err := GetExistingVPODeployment(client)
+	if err != nil {
+		return fmt.Errorf("Failed to get existing %s deployment: %v",
+			constants.VerrazzanoPlatformOperator, err)
+	}
+	if vpoDeploy == nil {
+		// no existing VPO deployment, nothing to validate
+		return nil
+	}
+	existingImageRegistry, existingImagePrefix := getExistingPrivateRegistrySettings(vpoDeploy)
+	newRegistry, err := cmd.PersistentFlags().GetString(constants.ImageRegistryFlag)
+	if err != nil {
+		return err
+	}
+	newImagePrefix, err := cmd.PersistentFlags().GetString(constants.ImagePrefixFlag)
+	if err != nil {
+		return err
+	}
+	if existingImageRegistry != newRegistry || existingImagePrefix != newImagePrefix {
+		return fmt.Errorf(
+			imageRegistryMismatchError(existingImageRegistry, existingImagePrefix, newRegistry, newImagePrefix))
+	}
+	return nil
+}
+
+func imageRegistryMismatchError(existingRegistry, existingPrefix, newRegistry, newPrefix string) string {
+	existingRegistryMsg := ""
+	newRegistryMsg := ""
+	if existingRegistry == "" && existingPrefix == "" {
+		existingRegistryMsg = "the public Verrazzano image repository"
+	} else {
+		existingRegistryMsg = fmt.Sprintf("image-registry %s and image-prefix %s", existingRegistry, existingPrefix)
+	}
+	if newRegistry == "" && newPrefix == "" {
+		newRegistryMsg = "the public Verrazzano image repository"
+	} else {
+		newRegistryMsg = fmt.Sprintf("image-registry %s and image-prefix %s", newRegistry, newPrefix)
+	}
+	return fmt.Sprintf("The existing Verrazzano installation uses %s, but you provided %s", existingRegistryMsg, newRegistryMsg)
 }

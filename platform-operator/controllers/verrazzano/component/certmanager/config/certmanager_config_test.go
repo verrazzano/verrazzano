@@ -1,17 +1,17 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package certmanagerconfig
+package config
 
 import (
 	"context"
 	acmev1 "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"testing"
 
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	profileDir    = "../../../../manifests/profiles"
+	profileDir    = "../../../../../manifests/profiles"
 	testNamespace = "testNamespace"
 )
 
@@ -229,36 +229,7 @@ func TestIsCertManagerConfigNotReady(t *testing.T) {
 	assert.False(t, certManager.verrazzanoCertManagerResourcesReady(spi.NewFakeContext(client, nil, nil, false)))
 }
 
-// TestIsCANilWithProfile tests the isCA function
-// GIVEN a call to isCA
-// WHEN the CertManager component is populated by the profile
-// THEN true is returned
-func TestIsCANilWithProfile(t *testing.T) {
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	isCAValue, err := isCA(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false, profileDir))
-	assert.Nil(t, err)
-	assert.True(t, isCAValue)
-}
-
-// TestIsCANilTrue tests the isCA function
-// GIVEN a call to isCA
-// WHEN the Certificate CA is populated
-// THEN true is returned
-func TestIsCATrue(t *testing.T) {
-	localvz := defaultVZConfig.DeepCopy()
-	localvz.Spec.Components.CertManager.Certificate.CA = ca
-
-	defer func() { getClientFunc = k8sutil.GetCoreV1Client }()
-	getClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, "defaultVZConfig-cn")
-
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-
-	isCAValue, err := isCA(spi.NewFakeContext(client, localvz, nil, false, profileDir))
-	assert.Nil(t, err)
-	assert.True(t, isCAValue)
-}
-
-func createClientFunc(caConfig vzapi.CA, cn string, otherObjs ...runtime.Object) getCoreV1ClientFuncType {
+func createClientFunc(caConfig vzapi.CA, cn string, otherObjs ...runtime.Object) cmcommon.GetCoreV1ClientFuncType {
 	return func(...vzlog.VerrazzanoLogger) (corev1.CoreV1Interface, error) {
 		secret, err := createCertSecretNoParent(caConfig.SecretName, caConfig.ClusterResourceNamespace, cn)
 		if err != nil {
@@ -278,7 +249,7 @@ func TestIsCAFalse(t *testing.T) {
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	isCAValue, err := isCA(spi.NewFakeContext(client, localvz, nil, false, profileDir))
+	isCAValue, err := cmcommon.IsCA(spi.NewFakeContext(client, localvz, nil, false, profileDir))
 	assert.Nil(t, err)
 	assert.False(t, isCAValue)
 }
@@ -292,7 +263,7 @@ func TestIsCABothPopulated(t *testing.T) {
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	_, err := isCA(spi.NewFakeContext(client, localvz, nil, false, profileDir))
+	_, err := cmcommon.IsCA(spi.NewFakeContext(client, localvz, nil, false, profileDir))
 	assert.Error(t, err)
 }
 

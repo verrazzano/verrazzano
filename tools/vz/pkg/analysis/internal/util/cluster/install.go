@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strings"
 
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
@@ -548,7 +549,9 @@ func getUniqueNamespaces(log *zap.SugaredLogger, compsNoMessages []string) []str
 func analyzeExternalDNS(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) {
 	errorMessagesRegex := []string{}
 	errorMessagesRegex = append(errorMessagesRegex, `.*level=error.*"getting zones: listing zones in.*Service error:NotAuthorizedOrNotFound.*`)
-	externalDnslogRegExp := regexp.MustCompile(constants.ExternalDNSNamespace + `/external-dns-.*/logs.txt`)
+	// External DNS will be in the cert-manager ns prior to 1.6, afterwards in verrazzano-system, but we must account for both
+	pattern := fmt.Sprintf("(%s|%s)", vzconst.ExternalDNSNamespace, vzconst.CertManagerNamespace) + `/external-dns-.*/logs.txt`
+	externalDnslogRegExp := regexp.MustCompile(pattern)
 	allPodFiles, err := files.GetMatchingFiles(log, clusterRoot, externalDnslogRegExp)
 	if err != nil {
 		return

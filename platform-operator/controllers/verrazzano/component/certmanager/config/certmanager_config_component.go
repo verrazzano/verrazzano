@@ -1,14 +1,17 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package certmanagerconfig
+package config
 
 import (
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerocidns"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/ocidns"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
@@ -17,7 +20,7 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = "cert-manager-config"
+const ComponentName = cmcommon.CertManagerConfigComponentName
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = vzconst.CertManagerNamespace
@@ -43,8 +46,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
-			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_0_0,
-			Dependencies:              []string{networkpolicies.ComponentName, certmanager.ComponentName, certmanagerocidns.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, controller.ComponentName, ocidns.ComponentName},
 		},
 	}
 }
@@ -127,4 +129,63 @@ func (c certManagerConfigComponent) Uninstall(compContext spi.ComponentContext) 
 		return nil
 	}
 	return c.uninstallVerrazzanoCertManagerResources(compContext)
+}
+
+// ValidateInstall checks if the specified new Verrazzano CR is valid for this component to be installed
+func (c certManagerConfigComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
+	vzV1Beta1 := &v1beta1.Verrazzano{}
+	if err := vz.ConvertTo(vzV1Beta1); err != nil {
+		return err
+	}
+	return c.ValidateInstallV1Beta1(vzV1Beta1)
+}
+
+// ValidateInstallV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be installed
+func (c certManagerConfigComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
+	if err := c.validateConfiguration(vz); err != nil {
+		return err
+	}
+	return c.HelmComponent.ValidateInstallV1Beta1(vz)
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c certManagerConfigComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+	oldBeta := &v1beta1.Verrazzano{}
+	newBeta := &v1beta1.Verrazzano{}
+	if err := old.ConvertTo(oldBeta); err != nil {
+		return err
+	}
+	if err := new.ConvertTo(newBeta); err != nil {
+		return err
+	}
+
+	return c.ValidateUpdateV1Beta1(oldBeta, newBeta)
+}
+
+// ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c certManagerConfigComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
+	if err := c.validateConfiguration(new); err != nil {
+		return err
+	}
+	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
+}
+
+func (c certManagerConfigComponent) validateConfiguration(new *v1beta1.Verrazzano) error {
+	if err := cmcommon.ValidateLongestHostName(new); err != nil {
+		return err
+	}
+
+	if !c.IsEnabled(new) && !vzcr.IsCertManagerEnabled(new) {
+		return nil
+	}
+
+	cm := new.Spec.Components.CertManager
+	if cm == nil {
+		return nil
+	}
+
+	if err := cmcommon.ValidateConfiguration(cm.Certificate); err != nil {
+		return err
+	}
+	return nil
 }

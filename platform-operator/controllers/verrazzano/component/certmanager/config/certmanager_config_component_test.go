@@ -1,22 +1,10 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package certmanagerconfig
+package config
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"crypto/x509/pkix"
-	"encoding/pem"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"math/big"
-	"net"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"testing"
-	"time"
 
 	cmutil "github.com/cert-manager/cert-manager/pkg/api/util"
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -25,8 +13,9 @@ import (
 	certv1client "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -34,7 +23,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"testing"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
@@ -150,8 +141,8 @@ func TestPostInstallCA(t *testing.T) {
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 
-	defer func() { getClientFunc = k8sutil.GetCoreV1Client }()
-	getClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, "defaultVZConfig-cn")
+	cmcommon.GetClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, "defaultVZConfig-cn")
+	defer func() { cmcommon.ResetCoreV1ClientFunc() }()
 
 	defer func() { getCMClientFunc = GetCertManagerClientset }()
 	getCMClientFunc = func() (certv1client.CertmanagerV1Interface, error) {
@@ -193,8 +184,8 @@ func runCAUpdateTest(t *testing.T, upgrade bool) {
 	}
 	updatedVZ.Spec.Components.CertManager.Certificate.CA = newCA
 
-	defer func() { getClientFunc = k8sutil.GetCoreV1Client }()
-	getClientFunc = createClientFunc(updatedVZ.Spec.Components.CertManager.Certificate.CA, "defaultVZConfig-cn")
+	cmcommon.GetClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, "defaultVZConfig-cn")
+	defer func() { cmcommon.ResetCoreV1ClientFunc() }()
 
 	defer func() { getCMClientFunc = GetCertManagerClientset }()
 	cmClient := certv1fake.NewSimpleClientset()
@@ -489,8 +480,8 @@ func TestClusterIssuerUpdated(t *testing.T) {
 
 	// Create an issuer
 	issuerName := caCertCommonName + "-a23asdfa"
-	fakeIssuerCert := createFakeCertificate(issuerName)
-	fakeIssuerCertBytes, err := createFakeCertBytes(issuerName, nil)
+	fakeIssuerCert := cmcommon.CreateFakeCertificate(issuerName)
+	fakeIssuerCertBytes, err := cmcommon.CreateFakeCertBytes(issuerName, nil)
 	if err != nil {
 		return
 	}
@@ -499,7 +490,7 @@ func TestClusterIssuerUpdated(t *testing.T) {
 		return
 	}
 	// Create a leaf cert signed by the above issuer
-	fakeCertBytes, err := createFakeCertBytes("common-name", fakeIssuerCert)
+	fakeCertBytes, err := cmcommon.CreateFakeCertBytes("common-name", fakeIssuerCert)
 	if err != nil {
 		return
 	}
@@ -507,10 +498,10 @@ func TestClusterIssuerUpdated(t *testing.T) {
 	if !asserts.NoError(err, "Error creating test cert secret") {
 		return
 	}
-	defer func() { getClientFunc = k8sutil.GetCoreV1Client }()
-	getClientFunc = func(log ...vzlog.VerrazzanoLogger) (v1.CoreV1Interface, error) {
+	cmcommon.GetClientFunc = func(log ...vzlog.VerrazzanoLogger) (v1.CoreV1Interface, error) {
 		return k8sfake.NewSimpleClientset(certSecret, issuerSecret).CoreV1(), nil
 	}
+	defer func() { cmcommon.ResetCoreV1ClientFunc() }()
 
 	// create the component and issue the call
 	component := NewComponent().(certManagerConfigComponent)
@@ -601,10 +592,6 @@ func TestDryRun(t *testing.T) {
 }
 
 func createCertSecret(name string, namespace string, fakeCertBytes []byte) (*corev1.Secret, error) {
-	//fakeCertBytes, err := createFakeCertBytes(cn)
-	//if err != nil {
-	//	return nil, err
-	//}
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
@@ -620,7 +607,7 @@ func createCertSecret(name string, namespace string, fakeCertBytes []byte) (*cor
 }
 
 func createCertSecretNoParent(name string, namespace string, cn string) (*corev1.Secret, error) {
-	fakeCertBytes, err := createFakeCertBytes(cn, nil)
+	fakeCertBytes, err := cmcommon.CreateFakeCertBytes(cn, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -636,197 +623,4 @@ func createCertSecretNoParent(name string, namespace string, cn string) (*corev1
 		Type: corev1.SecretTypeTLS,
 	}
 	return secret, nil
-}
-
-var testRSAKey *rsa.PrivateKey
-
-func getRSAKey() (*rsa.PrivateKey, error) {
-	if testRSAKey == nil {
-		var err error
-		if testRSAKey, err = rsa.GenerateKey(rand.Reader, 2048); err != nil {
-			return nil, err
-		}
-	}
-	return testRSAKey, nil
-}
-
-func createFakeCertBytes(cn string, parent *x509.Certificate) ([]byte, error) {
-	rsaKey, err := getRSAKey()
-	if err != nil {
-		return []byte{}, err
-	}
-
-	cert := createFakeCertificate(cn)
-	if parent == nil {
-		parent = cert
-	}
-	pubKey := &rsaKey.PublicKey
-	certBytes, err := x509.CreateCertificate(rand.Reader, cert, parent, pubKey, rsaKey)
-	if err != nil {
-		return []byte{}, err
-	}
-	certPem := pem.EncodeToMemory(&pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: certBytes,
-	})
-	return certPem, nil
-}
-
-func createFakeCertificate(cn string) *x509.Certificate {
-	duration30, _ := time.ParseDuration("-30h")
-	notBefore := time.Now().Add(duration30) // valid 30 hours ago
-	duration1Year, _ := time.ParseDuration("90h")
-	notAfter := notBefore.Add(duration1Year) // for 90 hours
-	serialNo := big.NewInt(int64(123123413123))
-	cert := &x509.Certificate{
-		Subject: pkix.Name{
-			Country:      []string{"US"},
-			Organization: []string{"BarOrg"},
-			SerialNumber: "2234",
-			CommonName:   cn,
-		},
-		SerialNumber:          serialNo,
-		NotBefore:             notBefore,
-		NotAfter:              notAfter,
-		KeyUsage:              x509.KeyUsageKeyEncipherment,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		BasicConstraintsValid: true,
-		IsCA:                  false,
-		SignatureAlgorithm:    x509.SHA256WithRSA,
-	}
-
-	cert.IPAddresses = append(cert.IPAddresses, net.ParseIP("127.0.0.1"))
-	cert.IPAddresses = append(cert.IPAddresses, net.ParseIP("::"))
-	cert.DNSNames = append(cert.DNSNames, "localhost")
-	return cert
-}
-
-// All of this below is to make Sonar happy
-type validationTestStruct struct {
-	name      string
-	old       *vzapi.Verrazzano
-	new       *vzapi.Verrazzano
-	coreV1Cli func(_ ...vzlog.VerrazzanoLogger) (v1.CoreV1Interface, error)
-	wantErr   bool
-}
-
-var tests = []validationTestStruct{
-	{
-		name:    "No OCI DNS or CertManager present",
-		old:     &vzapi.Verrazzano{},
-		new:     &vzapi.Verrazzano{},
-		wantErr: false,
-	},
-	{
-		name: "CertManager and OCI DNS webhook enabled",
-		old:  &vzapi.Verrazzano{},
-		new: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					CertManager: &vzapi.CertManagerComponent{
-						Enabled: getBoolPtr(true),
-					},
-					DNS: &vzapi.DNSComponent{
-						OCI: &vzapi.OCI{
-							DNSScope:               "GLOBAL",
-							DNSZoneCompartmentOCID: "ocid",
-							DNSZoneOCID:            "zoneOcid",
-							DNSZoneName:            "zoneName",
-							OCIConfigSecret:        "oci",
-						},
-					},
-				},
-			},
-		},
-		wantErr: false,
-	},
-	{
-		name: "CertManager Disabled and OCI DNS webhook enabled",
-		old:  &vzapi.Verrazzano{},
-		new: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					CertManager: &vzapi.CertManagerComponent{
-						Enabled: getBoolPtr(false),
-					},
-					DNS: &vzapi.DNSComponent{
-						OCI: &vzapi.OCI{
-							DNSScope:               "GLOBAL",
-							DNSZoneCompartmentOCID: "ocid",
-							DNSZoneOCID:            "zoneOcid",
-							DNSZoneName:            "zoneName",
-							OCIConfigSecret:        "oci",
-						},
-					},
-				},
-			},
-		},
-		wantErr: false,
-	},
-	{
-		name: "CertManager Component enabled",
-		old:  &vzapi.Verrazzano{},
-		new: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					CertManager: &vzapi.CertManagerComponent{
-						Enabled: getBoolPtr(true),
-					},
-				},
-			},
-		},
-		wantErr: false,
-	},
-}
-
-func validationTests(t *testing.T, isUpdate bool) {
-	defer func() { common.ResetNewClientFunc() }()
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.name == "Cert Manager Namespace already exists" && isUpdate { // will throw error only during installation
-				tt.wantErr = false
-			}
-			client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(createCertManagerCRDs()...).Build()
-			common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
-				return client, nil
-			})
-			c := NewComponent()
-			runValidationTest(t, tt, isUpdate, c)
-		})
-	}
-}
-
-func runValidationTest(t *testing.T, tt validationTestStruct, isUpdate bool, c spi.Component) {
-	//	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
-	if isUpdate {
-		if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
-			t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
-		}
-		v1beta1New := &v1beta1.Verrazzano{}
-		v1beta1Old := &v1beta1.Verrazzano{}
-		err := tt.new.ConvertTo(v1beta1New)
-		assert.NoError(t, err)
-		err = tt.old.ConvertTo(v1beta1Old)
-		assert.NoError(t, err)
-		if err := c.ValidateUpdateV1Beta1(v1beta1Old, v1beta1New); (err != nil) != tt.wantErr {
-			t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
-		}
-
-	} else {
-		wantErr := tt.name != "disable" && tt.wantErr // hack for disable validation, allowed on initial install but not on update
-		if tt.coreV1Cli != nil {
-			k8sutil.GetCoreV1Func = tt.coreV1Cli
-		} else {
-			k8sutil.GetCoreV1Func = common.MockGetCoreV1()
-		}
-		if err := c.ValidateInstall(tt.new); (err != nil) != wantErr {
-			t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
-		}
-		v1beta1Vz := &v1beta1.Verrazzano{}
-		err := tt.new.ConvertTo(v1beta1Vz)
-		assert.NoError(t, err)
-		if err := c.ValidateInstallV1Beta1(v1beta1Vz); (err != nil) != wantErr {
-			t.Errorf("ValidateInstallV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
-		}
-	}
 }
