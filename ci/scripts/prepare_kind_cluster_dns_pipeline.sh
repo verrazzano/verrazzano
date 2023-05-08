@@ -112,10 +112,10 @@ cd ${TEST_SCRIPTS_DIR}
 echo "Installing Verrazzano on Kind"
 if [ -f "$WORKSPACE/vz" ]; then
   cd $WORKSPACE
-  ./vz install --filename $INSTALL_CONFIG_FILE_OCIDNS --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
+  ./vz install --filename $INSTALL_CONFIG_FILE_OCIDNS --manifests ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
 else
   cd ${GO_REPO_PATH}/verrazzano/tools/vz
-  GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename $INSTALL_CONFIG_FILE_OCIDNS --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
+  GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename $INSTALL_CONFIG_FILE_OCIDNS --manifests ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
 fi
 result=$?
 if [[ $result -ne 0 ]]; then
