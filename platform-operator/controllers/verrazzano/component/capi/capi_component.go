@@ -248,10 +248,10 @@ func (c capiComponent) Upgrade(ctx spi.ComponentContext) error {
 
 	// Set up the upgrade options for the CAPI apply upgrade.
 	applyUpgradeOptions := clusterapi.ApplyUpgradeOptions{
-		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overrides.APIVersion),
-		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEBootstrapVersion)},
-		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEControlPlaneVersion)},
-		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overrides.OCIVersion)},
+		CoreProvider:            fmt.Sprintf("%S/%s:%s", ComponentNamespace, clusterAPIProviderName, overrides.APIVersion),
+		BootstrapProviders:      []string{fmt.Sprintf("%S/%s:%s", ComponentNamespace, ocneProviderName, overrides.OCNEBootstrapVersion)},
+		ControlPlaneProviders:   []string{fmt.Sprintf("%S/%s:%s", ComponentNamespace, ocneProviderName, overrides.OCNEControlPlaneVersion)},
+		InfrastructureProviders: []string{fmt.Sprintf("%S/%s:%s", ComponentNamespace, ociProviderName, overrides.OCIVersion)},
 	}
 
 	return capiClient.ApplyUpgrade(applyUpgradeOptions)
