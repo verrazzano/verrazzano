@@ -120,13 +120,20 @@ func getOperatorFileFromFlag(cmd *cobra.Command) (string, error) {
 // getManifestsFile returns the manifests file, which could come from the manifests flag or the
 // deprecated operator-file flag
 func getManifestsFile(cmd *cobra.Command) (string, error) {
+	// if manifests flag has been explicitly provided, use that. Else if operator-file flag is
+	// explicitly provided, use that. If neither is explicitly provided, use the default for the
+	// manifests flag
 	if cmd.PersistentFlags().Changed(constants.ManifestsFlag) {
 		return cmd.PersistentFlags().GetString(constants.ManifestsFlag)
 	}
-	return cmd.PersistentFlags().GetString(constants.OperatorFileFlag)
+	if cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
+		return cmd.PersistentFlags().GetString(constants.OperatorFileFlag)
+	}
+	// neither is explicitly specified, use the default value of manifests flag
+	return cmd.PersistentFlags().GetString(constants.ManifestsFlag)
 }
 
-// ManifestsFlagChanged returns whether the manifests flag (or deprecated operator-file flag) is specifed.
+// ManifestsFlagChanged returns whether the manifests flag (or deprecated operator-file flag) is specified.
 func ManifestsFlagChanged(cmd *cobra.Command) bool {
 	return cmd.PersistentFlags().Changed(constants.ManifestsFlag) || cmd.PersistentFlags().Changed(constants.OperatorFileFlag)
 }
