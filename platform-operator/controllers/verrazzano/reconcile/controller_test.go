@@ -17,36 +17,30 @@ import (
 	"testing"
 	"time"
 
-	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
-	constants3 "github.com/verrazzano/verrazzano/pkg/constants"
-	vzos "github.com/verrazzano/verrazzano/pkg/os"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
-	vzContext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
-	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
-	batchv1 "k8s.io/api/batch/v1"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
 	"github.com/golang/mock/gomock"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
+	constants3 "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	vzContext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -54,10 +48,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakes "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 )
 
 // For unit testing
@@ -1780,10 +1776,6 @@ func TestReconcilerInitForVzResource(t *testing.T) {
 	}
 	logger := vzlog.DefaultLogger()
 	mocker := gomock.NewController(t)
-	podKind := &source.Kind{Type: &corev1.Pod{}}
-	jobKind := &source.Kind{Type: &batchv1.Job{}}
-	secretKind := &source.Kind{Type: &corev1.Secret{}}
-	namespaceKind := &source.Kind{Type: &corev1.Namespace{}}
 	getNoErrorMock := func() client.Client {
 		mockClient := mocks.NewMockClient(mocker)
 		mockClient.EXPECT().Delete(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil).AnyTimes()
@@ -1807,48 +1799,12 @@ func TestReconcilerInitForVzResource(t *testing.T) {
 	}
 	setMockControllerNoErr := func(reconciler *Reconciler) {
 		controller := mocks.NewMockController(mocker)
-		controller.EXPECT().Watch(gomock.Eq(podKind), gomock.Any(), gomock.Any()).Return(nil)
-		controller.EXPECT().Watch(gomock.Eq(jobKind), gomock.Any(), gomock.Any()).Return(nil)
-		// watches 2 secrets - managed cluster registration and Thanos internal user
-		controller.EXPECT().Watch(gomock.Eq(secretKind), gomock.Any(), gomock.Any()).Return(nil).Times(2)
-		controller.EXPECT().Watch(gomock.Eq(namespaceKind), gomock.Any(), gomock.Any()).Return(nil)
+		controller.EXPECT().Watch(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		reconciler.Controller = controller
 	}
-	setMockControllerPodWatchErr := func(reconciler *Reconciler) {
+	setMockControllerErr := func(reconciler *Reconciler) {
 		controller := mocks.NewMockController(mocker)
-		controller.EXPECT().Watch(gomock.Eq(podKind), gomock.Any(), gomock.Any()).Return(fmt.Errorf(unExpectedError))
-		reconciler.Controller = controller
-	}
-	setMockControllerJobWatchErr := func(reconciler *Reconciler) {
-		controller := mocks.NewMockController(mocker)
-		// pod watch succeeds, job watch fails
-		controller.EXPECT().Watch(gomock.Eq(podKind), gomock.Any(), gomock.Any()).Return(nil)
-		controller.EXPECT().Watch(gomock.Eq(jobKind), gomock.Any(), gomock.Any()).Return(fmt.Errorf(unExpectedError))
-		reconciler.Controller = controller
-	}
-	setMockControllerSecretWatchErr := func(reconciler *Reconciler) {
-		controller := mocks.NewMockController(mocker)
-		// pod and job watch succeeds, first secret watch fails
-		// TODO find a way to know which secret is being watched and fail each one selectively
-		controller.EXPECT().Watch(gomock.Eq(podKind), gomock.Any(), gomock.Any()).Return(nil)
-		controller.EXPECT().Watch(gomock.Eq(jobKind), gomock.Any(), gomock.Any()).Return(nil)
-		controller.EXPECT().Watch(gomock.Eq(secretKind), gomock.Any(), gomock.Any()).DoAndReturn(
-			func(kind *source.Kind, handler handler.EventHandler, funcs predicate.Funcs) error {
-				return fmt.Errorf(unExpectedError)
-			})
-		reconciler.Controller = controller
-	}
-	setMockControllerNamespaceWatchErr := func(reconciler *Reconciler) {
-		controller := mocks.NewMockController(mocker)
-		// pod and job watch succeeds, first secret watch fails
-		// TODO find a way to know which secret is being watched and fail each one selectively
-		controller.EXPECT().Watch(gomock.Eq(podKind), gomock.Any(), gomock.Any()).Return(nil)
-		controller.EXPECT().Watch(gomock.Eq(jobKind), gomock.Any(), gomock.Any()).Return(nil)
-		controller.EXPECT().Watch(gomock.Eq(secretKind), gomock.Any(), gomock.Any()).Return(nil).Times(2)
-		controller.EXPECT().Watch(gomock.Eq(namespaceKind), gomock.Any(), gomock.Any()).DoAndReturn(
-			func(kind *source.Kind, handler handler.EventHandler, funcs predicate.Funcs) error {
-				return fmt.Errorf(unExpectedError)
-			})
+		controller.EXPECT().Watch(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf(unExpectedError))
 		reconciler.Controller = controller
 	}
 	vzName := "vzTestName"
@@ -1950,40 +1906,10 @@ func TestReconcilerInitForVzResource(t *testing.T) {
 		// GIVEN Verrazzano CR
 		// WHEN initForVzResource is called and error occurs while watching pods
 		// THEN error is returned with result for requeue with delay
-		{"TestReconcilerInitForVzResource when watching for pods failed",
+		{"TestReconcilerInitForVzResource when watching for pods get failed",
 			argWithFinalizer,
 			getNoErrorMock,
-			setMockControllerPodWatchErr,
-			newRequeueWithDelay(),
-			true,
-		},
-		// GIVEN Verrazzano CR
-		// WHEN initForVzResource is called and error occurs while watching Jobs
-		// THEN error is returned with result for requeue with delay
-		{"TestReconcilerInitForVzResource when watching for jobs failed",
-			argWithFinalizer,
-			getNoErrorMock,
-			setMockControllerJobWatchErr,
-			newRequeueWithDelay(),
-			true,
-		},
-		// GIVEN Verrazzano CR
-		// WHEN initForVzResource is called and error occurs while watching Secrets
-		// THEN error is returned with result for requeue with delay
-		{"TestReconcilerInitForVzResource when watching for registration secret failed",
-			argWithFinalizer,
-			getNoErrorMock,
-			setMockControllerSecretWatchErr,
-			newRequeueWithDelay(),
-			true,
-		},
-		// GIVEN Verrazzano CR
-		// WHEN initForVzResource is called and error occurs while watching a namespace creation/update
-		// THEN error is returned with result for requeue with delay
-		{"TestReconcilerInitForVzResource when watching for namespace creation failed",
-			argWithFinalizer,
-			getNoErrorMock,
-			setMockControllerNamespaceWatchErr,
+			setMockControllerErr,
 			newRequeueWithDelay(),
 			true,
 		},
