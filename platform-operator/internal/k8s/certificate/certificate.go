@@ -161,17 +161,6 @@ func createTLSCertSecretIfNecesary(log *zap.SugaredLogger, secretsClient corev1.
 		if errors.IsAlreadyExists(createError) {
 			log.Infof("Operator CA secret %s already exists, skipping", OperatorCA)
 			existingSecret, err := secretsClient.Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
-			//if existingSecret.Labels == nil {
-			//	existingSecret.Labels = make(map[string]string)
-			//}
-			//log.Info("Adding labels in existing secret")
-			//existingSecret.Labels[OperatorCertLabelKey] = OperatorCertLabel
-			//existingSecret, err = secretsClient.Update(context.TODO(), existingSecret, metav1.UpdateOptions{})
-			//if err == nil {
-			//	log.Errorf("error while updating the secret")
-			//}
-			//log.Info("Adding labels in existing secret")
-			//log.Info("labels in secrets", existingSecret.Labels)
 			log.Info("Adding labels in existing secret")
 			_ = updateSecretLabel(secretsClient, existingSecret)
 			log.Info("labels in secret", existingSecret.Labels)
@@ -259,10 +248,6 @@ func createCACertSecretIfNecessary(log *zap.SugaredLogger, secretsClient corev1.
 			if err == nil {
 				log.Errorf("error while updating the secret")
 			}
-			//log.Info("Adding labels in existing secret")
-			//existingSecret.Labels[OperatorCertLabelKey] = OperatorCertLabel
-			//existingSecret, err = secretsClient.Update(context.TODO(), existingSecret, metav1.UpdateOptions{})
-			//log.Info("labels in secrets", existingSecret.Labels)
 			log.Info("Adding labels in existing secret")
 			_ = updateSecretLabel(secretsClient, existingSecret)
 			log.Info("labels in secret", existingSecret.Labels)

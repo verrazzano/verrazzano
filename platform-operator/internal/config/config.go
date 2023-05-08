@@ -30,8 +30,8 @@ const (
 
 const defaultBomFilename = "verrazzano-bom.json"
 
-var DefaultExpiryWindow = 270 * time.Hour
-var DefaultCheckPeriod = 168 * time.Hour
+var DefaultExpiryWindow = 24 * 7 * time.Hour
+var DefaultCheckPeriod = 24 * time.Hour
 
 // Global override for the default BOM file path
 var bomFilePathOverride string
