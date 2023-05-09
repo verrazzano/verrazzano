@@ -39,6 +39,7 @@ const (
 	searchPW         = "SEARCH_PASSWORD"
 	searchUser       = "SEARCH_USERNAME"
 	stageNameEnv     = "STAGE_NAME"
+	airGapTestEnv    = "AIR_GAPPED"
 )
 
 var logger = internalLogger()
@@ -147,6 +148,12 @@ func withEnvVar(log *zap.SugaredLogger, withKey, envVar string) (*zap.SugaredLog
 // configureOutputs configures the search output path if it is available
 func configureOutputs(ind string) ([]string, error) {
 	var outputs []string
+
+	// Do not register outputs for an Air Gapped installation
+	if os.Getenv(airGapTestEnv) == "true" {
+		return outputs, nil
+	}
+
 	searchWriter, err := SearchWriterFromEnv(ind)
 	sinkKey := fmt.Sprintf("%s%s", searchWriterKey, ind)
 	// Register SearchWriter
