@@ -22,8 +22,8 @@ const (
 	envVarRepoCache  = "HELM_REPOSITORY_CACHE"
 )
 
-var prevRepoConfig string = os.Getenv(envVarRepoConfig)
-var prevRepoCache string = os.Getenv(envVarRepoCache)
+var prevRepoConfig = os.Getenv(envVarRepoConfig)
+var prevRepoCache = os.Getenv(envVarRepoCache)
 
 // TestNewHelmConfig tests that function NewHelmConfig succeeds for default inputs
 // GIVEN a call to NewHelmConfig
