@@ -6,7 +6,11 @@ package config
 import (
 	"context"
 	acmev1 "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"testing"
 
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -15,11 +19,9 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/core/v1"
-	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -80,12 +82,12 @@ func init() {
 // WHEN cert-manager is enabled
 // THEN the function returns true
 func TestIsCertManagerEnabled(t *testing.T) {
-	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(createCertManagerCRDs()...).Build()
+	crdObjs := createCertManagerCRDs()
 
-	defer func() { common.ResetNewClientFunc() }()
-	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
-		return client, nil
-	})
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset(crtObjectToRuntimeObject(crdObjs...)...).ApiextensionsV1(), nil
+	}
 
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(true)
@@ -98,12 +100,11 @@ func TestIsCertManagerEnabled(t *testing.T) {
 // WHEN no CertManager CRDs are present
 // THEN the function returns false
 func TestIsCertManagerEnabledCRDsNotPresent(t *testing.T) {
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 
-	defer func() { common.ResetNewClientFunc() }()
-	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
-		return client, nil
-	})
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
+	}
 
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(true)
@@ -116,12 +117,10 @@ func TestIsCertManagerEnabledCRDsNotPresent(t *testing.T) {
 // WHEN cert-manager is disabled
 // THEN the function returns false
 func TestIsCertManagerDisabled(t *testing.T) {
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-
-	defer func() { common.ResetNewClientFunc() }()
-	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
-		return client, nil
-	})
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
+	}
 
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(false)
@@ -147,7 +146,7 @@ func TestCertManagerOCIDNSPreInstall(t *testing.T) {
 	config.Set(config.OperatorConfig{
 		VerrazzanoRootDir: "../../../../..", //since we are running inside the cert manager package, root is up 5 directories
 	})
-	defer func() { common.ResetNewClientFunc(); config.Set(defaultConfig) }()
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc(); config.Set(defaultConfig) }()
 
 	runPreChecksTest(t, false, false, createCertManagerCRDs()...)
 }
@@ -161,7 +160,7 @@ func TestCertManagerOCIDNSPreUpgrade(t *testing.T) {
 	config.Set(config.OperatorConfig{
 		VerrazzanoRootDir: "../../../../..", //since we are running inside the cert manager package, root is up 5 directories
 	})
-	defer func() { common.ResetNewClientFunc(); config.Set(defaultConfig) }()
+	defer func() { config.Set(defaultConfig) }()
 
 	runPreChecksTest(t, true, false, createCertManagerCRDs()...)
 }
@@ -184,10 +183,10 @@ func TestCertManagerOCIDNSPreUpgradeNoCertManagerCRDs(t *testing.T) {
 
 func runPreChecksTest(t *testing.T, isUpgrade bool, expectErr bool, crdObjs ...clipkg.Object) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(crdObjs...).Build()
-	defer func() { common.ResetNewClientFunc() }()
-	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
-		return client, nil
-	})
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset(crtObjectToRuntimeObject(crdObjs...)...).ApiextensionsV1(), nil
+	}
 
 	var err error
 	if !isUpgrade {
@@ -691,9 +690,17 @@ func certificateExists(client clipkg.Client, name string, namespace string) (boo
 	return true, nil
 }
 
+func crtObjectToRuntimeObject(objs ...clipkg.Object) []runtime.Object {
+	var runtimeObjs []runtime.Object
+	for _, obj := range objs {
+		runtimeObjs = append(runtimeObjs, obj)
+	}
+	return runtimeObjs
+}
+
 func createCertManagerCRDs() []clipkg.Object {
 	var cmCRDs []clipkg.Object
-	for _, crd := range common.GetRequiredCertManagerCRDNames() {
+	for _, crd := range cmcommon.GetRequiredCertManagerCRDNames() {
 		cmCRDs = append(cmCRDs, newCRD(crd))
 	}
 	return cmCRDs
