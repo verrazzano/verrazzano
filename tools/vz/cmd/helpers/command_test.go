@@ -163,9 +163,9 @@ func TestGetOperatorFile(t *testing.T) {
 	// GIVEN a command with no value provided for the operator file flag,
 	// WHEN we get the operator file,
 	// THEN the default value of operator file is returned.
-	operatorFile, err := GetOperatorFile(getCommandWithoutFlags())
+	operatorFile, err := getOperatorFileFromFlag(getCommandWithoutFlags())
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), fmt.Sprintf(flagNotDefinedErrFmt, constants.OperatorFileFlag))
+	assert.Contains(t, err.Error(), fmt.Sprintf(flagNotDefinedErrFmt, constants.ManifestsFlag))
 	assert.NotNil(t, operatorFile)
 	assert.Equal(t, "", operatorFile)
 
@@ -173,8 +173,8 @@ func TestGetOperatorFile(t *testing.T) {
 	// WHEN we get the operator file,
 	// THEN the default value of operator file is returned.
 	cmdWithOperatorFile := getCommandWithoutFlags()
-	cmdWithOperatorFile.PersistentFlags().String(constants.OperatorFileFlag, "/tmp/operator.yaml", "")
-	operatorFile, err = GetOperatorFile(cmdWithOperatorFile)
+	cmdWithOperatorFile.PersistentFlags().String(constants.ManifestsFlag, "/tmp/operator.yaml", "")
+	operatorFile, err = getOperatorFileFromFlag(cmdWithOperatorFile)
 	assert.NoError(t, err)
 	assert.NotNil(t, operatorFile)
 	assert.Equal(t, "/tmp/operator.yaml", operatorFile)

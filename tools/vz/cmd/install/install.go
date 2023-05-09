@@ -72,10 +72,15 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
 	cmd.PersistentFlags().StringArrayP(constants.SetFlag, constants.SetFlagShorthand, []string{}, constants.SetFlagHelp)
 
-	// Initially the operator-file flag may be for internal use, hide from help until
-	// a decision is made on supporting this option.
-	cmd.PersistentFlags().String(constants.OperatorFileFlag, "", constants.OperatorFileFlagHelp)
-	cmd.PersistentFlags().MarkHidden(constants.OperatorFileFlag)
+	// Private registry support
+	cmd.PersistentFlags().String(constants.ImageRegistryFlag, constants.ImageRegistryFlagDefault, constants.ImageRegistryFlagHelp)
+	cmd.PersistentFlags().String(constants.ImagePrefixFlag, constants.ImagePrefixFlagDefault, constants.ImagePrefixFlagHelp)
+
+	// Flag to skip any confirmation questions
+	cmd.PersistentFlags().BoolP(constants.SkipConfirmationFlag, constants.SkipConfirmationShort, false, constants.SkipConfirmationFlagHelp)
+
+	// Add flags related to specifying the platform operator manifests as a local file or a URL
+	cmdhelpers.AddManifestsFlags(cmd)
 
 	// Dry run flag is still being discussed - keep hidden for now
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an install.")
@@ -118,9 +123,9 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		return err
 	}
 
-	// When --operator-file is not used, get the version from the command line
+	// When manifests flag is not used, get the version from the command line
 	var version string
-	if !cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
+	if !cmdhelpers.ManifestsFlagChanged(cmd) {
 		version, err = cmdhelpers.GetVersion(cmd, vzHelper)
 		if err != nil {
 			return err
@@ -161,6 +166,20 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			}
 		}
 
+		if err := cmdhelpers.ValidatePrivateRegistry(cmd, client); err != nil {
+			skipConfirm, errConfirm := cmd.PersistentFlags().GetBool(constants.SkipConfirmationFlag)
+			if errConfirm != nil {
+				return errConfirm
+			}
+			proceed, err := cmdhelpers.ConfirmWithUser(vzHelper, fmt.Sprintf("%s\nYour new settings will be ignored. Continue?", err.Error()), skipConfirm)
+			if err != nil {
+				return err
+			}
+			if !proceed {
+				fmt.Fprintf(vzHelper.GetOutputStream(), "Operation canceled.")
+				return nil
+			}
+		}
 		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Install of Verrazzano version %s is already in progress\n", version))
 
 		vzNamespace = existingvz.Namespace
@@ -340,8 +359,19 @@ func waitForInstallToComplete(client clipkg.Client, kubeClient kubernetes.Interf
 
 // validateCmd - validate the command line options
 func validateCmd(cmd *cobra.Command) error {
-	if cmd.PersistentFlags().Changed(constants.VersionFlag) && cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
-		return fmt.Errorf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.OperatorFileFlag)
+	if cmd.PersistentFlags().Changed(constants.VersionFlag) && cmdhelpers.ManifestsFlagChanged(cmd) {
+		return fmt.Errorf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.ManifestsFlag)
+	}
+	prefix, err := cmd.PersistentFlags().GetString(constants.ImagePrefixFlag)
+	if err != nil {
+		return err
+	}
+	reg, err := cmd.PersistentFlags().GetString(constants.ImageRegistryFlag)
+	if err != nil {
+		return err
+	}
+	if prefix != constants.ImagePrefixFlagDefault && reg == constants.ImageRegistryFlagDefault {
+		return fmt.Errorf("%s cannot be specified without also specifying %s", constants.ImagePrefixFlag, constants.ImageRegistryFlag)
 	}
 	return nil
 }
