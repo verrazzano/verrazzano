@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -112,10 +112,10 @@ cd ${TEST_SCRIPTS_DIR}
 echo "Installing Verrazzano on Kind"
 if [ -f "$WORKSPACE/vz" ]; then
   cd $WORKSPACE
-  ./vz install --filename $INSTALL_CONFIG_FILE_OCIDNS --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
+  ./vz install --filename $INSTALL_CONFIG_FILE_OCIDNS --manifests ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
 else
   cd ${GO_REPO_PATH}/verrazzano/tools/vz
-  GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename $INSTALL_CONFIG_FILE_OCIDNS --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
+  GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename $INSTALL_CONFIG_FILE_OCIDNS --manifests ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
 fi
 result=$?
 if [[ $result -ne 0 ]]; then
