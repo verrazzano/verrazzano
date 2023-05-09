@@ -5,6 +5,10 @@ package helm
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
+	corev1Cli "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
 	"reflect"
 	"testing"
@@ -421,7 +425,9 @@ func TestIsInstalled(t *testing.T) {
 	a := assert.New(t)
 
 	comp := HelmComponent{
-		ReleaseName: releaseName,
+		ReleaseName:             releaseName,
+		ChartNamespace:          "test-namespace",
+		IgnoreNamespaceOverride: true,
 	}
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
@@ -432,6 +438,20 @@ func TestIsInstalled(t *testing.T) {
 	helm.SetLoadChartFunction(func(chartDir string) (*chart.Chart, error) {
 		return getChart(), nil
 	})
+
+	k8sutil.GetCoreV1Func = func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset(
+			&corev1.Namespace{
+				ObjectMeta: v1.ObjectMeta{
+					Name: "test-namespace",
+					Labels: map[string]string{
+						constants.VerrazzanoManagedKey: "test-namespace",
+					},
+				},
+			},
+		).CoreV1(), nil
+	}
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer config.SetDefaultBomFilePath("")
@@ -1424,6 +1444,9 @@ func TestUninstall(t *testing.T) {
 	a := assert.New(t)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(testNs)
+			defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+
 			tt.helmOverride()
 			if tt.expectSuccess {
 				a.NoError(tt.helmComponent.Uninstall(tt.ctx))

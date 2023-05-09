@@ -107,12 +107,42 @@ func ConfirmWithUser(vzHelper helpers.VZHelper, questionText string, skipQuestio
 	return false, nil
 }
 
-// getOperatorFileFromFlag returns the value for the operator-file option
+// getOperatorFileFromFlag returns the value for the manifests (or the alias operator-file) option
 func getOperatorFileFromFlag(cmd *cobra.Command) (string, error) {
 	// Get the value from the command line
-	operatorFile, err := cmd.PersistentFlags().GetString(constants.OperatorFileFlag)
+	operatorFile, err := getManifestsFile(cmd)
 	if err != nil {
-		return "", fmt.Errorf("Failed to parse the command line option %s: %s", constants.OperatorFileFlag, err.Error())
+		return "", fmt.Errorf("Failed to parse the command line option %s: %s", constants.ManifestsFlag, err.Error())
 	}
 	return operatorFile, nil
+}
+
+// getManifestsFile returns the manifests file, which could come from the manifests flag or the
+// deprecated operator-file flag
+func getManifestsFile(cmd *cobra.Command) (string, error) {
+	// if manifests flag has been explicitly provided, use that. Else if operator-file flag is
+	// explicitly provided, use that. If neither is explicitly provided, use the default for the
+	// manifests flag
+	if cmd.PersistentFlags().Changed(constants.ManifestsFlag) {
+		return cmd.PersistentFlags().GetString(constants.ManifestsFlag)
+	}
+	if cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
+		return cmd.PersistentFlags().GetString(constants.OperatorFileFlag)
+	}
+	// neither is explicitly specified, use the default value of manifests flag
+	return cmd.PersistentFlags().GetString(constants.ManifestsFlag)
+}
+
+// ManifestsFlagChanged returns whether the manifests flag (or deprecated operator-file flag) is specified.
+func ManifestsFlagChanged(cmd *cobra.Command) bool {
+	return cmd.PersistentFlags().Changed(constants.ManifestsFlag) || cmd.PersistentFlags().Changed(constants.OperatorFileFlag)
+}
+
+// AddManifestsFlags adds flags related to providing manifests (including the deprecated
+// operator-file flag as an alias for the manifests flag)
+func AddManifestsFlags(cmd *cobra.Command) {
+	cmd.PersistentFlags().StringP(constants.ManifestsFlag, constants.ManifestsShorthand, "", constants.ManifestsFlagHelp)
+	// The operator-file flag is left in as an alias for the manifests flag
+	cmd.PersistentFlags().String(constants.OperatorFileFlag, "", constants.ManifestsFlagHelp)
+	cmd.PersistentFlags().MarkDeprecated(constants.OperatorFileFlag, constants.OperatorFileDeprecateMsg)
 }

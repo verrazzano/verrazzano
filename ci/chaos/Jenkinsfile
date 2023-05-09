@@ -321,7 +321,7 @@ pipeline {
                         fi
                     else
                         echo "Upgrading VPO to this commit version"
-                        ${GO_REPO_PATH}/vz upgrade --operator-file ${WORKSPACE}/upgrade-test-operator.yaml --version ${VERRAZZANO_DEV_VERSION}
+                        ${GO_REPO_PATH}/vz upgrade --manifests ${WORKSPACE}/upgrade-test-operator.yaml --version ${VERRAZZANO_DEV_VERSION}
                          kubectl wait --timeout=45m --for=condition=UpgradeComplete verrazzano/my-verrazzano
                     fi
 

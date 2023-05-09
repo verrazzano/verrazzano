@@ -6,6 +6,7 @@ def SKIP_ACCEPTANCE_TESTS = false
 def SKIP_TRIGGERED_TESTS = false
 def SUSPECT_LIST = ""
 def VERRAZZANO_DEV_VERSION = ""
+def VZ_BASE_IMAGE = ""
 def tarfilePrefix=""
 def storeLocation=""
 
@@ -119,6 +120,9 @@ pipeline {
         // used to write to object storage, or fail build if UT coverage does not pass
         FAIL_BUILD_COVERAGE = "${params.FAIL_IF_COVERAGE_DECREASED}"
         UPLOAD_UT_COVERAGE = "${params.UPLOAD_UNIT_TEST_COVERAGE}"
+
+	// File containing base image information
+	BASE_IMAGE_INFO_FILE = "base-image-v1.0.0.txt"
     }
 
     stages {
@@ -155,6 +159,7 @@ pipeline {
                     }
                 }
                 moveContentToGoRepoPath()
+		downloadBaseImageInfoFile()
 
                 script {
                     def props = readProperties file: '.verrazzano-development-version'
@@ -175,6 +180,11 @@ pipeline {
                         SUSPECT_LIST = getSuspectList(commitList, userMappings)
                         echo "Suspect list: ${SUSPECT_LIST}"
                     }
+
+                    def imageProps = readProperties file: "${WORKSPACE}/${BASE_IMAGE_INFO_FILE}"
+                    VZ_BASE_IMAGE = imageProps['base-image']
+                    env.VZ_BASE_IMAGE = "${VZ_BASE_IMAGE}"
+                    echo "Verrazzano base image: ${VZ_BASE_IMAGE}"
                 }
             }
         }
@@ -544,6 +554,13 @@ def moveContentToGoRepoPath() {
     """
 }
 
+// Download the file containing the base image name and digest
+def downloadBaseImageInfoFile() {
+    sh """
+        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name verrazzano-base-images/${BASE_IMAGE_INFO_FILE} --file ${WORKSPACE}/${BASE_IMAGE_INFO_FILE}
+    """
+}
+
 // Called in Stage CLI steps
 def buildVerrazzanoCLI(dockerImageTag) {
     sh """
@@ -569,7 +586,7 @@ def checkRepoClean() {
 def buildImages(dockerImageTag) {
     sh """
         cd ${GO_REPO_PATH}/verrazzano
-        echo 'Now build...'
+        echo 'Now build using ${env.VZ_BASE_IMAGE} as base image...'
         make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_APP_IMAGE_NAME} VERRAZZANO_CLUSTER_OPERATOR_IMAGE_NAME=${DOCKER_CLUSTER_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
         cp ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json $WORKSPACE/generated-verrazzano-bom.json
         cp $WORKSPACE/generated-verrazzano-bom.json $WORKSPACE/verrazzano-bom.json

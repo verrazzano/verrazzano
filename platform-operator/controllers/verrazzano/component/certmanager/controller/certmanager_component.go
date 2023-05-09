@@ -6,6 +6,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	common2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"path/filepath"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -29,13 +30,16 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = "cert-manager"
+const ComponentName = common2.CertManagerComponentName
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = vzconst.CertManagerNamespace
 
 // ComponentJSONName is the JSON name of the verrazzano component in CRD
-const ComponentJSONName = "certManager"
+const ComponentJSONName = common2.CertManagerComponentJSONName
+
+// ExternalDNSComponentJSONName is the JSON name of the verrazzano component in CRD
+const ExternalDNSComponentJSONName = common2.ExternalDNSComponentJSONName
 
 // certManagerComponent represents an CertManager component
 type certManagerComponent struct {
@@ -106,14 +110,6 @@ func (c certManagerComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1al
 		return err
 	}
 
-	// Validate DNS updates only when there's a change in configuration
-	oldDNSName, _ := getDNSSuffix(oldBeta)
-	newDNSName, _ := getDNSSuffix(newBeta)
-	if oldDNSName != newDNSName || getEnvironmentName(oldBeta) != getEnvironmentName(newBeta) {
-		if err := validateLongestHostName(newBeta); err != nil {
-			return err
-		}
-	}
 	return c.ValidateUpdateV1Beta1(oldBeta, newBeta)
 }
 
@@ -123,26 +119,20 @@ func (c certManagerComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
 	if err := vz.ConvertTo(vzV1Beta1); err != nil {
 		return err
 	}
-	if err := validateLongestHostName(vz); err != nil {
-		return err
-	}
 	return c.ValidateInstallV1Beta1(vzV1Beta1)
 }
 
 // ValidateInstallV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be installed
 func (c certManagerComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
+	if !c.IsEnabled(vz) {
+		return nil
+	}
+
+	// Verify there isn't a CertManager installation that already exists in the cert-manager namespace
 	if err := checkExistingCertManager(vz); err != nil {
 		return err
 	}
-	// Do not allow any changes except to enable the component post-install
-	if c.IsEnabled(vz) {
-		if _, err := validateConfiguration(vz.Spec.Components.CertManager); err != nil {
-			return err
-		}
-	}
-	if err := validateLongestHostName(vz); err != nil {
-		return err
-	}
+
 	return c.HelmComponent.ValidateInstallV1Beta1(vz)
 }
 
@@ -152,18 +142,7 @@ func (c certManagerComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	if _, err := validateConfiguration(new.Spec.Components.CertManager); err != nil {
-		return err
-	}
 
-	// Validate DNS updates only when there's a change in configuration
-	oldDNSName, _ := getDNSSuffix(old)
-	newDNSName, _ := getDNSSuffix(new)
-	if oldDNSName != newDNSName || getEnvironmentName(old) != getEnvironmentName(new) {
-		if err := validateLongestHostName(new); err != nil {
-			return err
-		}
-	}
 	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }
 
@@ -219,10 +198,6 @@ func (c certManagerComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 }
 
 func checkExistingCertManager(vz runtime.Object) error {
-	if !vzcr.IsCertManagerEnabled(vz) {
-		return nil
-	}
-
 	// Check if the cert-manager namespace already exists and is not owned by Verrazzano
 	client, err := k8sutil.GetCoreV1Func()
 	if err != nil {

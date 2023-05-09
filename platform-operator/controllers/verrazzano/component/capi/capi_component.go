@@ -36,6 +36,9 @@ const (
 	capiOcneBootstrapCMDeployment    = "capi-ocne-bootstrap-controller-manager"
 	capiOcneControlPlaneCMDeployment = "capi-ocne-control-plane-controller-manager"
 	capiociCMDeployment              = "capoci-controller-manager"
+	ocneProviderName                 = "ocne"
+	ociProviderName                  = "oci"
+	clusterAPIProviderName           = "cluster-api"
 )
 
 var capiDeployments = []types.NamespacedName{
@@ -179,10 +182,10 @@ func (c capiComponent) Install(ctx spi.ComponentContext) error {
 
 	// Set up the init options for the CAPI init.
 	initOptions := clusterapi.InitOptions{
-		CoreProvider:            fmt.Sprintf("cluster-api:%s", overrides.APIVersion),
-		BootstrapProviders:      []string{fmt.Sprintf("ocne:%s", overrides.OCNEBootstrapVersion)},
-		ControlPlaneProviders:   []string{fmt.Sprintf("ocne:%s", overrides.OCNEControlPlaneVersion)},
-		InfrastructureProviders: []string{fmt.Sprintf("oci:%s", overrides.OCIVersion)},
+		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overrides.APIVersion),
+		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEBootstrapVersion)},
+		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEControlPlaneVersion)},
+		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overrides.OCIVersion)},
 		TargetNamespace:         ComponentNamespace,
 	}
 
@@ -202,16 +205,24 @@ func (c capiComponent) PreUninstall(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (c capiComponent) Uninstall(_ spi.ComponentContext) error {
+func (c capiComponent) Uninstall(ctx spi.ComponentContext) error {
 	capiClient, err := capiInitFunc("")
 	if err != nil {
 		return err
 	}
 
-	// Set up the init options for the CAPI init.
+	overrides, err := getImageOverrides(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Set up the delete options for the CAPI delete operation.
 	deleteOptions := clusterapi.DeleteOptions{
-		DeleteAll:        true,
-		IncludeNamespace: true,
+		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overrides.APIVersion),
+		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEBootstrapVersion)},
+		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEControlPlaneVersion)},
+		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overrides.OCIVersion)},
+		IncludeNamespace:        true,
 	}
 	return capiClient.Delete(deleteOptions)
 }
@@ -220,12 +231,30 @@ func (c capiComponent) PostUninstall(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (c capiComponent) PreUpgrade(_ spi.ComponentContext) error {
-	return nil
+func (c capiComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	return preUpgrade(ctx)
 }
 
-func (c capiComponent) Upgrade(_ spi.ComponentContext) error {
-	return nil
+func (c capiComponent) Upgrade(ctx spi.ComponentContext) error {
+	capiClient, err := capiInitFunc("")
+	if err != nil {
+		return err
+	}
+
+	overrides, err := getImageOverrides(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Set up the upgrade options for the CAPI apply upgrade.
+	applyUpgradeOptions := clusterapi.ApplyUpgradeOptions{
+		CoreProvider:            fmt.Sprintf("%s/%s:%s", ComponentNamespace, clusterAPIProviderName, overrides.APIVersion),
+		BootstrapProviders:      []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ocneProviderName, overrides.OCNEBootstrapVersion)},
+		ControlPlaneProviders:   []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ocneProviderName, overrides.OCNEControlPlaneVersion)},
+		InfrastructureProviders: []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ociProviderName, overrides.OCIVersion)},
+	}
+
+	return capiClient.ApplyUpgrade(applyUpgradeOptions)
 }
 
 func (c capiComponent) PostUpgrade(_ spi.ComponentContext) error {
