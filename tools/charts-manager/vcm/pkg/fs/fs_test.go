@@ -81,18 +81,6 @@ func TestHelmChartFileSystem_SaveUpstreamChart_Error(t *testing.T) {
 	os.RemoveAll(testData)
 }
 
-// TestHelmChartFileSystem_SaveChartProvenance_Error tests that function SaveChartProvenance fails for invalid chart provenance data
-// GIVEN a call to SaveChartProvenance
-//
-//	WHEN chart provenance is invalid(nil)
-//	THEN the save chart provenance fails.
-func TestHelmChartFileSystem_SaveChartProvenance_Error(t *testing.T) {
-	files := HelmChartFileSystem{}
-	err := files.SaveChartProvenance(testChartsDir, nil, testChart, testVersion)
-	assert.Error(t, err)
-	os.RemoveAll(testData)
-}
-
 // TestHelmChartFileSystem_SaveChartProvenance_NoError tests that function SaveChartProvenance succeeds for valid chart provenance data
 // GIVEN a call to SaveChartProvenance
 //

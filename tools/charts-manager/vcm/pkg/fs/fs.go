@@ -141,7 +141,7 @@ func (hfs HelmChartFileSystem) GeneratePatchWithSourceDir(chartsDir string, char
 
 	cmd := exec.Command("diff", "-Naurw", sourceChartDirectory, chartDir)
 	cmd.Stdout = patchFile
-	_, _, err = runner.Run(cmd)
+	err = cmd.Run()
 	if err != nil {
 		// diff returning exit status 1 even when file diff is completed and no underlying error.
 		// error out only when message is different
