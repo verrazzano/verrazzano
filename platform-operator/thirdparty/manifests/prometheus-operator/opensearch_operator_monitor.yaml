@@ -1,0 +1,41 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: opster-opensearch
+  namespace: {{ .monitoringNamespace }}
+  labels:
+    release: prometheus-operator
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ .loggingNamespace }}
+  selector: {}
+  endpoints:
+    - path: /_prometheus/metrics
+      enableHttp2: false
+      tlsConfig:
+        caFile: /etc/tls-certs/ca.crt
+        certFile: /etc/tls-certs/tls.crt
+        keyFile: /etc/tls-certs/tls.key
+        insecureSkipVerify: true
+      scheme: https
+      relabelings:
+        - sourceLabels:
+            - __meta_kubernetes_pod_name
+          regex: opensearch.*
+          action: keep
+        - sourceLabels:
+            - __meta_kubernetes_pod_container_port_number
+          regex: "9200"
+          action: keep
+        - sourceLabels:
+            - __meta_kubernetes_namespace
+          action: replace
+          targetLabel: namespace
+        - sourceLabels:
+            - __meta_kubernetes_pod_name
+          action: replace
+          targetLabel: kubernetes_pod_name
+        - action: replace
+          targetLabel: verrazzano_cluster
+          replacement: local

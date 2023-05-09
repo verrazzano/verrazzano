@@ -503,6 +503,14 @@ func appendAdditionalVolumeOverrides(ctx spi.ComponentContext, volumeMountKey, v
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[1].secret.secretName", volumeKey), Value: constants.PromManagedClusterCACertsSecretName})
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[1].secret.optional", volumeKey), Value: "true"})
 
+	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[2].name", volumeMountKey), Value: "opensearch-operator-certs"})
+	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[2].mountPath", volumeMountKey), Value: "/etc/opensearch-operator-certs"})
+	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[2].readOnly", volumeMountKey), Value: "true"})
+
+	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[2].name", volumeKey), Value: "opensearch-operator-certs"})
+	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[2].secret.secretName", volumeKey), Value: "opensearch-operator-certs"})
+	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[2].secret.optional", volumeKey), Value: "true"})
+
 	return kvs, nil
 }
 
@@ -516,6 +524,7 @@ func applySystemMonitors(ctx spi.ComponentContext) error {
 	args["nginxNamespace"] = nginxutil.IngressNGINXNamespace()
 	args["istioNamespace"] = constants.IstioSystemNamespace
 	args["installNamespace"] = constants.VerrazzanoInstallNamespace
+	args["loggingNamespace"] = constants.VerrazzanoLoggingNamespace
 
 	istio := ctx.EffectiveCR().Spec.Components.Istio
 	enabled := istio != nil && istio.IsInjectionEnabled()
