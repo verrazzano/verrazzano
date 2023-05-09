@@ -1,0 +1,69 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+#
+# This install resource installs the default or "prod" profile to install a full set of Verrazzano services
+# for production scenarios.
+#
+apiVersion: install.verrazzano.io/v1beta1
+kind: Verrazzano
+metadata:
+  name: my-verrazzano
+spec:
+  components:
+    applicationOperator:
+      enabled: false
+    authProxy:
+      enabled: false
+    certManager:
+      enabled: false
+    coherenceOperator:
+      enabled: false
+    clusterOperator:
+      enabled: false
+    console:
+      enabled: false
+    fluentd:
+      enabled: false
+    grafana:
+      enabled: false
+    ingressNGINX:
+      enabled: false
+    istio:
+      enabled: false
+    kiali:
+      enabled: false
+    keycloak:
+      enabled: false
+    mySQLOperator:
+      enabled: false
+    opensearch:
+      enabled: false
+    opensearchDashboards:
+      enabled: false
+    jaegerOperator:
+      enabled: false
+    oam:
+      enabled: false
+    kubeStateMetrics:
+      enabled: false
+    prometheus:
+      enabled: false
+    prometheusOperator:
+      enabled: false
+    prometheusAdapter:
+      enabled: false
+    prometheusNodeExporter:
+      enabled: false
+    prometheusPushgateway:
+      enabled: false
+    rancher:
+      enabled: false
+    rancherBackup:
+      enabled: false
+    velero:
+      enabled: false
+    weblogicOperator:
+      enabled: false
+    verrazzano:
+      enabled: false
+  profile: prod
