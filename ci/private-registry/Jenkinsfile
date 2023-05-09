@@ -147,6 +147,11 @@ pipeline {
 
     stages {
         stage('Verify Air-Gapped') {
+            when {
+                expression {
+                    DISTRIBUTION_VARIANT == "Full"
+                }
+            }
             steps {
                 script {
                     echo "Checking if we are running in an air-gapped environment"
