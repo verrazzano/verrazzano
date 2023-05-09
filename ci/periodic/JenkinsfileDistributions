@@ -57,6 +57,8 @@ pipeline {
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_EMAIL = credentials('github-packages-email')
         DOCKER_REPO = 'ghcr.io'
+        OCR_CREDS = credentials('ocr-pull-and-push-account')
+        OCR_REPO = 'container-registry.oracle.com'
 
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
@@ -73,7 +75,8 @@ pipeline {
         LAST_PERIODIC_LOCATION = "${WORKSPACE}/last-periodic-run-commit.txt"
         CLEAN_PERIODIC_LOCATION = "${WORKSPACE}/last-clean-periodic-commit.txt"
 
-        OCI_OS_REGION="us-phoenix-1"
+        OCI_OS_REGION="us-phoenix-1" // where to download existing artifacts from
+        OCI_OS_DIST_REGION="eu-frankfurt-1" // where to upload distributions to
     }
 
     stages {
@@ -85,6 +88,21 @@ pipeline {
 
         stage('Build Release Distributions') {
             steps {
+                script {
+                    try {
+                        sh """
+                             echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
+                        """
+                    } catch(error) {
+                        echo "OCIR docker login at ${OCIR_REPO} failed, retrying after sleep"
+                        retry(4) {
+                            sleep(30)
+                            sh """
+                                echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
+                            """
+                        }
+                    }
+                }
                 sh """
                     ci/scripts/build_distribution.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${VERRAZZANO_DEV_VERSION}
                 """
