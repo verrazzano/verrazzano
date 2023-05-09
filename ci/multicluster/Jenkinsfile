@@ -833,7 +833,7 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
               ./tests/e2e/config/scripts/multicluster_edit_vz.sh ${count} ${verrazzanoConfig}
 
                 echo "Installing the Verrazzano Platform Operator"
-                time ${VZ_COMMAND} install --operator-file ${OPERATOR_YAML_FILE} -f ${verrazzanoConfig}
+                time ${VZ_COMMAND} install --manifests ${OPERATOR_YAML_FILE} -f ${verrazzanoConfig}
             """
         }
     }
