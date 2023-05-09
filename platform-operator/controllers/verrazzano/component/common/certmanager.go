@@ -5,6 +5,7 @@ package common
 import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -51,6 +52,7 @@ func CertManagerCrdsExist(cli client.Client) (bool, error) {
 			return false, err
 		}
 	}
+	_ = apiext.AddToScheme(crtClient.Scheme())
 	crdsExist, err := CheckCRDsExist(crtClient, GetRequiredCertManagerCRDNames())
 	if err != nil {
 		return false, err
