@@ -28,7 +28,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	k8net "k8s.io/api/networking/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -67,31 +66,6 @@ const cattleShellImageName = "rancher-shell"
 
 // cattleUIEnvName is the environment variable name to set for the Rancher dashboard
 const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
-
-const rancherStreamSnippetAnnotation = `ingress.extraAnnotations.nginx\.ingress\.kubernetes\.io/stream-snippet`
-
-const nginxExtraAnnotations = "ingress.extraAnnotations"
-
-const nginxStreamSnippetAnnotation = "nginx.ingress.kubernetes.io/stream-snippet"
-
-const streamSnippet = `
-    upstream rancher_stream_servers_http {
-        least_conn;
-        server %[1]s.%[2]s.svc.cluster.local:80 max_fails=3 fail_timeout=5s;
-    }
-    server {
-        listen 80;
-        proxy_pass rancher_stream_servers_http;
-    }
-    upstream rancher_stream_servers_https {
-        least_conn;
-        server %[1]s.%[2]s.svc.cluster.local:443 max_fails=3 fail_timeout=5s;
-    }
-    server {
-        listen 443;
-        proxy_pass rancher_stream_servers_https;
-    }
-`
 
 // Environment variables for the Rancher images
 // format: imageName: baseEnvVar
@@ -205,54 +179,16 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	if err != nil {
 		return kvs, err
 	}
-
 	kvs = appendRegistryOverrides(kvs)
 	kvs = append(kvs, bom.KeyValue{
 		Key:   rancherIngressClassNameKey,
 		Value: vzconfig.GetIngressClassName(ctx.EffectiveCR()),
 	})
-
-	kvs, err = appendStreamingOverrides(ctx, kvs)
-	if err != nil {
-		return kvs, err
-	}
-
 	kvs, err = appendPSPEnabledOverrides(ctx, kvs)
 	if err != nil {
 		return kvs, err
 	}
 	return appendCAOverrides(log, kvs, ctx)
-}
-
-// appendStreamingOverrides appends the Rancher streaming related overrides
-func appendStreamingOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	ingress := &k8net.Ingress{}
-	nsName := types.NamespacedName{
-		Namespace: ComponentNamespace,
-		Name:      ComponentName}
-	if err := ctx.Client().Get(context.TODO(), nsName, ingress); err != nil {
-		if !kerrs.IsNotFound(err) {
-			return kvs, err
-		}
-	}
-	// see if ingress already contains the streaming annotation
-	_, ok := ingress.Annotations[nginxStreamSnippetAnnotation]
-	if !ok {
-		ctx.Log().Debug("Adding the stream snippet annotation")
-		kvs = append(kvs, bom.KeyValue{
-			Key:       rancherStreamSnippetAnnotation,
-			Value:     fmt.Sprintf(streamSnippet, ComponentName, ComponentNamespace),
-			SetString: true,
-		})
-	} else {
-		kvs = append(kvs, bom.KeyValue{
-			Key:       nginxExtraAnnotations,
-			Value:     "",
-			SetString: true,
-		})
-	}
-
-	return kvs, nil
 }
 
 // appendRegistryOverrides appends overrides if a custom registry is being used
