@@ -859,14 +859,6 @@ func TestDeleteVMC(t *testing.T) {
 			return nil
 		})
 
-	mock.EXPECT().
-		List(gomock.Any(), &v1beta1.VerrazzanoList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, list *v1beta1.VerrazzanoList, opts ...client.ListOption) error {
-			vz := v1beta1.Verrazzano{}
-			list.Items = append(list.Items, vz)
-			return nil
-		})
-
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
@@ -932,14 +924,6 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.Equal(v1alpha1.DeleteFailed, vmc.Status.RancherRegistration.Status)
 			asserts.Equal("Failed to create Rancher API client", vmc.Status.RancherRegistration.Message)
-			return nil
-		})
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, list *v1beta1.VerrazzanoList, opts ...client.ListOption) error {
-			vz := v1beta1.Verrazzano{}
-			list.Items = append(list.Items, vz)
 			return nil
 		})
 
