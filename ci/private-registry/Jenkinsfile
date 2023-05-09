@@ -2,7 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-def agentLabel = "blocked-large"
+def agentLabel = params.DISTRIBUTION_VARIANT == "Lite" ? "phx-large" : "blocked-large"
 def ocirRegion = "fra"
 def ociRegionFull     = "eu-frankfurt-1"
 def ocirRegistry = "${ocirRegion}.ocir.io"
