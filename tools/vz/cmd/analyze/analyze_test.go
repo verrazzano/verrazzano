@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package analyze
@@ -7,6 +7,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -20,10 +23,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 const imagePullCase1 = "../../pkg/analysis/test/cluster/image-pull-case1/"
@@ -34,6 +35,8 @@ const ingressIPNotFound = "../../pkg/analysis/test/cluster/ingress-ip-not-found"
 // WHEN I call cmd.Execute without specifying flag capture-dir
 // THEN expect the command to analyze the live cluster
 func TestAnalyzeCommandDefault(t *testing.T) {
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 	c := getClientWithWatch()
 	installVZ(t, c)
 
