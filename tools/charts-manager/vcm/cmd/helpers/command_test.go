@@ -8,10 +8,21 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	vcmtesthelpers "github.com/verrazzano/verrazzano/tools/charts-manager/vcm/pkg/test"
+	vcmtesthelpers "github.com/verrazzano/verrazzano/tools/charts-manager/vcm/tests/pkg/helpers"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 )
 
+// TestGetMandatoryStringFlagValueOrError tests the execution of GetMandatoryStringFlagValueOrError
+// GIVEN a call to GetMandatoryStringFlagValueOrError with specific parameters to get non empty value of a flag
+//
+//	WHEN the input flag is not declared
+//	THEN the execution results in an error.
+//
+//	WHEN the flag value is empty or nil
+//	THEN the execution results in an error.
+//
+//	WHEN the flag value is non empty
+//	THEN the execution returns the flag value.
 func TestGetMandatoryStringFlagValueOrError(t *testing.T) {
 	anyError := fmt.Errorf("")
 	rc, cleanup, err := vcmtesthelpers.ContextSetup()

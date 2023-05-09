@@ -11,12 +11,17 @@ import (
 	"path/filepath"
 	"strings"
 
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/tools/charts-manager/vcm/pkg/helm"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"gopkg.in/yaml.v3"
 )
 
+// cmdRunner needed for unit tests
+var runner vzos.CmdRunner = vzos.DefaultRunner{}
+
+// ChartFileSystem represents all the file operations that are performed for helm charts.
 type ChartFileSystem interface {
 	RearrangeChartDirectory(string, string, string) error
 	SaveUpstreamChart(string, string, string, string) error
@@ -27,12 +32,16 @@ type ChartFileSystem interface {
 	ApplyPatchFile(string, helpers.VZHelper, string, string, string) (bool, error)
 }
 
+// HelmChartFileSystem is the default implementation of ChartFileSystem.
 type HelmChartFileSystem struct{}
 
+// RearrangeChartDirectory moves the downloaded chart directory one level up in the supplied chartsDir so that the structure is
+// <chartsDir>/<chart>/<version>/<all chart files>.
 func (hfs HelmChartFileSystem) RearrangeChartDirectory(chartsDir string, chart string, targetVersion string) error {
-	pulledChartDir := fmt.Sprintf("%s/%s/%s/%s", chartsDir, chart, targetVersion, chart)
-	cmd := exec.Command("cp", "-R", fmt.Sprintf("%s/", pulledChartDir), fmt.Sprintf("%s/%s/%s", chartsDir, chart, targetVersion))
-	err := cmd.Run()
+	pulledChartDir := fmt.Sprintf("%s/%s/%s/%s/", chartsDir, chart, targetVersion, chart)
+	targetChartDir := fmt.Sprintf("%s/%s/%s", chartsDir, chart, targetVersion)
+	cmd := exec.Command("cp", "-R", pulledChartDir, targetChartDir)
+	_, _, err := runner.Run(cmd)
 	if err != nil {
 		return err
 	}
@@ -44,32 +53,45 @@ func (hfs HelmChartFileSystem) RearrangeChartDirectory(chartsDir string, chart s
 	return nil
 }
 
+// SaveUpstreamChart copies the original chart to <chartsDir>/../provenance/<chart>/upstreams/<version> so that upstream is
+// persisted.
 func (hfs HelmChartFileSystem) SaveUpstreamChart(chartsDir string, chart string, version string, targetVersion string) error {
-	provenanceDir := fmt.Sprintf("%s/../provenance/%s/upstreams/%s", chartsDir, chart, version)
-	err := os.RemoveAll(provenanceDir)
+	upstreamDir := fmt.Sprintf("%s/../provenance/%s/upstreams/%s", chartsDir, chart, version)
+	err := os.RemoveAll(upstreamDir)
 	if err != nil {
 		return err
 	}
 
-	err = os.MkdirAll(provenanceDir, 0755)
+	err = os.MkdirAll(upstreamDir, 0755)
 	if err != nil {
 		return err
 	}
 
-	cmd := exec.Command("cp", "-R", fmt.Sprintf("%s/%s/%s/", chartsDir, chart, targetVersion), provenanceDir)
-	return cmd.Run()
+	chartDir := fmt.Sprintf("%s/%s/%s/", chartsDir, chart, targetVersion)
+	cmd := exec.Command("cp", "-R", chartDir, upstreamDir)
+	_, _, err = runner.Run(cmd)
+	return err
 }
 
+// SaveChartProvenance serializes the chartProvenance generated for a chart to <chartsDir>/../provenance/<chart>/<targetVersion>.yaml.
 func (hfs HelmChartFileSystem) SaveChartProvenance(chartsDir string, chartProvenance *helm.ChartProvenance, chart string, targetVersion string) error {
-	provenanceFile := fmt.Sprintf("%s/../provenance/%s/%s.yaml", chartsDir, chart, targetVersion)
+	provenanceDir := fmt.Sprintf("%s/../provenance/%s", chartsDir, chart)
+	err := os.MkdirAll(provenanceDir, 0755)
+	if err != nil {
+		return err
+	}
+
+	provenanceFile := fmt.Sprintf("%s/%s.yaml", provenanceDir, targetVersion)
 	out, err := yaml.Marshal(chartProvenance)
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(provenanceFile, out, 0755)
+	return os.WriteFile(provenanceFile, out, 0600)
 }
 
+// GeneratePatchFile diffs between the chart/version present in a chart directory against its upstream chart and generates
+// a patch file.
 func (hfs HelmChartFileSystem) GeneratePatchFile(chartsDir string, chart string, version string) (string, error) {
 	provenanceFile := fmt.Sprintf("%s/../provenance/%s/%s.yaml", chartsDir, chart, version)
 	if _, err := os.Stat(provenanceFile); err != nil {
@@ -91,6 +113,7 @@ func (hfs HelmChartFileSystem) GeneratePatchFile(chartsDir string, chart string,
 
 }
 
+// GeneratePatchWithSourceDir diffs a chart against a given directory and generates a patch file.
 func (hfs HelmChartFileSystem) GeneratePatchWithSourceDir(chartsDir string, chart string, version string, sourceDir string) (string, error) {
 	chartDir := fmt.Sprintf("%s/%s/%s", chartsDir, chart, version)
 	if _, err := os.Stat(chartDir); err != nil {
@@ -118,10 +141,10 @@ func (hfs HelmChartFileSystem) GeneratePatchWithSourceDir(chartsDir string, char
 
 	cmd := exec.Command("diff", "-Naurw", sourceChartDirectory, chartDir)
 	cmd.Stdout = patchFile
-	err = cmd.Run()
+	_, _, err = runner.Run(cmd)
 	if err != nil {
 		// diff returning exit status 1 even when file diff is completed and no underlying error.
-		// error out onlt when message is different
+		// error out only when message is different
 		if err.Error() != "exit status 1" {
 			return "", fmt.Errorf("error running command %s, error %v", cmd.String(), err)
 		}
@@ -144,6 +167,7 @@ func (hfs HelmChartFileSystem) GeneratePatchWithSourceDir(chartsDir string, char
 	return patchFile.Name(), nil
 }
 
+// FindChartVersionToPatch looks up the last higheset version present in the charts directory against a given chart version.
 func (hfs HelmChartFileSystem) FindChartVersionToPatch(chartsDir string, chart string, version string) (string, error) {
 	chartDirParent := fmt.Sprintf("%s/%s", chartsDir, chart)
 	entries, err := os.ReadDir(chartDirParent)
@@ -183,6 +207,7 @@ func (hfs HelmChartFileSystem) FindChartVersionToPatch(chartsDir string, chart s
 	return highestVersion.ToString(), nil
 }
 
+// ApplyPatchFile patches a given patch file on a chart.
 func (hfs HelmChartFileSystem) ApplyPatchFile(chartsDir string, vzHelper helpers.VZHelper, chart string, version string, patchFile string) (bool, error) {
 	chartDir := fmt.Sprintf("%s/%s/%s/", chartsDir, chart, version)
 	if _, err := os.Stat(chartDir); err != nil {
@@ -208,7 +233,8 @@ func (hfs HelmChartFileSystem) ApplyPatchFile(chartsDir string, vzHelper helpers
 		return false, fmt.Errorf("unable to read patch file")
 	}
 
-	cmd := exec.Command("patch", "--no-backup-if-mismatch", "-p"+fmt.Sprint(strings.Count(chartDir, string(os.PathSeparator))), "-r", rejectsFilePathAbsolute, "--directory", chartDir)
+	skipLevels := fmt.Sprintf("-p%v", fmt.Sprint(strings.Count(chartDir, string(os.PathSeparator))))
+	cmd := exec.Command("patch", "--no-backup-if-mismatch", skipLevels, "-r", rejectsFilePathAbsolute, "--directory", chartDir)
 	cmd.Stdin = in
 	out, cmderr := cmd.CombinedOutput()
 	if cmderr != nil && cmderr.Error() != "exit status 1" {
@@ -244,7 +270,6 @@ func (hfs HelmChartFileSystem) ApplyPatchFile(chartsDir string, vzHelper helpers
 		}
 
 		fmt.Fprintf(vzHelper.GetOutputStream(), "%s", string(rejects))
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Please review patch file at %s and applied changes.\n", patchFile)
 		return true, nil
 	}
 

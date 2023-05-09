@@ -3,6 +3,9 @@
 
 package main
 
+// Copyright (c) 2023, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 import (
 	"os"
 
@@ -17,7 +20,7 @@ func main() {
 	pflag.CommandLine = flags
 
 	rc := helpers.NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
-	rootCmd := root.NewRootCmd(rc)
+	rootCmd := root.NewRootCmd(rc, nil, nil)
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}

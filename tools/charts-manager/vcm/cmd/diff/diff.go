@@ -17,7 +17,7 @@ import (
 const (
 	CommandName = "diff"
 	helpShort   = "Diffs a chart against a given directory"
-	helpLong    = `The command 'diff' diffs the contents of a chart against a directory`
+	helpLong    = `The command 'diff' diffs the contents of a chart against a directory by executing the shell diff utility and generates a patch file.`
 )
 
 func buildExample() string {
@@ -31,20 +31,28 @@ func buildExample() string {
 		constants.FlagDiffSourceName, constants.FlagDiffSourceShorthand, constants.FlagDiffSourceExample)
 }
 
-func NewCmdDiff(vzHelper helpers.VZHelper, hfs fs.ChartFileSystem) *cobra.Command {
+// NewCmdDiff creates a new instance of diff cmd
+func NewCmdDiff(vzHelper helpers.VZHelper, inHfs fs.ChartFileSystem) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		var hfs fs.ChartFileSystem
+		if inHfs == nil {
+			hfs = fs.HelmChartFileSystem{}
+		} else {
+			hfs = inHfs
+		}
+
 		return runCmdDiff(cmd, vzHelper, hfs)
 	}
 	cmd.Example = buildExample()
 	cmd.PersistentFlags().StringP(constants.FlagChartName, constants.FlagChartShorthand, "", constants.FlagChartUsage)
-	cmd.PersistentFlags().StringP(constants.FlagVersionName, constants.FlagVersionShorthand, "", constants.FlagVersionExample210)
+	cmd.PersistentFlags().StringP(constants.FlagVersionName, constants.FlagVersionShorthand, "", constants.FlagVersionUsage)
 	cmd.PersistentFlags().StringP(constants.FlagDirName, constants.FlagDirShorthand, "", constants.FlagDirUsage)
 	cmd.PersistentFlags().StringP(constants.FlagDiffSourceName, constants.FlagDiffSourceShorthand, "", constants.FlagDiffSourceUsage)
 	return cmd
 }
 
-// runCmdDiff - run the "vcm diff" command
+// runCmdDiff - run the "vcm diff" command to create a file containing diff of a chart with a given directory.
 func runCmdDiff(cmd *cobra.Command, vzHelper helpers.VZHelper, hfs fs.ChartFileSystem) error {
 	chart, err := vcmhelpers.GetMandatoryStringFlagValueOrError(cmd, constants.FlagChartName, constants.FlagChartShorthand)
 	if err != nil {

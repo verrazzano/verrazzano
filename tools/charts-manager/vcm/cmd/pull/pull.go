@@ -19,9 +19,14 @@ import (
 )
 
 const (
-	CommandName = "pull"
-	helpShort   = "Pulls an upstream chart/version"
-	helpLong    = `The command 'pull' pulls an upstream chart`
+	CommandName             = "pull"
+	helpShort               = "Pulls an upstream chart/version"
+	helpLong                = `The command 'pull' pulls an upstream chart from a given helm repo url and unpacks that to a charts directory.`
+	ErrPatchVersionNotFound = "unable to find version to patch, error %v"
+	ErrPatchNotGenerated    = "unable to generate patch file, error %v"
+	ErrPatchNotApplied      = "unable to apply patch file %s, error %v"
+	ErrPatchNotRemoved      = "unable to remove patch file at %v, error %v"
+	ErrPatchReview          = "please review patch file at %s and applied changes"
 )
 
 func buildExample() string {
@@ -34,40 +39,55 @@ func buildExample() string {
 		constants.FlagDirName, constants.FlagDirShorthand, constants.FlagDirExampleLocal,
 		constants.FlagRepoName, constants.FlagRepoShorthand, constants.FlagRepoExampleCodecentric)}
 
+	examples = append(examples, "\n")
 	examples = append(examples, fmt.Sprintf(constants.CommandWithFlagExampleFormat, examples[len(examples)-1],
 		constants.FlagTargetVersionName, constants.FlagChartShorthand, constants.FlagTargetVersionExample002))
 
+	examples = append(examples, "\n")
 	examples = append(examples, fmt.Sprintf(constants.CommandWithFlagExampleFormat, examples[len(examples)-1],
 		constants.FlagUpstreamProvenanceName, constants.FlagUpstreamProvenanceShorthand, constants.FlagUpstreamProvenanceDefault))
 
+	examples = append(examples, "\n")
 	examples = append(examples, fmt.Sprintf(constants.CommandWithFlagExampleFormat, examples[len(examples)-1],
 		constants.FlagPatchName, constants.FlagPatchShorthand, constants.FlagPatchDefault))
 
+	examples = append(examples, "\n")
 	examples = append(examples, fmt.Sprintf(constants.CommandWithFlagExampleFormat, examples[len(examples)-1],
 		constants.FlagPatchVersionName, constants.FlagPatchVersionShorthand, constants.FlagPatchVersionExample001))
 
 	return fmt.Sprintln(examples)
 }
 
-func NewCmdPull(vzHelper helpers.VZHelper, hfs fs.ChartFileSystem, inHelmConfig helm.HelmConfig) *cobra.Command {
+// NewCmdPull creates a new instance of pull cmd.
+func NewCmdPull(vzHelper helpers.VZHelper, inHfs fs.ChartFileSystem, inHelmConfig helm.HelmConfig) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		if inHelmConfig != nil {
-			return runCmdPull(cmd, vzHelper, hfs, inHelmConfig)
+		var hfs fs.ChartFileSystem
+		var helmConfig helm.HelmConfig
+		if inHfs == nil {
+			hfs = fs.HelmChartFileSystem{}
+		} else {
+			hfs = inHfs
 		}
 
-		helmConfig, err := helm.NewHelmConfig(vzHelper)
-		if err != nil {
-			return fmt.Errorf("unable to init helm config, error %v", err)
+		if inHelmConfig == nil {
+			var err error
+			helmConfig, err = helm.NewHelmConfig(vzHelper)
+			if err != nil {
+				return fmt.Errorf("unable to init helm config, error %v", err)
+			}
+		} else {
+			helmConfig = inHelmConfig
 		}
+
 		return runCmdPull(cmd, vzHelper, hfs, helmConfig)
 	}
 	cmd.Example = buildExample()
 	cmd.PersistentFlags().StringP(constants.FlagChartName, constants.FlagChartShorthand, "", constants.FlagChartUsage)
-	cmd.PersistentFlags().StringP(constants.FlagVersionName, constants.FlagVersionShorthand, "", constants.FlagVersionExample210)
+	cmd.PersistentFlags().StringP(constants.FlagVersionName, constants.FlagVersionShorthand, "", constants.FlagVersionUsage)
 	cmd.PersistentFlags().StringP(constants.FlagDirName, constants.FlagDirShorthand, "", constants.FlagDirUsage)
 	cmd.PersistentFlags().StringP(constants.FlagRepoName, constants.FlagRepoShorthand, "", constants.FlagRepoUsage)
-	cmd.PersistentFlags().StringP(constants.FlagTargetVersionName, constants.FlagTargetVersionShorthand, "", constants.FlagTargetVersionExample002)
+	cmd.PersistentFlags().StringP(constants.FlagTargetVersionName, constants.FlagTargetVersionShorthand, "", constants.FlagTargetVersionUsage)
 	cmd.PersistentFlags().BoolP(constants.FlagUpstreamProvenanceName, constants.FlagUpstreamProvenanceShorthand, constants.FlagUpstreamProvenanceDefault, constants.FlagUpstreamProvenanceUsage)
 	cmd.PersistentFlags().BoolP(constants.FlagPatchName, constants.FlagPatchShorthand, constants.FlagPatchDefault, constants.FlagPatchUsage)
 	cmd.PersistentFlags().StringP(constants.FlagPatchVersionName, constants.FlagPatchVersionShorthand, "", constants.FlagPatchVersionUsage)
@@ -75,7 +95,9 @@ func NewCmdPull(vzHelper helpers.VZHelper, hfs fs.ChartFileSystem, inHelmConfig 
 	return cmd
 }
 
-// runCmdPull - run the "vcm pull" command
+// runCmdPull - run the "vcm pull" command to pull a chart/version from a helm repo and unpack into a chart dierctory with either the same version
+// or a target version. Also saves the original chart in a upstream directory and applies any changes that were done to prevopus versions of
+// this chart in the same charts directory.
 func runCmdPull(cmd *cobra.Command, vzHelper helpers.VZHelper, hfs fs.ChartFileSystem, helmConfig helm.HelmConfig) error {
 	chart, err := vcmhelpers.GetMandatoryStringFlagValueOrError(cmd, constants.FlagChartName, constants.FlagChartShorthand)
 	if err != nil {
@@ -182,14 +204,14 @@ func runCmdPull(cmd *cobra.Command, vzHelper helpers.VZHelper, hfs fs.ChartFileS
 		if patchVersion == "" {
 			patchVersion, err = hfs.FindChartVersionToPatch(chartsDir, chart, targetVersion)
 			if err != nil {
-				return fmt.Errorf("unable to find version to patch, error %v", err)
+				return fmt.Errorf(ErrPatchVersionNotFound, err)
 			}
 		}
 
 		if patchVersion != "" {
 			patchFile, err := hfs.GeneratePatchFile(chartsDir, chart, patchVersion)
 			if err != nil {
-				return fmt.Errorf("unable to generate patch file, error %v", err)
+				return fmt.Errorf(ErrPatchNotGenerated, err)
 			}
 
 			if patchFile == "" {
@@ -199,15 +221,17 @@ func runCmdPull(cmd *cobra.Command, vzHelper helpers.VZHelper, hfs fs.ChartFileS
 
 			rejectsFileGenerated, err := hfs.ApplyPatchFile(chartsDir, vzHelper, chart, targetVersion, patchFile)
 			if err != nil {
-				return fmt.Errorf("unable to apply patch file %s, error %v", patchFile, err)
+				return fmt.Errorf(ErrPatchNotApplied, patchFile, err)
 			}
 
 			if !rejectsFileGenerated {
 				fmt.Fprintf(vzHelper.GetOutputStream(), "Any diffs from version %s has been applied.\n", patchVersion)
 				err = os.Remove(patchFile)
 				if err != nil {
-					return fmt.Errorf("unable to remove patch file at %v, error %v", patchFile, err)
+					return fmt.Errorf(ErrPatchNotRemoved, patchFile, err)
 				}
+			} else {
+				return fmt.Errorf(ErrPatchReview, patchFile)
 			}
 		}
 	}

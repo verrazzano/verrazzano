@@ -11,10 +11,14 @@ import (
 )
 
 const (
+	// ErrFormatMustSpecifyFlag format of error message when flag is supplied without a value.
 	ErrFormatMustSpecifyFlag = "must specify %s using --%s or -%s"
-	ErrFormatNotEmpty        = "%s can not be empty"
+	// ErrFormatNotEmpty format of error message when flag is supplied with empty value.
+	ErrFormatNotEmpty = "%s can not be empty"
 )
 
+// GetMandatoryStringFlagValueOrError returns a non empty value of a flag or an error if the flag is not declared or
+// the value is empty or nil.
 func GetMandatoryStringFlagValueOrError(cmd *cobra.Command, flagName string, flagShorthand string) (string, error) {
 	flagValue, err := cmd.PersistentFlags().GetString(flagName)
 	if err != nil {

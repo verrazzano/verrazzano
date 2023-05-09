@@ -3,58 +3,57 @@
 
 package constants
 
-const FlagChartName = "chart"
-const FlagChartShorthand = "c"
-const FlagChartUsage = "Name of the chart."
-const FlagChartExampleKeycloak = "keycloakx"
+const (
+	FlagChartName            = "chart"
+	FlagChartShorthand       = "c"
+	FlagChartUsage           = "Name of the chart."
+	FlagChartExampleKeycloak = "keycloakx"
 
-const FlagVersionName = "version"
-const FlagVersionShorthand = "v"
-const FlagVersionUsage = "Upstream version of the chart."
-const FlagVersionExample210 = "2.1.0"
+	FlagVersionName       = "version"
+	FlagVersionShorthand  = "v"
+	FlagVersionUsage      = "Version of the chart."
+	FlagVersionExample210 = "2.1.0"
 
-const FlagRepoName = "repo"
-const FlagRepoShorthand = "r"
-const FlagRepoUsage = "URL of the helm repo."
-const FlagRepoExampleCodecentric = "https://codecentric.github.io/helm-charts"
+	FlagRepoName               = "repo"
+	FlagRepoShorthand          = "r"
+	FlagRepoUsage              = "URL of the helm repo."
+	FlagRepoExampleCodecentric = "https://codecentric.github.io/helm-charts"
 
-const FlagDirName = "charts-dir"
-const FlagDirShorthand = "d"
-const FlagDirUsage = "Location of charts directory."
-const FlagDirExampleLocal = "./charts"
+	FlagDirName         = "charts-dir"
+	FlagDirShorthand    = "d"
+	FlagDirUsage        = "Location of charts directory."
+	FlagDirExampleLocal = "./charts"
 
-const FlagTargetVersionName = "target-version"
-const FlagTargetVersionShorthand = "t"
-const FlagTargetVersionUsage = "Target downstream version of the chart."
-const FlagTargetVersionExample002 = "0.0.2"
+	FlagTargetVersionName       = "target-version"
+	FlagTargetVersionShorthand  = "t"
+	FlagTargetVersionUsage      = "Target downstream version of the chart."
+	FlagTargetVersionExample002 = "0.0.2"
 
-const FlagUpstreamProvenanceName = "upstream-provenance"
-const FlagUpstreamProvenanceShorthand = "u"
-const FlagUpstreamProvenanceUsage = "Preserve upstream version."
-const FlagUpstreamProvenanceDefault = true
+	FlagUpstreamProvenanceName      = "upstream-provenance"
+	FlagUpstreamProvenanceShorthand = "u"
+	FlagUpstreamProvenanceUsage     = "Preserve upstream version."
+	FlagUpstreamProvenanceDefault   = true
 
-const FlagPatchName = "patch"
-const FlagPatchShorthand = "p"
-const FlagPatchUsage = "Patch diffs from a previous version with its upstream version."
-const FlagPatchDefault = true
+	FlagPatchName      = "patch"
+	FlagPatchShorthand = "p"
+	FlagPatchUsage     = "Patch diffs from a previous version with its upstream version."
+	FlagPatchDefault   = true
 
-const FlagPatchVersionName = "patch-version"
-const FlagPatchVersionShorthand = "z"
-const FlagPatchVersionUsage = "Version to apply patch from."
-const FlagPatchVersionExample001 = "0.0.1"
+	FlagPatchVersionName       = "patch-version"
+	FlagPatchVersionShorthand  = "z"
+	FlagPatchVersionUsage      = "Version to apply patch from."
+	FlagPatchVersionExample001 = "0.0.1"
 
-const FlagDiffSourceName = "diff-source"
-const FlagDiffSourceShorthand = "s"
-const FlagDiffSourceUsage = "Source directory to diff against."
-const FlagDiffSourceExample = "/root/charts/keycloakx/2.1.0"
+	FlagDiffSourceName      = "diff-source"
+	FlagDiffSourceShorthand = "s"
+	FlagDiffSourceUsage     = "Source directory to diff against."
+	FlagDiffSourceExample   = "/root/charts/keycloakx/2.1.0"
 
-const FlagPatchFileName = "patch-file"
-const FlagPatchFileShorthand = "f"
-const FlagPatchFileUsage = "Patch file location."
-const FlagPatchFileExample = "/root/charts/vz_charts_patch_keycloakx_0.0.1.patch"
+	FlagPatchFileName      = "patch-file"
+	FlagPatchFileShorthand = "f"
+	FlagPatchFileUsage     = "Patch file location."
+	FlagPatchFileExample   = "/root/charts/vz_charts_patch_keycloakx_0.0.1.patch"
 
-const FlagExampleFormat = "--%s|-%s %v "
-const CommandWithFlagExampleFormat = `%s ` + FlagExampleFormat
-
-const HelmCachePath = "/tmp/.helmcache"
-const HelmRepoPath = "/tmp/.helmrepo"
+	FlagExampleFormat            = "--%s|-%s %v "
+	CommandWithFlagExampleFormat = `%s ` + FlagExampleFormat
+)

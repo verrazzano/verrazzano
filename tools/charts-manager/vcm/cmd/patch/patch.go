@@ -16,8 +16,8 @@ import (
 
 const (
 	CommandName = "patch"
-	helpShort   = "Patches a chart against a given patch file"
-	helpLong    = `The command 'patch' applies changes from a patch file to a chart`
+	helpShort   = "Patches a chart against a given patch file."
+	helpLong    = `The command 'patch' applies changes from a patch file to a chart by executing the shell patch command.`
 )
 
 func buildExample() string {
@@ -31,20 +31,28 @@ func buildExample() string {
 		constants.FlagPatchFileName, constants.FlagPatchFileShorthand, constants.FlagPatchFileExample)
 }
 
-func NewCmdPatch(vzHelper helpers.VZHelper, hfs fs.ChartFileSystem) *cobra.Command {
+// NewCmdPatch creates a new instance of patch cmd
+func NewCmdPatch(vzHelper helpers.VZHelper, inHfs fs.ChartFileSystem) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		var hfs fs.ChartFileSystem
+		if inHfs == nil {
+			hfs = fs.HelmChartFileSystem{}
+		} else {
+			hfs = inHfs
+		}
+
 		return runCmdPatch(cmd, vzHelper, hfs)
 	}
 	cmd.Example = buildExample()
 	cmd.PersistentFlags().StringP(constants.FlagChartName, constants.FlagChartShorthand, "", constants.FlagChartUsage)
-	cmd.PersistentFlags().StringP(constants.FlagVersionName, constants.FlagVersionShorthand, "", constants.FlagVersionExample210)
+	cmd.PersistentFlags().StringP(constants.FlagVersionName, constants.FlagVersionShorthand, "", constants.FlagVersionUsage)
 	cmd.PersistentFlags().StringP(constants.FlagDirName, constants.FlagDirShorthand, "", constants.FlagDirUsage)
 	cmd.PersistentFlags().StringP(constants.FlagPatchFileName, constants.FlagPatchFileShorthand, "", constants.FlagPatchFileUsage)
 	return cmd
 }
 
-// runCmdPatch - run the "vcm patch" command
+// runCmdPatch - run the "vcm patch" command to apply a given patch on a chart.
 func runCmdPatch(cmd *cobra.Command, vzHelper helpers.VZHelper, hfs fs.ChartFileSystem) error {
 	chart, err := vcmhelpers.GetMandatoryStringFlagValueOrError(cmd, constants.FlagChartName, constants.FlagChartShorthand)
 	if err != nil {
