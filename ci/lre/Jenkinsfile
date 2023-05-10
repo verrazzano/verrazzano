@@ -192,7 +192,7 @@ pipeline {
 
                         sh """
                             echo "Upgrading the Verrazzano installation to version" ${VERRAZZANO_UPGRADE_VERSION}
-                            ${GO_REPO_PATH}/vz upgrade --version ${VERRAZZANO_UPGRADE_VERSION} --manifests ${OPERATOR_YAML_LOCATION}
+                            ${GO_REPO_PATH}/vz upgrade --version ${VERRAZZANO_UPGRADE_VERSION} --manifests ${OPERATOR_YAML_LOCATION} --timeout 45m
                         """
                     } else {
                         echo "No upgrade is needed.  Verrazzano is already at the expected version."
