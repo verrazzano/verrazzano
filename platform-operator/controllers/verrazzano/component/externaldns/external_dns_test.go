@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -206,7 +207,25 @@ func TestAppendExternalDNSOverrides(t *testing.T) {
 
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, nil, false, profileDir), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 11)
+
+	expectedLength := 11
+	assert.Equal(t, kvs[0], bom.KeyValue{Key: "domainFilters[0]", Value: zoneName})
+	assert.Equal(t, kvs[1], bom.KeyValue{Key: "zoneIDFilters[0]", Value: zoneID})
+	assert.Equal(t, kvs[2], bom.KeyValue{Key: "ociDnsScope", Value: ""})
+	assert.Equal(t, kvs[3], bom.KeyValue{Key: "txtOwnerId", Value: "v8o-811c9dc5"})
+	assert.Equal(t, kvs[4], bom.KeyValue{Key: "txtPrefix", Value: "_v8o-811c9dc5-"})
+	assert.Equal(t, kvs[5], bom.KeyValue{Key: "extraVolumes[0].name", Value: "config"})
+	assert.Equal(t, kvs[6], bom.KeyValue{Key: "extraVolumes[0].secret.secretName", Value: ociDNSSecretName})
+	assert.Equal(t, kvs[7], bom.KeyValue{Key: "extraVolumeMounts[0].name", Value: "config"})
+	assert.Equal(t, kvs[8], bom.KeyValue{Key: "extraVolumeMounts[0].mountPath", Value: "/etc/kubernetes/"})
+	assert.Equal(t, kvs[9], bom.KeyValue{Key: "sources[0]", Value: "ingress"})
+	assert.Equal(t, kvs[10], bom.KeyValue{Key: "sources[1]", Value: "service"})
+	if vzcr.IsIstioEnabled(localvz) {
+		assert.Equal(t, kvs[11], bom.KeyValue{Key: "sources[2]", Value: "istio-gateway"})
+		expectedLength++
+	}
+
+	assert.Len(t, kvs, expectedLength)
 }
 
 // TestExternalDNSPreInstallDryRun tests the PreInstall fn
