@@ -51,9 +51,13 @@ spec:
         # api port
         - port: 10902
           protocol: TCP
+        # Istio proxy metrics port
+        - port: 15090
+          protocol: TCP
   podSelector:
     matchLabels:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}
+      app.kubernetes.io/component: query-frontend
   policyTypes:
     - Ingress
 ---
@@ -95,8 +99,12 @@ spec:
         # api port
         - port: 10902
           protocol: TCP
+        # Istio proxy metrics port
+        - port: 15090
+          protocol: TCP
   podSelector:
     matchLabels:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}
+      app.kubernetes.io/component: query
   policyTypes:
     - Ingress
