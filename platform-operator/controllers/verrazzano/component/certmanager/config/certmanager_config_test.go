@@ -578,6 +578,10 @@ func TestUninstallCertManager(t *testing.T) {
 // THEN no error is returned
 func TestUninstallCleanupNoCRDs(t *testing.T) {
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects().Build()
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
+	}
 	assert.NoError(t, UninstallCleanup(vzlog.DefaultLogger(), cli, "myns"))
 }
 
@@ -586,7 +590,12 @@ func TestUninstallCleanupNoCRDs(t *testing.T) {
 // WHEN The CM CRDs exist in the cluster but there are no resources in the target namespace
 // THEN no error is returned
 func TestUninstallCleanupNoResourcesExistInNamespace(t *testing.T) {
-	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(createCertManagerCRDs()...).Build()
+	crdObjs := createCertManagerCRDs()
+	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(crdObjs...).Build()
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset(crtObjectToRuntimeObject(crdObjs...)...).ApiextensionsV1(), nil
+	}
 	assert.NoError(t, UninstallCleanup(vzlog.DefaultLogger(), cli, "myns"))
 }
 
@@ -595,7 +604,7 @@ func TestUninstallCleanupNoResourcesExistInNamespace(t *testing.T) {
 // WHEN The CM CRDs exist in the cluster but there are no resources
 // THEN no error is returned
 func TestUninstallCleanup(t *testing.T) {
-	objs := createCertManagerCRDs()
+	crdObjs := createCertManagerCRDs()
 
 	const targetNamespace = "myns"
 	objsToDelete := []clipkg.Object{
@@ -605,7 +614,7 @@ func TestUninstallCleanup(t *testing.T) {
 		&acmev1.Order{ObjectMeta: metav1.ObjectMeta{Name: "deleteme", Namespace: targetNamespace}},
 		&acmev1.Challenge{ObjectMeta: metav1.ObjectMeta{Name: "deleteme", Namespace: targetNamespace}},
 	}
-	objs = append(objs, objsToDelete...)
+	objs := append(crdObjs, objsToDelete...)
 
 	const ignoreNamespace = "otherns"
 	objsToIgnore := []clipkg.Object{
@@ -617,6 +626,10 @@ func TestUninstallCleanup(t *testing.T) {
 	}
 	objs = append(objs, objsToIgnore...)
 
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset(crtObjectToRuntimeObject(crdObjs...)...).ApiextensionsV1(), nil
+	}
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(objs...).Build()
 	assert.NoError(t, UninstallCleanup(vzlog.DefaultLogger(), cli, targetNamespace))
 
