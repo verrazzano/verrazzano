@@ -66,19 +66,6 @@ const (
 	profileDir                = "../../../../manifests/profiles"
 )
 
-var basicNoneClusterWithStatus = v1alpha1.Verrazzano{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: "default-none",
-	},
-	Spec: v1alpha1.VerrazzanoSpec{
-		Profile: "none",
-	},
-	Status: v1alpha1.VerrazzanoStatus{
-		Version:            "v1.0.1",
-		VerrazzanoInstance: &v1alpha1.InstanceInfo{},
-	},
-}
-
 // TestGetComponents tests getting the components
 // GIVEN a component
 //
@@ -380,12 +367,6 @@ func TestComponentMultipleDependenciesMet(t *testing.T) {
 	})
 	defer helm.SetDefaultChartInfoFunction()
 
-	comp = helm2.HelmComponent{
-		ReleaseName:    "foo",
-		ChartDir:       "chartDir",
-		ChartNamespace: "bar",
-		Dependencies:   []string{oam.ComponentName, cmcontroller.ComponentName},
-	}
 	helm.SetReleaseAppVersionFunction(func(releaseName string, namespace string) (string, error) {
 		return "1.0", nil
 	})
@@ -870,19 +851,19 @@ func (f fakeComponent) GetIngressNames(_ spi.ComponentContext) []types.Namespace
 	return []types.NamespacedName{}
 }
 
-func (f fakeComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
+func (f fakeComponent) ValidateInstall(_ *v1alpha1.Verrazzano) error {
 	return nil
 }
 
-func (f fakeComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+func (f fakeComponent) ValidateUpdate(_ *v1alpha1.Verrazzano, _ *v1alpha1.Verrazzano) error {
 	return nil
 }
 
-func (f fakeComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
+func (f fakeComponent) ValidateInstallV1Beta1(_ *v1beta1.Verrazzano) error {
 	return nil
 }
 
-func (f fakeComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
+func (f fakeComponent) ValidateUpdateV1Beta1(_ *v1beta1.Verrazzano, _ *v1beta1.Verrazzano) error {
 	return nil
 }
 
