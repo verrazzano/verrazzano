@@ -83,7 +83,9 @@ const (
 			"fingerprint": "{{.Fingerprint}}",
 			"privateKeyContents": "{{.PrivateKeyContents}}",
 			"tenancyId": "{{.TenancyID}}",
-			"userId": "{{.UserID}}"
+			"userId": "{{.UserID}}",
+			"region": "{{.Region}}",
+			"passphrase": "{{.Passphrase}}"
 		}
 	}`
 )
@@ -102,6 +104,8 @@ type cloudCredentialsData struct {
 	PrivateKeyContents string
 	TenancyID          string
 	UserID             string
+	Region             string
+	Passphrase         string
 }
 
 // capiClusterData needed for template rendering
@@ -171,10 +175,7 @@ func executeCloudCredentialsTemplate(data *cloudCredentialsData, buffer *bytes.B
 }
 
 func createCloudCredential(credentialName string) (string, error) {
-	adminToken := helpers.GetRancherLoginToken(t.Logs)
-	t.Logs.Infof("adminToken: %s", adminToken)
-	requestURL := rancherURL + "/v3/cloudcredentials"
-	t.Logs.Infof("Cloud credential requestURL: %s", requestURL)
+	requestURL, adminToken := setupRequest(rancherURL, "v3/cloudcredentials")
 	privateKeyContents, err := getFileContents(privateKeyPath)
 	if err != nil {
 		t.Logs.Infof("error reading private key file: %v", err)
@@ -186,6 +187,8 @@ func createCloudCredential(credentialName string) (string, error) {
 		PrivateKeyContents: replaceWhitespaceToLiteral(privateKeyContents),
 		TenancyID:          replaceWhitespaceToLiteral(tenancyID),
 		UserID:             replaceWhitespaceToLiteral(userID),
+		Region:             replaceWhitespaceToLiteral(region),
+		Passphrase:         "",
 	}
 	buf := &bytes.Buffer{}
 	err = executeCloudCredentialsTemplate(&credentialsData, buf)
@@ -231,10 +234,7 @@ func executeCreateClusterTemplate(data *capiClusterData, buffer *bytes.Buffer) e
 
 // Creates an OCNE cluster through CAPI
 func createCluster(clusterName string) error {
-	adminTokenLocal := helpers.GetRancherLoginToken(t.Logs)
-	t.Logs.Infof("adminToken: %s", adminTokenLocal)
-	requestURL := rancherURL + "/v3/cluster"
-	t.Logs.Infof("createCluster requestURL: %s", requestURL)
+	requestURL, adminToken := setupRequest(rancherURL, "v3/cluster")
 	nodePublicKeyContents, err := getFileContents(nodePublicKeyPath)
 	if err != nil {
 		t.Logs.Infof("error reading node public key file: %v", err)
@@ -262,13 +262,13 @@ func createCluster(clusterName string) error {
 		return err
 	}
 	request.Header.Add("Content-Type", "application/json")
-	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminTokenLocal))
+	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminToken))
 	response, err := httpClient.Do(request)
 	if err != nil {
 		t.Logs.Errorf("error create cluster POST response: %v", response)
 		return err
 	}
-	t.Logs.Info("Create Cluster POST response: %v", response)
+	t.Logs.Infof("Create Cluster POST response: %v", response)
 	defer response.Body.Close()
 	err = httputil.ValidateResponseCode(response, http.StatusCreated)
 	if err != nil {
@@ -292,10 +292,7 @@ func IsClusterActive(clusterName string) (bool, error) {
 
 // Gets a specified cluster by using the Rancher REST API
 func getCluster(clusterName string) (*gabs.Container, error) {
-	adminToken := helpers.GetRancherLoginToken(t.Logs)
-	t.Logs.Infof("adminToken: %s", adminToken)
-	requestURL := rancherURL + "/v3/cluster?name=" + clusterName
-	t.Logs.Infof("getCluster requestURL: %s", requestURL)
+	requestURL, adminToken := setupRequest(rancherURL, "v3/cluster?name="+clusterName)
 	request, err := retryablehttp.NewRequest(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return nil, err
@@ -339,4 +336,12 @@ func getFileContents(file string) (string, error) {
 		return "", err
 	}
 	return string(data), nil
+}
+
+func setupRequest(rancherBaseURL, urlPath string) (string, string) {
+	adminToken := helpers.GetRancherLoginToken(t.Logs)
+	t.Logs.Infof("adminToken: %s", adminToken)
+	requestURL := fmt.Sprintf("%s/%s", rancherBaseURL, urlPath)
+	t.Logs.Infof("createCluster requestURL: %s", requestURL)
+	return requestURL, adminToken
 }
