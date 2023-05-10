@@ -160,6 +160,7 @@ fi
 echo "Installing Verrazzano on Kind"
 if [ -f "$WORKSPACE/vz" ]; then
   cd $WORKSPACE
+  cat ${WORKSPACE}/acceptance-test-config.yaml
   ./vz install --filename ${WORKSPACE}/acceptance-test-config.yaml --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
 else
   cd ${GO_REPO_PATH}/verrazzano/tools/vz
