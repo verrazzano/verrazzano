@@ -211,9 +211,15 @@ func TestIsCertManagerConfigReady(t *testing.T) {
 			Name: constants.VerrazzanoClusterIssuerName,
 		},
 	}
-	objects := createCertManagerCRDs()
-	objects = append(objects, clusterIssuer)
+	crds := createCertManagerCRDs()
+	objects := append(crds, clusterIssuer)
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(objects...).Build()
+
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset(crtObjectToRuntimeObject(crds...)...).ApiextensionsV1(), nil
+	}
+
 	certManager := NewComponent().(certManagerConfigComponent)
 	assert.True(t, certManager.verrazzanoCertManagerResourcesReady(spi.NewFakeContext(client, nil, nil, false)))
 }
@@ -534,10 +540,17 @@ func TestUninstallCertManager(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			objs := createCertManagerCRDs()
-			objs = append(objs, tt.objects...)
+			crds := createCertManagerCRDs()
+			objs := append(crds, tt.objects...)
+
 			c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(objs...).Build()
 			fakeContext := spi.NewFakeContext(c, vz, nil, false, profileDir)
+
+			defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+			k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+				return apiextv1fake.NewSimpleClientset(crtObjectToRuntimeObject(crds...)...).ApiextensionsV1(), nil
+			}
+
 			err := certManagerConfigComponent{}.uninstallVerrazzanoCertManagerResources(fakeContext)
 			assert.NoError(t, err)
 			// expect the Namespace to get deleted
