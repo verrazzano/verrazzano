@@ -9,20 +9,21 @@ import (
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
 const (
 	metricsVersion = "1.4.0"
 
 	longPollingInterval = 10 * time.Second
-	longWaitTimeout     = 15 * time.Minute
+	longWaitTimeout     = 2 * time.Minute
 
 	// Constants for sample metrics of system components validated by the test
 	ingressControllerSuccess       = "nginx_ingress_controller_success"
@@ -79,7 +80,6 @@ var ingressNGINXNamespace string
 
 // List of namespaces considered for validating the envoy-stats
 var envoyStatsNamespaces = []string{
-	ingressNGINXNamespace,
 	istioSystemNamespace,
 	verrazzanoSystemNamespace,
 }
@@ -125,6 +125,12 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
+
+	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	if err != nil {
+		Fail(err.Error())
+	}
+	envoyStatsNamespaces = append(envoyStatsNamespaces, ingressNGINXNamespace)
 })
 
 var _ = BeforeSuite(beforeSuite)
