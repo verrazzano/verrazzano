@@ -474,6 +474,28 @@ func TestGetAppsV1Client(t *testing.T) {
 
 }
 
+// TestGetAPIExtV1Client tests getting a APIExtV1Client
+//
+//	WHEN APIExtV1Client is called
+//	THEN APIExtV1Client returns a client and a nil error
+func TestGetAPIExtV1Client(t *testing.T) {
+	asserts := assert.New(t)
+	// Preserve previous env var value
+	prevEnvVarKubeConfig := os.Getenv(k8sutil.EnvVarKubeConfig)
+	// Unset KUBECONFIG environment variable
+	wd, err := os.Getwd()
+	asserts.NoError(err)
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, fmt.Sprintf("%s/%s", wd, dummyKubeConfig))
+	asserts.NoError(err)
+	client, err := k8sutil.GetAPIExtV1Client()
+	assert.Nil(t, err)
+	assert.NotNil(t, client)
+	// Reset env variables
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
+	asserts.NoError(err)
+
+}
+
 // TestGetKubernetesClientsetOrDie tests getting a KubernetesClientset
 //
 //	WHEN GetKubernetesClientsetOrDie is called

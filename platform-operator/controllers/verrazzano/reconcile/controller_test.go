@@ -21,6 +21,7 @@ import (
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/config"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -1219,7 +1220,7 @@ func expectGetServiceAccountExists(mock *mocks.MockClient, name string, labels m
 // expectCertManagerCRDChecks expects a call to check for the CertManager CRDs
 func expectCertManagerCRDChecks(mock *mocks.MockClient) {
 	// Expect a call to get the ServiceAccount - return that it exists
-	for _, crdName := range common.GetRequiredCertManagerCRDNames() {
+	for _, crdName := range cmcommon.GetRequiredCertManagerCRDNames() {
 		mock.EXPECT().
 			Get(gomock.Any(), types.NamespacedName{Name: crdName}, gomock.Not(gomock.Nil())).
 			DoAndReturn(func(ctx context.Context, name types.NamespacedName, crd *v1.CustomResourceDefinition) error {

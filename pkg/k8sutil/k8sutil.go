@@ -12,12 +12,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+
+	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioClient "istio.io/client-go/pkg/clientset/versioned"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	apiextv1Client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -68,16 +71,6 @@ func SetFakeClient(client kubernetes.Interface) {
 // ClearFakeClient for unit tests
 func ClearFakeClient() {
 	fakeClient = nil
-}
-
-// NewControllerRuntimeClient Create a new controller runtime client
-func NewControllerRuntimeClient(opts client.Options) (client.Client, error) {
-	config, err := GetConfigFromController()
-	if err != nil {
-		return nil, err
-	}
-
-	return client.New(config, opts)
 }
 
 // GetConfigFromController get the config from the Controller Runtime and set the default QPS and burst.
@@ -208,6 +201,23 @@ func GetCoreV1Client(log ...vzlog.VerrazzanoLogger) (corev1.CoreV1Interface, err
 		return nil, err
 	}
 	return goClient.CoreV1(), nil
+}
+
+// GetAPIExtV1ClientFunc is the function to return the ApiextensionsV1Interface
+var GetAPIExtV1ClientFunc = GetAPIExtV1Client
+
+// ResetGetAPIExtV1ClientFunc for unit testing, to reset any overrides to GetAPIExtV1ClientFunc
+func ResetGetAPIExtV1ClientFunc() {
+	GetAPIExtV1ClientFunc = GetAPIExtV1Client
+}
+
+// GetAPIExtV1Client returns the ApiextensionsV1Interface
+func GetAPIExtV1Client() (apiextv1.ApiextensionsV1Interface, error) {
+	goClient, err := GetAPIExtGoClient()
+	if err != nil {
+		return nil, err
+	}
+	return goClient.ApiextensionsV1(), nil
 }
 
 // GetAppsV1Func is the function the AppsV1Interface
@@ -429,6 +439,19 @@ func GetGoClient(log ...vzlog.VerrazzanoLogger) (kubernetes.Interface, error) {
 	}
 
 	return kubeClient, err
+}
+
+// GetAPIExtGoClient returns an API Extensions go-client
+func GetAPIExtGoClient() (apiextv1Client.Interface, error) {
+	config, err := buildRESTConfig(nil)
+	if err != nil {
+		return nil, err
+	}
+	apiextClient, err := apiextv1Client.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return apiextClient, err
 }
 
 func buildRESTConfig(logger vzlog.VerrazzanoLogger) (*rest.Config, error) {
