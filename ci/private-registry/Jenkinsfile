@@ -602,7 +602,7 @@ pipeline {
     post {
         always {
             script {
-                if (!env.AIR_GAPPED) {
+                if (DISTRIBUTION_VARIANT == "Full" && !env.AIR_GAPPED) {
                     echo "Airgap check failed, not running post actions."
                     sh "exit 0"
                 }
