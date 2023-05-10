@@ -146,7 +146,11 @@ func patchArgoCDRbacConfigMap(ctx spi.ComponentContext) error {
 		if rbaccm.Data == nil {
 			rbaccm.Data = make(map[string]string)
 		}
-		rbaccm.Data["policy.csv"] = policyString
+		// Set policy.csv only if it hasn't been explicitly set
+		val, ok := rbaccm.Data["policy.csv"]
+		if !ok || len(val) == 0 {
+			rbaccm.Data["policy.csv"] = policyString
+		}
 		return nil
 	}); err != nil {
 		ctx.Log().ErrorfNewErr("Failed to patch the Argo CD configmap argocd-rbac-cm: %s", err)
