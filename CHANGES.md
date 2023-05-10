@@ -4,7 +4,7 @@ Features:
 - The Prometheus components can now be enabled or disabled at any point in the Verrazzano lifecycle
 - Added a None profile that comes with all components disabled by default
 - Added Thanos, which supports high availability and long-term storage on top of Prometheus
-- Enhanced the Verrazzano CLI to support installing and upgrading in an air-gapped environment
+- Enhanced the Verrazzano CLI to support installing and upgrading from a private registry and in air-gapped environments
 
 Component version updates:
 
