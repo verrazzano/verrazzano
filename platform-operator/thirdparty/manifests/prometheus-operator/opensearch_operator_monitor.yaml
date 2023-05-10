@@ -14,9 +14,9 @@ spec:
     - path: /_prometheus/metrics
       enableHttp2: false
       tlsConfig:
-        caFile: /etc/tls-certs/ca.crt
-        certFile: /etc/tls-certs/tls.crt
-        keyFile: /etc/tls-certs/tls.key
+        caFile: /etc/opensearch-operator-certs/ca.crt
+        certFile: /etc/opensearch-operator-certs/tls.crt
+        keyFile: /etc/opensearch-operator-certs/tls.key
         insecureSkipVerify: true
       scheme: https
       relabelings:
