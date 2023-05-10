@@ -6,16 +6,14 @@ package common
 import (
 	"context"
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func ApplyCRDYaml(ctx spi.ComponentContext, helmChartsDir string) error {
@@ -36,10 +34,14 @@ func ConvertVerrazzanoCR(vz *vzapi.Verrazzano, vzv1beta1 *v1beta1.Verrazzano) er
 	return nil
 }
 
-func CheckCRDsExist(cli client.Client, crdNames []string) (bool, error) {
-	crd := apiextv1.CustomResourceDefinition{}
+func CheckCRDsExist(crdNames []string) (bool, error) {
+	clientFunc, err := k8sutil.GetAPIExtV1ClientFunc()
+	if err != nil {
+		return false, err
+	}
 	for _, crdName := range crdNames {
-		if err := cli.Get(context.TODO(), types.NamespacedName{Name: crdName}, &crd); err != nil {
+		_, err := clientFunc.CustomResourceDefinitions().Get(context.TODO(), crdName, metav1.GetOptions{})
+		if err != nil {
 			if errors.IsNotFound(err) {
 				return false, nil
 			}

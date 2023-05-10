@@ -11,7 +11,6 @@ import (
 	"fmt"
 	acmev1 "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
 	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"text/template"
 
@@ -148,7 +147,7 @@ func GetCertManagerClientset() (certv1client.CertmanagerV1Interface, error) {
 }
 
 func UninstallCleanup(log vzlog.VerrazzanoLogger, cli crtclient.Client, namespace string) error {
-	crdsExist, err := common.CertManagerCrdsExist(cli)
+	crdsExist, err := cmcommon.CertManagerCrdsExist()
 	if err != nil {
 		return err
 	}
@@ -353,7 +352,7 @@ func (c certManagerConfigComponent) verrazzanoCertManagerResourcesReady(ctx spi.
 }
 
 func (c certManagerConfigComponent) cmCRDsExist(log vzlog.VerrazzanoLogger, cli crtclient.Client) bool {
-	crdsExist, err := common.CertManagerCrdsExist(cli)
+	crdsExist, err := cmcommon.CertManagerCrdsExist()
 	if err != nil {
 		log.ErrorfThrottled("Error checking if CertManager CRDs exist: %v", err.Error())
 		return false

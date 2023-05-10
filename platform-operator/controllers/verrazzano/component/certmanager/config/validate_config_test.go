@@ -5,19 +5,19 @@ package config
 
 import (
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
+	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
 
@@ -251,7 +251,8 @@ type validationTestStruct struct {
 }
 
 func validationTests(t *testing.T, isUpdate bool) {
-	defer func() { common.ResetNewClientFunc() }()
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+
 	tests := simpleValidationTests
 	tests = append(tests, configValidationTests...)
 	for _, tt := range tests {
@@ -259,10 +260,10 @@ func validationTests(t *testing.T, isUpdate bool) {
 			if tt.name == "Cert Manager Namespace already exists" && isUpdate { // will throw error only during installation
 				tt.wantErr = false
 			}
-			client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(createCertManagerCRDs()...).Build()
-			common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
-				return client, nil
-			})
+			crdObjs := createCertManagerCRDs()
+			k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+				return apiextv1fake.NewSimpleClientset(crtObjectToRuntimeObject(crdObjs...)...).ApiextensionsV1(), nil
+			}
 			c := NewComponent()
 			cmcommon.GetClientFunc = getTestClient(tt)
 			runValidationTest(t, tt, isUpdate, c)

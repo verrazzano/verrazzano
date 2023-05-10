@@ -53,7 +53,7 @@ func NewComponent() spi.Component {
 
 // IsEnabled returns true if the cert-manager-config is enabled, which is the default
 func (c certManagerConfigComponent) IsEnabled(_ runtime.Object) bool {
-	exists, err := common.CertManagerCrdsExist(nil)
+	exists, err := cmcommon.CertManagerCrdsExist()
 	if err != nil {
 		vzlog.DefaultLogger().ErrorfThrottled("CertManager config: unexpected error checking for existing Cert-Manager: %v", err)
 	}
@@ -87,7 +87,7 @@ func (c certManagerConfigComponent) PreInstall(compContext spi.ComponentContext)
 		compContext.Log().Debug("cert-manager-config PreInstall dry run")
 		return nil
 	}
-	if err := common.CertManagerExistsInCluster(compContext.Log(), compContext.Client()); err != nil {
+	if err := cmcommon.CertManagerExistsInCluster(compContext.Log()); err != nil {
 		return err
 	}
 	if err := common.ProcessAdditionalCertificates(compContext.Log(), compContext.Client(), compContext.EffectiveCR()); err != nil {
@@ -119,7 +119,7 @@ func (c certManagerConfigComponent) PreUpgrade(compContext spi.ComponentContext)
 		compContext.Log().Debug("cert-manager-config PreUpgrade dry run")
 		return nil
 	}
-	return common.CertManagerExistsInCluster(compContext.Log(), compContext.Client())
+	return cmcommon.CertManagerExistsInCluster(compContext.Log())
 }
 
 // Uninstall removes cert-manager-config objects that are created outside of Helm

@@ -5,6 +5,9 @@ package config
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 
 	cmutil "github.com/cert-manager/cert-manager/pkg/api/util"
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -15,7 +18,6 @@ import (
 	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -62,10 +64,10 @@ func runIsInstalledTest(t *testing.T, expectInstalled bool, expectErr bool, objs
 		clientObjs = append(clientObjs, objs...)
 	}
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(clientObjs...).Build()
-	defer func() { common.ResetNewClientFunc() }()
-	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
-		return client, nil
-	})
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset(crtObjectToRuntimeObject(objs...)...).ApiextensionsV1(), nil
+	}
 
 	fakeContext := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
 	installed, err := fakeComponent.IsInstalled(fakeContext)
@@ -113,10 +115,10 @@ func runIsReadyTest(t *testing.T, expectedReady bool, objs ...clipkg.Object) {
 		clientObjs = append(clientObjs, objs...)
 	}
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(clientObjs...).Build()
-	defer func() { common.ResetNewClientFunc() }()
-	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
-		return client, nil
-	})
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset(crtObjectToRuntimeObject(objs...)...).ApiextensionsV1(), nil
+	}
 
 	fakeContext := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
 	ready := fakeComponent.IsReady(fakeContext)
@@ -551,12 +553,13 @@ func TestUninstall(t *testing.T) {
 }
 
 func runUninstallTest(t *testing.T, objs ...clipkg.Object) {
-	defer func() { common.ResetNewClientFunc() }()
 
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(objs...).Build()
-	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
-		return client, nil
-	})
+
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset(crtObjectToRuntimeObject(objs...)...).ApiextensionsV1(), nil
+	}
 
 	fakeContext := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
 
