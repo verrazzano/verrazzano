@@ -106,6 +106,8 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("includes verrazzano-monitoring-operator", "verrazzano-monitoring-operator", true),
 			t.Entry("Check weblogic-operator deployment", "weblogic-operator", pkg.IsWebLogicOperatorEnabled(kubeconfigPath)),
 			t.Entry("Check coherence-operator deployment", "coherence-operator", pkg.IsCoherenceOperatorEnabled(kubeconfigPath)),
+			t.Entry("Check external-dns deployment", "external-dns", pkg.IsOCIDNSEnabled(kubeconfigPath)),
+			t.Entry("Check verrazzano-cert-manager-oci-dns-webhook deployment", "cert-manager-ocidns-provider", pkg.IsOCIDNSWebhookEnabled(kubeconfigPath)),
 		}
 
 		t.DescribeTable("Verrazzano components are deployed,",
