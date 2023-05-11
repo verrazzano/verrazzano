@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "dashboard": "v2.7.1-20230314212735-270d0ef83",
-              "tag": "v2.7.2-20230421201024-9def50a5d",
+              "dashboard": "v2.7.2-20230509143745-870a44e17",
+              "tag": "v2.7.2-20230509170738-f226b7e4e",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.2-20230421201024-9def50a5d"
+              "tag": "v2.7.2-20230509170738-f226b7e4e"
             }
           ]
         },
@@ -147,7 +147,7 @@
           "images": [
             {
               "image": "rancher-shell",
-              "tag": "v0.1.18-20230208201620-c659571"
+              "tag": "v0.1.18-20230403204343-4124528"
             },
             {
               "image": "rancher-webhook",
@@ -155,19 +155,19 @@
             },
             {
               "image": "rancher-fleet-agent",
-              "tag": "v0.6.0-20230420145436-06e19ee"
+              "tag": "v0.6.0-20230503174321-22d5a53"
             },
             {
               "image": "rancher-fleet",
-              "tag": "v0.6.0-20230420145436-06e19ee"
+              "tag": "v0.6.0-20230503174321-22d5a53"
             },
             {
               "image": "rancher-gitjob",
-              "tag": "v0.1.30-20230208185411-8e24107"
+              "tag": "v0.1.30-20230505115129-1dd0ea0"
             },
             {
               "image": "rancher-cleanup",
-              "tag": "v1.0.0-20230314141611-1802619"
+              "tag": "v1.0.0-20230403191516-fa35c50"
             }
           ]
         }
@@ -740,7 +740,7 @@
           "images": [
             {
               "image": "rancher-kubectl",
-              "tag": "v1.24.5-20230427142044-2f0ea54",
+              "tag": "v1.20.2-20230208201835-2f0ea54",
               "helmFullImageKey": "global.kubectl.repository",
               "helmTagKey": "global.kubectl.tag"
             }
