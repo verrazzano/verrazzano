@@ -2,7 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-def agentLabel = "blocked-large"
+def agentLabel = params.DISTRIBUTION_VARIANT == "Lite" ? "phx-large" : "blocked-large"
 def ocirRegion = "fra"
 def ociRegionFull     = "eu-frankfurt-1"
 def ocirRegistry = "${ocirRegion}.ocir.io"
@@ -147,6 +147,11 @@ pipeline {
 
     stages {
         stage('Verify Air-Gapped') {
+            when {
+                expression {
+                    DISTRIBUTION_VARIANT == "Full"
+                }
+            }
             steps {
                 script {
                     echo "Checking if we are running in an air-gapped environment"
@@ -321,14 +326,14 @@ pipeline {
         }
 
         stage('Upload Verrazzano Images') {
-             when {
-                 expression {
-                     return runPipeline()
-                }
-             }
-             environment {
-                 TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
-             }
+            when {
+                expression {
+                    return runPipeline()
+               }
+            }
+            environment {
+                TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
+            }
             steps {
                 script {
                     if (params.DISTRIBUTION_VARIANT == "Full") {
@@ -342,6 +347,19 @@ pipeline {
                             ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l ./images -r ${baseImageRepo}
                         """
                     } else {
+                        try {
+                            sh """
+                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                            """
+                        } catch(error) {
+                            echo "docker login failed, retrying after sleep"
+                            retry(4) {
+                                sleep(30)
+                                sh """
+                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                                """
+                            }
+                        }
                         sh """
                             # Create OCIR repos for the images in the tarballs in the test compartment
                             cd ${TARBALL_DIR}
@@ -525,7 +543,7 @@ pipeline {
                 script {
                     try {
                         sh """
-                            kubectl delete verrazzano verrazzano
+                            ${GO_REPO_PATH}/vz uninstall -y --timeout 45m
                         """
                     } catch (err) {
                         currentBuild.result = "FAILURE"
@@ -584,7 +602,7 @@ pipeline {
     post {
         always {
             script {
-                if (!env.AIR_GAPPED) {
+                if (DISTRIBUTION_VARIANT == "Full" && !env.AIR_GAPPED) {
                     echo "Airgap check failed, not running post actions."
                     sh "exit 0"
                 }
