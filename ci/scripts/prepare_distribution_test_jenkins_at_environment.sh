@@ -86,5 +86,3 @@ yq eval -i '.spec.components.capi.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
 
 echo "Installing Verrazzano on Kind"
 ${GO_REPO_PATH}/vz install -f "${INSTALL_CONFIG_FILE_KIND}" --manifests "${TARBALL_DIR}/manifests/k8s/verrazzano-platform-operator.yaml" --image-registry ${REGISTRY} --image-prefix ${PRIVATE_REPO}
-
-exit $?
