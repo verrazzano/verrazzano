@@ -61,9 +61,12 @@ func (c certManagerOciDNSComponent) PreInstall(ctx spi.ComponentContext) error {
 // IsEnabled returns true if the cert-manager is enabled, which is the default
 func (c certManagerOciDNSComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	logger := vzlog.DefaultLogger()
-	err := cmcommon.CertManagerExistsInCluster(logger)
+	exists, err := cmcommon.CertManagerCrdsExist()
 	if err != nil {
 		logger.ErrorfThrottled("Unexpected error checking for CertManager in cluster: %v", err)
+		return false
+	}
+	if !exists {
 		return false
 	}
 	return vzcr.IsOCIDNSEnabled(effectiveCR)
