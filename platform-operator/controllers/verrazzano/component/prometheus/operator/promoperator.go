@@ -128,16 +128,20 @@ func postInstallUpgrade(ctx spi.ComponentContext) error {
 	if err := updateApplicationAuthorizationPolicies(ctx); err != nil {
 		return err
 	}
-	props := common.IngressProperties{
-		IngressName:   constants.PrometheusIngress,
-		HostName:      prometheusHostName,
-		TLSSecretName: prometheusCertificateName,
-		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
-		ExtraAnnotations: common.SameSiteCookieAnnotations(prometheusName),
+	// If NGINX is not enabled, skip the ingress creation
+	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
+		props := common.IngressProperties{
+			IngressName:   constants.PrometheusIngress,
+			HostName:      prometheusHostName,
+			TLSSecretName: prometheusCertificateName,
+			// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
+			ExtraAnnotations: common.SameSiteCookieAnnotations(prometheusName),
+		}
+		if err := common.CreateOrUpdateSystemComponentIngress(ctx, props); err != nil {
+			return err
+		}
 	}
-	if err := common.CreateOrUpdateSystemComponentIngress(ctx, props); err != nil {
-		return err
-	}
+
 	if err := createOrUpdatePrometheusAuthPolicy(ctx); err != nil {
 		return err
 	}
