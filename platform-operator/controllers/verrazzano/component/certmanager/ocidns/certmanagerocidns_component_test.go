@@ -24,7 +24,7 @@ import (
 
 // TestIsCertManagerOciDNSEnabled tests the IsCertManagerEnabled fn
 // GIVEN a call to IsCertManagerEnabled
-// WHEN cert-manager is enabled
+// WHEN cert-manager is enabled with ACME and OCI DNS is configured
 // THEN the function returns true
 func TestIsCertManagerOciDNSEnabled(t *testing.T) {
 	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
@@ -32,11 +32,41 @@ func TestIsCertManagerOciDNSEnabled(t *testing.T) {
 		return apiextv1fake.NewSimpleClientset(crtObjectToRuntimeObject(createCertManagerCRDs()...)...).ApiextensionsV1(), nil
 	}
 
-	localvz := vz.DeepCopy()
 	bt := true
-	localvz.Spec.Components.CertManager.Enabled = &bt
+
+	assert.False(t, NewComponent().IsEnabled(&vzapi.Verrazzano{}))
+
+	localvz := vz.DeepCopy()
+	localvz.Spec.Components.CertManager = &vzapi.CertManagerComponent{
+		Enabled: &bt,
+	}
+	assert.False(t, NewComponent().IsEnabled(localvz))
+
+	localvz = vz.DeepCopy()
+	localvz.Spec.Components.CertManager = &vzapi.CertManagerComponent{
+		Enabled: &bt,
+	}
+	localvz.Spec.Components.DNS = &vzapi.DNSComponent{OCI: &vzapi.OCI{}}
+	assert.False(t, NewComponent().IsEnabled(localvz))
+
+	localvz = vz.DeepCopy()
+	localvz.Spec.Components.CertManager = &vzapi.CertManagerComponent{
+		Certificate: vzapi.Certificate{
+			Acme: acme,
+		},
+		Enabled: &bt,
+	}
 	localvz.Spec.Components.DNS = &vzapi.DNSComponent{OCI: &vzapi.OCI{}}
 	assert.True(t, NewComponent().IsEnabled(localvz))
+
+	localvz = vz.DeepCopy()
+	localvz.Spec.Components.CertManager = &vzapi.CertManagerComponent{
+		Certificate: vzapi.Certificate{
+			Acme: acme,
+		},
+		Enabled: &bt,
+	}
+	assert.False(t, NewComponent().IsEnabled(localvz))
 }
 
 // TestIsCertManagerOciDNSDisabledNoCRDs tests the IsCertManagerEnabled fn

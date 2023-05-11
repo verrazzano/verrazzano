@@ -66,7 +66,12 @@ func (c certManagerOciDNSComponent) IsEnabled(effectiveCR runtime.Object) bool {
 		logger.ErrorfThrottled("Unexpected error checking for CertManager in cluster: %v", err)
 		return false
 	}
-	return vzcr.IsOCIDNSEnabled(effectiveCR)
+	isACMEConfig, err := cmcommon.IsACMEConfig(effectiveCR)
+	if err != nil {
+		logger.ErrorfThrottled("Unexpected error checking certificate configuration: %v", err.Error())
+		return false
+	}
+	return isACMEConfig && vzcr.IsOCIDNSEnabled(effectiveCR)
 }
 
 func (c certManagerOciDNSComponent) PostUninstall(ctx spi.ComponentContext) error {

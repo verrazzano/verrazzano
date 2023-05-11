@@ -184,7 +184,7 @@ func (c certManagerConfigComponent) validateConfiguration(new *v1beta1.Verrazzan
 		return nil
 	}
 
-	if err := cmcommon.ValidateConfiguration(cm.Certificate); err != nil {
+	if err := cmcommon.ValidateConfiguration(new); err != nil {
 		return err
 	}
 	return nil
