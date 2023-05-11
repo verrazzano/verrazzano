@@ -6,7 +6,6 @@ package ocnedriver
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -15,11 +14,11 @@ import (
 
 	"github.com/Jeffail/gabs/v2"
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"go.uber.org/zap"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -32,7 +31,7 @@ const (
 	shortPollingInterval         = 10 * time.Second
 	waitTimeout                  = 30 * time.Minute
 	pollingInterval              = 30 * time.Second
-	clusterName                  = "strudel"
+	clusterName                  = "strudel2"
 	createClusterPayloadTemplate = `{
 		"dockerRootDir": "/var/lib/docker",
 		"enableClusterAlerting": false,
@@ -170,6 +169,11 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 })
 var _ = BeforeSuite(beforeSuite)
 
+var afterSuite = t.AfterSuiteFunc(func() {
+	// TODO: delete cloud credential(s)
+})
+var _ = AfterSuite(afterSuite)
+
 var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-driver"), Serial, func() {
 	t.Context("OCNE cluster creation", func() {
 		t.It("create OCNE cluster", func() {
@@ -185,7 +189,49 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 				BeTrue(), fmt.Sprintf("Cluster %s is not active", clusterName))
 		})
 	})
+
+	t.Context("OCNE cluster delete", func() {
+		t.It("delete OCNE cluster", func() {
+			// Create the cluster
+			Eventually(func() error {
+				return deleteCluster(clusterName)
+			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+		})
+
+		t.It("Check OCNE cluster is deleted", func() {
+			// Verify the cluster is active
+			Eventually(func() (bool, error) { return IsClusterDeleted(clusterName) }, waitTimeout, pollingInterval).Should(
+				BeTrue(), fmt.Sprintf("Cluster %s is not active", clusterName))
+		})
+	})
 })
+
+func deleteCluster(clusterName string) error {
+	clusterID, err := getClusterIDFromName(clusterName)
+	if err != nil {
+		t.Logs.Infof("Could not fetch cluster ID from name")
+		return err
+	}
+	t.Logs.Infof("clusterID: %s", clusterID)
+
+	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("%s/%s", "v1/provisioning.cattle.io.clusters/fleet-default", clusterID))
+
+	_, err = helpers.HTTPHelper(httpClient, "DELETE", requestURL, adminToken, "Bearer", http.StatusOK, nil, t.Logs)
+	if err != nil {
+		t.Logs.Errorf("Error while deleting cluster")
+		return err
+	}
+	return nil
+}
+
+func IsClusterDeleted(clusterName string) (bool, error) {
+	jsonBody, err := getCluster(clusterName)
+	if err != nil {
+		return false, err
+	}
+	jsonData := fmt.Sprint(jsonBody.Path("data").Data())
+	return jsonData == "[]", nil 
+}
 
 func executeCloudCredentialsTemplate(data *cloudCredentialsData, buffer *bytes.Buffer) error {
 	cloudCredentialsTemplate, err := template.New("cloudCredentials").Parse(cloudCredentialsRequestBodyTemplate)
@@ -217,28 +263,9 @@ func createCloudCredential(credentialName string) (string, error) {
 		return "", fmt.Errorf("failed to parse the cloud credentials template: " + err.Error())
 	}
 
-	request, err := retryablehttp.NewRequest(http.MethodPost, requestURL, buf)
+	jsonBody, err := helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusCreated, buf.Bytes(), t.Logs)
 	if err != nil {
-		return "", err
-	}
-	request.Header.Add("Content-Type", "application/json")
-	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminToken))
-	response, err := httpClient.Do(request)
-	if err != nil {
-		return "", err
-	}
-	defer response.Body.Close()
-	err = httputil.ValidateResponseCode(response, http.StatusCreated)
-	if err != nil {
-		t.Logs.Errorf(err.Error())
-		return "", err
-	}
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		return "", err
-	}
-	jsonBody, err := gabs.ParseJSON(body)
-	if err != nil {
+		t.Logs.Errorf("Error while retrieving http data %v", zap.Error(err))
 		return "", err
 	}
 	credID := fmt.Sprint(jsonBody.Path("id").Data())
@@ -277,25 +304,12 @@ func createCluster(clusterName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse the cloud credentials template: " + err.Error())
 	}
-	request, err := retryablehttp.NewRequest(http.MethodPost, requestURL, buf)
+	_, err = helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusCreated, buf.Bytes(), t.Logs)
 	if err != nil {
+		t.Logs.Errorf("Error while retrieving http data %v", zap.Error(err))
 		return err
 	}
-	request.Header.Add("Content-Type", "application/json")
-	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminToken))
-	response, err := httpClient.Do(request)
-	if err != nil {
-		t.Logs.Errorf("error create cluster POST response: %v", response)
-		return err
-	}
-	t.Logs.Infof("Create Cluster POST response: %v", response)
-	defer response.Body.Close()
-	err = httputil.ValidateResponseCode(response, http.StatusCreated)
-	if err != nil {
-		t.Logs.Errorf(err.Error())
-		return err
-	}
-	return err
+	return nil
 }
 
 // Returns true if the cluster currently exists and is Active
@@ -310,34 +324,18 @@ func IsClusterActive(clusterName string) (bool, error) {
 	return state == "active", nil
 }
 
+func getClusterIDFromName(clusterName string) (string, error) {
+	jsonBody, err := getCluster(clusterName)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprint(jsonBody.Path("data.0.id").Data()), nil
+}
+
 // Gets a specified cluster by using the Rancher REST API
 func getCluster(clusterName string) (*gabs.Container, error) {
 	requestURL, adminToken := setupRequest(rancherURL, "v3/cluster?name="+clusterName)
-	request, err := retryablehttp.NewRequest(http.MethodGet, requestURL, nil)
-	if err != nil {
-		return nil, err
-	}
-	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", adminToken))
-	request.Header.Add("Content-Type", "application/json")
-	response, err := httpClient.Do(request)
-	if err != nil {
-		return nil, err
-	}
-	defer response.Body.Close()
-	err = httputil.ValidateResponseCode(response, http.StatusOK)
-	if err != nil {
-		t.Logs.Errorf(err.Error())
-		return nil, err
-	}
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		return nil, err
-	}
-	jsonBody, err := gabs.ParseJSON(body)
-	if err != nil {
-		return nil, err
-	}
-	return jsonBody, nil
+	return helpers.HTTPHelper(httpClient, "GET", requestURL, adminToken, "Bearer", http.StatusOK, nil, t.Logs)
 }
 
 func replaceWhitespaceToLiteral(s string) string {
