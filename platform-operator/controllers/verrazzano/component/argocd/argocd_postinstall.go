@@ -6,6 +6,7 @@ package argocd
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -138,7 +139,7 @@ func patchArgoCDRbacConfigMap(ctx spi.ComponentContext) error {
 		},
 	}
 
-	var policyString = `g, verrazzano-admins, role:admin`
+	var adminPolicy = `g, verrazzano-admins, role:admin`
 	var err error
 
 	// Disable the built-in admin user. Grant admin (role:admin) to verrazzano-admins group
@@ -146,10 +147,16 @@ func patchArgoCDRbacConfigMap(ctx spi.ComponentContext) error {
 		if rbaccm.Data == nil {
 			rbaccm.Data = make(map[string]string)
 		}
-		// Set policy.csv only if it hasn't been explicitly set
-		val, ok := rbaccm.Data["policy.csv"]
-		if !ok || len(val) == 0 {
-			rbaccm.Data["policy.csv"] = policyString
+		// Make sure the policy.csv has the verrazzano admin policy
+		policyCSV, ok := rbaccm.Data["policy.csv"]
+		if !ok || len(policyCSV) == 0 {
+			// There is no policy.csv override, Add the verrazzano admin
+			rbaccm.Data["policy.csv"] = adminPolicy
+		} else if !strings.Contains(policyCSV, adminPolicy) {
+			// The policy.csv exists, but doesn't have the verrazzano admin policy.  Add it.
+			trim := strings.TrimSpace(policyCSV)
+			s := fmt.Sprintf("%s\n%s", trim, adminPolicy)
+			rbaccm.Data["policy.csv"] = s
 		}
 		return nil
 	}); err != nil {
@@ -201,4 +208,10 @@ func GetRootCA(ctx spi.ComponentContext) ([]byte, error) {
 // buildRestartAnnotationString returns the current time for annotating deployment to restart the pod
 func buildRestartAnnotationString(time time.Time) string {
 	return time.String()
+}
+
+// Ensure that verrazzano admin policy is included in the rbac
+func ensureRbacVerrazzanoAdmin(rbac string) string {
+
+	return ""
 }
