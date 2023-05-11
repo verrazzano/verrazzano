@@ -209,9 +209,3 @@ func GetRootCA(ctx spi.ComponentContext) ([]byte, error) {
 func buildRestartAnnotationString(time time.Time) string {
 	return time.String()
 }
-
-// Ensure that verrazzano admin policy is included in the rbac
-func ensureRbacVerrazzanoAdmin(rbac string) string {
-
-	return ""
-}
