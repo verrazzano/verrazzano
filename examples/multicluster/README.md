@@ -9,7 +9,7 @@ This repository contains an example of using Verrazzano multiclusters.
 | [todo-list](todo-list/) | ToDo List is an example application containing a WebLogic component deployed to a multicluster environment. |
 
 
-To deploy the multicluster example applications, follow the instructions [here](https://verrazzano.io/latest/docs/samples/multicluster/).
+To deploy the multicluster example applications, follow the instructions [here](https://verrazzano.io/latest/docs/examples/multicluster/).
 
 
 Copyright (c) 2021, Oracle and/or its affiliates.
