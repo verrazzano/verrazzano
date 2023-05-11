@@ -993,8 +993,11 @@ def getPlatformOperatorForRelease(){
         //Command to retrieve the platform operator yaml of the current branch.
         def operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file"
 
+        if(params.VERSION_FOR_UPGRADE == "master"){
+            operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/operator.yaml --file"
+        
         //Command to retrieve the platform operator yaml of the release branch for patch release upgrade testing.
-        if(params.VERSION_FOR_UPGRADE != "current_branch" && params.IS_TRIGGERED_MANUALLY != "YES" && params.VERSION_FOR_UPGRADE != "NONE"){
+        }else if(params.VERSION_FOR_UPGRADE != "current_branch" && params.IS_TRIGGERED_MANUALLY != "YES" && params.VERSION_FOR_UPGRADE != "NONE"){
 
             def latestReleaseBranch = getLatestReleaseVersion()
 
@@ -1068,10 +1071,12 @@ def upgradeVerrazzano() {
     script {
         // Download the bom for the target version that we are upgrading to, then extract the version
         // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
-        VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
-
-        if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
+        if(params.VERSION_FOR_UPGRADE == "master"){
+            VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
+        }else if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
             VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE_ENV
+        }else{
+            VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
         }
 
         echo "Downloading target upgrade operator yaml"
@@ -1966,7 +1971,7 @@ def downloadCLI() {
     script {
         sh "echo Downloading VZ CLI from object storage"
         if(VERSION_FOR_UPGRADE_ENV == "master"){
-            sh "oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}"           
+            sh "oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}"           
         }else{
             sh "oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}"
         }

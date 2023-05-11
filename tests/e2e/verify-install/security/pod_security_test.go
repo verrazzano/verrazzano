@@ -89,19 +89,6 @@ var exceptionPods = map[string]podExceptions{
 			},
 		},
 	},
-	// Up to and including Prometheus Operator 0.59.1
-	// the thanos sidecar will get this capability from the Operator when object storage is enabled.
-	// This bug is fixed in the next patch version and this check should be removed once the
-	// Prometheus Operator is upgraded.
-	"prometheus-prometheus-operator-kube-p-prometheus": {
-		containers: map[string]containerException{
-			"thanos-sidecar": {
-				allowedCapabilities: map[string]bool{
-					capFOwner: true,
-				},
-			},
-		},
-	},
 }
 
 var (
