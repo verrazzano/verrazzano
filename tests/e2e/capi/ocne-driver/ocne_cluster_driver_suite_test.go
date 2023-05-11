@@ -35,7 +35,6 @@ func init() {
 	flag.StringVar(&workerNodeSubnet, "workerNodeSubnet", "", "workerNodeSubnet represents the worker node subnet")
 	flag.StringVar(&controlPlaneSubnet, "controlPlaneSubnet", "", "controlPlaneSubnet represents the control plane node subnet")
 	flag.StringVar(&loadBalancerSubnet, "loadBalancerSubnet", "", "loadBalancerSubnet represents the load balancer subnet")
-	flag.StringVar(&podCidr, "podCidr", "", "podCidr represents the pod CIDR")
 }
 
 func TestOCNEClusterDriver(test *testing.T) {

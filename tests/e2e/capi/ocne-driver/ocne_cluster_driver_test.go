@@ -34,37 +34,59 @@ const (
 	pollingInterval              = 30 * time.Second
 	clusterName                  = "strudel"
 	createClusterPayloadTemplate = `{
-		"description": "testing cluster",
+		"dockerRootDir": "/var/lib/docker",
+		"enableClusterAlerting": false,
+		"enableClusterMonitoring": false,
+		"enableNetworkPolicy": false,
+		"windowsPreferedCluster": false,
+		"type": "cluster",
 		"name": "{{.ClusterName}}",
 		"ociocneEngineConfig": {
+			"calicoImagePath": "olcne",
+			"calicoImageRegistry": "container-registry.oracle.com",
+			"ccmImage": "ghcr.io/oracle/cloud-provider-oci:v1.24.0",
+			"cloudCredentialId": "{{.CloudCredentialID}}",
+			"clusterCidr": "10.96.0.0/16",
+			"compartmentId": "{{.CompartmentID}}",
+			"controlPlaneMemoryGbs": 16,
+			"controlPlaneOcpus": 2,
+			"controlPlaneRegistry": "container-registry.oracle.com/olcne",
+			"controlPlaneShape": "VM.Standard.E4.Flex",
+			"controlPlaneSubnet": "{{.ControlPlaneSubnet}}",
+			"controlPlaneVolumeGbs": 100,
+			"csiRegistry": "k8s.gcr.io/sig-storage",
 			"displayName": "{{.ClusterName}}",
 			"driverName": "ociocneengine",
-			"vcnId": "{{.VcnID}}",
-			"nodePublicKeyContents": "{{.NodePublicKeyContents}}",
-			"compartmentId": "{{.CompartmentID}}",
-			"workerNodeSubnet": "{{.WorkerNodeSubnet}}",
-			"controlPlaneSubnet": "{{.ControlPlaneSubnet}}",
-			"loadBalancerSubnet": "{{.LoadBalancerSubnet}}",
-			"imageDisplayName": "Oracle-Linux-8.7-2023.02.28-1",
+			"imageDisplayName": "Oracle-Linux-8.7-2023.04.25-0",
+			"imageId": "",
+			"installCalico": true,
+			"installCcm": true,
+			"installCsi": true,
+			"installVerrazzano": false,
 			"kubernetesVersion": "v1.24.8",
-			"useNodePvEncryption": true,
-			"cloudCredentialId": "{{.CloudCredentialID}}",
+			"loadBalancerSubnet": "{{.LoadBalancerSubnet}}",
+			"name": "",
+			"nodePublicKeyContents": "{{.NodePublicKeyContents}}",
+			"numControlPlaneNodes": 1,
+			"ociCsiImage": "ghcr.io/oracle/cloud-provider-oci:v1.24.0",
+			"podCidr": "192.168.0.0/16",
+			"proxyEndpoint": "",
 			"region": "{{.Region}}",
-
+			"skipOcneInstall": false,
+			"useNodePvEncryption": true,
+			"vcnId": "{{.VcnID}}",
+			"verrazzanoImage": "ghcr.io/verrazzano/verrazzano-platform-operator:v1.5.2-20230315235330-0326ee67",
+			"verrazzanoResource": "apiVersion: install.verrazzano.io/v1beta1\nkind: Verrazzano\nmetadata:\n  name: managed\n  namespace: default\nspec:\n  profile: managed-cluster",
+			"workerNodeSubnet": "{{.WorkerNodeSubnet}}",
+			"type": "ociocneEngineConfig",
+			"clusterName": "",
 			"nodeShape": "VM.Standard.E4.Flex",
 			"numWorkerNodes": 1,
-			"nodeOcpus": 2,
-			"nodeMemoryGbs": 32,
-
-			"nodeVolumeGbs": 50,
-			"controlPlaneVolumeGbs": 100,
-
-			"podCidr": "{{.PodCIDR}}",
-			"controlPlaneShape": "VM.Standard.E4.Flex",
-			"numControlPlaneNodes": 1,
-			"controlPlaneMemoryGbs": 16,
-			"controlPlaneOcpus": 1
-		}
+			"nodePools": [],
+			"applyYamls": []
+		},
+		"cloudCredentialId": "{{.CloudCredentialID}}",
+		"labels": {}
 	}`
 	cloudCredentialsRequestBodyTemplate = `{
 		"_name": "{{.CredentialName}}",
@@ -119,7 +141,6 @@ type capiClusterData struct {
 	ControlPlaneSubnet    string
 	LoadBalancerSubnet    string
 	CloudCredentialID     string
-	PodCIDR               string
 }
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -149,7 +170,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 })
 var _ = BeforeSuite(beforeSuite)
 
-var _ = t.Describe("OCNE Cluster Driver", Label("TODO: appropriate label"), Serial, func() {
+var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-driver"), Serial, func() {
 	t.Context("OCNE cluster creation", func() {
 		t.It("create OCNE cluster", func() {
 			// Create the cluster
@@ -250,7 +271,6 @@ func createCluster(clusterName string) error {
 		ControlPlaneSubnet:    replaceWhitespaceToLiteral(controlPlaneSubnet),
 		LoadBalancerSubnet:    replaceWhitespaceToLiteral(loadBalancerSubnet),
 		CloudCredentialID:     replaceWhitespaceToLiteral(cloudCredentialID),
-		PodCIDR:               replaceWhitespaceToLiteral(podCidr),
 	}
 	buf := &bytes.Buffer{}
 	err = executeCreateClusterTemplate(&capiClusterData, buf)
@@ -342,6 +362,6 @@ func setupRequest(rancherBaseURL, urlPath string) (string, string) {
 	adminToken := helpers.GetRancherLoginToken(t.Logs)
 	t.Logs.Infof("adminToken: %s", adminToken)
 	requestURL := fmt.Sprintf("%s/%s", rancherBaseURL, urlPath)
-	t.Logs.Infof("createCluster requestURL: %s", requestURL)
+	t.Logs.Infof("requestURL: %s", requestURL)
 	return requestURL, adminToken
 }
