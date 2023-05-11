@@ -5,6 +5,7 @@ package promstack
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
@@ -287,7 +288,14 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 					}
 
 					if isPrometheusOperatorEnabled() {
-						return pkg.ScrapeTargetsHealthy(defaultScrapeTargets)
+						kubeconfigPath := getKubeConfigOrAbort()
+						vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+						if err != nil {
+							AbortSuite(fmt.Sprintf("Failed to get vz resource in cluster: %s", err.Error()))
+						}
+						if vzcr.IsNGINXEnabled(vz) {
+							return pkg.ScrapeTargetsHealthy(defaultScrapeTargets)
+						}
 					}
 					return true, nil
 				}
