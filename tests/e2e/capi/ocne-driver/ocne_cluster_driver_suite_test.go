@@ -21,7 +21,6 @@ var compartmentID string
 var workerNodeSubnet string
 var controlPlaneSubnet string
 var loadBalancerSubnet string
-var podCidr string
 
 func init() {
 	flag.StringVar(&region, "region", "", "region represents the region where the CAPI cluster will be created")
