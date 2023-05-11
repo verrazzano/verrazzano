@@ -9,6 +9,8 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"reflect"
 	"testing"
 	"time"
@@ -175,6 +177,11 @@ func TestReconcileUninstall(t *testing.T) {
 
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
+	}
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
@@ -358,6 +365,11 @@ func TestUninstallVariations(t *testing.T) {
 				k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
 				k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
 			}()
+
+			defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+			k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+				return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
+			}
 
 			reconciler := newVerrazzanoReconciler(c)
 			result, err := reconciler.reconcileUninstall(vzlog.DefaultLogger(), vzcr)
@@ -568,6 +580,11 @@ func TestDeleteNamespacesCertManagerDisabled(t *testing.T) {
 
 func runDeleteNamespacesTest(t *testing.T, cmEnabled bool) {
 	asserts := assert.New(t)
+
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
+	}
 
 	const fakeNS = "foo"
 	nameSpaces := []client.Object{}

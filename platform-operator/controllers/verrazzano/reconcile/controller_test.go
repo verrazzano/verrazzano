@@ -6,6 +6,7 @@ package reconcile
 import (
 	"context"
 	"fmt"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/config"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"reflect"
@@ -1250,7 +1251,7 @@ func expectGetServiceAccountExists(mock *mocks.MockClient, name string, labels m
 // expectCertManagerCRDChecks expects a call to check for the CertManager CRDs
 func expectCertManagerCRDChecks(mock *mocks.MockClient) {
 	// Expect a call to get the ServiceAccount - return that it exists
-	for _, crdName := range common.GetRequiredCertManagerCRDNames() {
+	for _, crdName := range cmcommon.GetRequiredCertManagerCRDNames() {
 		mock.EXPECT().
 			Get(gomock.Any(), types.NamespacedName{Name: crdName}, gomock.Not(gomock.Nil()), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, name types.NamespacedName, crd *v1.CustomResourceDefinition, opts ...client.GetOption) error {
