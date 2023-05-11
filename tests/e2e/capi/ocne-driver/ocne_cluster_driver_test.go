@@ -212,7 +212,7 @@ func deleteCluster(clusterName string) error {
 		t.Logs.Infof("Could not fetch cluster ID from name")
 		return err
 	}
-	t.Logs.Infof("clusterID: %s", clusterID)
+	t.Logs.Infof("clusterID for deletion: %s", clusterID)
 
 	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("%s/%s", "v1/provisioning.cattle.io.clusters/fleet-default", clusterID))
 
@@ -230,7 +230,7 @@ func IsClusterDeleted(clusterName string) (bool, error) {
 		return false, err
 	}
 	jsonData := fmt.Sprint(jsonBody.Path("data").Data())
-	return jsonData == "[]", nil 
+	return jsonData == "[]", nil
 }
 
 func executeCloudCredentialsTemplate(data *cloudCredentialsData, buffer *bytes.Buffer) error {
