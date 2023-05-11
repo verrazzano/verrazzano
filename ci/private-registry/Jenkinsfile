@@ -543,7 +543,7 @@ pipeline {
                 script {
                     try {
                         sh """
-                            kubectl delete verrazzano verrazzano
+                            ${GO_REPO_PATH}/vz uninstall -y --timeout 45m
                         """
                     } catch (err) {
                         currentBuild.result = "FAILURE"
