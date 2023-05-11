@@ -158,7 +158,7 @@ pipeline {
                         def excludeReleases = params.EXCLUDE_RELEASES
                         def excludeReleasesList = excludeReleases.trim().split('\\s*,\\s*')
                         println(excludeReleasesList)
-                        def finalReleaseList  = []
+                        def finalReleaseList = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} supported-releases ${excludeReleasesList}").trim()
                         //Remove the excluded releases from jobs
                         for(releaseTag in gitTags){
                             def excluded = false

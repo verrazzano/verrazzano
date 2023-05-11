@@ -15,6 +15,7 @@ const (
 	VersionForInstall             = "install-version"
 	InterimVersionForUpgrade      = "interim-version"
 	LatestVersionForCurrentBranch = "latest-version-for-branch"
+	SupportedReleases             = "supported-releases"
 )
 
 var (
@@ -45,6 +46,9 @@ func main() {
 	} else if versionType == LatestVersionForCurrentBranch {
 		latestRelease := getLatestReleaseForCurrentBranch(releaseTags)
 		fmt.Println(latestRelease)
+	} else if versionType == SupportedReleases {
+		supportedReleases := getReleaseTags(workspace, excludeReleaseTags)
+		fmt.Println(supportedReleases)
 	} else {
 		fmt.Printf("invalid command line argument for derive version type \n")
 	}
@@ -114,7 +118,14 @@ func getReleaseTags(workspace string, excludeReleaseTags []string) []string {
 // DoesTagExistsInExcludeList returns true if the tag exists in excludeReleasetag
 func DoesTagExistsInExcludeList(releaseTag string, excludeReleaseTags []string) bool {
 	for _, excludeTag := range excludeReleaseTags {
-		if excludeTag == releaseTag {
+		//pattern := regexp.MustCompile(`^(1\.5)(\.[0-9]+)?$`)
+		//match := pattern.MatchString(excludeTag)
+		splitTag := strings.Split(excludeTag, ".")
+		excludeMinorVersion := splitTag[0] + "." + splitTag[1]
+		splitTag = strings.Split(releaseTag, ".")
+		releaseMinorVersion := splitTag[0] + "." + splitTag[1]
+		fmt.Println(splitTag)
+		if excludeMinorVersion == releaseMinorVersion {
 			return true
 		}
 	}
