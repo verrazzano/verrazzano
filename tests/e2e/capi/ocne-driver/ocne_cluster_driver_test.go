@@ -209,7 +209,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 func deleteCluster(clusterName string) error {
 	clusterID, err := getClusterIDFromName(clusterName)
 	if err != nil {
-		t.Logs.Infof("Could not fetch cluster ID from name")
+		t.Logs.Infof("Could not fetch cluster ID from cluster name %s: %s", clusterName, err)
 		return err
 	}
 	t.Logs.Infof("clusterID for deletion: %s", clusterID)
@@ -260,12 +260,12 @@ func createCloudCredential(credentialName string) (string, error) {
 	buf := &bytes.Buffer{}
 	err = executeCloudCredentialsTemplate(&credentialsData, buf)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse the cloud credentials template: " + err.Error())
+		return "", fmt.Errorf("failed to parse the cloud credentials template: %s", err.Error())
 	}
 
 	jsonBody, err := helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusCreated, buf.Bytes(), t.Logs)
 	if err != nil {
-		t.Logs.Errorf("Error while retrieving http data %v", zap.Error(err))
+		t.Logs.Errorf("Error while retrieving http data: %v", zap.Error(err))
 		return "", err
 	}
 	credID := fmt.Sprint(jsonBody.Path("id").Data())
@@ -302,11 +302,11 @@ func createCluster(clusterName string) error {
 	buf := &bytes.Buffer{}
 	err = executeCreateClusterTemplate(&capiClusterData, buf)
 	if err != nil {
-		return fmt.Errorf("failed to parse the cloud credentials template: " + err.Error())
+		return fmt.Errorf("failed to parse the cloud credentials template: %s", err.Error())
 	}
 	_, err = helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusCreated, buf.Bytes(), t.Logs)
 	if err != nil {
-		t.Logs.Errorf("Error while retrieving http data %v", zap.Error(err))
+		t.Logs.Errorf("Error while retrieving http data: %v", zap.Error(err))
 		return err
 	}
 	return nil
@@ -318,9 +318,9 @@ func IsClusterActive(clusterName string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	t.Logs.Infof("jsonBody: %v" + jsonBody.String())
+	t.Logs.Infof("jsonBody: %s", jsonBody.String())
 	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
-	t.Logs.Infof("State: " + state)
+	t.Logs.Infof("State: %s", state)
 	return state == "active", nil
 }
 
@@ -350,7 +350,7 @@ func replaceWhitespaceToLiteral(s string) string {
 func getFileContents(file string) (string, error) {
 	data, err := os.ReadFile(file)
 	if err != nil {
-		t.Logs.Errorf("failed reading file contents: %v", err.Error())
+		t.Logs.Errorf("failed reading file contents: %v", err)
 		return "", err
 	}
 	return string(data), nil
