@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"path"
 	"strconv"
@@ -309,9 +310,14 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 
 	// If the cert-manager component is enabled, use it for webhook certificates, otherwise Prometheus Operator
 	// will use the kube-webhook-certgen image
+
+	crdsExist, err := cmcommon.CertManagerCrdsExist()
+	if err != nil {
+		return kvs, err
+	}
 	kvs = append(kvs, bom.KeyValue{
 		Key:   "prometheusOperator.admissionWebhooks.certManager.enabled",
-		Value: strconv.FormatBool(vzcr.IsCertManagerEnabled(ctx.EffectiveCR())),
+		Value: strconv.FormatBool(crdsExist),
 	})
 
 	if vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) {
