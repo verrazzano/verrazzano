@@ -821,16 +821,21 @@ func IsCAIssuerConfig(certConfig v1alpha1.Certificate) (isCAConfig bool, err err
 
 // IsOCIDNSWebhookEnabled returns true if the Cert Manager component is not set, or the value of its Enabled field otherwise
 func IsOCIDNSWebhookEnabled(kubeconfigPath string) bool {
+	if !IsCertManagerEnabled(kubeconfigPath) || !IsOCIDNSEnabled(kubeconfigPath) {
+		return false
+	}
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
 		return true
 	}
-	if !IsCertManagerEnabled(kubeconfigPath) || !IsOCIDNSEnabled(kubeconfigPath) {
-		return false
+	certManager := vz.Spec.Components.CertManager
+	if certManager != nil {
+		isCAConfig, _ := IsCAIssuerConfig(certManager.Certificate)
+		return !isCAConfig
 	}
-	isCAConfig, _ := IsCAIssuerConfig(vz.Spec.Components.CertManager.Certificate)
-	return !isCAConfig
+	// CM is not defined, so the OCI DNS webhook won't be deployed
+	return false
 }
 
 // IsWebLogicOperatorEnabled returns true if the WKO operator component is not set, or the value of its Enabled field otherwise
