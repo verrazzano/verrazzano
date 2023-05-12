@@ -115,6 +115,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 	}
 	return v1beta1.ComponentSpec{
 		CertManager:            ConvertCertManagerToV1Beta1(src.CertManager),
+		ExternalCertManager:    ConvertExternalCertManagerToV1Beta1(src.ExternalCertManager),
 		CoherenceOperator:      convertCoherenceOperatorToV1Beta1(src.CoherenceOperator),
 		ApplicationOperator:    convertApplicationOperatorToV1Beta1(src.ApplicationOperator),
 		ArgoCD:                 convertArgoCDToV1Beta1(src.ArgoCD),
@@ -147,6 +148,19 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		Verrazzano:             verrazzanoComponent,
 		CAPI:                   convertCAPIToV1Beta1(src.CAPI),
 	}, nil
+}
+
+func ConvertExternalCertManagerToV1Beta1(src *ExternalCertManagerComponent) *v1beta1.ExternalCertManagerComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.ExternalCertManagerComponent{
+		Certificate:              convertCertificateToV1Beta1(src.Certificate),
+		Enabled:                  src.Enabled,
+		Namespace:                src.Namespace,
+		ServiceAccountName:       src.ServiceAccountName,
+		ClusterResourceNamespace: src.ClusterResourceNamespace,
+	}
 }
 
 func ConvertCertManagerToV1Beta1(src *CertManagerComponent) *v1beta1.CertManagerComponent {
