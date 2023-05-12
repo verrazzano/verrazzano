@@ -303,7 +303,7 @@ pipeline {
             }
         }
 
-        stage("Install Verrazzano") {
+        stage("Dummy sleep") {
             steps {
                 sh """
                      echo "sleeping"
