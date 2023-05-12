@@ -6,7 +6,10 @@ package operator
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
+	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"strings"
 	"testing"
 
@@ -156,6 +159,11 @@ func TestAppendOverrides(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer config.SetDefaultBomFilePath(oldBomPath)
 
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
+	}
+
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: constants.NGINXControllerServiceName, Namespace: nginxutil.IngressNGINXNamespace()},
 		Spec: corev1.ServiceSpec{
@@ -206,7 +214,7 @@ func TestAppendOverrides(t *testing.T) {
 	assert.True(t, strings.HasPrefix(bom.FindKV(kvs, "prometheusOperator.alertmanagerDefaultBaseImage"), "ghcr.io/verrazzano/alertmanager:"))
 	assert.True(t, strings.HasPrefix(bom.FindKV(kvs, "prometheusOperator.prometheusDefaultBaseImage"), "ghcr.io/verrazzano/prometheus:"))
 
-	assert.Equal(t, "true", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"))
+	assert.Equal(t, "false", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"))
 
 	// GIVEN a Verrazzano CR with the CertManager component disabled
 	// WHEN the AppendOverrides function is called
