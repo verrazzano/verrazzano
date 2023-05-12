@@ -87,7 +87,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.12.2-20230302040401-49b4f66e",
+              "tag": "v0.12.2-20230511162352-49b4f66e",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -188,7 +188,7 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.14.5-20230131231729-f85741b",
+              "tag": "v1.14.5-20230512021939-f85741b",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
@@ -449,7 +449,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v20.0.1-20230406163645-080e314b71",
+              "tag": "v20.0.1-20230511162845-f765e95713",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -461,7 +461,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "v1.5.0-20230124195518-771913f"
+              "tag": "v1.5.0-20230511152819-603bc3c"
             }
           ]
         }
