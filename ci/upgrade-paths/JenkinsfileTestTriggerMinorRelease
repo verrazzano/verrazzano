@@ -158,7 +158,19 @@ pipeline {
                         def excludeReleases = params.EXCLUDE_RELEASES
                         def excludeReleasesList = excludeReleases.trim().split('\\s*,\\s*')
                         println(excludeReleasesList)
-                        def finalReleaseList = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} supported-releases ${excludeReleasesList}").trim()
+                        def finalReleaseList  = []
+                        //Remove the excluded releases from jobs
+                        for(releaseTag in gitTags){
+                            def excluded = false
+                            for(excludedRelease in excludeReleasesList){
+                                if(releaseTag == excludedRelease){
+                                    excluded = true
+                                }
+                            }
+                            if(excluded == false){
+                                finalReleaseList.add(releaseTag)
+                            }
+                        }
                         echo "List of Releases after excluding the user requested releases: ${finalReleaseList}"
                         listOfUpgradeJobs = addTargetUpgradeVersion(finalReleaseList)
                         
