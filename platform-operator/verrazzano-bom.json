@@ -104,7 +104,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.12.2-20230302040401-49b4f66e",
+              "tag": "v0.12.2-20230511162352-49b4f66e",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -164,11 +164,11 @@
           "images": [
             {
               "image": "rancher-shell",
-              "tag": "v0.1.18-20230208201620-c659571"
+              "tag": "v0.1.18-20230512033248-c659571"
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.2.6-20230208201837-b7fc3c3"
+              "tag": "v0.2.6-20230512024307-b7fc3c3"
             },
             {
               "image": "rancher-fleet-agent",
@@ -180,7 +180,7 @@
             },
             {
               "image": "rancher-gitjob",
-              "tag": "v0.1.30-20230208185411-8e24107"
+              "tag": "v0.1.30-20230512033140-8e24107"
             },
             {
               "image": "rancher-cleanup",
@@ -205,7 +205,7 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.14.5-20230131231729-f85741b",
+              "tag": "v1.14.5-20230512021939-f85741b",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
@@ -466,7 +466,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v20.0.1-20230406163645-080e314b71",
+              "tag": "v20.0.1-20230511162845-f765e95713",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -478,7 +478,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "v1.5.0-20230124195518-771913f"
+              "tag": "v1.5.0-20230511152819-603bc3c"
             }
           ]
         }
