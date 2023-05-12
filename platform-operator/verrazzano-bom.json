@@ -104,7 +104,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.12.2-20230302040401-49b4f66e",
+              "tag": "v0.12.2-20230511162352-49b4f66e",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -123,12 +123,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.15.3-20230209181608-900a5c7b",
+              "tag": "1.15.3-20230511165826-a25ae2d1",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.15.3-20230209181608-900a5c7b",
+              "tag": "1.15.3-20230511165826-a25ae2d1",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -252,12 +252,12 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.15.3-20230209181608-900a5c7b",
+              "tag": "1.15.3-20230511165826-a25ae2d1",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.14.5-20230131231729-f85741b",
+              "tag": "v1.14.5-20230512021939-f85741b",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
@@ -298,7 +298,7 @@
             },
             {
               "image": "proxyv2",
-              "tag": "1.15.3-20230209181608-900a5c7b",
+              "tag": "1.15.3-20230511165826-a25ae2d1",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -518,7 +518,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v20.0.1-20230406163645-080e314b71",
+              "tag": "v20.0.1-20230511162845-f765e95713",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -530,7 +530,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "v1.6.0-20230216162859-e289e05"
+              "tag": "v1.6.0-20230512022548-e289e05"
             }
           ]
         }
