@@ -22,6 +22,11 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const  (
+	adminPolicy = `g, verrazzano-admins, role:admin`
+	policyCSV = `policy.csv`
+)
+
 type OIDCConfig struct {
 	Name            string   `json:"name"`
 	Issuer          string   `json:"issuer"`
@@ -139,7 +144,6 @@ func patchArgoCDRbacConfigMap(ctx spi.ComponentContext) error {
 		},
 	}
 
-	var adminPolicy = `g, verrazzano-admins, role:admin`
 	var err error
 
 	// Disable the built-in admin user. Grant admin (role:admin) to verrazzano-admins group
@@ -148,15 +152,15 @@ func patchArgoCDRbacConfigMap(ctx spi.ComponentContext) error {
 			rbaccm.Data = make(map[string]string)
 		}
 		// Make sure the policy.csv has the verrazzano admin policy
-		policyCSV, ok := rbaccm.Data["policy.csv"]
-		if !ok || len(policyCSV) == 0 {
+		policy, ok := rbaccm.Data[policyCSV]
+		if !ok || len(policy) == 0 {
 			// There is no policy.csv override, Add the verrazzano admin
-			rbaccm.Data["policy.csv"] = adminPolicy
-		} else if !strings.Contains(policyCSV, adminPolicy) {
+			rbaccm.Data[policyCSV] = adminPolicy
+		} else if !strings.Contains(policy, adminPolicy) {
 			// The policy.csv exists, but doesn't have the verrazzano admin policy.  Add it.
-			trim := strings.TrimSpace(policyCSV)
+			trim := strings.TrimSpace(policy)
 			s := fmt.Sprintf("%s\n%s", trim, adminPolicy)
-			rbaccm.Data["policy.csv"] = s
+			rbaccm.Data[policyCSV] = s
 		}
 		return nil
 	}); err != nil {
