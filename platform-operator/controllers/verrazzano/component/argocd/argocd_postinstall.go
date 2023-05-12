@@ -22,9 +22,9 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-const  (
-	adminPolicy = `g, verrazzano-admins, role:admin`
-	policyCSV = `policy.csv`
+const (
+	adminPolicy  = `g, verrazzano-admins, role:admin`
+	policyCSVKey = `policy.csv`
 )
 
 type OIDCConfig struct {
@@ -152,15 +152,15 @@ func patchArgoCDRbacConfigMap(ctx spi.ComponentContext) error {
 			rbaccm.Data = make(map[string]string)
 		}
 		// Make sure the policy.csv has the verrazzano admin policy
-		policy, ok := rbaccm.Data[policyCSV]
+		policy, ok := rbaccm.Data[policyCSVKey]
 		if !ok || len(policy) == 0 {
 			// There is no policy.csv override, Add the verrazzano admin
-			rbaccm.Data[policyCSV] = adminPolicy
+			rbaccm.Data[policyCSVKey] = adminPolicy
 		} else if !strings.Contains(policy, adminPolicy) {
 			// The policy.csv exists, but doesn't have the verrazzano admin policy.  Add it.
 			trim := strings.TrimSpace(policy)
 			s := fmt.Sprintf("%s\n%s", trim, adminPolicy)
-			rbaccm.Data[policyCSV] = s
+			rbaccm.Data[policyCSVKey] = s
 		}
 		return nil
 	}); err != nil {

@@ -88,7 +88,7 @@ func TestArgoCDRBAC(t *testing.T) {
 					Name:      cmName,
 					Namespace: constants.ArgoCDNamespace,
 				},
-				Data: map[string]string{policyCSV: test.initialRBAC},
+				Data: map[string]string{policyCSVKey: test.initialRBAC},
 			}
 			fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(rbaccm).Build()
 			ctx := spi.NewFakeContext(fakeClient, nil, nil, false)
@@ -103,7 +103,7 @@ func TestArgoCDRBAC(t *testing.T) {
 			}
 			err := fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: constants.ArgoCDNamespace, Name: cmName}, &cm)
 			assert.NoError(t, err)
-			assert.Equal(t, test.expectedRBAC, cm.Data[policyCSV])
+			assert.Equal(t, test.expectedRBAC, cm.Data[policyCSVKey])
 		})
 	}
 }
