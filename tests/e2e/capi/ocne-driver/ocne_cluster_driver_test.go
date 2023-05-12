@@ -304,7 +304,10 @@ func createCluster(clusterName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse the cloud credentials template: %s", err.Error())
 	}
-	_, err = helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusCreated, buf.Bytes(), t.Logs)
+	res, err := helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusCreated, buf.Bytes(), t.Logs)
+	if res != nil {
+		t.Logs.Infof("create cluster response body: %s", res.String())
+	}
 	if err != nil {
 		t.Logs.Errorf("Error while retrieving http data: %v", zap.Error(err))
 		return err
