@@ -4,7 +4,9 @@
 package authproxy
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
@@ -256,6 +258,9 @@ func TestUninstallHelmChartInstalled(t *testing.T) {
 	defer helmcli.SetDefaultActionConfigFunction()
 	helmcli.SetActionConfigFunction(testActionConfigWithInstalledAuthproxy)
 
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.VerrazzanoSystemNamespace)
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+
 	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 }
@@ -268,6 +273,9 @@ func TestUninstallHelmChartInstalled(t *testing.T) {
 func TestUninstallHelmChartNotInstalled(t *testing.T) {
 	defer helmcli.SetDefaultActionConfigFunction()
 	helmcli.SetActionConfigFunction(testActionConfigWithUninstalledAuthproxy)
+
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.VerrazzanoSystemNamespace)
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 
 	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
@@ -348,6 +356,9 @@ func TestIsReady(t *testing.T) {
 	}
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.VerrazzanoSystemNamespace)
+			defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+
 			ctx := spi.NewFakeContext(tt.client, &tests[i].actualCR, nil, true, profilesRelativePath)
 			isAvailable := NewComponent().IsReady(ctx)
 			if tt.expectTrue {
@@ -381,6 +392,9 @@ func TestIsReadyHelmError(t *testing.T) {
 	}
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.VerrazzanoSystemNamespace)
+			defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+
 			ctx := spi.NewFakeContext(tt.client, &tests[i].actualCR, nil, false, profilesRelativePath)
 			isAvailable := NewComponent().IsReady(ctx)
 			if tt.expectTrue {
@@ -493,6 +507,9 @@ func TestPreInstall(t *testing.T) {
 	}
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.VerrazzanoSystemNamespace)
+			defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+
 			tt.helmcliFunc()
 			ctx := spi.NewFakeContext(tt.client, &tests[i].actualCR, nil, false, profilesRelativePath)
 			err := NewComponent().PreInstall(ctx)

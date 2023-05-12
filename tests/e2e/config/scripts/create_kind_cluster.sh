@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 set -x
@@ -15,8 +15,10 @@ KIND_AT_CACHE=${7:-false}
 SETUP_CALICO=${8:-false}
 KIND_AT_CACHE_NAME=${9:-"NONE"}
 NODE_COUNT=${10:-1}
+SETUP_PRIVATE_REGISTRY=${SETUP_PRIVATE_REGISTRY:-false}
 KIND_IMAGE=""
 CALICO_SUFFIX=""
+PRIVATE_REGISTRY_SUFFIX=""
 
 create_kind_cluster() {
   if [ "${K8S_VERSION}" == "1.21" ]; then
@@ -34,6 +36,10 @@ create_kind_cluster() {
 
   if [ $SETUP_CALICO == true ] ; then
     CALICO_SUFFIX="-calico"
+  fi
+
+  if [ $SETUP_PRIVATE_REGISTRY == true ] ; then
+    PRIVATE_REGISTRY_SUFFIX="-private-registry"
   fi
 
   # Set CLEANUP_KIND_CONTAINERS to true, while second cluster and onwards
@@ -54,18 +60,19 @@ create_kind_cluster() {
   echo "Kubeconfig ${KUBECONFIG}"
   echo "KIND Image : ${KIND_IMAGE}"
   cd ${SCRIPT_DIR}/
-  KIND_CONFIG_FILE=kind-config${CALICO_SUFFIX}.yaml
+  KIND_CONFIG_FILE=kind-config${CALICO_SUFFIX}${PRIVATE_REGISTRY_SUFFIX}.yaml
   if [ ${KIND_AT_CACHE} == true ]; then
     if [ ${KIND_AT_CACHE_NAME} != "NONE" ]; then
       # If a cache name was specified, replace the at_test cache name with the one specified (this is used only
       # for multi-cluster tests at the moment)
-      sed "s;v8o_cache/at_tests;v8o_cache/${KIND_AT_CACHE_NAME};g" kind-config-ci${CALICO_SUFFIX}.yaml > kind-config-ci${CALICO_SUFFIX}_${KIND_AT_CACHE_NAME}.yaml
-      KIND_CONFIG_FILE=kind-config-ci${CALICO_SUFFIX}_${KIND_AT_CACHE_NAME}.yaml
+      sed "s;v8o_cache/at_tests;v8o_cache/${KIND_AT_CACHE_NAME};g" kind-config-ci${CALICO_SUFFIX}${PRIVATE_REGISTRY_SUFFIX}.yaml > kind-config-ci${CALICO_SUFFIX}${PRIVATE_REGISTRY_SUFFIX}_${KIND_AT_CACHE_NAME}.yaml
+      KIND_CONFIG_FILE=kind-config-ci${CALICO_SUFFIX}${PRIVATE_REGISTRY_SUFFIX}_${KIND_AT_CACHE_NAME}.yaml
     else
       # If no cache name specified use at_tests cache
-      KIND_CONFIG_FILE=kind-config-ci${CALICO_SUFFIX}.yaml
+      KIND_CONFIG_FILE=kind-config-ci${CALICO_SUFFIX}${PRIVATE_REGISTRY_SUFFIX}.yaml
     fi
   fi
+
   # List the permissions of /dev/null.  We have seen a failure where `docker ps` gets an operation not permitted error.
   # Listing the permissions will help to analyze what is wrong, if we see the failure again.
   echo "Listing permissions for /dev/null"
@@ -78,7 +85,7 @@ create_kind_cluster() {
   done
   sed -i "s/KIND_IMAGE/${KIND_IMAGE}/g" ${KIND_CONFIG_FILE}
   cat ${KIND_CONFIG_FILE}
-  HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster --retain -v 1 --name ${CLUSTER_NAME} --config=${KIND_CONFIG_FILE}
+  HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster --retain -v 9 --name ${CLUSTER_NAME} --config=${KIND_CONFIG_FILE}
   kubectl config set-context kind-${CLUSTER_NAME}
   sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}
   cat ${KUBECONFIG} | grep server

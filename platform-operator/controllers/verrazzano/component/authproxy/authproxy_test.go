@@ -6,6 +6,8 @@ package authproxy
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"io/fs"
@@ -360,6 +362,9 @@ func TestUninstallResources(t *testing.T) {
 		service2,
 		serviceAccount,
 	).Build()
+
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.VerrazzanoSystemNamespace)
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 
 	err := NewComponent().Uninstall(spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)

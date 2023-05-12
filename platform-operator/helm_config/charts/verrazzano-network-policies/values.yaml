@@ -63,3 +63,6 @@ velero:
 
 argocd:
   enabled: false
+
+capi:
+  enabled: false

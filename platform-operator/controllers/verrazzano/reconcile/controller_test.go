@@ -6,7 +6,8 @@ package reconcile
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerconfig"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
+	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/config"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"reflect"
 	"sync"
@@ -572,7 +573,7 @@ func TestUninstallComplete(t *testing.T) {
 			return nil
 		})
 
-	defer func() { cmCleanupFunc = certmanagerconfig.UninstallCleanup }()
+	defer func() { cmCleanupFunc = cmconfig.UninstallCleanup }()
 	cmCleanupFunc = func(log vzlog.VerrazzanoLogger, cli client.Client, namespace string) error { return nil }
 	expectCertManagerCRDChecks(mock)
 
@@ -657,7 +658,7 @@ func TestUninstallStarted(t *testing.T) {
 	setFakeComponentsDisabled()
 	defer registry.ResetGetComponentsFn()
 
-	defer func() { cmCleanupFunc = certmanagerconfig.UninstallCleanup }()
+	defer func() { cmCleanupFunc = cmconfig.UninstallCleanup }()
 	cmCleanupFunc = func(log vzlog.VerrazzanoLogger, cli client.Client, namespace string) error { return nil }
 	expectCertManagerCRDChecks(mock)
 
@@ -775,7 +776,7 @@ func TestUninstallSucceeded(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	defer func() { cmCleanupFunc = certmanagerconfig.UninstallCleanup }()
+	defer func() { cmCleanupFunc = cmconfig.UninstallCleanup }()
 	cmCleanupFunc = func(log vzlog.VerrazzanoLogger, cli client.Client, namespace string) error { return nil }
 	expectCertManagerCRDChecks(mock)
 
@@ -1199,7 +1200,7 @@ func newVerrazzanoReconciler(c client.Client) Reconciler {
 }
 
 // Expect syncLocalRegistration related calls, happy-path secret exists
-func expectSyncLocalRegistration(t *testing.T, mock *mocks.MockClient, name string) {
+func expectSyncLocalRegistration(_ *testing.T, mock *mocks.MockClient, _ string) {
 	// Expect a call to get the Agent secret in the verrazzano-system namespace - return that it does not exist
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
@@ -1208,7 +1209,7 @@ func expectSyncLocalRegistration(t *testing.T, mock *mocks.MockClient, name stri
 
 // expectGetVerrazzanoSystemNamespaceExists expects a call to get the Verrazzano system namespace and returns
 // that it exists
-func expectGetVerrazzanoSystemNamespaceExists(mock *mocks.MockClient, asserts *assert.Assertions) {
+func expectGetVerrazzanoSystemNamespaceExists(mock *mocks.MockClient, _ *assert.Assertions) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
@@ -1250,7 +1251,7 @@ func expectGetServiceAccountExists(mock *mocks.MockClient, name string, labels m
 // expectCertManagerCRDChecks expects a call to check for the CertManager CRDs
 func expectCertManagerCRDChecks(mock *mocks.MockClient) {
 	// Expect a call to get the ServiceAccount - return that it exists
-	for _, crdName := range common.GetRequiredCertManagerCRDNames() {
+	for _, crdName := range cmcommon.GetRequiredCertManagerCRDNames() {
 		mock.EXPECT().
 			Get(gomock.Any(), types.NamespacedName{Name: crdName}, gomock.Not(gomock.Nil()), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, name types.NamespacedName, crd *v1.CustomResourceDefinition, opts ...client.GetOption) error {
@@ -1261,7 +1262,7 @@ func expectCertManagerCRDChecks(mock *mocks.MockClient) {
 
 // expectGetVerrazzanoExists expects a call to get a Verrazzano with the given namespace and name, and returns
 // one that has the same content as the verrazzanoToUse argument
-func expectGetVerrazzanoExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Verrazzano, namespace string, name string, labels map[string]string) {
+func expectGetVerrazzanoExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Verrazzano, namespace string, name string, _ map[string]string) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano, opts ...client.GetOption) error {
@@ -1487,7 +1488,10 @@ func TestReconcileErrorCounter(t *testing.T) {
 	reconcileErrorCounterMetric, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileError)
 	assert.NoError(t, err)
 	errorCounterBefore := testutil.ToFloat64(reconcileErrorCounterMetric.Get())
-	reconciler.Reconcile(context.TODO(), errorRequest)
+	_, err = reconciler.Reconcile(context.TODO(), errorRequest)
+	if err != nil {
+		return
+	}
 	errorCounterAfter := testutil.ToFloat64(reconcileErrorCounterMetric.Get())
 	assert.NoError(t, err)
 	asserts.Equal(errorCounterBefore, errorCounterAfter-1)
@@ -1710,7 +1714,7 @@ type erroringFakeClient struct {
 }
 
 // List always returns an error - used to simulate an error listing a resource
-func (e *erroringFakeClient) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+func (e *erroringFakeClient) List(_ context.Context, _ client.ObjectList, _ ...client.ListOption) error {
 	return errors.NewNotFound(schema.GroupResource{}, "")
 }
 
@@ -2235,14 +2239,14 @@ func TestPersistJobLog(t *testing.T) {
 // dummy Status updater for testing purpose
 type statusUpdater string
 
-func (s *statusUpdater) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
+func (s *statusUpdater) Update(_ context.Context, _ client.Object, _ ...client.UpdateOption) error {
 	return nil
 }
-func (s *statusUpdater) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
+func (s *statusUpdater) Patch(context.Context, client.Object, client.Patch, ...client.PatchOption) error {
 	return nil
 }
 
-func createRelease(name string, status release.Status) *release.Release {
+func createRelease(_ string, status release.Status) *release.Release {
 	now := time2.Now()
 	return &release.Release{
 		Name:      rancher.ComponentName,
@@ -2257,11 +2261,11 @@ func createRelease(name string, status release.Status) *release.Release {
 	}
 }
 
-func testActionConfigWithInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+func testActionConfigWithInstallation(vzlog.VerrazzanoLogger, *cli.EnvSettings, string) (*action.Configuration, error) {
 	return helm.CreateActionConfig(true, rancher.ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
 }
 
-func testActionConfigWithoutInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+func testActionConfigWithoutInstallation(vzlog.VerrazzanoLogger, *cli.EnvSettings, string) (*action.Configuration, error) {
 	return helm.CreateActionConfig(false, rancher.ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
 }
 
@@ -2369,6 +2373,9 @@ func TestReconcilerProcReadyState(t *testing.T) {
 	for _, tt := range tests {
 		registry.OverrideGetComponentsFn(getCompFunc)
 		t.Run(tt.name, func(t *testing.T) {
+			k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace("cattle-system")
+			defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+
 			r := newVerrazzanoReconciler(tt.k8sClient)
 			if tt.setProfileFunc != nil {
 				tt.setProfileFunc()

@@ -4,18 +4,20 @@
 package registry
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerconfig"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerocidns"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/config"
+	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
+	cmocidns "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/ocidns"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/time"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,7 +28,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
@@ -112,11 +113,11 @@ func TestGetComponents(t *testing.T) {
 	i++
 	a.Equal(comps[i].Name(), nginx.ComponentName)
 	i++
-	a.Equal(comps[i].Name(), certmanager.ComponentName)
+	a.Equal(comps[i].Name(), cmcontroller.ComponentName)
 	i++
-	a.Equal(comps[i].Name(), certmanagerocidns.ComponentName)
+	a.Equal(comps[i].Name(), cmocidns.ComponentName)
 	i++
-	a.Equal(comps[i].Name(), certmanagerconfig.ComponentName)
+	a.Equal(comps[i].Name(), cmconfig.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), externaldns.ComponentName)
 	i++
@@ -414,7 +415,7 @@ func TestComponentMultipleDependenciesMet(t *testing.T) {
 		ReleaseName:    "foo",
 		ChartDir:       "chartDir",
 		ChartNamespace: "bar",
-		Dependencies:   []string{oam.ComponentName, certmanager.ComponentName},
+		Dependencies:   []string{oam.ComponentName, cmcontroller.ComponentName},
 	}
 	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	assert.True(t, ready)
@@ -656,10 +657,10 @@ func TestComponentDependenciesMetStateCheckCompDisabled(t *testing.T) {
 // WHEN Newcontext is called
 // THEN all components referred from the registry are disabled except for network-policies
 func TestNoneProfileInstalledAllComponentsDisabled(t *testing.T) {
-	defer func() { common.ResetNewClientFunc() }()
-	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
-		return fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), nil
-	})
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
+	}
 
 	config.TestProfilesDir = profileDir
 	defer func() { config.TestProfilesDir = "" }()

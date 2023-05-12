@@ -53,6 +53,8 @@ ifndef RELEASE_BRANCH
 	RELEASE_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 endif
 
+VZ_BASE_IMAGE ?= ghcr.io/verrazzano/verrazzano-base:v1.0.0-20230327155846-4653b27
+
 DIST_DIR:=dist
 GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
@@ -137,6 +139,7 @@ docker-build-common:
 	cp ../THIRD_PARTY_LICENSES.txt .
 	docker build --pull -f Dockerfile \
 		--build-arg VERRAZZANO_APPLICATION_OPERATOR_IMAGE="${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}" \
+		--build-arg BASE_IMAGE="${VZ_BASE_IMAGE}" \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
 .PHONY: docker-push
@@ -160,7 +163,7 @@ endif
 #
 .PHONY: unit-test
 unit-test: go-install
-	$(GO) test -v  ./internal/... ./controllers/... ./apis/...
+	$(GO) test ./internal/... ./controllers/... ./apis/...
 
 CLUSTER_NAME ?= verrazzano
 BUILD_DEPLOY = build/deploy

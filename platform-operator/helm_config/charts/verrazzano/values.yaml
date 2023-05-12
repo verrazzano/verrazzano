@@ -97,7 +97,7 @@ istio:
   enabled: true
 
 jaegerOperator:
-  enabled: false
+  enabled: true
   namespace: verrazzano-monitoring
   jaegerServiceAccount: jaeger-operator-jaeger
 

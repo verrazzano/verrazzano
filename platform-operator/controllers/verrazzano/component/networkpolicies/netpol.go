@@ -50,8 +50,8 @@ var netpolNamespaceNames = []types.NamespacedName{
 	{Namespace: vzconst.RancherSystemNamespace, Name: "cattle-cluster-agent"},
 	{Namespace: vzconst.RancherSystemNamespace, Name: "rancher"},
 	{Namespace: vzconst.RancherSystemNamespace, Name: "rancher-webhook"},
-	{Namespace: constants.VerrazzanoMonitoringNamespace, Name: "jaeger-collector"},
-	{Namespace: constants.VerrazzanoMonitoringNamespace, Name: "jaeger-query"},
+	{Namespace: vzconst.VerrazzanoMonitoringNamespace, Name: "jaeger-collector"},
+	{Namespace: vzconst.VerrazzanoMonitoringNamespace, Name: "jaeger-query"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "verrazzano-authproxy"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "verrazzano-console"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "verrazzano-application-operator"},
@@ -68,7 +68,8 @@ var netpolNamespaceNames = []types.NamespacedName{
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "kiali"},
 	{Namespace: constants.VeleroNameSpace, Name: "allow-same-namespace"},
 	{Namespace: constants.VeleroNameSpace, Name: "velero"},
-	{Namespace: constants.ArgoCDNamespace, Name: "argocd"},
+	{Namespace: vzconst.ArgoCDNamespace, Name: "argocd"},
+	{Namespace: vzconst.VerrazzanoCAPINamespace, Name: "capi"},
 }
 
 var (
@@ -140,6 +141,7 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *chartValues) er
 	overrides.Rancher = &rancherValues{Enabled: vzcr.IsRancherEnabled(effectiveCR)}
 	overrides.Velero = &veleroValues{Enabled: vzcr.IsVeleroEnabled(effectiveCR)}
 	overrides.ArgoCD = &argoCDValues{Enabled: vzcr.IsArgoCDEnabled(effectiveCR)}
+	overrides.Capi = &capiValues{Enabled: vzcr.IsCAPIEnabled(effectiveCR)}
 	return nil
 }
 
