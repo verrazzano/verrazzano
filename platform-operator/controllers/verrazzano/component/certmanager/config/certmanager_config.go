@@ -11,6 +11,7 @@ import (
 	"fmt"
 	acmev1 "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
 	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"text/template"
 
@@ -233,6 +234,9 @@ func checkRenewAllCertificates(compContext spi.ComponentContext, isCAConfig bool
 	// Obtain the CA Common Name for comparison
 	comp := vzapi.ConvertCertManagerToV1Beta1(compContext.EffectiveCR().Spec.Components.CertManager)
 	issuerCNs, err := findIssuerCommonName(comp.Certificate, isCAConfig)
+	if errors.IsNotFound(err) {
+		return nil
+	}
 	if err != nil {
 		return err
 	}
