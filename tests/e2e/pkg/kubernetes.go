@@ -794,6 +794,50 @@ func IsCertManagerEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.CertManager.Enabled
 }
 
+// IsOCIDNSEnabled returns true if OCI DNS is enabled in the configuration
+func IsOCIDNSEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return true
+	}
+	if vz.Spec.Components.DNS == nil || vz.Spec.Components.DNS.OCI == nil {
+		return false
+	}
+	return true
+}
+
+func IsCAIssuerConfig(certConfig v1alpha1.Certificate) (isCAConfig bool, err error) {
+	// Check if Ca or Acme is empty
+	caNotEmpty := certConfig.CA != v1alpha1.CA{}
+	acmeNotEmpty := certConfig.Acme != v1alpha1.Acme{}
+	if caNotEmpty && acmeNotEmpty {
+		return false, errors.New("certificate object Acme and CA cannot be simultaneously populated")
+	} else if !caNotEmpty && !acmeNotEmpty {
+		return false, errors.New("Either Acme or CA certificate authorities must be configured")
+	}
+	return caNotEmpty, nil
+}
+
+// IsOCIDNSWebhookEnabled returns true if the Cert Manager component is not set, or the value of its Enabled field otherwise
+func IsOCIDNSWebhookEnabled(kubeconfigPath string) bool {
+	if !IsCertManagerEnabled(kubeconfigPath) || !IsOCIDNSEnabled(kubeconfigPath) {
+		return false
+	}
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return true
+	}
+	certManager := vz.Spec.Components.CertManager
+	if certManager != nil {
+		isCAConfig, _ := IsCAIssuerConfig(certManager.Certificate)
+		return !isCAConfig
+	}
+	// CM is not defined, so the OCI DNS webhook won't be deployed
+	return false
+}
+
 // IsWebLogicOperatorEnabled returns true if the WKO operator component is not set, or the value of its Enabled field otherwise
 func IsWebLogicOperatorEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
