@@ -124,7 +124,6 @@ func DoesTagExistsInExcludeList(releaseTag string, excludeReleaseTags []string) 
 		excludeMinorVersion := splitTag[0] + "." + splitTag[1]
 		splitTag = strings.Split(releaseTag, ".")
 		releaseMinorVersion := splitTag[0] + "." + splitTag[1]
-		fmt.Println(splitTag)
 		if excludeMinorVersion == releaseMinorVersion {
 			return true
 		}
