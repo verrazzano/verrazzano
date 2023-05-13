@@ -238,11 +238,6 @@ func (in *ComponentSpec) DeepCopyInto(out *ComponentSpec) {
 		*out = new(CertManagerComponent)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.ExternalCertManager != nil {
-		in, out := &in.ExternalCertManager, &out.ExternalCertManager
-		*out = new(ExternalCertManagerComponent)
-		(*in).DeepCopyInto(*out)
-	}
 	if in.ClusterOperator != nil {
 		in, out := &in.ClusterOperator, &out.ClusterOperator
 		*out = new(ClusterOperatorComponent)
@@ -261,6 +256,11 @@ func (in *ComponentSpec) DeepCopyInto(out *ComponentSpec) {
 	if in.DNS != nil {
 		in, out := &in.DNS, &out.DNS
 		*out = new(DNSComponent)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.ExternalCertManager != nil {
+		in, out := &in.ExternalCertManager, &out.ExternalCertManager
+		*out = new(ExternalCertManagerComponent)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.Fluentd != nil {

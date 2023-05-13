@@ -319,11 +319,6 @@ type ComponentSpec struct {
 	// +optional
 	CertManager *CertManagerComponent `json:"certManager,omitempty"`
 
-	// Defines the settings for an externally-managed Cert-Manager instance to be used by this Verrazzano installation;
-	// note that this is mutually exclusive of the CertManager component
-	// +optional
-	ExternalCertManager *ExternalCertManagerComponent `json:"externalCertManager,omitempty"`
-
 	// The Cluster Operator component configuration.
 	// +optional
 	ClusterOperator *ClusterOperatorComponent `json:"clusterOperator,omitempty"`
@@ -340,6 +335,11 @@ type ComponentSpec struct {
 	// +optional
 	// +patchStrategy=replace
 	DNS *DNSComponent `json:"dns,omitempty" patchStrategy:"replace"`
+
+	// Defines the settings for an externally-managed Cert-Manager instance to be used by this Verrazzano installation;
+	// note that this is mutually exclusive of the CertManager component
+	// +optional
+	ExternalCertManager *ExternalCertManagerComponent `json:"externalCertManager,omitempty"`
 
 	// The Fluentd component configuration.
 	// +optional
