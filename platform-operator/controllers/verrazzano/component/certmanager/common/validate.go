@@ -42,8 +42,25 @@ func ResetCoreV1ClientFunc() {
 
 // IsCA - Check if cert-type is CA, if not it is assumed to be Acme
 func IsCA(compContext spi.ComponentContext) (bool, error) {
-	comp := vzapi.ConvertCertManagerToV1Beta1(compContext.EffectiveCR().Spec.Components.CertManager)
-	return checkExactlyOneIssuerConfiguration(comp.Certificate)
+	componentSpec := compContext.EffectiveCR().Spec.Components
+	if componentSpec.CertManager != nil {
+		return checkExactlyOneIssuerConfiguration(componentSpec.CertManager.Certificate)
+	}
+	// If the stanza isn't present assume the Self-signed CA issuer config
+	return true, nil
+}
+
+// IsACMEConfig - Check if cert-type is ACME
+func IsACMEConfig(vz interface{}) (bool, error) {
+	vzv1alpha1, err := convertIfNecessary(vz)
+	if err != nil {
+		return false, err
+	}
+	if vzv1alpha1.Spec.Components.CertManager != nil {
+		isCA, err := checkExactlyOneIssuerConfiguration(vzv1alpha1.Spec.Components.CertManager.Certificate)
+		return !isCA, err
+	}
+	return false, nil
 }
 
 // ValidateLongestHostName - validates that the longest possible host name for a system endpoint
@@ -104,8 +121,19 @@ func getDNSSuffix(effectiveCR runtime.Object) (string, bool) {
 // - Verifies that only one of either the CA or ACME fields is set
 // - Validates the CA or ACME configurations if necessary
 // - returns an error if anything is misconfigured
-func ValidateConfiguration(certConfig v1beta1.Certificate) (err error) {
+func ValidateConfiguration(vz interface{}) (err error) {
+	vzv1alpha1, err := convertIfNecessary(vz)
+	if err != nil {
+		return err
+	}
+
+	certManager := vzv1alpha1.Spec.Components.CertManager
+	if certManager == nil {
+		return nil
+	}
+
 	// Check if Ca or Acme is empty
+	certConfig := certManager.Certificate
 	isCAConfig, err := checkExactlyOneIssuerConfiguration(certConfig)
 	if err != nil {
 		return err
@@ -121,10 +149,10 @@ func ValidateConfiguration(certConfig v1beta1.Certificate) (err error) {
 	return validateAcmeConfiguration(certConfig.Acme)
 }
 
-func checkExactlyOneIssuerConfiguration(certConfig v1beta1.Certificate) (isCAConfig bool, err error) {
+func checkExactlyOneIssuerConfiguration(certConfig vzapi.Certificate) (isCAConfig bool, err error) {
 	// Check if Ca or Acme is empty
-	caNotEmpty := certConfig.CA != v1beta1.CA{}
-	acmeNotEmpty := certConfig.Acme != v1beta1.Acme{}
+	caNotEmpty := certConfig.CA != vzapi.CA{}
+	acmeNotEmpty := certConfig.Acme != vzapi.Acme{}
 	if caNotEmpty && acmeNotEmpty {
 		return false, errors.New("certificate object Acme and CA cannot be simultaneously populated")
 	} else if !caNotEmpty && !acmeNotEmpty {
@@ -133,7 +161,7 @@ func checkExactlyOneIssuerConfiguration(certConfig v1beta1.Certificate) (isCACon
 	return caNotEmpty, nil
 }
 
-func validateCAConfiguration(ca v1beta1.CA, componentNamespace string) error {
+func validateCAConfiguration(ca vzapi.CA, componentNamespace string) error {
 	if ca.SecretName == constants.DefaultVerrazzanoCASecretName && ca.ClusterResourceNamespace == componentNamespace {
 		// if it's the default self-signed config the secret won't exist until created by CertManager
 		return nil
@@ -143,7 +171,7 @@ func validateCAConfiguration(ca v1beta1.CA, componentNamespace string) error {
 	return err
 }
 
-func GetCASecret(ca v1beta1.CA) (*corev1.Secret, error) {
+func GetCASecret(ca vzapi.CA) (*corev1.Secret, error) {
 	name := ca.SecretName
 	namespace := ca.ClusterResourceNamespace
 	return GetSecret(namespace, name)
@@ -158,7 +186,7 @@ func GetSecret(namespace string, name string) (*corev1.Secret, error) {
 }
 
 // validateAcmeConfiguration Validate the ACME/LetsEncrypt values
-func validateAcmeConfiguration(acme v1beta1.Acme) error {
+func validateAcmeConfiguration(acme vzapi.Acme) error {
 	if !isLetsEncryptProvider(acme) {
 		return fmt.Errorf("Invalid ACME certificate provider %v", acme.Provider)
 	}
@@ -171,15 +199,15 @@ func validateAcmeConfiguration(acme v1beta1.Acme) error {
 	return nil
 }
 
-func isLetsEncryptProvider(acme v1beta1.Acme) bool {
+func isLetsEncryptProvider(acme vzapi.Acme) bool {
 	return strings.ToLower(string(acme.Provider)) == strings.ToLower(string(vzapi.LetsEncrypt))
 }
 
-func isLetsEncryptStagingEnv(acme v1beta1.Acme) bool {
+func isLetsEncryptStagingEnv(acme vzapi.Acme) bool {
 	return strings.ToLower(acme.Environment) == letsEncryptStaging
 }
 
-func isLetsEncryptProductionEnv(acme v1beta1.Acme) bool {
+func isLetsEncryptProductionEnv(acme vzapi.Acme) bool {
 	return strings.ToLower(acme.Environment) == letsencryptProduction
 }
 
