@@ -101,16 +101,16 @@ metadata:
   namespace: {{ .Values.certManager.clusterResourceNamespace }}
 rules:
   - apiGroups:
-    - ""
+      - ""
     resources:
-    - "secrets"
-    {{- with .Values.ociProfileSecretNames }}
+      - "secrets"
+    {{- with .Values.ociAuthSecrets }}
     resourceNames:
-    {{ toYaml . | indent 4 }}
+    {{ toYaml . | indent 2 }}
     {{- end }}
     verbs:
-    - "get"
-    - "watch"
+      - "get"
+      - "watch"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
