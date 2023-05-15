@@ -6,6 +6,7 @@ package ocidns
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	vzresource "github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -29,6 +30,10 @@ func isCertManagerOciDNSReady(context spi.ComponentContext) bool {
 	deployments = append(deployments, types.NamespacedName{Name: ocidnsDeploymentName, Namespace: ComponentNamespace})
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
 	return ready.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
+}
+
+func resolveCertManagerNamespace(ctx spi.ComponentContext, _ string) string {
+	return constants.VerrazzanoSystemNamespace
 }
 
 func appendOCIDNSOverrides(ctx spi.ComponentContext, _ string, namespace string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
