@@ -49,6 +49,8 @@ tolerations: []
 
 affinity: {}
 
+ociAuthSecrets: []
+
 securityContext:
   allowPrivilegeEscalation: false
   privileged: false

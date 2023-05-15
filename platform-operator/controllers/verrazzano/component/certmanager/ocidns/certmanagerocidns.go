@@ -5,6 +5,7 @@ package ocidns
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	vzresource "github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -28,6 +29,32 @@ func isCertManagerOciDNSReady(context spi.ComponentContext) bool {
 	deployments = append(deployments, types.NamespacedName{Name: ocidnsDeploymentName, Namespace: ComponentNamespace})
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
 	return ready.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
+}
+
+func appendOCIDNSOverrides(ctx spi.ComponentContext, _ string, namespace string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+
+	secretName, err := GetOCIDNSSecretName(ctx)
+	if err != nil {
+		return kvs, err
+	}
+
+	overrides := []bom.KeyValue{
+		{Key: "ociAuthSecrets[0]", Value: secretName},
+	}
+
+	return append(kvs, overrides...), nil
+}
+
+func GetOCIDNSSecretName(ctx spi.ComponentContext) (string, error) {
+	dns := ctx.EffectiveCR().Spec.Components.DNS
+	if dns == nil || dns.OCI == nil {
+		return "", ctx.Log().ErrorfThrottledNewErr("OCI DNS not configured")
+	}
+	ociDNS := dns.OCI
+	if len(ociDNS.OCIConfigSecret) == 0 {
+		return "", ctx.Log().ErrorfThrottledNewErr("OCI DNS auth secret not configured")
+	}
+	return ociDNS.OCIConfigSecret, nil
 }
 
 func (c certManagerOciDNSComponent) postUninstall(ctx spi.ComponentContext) error {
