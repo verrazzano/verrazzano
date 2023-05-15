@@ -163,8 +163,8 @@ pipeline {
                         for(releaseTag in gitTags){
                             def excluded = false
                             for(excludedRelease in excludeReleasesList){
-                                def releaseTagMinorVersion = releaseTag[1..3]
-                                if(releaseTagMinorVersion == excludedRelease){
+                                def releaseTagMinorVersion = releaseTag
+                                if(releaseTagMinorVersion[1..3] == excludedRelease){
                                     excluded = true
                                 }
                             }
