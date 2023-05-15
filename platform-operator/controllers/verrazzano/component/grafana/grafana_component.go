@@ -8,12 +8,8 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafanadashboards"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -22,6 +18,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -33,9 +31,6 @@ const (
 
 	// grafanaCertificateName is the name of the TLS certificate used for ingress
 	grafanaCertificateName = "system-tls-grafana"
-
-	// fluentOperatorFilterFile is the file name that consiste Filter and Parser resource for Fluent-Operator
-	fluentOperatorFilterFile = "grafana-filter-parser.yaml"
 )
 
 // ComponentJSONName is the JSON name of the component in the Verrazzano CRD
@@ -185,9 +180,6 @@ func (g grafanaComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := common.CheckIngressesAndCerts(ctx, g); err != nil {
 		return err
 	}
-	if err := controllers.ExecuteFluentFilterAndParser(ctx, fluentOperatorFilterFile, false); err != nil {
-		return err
-	}
 	return restartGrafanaPod(ctx)
 }
 
@@ -204,9 +196,6 @@ func (g grafanaComponent) Uninstall(context spi.ComponentContext) error {
 }
 
 func (g grafanaComponent) PostUninstall(context spi.ComponentContext) error {
-	if err := controllers.ExecuteFluentFilterAndParser(context, fluentOperatorFilterFile, true); err != nil {
-		return err
-	}
 	return nil
 }
 
