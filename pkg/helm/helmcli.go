@@ -134,6 +134,7 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 		client := action.NewUpgrade(actionConfig)
 		client.Namespace = namespace
 		client.DryRun = dryRun
+		client.Wait = wait
 
 		rel, err = client.Run(releaseName, chart, vals)
 		if err != nil {
@@ -148,11 +149,12 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 		client.ReleaseName = releaseName
 		client.DryRun = dryRun
 		client.Replace = true
+		client.Wait = wait
 
 		rel, err = client.Run(chart, vals)
 		if err != nil {
-			log.Errorf("Failed running Helm command for release %s",
-				releaseName)
+			log.Errorf("Failed running Helm command for release %s: %v",
+				releaseName, err.Error())
 			return nil, err
 		}
 	}
@@ -282,7 +284,7 @@ func getChartStatus(releaseName string, namespace string) (string, error) {
 
 // getReleaseState extracts the helmRelease state from an "ls -o json" command for a specific helmRelease/namespace
 func getReleaseState(releaseName string, namespace string) (string, error) {
-	releases, err := GetReleases(namespace)
+	releases, err := getReleases(namespace)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			return ChartNotFound, nil
@@ -343,7 +345,7 @@ func GetReleaseValues(log vzlog.VerrazzanoLogger, valueKeys []string, releaseNam
 
 // getReleaseAppVersion extracts the helmRelease app_version from a "ls -o json" command for a specific helmRelease/namespace
 func getReleaseAppVersion(releaseName string, namespace string) (string, error) {
-	releases, err := GetReleases(namespace)
+	releases, err := getReleases(namespace)
 	if err != nil {
 		if err.Error() == ChartNotFound {
 			return ChartNotFound, nil
@@ -362,7 +364,7 @@ func getReleaseAppVersion(releaseName string, namespace string) (string, error) 
 	return strings.TrimSpace(status), nil
 }
 
-func GetReleases(namespace string) ([]*release.Release, error) {
+func getReleases(namespace string) ([]*release.Release, error) {
 	settings := cli.New()
 	settings.SetNamespace(namespace)
 	actionConfig, err := actionConfigFn(vzlog.DefaultLogger(), settings, namespace)

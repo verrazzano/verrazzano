@@ -5,7 +5,9 @@ package fluentd
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
@@ -603,6 +605,9 @@ func TestUninstallHelmChartInstalled(t *testing.T) {
 	defer helmcli.SetDefaultActionConfigFunction()
 	helmcli.SetActionConfigFunction(testActionConfigWithInstalledFluentd)
 
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.VerrazzanoSystemNamespace)
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+
 	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &v1alpha1.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 }
@@ -616,6 +621,9 @@ func TestUninstallHelmChartNotInstalled(t *testing.T) {
 	defer helmcli.SetDefaultActionConfigFunction()
 	helmcli.SetActionConfigFunction(testActionConfigWithUninstalledFluentd)
 
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.VerrazzanoSystemNamespace)
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+
 	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &v1alpha1.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 }
@@ -628,6 +636,9 @@ func TestUninstallHelmChartNotInstalled(t *testing.T) {
 func TestUninstallResources(t *testing.T) {
 	defer helmcli.SetDefaultActionConfigFunction()
 	helmcli.SetActionConfigFunction(testActionConfigWithUninstalledFluentd)
+
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.VerrazzanoSystemNamespace)
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 
 	clusterRole := &rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: ComponentName}}
 	clusterRoleBinding := &rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: ComponentName}}

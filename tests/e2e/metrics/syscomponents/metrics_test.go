@@ -5,6 +5,8 @@ package syscomponents
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"os"
 	"strings"
 	"time"
@@ -42,7 +44,6 @@ const (
 	// Namespaces used for validating envoy stats
 	verrazzanoSystemNamespace = "verrazzano-system"
 	istioSystemNamespace      = "istio-system"
-	ingressNginxNamespace     = "ingress-nginx"
 	keycloakNamespace         = "keycloak"
 
 	// Constants for various metric labels, used in the validation
@@ -57,7 +58,6 @@ const (
 	job                 = "job"
 	app                 = "app"
 	namespace           = "namespace"
-	podName             = "pod_name"
 	container           = "container"
 	esMaster            = "es-master"
 
@@ -74,9 +74,11 @@ var isMinVersion110 bool
 var adminKubeConfig string
 var isManagedClusterProfile bool
 
+var ingressNGINXNamespace string
+
 // List of namespaces considered for validating the envoy-stats
 var envoyStatsNamespaces = []string{
-	ingressNginxNamespace,
+	ingressNGINXNamespace,
 	istioSystemNamespace,
 	verrazzanoSystemNamespace,
 }
@@ -132,6 +134,11 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
+
+	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	if err != nil {
+		Fail(err.Error())
+	}
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -147,7 +154,7 @@ var _ = t.Describe("Thanos Metrics", Label("f:observability.monitoring.prom"), f
 	var _ = t.Describe("for the system components", func() {
 		t.It("Verify sample NGINX metrics can be queried from Thanos", func() {
 			eventuallyMetricsContainLabels(ingressControllerSuccess, map[string]string{
-				controllerNamespace: ingressNginxNamespace,
+				controllerNamespace: ingressNGINXNamespace,
 				appK8SIOInstance:    ingressController,
 			})
 		})

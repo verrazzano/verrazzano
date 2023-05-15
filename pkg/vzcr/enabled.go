@@ -84,6 +84,20 @@ func IsIstioInjectionEnabled(cr runtime.Object) bool {
 	return true
 }
 
+// IsCAPIEnabled - Returns false only if CAPI is explicitly disabled by the user
+func IsCAPIEnabled(cr runtime.Object) bool {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.CAPI != nil && vzv1alpha1.Spec.Components.CAPI.Enabled != nil {
+			return *vzv1alpha1.Spec.Components.CAPI.Enabled
+		}
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 != nil && vzv1beta1.Spec.Components.CAPI != nil && vzv1beta1.Spec.Components.CAPI.Enabled != nil {
+			return *vzv1beta1.Spec.Components.CAPI.Enabled
+		}
+	}
+	return true
+}
+
 // IsCertManagerEnabled - Returns false only if CertManager is explicitly disabled by the user
 func IsCertManagerEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
@@ -198,6 +212,11 @@ func IsRancherEnabled(cr runtime.Object) bool {
 
 // IsExternalDNSEnabled Indicates if the external-dns service is expected to be deployed, true if OCI DNS is configured
 func IsExternalDNSEnabled(cr runtime.Object) bool {
+	return IsOCIDNSEnabled(cr)
+}
+
+// IsOCIDNSEnabled Returns true if OCI DNS is configured
+func IsOCIDNSEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.DNS != nil && vzv1alpha1.Spec.Components.DNS.OCI != nil {
 			return true

@@ -180,8 +180,8 @@ func TestGetNamespacesForAllComponents(t *testing.T) {
 		v1beta1.Verrazzano{
 			Status: v1beta1.VerrazzanoStatus{
 				Components: v1beta1.ComponentStatusMap{
-					constants.ExternalDNS: &v1beta1.ComponentStatusDetails{
-						Name:  constants.ExternalDNS,
+					constants.CertManager: &v1beta1.ComponentStatusDetails{
+						Name:  constants.CertManager,
 						State: v1beta1.CompStateReady,
 					},
 					constants.Grafana: &v1beta1.ComponentStatusDetails{
@@ -200,8 +200,8 @@ func TestGetNamespacesForAllComponents(t *testing.T) {
 		v1beta1.Verrazzano{
 			Status: v1beta1.VerrazzanoStatus{
 				Components: v1beta1.ComponentStatusMap{
-					constants.ExternalDNS: &v1beta1.ComponentStatusDetails{
-						Name:  constants.ExternalDNS,
+					constants.CertManager: &v1beta1.ComponentStatusDetails{
+						Name:  constants.CertManager,
 						State: v1beta1.CompStateReady,
 					},
 					constants.Grafana: &v1beta1.ComponentStatusDetails{

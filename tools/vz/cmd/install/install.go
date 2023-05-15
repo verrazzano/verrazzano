@@ -6,10 +6,11 @@ package install
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
@@ -74,11 +75,15 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
 	cmd.PersistentFlags().StringArrayP(constants.SetFlag, constants.SetFlagShorthand, []string{}, constants.SetFlagHelp)
 	cmd.PersistentFlags().Bool(constants.AutoBugReportFlag, constants.AutoBugReportFlagDefault, constants.AutoBugReportFlagHelp)
+	// Private registry support
+	cmd.PersistentFlags().String(constants.ImageRegistryFlag, constants.ImageRegistryFlagDefault, constants.ImageRegistryFlagHelp)
+	cmd.PersistentFlags().String(constants.ImagePrefixFlag, constants.ImagePrefixFlagDefault, constants.ImagePrefixFlagHelp)
 
-	// Initially the operator-file flag may be for internal use, hide from help until
-	// a decision is made on supporting this option.
-	cmd.PersistentFlags().String(constants.OperatorFileFlag, "", constants.OperatorFileFlagHelp)
-	cmd.PersistentFlags().MarkHidden(constants.OperatorFileFlag)
+	// Flag to skip any confirmation questions
+	cmd.PersistentFlags().BoolP(constants.SkipConfirmationFlag, constants.SkipConfirmationShort, false, constants.SkipConfirmationFlagHelp)
+
+	// Add flags related to specifying the platform operator manifests as a local file or a URL
+	cmdhelpers.AddManifestsFlags(cmd)
 
 	// Dry run flag is still being discussed - keep hidden for now
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an install.")
@@ -91,23 +96,6 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	err := installVerrazzano(cmd, vzHelper)
-	if err != nil {
-		autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
-		if errFlag != nil {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
-			return err
-		}
-		if autoBugReportFlag {
-			//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from installVerrazzano
-			err = bugreport.CallVzBugReport(cmd, vzHelper, err)
-		}
-		return err
-	}
-	return nil
-}
-
-func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	// Validate the command options
 	err := validateCmd(cmd)
 	if err != nil {
@@ -138,9 +126,9 @@ func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return err
 	}
 
-	// When --operator-file is not used, get the version from the command line
+	// When manifests flag is not used, get the version from the command line
 	var version string
-	if !cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
+	if !cmdhelpers.ManifestsFlagChanged(cmd) {
 		version, err = cmdhelpers.GetVersion(cmd, vzHelper)
 		if err != nil {
 			return err
@@ -181,6 +169,20 @@ func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 			}
 		}
 
+		if err := cmdhelpers.ValidatePrivateRegistry(cmd, client); err != nil {
+			skipConfirm, errConfirm := cmd.PersistentFlags().GetBool(constants.SkipConfirmationFlag)
+			if errConfirm != nil {
+				return errConfirm
+			}
+			proceed, err := cmdhelpers.ConfirmWithUser(vzHelper, fmt.Sprintf("%s\nYour new settings will be ignored. Continue?", err.Error()), skipConfirm)
+			if err != nil {
+				return err
+			}
+			if !proceed {
+				fmt.Fprintf(vzHelper.GetOutputStream(), "Operation canceled.")
+				return nil
+			}
+		}
 		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Install of Verrazzano version %s is already in progress\n", version))
 
 		vzNamespace = existingvz.Namespace
@@ -198,48 +200,57 @@ func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		if err != nil {
 			return err
 		}
-
 		// Apply the Verrazzano operator.yaml.
 		err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
 		if err != nil {
 			return err
 		}
-
-		// Wait for the platform operator to be ready before we create the Verrazzano resource.
-		_, err = cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondInstallComplete, vpoTimeout)
+		err = installVerrazzano(cmd, vzHelper, vz, client, version, vpoTimeout)
 		if err != nil {
-			return err
+			return bugreport.AutoBugReport(cmd, vzHelper, err)
 		}
-
-		err = kubectlutil.SetLastAppliedConfigurationAnnotation(vz)
-		if err != nil {
-			return err
-		}
-
-		// Create the Verrazzano install resource, if need be.
-		// We will retry up to 5 times if there is an error.
-		// Sometimes we see intermittent webhook errors due to timeouts.
-		retry := 0
-		for {
-			err = client.Create(context.TODO(), vz)
-			if err != nil {
-				if retry == 5 {
-					return fmt.Errorf("Failed to create the verrazzano install resource: %s", err.Error())
-				}
-				time.Sleep(time.Second)
-				retry++
-				fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Retrying after failing to create the verrazzano install resource: %s\n", err.Error()))
-				continue
-			}
-			break
-		}
-
 		vzNamespace = vz.GetNamespace()
 		vzName = vz.GetName()
 	}
 
 	// Wait for the Verrazzano install to complete
-	return waitForInstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vzNamespace, Name: vzName}, timeout, vpoTimeout, logFormat)
+	err = waitForInstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vzNamespace, Name: vzName}, timeout, vpoTimeout, logFormat)
+	if err != nil {
+		return bugreport.AutoBugReport(cmd, vzHelper, err)
+	}
+	return nil
+}
+
+func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz clipkg.Object, client clipkg.Client, version string, vpoTimeout time.Duration) error {
+	// Wait for the platform operator to be ready before we create the Verrazzano resource.
+	_, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondInstallComplete, vpoTimeout)
+	if err != nil {
+		return err
+	}
+
+	err = kubectlutil.SetLastAppliedConfigurationAnnotation(vz)
+	if err != nil {
+		return err
+	}
+
+	// Create the Verrazzano install resource, if need be.
+	// We will retry up to 5 times if there is an error.
+	// Sometimes we see intermittent webhook errors due to timeouts.
+	retry := 0
+	for {
+		err = client.Create(context.TODO(), vz)
+		if err != nil {
+			if retry == 5 {
+				return fmt.Errorf("Failed to create the verrazzano install resource: %s", err.Error())
+			}
+			time.Sleep(time.Second)
+			retry++
+			fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Retrying after failing to create the verrazzano install resource: %s\n", err.Error()))
+			continue
+		}
+		break
+	}
+	return nil
 }
 
 // getVerrazzanoYAML returns the verrazzano install resource to be created
@@ -365,8 +376,19 @@ func waitForInstallToComplete(client clipkg.Client, kubeClient kubernetes.Interf
 
 // validateCmd - validate the command line options
 func validateCmd(cmd *cobra.Command) error {
-	if cmd.PersistentFlags().Changed(constants.VersionFlag) && cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
-		return fmt.Errorf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.OperatorFileFlag)
+	if cmd.PersistentFlags().Changed(constants.VersionFlag) && cmdhelpers.ManifestsFlagChanged(cmd) {
+		return fmt.Errorf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.ManifestsFlag)
+	}
+	prefix, err := cmd.PersistentFlags().GetString(constants.ImagePrefixFlag)
+	if err != nil {
+		return err
+	}
+	reg, err := cmd.PersistentFlags().GetString(constants.ImageRegistryFlag)
+	if err != nil {
+		return err
+	}
+	if prefix != constants.ImagePrefixFlagDefault && reg == constants.ImageRegistryFlagDefault {
+		return fmt.Errorf("%s cannot be specified without also specifying %s", constants.ImagePrefixFlag, constants.ImageRegistryFlag)
 	}
 	return nil
 }

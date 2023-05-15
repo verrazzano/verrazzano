@@ -18,6 +18,7 @@ certManager:
 
 ingressNGINX:
   enabled: true
+  namespace: "verrazzano-ingress-nginx"
 
 istio:
   enabled: true
@@ -30,6 +31,7 @@ rancher:
 
 externaldns:
   enabled: false
+  namespace: verrazzano-system
 
 jaegerOperator:
   enabled: false
@@ -60,4 +62,7 @@ velero:
   enabled: false
 
 argocd:
+  enabled: false
+
+capi:
   enabled: false

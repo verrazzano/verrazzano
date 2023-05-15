@@ -53,6 +53,15 @@ spec:
       runAsUser: 65534
       seccompProfile:
         type: RuntimeDefault
+    containerSecurityContext:
+      runAsUser: 1001
+      runAsGroup: 65534
+      runAsNonRoot: true
+      privileged: false
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
   strategy: production
   query:
     replicas: 0
@@ -62,6 +71,15 @@ spec:
       runAsUser: 65534
       seccompProfile:
         type: RuntimeDefault
+    containerSecurityContext:
+      runAsUser: 1001
+      runAsGroup: 65534
+      runAsNonRoot: true
+      privileged: false
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
   collector:
     options:
       collector:
@@ -72,6 +90,15 @@ spec:
       runAsUser: 65534
       seccompProfile:
         type: RuntimeDefault
+    containerSecurityContext:
+      runAsUser: 1001
+      runAsGroup: 65534
+      runAsNonRoot: true
+      privileged: false
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
   storage:
     dependencies:
       enabled: false
@@ -83,6 +110,15 @@ spec:
         runAsUser: 65534
         seccompProfile:
           type: RuntimeDefault
+      containerSecurityContext:
+        runAsUser: 1001
+        runAsGroup: 65534
+        runAsNonRoot: true
+        privileged: false
+        allowPrivilegeEscalation: false
+        capabilities:
+        drop:
+        - ALL
     type: elasticsearch
     options:
       es:

@@ -18,9 +18,7 @@ import (
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	installv1beta2 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta2"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/operatorinit"
 	"go.uber.org/zap"
@@ -42,7 +40,6 @@ func init() {
 	_ = vmov1.AddToScheme(scheme)
 	_ = installv1alpha1.AddToScheme(scheme)
 	_ = installv1beta1.AddToScheme(scheme)
-	_ = installv1beta2.AddToScheme(scheme)
 	_ = clustersv1alpha1.AddToScheme(scheme)
 
 	_ = istioclinet.AddToScheme(scheme)
@@ -127,8 +124,6 @@ func main() {
 	} else {
 		log.Errorf("Failed to get the Verrazzano version from the BOM: %v", err)
 	}
-
-	registry.InitRegistry()
 
 	// This allows separation of webhooks and operator
 	var exitErr error

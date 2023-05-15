@@ -28,13 +28,25 @@ const (
 	SetFlag                  = "set"
 	SetFlagShorthand         = "s"
 	SetFlagHelp              = "Override a Verrazzano resource value (e.g. --set profile=dev).  This flag can be specified multiple times."
-	OperatorFileFlag         = "operator-file"
-	OperatorFileFlagHelp     = "The path to the file for installing the Verrazzano platform operator. The default is derived from the version string."
+	OperatorFileFlag         = "operator-file" // an alias for the manifests flag
+	OperatorFileDeprecateMsg = "Use --manifests instead"
+	ManifestsFlag            = "manifests"
+	ManifestsShorthand       = "m"
+	ManifestsFlagHelp        = "The location of the manifests used to install or upgrade Verrazzano. This can be a URL or the path to a local file. The default is the verrazzano-platform-operator.yaml file of the specified (or most recent) version of Verrazzano."
+	ImageRegistryFlag        = "image-registry"
+	ImageRegistryFlagHelp    = "The private registry where Verrazzano image repositories are located. If unspecified, the public Verrazzano image registry will be used."
+	ImageRegistryFlagDefault = ""
+	ImagePrefixFlag          = "image-prefix"
+	ImagePrefixFlagHelp      = "The prefix to use for all Verrazzano image names within the private image-registry. If unspecified, the default image prefixes in the Verrazzano image registry will be used."
+	ImagePrefixFlagDefault   = ""
 	LogFormatFlag            = "log-format"
 	LogFormatHelp            = "The format of the log output. Valid output formats are \"simple\" and \"json\"."
 	FilenameFlag             = "filename"
 	FilenameFlagShorthand    = "f"
 	FilenameFlagHelp         = "Path to file containing Verrazzano custom resource.  This flag can be specified multiple times to overlay multiple files.  Specifying \"-\" as the filename accepts input from stdin."
+	SkipConfirmationFlagHelp = "Non-interactive mode - assumes the answers to all interactive questions to be 'Y'."
+	SkipConfirmationFlag     = "skip-confirmation"
+	SkipConfirmationShort    = "y"
 	VerboseFlag              = "verbose"
 	VerboseFlagShorthand     = "v"
 	VerboseFlagDefault       = false
@@ -188,23 +200,4 @@ const (
 	BugReportTimeFlagNameShort   = "d"
 	BugReportTimeFlagDefaultTime = 0
 	BugReportTimeFlagNameUsage   = "The time period during which the logs are collected in seconds, minutes, and hours."
-)
-
-// Constants for cluster operations
-const (
-	ClusterNameFlagName    = "name"
-	ClusterNameFlagDefault = "vz-capi"
-	ClusterNameFlagHelp    = "The name of the cluster"
-
-	ClusterTypeFlagName    = "type"
-	ClusterTypeFlagDefault = "ocne"
-	ClusterTypeFlagHelp    = "The type of the cluster"
-
-	ClusterImageFlagName    = "image"
-	ClusterImageFlagDefault = ""
-	ClusterImageFlagHelp    = "DEVELOPMENT ONLY - the image to use for the cluster"
-
-	KubeconfigPathFlagName    = "path"
-	KubeconfigPathFlagDefault = ""
-	KubeconfigPathFlagHelp    = "Path to the file where the kubeconfig should be saved - defaults to your current kubeconfig"
 )

@@ -320,6 +320,10 @@ type ComponentSpec struct {
 	// +optional
 	AuthProxy *AuthProxyComponent `json:"authProxy,omitempty"`
 
+	// The CAPI component configuration.
+	// +optional
+	CAPI *CAPIComponent `json:"capi,omitempty"`
+
 	// The cert-manager component configuration.
 	// +optional
 	CertManager *CertManagerComponent `json:"certManager,omitempty"`
@@ -532,6 +536,9 @@ type GrafanaComponent struct {
 	// The number of pods to replicate. The default is `1`.
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
+	// The SMTP notification settings.
+	// +optional
+	SMTP *vmov1.SMTPInfo `json:"smtp,omitempty"`
 }
 
 // PrometheusComponent specifies the Prometheus configuration.
@@ -597,6 +604,13 @@ type PrometheusPushgatewayComponent struct {
 	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
+}
+
+// CAPIComponent specifies the CAPI configuration.
+type CAPIComponent struct {
+	// If true, then CAPI Providers will be installed.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // CertManagerComponent specifies the cert-manager configuration.

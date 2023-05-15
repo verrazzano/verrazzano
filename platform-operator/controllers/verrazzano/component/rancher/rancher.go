@@ -80,6 +80,9 @@ const (
 	letsEncryptIngressClassKey = "letsEncrypt.ingress.class"
 	letsEncryptEmailKey        = "letsEncrypt.email"
 	letsEncryptEnvironmentKey  = "letsEncrypt.environment"
+
+	// PSP Enabled key
+	pspEnabledKey = "global.cattle.psp.enabled"
 )
 
 const (
@@ -397,26 +400,6 @@ func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client) {
 	}
 
 	log.Once("Successfully deleted Rancher local cluster")
-}
-
-// activateOCIDriver activates the OCI nodeDriver
-func activateOCIDriver(log vzlog.VerrazzanoLogger, c client.Client) error {
-	ociDriver := unstructured.Unstructured{}
-	ociDriver.SetGroupVersionKind(GVKNodeDriver)
-	ociDriverName := types.NamespacedName{Name: NodeDriverOCI}
-	err := c.Get(context.Background(), ociDriverName, &ociDriver)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed getting OCI Driver: %s", err.Error())
-	}
-
-	ociDriverMerge := client.MergeFrom(ociDriver.DeepCopy())
-	ociDriver.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
-	err = c.Patch(context.Background(), &ociDriver, ociDriverMerge)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed patching OCI Driver: %s", err.Error())
-	}
-
-	return nil
 }
 
 // activateDrivers activates the oraclecontainerengine kontainerDriver

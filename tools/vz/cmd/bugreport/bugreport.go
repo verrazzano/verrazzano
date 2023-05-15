@@ -246,6 +246,20 @@ func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) e
 	return err
 }
 
+// AutoBugReport checks that AutoBugReportFlag is set and then kicks off vz bugreport CLI command. It returns the same error that is passed in
+func AutoBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) error {
+	autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
+	if errFlag != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
+		return err
+	}
+	if autoBugReportFlag {
+		//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from either installVerrazzano() or waitForInstallToComplete()
+		err = CallVzBugReport(cmd, vzHelper, err)
+	}
+	return err
+}
+
 func setUpFlags(cmd *cobra.Command, newCmd *cobra.Command) error {
 	kubeconfigFlag, errFlag := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
 	if errFlag != nil {

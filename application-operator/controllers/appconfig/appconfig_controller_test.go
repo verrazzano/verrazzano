@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package appconfig
@@ -155,8 +155,8 @@ func TestReconcileRestartWeblogic(t *testing.T) {
 
 	// expect a call to fetch the ApplicationConfiguration
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration, opt ...client.GetOption) error {
 			appConfig.Namespace = testNamespace
 			appConfig.Name = testAppConfigName
 			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
@@ -173,8 +173,8 @@ func TestReconcileRestartWeblogic(t *testing.T) {
 
 	// expect a call to fetch the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured, opt ...client.GetOption) error {
 			return nil
 		}).Times(2)
 
@@ -204,8 +204,8 @@ func TestReconcileRestartCoherence(t *testing.T) {
 
 	// expect a call to fetch the ApplicationConfiguration
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration, opt ...client.GetOption) error {
 			appConfig.Namespace = testNamespace
 			appConfig.Name = testAppConfigName
 			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
@@ -222,8 +222,8 @@ func TestReconcileRestartCoherence(t *testing.T) {
 
 	// expect a call to fetch the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured, opt ...client.GetOption) error {
 			return nil
 		}).Times(2)
 
@@ -253,8 +253,8 @@ func TestReconcileRestartHelidon(t *testing.T) {
 
 	// expect a call to fetch the ApplicationConfiguration
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration, opt ...client.GetOption) error {
 			appConfig.Namespace = testNamespace
 			appConfig.Name = testAppConfigName
 			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
@@ -271,8 +271,8 @@ func TestReconcileRestartHelidon(t *testing.T) {
 
 	// Expect a call to fetch the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured, opt ...client.GetOption) error {
 			return nil
 		}).Times(2)
 
@@ -302,8 +302,8 @@ func TestReconcileDeploymentRestart(t *testing.T) {
 
 	// expect a call to fetch the ApplicationConfiguration
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration, opt ...client.GetOption) error {
 			appConfig.Namespace = testNamespace
 			appConfig.Name = testAppConfigName
 			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
@@ -320,23 +320,23 @@ func TestReconcileDeploymentRestart(t *testing.T) {
 
 	// expect a call to fetch the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured, opt ...client.GetOption) error {
 			return nil
 		})
 
 	// expect a call to fetch the deployment
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDeploymentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *appsv1.Deployment) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDeploymentName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *appsv1.Deployment, opt ...client.GetOption) error {
 			deploy.Name = testDeploymentName
 			deploy.Namespace = testNamespace
 			return nil
 		})
 	// expect a call to fetch the deployment
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDeploymentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *appsv1.Deployment) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDeploymentName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *appsv1.Deployment, opt ...client.GetOption) error {
 			deploy.Name = testDeploymentName
 			deploy.Namespace = testNamespace
 			return nil
@@ -367,8 +367,8 @@ func TestFailedReconcileDeploymentRestart(t *testing.T) {
 
 	// expect a call to fetch the ApplicationConfiguration
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration, opt ...client.GetOption) error {
 			appConfig.Namespace = testNamespace
 			appConfig.Name = testAppConfigName
 			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
@@ -385,15 +385,15 @@ func TestFailedReconcileDeploymentRestart(t *testing.T) {
 
 	// expect a call to fetch the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured, opt ...client.GetOption) error {
 			return nil
 		})
 
 	// expect a call to fetch the deployment
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDeploymentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *appsv1.Deployment) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDeploymentName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *appsv1.Deployment, opt ...client.GetOption) error {
 			return fmt.Errorf("Could not return %s in namespace %s", testDeploymentName, testNamespace)
 		})
 
@@ -416,8 +416,8 @@ func TestReconcileDeploymentNoRestart(t *testing.T) {
 
 	// expect a call to fetch the ApplicationConfiguration
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration, opt ...client.GetOption) error {
 			appConfig.Namespace = testNamespace
 			appConfig.Name = testAppConfigName
 			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
@@ -434,15 +434,15 @@ func TestReconcileDeploymentNoRestart(t *testing.T) {
 
 	// expect a call to fetch the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured, opt ...client.GetOption) error {
 			return nil
 		})
 
 	// expect a call to fetch the deployment
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDeploymentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *appsv1.Deployment) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDeploymentName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *appsv1.Deployment, opt ...client.GetOption) error {
 			deploy.Name = testDeploymentName
 			deploy.Namespace = testNamespace
 			deploy.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
@@ -451,8 +451,8 @@ func TestReconcileDeploymentNoRestart(t *testing.T) {
 		})
 	// expect a call to fetch the deployment
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDeploymentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *appsv1.Deployment) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDeploymentName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *appsv1.Deployment, opt ...client.GetOption) error {
 			deploy.Name = testDeploymentName
 			deploy.Namespace = testNamespace
 			deploy.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
@@ -479,8 +479,8 @@ func TestReconcileDaemonSetRestartDaemonSet(t *testing.T) {
 
 	// expect a call to fetch the ApplicationConfiguration
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration, opt ...client.GetOption) error {
 			appConfig.Namespace = testNamespace
 			appConfig.Name = testAppConfigName
 			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
@@ -497,22 +497,22 @@ func TestReconcileDaemonSetRestartDaemonSet(t *testing.T) {
 
 	// expect a call to fetch the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured, opt ...client.GetOption) error {
 			return nil
 		})
 	// expect a call to fetch the daemonset
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDaemonSetName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, daemonset *appsv1.DaemonSet) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDaemonSetName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, daemonset *appsv1.DaemonSet, opt ...client.GetOption) error {
 			daemonset.Name = testDaemonSetName
 			daemonset.Namespace = testNamespace
 			return nil
 		})
 	// expect a call to fetch the daemonset
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDaemonSetName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, daemonset *appsv1.DaemonSet) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDaemonSetName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, daemonset *appsv1.DaemonSet, opt ...client.GetOption) error {
 			daemonset.Name = testDaemonSetName
 			daemonset.Namespace = testNamespace
 			return nil
@@ -544,8 +544,8 @@ func TestReconcileDaemonSetNoRestartDaemonSet(t *testing.T) {
 
 	// expect a call to fetch the ApplicationConfiguration
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration, opt ...client.GetOption) error {
 			appConfig.Namespace = testNamespace
 			appConfig.Name = testAppConfigName
 			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
@@ -562,14 +562,14 @@ func TestReconcileDaemonSetNoRestartDaemonSet(t *testing.T) {
 
 	// expect a call to fetch the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured, opt ...client.GetOption) error {
 			return nil
 		})
 	// expect a call to fetch the daemonset
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDaemonSetName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, daemonset *appsv1.DaemonSet) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDaemonSetName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, daemonset *appsv1.DaemonSet, opt ...client.GetOption) error {
 			daemonset.Name = testDaemonSetName
 			daemonset.Namespace = testNamespace
 			daemonset.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
@@ -578,8 +578,8 @@ func TestReconcileDaemonSetNoRestartDaemonSet(t *testing.T) {
 		})
 	// expect a call to fetch the daemonset
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDaemonSetName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, daemonset *appsv1.DaemonSet) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDaemonSetName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, daemonset *appsv1.DaemonSet, opt ...client.GetOption) error {
 			daemonset.Name = testDaemonSetName
 			daemonset.Namespace = testNamespace
 			daemonset.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
@@ -606,8 +606,8 @@ func TestReconcileStatefulSetRestart(t *testing.T) {
 
 	// expect a call to fetch the ApplicationConfiguration
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration, opt ...client.GetOption) error {
 			appConfig.Namespace = testNamespace
 			appConfig.Name = testAppConfigName
 			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
@@ -625,21 +625,21 @@ func TestReconcileStatefulSetRestart(t *testing.T) {
 	// expect a call to fetch the workload
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured, opt ...client.GetOption) error {
 			return nil
 		})
 	// expect a call to fetch the statefulset
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testStatefulSetName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testStatefulSetName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet, opt ...client.GetOption) error {
 			statefulset.Name = testStatefulSetName
 			statefulset.Namespace = testNamespace
 			return nil
 		})
 	// expect a call to fetch the statefulset
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testStatefulSetName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testStatefulSetName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet, opt ...client.GetOption) error {
 			statefulset.Name = testStatefulSetName
 			statefulset.Namespace = testNamespace
 			return nil
@@ -671,8 +671,8 @@ func TestReconcileStatefulSetNoRestart(t *testing.T) {
 
 	// expect a call to fetch the ApplicationConfiguration
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration, opt ...client.GetOption) error {
 			appConfig.Namespace = testNamespace
 			appConfig.Name = testAppConfigName
 			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
@@ -689,14 +689,14 @@ func TestReconcileStatefulSetNoRestart(t *testing.T) {
 
 	// expect a call to fetch the workload
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured, opt ...client.GetOption) error {
 			return nil
 		})
 	// expect a call to fetch the statefulset
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testStatefulSetName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testStatefulSetName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet, opt ...client.GetOption) error {
 			statefulset.Name = testStatefulSetName
 			statefulset.Namespace = testNamespace
 			statefulset.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
@@ -705,8 +705,8 @@ func TestReconcileStatefulSetNoRestart(t *testing.T) {
 		})
 	// expect a call to fetch the statefulset
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testStatefulSetName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testStatefulSetName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulset *appsv1.StatefulSet, opt ...client.GetOption) error {
 			statefulset.Name = testStatefulSetName
 			statefulset.Namespace = testNamespace
 			statefulset.Spec.Template.ObjectMeta.Annotations = make(map[string]string)

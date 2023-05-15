@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // The networkpolicies component is needed to apply network policies during install and upgrade before
@@ -76,11 +76,12 @@ func (c networkPoliciesComponent) IsEnabled(effectiveCR runtime.Object) bool {
 // PreInstall performs pre-install actions
 func (c networkPoliciesComponent) PreInstall(ctx spi.ComponentContext) error {
 	// Create all namespaces needed by network policies
-	common.CreateAndLabelNamespaces(ctx)
+	if err := common.CreateAndLabelNamespaces(ctx); err != nil {
+		return err
+	}
 
 	// Associate the network policies to the verrazzano-network-policies release
-	err := associateNetworkPoliciesWithHelm(ctx)
-	if err != nil {
+	if err := associateNetworkPoliciesWithHelm(ctx); err != nil {
 		return err
 	}
 
@@ -96,7 +97,9 @@ func (c networkPoliciesComponent) PostInstall(ctx spi.ComponentContext) error {
 // PreUpgrade performs pre-upgrade actions
 func (c networkPoliciesComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	// Create all namespaces needed by network policies
-	common.CreateAndLabelNamespaces(ctx)
+	if err := common.CreateAndLabelNamespaces(ctx); err != nil {
+		return err
+	}
 
 	// Associate the network policies to the verrazzano-network-policies release
 	err := associateNetworkPoliciesWithHelm(ctx)

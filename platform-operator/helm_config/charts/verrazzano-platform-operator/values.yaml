@@ -6,7 +6,8 @@ createNamespace: true
 namespaceLabelKey: verrazzano.io/namespace
 
 global:
-  imagePullSecrets: []
+  imagePullSecrets:
+    - verrazzano-container-registry
 
 # NOTE: The image value gets set in the bill of materials file (verrazzano-bom.json) during the
 # platform operator docker build.

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package helpers
 
@@ -31,6 +31,8 @@ const (
 	deploymentRevisionAnnotation = "deployment.kubernetes.io/revision"
 	defaultTimeout               = time.Duration(1) * time.Second
 	vpoPodName                   = "verrazzano-platform-operator-95d8c5d96-m6mbr"
+	testRegistry                 = "myreg.example.io"
+	testImagePrefix              = "myprefix"
 )
 
 var (
@@ -137,7 +139,7 @@ func TestApplyPlatformOperatorYaml(t *testing.T) {
 	// WHEN ApplyPlatformOperatorYaml is invoked,
 	// THEN an error is returned as the VZ resource is not in InstallComplete state.
 	cmdWithOperatorYaml := getCommandWithoutFlags()
-	cmdWithOperatorYaml.PersistentFlags().String(constants.OperatorFileFlag, "operator.yaml", "")
+	cmdWithOperatorYaml.PersistentFlags().String(constants.ManifestsFlag, "operator.yaml", "")
 	err = ApplyPlatformOperatorYaml(cmdWithOperatorYaml, fakeClient, rc, "1.5.0")
 	assert.Error(t, err)
 }
@@ -291,8 +293,183 @@ func TestGetOperationString(t *testing.T) {
 	assert.Equal(t, "upgrade", operation)
 }
 
+// TestGetExistingVPODeployment
+// GIVEN a K8S client
+//
+//	WHEN I call GetExistingVPODeployment
+//	THEN expect it to return the Verrazzano Platform operator deployment if it exists, nil if it doesn't
+func TestGetExistingVPODeployment(t *testing.T) {
+	var tests = []struct {
+		name      string
+		vpoExists bool
+	}{
+		{
+			"VPO exists",
+			true,
+		},
+		{
+			"VPO does not exist",
+			false,
+		},
+	}
+	for _, tt := range tests {
+		clientBuilder := fake.NewClientBuilder()
+		if tt.vpoExists {
+			clientBuilder = clientBuilder.WithObjects(
+				&appsv1.Deployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: vpoconst.VerrazzanoInstallNamespace,
+						Name:      constants.VerrazzanoPlatformOperator,
+					},
+				})
+		}
+		fakeClient := clientBuilder.Build()
+		vpo, err := GetExistingVPODeployment(fakeClient)
+		assert.NoError(t, err)
+		if tt.vpoExists {
+			assert.Equal(t, vpoconst.VerrazzanoInstallNamespace, vpo.Namespace)
+			assert.Equal(t, constants.VerrazzanoPlatformOperator, vpo.Name)
+		} else {
+			assert.Nil(t, vpo)
+		}
+	}
+}
+
+// TestGetExistingPrivateRegistrySettings
+// GIVEN a K8S client
+//
+//	WHEN I call getExistingPrivateRegistrySettings
+//	THEN expect it to return the Verrazzano Platform operator deployment's REGISTRY and IMAGE_REPO
+//	environment variables from the verrazzano-platform-operator container, empty strings for missing
+//	 values
+func TestGetExistingPrivateRegistrySettings(t *testing.T) {
+	var tests = []struct {
+		name             string
+		envVarsMap       map[string]string
+		expectedRegistry string
+		expectedPrefix   string
+	}{
+		{
+			"no env vars",
+			map[string]string{},
+			"",
+			"",
+		},
+		{
+			"no private registry env vars",
+			map[string]string{"someEnv": "someValue"},
+			"",
+			"",
+		},
+		{
+			"only registry env var",
+			map[string]string{vpoconst.RegistryOverrideEnvVar: testRegistry},
+			testRegistry,
+			"",
+		},
+		{
+			"only prefix env var",
+			map[string]string{vpoconst.ImageRepoOverrideEnvVar: "myImagePrefix/morestuff"},
+			"",
+			"myImagePrefix/morestuff",
+		},
+		{
+			"registry and prefix env vars",
+			map[string]string{
+				vpoconst.RegistryOverrideEnvVar:  testRegistry,
+				vpoconst.ImageRepoOverrideEnvVar: testImagePrefix,
+			},
+			testRegistry,
+			testImagePrefix,
+		},
+	}
+	for _, tt := range tests {
+		vpoDeploy := getVpoDeploymentWithEnvVars(tt.envVarsMap)
+		reg, prefix := getExistingPrivateRegistrySettings(vpoDeploy)
+		assert.Equal(t, tt.expectedRegistry, reg)
+		assert.Equal(t, tt.expectedPrefix, prefix)
+	}
+}
+
+// TestValidatePrivateRegistry
+// GIVEN a VZ command with/without private registry settings
+//
+//	WHEN I call ValidatePrivateRegistry
+//	THEN expect it to return an error if the settings in the command don't match existing
+//	VPO deployment env vars, nil if they match
+func TestValidatePrivateRegistry(t *testing.T) {
+	var tests = []struct {
+		name            string
+		existingEnvVars map[string]string
+		newRegistry     string
+		newPrefix       string
+		expectErr       bool
+		expectMsg       string
+	}{
+		{
+			"no private registry existing or new",
+			map[string]string{},
+			"",
+			"",
+			false,
+			"",
+		},
+		{
+			"no private registry existing VPO, but supplied in new command",
+			map[string]string{},
+			testRegistry,
+			testImagePrefix,
+			true,
+			imageRegistryMismatchError("", "", testRegistry, testImagePrefix),
+		},
+		{
+			"private registry existing VPO, but NOT supplied in new command",
+			map[string]string{vpoconst.RegistryOverrideEnvVar: testRegistry, vpoconst.ImageRepoOverrideEnvVar: testImagePrefix},
+			"",
+			"",
+			true,
+			imageRegistryMismatchError(testRegistry, testImagePrefix, "", ""),
+		},
+		{
+			"private registry settings in existing VPO and new command match",
+			map[string]string{vpoconst.RegistryOverrideEnvVar: testRegistry, vpoconst.ImageRepoOverrideEnvVar: testImagePrefix},
+			testRegistry,
+			testImagePrefix,
+			false,
+			"",
+		},
+	}
+	for _, tt := range tests {
+		vpoDeploy := getVpoDeploymentWithEnvVars(tt.existingEnvVars)
+		fakeClient := fake.NewClientBuilder().WithObjects(vpoDeploy).Build()
+		myCmd := getCommandWithoutFlags()
+		myCmd.PersistentFlags().String(constants.ImageRegistryFlag, tt.newRegistry, "")
+		myCmd.PersistentFlags().String(constants.ImagePrefixFlag, tt.newPrefix, "")
+		err := ValidatePrivateRegistry(myCmd, fakeClient)
+		if tt.expectErr {
+			assert.Error(t, err)
+			assert.Equal(t, tt.expectMsg, err.Error())
+		} else {
+			assert.NoError(t, err)
+		}
+	}
+}
+
+func getVpoDeploymentWithEnvVars(envVarsMap map[string]string) *appsv1.Deployment {
+	vpoDeploy := getVpoDeployment("1.5.0", 1, 1)
+	for idx := range vpoDeploy.Spec.Template.Spec.Containers {
+		container := &vpoDeploy.Spec.Template.Spec.Containers[idx]
+		if container.Name == constants.VerrazzanoPlatformOperator {
+			for envName, envValue := range envVarsMap {
+				container.Env = append(container.Env, corev1.EnvVar{Name: envName, Value: envValue})
+			}
+		}
+	}
+	return vpoDeploy
+}
+
 // getVpoDeployment returns just the deployment object simulating a Verrazzano Platform Operator deployment.
-func getVpoDeployment(vpoVersion string, updatedReplicas, availableReplicas int32) client.Object {
+func getVpoDeployment(vpoVersion string, updatedReplicas, availableReplicas int32) *appsv1.Deployment {
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vpoconst.VerrazzanoInstallNamespace,
@@ -304,6 +481,13 @@ func getVpoDeployment(vpoVersion string, updatedReplicas, availableReplicas int3
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
+			},
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{Name: constants.VerrazzanoPlatformOperator},
+					},
+				},
 			},
 		},
 		Status: appsv1.DeploymentStatus{

@@ -55,6 +55,9 @@ func newGrafana(cr *vzapi.Verrazzano, storage *common.ResourceRequestValues, exi
 			Name:           grafanaSpec.Database.Name,
 		}
 	}
+	if grafanaSpec.SMTP != nil {
+		grafana.SMTP = grafanaSpec.SMTP.DeepCopy()
+	}
 	log.Debugf("VMO grafana spec: %v", grafana)
 	return grafana
 }

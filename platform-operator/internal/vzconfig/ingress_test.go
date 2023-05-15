@@ -1,13 +1,13 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package vzconfig
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/test/ip"
 
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 
@@ -166,7 +166,7 @@ func TestGetIngressIP(t *testing.T) {
 			}
 			svc := &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: globalconst.IngressNamespace,
+					Namespace: nginxutil.IngressNGINXNamespace(),
 					Name:      vpoconst.NGINXControllerServiceName,
 				},
 			}
@@ -328,7 +328,7 @@ func TestGetDNSSuffix(t *testing.T) {
 			}
 			svc := &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: globalconst.IngressNamespace,
+					Namespace: nginxutil.IngressNGINXNamespace(),
 					Name:      vpoconst.NGINXControllerServiceName,
 				},
 			}

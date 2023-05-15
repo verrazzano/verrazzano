@@ -34,7 +34,7 @@ type erroringFakeClient struct {
 	client.Client
 }
 
-func (e erroringFakeClient) Get(_ context.Context, _ types.NamespacedName, _ client.Object) error {
+func (e erroringFakeClient) Get(_ context.Context, _ types.NamespacedName, _ client.Object, _ ...client.GetOption) error {
 	return fmt.Errorf("server-error")
 }
 

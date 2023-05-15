@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vzconfig
@@ -21,7 +21,7 @@ func GetExternalIP(client client.Client, serviceType vzapi.IngressType, name, na
 	if serviceType == vzapi.LoadBalancer || serviceType == vzapi.NodePort {
 		svc := v1.Service{}
 		if err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, &svc); err != nil {
-			return "", err
+			return "", fmt.Errorf("Error getting service %s/%s: %v", namespace, name, err)
 		}
 		// If externalIPs exists, use it; else use IP from status
 		if len(svc.Spec.ExternalIPs) > 0 {
