@@ -1,0 +1,67 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: opensearch
+  namespace: verrazzano-system
+  annotations:
+    cert-manager.io/common-name: opensearch.logging.default.1.2.3.4.nip.io
+    external-dns.alpha.kubernetes.io/target: verrazzano-ingress.default.1.2.3.4.nip.io
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: 65M
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/service-upstream: "true"
+    nginx.ingress.kubernetes.io/upstream-vhost: ${service_name}.${namespace}.svc.cluster.local
+spec:
+  ingressClassName: verrazzano-nginx
+  rules:
+    - host: "opensearch.logging.default.1.2.3.4.nip.io"
+      http:
+        paths:
+          - pathType: ImplementationSpecific
+            path: /()(.*)
+            backend:
+              service:
+                name: verrazzano-authproxy
+                port:
+                  number: 8775
+  tls:
+    - hosts:
+        - "opensearch.logging.default.1.2.3.4.nip.io"
+      secretName: tls-opensearch-ingress
+
+---
+{{- if eq (.Values.OpenSearchClusterSpec.dashboards.enable | toString | default "false") "true" }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: opensearch-dashboards
+  namespace: verrazzano-system
+  annotations:
+    cert-manager.io/common-name: osd.logging.default.1.2.3.4.nip.io
+    external-dns.alpha.kubernetes.io/target: verrazzano-ingress.default.1.2.3.4.nip.io
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: 65M
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/service-upstream: "true"
+    nginx.ingress.kubernetes.io/upstream-vhost: ${service_name}.${namespace}.svc.cluster.local
+spec:
+  ingressClassName: verrazzano-nginx
+  rules:
+    - host: "osd.logging.default.1.2.3.4.nip.io"
+      http:
+        paths:
+          - pathType: ImplementationSpecific
+            path: /()(.*)
+            backend:
+              service:
+                name: verrazzano-authproxy
+                port:
+                  number: 8775
+  tls:
+    - hosts:
+        - "osd.logging.default.1.2.3.4.nip.io"
+      secretName: tls-osd-ingress
+{{- end }}
+---

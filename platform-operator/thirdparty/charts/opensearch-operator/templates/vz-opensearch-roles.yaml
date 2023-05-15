@@ -1,0 +1,25 @@
+# Log pusher role for verrazzano to be used by fluentd
+
+apiVersion: opensearch.opster.io/v1
+kind: OpensearchRole
+metadata:
+  name: vz-log-pusher
+  namespace: {{ .Release.Namespace }}
+spec:
+  opensearchCluster:
+    name: {{ .Values.OpenSearchClusterSpec.name }}
+  clusterPermissions:
+    - "cluster:monitor/main"
+    - "cluster:monitor/state"
+    - "cluster:monitor/health"
+    - "cluster_manage_index_templates"
+    - "indices:admin/index_template/get"
+    - "indices:admin/index_template/put"
+    - "indices:admin/mapping/put"
+    - "indices:admin/mapping/get"
+    - "indices:admin/create"
+  indexPermissions:
+    - indexPatterns:
+        - "*verrazzano*"
+      allowedActions:
+        - indices_all
