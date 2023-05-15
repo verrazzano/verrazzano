@@ -17,12 +17,12 @@ import (
 
 // All of this below is to make Sonar happy
 type appendOverridesTest struct {
-	testName  string
-	config    *vzapi.Verrazzano
+	testName                  string
+	config                    *vzapi.Verrazzano
 	expectedNamespace         string
 	exectedSA                 string
 	expectedResourceNamespace string
-	expectErr bool
+	expectErr                 bool
 }
 
 // Test_appendOCIDNSOverrides tests the appendOCIDNSOverrides function
@@ -38,10 +38,21 @@ func Test_appendOCIDNSOverrides(t *testing.T) {
 		myResourceNamespace = "my-cluster-resource-ns"
 	)
 
+	ociDNSConfig := &vzapi.DNSComponent{
+		OCI: &vzapi.OCI{
+			OCIConfigSecret: "oci",
+		},
+	}
 	tests := []appendOverridesTest{
 		{
-			testName:                  "Default CM",
-			config:                    &vzapi.Verrazzano{},
+			testName: "Default CM",
+			config: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						DNS: ociDNSConfig,
+					},
+				},
+			},
 			expectedNamespace:         constants.CertManagerNamespace,
 			exectedSA:                 constants.CertManagerNamespace,
 			expectedResourceNamespace: constants.CertManagerNamespace,
@@ -54,6 +65,7 @@ func Test_appendOCIDNSOverrides(t *testing.T) {
 						CertManager: &vzapi.CertManagerComponent{
 							Enabled: &enabled,
 						},
+						DNS: ociDNSConfig,
 					},
 				},
 			},
@@ -72,6 +84,7 @@ func Test_appendOCIDNSOverrides(t *testing.T) {
 						ExternalCertManager: &vzapi.ExternalCertManagerComponent{
 							Enabled: &enabled,
 						},
+						DNS: ociDNSConfig,
 					},
 				},
 			},
@@ -91,6 +104,7 @@ func Test_appendOCIDNSOverrides(t *testing.T) {
 							Enabled:   &enabled,
 							Namespace: mycmNamespace,
 						},
+						DNS: ociDNSConfig,
 					},
 				},
 			},
@@ -112,6 +126,7 @@ func Test_appendOCIDNSOverrides(t *testing.T) {
 							ClusterResourceNamespace: myResourceNamespace,
 							ServiceAccountName:       mySA,
 						},
+						DNS: ociDNSConfig,
 					},
 				},
 			},
@@ -148,18 +163,14 @@ func Test_appendOCIDNSOverrides(t *testing.T) {
 						CertManager: &vzapi.CertManagerComponent{
 							Enabled: &enabled,
 						},
-						DNS: &vzapi.DNSComponent{
-							OCI: &vzapi.OCI{
-								OCIConfigSecret: "oci",
-							},
-						},
+						DNS: ociDNSConfig,
 					},
 				},
 			},
 			expectedNamespace:         constants.CertManagerNamespace,
 			exectedSA:                 constants.CertManagerNamespace,
 			expectedResourceNamespace: constants.CertManagerNamespace,
-			expectErr: false,
+			expectErr:                 false,
 		},
 		{
 			testName: "OCI DNS Secret configured alternate name ",
@@ -180,7 +191,7 @@ func Test_appendOCIDNSOverrides(t *testing.T) {
 			expectedNamespace:         constants.CertManagerNamespace,
 			exectedSA:                 constants.CertManagerNamespace,
 			expectedResourceNamespace: constants.CertManagerNamespace,
-			expectErr: false,
+			expectErr:                 false,
 		},
 	}
 	for _, tt := range tests {
@@ -191,7 +202,7 @@ func Test_appendOCIDNSOverrides(t *testing.T) {
 
 			var overrides []bom.KeyValue
 			var err error
-			overrides, err = appendOCIDNSOverrides(fakeContext, "", "", "", overrides)
+			overrides, err = appendOCIDNSOverrides(fakeContext, "", resolvedNamespace, "", overrides)
 
 			// Check error condition
 			if tt.expectErr {

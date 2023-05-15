@@ -324,7 +324,7 @@ type ComponentSpec struct {
 	// +optional
 	CAPI *CAPIComponent `json:"capi,omitempty"`
 
-	// The Verrazzano-managed Cert-Manager component configuration; note that this is mutually exclusive of the
+	// CertManager is the Verrazzano-managed Cert-Manager component configuration; note that this is mutually exclusive of the
 	// ExternalCertManager component
 	// +optional
 	CertManager *CertManagerComponent `json:"certManager,omitempty"`
@@ -350,7 +350,7 @@ type ComponentSpec struct {
 	// +optional
 	Elasticsearch *ElasticsearchComponent `json:"elasticsearch,omitempty"`
 
-	// Defines the settings for an externally-managed Cert-Manager instance to be used by this Verrazzano installation;
+	// ExternalCertManager defines the settings for an externally-managed Cert-Manager instance to be used by this Verrazzano installation;
 	// note that this is mutually exclusive of the CertManager component
 	// +optional
 	ExternalCertManager *ExternalCertManagerComponent `json:"externalCertManager,omitempty"`
