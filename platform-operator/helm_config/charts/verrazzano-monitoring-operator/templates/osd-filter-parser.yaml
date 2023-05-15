@@ -1,12 +1,13 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Filter
 metadata:
   labels:
     fluentbit.fluent.io/enabled: "true"
   name: opensearchDashboardsFilter
-  namespace: {{ .systemNamespace }}
+  namespace: {{ .Values.namespace }}
 spec:
   filters:
     - parser:
@@ -16,7 +17,7 @@ spec:
     - recordModifier:
         records:
            - 'level ${!!record["tags"] ? !(['trace', 'debug', 'info', 'warn', 'error', 'fail'] & record["tags"])[0].nil? ? (['trace', 'debug', 'info', 'warn', 'error', 'fail'] & record["tags"])[0] : "" : ""}'
-  match: "kubernetes.**vmi-system-osd**verrazzano-system_kibana**"
+  matchRegex: "kube.var.log.containers.*vmi-system-osd.*verrazzano-system.*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser
@@ -24,8 +25,9 @@ metadata:
   labels:
     verrazzano.io/fluentbit/parser: "true"
   name: opensearchDashboardsParser
-  namespace: {{ .systemNamespace }}
+  namespace: {{ .Values.namespace }}
 spec:
   json:
     timeKey: logtime
     timeFormat: "%Y-%m-%dT%H:%M:%SZ"
+{{ end -}}

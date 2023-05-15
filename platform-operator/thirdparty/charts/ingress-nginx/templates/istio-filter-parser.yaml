@@ -1,29 +1,31 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Filter
 metadata:
   labels:
     fluentbit.fluent.io/enabled: "true"
-  name: opensearchFilter
-  namespace: {{ .systemNamespace }}
+  name: istioProxyFilter
+  namespace: {{ .Release.Namespace }}
 spec:
   filters:
     - parser:
         keyName: log
         reserveData: true
-        parser: opensearchParser
-  match: "kubernetes.**vmi-system-es-**verrazzano-system_es-**"
+        parser: istioParser
+  match: "kubernetes.**istio-proxy** kubernetes.**istiod**istio-system_discovery**"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser
 metadata:
   labels:
     verrazzano.io/fluentbit/parser: "true"
-  name: opensearchParser
-  namespace: {{ .systemNamespace }}
+  name: istioParser
+  namespace: {{ .Release.Namespace }}
 spec:
   regex:
-    regex: '/^\[(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2},\d{3})\]\[(?<level>.*?)\]\[.*vmi-system-es-.*?\]\s(?<message>.*?)$/'
+    regex: '/^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{6}Z)\t(?<level>.*?)\t(?<message>[\s\S]*?)$/'
     timeKey: logtime
-    timeFormat: "%Y-%m-%dT%H:%M:%S,%N"
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%NZ"
+{{ end -}}

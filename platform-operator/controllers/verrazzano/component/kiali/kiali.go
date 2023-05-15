@@ -7,9 +7,6 @@ import (
 	"context"
 	"fmt"
 
-	securityv1beta1 "istio.io/api/security/v1beta1"
-	istiov1beta1 "istio.io/api/type/v1beta1"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -21,6 +18,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	securityv1beta1 "istio.io/api/security/v1beta1"
+	istiov1beta1 "istio.io/api/type/v1beta1"
 
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -41,8 +40,6 @@ const (
 	kialiSigningKeySecret = "kiali-signing-key" //nolint:gosec //#gosec G101
 	signingKey            = "signing-key"
 	signingKeyPath        = "login_token.signing_key"
-	// fluentOperatorFilterFile is the file name that consiste Filter and Parser resource for Fluent-Operator
-	fluentOperatorFilterFile = "kiali-filter-parser.yaml"
 )
 
 // isKialiReady checks if the Kiali deployment is ready

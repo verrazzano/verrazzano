@@ -7,15 +7,11 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
@@ -23,6 +19,8 @@ import (
 	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // ComponentName is the name of the component
@@ -153,22 +151,6 @@ func (t ThanosComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	}
 
 	return t.HelmComponent.PreUpgrade(ctx)
-}
-
-// PostInstall deletes the remaining resources after uninstallation
-func (t ThanosComponent) PostInstall(context spi.ComponentContext) error {
-	if err := controllers.ExecuteFluentFilterAndParser(context, fluentOperatorFilterFile, false); err != nil {
-		return err
-	}
-	return nil
-}
-
-// PostUninstall deletes the remaining resources after uninstallation
-func (t ThanosComponent) PostUninstall(context spi.ComponentContext) error {
-	if err := controllers.ExecuteFluentFilterAndParser(context, fluentOperatorFilterFile, true); err != nil {
-		return err
-	}
-	return nil
 }
 
 // GetIngressNames returns the Thanos ingress names

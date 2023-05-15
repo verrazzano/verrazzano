@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package oam
@@ -7,13 +7,11 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -116,16 +114,10 @@ func (c oamComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := ensureClusterRoles(ctx); err != nil {
 		return err
 	}
-	if err := controllers.ExecuteFluentFilterAndParser(ctx, fluentOperatorFilterFile, false); err != nil {
-		return err
-	}
 	return c.HelmComponent.PostInstall(ctx)
 }
 
 func (c oamComponent) PostUninstall(ctx spi.ComponentContext) error {
-	if err := controllers.ExecuteFluentFilterAndParser(ctx, fluentOperatorFilterFile, true); err != nil {
-		return err
-	}
 	return deleteOAMClusterRoles(ctx.Client(), ctx.Log())
 }
 

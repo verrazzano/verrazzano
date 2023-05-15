@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package nodeexporter
@@ -6,30 +6,25 @@ package nodeexporter
 import (
 	"context"
 	"fmt"
-
-	"k8s.io/apimachinery/pkg/runtime"
-
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
 
 const (
 	daemonsetName     = "prometheus-node-exporter" // Should match fullName override in prometheus-node-exporter-values.yaml
 	networkPolicyName = "node-exporter"
-	// fluentOperatorFilterFile is the file name that consiste Filter and Parser resource for Fluent-Operator
-	fluentOperatorFilterFile = "node-exporter-filter-parser.yaml"
 )
 
 // isPrometheusNodeExporterReady checks if the Prometheus Node-Exporter daemonset is ready

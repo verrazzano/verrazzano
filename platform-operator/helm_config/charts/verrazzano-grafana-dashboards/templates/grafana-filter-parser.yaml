@@ -1,12 +1,13 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Filter
 metadata:
   labels:
     fluentbit.fluent.io/enabled: "true"
   name: grafanaFilter
-  namespace: {{ .systemNamespace }}
+  namespace: {{ .Values.namespace }}
 spec:
   filters:
     - parser:
@@ -17,7 +18,7 @@ spec:
         records:
           - 'message ${record["@message"] ? record["@message"] : record["message"] ? record["message"] : ""}'
           - 'level ${record["@level"] ? record["@level"] : record["level"] ? record["level"] : ""}'
-  match: "kubernetes.**vmi-system-grafana**verrazzano-system_grafana**"
+  matchRegex: "kube.var.log.containers.*vmi-system-grafana.*verrazzano-system.*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser
@@ -25,7 +26,7 @@ metadata:
   labels:
     verrazzano.io/fluentbit/parser: "true"
   name: grafanaParser1
-  namespace: {{ .systemNamespace }}
+  namespace: {{ .Values.namespace }}
 spec:
   json:
     timeKey: logtime
@@ -37,9 +38,10 @@ metadata:
   labels:
     verrazzano.io/fluentbit/parser: "true"
   name: grafanaParser2
-  namespace: {{ .systemNamespace }}
+  namespace: {{ .Values.namespace }}
 spec:
   regex:
     regex: '/^t=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\+\d{4} lvl=(?<level>\S+) msg="(?<message>.*?)".*?$/'
     timeKey: logtime
     timeFormat: "%Y-%m-%dT%H:%M:%S"
+{{ end -}}

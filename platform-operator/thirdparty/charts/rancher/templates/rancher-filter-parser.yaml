@@ -1,12 +1,13 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Filter
 metadata:
   labels:
     fluentbit.fluent.io/enabled: "true"
   name: rancherFilter
-  namespace: {{ .rancherNamespace }}
+  namespace: {{ .Release.Namespace }}
 spec:
   filters:
     - parser:
@@ -21,7 +22,7 @@ metadata:
   labels:
     verrazzano.io/fluentbit/parser: "true"
   name: rancherFilter1
-  namespace: {{ .rancherNamespace }}
+  namespace: {{ .Release.Namespace }}
 spec:
   regex:
     regex: '/^time="(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)" level=(?<level>.*?) msg="(?<message>.*?)"[\s\S]*?$/'
@@ -34,7 +35,7 @@ metadata:
   labels:
     verrazzano.io/fluentbit/parser: "true"
   name: rancherFilter2
-  namespace: {{ .rancherNamespace }}
+  namespace: {{ .Release.Namespace }}
 spec:
   regex:
     regex: '/^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) \[(?<level>.*?)\] (?<message>[\s\S]*?)?$/'
@@ -47,7 +48,7 @@ metadata:
   labels:
     verrazzano.io/fluentbit/parser: "true"
   name: rancherFilter3
-  namespace: {{ .rancherNamespace }}
+  namespace: {{ .Release.Namespace }}
 spec:
   regex:
     regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'
@@ -60,7 +61,7 @@ metadata:
   labels:
     fluentbit.fluent.io/enabled: "true"
   name: rancherFilter
-  namespace: {{ .cattleFleetNamespace }}
+  namespace: {{ "cattle-fleet-system" }}
 spec:
   filters:
     - parser:
@@ -75,7 +76,7 @@ metadata:
   labels:
     verrazzano.io/fluentbit/parser: "true"
   name: rancherFilter1
-  namespace: {{ .cattleFleetNamespace }}
+  namespace: {{ "cattle-fleet-system" }}
 spec:
   regex:
     regex: '/^time="(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)" level=(?<level>.*?) msg="(?<message>.*?)"[\s\S]*?$/'
@@ -88,7 +89,7 @@ metadata:
   labels:
     verrazzano.io/fluentbit/parser: "true"
   name: rancherFilter2
-  namespace: {{ .cattleFleetNamespace }}
+  namespace: {{ "cattle-fleet-system" }}
 spec:
   regex:
     regex: '/^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) \[(?<level>.*?)\] (?<message>[\s\S]*?)?$/'
@@ -101,7 +102,7 @@ metadata:
   labels:
     verrazzano.io/fluentbit/parser: "true"
   name: rancherFilter3
-  namespace: {{ .cattleFleetNamespace }}
+  namespace: {{ "cattle-fleet-system" }}
 spec:
   regex:
     regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'
@@ -114,7 +115,7 @@ metadata:
   labels:
     fluentbit.fluent.io/enabled: "true"
   name: rancherFilter
-  namespace: {{ .cattleFleetLocalNamespace }}
+  namespace: {{ "cattle-fleet-local-system" }}
 spec:
   filters:
     - parser:
@@ -129,7 +130,7 @@ metadata:
   labels:
     verrazzano.io/fluentbit/parser: "true"
   name: rancherFilter1
-  namespace: {{ .cattleFleetLocalNamespace }}
+  namespace: {{ "cattle-fleet-local-system" }}
 spec:
   regex:
     regex: '/^time="(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)" level=(?<level>.*?) msg="(?<message>.*?)"[\s\S]*?$/'
@@ -142,7 +143,7 @@ metadata:
   labels:
     verrazzano.io/fluentbit/parser: "true"
   name: rancherFilter2
-  namespace: {{ .cattleFleetLocalNamespace }}
+  namespace: {{ "cattle-fleet-local-system" }}
 spec:
   regex:
     regex: '/^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) \[(?<level>.*?)\] (?<message>[\s\S]*?)?$/'
@@ -155,9 +156,10 @@ metadata:
   labels:
     verrazzano.io/fluentbit/parser: "true"
   name: rancherFilter3
-  namespace: {{ .cattleFleetLocalNamespace }}
+  namespace: {{ "cattle-fleet-local-system" }}
 spec:
   regex:
     regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'
     timeKey: logtime
     timeFormat: "%H:%M:%S.%N"
+{{ end -}}

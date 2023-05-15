@@ -6,27 +6,16 @@ package authproxy
 import (
 	"context"
 	"fmt"
-	"io/fs"
-	"os"
-
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-
-	"k8s.io/apimachinery/pkg/runtime"
+	"io/fs"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	netv1 "k8s.io/api/networking/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/types"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -34,6 +23,13 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/types"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -43,8 +39,6 @@ const (
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
 	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
 	adminClusterOidcID   = "verrazzano-pkce"
-	// fluentOperatorFilterFile is the file name that consiste Filter and Parser resource for Fluent-Operator
-	fluentOperatorFilterFile = "authproxy-filter-parser.yaml"
 )
 
 var (

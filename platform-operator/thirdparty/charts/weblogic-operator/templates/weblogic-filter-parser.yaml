@@ -1,32 +1,33 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Filter
 metadata:
   labels:
     fluentbit.fluent.io/enabled: "true"
-  name: nginxFilter
-  namespace: {{ .ingressNamespace }}
+  name: webLogicOperatorFilter
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   filters:
     - parser:
         keyName: log
         reserveData: true
-        parser: nginxParser
-  match: "**ingress-nginx-controller**ingress-nginx_controller-**"
+        parser: webLogicOperatorParser
+    - recordModifier:
+        removeKeys:
+          - timestamp
+  match: 'kubernetes.**weblogic-operator**verrazzano-system_weblogic-operator**'
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser
 metadata:
   labels:
     verrazzano.io/fluentbit/parser: "true"
-  name: nginxParser
-  namespace: {{ .ingressNamespace }}
+  name: webLogicOperatorParser
+  namespace: {{ .Release.Namespace | quote }}
 spec:
-  regex:
-    regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'
-    timeKey: logtime
-    timeFormat: "%Y-%m-%dT%H:%M:%S,%N"
   json:
     timeKey: logtime
-    timeFormat: "%Y-%m-%dT%H:%M:%S+%N"
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%NZ"
+{{ end -}}

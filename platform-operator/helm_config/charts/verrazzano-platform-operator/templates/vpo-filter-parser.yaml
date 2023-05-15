@@ -1,19 +1,20 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Filter
 metadata:
   labels:
     fluentbit.fluent.io/enabled: "true"
   name: vpoFilter
-  namespace: {{ .systemNamespace }}
+  namespace: {{ .Values.namespace }}
 spec:
   filters:
     - parser:
         keyName: log
         reserveData: true
         parser: vpoParser1,vpoParser2
-  match: 'kubernetes.**verrazzano-**-operator** kubernetes.**verrazzano-**_webhook-init**'
+  matchRegex: "kube.var.log.containers.*verrazzano-.*operator.* kube.var.log.containers.*verrazzano.*_webhook-init.*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser
@@ -21,7 +22,7 @@ metadata:
   labels:
     verrazzano.io/fluentbit/parser: "true"
   name: vpoParser1
-  namespace: {{ .systemNamespace }}
+  namespace: {{ .Values.namespace }}
 spec:
   regex:
     regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'
@@ -34,8 +35,9 @@ metadata:
   labels:
     verrazzano.io/fluentbit/parser: "true"
   name: vpoParser2
-  namespace: {{ .systemNamespace }}
+  namespace: {{ .Values.namespace }}
 spec:
   json:
     timeKey: logtime
     timeFormat: "%Y-%m-%dT%H:%M:%S.%NZ"
+{{ end -}}

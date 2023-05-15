@@ -1,29 +1,31 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Filter
 metadata:
   labels:
     fluentbit.fluent.io/enabled: "true"
-  name: oamFilter
-  namespace: {{ .certManagerNamespace }}
+  name: keycloakFilter
+  namespace: {{ .Release.Namespace }}
 spec:
   filters:
     - parser:
         keyName: log
         reserveData: true
-        parser: certManagerParser
-  match: "kubernetes.**cert-manager**cert-manager**"
+        parser: keycloakParser
+  matchRegex: "kube.var.log.containers.*keycloak.*keycloak.*keycloak"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser
 metadata:
   labels:
     verrazzano.io/fluentbit/parser: "true"
-  name: certManagerParser
-  namespace: {{ .certManagerNamespace }}
+  name: keycloakParser
+  namespace: {{ .Release.Namespace }}
 spec:
   regex:
-    regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'
+    regex: '/^.*?(?<logtime>\d{2}:\d{2}:\d{2},\d{3}) (?<level>.*?)( |\t)+\[.*?\]( |\t)+\(.*?\)( |\t)+(?<message>.*)$/'
     timeKey: logtime
-    timeFormat: "%H:%M:%S.%N"
+    timeFormat: "%H:%M:%S,%N"
+{{ end -}}

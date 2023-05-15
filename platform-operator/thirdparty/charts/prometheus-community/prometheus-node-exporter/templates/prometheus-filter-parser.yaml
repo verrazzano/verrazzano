@@ -1,12 +1,13 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Filter
 metadata:
   labels:
     fluentbit.fluent.io/enabled: "true"
   name: prometheusFilter
-  namespace: {{ .systemNamespace }}
+  namespace: {{ template "prometheus-node-exporter.namespace" . }}
 spec:
   filters:
     - parser:
@@ -21,7 +22,7 @@ metadata:
   labels:
     verrazzano.io/fluentbit/parser: "true"
   name: prometheusParser1
-  namespace: {{ .systemNamespace }}
+  namespace: {{ template "prometheus-node-exporter.namespace" . }}
 spec:
   regex:
     regex: '/^ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)(.*)level=(?<level>.*?) (.*?)msg="(?<message>.*?)"([\s\S]*?)$/'
@@ -34,7 +35,7 @@ metadata:
   labels:
     verrazzano.io/fluentbit/parser: "true"
   name: prometheusParser2
-  namespace: {{ .systemNamespace }}
+  namespace: {{ template "prometheus-node-exporter.namespace" . }}
 spec:
   regex:
     regex: '/^ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)(.*)level=(?<level>.*?) (?<message>[\s\S]*?)$/'
@@ -47,9 +48,10 @@ metadata:
   labels:
     verrazzano.io/fluentbit/parser: "true"
   name: prometheusParser3
-  namespace: {{ .systemNamespace }}
+  namespace: {{ template "prometheus-node-exporter.namespace" . }}
 spec:
   regex:
     regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'
     timeKey: logtime
     timeFormat: "%H:%M:%S.%N"
+{{ end -}}

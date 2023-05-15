@@ -9,8 +9,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -113,18 +111,7 @@ func (c prometheusNodeExporterComponent) MonitorOverrides(ctx spi.ComponentConte
 
 // PostInstall creates/updates associated resources after this component is installed
 func (c prometheusNodeExporterComponent) PostInstall(ctx spi.ComponentContext) error {
-	if err := controllers.ExecuteFluentFilterAndParser(ctx, fluentOperatorFilterFile, false); err != nil {
-		return err
-	}
 	return createOrUpdateNetworkPolicies(ctx)
-}
-
-// PostUninstall deletes the remaining resources
-func (c prometheusNodeExporterComponent) PostUninstall(ctx spi.ComponentContext) error {
-	if err := controllers.ExecuteFluentFilterAndParser(ctx, fluentOperatorFilterFile, true); err != nil {
-		return err
-	}
-	return nil
 }
 
 // PostUpgrade creates/updates associated resources after this component is installed

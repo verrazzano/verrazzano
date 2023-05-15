@@ -9,12 +9,10 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
-	"k8s.io/apimachinery/pkg/runtime"
-
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 
@@ -22,12 +20,11 @@ import (
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // ComponentName is the name of the component
@@ -139,9 +136,6 @@ func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 // PostInstall - actions to perform post installing this component
 func (c authProxyComponent) PostInstall(ctx spi.ComponentContext) error {
 	removeDeprecatedAuthProxyESServiceIfExists(ctx)
-	if err := controllers.ExecuteFluentFilterAndParser(ctx, fluentOperatorFilterFile, false); err != nil {
-		return err
-	}
 	return c.HelmComponent.PostInstall(ctx)
 }
 
@@ -172,9 +166,7 @@ func (c authProxyComponent) Uninstall(context spi.ComponentContext) error {
 			return err
 		}
 	}
-	if err := controllers.ExecuteFluentFilterAndParser(context, fluentOperatorFilterFile, true); err != nil {
-		return err
-	}
+
 	return nil
 }
 

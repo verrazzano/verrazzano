@@ -6,19 +6,6 @@ package mysql
 import (
 	"context"
 	"fmt"
-	"os"
-	"strings"
-
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
-	controllerruntime "sigs.k8s.io/controller-runtime"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	k8sready "github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -36,6 +23,17 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"os"
+	controllerruntime "sigs.k8s.io/controller-runtime"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 )
 
 const (
@@ -144,8 +142,6 @@ use keycloak;
 GRANT XA_RECOVER_ADMIN ON *.* to 'keycloak'@'%%';
 EOF
 `
-	// fluentOperatorFilterFile is the file name that consiste Filter and Parser resource for Fluent-Operator
-	fluentOperatorFilterFile = "mysql-filter-parser.yaml"
 )
 
 var (

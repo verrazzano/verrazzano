@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package coherence
@@ -7,16 +7,13 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/webhook"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -27,19 +24,14 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
-const (
-	// ComponentName is the name of the component
-	ComponentName = "coherence-operator"
+// ComponentName is the name of the component
+const ComponentName = "coherence-operator"
 
-	// ComponentNamespace is the namespace of the component
-	ComponentNamespace = constants.VerrazzanoSystemNamespace
+// ComponentNamespace is the namespace of the component
+const ComponentNamespace = constants.VerrazzanoSystemNamespace
 
-	// ComponentJSONName is the JSON name of the verrazzano component in CRD
-	ComponentJSONName = "coherenceOperator"
-
-	// fluentOperatorFilterFile is the file name that consiste Filter and Parser resource for Fluent-Operator
-	fluentOperatorFilterFile = "coherenceoperator-filter-parser.yaml"
-)
+// ComponentJSONName is the JSON name of the verrazzano component in CRD
+const ComponentJSONName = "coherenceOperator"
 
 type coherenceComponent struct {
 	helm.HelmComponent
@@ -113,22 +105,11 @@ func (c coherenceComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	return false
 }
 
-// PostInstall - actions to perform post installing this component
-func (c coherenceComponent) PostInstall(ctx spi.ComponentContext) error {
-	if err := controllers.ExecuteFluentFilterAndParser(ctx, fluentOperatorFilterFile, false); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (c coherenceComponent) PostUninstall(context spi.ComponentContext) error {
 	if err := webhook.DeleteValidatingWebhookConfiguration(context.Log(), context.Client(), "coherence-operator-validating-webhook-configuration"); err != nil {
 		return err
 	}
 	if err := webhook.DeleteMutatingWebhookConfiguration(context.Log(), context.Client(), "coherence-operator-mutating-webhook-configuration"); err != nil {
-		return err
-	}
-	if err := controllers.ExecuteFluentFilterAndParser(context, fluentOperatorFilterFile, true); err != nil {
 		return err
 	}
 	return nil

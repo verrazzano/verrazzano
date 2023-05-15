@@ -6,21 +6,14 @@ package operator
 import (
 	"context"
 	"fmt"
-	"path/filepath"
-
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-
-	"k8s.io/apimachinery/pkg/runtime"
+	"path/filepath"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-
-	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
@@ -31,6 +24,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -151,17 +147,7 @@ func (c jaegerOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
 	// these need to be set for helm component post install processing
 	c.IngressNames = c.GetIngressNames(ctx)
 	c.Certificates = c.GetCertificateNames(ctx)
-	if err := controllers.ExecuteFluentFilterAndParser(ctx, fluentOperatorFilterFile, false); err != nil {
-		return err
-	}
 	return c.HelmComponent.PostInstall(ctx)
-}
-
-func (c jaegerOperatorComponent) PostUninstall(ctx spi.ComponentContext) error {
-	if err := controllers.ExecuteFluentFilterAndParser(ctx, fluentOperatorFilterFile, true); err != nil {
-		return err
-	}
-	return nil
 }
 
 // PostUpgrade creates or updates the ingress of Jaeger UI service after a Verrazzano upgrade

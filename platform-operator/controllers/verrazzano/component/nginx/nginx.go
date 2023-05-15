@@ -6,17 +6,22 @@ package nginx
 import (
 	"context"
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -25,8 +30,6 @@ const (
 
 	ControllerName = vpoconst.NGINXControllerServiceName
 	backendName    = "ingress-controller-ingress-nginx-defaultbackend"
-	// fluentOperatorFilterFile is the file name that consiste Filter and Parser resource for Fluent-Operator
-	fluentOperatorFilterFile = "nginx-filter-parser.yaml"
 )
 
 func (c nginxComponent) isNginxReady(context spi.ComponentContext) bool {
@@ -111,9 +114,6 @@ func PostInstall(ctx spi.ComponentContext, _ string, _ string) error {
 	mergeFromSvc := client.MergeFrom(svcPatch.DeepCopy())
 	svcPatch.Spec.Ports = ingressConfig.Ports
 	if err := c.Patch(context.TODO(), &svcPatch, mergeFromSvc); err != nil {
-		return err
-	}
-	if err := controllers.ExecuteFluentFilterAndParser(ctx, fluentOperatorFilterFile, false); err != nil {
 		return err
 	}
 	return nil

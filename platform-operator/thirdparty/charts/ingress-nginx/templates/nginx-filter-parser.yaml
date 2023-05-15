@@ -1,29 +1,34 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Filter
 metadata:
   labels:
     fluentbit.fluent.io/enabled: "true"
-  name: prometheusConfigFilter
-  namespace: {{ .systemNamespace }}
+  name: nginxFilter
+  namespace: {{ .Release.Namespace }}
 spec:
   filters:
     - parser:
         keyName: log
         reserveData: true
-        parser: prometheusConfigParser
-  match: "kubernetes.**vmi-system-prometheus**verrazzano-system_config-reloader**"
+        parser: nginxParser
+  match: "**ingress-nginx-controller**ingress-nginx_controller-**"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser
 metadata:
   labels:
     verrazzano.io/fluentbit/parser: "true"
-  name: prometheusConfigParser
-  namespace: {{ .systemNamespace }}
+  name: nginxParser
+  namespace: {{ .Release.Namespace }}
 spec:
   regex:
-    regex: '/^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) (?<message>[\s\S]*?)$/'
+    regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'
     timeKey: logtime
-    timeFormat: "%Y/%m/%d %H:%M:%S"
+    timeFormat: "%Y-%m-%dT%H:%M:%S,%N"
+  json:
+    timeKey: logtime
+    timeFormat: "%Y-%m-%dT%H:%M:%S+%N"
+{{ end -}}

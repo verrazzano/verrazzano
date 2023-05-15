@@ -10,16 +10,10 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
-	"k8s.io/apimachinery/pkg/runtime"
-
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-
-	appv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -30,6 +24,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	appv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // ComponentName is the name of the component
@@ -94,9 +91,6 @@ func (c kialiComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := c.createOrUpdateKialiResources(ctx); err != nil {
 		return err
 	}
-	if err := controllers.ExecuteFluentFilterAndParser(ctx, fluentOperatorFilterFile, false); err != nil {
-		return err
-	}
 	return c.HelmComponent.PostInstall(ctx)
 }
 
@@ -148,14 +142,6 @@ func (c kialiComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	return c.createOrUpdateKialiResources(ctx)
-}
-
-// PostUninstall removed the remaining resources
-func (c kialiComponent) PostUninstall(ctx spi.ComponentContext) error {
-	if err := controllers.ExecuteFluentFilterAndParser(ctx, fluentOperatorFilterFile, true); err != nil {
-		return err
-	}
-	return nil
 }
 
 // IsReady Kiali-specific ready-check
