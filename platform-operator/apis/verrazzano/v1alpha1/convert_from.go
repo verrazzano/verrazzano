@@ -153,7 +153,7 @@ func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 	}
 }
 
-func convertExternalCertManagerFromV1Beta1(in *v1beta1.ExternalCertManagerComponent) *ExternalCertManagerComponent {
+func convertExternalCertManagerFromV1Beta1(in *v1beta1.CertificateIssuerComponent) *ExternalCertManagerComponent {
 	if in == nil {
 		return nil
 	}
