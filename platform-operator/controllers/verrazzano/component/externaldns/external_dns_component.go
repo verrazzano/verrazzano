@@ -5,8 +5,12 @@ package externaldns
 
 import (
 	"fmt"
+	"path/filepath"
+
+	"k8s.io/apimachinery/pkg/runtime"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"

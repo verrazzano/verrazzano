@@ -10,14 +10,13 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -68,7 +67,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			AppendOverridesFunc:       appendOverrides,
-			Dependencies:              []string{networkpolicies.ComponentName},
+			Dependencies:              []string{},
 			GetInstallOverridesFunc:   GetOverrides,
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DaemonsetNames: []types.NamespacedName{
