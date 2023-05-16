@@ -1,6 +1,7 @@
 ### v1.5.4
-- Rancher v2.7.2
+- Rancher v2.7.3
 - Fixed Argo CD bug to allow the policy.csv field in the argocd-rbac-cm ConfigMap to be overridden.
+
 
 ### v1.5.3
 Component version updates:
