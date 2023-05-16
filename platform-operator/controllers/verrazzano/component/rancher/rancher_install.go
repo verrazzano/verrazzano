@@ -18,7 +18,7 @@ import (
 
 // patchRancherIngress annotates the Rancher ingress with environment specific values
 func patchRancherIngress(c client.Client, vz *vzapi.Verrazzano) error {
-	cm := vz.Spec.Components.CertManager
+	cm := vz.Spec.Components.ClusterIssuer
 	if cm == nil {
 		return errors.New("CertificateManager was not found in the effective CR")
 	}

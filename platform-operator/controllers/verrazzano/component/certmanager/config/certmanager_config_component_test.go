@@ -5,9 +5,7 @@ package config
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
+	"testing"
 
 	cmutil "github.com/cert-manager/cert-manager/pkg/api/util"
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -16,10 +14,15 @@ import (
 	certv1client "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
+	cmcommonfake "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common/fake"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
+	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -27,9 +30,6 @@ import (
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
-
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
 const (
@@ -361,7 +361,10 @@ auth:
 	}
 	assert.NoError(t, err)
 
-	actualIssuer, err := createACMEIssuerObject(ctx)
+	cmConfig, err := cmcommon.GetCertManagerConfiguration(ctx.EffectiveCR())
+	assert.NoError(t, err)
+
+	actualIssuer, err := createACMEIssuerObject(vzlog.DefaultLogger(), client, ctx.EffectiveCR(), cmConfig)
 	assert.Equal(t, expectedIssuer.Object["spec"], actualIssuer.Object["spec"])
 	assert.NoError(t, err)
 }
@@ -482,8 +485,8 @@ func TestClusterIssuerUpdated(t *testing.T) {
 
 	// Create an issuer
 	issuerName := caCertCommonName + "-a23asdfa"
-	fakeIssuerCert := cmcommon.CreateFakeCertificate(issuerName)
-	fakeIssuerCertBytes, err := cmcommon.CreateFakeCertBytes(issuerName, nil)
+	fakeIssuerCert := cmcommonfake.CreateFakeCertificate(issuerName)
+	fakeIssuerCertBytes, err := cmcommonfake.CreateFakeCertBytes(issuerName, nil)
 	if err != nil {
 		return
 	}
@@ -492,7 +495,7 @@ func TestClusterIssuerUpdated(t *testing.T) {
 		return
 	}
 	// Create a leaf cert signed by the above issuer
-	fakeCertBytes, err := cmcommon.CreateFakeCertBytes("common-name", fakeIssuerCert)
+	fakeCertBytes, err := cmcommonfake.CreateFakeCertBytes("common-name", fakeIssuerCert)
 	if err != nil {
 		return
 	}
@@ -610,7 +613,7 @@ func createCertSecret(name string, namespace string, fakeCertBytes []byte) (*cor
 }
 
 func createCertSecretNoParent(name string, namespace string, cn string) (*corev1.Secret, error) {
-	fakeCertBytes, err := cmcommon.CreateFakeCertBytes(cn, nil)
+	fakeCertBytes, err := cmcommonfake.CreateFakeCertBytes(cn, nil)
 	if err != nil {
 		return nil, err
 	}

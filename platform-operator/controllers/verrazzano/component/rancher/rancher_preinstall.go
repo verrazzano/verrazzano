@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -43,7 +43,7 @@ func createCattleSystemNamespace(log vzlog.VerrazzanoLogger, c client.Client) er
 // copyDefaultCACertificate copies the defaultVerrazzanoName TLS Secret to the ComponentNamespace for use by Rancher
 // This method will only copy defaultVerrazzanoName if default CA certificates are being used.
 func copyDefaultCACertificate(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.Verrazzano) error {
-	cm := vz.Spec.Components.CertManager
+	cm := vz.Spec.Components.ClusterIssuer
 	if isUsingDefaultCACertificate(cm) {
 		namespacedName := types.NamespacedName{Namespace: defaultSecretNamespace, Name: defaultVerrazzanoName}
 		defaultSecret := &v1.Secret{}
@@ -73,9 +73,9 @@ func copyDefaultCACertificate(log vzlog.VerrazzanoLogger, c client.Client, vz *v
 	return nil
 }
 
-func isUsingDefaultCACertificate(cm *vzapi.CertManagerComponent) bool {
+func isUsingDefaultCACertificate(cm *vzapi.ClusterIssuerComponent) bool {
 	return cm != nil &&
 		cm.Certificate.CA != vzapi.CA{} &&
 		cm.Certificate.CA.SecretName == defaultVerrazzanoName &&
-		cm.Certificate.CA.ClusterResourceNamespace == defaultSecretNamespace
+		cm.ClusterResourceNamespace == defaultSecretNamespace
 }

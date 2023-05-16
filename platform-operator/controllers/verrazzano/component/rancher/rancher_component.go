@@ -212,7 +212,7 @@ func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 
 // appendCAOverrides sets overrides for CA Issuers, ACME or CA.
 func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyValue, error) {
-	cm := ctx.EffectiveCR().Spec.Components.CertManager
+	cm := ctx.EffectiveCR().Spec.Components.ClusterIssuer
 	if cm == nil {
 		return kvs, log.ErrorfThrottledNewErr("Failed to find certManager component in effective cr")
 	}

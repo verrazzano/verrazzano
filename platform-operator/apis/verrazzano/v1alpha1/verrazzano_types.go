@@ -1179,7 +1179,7 @@ type LetsEncryptACMEIssuer struct {
 
 // CA - Deprecated.  Identifies the Certificate Authority cert issuer.
 type CA struct {
-	// The secret namespace.
+	// Deprecated, use the ClusterIssuerComponent ClusterResourceNamespace field instead
 	ClusterResourceNamespace string `json:"clusterResourceNamespace"`
 	// The secret name.
 	SecretName string `json:"secretName"`

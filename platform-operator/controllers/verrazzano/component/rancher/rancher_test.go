@@ -55,6 +55,16 @@ var (
 						},
 					},
 				},
+				ClusterIssuer: &vzapi.ClusterIssuerComponent{
+					ClusterResourceNamespace: defaultSecretNamespace,
+					Certificate: vzapi.Certificate{
+						Acme: vzapi.Acme{
+							Provider:     "foobar",
+							EmailAddress: "foo@bar.com",
+							Environment:  "dev",
+						},
+					},
+				},
 				DNS: &vzapi.DNSComponent{
 					External: &vzapi.External{Suffix: common.RancherName},
 				},

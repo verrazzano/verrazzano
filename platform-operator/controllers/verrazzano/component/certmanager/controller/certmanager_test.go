@@ -13,6 +13,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
+	cmcommonfake "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common/fake"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
@@ -80,7 +81,7 @@ func init() {
 // THEN the function returns true
 func TestIsCertManagerEnabled(t *testing.T) {
 	localvz := defaultVZConfig.DeepCopy()
-	localvz.Spec.Components.CertManager.Enabled = common.GetBoolPtr(true)
+	localvz.Spec.Components.CertManager.Enabled = cmcommonfake.GetBoolPtr(true)
 	assert.True(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, nil, false).EffectiveCR()))
 }
 
@@ -109,7 +110,7 @@ func TestCleanTempFiles(t *testing.T) {
 // THEN the function returns false
 func TestIsCertManagerDisabled(t *testing.T) {
 	localvz := defaultVZConfig.DeepCopy()
-	localvz.Spec.Components.CertManager.Enabled = common.GetBoolPtr(false)
+	localvz.Spec.Components.CertManager.Enabled = cmcommonfake.GetBoolPtr(false)
 	assert.False(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, nil, false).EffectiveCR()))
 }
 
@@ -445,7 +446,7 @@ func newReplicaSet(name string) *appsv1.ReplicaSet {
 }
 
 func createCertSecretNoParent(name string, namespace string, cn string) (*v1.Secret, error) {
-	fakeCertBytes, err := common.CreateFakeCertBytes(cn, nil)
+	fakeCertBytes, err := cmcommonfake.CreateFakeCertBytes(cn, nil)
 	if err != nil {
 		return nil, err
 	}
