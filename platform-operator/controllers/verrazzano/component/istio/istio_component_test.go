@@ -7,21 +7,31 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
+	"os"
+	"os/exec"
+	"strings"
+	"testing"
+	"text/template"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/istio"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/test/ip"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -33,13 +43,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	gofake "k8s.io/client-go/kubernetes/fake"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"os"
-	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"strings"
-	"testing"
-	"text/template"
 )
 
 // fakeRunner is used to test istio without actually running an OS exec command
@@ -256,6 +261,25 @@ var crInstall = &v1alpha1.Verrazzano{
 
 var comp = istioComponent{}
 
+func createRelease(name string, status release.Status) *release.Release {
+	now := time.Now()
+	return &release.Release{
+		Name:      IstioCoreDNSReleaseName,
+		Namespace: IstioNamespace,
+		Info: &release.Info{
+			FirstDeployed: now,
+			LastDeployed:  now,
+			Status:        status,
+			Description:   "Named Release Stub",
+		},
+		Version: 1,
+	}
+}
+
+func testActionConfigWithInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return helm.CreateActionConfig(true, IstioCoreDNSReleaseName, release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
+}
+
 // TestGetName tests the component name
 // GIVEN a Verrazzano component
 //
@@ -319,22 +343,24 @@ func TestPostUpgrade(t *testing.T) {
 	k8sutil.SetFakeClient(clientSet)
 
 	config.SetDefaultBomFilePath(testBomFilePath)
-	helm.SetCmdRunner(fakeRunner{})
-	defer helm.SetDefaultRunner()
+	defer helm.SetDefaultActionConfigFunction()
+
+	helm.SetActionConfigFunction(testActionConfigWithInstallation)
+
 	SetHelmUninstallFunction(fakeHelmUninstall)
 	SetDefaultHelmUninstallFunction()
 	err := comp.PostUpgrade(spi.NewFakeContext(getMock(t), crInstall, nil, false))
 	a.NoError(err, "PostUpgrade returned an error")
 }
 
-func fakeHelmUninstall(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
+func fakeHelmUninstall(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (err error) {
 	if releaseName != "istiocoredns" {
-		return []byte("error"), []byte(""), fmt.Errorf("expected release name istiocoredns does not match provided release name of %v", releaseName)
+		return fmt.Errorf("expected release name istiocoredns does not match provided release name of %v", releaseName)
 	}
 	if releaseName != "istio-system" {
-		return []byte("error"), []byte(""), fmt.Errorf("expected namespace istio-system does not match provided namespace of %v", namespace)
+		return fmt.Errorf("expected namespace istio-system does not match provided namespace of %v", namespace)
 	}
-	return []byte("success"), []byte(""), nil
+	return nil
 }
 
 func getMock(t *testing.T) *mocks.MockClient {
@@ -349,14 +375,14 @@ func getMock(t *testing.T) *mocks.MockClient {
 		}).AnyTimes()
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: "default"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, _ *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: "default"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, _ *v1.Secret, opts ...client.GetOption) error {
 			return nil
 		}).AnyTimes()
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: IstioNamespace}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, _ *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: IstioNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, _ *v1.Secret, opts ...client.GetOption) error {
 			return nil
 		}).AnyTimes()
 
@@ -367,8 +393,8 @@ func getMock(t *testing.T) *mocks.MockClient {
 		}).AnyTimes()
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: IstioIngressgatewayDeployment, Namespace: IstioNamespace}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, svc *v1.Service) error {
+		Get(gomock.Any(), types.NamespacedName{Name: IstioIngressgatewayDeployment, Namespace: IstioNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, svc *v1.Service, opts ...client.GetOption) error {
 			svc.Status.LoadBalancer.Ingress = []v1.LoadBalancerIngress{
 				{
 					IP: "0.0.0.0",

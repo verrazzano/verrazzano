@@ -10,6 +10,9 @@ import (
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/rancher"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
+	"github.com/verrazzano/verrazzano/pkg/rancherutil"
 	"go.uber.org/zap"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -31,7 +34,7 @@ const (
 )
 
 // StartClusterOperator Cluster operator execution entry point
-func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAddr string, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
+func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAddr string, ingressHost string, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
 	options := ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
@@ -40,6 +43,12 @@ func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAd
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "42d5ea87.verrazzano.io",
 	}
+
+	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	if err != nil {
+		return err
+	}
+	nginxutil.SetIngressNGINXNamespace(ingressNGINXNamespace)
 
 	ctrlConfig := k8sutil.GetConfigOrDieFromController()
 	mgr, err := ctrl.NewManager(ctrlConfig, options)
@@ -74,10 +83,15 @@ func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAd
 		}
 	}
 
+	if ingressHost == "" {
+		ingressHost = rancherutil.DefaultRancherIngressHostPrefix + nginxutil.IngressNGINXNamespace()
+	}
+
 	// Set up the reconciler for VerrazzanoManagedCluster objects
 	if err = (&vmc.VerrazzanoManagedClusterReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		RancherIngressHost: ingressHost,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller VerrazzanoManagedCluster")
 		os.Exit(1)

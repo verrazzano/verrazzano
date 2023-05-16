@@ -27,6 +27,7 @@ KIND_NODE_COUNT=${KIND_NODE_COUNT:-1}
 TEST_OVERRIDE_CONFIGMAP_FILE="./tests/e2e/config/scripts/pre-install-overrides/test-overrides-configmap.yaml"
 TEST_OVERRIDE_SECRET_FILE="./tests/e2e/config/scripts/pre-install-overrides/test-overrides-secret.yaml"
 INSTALL_TIMEOUT_VALUE=${INSTALL_TIMEOUT:-30m}
+ENABLE_THANOS_STORE_GATEWAY=${ENABLE_THANOS_STORE_GATEWAY:-false}
 
 cd ${GO_REPO_PATH}/verrazzano
 echo "tests will execute" > ${TESTS_EXECUTED_FILE}
@@ -141,6 +142,12 @@ VZ_INSTALL_FILE=${VZ_INSTALL_FILE:-"${WORKSPACE}/acceptance-test-config.yaml"}
 if [ $USE_DB_FOR_GRAFANA == true ]; then
   ./tests/e2e/config/scripts/process_grafana_db_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND}
 fi
+
+# If Thanos Store Gateway flag is set, create the storage provider secret and update the Thanos overrides in the VZ file
+if [ $ENABLE_THANOS_STORE_GATEWAY == true ]; then
+  ./tests/e2e/config/scripts/configure_thanos_storegateway_install.sh ${INSTALL_CONFIG_FILE_KIND}
+fi
+
 cp -v ${INSTALL_CONFIG_FILE_KIND} ${VZ_INSTALL_FILE}
 
 echo "Creating Override ConfigMap"
@@ -160,10 +167,10 @@ fi
 echo "Installing Verrazzano on Kind"
 if [ -f "$WORKSPACE/vz" ]; then
   cd $WORKSPACE
-  ./vz install --filename ${WORKSPACE}/acceptance-test-config.yaml --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
+  ./vz install --filename ${WORKSPACE}/acceptance-test-config.yaml --manifests ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
 else
   cd ${GO_REPO_PATH}/verrazzano/tools/vz
-  GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
+  GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${VZ_INSTALL_FILE} --manifests ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
 fi
 result=$?
 if [[ $result -ne 0 ]]; then

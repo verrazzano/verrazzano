@@ -1,10 +1,15 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package kiali
 
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -29,7 +34,7 @@ type erroringFakeClient struct {
 	client.Client
 }
 
-func (e erroringFakeClient) Get(_ context.Context, _ types.NamespacedName, _ client.Object) error {
+func (e erroringFakeClient) Get(_ context.Context, _ types.NamespacedName, _ client.Object, _ ...client.GetOption) error {
 	return fmt.Errorf("server-error")
 }
 
@@ -131,10 +136,23 @@ func TestAppendOverrides(t *testing.T) {
 //	WHEN the deployment object has enough replicas available
 //	THEN true is returned
 func TestIsKialiReady(t *testing.T) {
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
+	defer helm.SetDefaultActionConfigFunction()
+	helm.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helm.CreateActionConfig(true, kialiSystemName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			now := time.Now()
+			return &release.Release{
+				Name:      kialiSystemName,
+				Namespace: ComponentNamespace,
+				Info: &release.Info{
+					FirstDeployed: now,
+					LastDeployed:  now,
+					Status:        releaseStatus,
+					Description:   "Named Release Stub",
+				},
+				Version: 1,
+			}
+		})
 	})
-	defer helm.SetDefaultChartStatusFunction()
 
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&appsv1.Deployment{
@@ -183,10 +201,23 @@ func TestIsKialiReady(t *testing.T) {
 //	WHEN the deployment object does NOT have enough replicas available
 //	THEN false is returned
 func TestIsKialiNotReady(t *testing.T) {
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
+	defer helm.SetDefaultActionConfigFunction()
+	helm.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helm.CreateActionConfig(true, kialiSystemName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			now := time.Now()
+			return &release.Release{
+				Name:      kialiSystemName,
+				Namespace: ComponentNamespace,
+				Info: &release.Info{
+					FirstDeployed: now,
+					LastDeployed:  now,
+					Status:        releaseStatus,
+					Description:   "Named Release Stub",
+				},
+				Version: 1,
+			}
+		})
 	})
-	defer helm.SetDefaultChartStatusFunction()
 
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -209,10 +240,12 @@ func TestIsKialiNotReady(t *testing.T) {
 //	WHEN the Kiali chart is not found
 //	THEN false is returned
 func TestIsKialiNotReadyChartNotFound(t *testing.T) {
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartNotFound, nil
+	helm.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helm.CreateActionConfig(false, kialiSystemName, "", vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			return nil
+		})
 	})
-	defer helm.SetDefaultChartStatusFunction()
+	defer helm.SetDefaultActionConfigFunction()
 
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	kiali := NewComponent().(kialiComponent)

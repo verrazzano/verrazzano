@@ -8,14 +8,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -39,6 +41,8 @@ var argocdEnabled bool
 var t = framework.NewTestFramework("verrazzano")
 
 var _ = t.AfterEach(func() {})
+
+var ingressNGINXNamespace string
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
@@ -65,6 +69,11 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	keycloakEnabled = pkg.IsKeycloakEnabled(kubeconfigPath)
 	mySQLOperatorEnabled = pkg.IsMySQLOperatorEnabled(kubeconfigPath)
 	argocdEnabled = pkg.IsArgoCDEnabled(kubeconfigPath)
+
+	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	if err != nil {
+		Fail(err.Error())
+	}
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -472,7 +481,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 		t.It("has expected controller deployment", func() {
 			if isMinVersion110 {
 				Eventually(func() (bool, error) {
-					return pkg.DoesDeploymentExist(constants.IngressNamespace, constants.IngressController)
+					return pkg.DoesDeploymentExist(ingressNGINXNamespace, constants.IngressController)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
@@ -481,7 +490,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 		t.It("has expected defaultBackend deployment", func() {
 			if isMinVersion110 {
 				Eventually(func() (bool, error) {
-					return pkg.DoesDeploymentExist(constants.IngressNamespace, constants.IngressDefaultBackend)
+					return pkg.DoesDeploymentExist(ingressNGINXNamespace, constants.IngressDefaultBackend)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
@@ -498,7 +507,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has affinity configured as expected", func() {
 			if isMinVersion140 {
-				assertPodAntiAffinity(map[string]string{"app": "ingress-nginx"}, constants.IngressNamespace)
+				assertPodAntiAffinity(map[string]string{"app": "ingress-nginx"}, ingressNGINXNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
 			}
@@ -739,21 +748,21 @@ func validateCorrectNumberOfIngressNGINXPodsRunning() {
 	var controllerDeployment *appsv1.Deployment
 	Eventually(func() (*appsv1.Deployment, error) {
 		var err error
-		controllerDeployment, err = pkg.GetDeployment(constants.IngressNamespace, "ingress-controller-ingress-nginx-controller")
+		controllerDeployment, err = pkg.GetDeployment(ingressNGINXNamespace, "ingress-controller-ingress-nginx-controller")
 		return controllerDeployment, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 	var defaultBackendDeployment *appsv1.Deployment
 	Eventually(func() (*appsv1.Deployment, error) {
 		var err error
-		defaultBackendDeployment, err = pkg.GetDeployment(constants.IngressNamespace, constants.IngressDefaultBackend)
+		defaultBackendDeployment, err = pkg.GetDeployment(ingressNGINXNamespace, constants.IngressDefaultBackend)
 		return defaultBackendDeployment, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 	var pods []corev1.Pod
 	Eventually(func() bool {
 		var err error
-		pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/name": "ingress-nginx"}}, constants.IngressNamespace)
+		pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/name": "ingress-nginx"}}, ingressNGINXNamespace)
 		if err != nil {
 			return false
 		}
@@ -799,7 +808,9 @@ func validateCorrectNumberOfPodsRunningSts(stsName string, nameSpace string, lab
 }
 
 // Validate the verrazzano-system service ports to make sure they follow Istio conventions for
-// naming ports.  Ports should have the prefix of "http-" or "https-" or be equal to "http" or "https".
+// naming ports.  Ports should have the prefix of "http-", "https-", or "grpc-", or be equal to
+// "http", "https", or "grpc". Note that this is not an exhaustive list of valid Istio port names; these
+// are the port names that we currently use.
 func validateVerrazzanoSystemServicePorts() {
 	// Get the list of verrazzano-system services
 	var services *corev1.ServiceList
@@ -825,9 +836,10 @@ func validateVerrazzanoSystemServicePorts() {
 			}
 			if checkName {
 				hasPrefix := false
-				if strings.Compare(port.Name, "http") == 0 || strings.Compare(port.Name, "https") == 0 ||
-					strings.HasPrefix(port.Name, "http-") || strings.HasPrefix(port.Name, "https-") ||
-					(port.AppProtocol != nil && (strings.Compare(*port.AppProtocol, "http") == 0 || strings.Compare(*port.AppProtocol, "https") == 0)) {
+				if strings.Compare(port.Name, "http") == 0 || strings.Compare(port.Name, "https") == 0 || strings.Compare(port.Name, "grpc") == 0 ||
+					strings.HasPrefix(port.Name, "http-") || strings.HasPrefix(port.Name, "https-") || strings.HasPrefix(port.Name, "grpc-") ||
+					(port.AppProtocol != nil &&
+						(strings.Compare(*port.AppProtocol, "http") == 0 || strings.Compare(*port.AppProtocol, "https") == 0 || strings.Compare(*port.AppProtocol, "grpc") == 0)) {
 					hasPrefix = true
 				}
 				Expect(hasPrefix).Should(BeTrue(), fmt.Sprintf("Service \"%s\" port name \"%s\" is not a valid port name", service.Name, port.Name))

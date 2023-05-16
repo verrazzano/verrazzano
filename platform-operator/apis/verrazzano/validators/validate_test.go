@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package validators
@@ -261,7 +261,7 @@ func TestGetSupportedKubernetesVersion(t *testing.T) {
 	assert.Error(t, err)
 
 	config.SetDefaultBomFilePath(testBomFilePath)
-	var versionArray = []string{"v1.20.0", "v1.21.0", "v1.22.0", "v1.23.0", "v1.24.0"}
+	var versionArray = []string{"v1.20.0", "v1.21.0", "v1.22.0", "v1.23.0", "v1.24.0", "v1.25.0"}
 	kubeSupportedVersions, err := getSupportedKubernetesVersions()
 	assert.NoError(t, err)
 	assert.Equal(t, kubeSupportedVersions, versionArray)

@@ -71,9 +71,20 @@ func (r *VerrazzanoManagedClusterReconciler) getJaegerOpenSearchConfig(vzList *v
 
 	// Decide which OpenSearch URL to use.
 	// If the Jaeger OpenSearch URL is the default URL, use VMI OpenSearch ingress URL.
+	// If the Jaeger OpenSearch URL is the default operator based URL, use operator based OpenSearch ingress URL.
 	// If the Jaeger OpenSearch URL  is not the default, meaning it is a custom OpenSearch, use the external OpenSearch URL.
 	if jsc.OSURL == vzconstants.DefaultJaegerOSURL {
-		jc.URL, err = r.getVmiESURL()
+		jc.URL, err = r.getESURL(*vzList, vmiIngest)
+		if err != nil {
+			return jc, err
+		}
+		// Get the CA bundle needed to connect to the admin keycloak
+		jc.CA, err = r.getAdminCaBundle()
+		if err != nil {
+			return jc, r.log.ErrorfNewErr("Failed to get the CA bundle used by Verrazzano ingress %v", err)
+		}
+	} else if jsc.OSURL == vzconstants.DefaultOperatorOSURLWithNS {
+		jc.URL, err = r.getESURL(*vzList, operatorOSIngress)
 		if err != nil {
 			return jc, err
 		}
@@ -169,9 +180,9 @@ func (r *VerrazzanoManagedClusterReconciler) getJaegerSpecConfig(vzList *vzapi.V
 }
 
 // canUseVZOpenSearchStorage determines if Verrazzano's OpenSearch can be used as a storage for Jaeger instance.
-// As default Jaeger uses Authproxy to connect to OpenSearch storage, check if Keycloak component is also enabled.
+// As default Jaeger uses Authproxy to connect to OpenSearch storage, check if Keycloak and authproxy components is also enabled.
 func canUseVZOpenSearchStorage(vz vzapi.Verrazzano) bool {
-	if vzcr.IsOpenSearchEnabled(&vz) && vzcr.IsKeycloakEnabled(&vz) {
+	if vzcr.IsOpenSearchEnabled(&vz) && vzcr.IsKeycloakEnabled(&vz) && vzcr.IsAuthProxyEnabled(&vz) {
 		return true
 	}
 	return false

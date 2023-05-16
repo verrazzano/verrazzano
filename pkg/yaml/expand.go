@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package yaml
@@ -31,14 +31,14 @@ import (
 //
 // The last segment of the name might be a quoted string, for example:
 //
-//	controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape" : 10Mbps
+//	controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape" : flexible
 //
 // which translates to
 //
 //	controller:
 //	  service:
 //	    annotations:
-//	      service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps
+//	      service.beta.kubernetes.io/oci-load-balancer-shape: flexible
 //
 // If forcelist is true then always use the list format.
 func Expand(leftMargin int, forceList bool, name string, vals ...string) (string, error) {

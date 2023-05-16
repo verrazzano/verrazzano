@@ -94,17 +94,17 @@ func convertVerrazzanoInstanceFromV1Beta1(instance *v1beta1.InstanceInfo) *Insta
 		return nil
 	}
 	return &InstanceInfo{
-		ArgoCDURL:              instance.ArgoCDURL,
-		ConsoleURL:             instance.ConsoleURL,
-		KeyCloakURL:            instance.KeyCloakURL,
-		RancherURL:             instance.RancherURL,
-		ElasticURL:             instance.OpenSearchURL,
-		KibanaURL:              instance.OpenSearchDashboardsURL,
-		GrafanaURL:             instance.GrafanaURL,
-		PrometheusURL:          instance.PrometheusURL,
-		KialiURL:               instance.KialiURL,
-		JaegerURL:              instance.JaegerURL,
-		ThanosQueryFrontendURL: instance.ThanosQueryFrontendURL,
+		ArgoCDURL:      instance.ArgoCDURL,
+		ConsoleURL:     instance.ConsoleURL,
+		KeyCloakURL:    instance.KeyCloakURL,
+		RancherURL:     instance.RancherURL,
+		ElasticURL:     instance.OpenSearchURL,
+		KibanaURL:      instance.OpenSearchDashboardsURL,
+		GrafanaURL:     instance.GrafanaURL,
+		PrometheusURL:  instance.PrometheusURL,
+		KialiURL:       instance.KialiURL,
+		JaegerURL:      instance.JaegerURL,
+		ThanosQueryURL: instance.ThanosQueryURL,
 	}
 }
 
@@ -118,6 +118,7 @@ func convertSecuritySpecFromV1Beta1(security v1beta1.SecuritySpec) SecuritySpec 
 func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 	return ComponentSpec{
 		CertManager:            convertCertManagerFromV1Beta1(in.CertManager),
+		ExternalCertManager:    convertExternalCertManagerFromV1Beta1(in.ExternalCertManager),
 		CoherenceOperator:      convertCoherenceOperatorFromV1Beta1(in.CoherenceOperator),
 		ApplicationOperator:    convertApplicationOperatorFromV1Beta1(in.ApplicationOperator),
 		AuthProxy:              convertAuthProxyFromV1Beta1(in.AuthProxy),
@@ -148,6 +149,20 @@ func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 		Velero:                 convertVeleroFromV1Beta1(in.Velero),
 		Verrazzano:             convertVerrazzanoFromV1Beta1(in.Verrazzano),
 		ArgoCD:                 convertArgoCDFromV1Beta1(in.ArgoCD),
+		CAPI:                   convertCAPIFromV1Beta1(in.CAPI),
+	}
+}
+
+func convertExternalCertManagerFromV1Beta1(in *v1beta1.ExternalCertManagerComponent) *ExternalCertManagerComponent {
+	if in == nil {
+		return nil
+	}
+	return &ExternalCertManagerComponent{
+		Certificate:              convertCertificateFromV1Beta1(in.Certificate),
+		Enabled:                  in.Enabled,
+		Namespace:                in.Namespace,
+		ServiceAccountName:       in.ServiceAccountName,
+		ClusterResourceNamespace: in.ClusterResourceNamespace,
 	}
 }
 
@@ -168,6 +183,15 @@ func convertAuthProxyFromV1Beta1(in *v1beta1.AuthProxyComponent) *AuthProxyCompo
 	return &AuthProxyComponent{
 		Enabled:          in.Enabled,
 		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
+	}
+}
+
+func convertCAPIFromV1Beta1(in *v1beta1.CAPIComponent) *CAPIComponent {
+	if in == nil {
+		return nil
+	}
+	return &CAPIComponent{
+		Enabled: in.Enabled,
 	}
 }
 
@@ -343,6 +367,7 @@ func convertGrafanaFromV1Beta1(in *v1beta1.GrafanaComponent) *GrafanaComponent {
 		Enabled:  in.Enabled,
 		Replicas: in.Replicas,
 		Database: info,
+		SMTP:     in.SMTP,
 	}
 }
 

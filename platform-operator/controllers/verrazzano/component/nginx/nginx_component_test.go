@@ -5,6 +5,7 @@ package nginx
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -559,7 +560,7 @@ func TestPostUninstall(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:       ComponentNamespace,
+				Name:       nginxutil.IngressNGINXNamespace(),
 				Finalizers: []string{"fake-finalizer"},
 			},
 		},
@@ -571,7 +572,7 @@ func TestPostUninstall(t *testing.T) {
 
 	// Validate that the namespace does not exist
 	ns := corev1.Namespace{}
-	err := compContext.Client().Get(context.TODO(), types.NamespacedName{Name: ComponentNamespace}, &ns)
+	err := compContext.Client().Get(context.TODO(), types.NamespacedName{Name: nginxutil.IngressNGINXNamespace()}, &ns)
 	assert.True(t, errors.IsNotFound(err))
 }
 func newScheme() *runtime.Scheme {

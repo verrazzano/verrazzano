@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/pkg/vzmap"
@@ -93,6 +94,7 @@ func CreateOrUpdateSystemComponentIngress(ctx spi.ComponentContext, props Ingres
 		ingress.Annotations["nginx.ingress.kubernetes.io/service-upstream"] = "true"
 		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
 		ingress.Annotations["cert-manager.io/common-name"] = qualifiedHostName
+		ingress.Annotations["cert-manager.io/cluster-issuer"] = vzconst.VerrazzanoClusterIssuerName
 		if vzcr.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
 			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
@@ -101,7 +103,7 @@ func CreateOrUpdateSystemComponentIngress(ctx spi.ComponentContext, props Ingres
 		ingress.Annotations = vzmap.UnionStringMaps(ingress.Annotations, props.ExtraAnnotations)
 		return nil
 	})
-	if ctrlerrors.ShouldLogKubenetesAPIError(err) {
+	if ctrlerrors.ShouldLogKubernetesAPIError(err) {
 		return ctx.Log().ErrorfNewErr("Failed creating/updating ingress %s: %v", props.IngressName, err)
 	}
 	return err

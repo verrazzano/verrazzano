@@ -7,22 +7,23 @@ import (
 	"errors"
 	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	vzbugreport "github.com/verrazzano/verrazzano/tools/vz/pkg/bugreport"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"io/fs"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
 
 const (
-	CommandName = "bug-report"
-	helpShort   = "Collect information from the cluster to report an issue"
-	helpLong    = `Verrazzano command line utility to collect data from the cluster, to report an issue`
-	helpExample = `
+	flagErrorStr = "error fetching flag: %s"
+	CommandName  = "bug-report"
+	helpShort    = "Collect information from the cluster to report an issue"
+	helpLong     = `Verrazzano command line utility to collect data from the cluster, to report an issue`
+	helpExample  = `
 # Create a bug report file, bugreport.tar.gz, by collecting data from the cluster:
 vz bug-report --report-file bugreport.tar.gz
 
@@ -70,10 +71,24 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	start := time.Now()
-	bugReportFile, err := getBugReportFile(cmd, vzHelper)
+	newCmd := analyze.NewCmdAnalyze(vzHelper)
+	err := setUpFlags(cmd, newCmd)
 	if err != nil {
-		return fmt.Errorf("error fetching flag: %s", err.Error())
+		return fmt.Errorf(flagErrorStr, err.Error())
+	}
+	analyzeErr := analyze.RunCmdAnalyze(newCmd, vzHelper, false)
+	if analyzeErr != nil {
+		fmt.Fprintf(vzHelper.GetErrorStream(), "Error calling vz analyze %s \n", analyzeErr.Error())
+	}
+
+	start := time.Now()
+	// determines the bug report file
+	bugReportFile, err := cmd.PersistentFlags().GetString(constants.BugReportFileFlagName)
+	if err != nil {
+		return fmt.Errorf(flagErrorStr, err.Error())
+	}
+	if bugReportFile == "" {
+		bugReportFile = constants.BugReportFileDefaultValue
 	}
 
 	// Get the kubernetes clientset, which will validate that the kubeconfigFlagValPointer and contextFlagValPointer are valid.
@@ -94,18 +109,20 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return err
 	}
 
-	// Check whether the file already exists
-	err = checkExistingFile(bugReportFile)
-	if err != nil {
-		return err
+	// Create the bug report file
+	var bugRepFile *os.File
+	if bugReportFile == constants.BugReportFileDefaultValue {
+		bugReportFile = strings.Replace(bugReportFile, "dt", start.Format(constants.DatetimeFormat), 1)
+		bugRepFile, err = os.CreateTemp(".", bugReportFile)
+		if err != nil && (errors.Is(err, fs.ErrPermission) || strings.Contains(err.Error(), constants.ReadOnly)) {
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Warning: %s, creating report in current directory, using temp directory instead\n", fs.ErrPermission)
+			bugRepFile, err = os.CreateTemp("", bugReportFile)
+		}
+	} else {
+		bugRepFile, err = os.OpenFile(bugReportFile, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
 	}
 
-	// Create the bug report file
-	bugRepFile, err := os.Create(bugReportFile)
 	if err != nil {
-		if errors.Is(err, fs.ErrPermission) {
-			return fmt.Errorf("permission denied to create the bug report: %s", bugReportFile)
-		}
 		return fmt.Errorf("an error occurred while creating %s: %s", bugReportFile, err.Error())
 	}
 	defer bugRepFile.Close()
@@ -149,9 +166,10 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	helpers.SetVerboseOutput(isVerbose)
 
 	// Capture cluster snapshot
-	err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, bugReportDir, moreNS, vzHelper, vzbugreport.PodLogs{IsPodLog: isPodLog, Duration: durationValue})
+	clusterSnapshotCtx := helpers.ClusterSnapshotCtx{BugReportDir: bugReportDir, MoreNS: moreNS, PrintReportToConsole: false}
+	err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, vzHelper, vzbugreport.PodLogs{IsPodLog: isPodLog, Duration: durationValue}, clusterSnapshotCtx)
 	if err != nil {
-		os.Remove(bugReportFile)
+		os.Remove(bugRepFile.Name())
 		return fmt.Errorf(err.Error())
 	}
 
@@ -168,9 +186,9 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return fmt.Errorf("there is an error in creating the bug report, %s", err.Error())
 	}
 
-	brf, _ := os.Stat(bugReportFile)
+	brf, _ := os.Stat(bugRepFile.Name())
 	if brf.Size() > 0 {
-		msg := fmt.Sprintf("Created bug report: %s in %s\n", bugReportFile, time.Since(start))
+		msg := fmt.Sprintf("Created bug report: %s in %s\n", bugRepFile.Name(), time.Since(start))
 		fmt.Fprintf(vzHelper.GetOutputStream(), msg)
 		// Display a message to check the standard error, if the command reported any error and continued
 		if helpers.IsErrorReported() {
@@ -179,49 +197,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		displayWarning(msg, vzHelper)
 	} else {
 		// Verrazzano is not installed, remove the empty bug report file
-		os.Remove(bugReportFile)
-	}
-	return nil
-}
-
-// getBugReportFile determines the bug report file
-func getBugReportFile(cmd *cobra.Command, vzHelper helpers.VZHelper) (string, error) {
-	bugReport, err := cmd.PersistentFlags().GetString(constants.BugReportFileFlagName)
-	if err != nil {
-		return "", fmt.Errorf("error fetching flag: %s", err.Error())
-	}
-	if bugReport == "" {
-		currentDir, err := os.Getwd()
-		if err != nil {
-			return "", fmt.Errorf("error determining the current directory: %s", err.Error())
-		}
-		return filepath.Join(currentDir, constants.BugReportFileDefaultValue), nil
-	}
-	return bugReport, nil
-}
-
-// checkExistingFile determines whether a file / directory with the name bugReportFile already exists
-func checkExistingFile(bugReportFile string) error {
-	// Fail if the bugReportFile already exists or is a directory
-	fileInfo, err := os.Stat(bugReportFile)
-	if fileInfo != nil {
-		if fileInfo.IsDir() {
-			return fmt.Errorf("%s is an existing directory", bugReportFile)
-		}
-		return fmt.Errorf("file %s already exists", bugReportFile)
-	}
-
-	// check if the parent directory exists
-	if err != nil {
-		fi, fe := os.Stat(filepath.Dir(bugReportFile))
-		if fi != nil {
-			if !fi.IsDir() {
-				return fmt.Errorf("%s is not a directory", filepath.Dir(bugReportFile))
-			}
-		}
-		if fe != nil {
-			return fmt.Errorf("an error occurred while creating %s: %s", bugReportFile, fe.Error())
-		}
+		os.Remove(bugRepFile.Name())
 	}
 	return nil
 }
@@ -257,25 +233,45 @@ func isDirEmpty(directory string, ignoreFilesCount int) bool {
 // creates a new bug-report cobra command, initailizes and sets the required flags, and runs the new command.
 // Returns the original error that's passed in as a parameter to preserve the error received from previous cli command failure.
 func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) error {
-	cmd2 := NewCmdBugReport(vzHelper)
-	kubeconfigFlag, errFlag := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
-	if errFlag != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
-		return err
+	newCmd := NewCmdBugReport(vzHelper)
+	flagErr := setUpFlags(cmd, newCmd)
+	if flagErr != nil {
+		return flagErr
 	}
-	contextFlag, errFlag2 := cmd.Flags().GetString(constants.GlobalFlagContext)
-	if errFlag2 != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag2.Error())
-		return err
-	}
-	cmd2.Flags().StringVar(&kubeconfigFlagValPointer, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
-	cmd2.Flags().StringVar(&contextFlagValPointer, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
-	cmd2.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
-	cmd2.Flags().Set(constants.GlobalFlagContext, contextFlag)
-	bugReportErr := runCmdBugReport(cmd2, []string{}, vzHelper)
+	bugReportErr := runCmdBugReport(newCmd, []string{}, vzHelper)
 	if bugReportErr != nil {
 		fmt.Fprintf(vzHelper.GetErrorStream(), "Error calling vz bug-report %s \n", bugReportErr.Error())
 	}
 	// return original error from running vz command which was passed into CallVzBugReport as a parameter
 	return err
+}
+
+// AutoBugReport checks that AutoBugReportFlag is set and then kicks off vz bugreport CLI command. It returns the same error that is passed in
+func AutoBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) error {
+	autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
+	if errFlag != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
+		return err
+	}
+	if autoBugReportFlag {
+		//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from either installVerrazzano() or waitForInstallToComplete()
+		err = CallVzBugReport(cmd, vzHelper, err)
+	}
+	return err
+}
+
+func setUpFlags(cmd *cobra.Command, newCmd *cobra.Command) error {
+	kubeconfigFlag, errFlag := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
+	if errFlag != nil {
+		return fmt.Errorf(flagErrorStr, errFlag.Error())
+	}
+	contextFlag, errFlag2 := cmd.Flags().GetString(constants.GlobalFlagContext)
+	if errFlag2 != nil {
+		return fmt.Errorf(flagErrorStr, errFlag2.Error())
+	}
+	newCmd.Flags().StringVar(&kubeconfigFlagValPointer, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
+	newCmd.Flags().StringVar(&contextFlagValPointer, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
+	newCmd.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
+	newCmd.Flags().Set(constants.GlobalFlagContext, contextFlag)
+	return nil
 }

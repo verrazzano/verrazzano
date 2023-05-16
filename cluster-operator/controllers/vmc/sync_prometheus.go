@@ -1,11 +1,11 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vmc
 
 import (
 	"context"
-	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"strings"
 
 	"github.com/Jeffail/gabs/v2"
@@ -17,7 +17,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/yaml"
 )
@@ -57,34 +56,10 @@ basic_auth:
 
 // syncPrometheusScraper will create a scrape configuration for the cluster and update the prometheus config map.  There will also be an
 // entry for the cluster's CA cert added to the prometheus config map to allow for lookup of the CA cert by the scraper's HTTP client.
-func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-	var secret corev1.Secret
-
-	// read the configuration secret specified if it exists
-	if len(vmc.Spec.CASecret) > 0 {
-		secretNsn := types.NamespacedName{
-			Namespace: vmc.Namespace,
-			Name:      vmc.Spec.CASecret,
-		}
-
-		// validate secret if it exists
-		if err := r.Get(context.TODO(), secretNsn, &secret); err != nil {
-			return fmt.Errorf("failed to fetch the managed cluster CA secret %s/%s, %v", vmc.Namespace, vmc.Spec.CASecret, err)
-		}
-	}
-
+func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, secret *corev1.Secret) error {
 	// The additional scrape configs and managed cluster TLS secrets are needed by the Prometheus Operator Prometheus
 	// because the federated scrape config can't be represented in a PodMonitor, ServiceMonitor, etc.
-	err := r.mutateManagedClusterCACertsSecret(ctx, vmc, &secret)
-	if err != nil {
-		return err
-	}
-	err = r.mutateAdditionalScrapeConfigs(ctx, vmc, &secret)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return r.mutateAdditionalScrapeConfigs(ctx, vmc, secret)
 }
 
 // newScrapeConfig will return a prometheus scraper configuration based on the entries in the prometheus info structure provided
@@ -123,16 +98,7 @@ func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(cacrtSecret *corev1
 // deleteClusterPrometheusConfiguration deletes the managed cluster configuration from the prometheus configuration and updates the prometheus config
 // map
 func (r *VerrazzanoManagedClusterReconciler) deleteClusterPrometheusConfiguration(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-	err := r.mutateAdditionalScrapeConfigs(ctx, vmc, nil)
-	if err != nil {
-		return err
-	}
-	err = r.mutateManagedClusterCACertsSecret(ctx, vmc, nil)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return r.mutateAdditionalScrapeConfigs(ctx, vmc, nil)
 }
 
 // parsePrometheusConfig returns an editable representation of the prometheus configuration
@@ -199,37 +165,15 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx c
 		},
 		Data: map[string][]byte{},
 	}
-	if _, err := controllerruntime.CreateOrUpdate(ctx, r.Client, &secret, func() error {
+	result, err := controllerruntime.CreateOrUpdate(ctx, r.Client, &secret, func() error {
 		secret.Data[constants.PromAdditionalScrapeConfigsSecretKey] = bytes
 		return nil
-	}); err != nil {
+	})
+	if err != nil {
 		return err
 	}
-
-	return nil
-}
-
-// mutateManagedClusterCACertsSecret adds and removes managed cluster CA certs to/from the managed cluster CA certs secret
-func (r *VerrazzanoManagedClusterReconciler) mutateManagedClusterCACertsSecret(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, cacrtSecret *corev1.Secret) error {
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      vpoconst.PromManagedClusterCACertsSecretName,
-			Namespace: vpoconst.VerrazzanoMonitoringNamespace,
-		},
-	}
-
-	if _, err := controllerruntime.CreateOrUpdate(ctx, r.Client, secret, func() error {
-		if secret.Data == nil {
-			secret.Data = make(map[string][]byte)
-		}
-		if cacrtSecret != nil && cacrtSecret.Data != nil && len(cacrtSecret.Data["cacrt"]) > 0 {
-			secret.Data[getCAKey(vmc)] = cacrtSecret.Data["cacrt"]
-		} else {
-			delete(secret.Data, getCAKey(vmc))
-		}
-		return nil
-	}); err != nil {
-		return err
+	if result != controllerutil.OperationResultNone {
+		r.log.Infof("The Prometheus additional scrape config Secret %s has been modified for VMC %s", secret.Name, vmc.Name)
 	}
 
 	return nil

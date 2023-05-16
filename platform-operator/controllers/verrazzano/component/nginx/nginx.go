@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package nginx
@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -75,7 +76,7 @@ func PreInstall(compContext spi.ComponentContext, name string, namespace string,
 		if ns.Labels == nil {
 			ns.Labels = make(map[string]string)
 		}
-		ns.Labels["verrazzano.io/namespace"] = "ingress-nginx"
+		ns.Labels["verrazzano.io/namespace"] = nginxutil.IngressNGINXNamespace()
 		istio := compContext.EffectiveCR().Spec.Components.Istio
 		if istio != nil && istio.IsInjectionEnabled() {
 			ns.Labels["istio-injection"] = "enabled"
@@ -104,7 +105,7 @@ func PostInstall(ctx spi.ComponentContext, _ string, _ string) error {
 
 	c := ctx.Client()
 	svcPatch := v1.Service{}
-	if err := c.Get(context.TODO(), types.NamespacedName{Name: ControllerName, Namespace: ComponentNamespace}, &svcPatch); err != nil {
+	if err := c.Get(context.TODO(), types.NamespacedName{Name: ControllerName, Namespace: nginxutil.IngressNGINXNamespace()}, &svcPatch); err != nil {
 		if errors.IsNotFound(err) {
 			return nil
 		}

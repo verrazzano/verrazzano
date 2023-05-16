@@ -31,3 +31,6 @@ containerSecurityContext:
       - ALL
   privileged: false
   readOnlyRootFilesystem: true
+
+podLabels:
+  sidecar.istio.io/inject: "false"

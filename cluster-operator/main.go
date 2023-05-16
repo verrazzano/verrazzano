@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package main
@@ -12,6 +12,8 @@ import (
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"go.uber.org/zap"
+	istioclinet "istio.io/client-go/pkg/apis/networking/v1beta1"
+	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -30,10 +32,13 @@ var (
 	runWebhooks          bool
 	runWebhookInit       bool
 	certDir              string
+	ingressHost          string
 )
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(k8sapiext.AddToScheme(scheme))
+	utilruntime.Must(istioclinet.AddToScheme(scheme))
 
 	utilruntime.Must(clustersv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(v1beta1.AddToScheme(scheme))
@@ -55,7 +60,7 @@ func main() {
 			os.Exit(1)
 		}
 	} else {
-		err := operatorinit.StartClusterOperator(metricsAddr, enableLeaderElection, probeAddr, log, scheme)
+		err := operatorinit.StartClusterOperator(metricsAddr, enableLeaderElection, probeAddr, ingressHost, log, scheme)
 		if err != nil {
 			os.Exit(1)
 		}
@@ -74,6 +79,7 @@ func handleFlags() {
 	flag.BoolVar(&runWebhookInit, "run-webhook-init", false,
 		"Runs the webhook initialization code")
 	flag.StringVar(&certDir, "cert-dir", "/etc/certs/", "The directory containing tls.crt and tls.key.")
+	flag.StringVar(&ingressHost, "ingress-host", "", "The host used for Rancher API requests.")
 
 	opts := kzap.Options{}
 	opts.BindFlags(flag.CommandLine)

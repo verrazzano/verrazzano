@@ -1,16 +1,23 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vmo
 
 import (
 	"context"
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
@@ -20,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
@@ -37,18 +43,6 @@ func init() {
 	_ = netv1.AddToScheme(testScheme)
 	_ = appsv1.AddToScheme(testScheme)
 	_ = apiextensionsv1.AddToScheme(testScheme)
-}
-
-// genericTestRunner is used to run generic OS commands with expected results
-type genericTestRunner struct {
-	stdOut []byte
-	stdErr []byte
-	err    error
-}
-
-// Run genericTestRunner executor
-func (r genericTestRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
-	return r.stdOut, r.stdErr, r.err
 }
 
 // TestIsEnabled tests the VMO IsEnabled call
@@ -214,10 +208,23 @@ func TestPreInstall(t *testing.T) {
 //	WHEN I call PreUpgrade with defaults
 //	THEN no error is returned
 func TestPreUpgrade(t *testing.T) {
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
+	defer helm.SetDefaultActionConfigFunction()
+	helm.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helm.CreateActionConfig(true, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			now := time.Now()
+			return &release.Release{
+				Name:      ComponentName,
+				Namespace: ComponentNamespace,
+				Info: &release.Info{
+					FirstDeployed: now,
+					LastDeployed:  now,
+					Status:        releaseStatus,
+					Description:   "Named Release Stub",
+				},
+				Version: 1,
+			}
+		})
 	})
-	defer helm.SetDefaultChartStateFunction()
 
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
@@ -226,19 +233,39 @@ func TestPreUpgrade(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func createRelease(name string, status release.Status) *release.Release {
+	now := time.Now()
+	return &release.Release{
+		Name:      ComponentName,
+		Namespace: ComponentNamespace,
+		Info: &release.Info{
+			FirstDeployed: now,
+			LastDeployed:  now,
+			Status:        status,
+			Description:   "Named Release Stub",
+		},
+		Version: 1,
+	}
+}
+
+func testActionConfigWithInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return helm.CreateActionConfig(true, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
+}
+
+func testActionConfigWithoutInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return helm.CreateActionConfig(false, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), nil)
+}
+
 // TestUninstallHelmChartInstalled tests the VMO Uninstall call
 // GIVEN a VMO component
 //
 //	WHEN I call Uninstall with the VMO helm chart installed
 //	THEN no error is returned
 func TestUninstallHelmChartInstalled(t *testing.T) {
-	helm.SetCmdRunner(genericTestRunner{
-		stdOut: []byte(""),
-		stdErr: []byte{},
-		err:    nil,
-	})
-	defer helm.SetDefaultRunner()
-
+	defer helm.SetDefaultActionConfigFunction()
+	helm.SetActionConfigFunction(testActionConfigWithInstallation)
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.VerrazzanoSystemNamespace)
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 }
@@ -249,12 +276,10 @@ func TestUninstallHelmChartInstalled(t *testing.T) {
 //	WHEN I call Uninstall with the VMO helm chart not installed
 //	THEN no error is returned
 func TestUninstallHelmChartNotInstalled(t *testing.T) {
-	helm.SetCmdRunner(genericTestRunner{
-		stdOut: []byte(""),
-		stdErr: []byte{},
-		err:    fmt.Errorf("Not installed"),
-	})
-	defer helm.SetDefaultRunner()
+	defer helm.SetDefaultActionConfigFunction()
+	helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.VerrazzanoSystemNamespace)
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 
 	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)

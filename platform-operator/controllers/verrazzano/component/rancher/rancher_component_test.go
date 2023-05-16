@@ -7,6 +7,10 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
 	"net/url"
 	"os"
 	"regexp"
@@ -26,7 +30,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
@@ -51,6 +54,13 @@ const (
 	testBomFilePath      = "../../testdata/test_bom.json"
 	profilesRelativePath = "../../../../manifests/profiles"
 )
+
+var getKubernetesTestVersion = func() (string, error) { return "v1.23.5", nil }
+
+func init() {
+
+	getKubernetesClusterVersion = getKubernetesTestVersion
+}
 
 func getValue(kvs []bom.KeyValue, key string) (string, bool) {
 	for _, kv := range kvs {
@@ -132,6 +142,65 @@ func TestAppendImageOverrides(t *testing.T) {
 
 	for key, val := range expectedImages {
 		a.True(val, fmt.Sprintf("Image %s was not found in the key value arguments:\n%v", key, expectedImages))
+	}
+}
+
+// TestPSPEnabledOverrides verifies that pspEnabled override is added if K8s version is 1.25 or above
+func TestPSPEnabledOverrides(t *testing.T) {
+	tests := []struct {
+		name                     string
+		getKubernetesVersionFunc func() (string, error)
+		isError                  bool
+		overrideAdded            bool
+	}{
+		{
+			name:                     "testPSPEnabledOverrideNotAdded",
+			getKubernetesVersionFunc: func() (string, error) { return "v1.23.5", nil },
+			isError:                  false,
+			overrideAdded:            false,
+		},
+		{
+			name:                     "testPSPEnabledOverrideAddedFor_1_25",
+			getKubernetesVersionFunc: func() (string, error) { return "v1.25.3", nil },
+			isError:                  false,
+			overrideAdded:            true,
+		},
+		{
+			name:                     "testPSPEnabledOverrideAddedFor_1_25_Above",
+			getKubernetesVersionFunc: func() (string, error) { return "1.26.5", nil },
+			isError:                  false,
+			overrideAdded:            true,
+		},
+		{
+			name:                     "testPSPEnabledOverrideError",
+			getKubernetesVersionFunc: func() (string, error) { return "xx1.26.5", fmt.Errorf("errored out") },
+			isError:                  true,
+			overrideAdded:            true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			getKubernetesClusterVersion = tt.getKubernetesVersionFunc
+			defer func() {
+				getKubernetesClusterVersion = getKubernetesTestVersion
+
+			}()
+			ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzapi.Verrazzano{}, nil, false)
+			kvs, err := appendPSPEnabledOverrides(ctx, []bom.KeyValue{})
+			if !tt.isError {
+				assert.Nil(t, err)
+				if tt.overrideAdded {
+					assert.Equal(t, 1, len(kvs))
+					v, ok := getValue(kvs, pspEnabledKey)
+					assert.True(t, ok)
+					assert.Equal(t, "false", v)
+				} else {
+					assert.Equal(t, 0, len(kvs))
+				}
+			} else {
+				assert.Error(t, err)
+			}
+		})
 	}
 }
 
@@ -262,10 +331,23 @@ func TestPreInstall(t *testing.T) {
 
 // TestPreUpgrade tests the PreUpgrade func call
 func TestPreUpgrade(t *testing.T) {
-	helmcli.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helmcli.ChartStatusDeployed, nil
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helmcli.CreateActionConfig(true, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			now := time.Now()
+			return &release.Release{
+				Name:      ComponentName,
+				Namespace: ComponentNamespace,
+				Info: &release.Info{
+					FirstDeployed: now,
+					LastDeployed:  now,
+					Status:        releaseStatus,
+					Description:   "Named Release Stub",
+				},
+				Version: 1,
+			}
+		})
 	})
-	defer helmcli.SetDefaultChartStateFunction()
 
 	asserts := assert.New(t)
 	three := int32(3)
@@ -348,12 +430,27 @@ func TestPreUpgrade(t *testing.T) {
 // TestInstall tests the Install func call
 func TestInstall(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
-	helm.SetUpgradeFunc(fakeUpgrade)
-	defer helm.SetDefaultUpgradeFunc()
-	helmcli.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
-		return helmcli.ChartStatusDeployed, nil
+
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../"})
+
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helmcli.CreateActionConfig(true, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			now := time.Now()
+			return &release.Release{
+				Name:      ComponentName,
+				Namespace: ComponentNamespace,
+				Info: &release.Info{
+					FirstDeployed: now,
+					LastDeployed:  now,
+					Status:        releaseStatus,
+					Description:   "Named Release Stub",
+				},
+				Version: 1,
+			}
+		})
 	})
-	defer helmcli.SetDefaultChartStateFunction()
 
 	cli := createFakeTestClient(&v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -384,25 +481,6 @@ func TestInstall(t *testing.T) {
 					},
 				}},
 		},
-		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 3,
-		},
-	})
-
-	cliMissingDeployment := createFakeTestClient(&v1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	})
-
-	cliMissingContainerSpec := createFakeTestClient(&v1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	}, &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{Name: ComponentName, Namespace: ComponentNamespace},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 3,
 		},
@@ -462,54 +540,6 @@ func TestInstall(t *testing.T) {
 			wantErr:     true,
 			errContains: "ingresses.networking.k8s.io \"rancher\" not found",
 		},
-		// GIVEN an env with correct rancher ingress and Verrazzano resource but missing rancher deployment
-		// WHEN a call to rancher Install is made
-		// THEN an error is returned complaining about missing rancher deployment
-		{
-			name: "Install should return an error in case of missing rancher deployment",
-			c:    cliMissingDeployment,
-			vz: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Rancher: &vzapi.RancherComponent{
-							Enabled: getBoolPtr(true),
-						},
-						DNS: &vzapi.DNSComponent{
-							External: &vzapi.External{Suffix: "blah"},
-						},
-						CertManager: &vzapi.CertManagerComponent{
-							Enabled: getBoolPtr(true),
-						},
-					},
-				},
-			},
-			wantErr:     true,
-			errContains: "deployments.apps \"rancher\" not found",
-		},
-		// GIVEN an env with correct rancher ingress and Verrazzano resource but the deployment is missing rancher container
-		// WHEN a call to rancher Install is made
-		// THEN an error is returned complaining about the missing rancher container
-		{
-			name: "Install should return an error in case of deployment missing the rancher container",
-			c:    cliMissingContainerSpec,
-			vz: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Rancher: &vzapi.RancherComponent{
-							Enabled: getBoolPtr(true),
-						},
-						DNS: &vzapi.DNSComponent{
-							External: &vzapi.External{Suffix: "blah"},
-						},
-						CertManager: &vzapi.CertManagerComponent{
-							Enabled: getBoolPtr(true),
-						},
-					},
-				},
-			},
-			wantErr:     true,
-			errContains: "container 'rancher' was not found",
-		},
 		// GIVEN an env with correct rancher deployment and ingress but the Verrazzano resource is missing cm component
 		// WHEN a call to rancher install is made
 		// THEN an error is returned complaining about missing cm component from the CR
@@ -548,7 +578,6 @@ func TestInstall(t *testing.T) {
 				assert.Equal(t, "HTTPS", ingress.Annotations["nginx.ingress.kubernetes.io/backend-protocol"])
 				assert.Equal(t, "true", ingress.Annotations["nginx.ingress.kubernetes.io/force-ssl-redirect"])
 
-				assert.Equal(t, deployment.Spec.Template.Spec.Containers[0].SecurityContext.Capabilities.Add[0], corev1.Capability("MKNOD"))
 			} else {
 				assert.ErrorContains(t, err, tt.errContains)
 			}
@@ -1225,11 +1254,6 @@ func createFakeTestClient(extraObjs ...client.Object) client.Client {
 	objs = append(objs, extraObjs...)
 	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(objs...).Build()
 	return c
-}
-
-// fakeUpgrade override the upgrade function during unit tests
-func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
-	return []byte("success"), []byte(""), nil
 }
 
 func getBoolPtr(b bool) *bool {

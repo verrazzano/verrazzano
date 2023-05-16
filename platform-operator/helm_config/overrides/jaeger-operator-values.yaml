@@ -19,6 +19,15 @@ jaeger:
         runAsUser: 65534
         seccompProfile:
           type: RuntimeDefault
+      containerSecurityContext:
+        runAsUser: 1001
+        runAsGroup: 65534
+        runAsNonRoot: true
+        privileged: false
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
     collector:
       options:
         collector:
@@ -29,6 +38,15 @@ jaeger:
         runAsUser: 65534
         seccompProfile:
           type: RuntimeDefault
+      containerSecurityContext:
+        runAsUser: 1001
+        runAsGroup: 65534
+        runAsNonRoot: true
+        privileged: false
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
     query:
       securityContext:
         runAsGroup: 65534
@@ -36,6 +54,15 @@ jaeger:
         runAsUser: 65534
         seccompProfile:
           type: RuntimeDefault
+      containerSecurityContext:
+        runAsUser: 1001
+        runAsGroup: 65534
+        runAsNonRoot: true
+        privileged: false
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
     storage:
       dependencies:
         enabled: false
@@ -52,6 +79,15 @@ jaeger:
           runAsUser: 65534
           seccompProfile:
             type: RuntimeDefault
+        containerSecurityContext:
+          runAsUser: 1001
+          runAsGroup: 65534
+          runAsNonRoot: true
+          privileged: false
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
       options:
         es:
           index-prefix: verrazzano
@@ -71,4 +107,7 @@ containerSecurityContext:
   allowPrivilegeEscalation: false
   capabilities:
     drop:
-      - ALL
+    - ALL
+
+extraLabels:
+  sidecar.istio.io/inject: "false"

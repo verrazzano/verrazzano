@@ -6,6 +6,9 @@ package authproxy
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"io/fs"
 	"os"
@@ -301,7 +304,7 @@ func TestAppendOverridesIfManagedCluster(t *testing.T) {
 			Data: map[string][]byte{vpoconst.ClusterNameData: []byte("managed1")},
 		},
 		&corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{Name: vpoconst.NGINXControllerServiceName, Namespace: globalconst.IngressNamespace},
+			ObjectMeta: metav1.ObjectMeta{Name: vpoconst.NGINXControllerServiceName, Namespace: nginxutil.IngressNGINXNamespace()},
 			Spec: corev1.ServiceSpec{
 				Type: corev1.ServiceTypeLoadBalancer,
 			},
@@ -329,18 +332,14 @@ func TestAppendOverridesIfManagedCluster(t *testing.T) {
 	assert.Equal(t, "verrazzano-pkce", overrides.Proxy.PKCEClientID, "wrong client ID")
 }
 
-// TestUninstallResources tests the Fluentd Uninstall call
-// GIVEN a Fluentd component
+// TestUninstallResources tests the authproxy Uninstall call
+// GIVEN a authproxy component
 //
-//	WHEN I call Uninstall with the Fluentd helm chart not installed
-//	THEN ensure that all Fluentd resources are explicitly deleted
+//	WHEN I call Uninstall with the authproxy helm chart not installed
+//	THEN ensure that all authproxy resources are explicitly deleted
 func TestUninstallResources(t *testing.T) {
-	helmcli.SetCmdRunner(vzos.GenericTestRunner{
-		StdOut: []byte(""),
-		StdErr: []byte{},
-		Err:    fmt.Errorf("Not installed"),
-	})
-	defer helmcli.SetDefaultRunner()
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(testActionConfigWithUninstalledAuthproxy)
 
 	clusterRole := &rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: "impersonate-api-user"}}
 	clusterRoleBinding := &rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "impersonate-api-user"}}
@@ -363,6 +362,9 @@ func TestUninstallResources(t *testing.T) {
 		service2,
 		serviceAccount,
 	).Build()
+
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.VerrazzanoSystemNamespace)
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 
 	err := NewComponent().Uninstall(spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
@@ -455,7 +457,7 @@ func TestGetOverrides(t *testing.T) {
 func createFakeClientWithIngress() client.Client {
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{Name: vpoconst.NGINXControllerServiceName, Namespace: globalconst.IngressNamespace},
+			ObjectMeta: metav1.ObjectMeta{Name: vpoconst.NGINXControllerServiceName, Namespace: nginxutil.IngressNGINXNamespace()},
 			Spec: corev1.ServiceSpec{
 				Type: corev1.ServiceTypeLoadBalancer,
 			},

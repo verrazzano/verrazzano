@@ -20,6 +20,7 @@ LICENSES-OLCNE.pdf
 coverage.xml
 # The charts and manifests directories contains external (3rd party) Helm charts and manifests
 platform-operator/thirdparty
+platform-operator/experimental/crds
 tests/e2e/config/scripts/terraform/cluster/required-env-vars
 tests/e2e/config/scripts/looping-test/types.txt
 tests/testdata/test-applications/weblogic/hello-weblogic/setup/exporter-config.yaml

@@ -115,6 +115,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 	}
 	return v1beta1.ComponentSpec{
 		CertManager:            ConvertCertManagerToV1Beta1(src.CertManager),
+		ExternalCertManager:    ConvertExternalCertManagerToV1Beta1(src.ExternalCertManager),
 		CoherenceOperator:      convertCoherenceOperatorToV1Beta1(src.CoherenceOperator),
 		ApplicationOperator:    convertApplicationOperatorToV1Beta1(src.ApplicationOperator),
 		ArgoCD:                 convertArgoCDToV1Beta1(src.ArgoCD),
@@ -145,7 +146,21 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		WebLogicOperator:       convertWeblogicOperatorToV1Beta1(src.WebLogicOperator),
 		Velero:                 convertVeleroToV1Beta1(src.Velero),
 		Verrazzano:             verrazzanoComponent,
+		CAPI:                   convertCAPIToV1Beta1(src.CAPI),
 	}, nil
+}
+
+func ConvertExternalCertManagerToV1Beta1(src *ExternalCertManagerComponent) *v1beta1.ExternalCertManagerComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.ExternalCertManagerComponent{
+		Certificate:              convertCertificateToV1Beta1(src.Certificate),
+		Enabled:                  src.Enabled,
+		Namespace:                src.Namespace,
+		ServiceAccountName:       src.ServiceAccountName,
+		ClusterResourceNamespace: src.ClusterResourceNamespace,
+	}
 }
 
 func ConvertCertManagerToV1Beta1(src *CertManagerComponent) *v1beta1.CertManagerComponent {
@@ -492,6 +507,7 @@ func convertGrafanaToV1Beta1(src *GrafanaComponent) *v1beta1.GrafanaComponent {
 		Enabled:  src.Enabled,
 		Replicas: src.Replicas,
 		Database: info,
+		SMTP:     src.SMTP,
 	}
 }
 
@@ -710,6 +726,15 @@ func convertRancherBackupToV1Beta1(src *RancherBackupComponent) *v1beta1.Rancher
 	}
 }
 
+func convertCAPIToV1Beta1(src *CAPIComponent) *v1beta1.CAPIComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.CAPIComponent{
+		Enabled: src.Enabled,
+	}
+}
+
 func convertWeblogicOperatorToV1Beta1(src *WebLogicOperatorComponent) *v1beta1.WebLogicOperatorComponent {
 	if src == nil {
 		return nil
@@ -831,7 +856,7 @@ func convertVerrazzanoInstanceTo(instance *InstanceInfo) *v1beta1.InstanceInfo {
 		PrometheusURL:           instance.PrometheusURL,
 		KialiURL:                instance.KialiURL,
 		JaegerURL:               instance.JaegerURL,
-		ThanosQueryFrontendURL:  instance.ThanosQueryFrontendURL,
+		ThanosQueryURL:          instance.ThanosQueryURL,
 	}
 }
 

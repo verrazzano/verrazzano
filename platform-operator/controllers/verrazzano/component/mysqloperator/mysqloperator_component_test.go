@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mysqloperator
@@ -7,6 +7,11 @@ import (
 	"context"
 	"fmt"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
 	"testing"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -43,7 +48,7 @@ type erroringFakeClient struct {
 	client.Client
 }
 
-func (e *erroringFakeClient) Get(_ context.Context, _ types.NamespacedName, _ client.Object) error {
+func (e *erroringFakeClient) Get(_ context.Context, _ types.NamespacedName, _ client.Object, _ ...client.GetOption) error {
 	return fmt.Errorf(serverErr)
 }
 
@@ -244,10 +249,23 @@ func TestPreInstall(t *testing.T) {
 // GIVEN a call to PreUpgrade
 // THEN return the expected error
 func TestPreUpgrade(t *testing.T) {
-	helmcli.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helmcli.ChartStatusDeployed, nil
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helmcli.CreateActionConfig(true, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			now := time.Now()
+			return &release.Release{
+				Name:      ComponentName,
+				Namespace: ComponentNamespace,
+				Info: &release.Info{
+					FirstDeployed: now,
+					LastDeployed:  now,
+					Status:        releaseStatus,
+					Description:   "Named Release Stub",
+				},
+				Version: 1,
+			}
+		})
 	})
-	defer helmcli.SetDefaultChartStateFunction()
 
 	fakeClient := fake.NewClientBuilder().Build()
 	erroringClient := &erroringFakeClient{fakeClient}

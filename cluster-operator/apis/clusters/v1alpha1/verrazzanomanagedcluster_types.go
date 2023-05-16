@@ -15,7 +15,7 @@ import (
 type VerrazzanoManagedClusterSpec struct {
 	// The name of a Secret that contains the CA certificate of the managed cluster. This is used to configure the
 	// admin cluster to scrape metrics from the Prometheus endpoint on the managed cluster. See the pre-registration
-	// <a href="../../../../docs/setup/install/multicluster/#preregistration-setup">instructions</a>
+	// <a href="../../../../docs/setup/install/mc-install/advanced/multicluster-no-rancher/#preregistration-setup">instructions</a>
 	// for how to create this Secret.
 	CASecret string `json:"caSecret,omitempty"`
 
@@ -126,6 +126,8 @@ type VerrazzanoManagedClusterStatus struct {
 	LastAgentConnectTime *metav1.Time `json:"lastAgentConnectTime,omitempty"`
 	// The Prometheus host for this managed cluster.
 	PrometheusHost string `json:"prometheusHost,omitempty"`
+	// The Thanos Query Store API host name for this managed cluster.
+	ThanosQueryStore string `json:"thanosQueryStore,omitempty"`
 	// The state of Rancher registration for this managed cluster.
 	RancherRegistration RancherRegistration `json:"rancherRegistration,omitempty"`
 	// The state of ArgoCD registration for this managed cluster.

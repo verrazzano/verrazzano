@@ -133,7 +133,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: external-dns
-  namespace: cert-manager
+  namespace: {{ .Values.externaldns.namespace }}
 spec:
   podSelector:
     matchLabels:
@@ -177,7 +177,7 @@ spec:
     - from:
       - namespaceSelector:
           matchLabels:
-            verrazzano.io/namespace: ingress-nginx
+            verrazzano.io/namespace: {{ .Values.ingressNGINX.namespace }}
       - podSelector:
           matchLabels:
             app.kubernetes.io/instance: ingress-controller
@@ -335,7 +335,7 @@ spec:
     - from:
       - namespaceSelector:
           matchLabels:
-            verrazzano.io/namespace: ingress-nginx
+            verrazzano.io/namespace: {{ .Values.ingressNGINX.namespace }}
       - podSelector:
           matchLabels:
             app.kubernetes.io/instance: ingress-controller
@@ -364,7 +364,7 @@ spec:
         - port: 9443
           protocol: TCP
 {{- end }}
-{{- if .Values.argoCd.enabled}}
+{{- if .Values.argocd.enabled}}
 ---
 # Network policy for Argo CD UI/API
 # Ingress: allow nginx ingress
@@ -388,7 +388,7 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: ingress-nginx
+              verrazzano.io/namespace: {{ .Values.ingressNGINX.namespace }}
         - podSelector:
             matchLabels:
               app.kubernetes.io/instance: ingress-controller
@@ -406,7 +406,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: ingress-nginx-controller
-  namespace: ingress-nginx
+  namespace: {{ .Values.ingressNGINX.namespace }}
 spec:
   podSelector:
     matchLabels:
@@ -447,7 +447,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: ingress-nginx-default-backend
-  namespace: ingress-nginx
+  namespace: {{ .Values.ingressNGINX.namespace }}
 spec:
   podSelector:
     matchLabels:
@@ -651,7 +651,7 @@ spec:
               name: mysql-operator
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: ingress-nginx
+              verrazzano.io/namespace: {{ .Values.ingressNGINX.namespace }}
           podSelector:
             matchLabels:
               app.kubernetes.io/name: ingress-nginx
@@ -677,6 +677,7 @@ spec:
               values:
               - query
               - query-frontend
+              - storegateway
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: mysql-operator
@@ -793,5 +794,87 @@ spec:
               app.kubernetes.io/name: prometheus
       ports:
         - port: 15090
+          protocol: TCP
+{{- end }}
+{{- if .Values.capi.enabled }}
+---
+# Network policy for capi-controller-manager
+# Ingress: allow connection from Kubernetes API server to port 9443
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: capi-controller-manager
+  namespace: verrazzano-capi
+spec:
+  podSelector:
+    matchLabels:
+      cluster.x-k8s.io/provider: cluster-api
+      control-plane: controller-manager
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+      - port: 9443
+        protocol: TCP
+---
+# Network policy for capi-ocne-bootstrap-controller-manager
+# Ingress: allow connection from Kubernetes API server to port 9443
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: capi-ocne-bootstrap-controller-manager
+  namespace: verrazzano-capi
+spec:
+  podSelector:
+    matchLabels:
+      cluster.x-k8s.io/provider: bootstrap-ocne
+      control-plane: controller-manager
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 9443
+          protocol: TCP
+---
+# Network policy for capi-ocne-control-plane-controller-manager
+# Ingress: allow connection from Kubernetes API server to port 9443
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: capi-ocne-control-plane-controller-manager
+  namespace: verrazzano-capi
+spec:
+  podSelector:
+    matchLabels:
+      cluster.x-k8s.io/provider: control-plane-ocne
+      control-plane: controller-manager
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 9443
+          protocol: TCP
+---
+# Network policy for capoci-controller-manager
+# Ingress: allow connection from Kubernetes API server to port 9443
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: capoci-controller-manager
+  namespace: verrazzano-capi
+spec:
+  podSelector:
+    matchLabels:
+      cluster.x-k8s.io/provider: infrastructure-oci
+      control-plane: controller-manager
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 9443
           protocol: TCP
 {{- end }}

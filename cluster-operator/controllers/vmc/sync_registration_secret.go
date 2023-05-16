@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vmc
@@ -6,6 +6,7 @@ package vmc
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 
 	clusterapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -21,6 +22,7 @@ import (
 )
 
 const vmiIngest = "vmi-system-os-ingest"
+const operatorOSIngress = "opensearch"
 const defaultSecretName = "verrazzano"
 
 // Create a registration secret with the managed cluster information.  This secret will
@@ -76,10 +78,16 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 
 	// Decide which ES URL to use.
 	// If the fluentd OPENSEARCH_URL is the default "http://verrazzano-authproxy-opensearch:8775", use VMI ES ingress URL.
+	// If the fluentd OPENSEARCH_URL is the default "http://verrazzano-authproxy-opensearch-logging:8775", use Operator OS ingress URL.
 	// If the fluentd OPENSEARCH_URL is not the default, meaning it is a custom ES, use the external ES URL.
 	esURL := fluentdESURL
 	if esURL == constants.DefaultOpensearchURL {
-		esURL, err = r.getVmiESURL()
+		esURL, err = r.getESURL(vzList, vmiIngest)
+		if err != nil {
+			return err
+		}
+	} else if esURL == constants.DefaultOperatorOSURL || esURL == constants.DefaultOperatorOSURLWithNS {
+		esURL, err = r.getESURL(vzList, operatorOSIngress)
 		if err != nil {
 			return err
 		}
@@ -170,22 +178,28 @@ func (r *VerrazzanoManagedClusterReconciler) getVzESURLSecret(vzList *vzapi.Verr
 	return url, secret, nil
 }
 
-// Get the VMI opensearch URL.
-func (r *VerrazzanoManagedClusterReconciler) getVmiESURL() (URL string, err error) {
+// Get the opensearch URL.
+func (r *VerrazzanoManagedClusterReconciler) getESURL(vzList vzapi.VerrazzanoList, ingressName string) (URL string, err error) {
+	if len(vzList.Items) == 0 {
+		return "", nil
+	}
+	if ingressName == vmiIngest && !vzcr.IsOpenSearchEnabled(&vzList.Items[0]) {
+		return "", nil
+	}
 	var Ingress k8net.Ingress
 	nsn := types.NamespacedName{
 		Namespace: constants.VerrazzanoSystemNamespace,
-		Name:      vmiIngest,
+		Name:      ingressName,
 	}
 	if err := r.Get(context.TODO(), nsn, &Ingress); err != nil {
-		return "", fmt.Errorf("failed to fetch the VMI ingress %s/%s, %v", nsn.Namespace, nsn.Name, err)
+		return "", fmt.Errorf("failed to fetch the OpenSearch ingress %s/%s, %v", nsn.Namespace, nsn.Name, err)
 	}
 	if len(Ingress.Spec.Rules) == 0 {
-		return "", fmt.Errorf("VMI ingress %s/%s missing host entry in rule", nsn.Namespace, nsn.Name)
+		return "", fmt.Errorf("OpenSearch ingress %s/%s missing host entry in rule", nsn.Namespace, nsn.Name)
 	}
 	host := Ingress.Spec.Rules[0].Host
 	if len(Ingress.Spec.Rules) == 0 {
-		return "", fmt.Errorf("VMI ingress %s/%s host field is empty", nsn.Namespace, nsn.Name)
+		return "", fmt.Errorf("OpenSearch ingress %s/%s host field is empty", nsn.Namespace, nsn.Name)
 	}
 	return fmt.Sprintf("https://%s:443", host), nil
 }

@@ -29,6 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apiv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -77,6 +78,13 @@ spec:
 type AssertFn func(configMap *corev1.ConfigMap) error
 type secretAssertFn func(secret *corev1.Secret) error
 
+func init() {
+	// stub out keycloak client creation for these tests
+	createClient = func(r *VerrazzanoManagedClusterReconciler, vmc *v1alpha1.VerrazzanoManagedCluster) error {
+		return nil
+	}
+}
+
 // TestCreateVMC tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an VerrazzanoManagedCluster resource
 // WHEN a VerrazzanoManagedCluster resource has been applied in a cluster where Rancher is enabled
@@ -95,6 +103,9 @@ func TestCreateVMCRancherDisabled(t *testing.T) {
 }
 
 func doTestCreateVMC(t *testing.T, rancherEnabled bool) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -122,10 +133,10 @@ func doTestCreateVMC(t *testing.T, rancherEnabled bool) {
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectRancherConfigK8sCalls(t, mock, false)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
-	expectPushManifestRequests(mockRequestSender)
+	expectPushManifestRequests(t, mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
+	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
@@ -155,11 +166,6 @@ func doTestCreateVMC(t *testing.T, rancherEnabled bool) {
 	// expect status updated with condition Ready=true
 	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "", false)
 
-	// stub out keycloak client creation for these tests
-	createClient = func(r *VerrazzanoManagedClusterReconciler, vmc *v1alpha1.VerrazzanoManagedCluster) error {
-		return nil
-	}
-
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
@@ -177,6 +183,9 @@ func doTestCreateVMC(t *testing.T, rancherEnabled bool) {
 // WHEN a VerrazzanoManagedCluster resource has been applied on a Verrazzano install configured with external ES
 // THEN ensure all the objects are created
 func TestCreateVMCWithExternalES(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -202,10 +211,10 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 	expectSyncRegistration(t, mock, testManagedCluster, true)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectRancherConfigK8sCalls(t, mock, false)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
-	expectPushManifestRequests(mockRequestSender)
+	expectPushManifestRequests(t, mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
+	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
@@ -252,6 +261,9 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 // WHEN a VerrazzanoManagedCluster resource has been applied
 // THEN ensure all the objects are created
 func TestCreateVMCOCIDNS(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := "verrazzano-mc"
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -277,10 +289,10 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectRancherConfigK8sCalls(t, mock, false)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
-	expectPushManifestRequests(mockRequestSender)
+	expectPushManifestRequests(t, mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
+	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, "", func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.Empty(configMap.Data["ca-test"], "Cert entry found")
@@ -327,6 +339,9 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 // WHEN a VerrazzanoManagedCluster resource has been applied with no CA Cert
 // THEN ensure all the objects are created
 func TestCreateVMCNoCACert(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -352,12 +367,11 @@ func TestCreateVMCNoCACert(t *testing.T) {
 	expectSyncRegistration(t, mock, testManagedCluster, true)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectRancherConfigK8sCalls(t, mock, true)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectSyncCACertRancherHTTPCalls(t, mockRequestSender, "")
 	expectRancherConfigK8sCalls(t, mock, false)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
-	expectPushManifestRequests(mockRequestSender)
+	expectPushManifestRequests(t, mockRequestSender)
+	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", false, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
@@ -404,6 +418,9 @@ func TestCreateVMCNoCACert(t *testing.T) {
 // WHEN a VerrazzanoManagedCluster resource has been applied and the caSecret field is empty
 // THEN ensure that we fetch the CA cert secret from the managed cluster and populate the caSecret field
 func TestCreateVMCFetchCACertFromManagedCluster(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -431,9 +448,9 @@ func TestCreateVMCFetchCACertFromManagedCluster(t *testing.T) {
 	expectSyncCACertRancherHTTPCalls(t, mockRequestSender, `{"data":{"ca.crt":"base64-ca-cert"}}`)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, true)
 	expectRancherConfigK8sCalls(t, mock, false)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
-	expectPushManifestRequests(mockRequestSender)
+	expectPushManifestRequests(t, mockRequestSender)
+	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
@@ -479,6 +496,9 @@ func TestCreateVMCFetchCACertFromManagedCluster(t *testing.T) {
 // WHEN a VerrazzanoManagedCluster resource has been applied and prometheus is already configured with a scrape config for the cluster
 // THEN ensure all the objects are created
 func TestCreateVMCWithExistingScrapeConfiguration(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := "verrazzano-mc"
 	jobs := `  - ` + constants.PrometheusJobNameKey + `: cluster1
     scrape_interval: 20s
@@ -514,10 +534,10 @@ scrape_configs:
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectRancherConfigK8sCalls(t, mock, false)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
-	expectPushManifestRequests(mockRequestSender)
+	expectPushManifestRequests(t, mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
+	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, jobs, true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 
 		// check for the modified entry
@@ -566,6 +586,9 @@ scrape_configs:
 // WHEN a VerrazzanoManagedCluster resource has been applied and prometheus is already configured with a scrape configuration for the same cluster
 // THEN ensure all the objects are created (existing configuration is replaced)
 func TestReplaceExistingScrapeConfiguration(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := "verrazzano-mc"
 	jobs := `  - ` + constants.PrometheusJobNameKey + `: test
     scrape_interval: 20s
@@ -601,10 +624,10 @@ scrape_configs:
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectRancherConfigK8sCalls(t, mock, false)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
-	expectPushManifestRequests(mockRequestSender)
+	expectPushManifestRequests(t, mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
+	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, jobs, true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 
 		asserts.Len(configMap.Data, 2, "no data found")
@@ -653,6 +676,9 @@ scrape_configs:
 // AND the cluster has already been registered with Rancher
 // THEN ensure all the objects are created
 func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -678,10 +704,10 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, true, rancherManifestYAML)
 	expectRancherConfigK8sCalls(t, mock, false)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
-	expectPushManifestRequests(mockRequestSender)
+	expectPushManifestRequests(t, mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
+	expectThanosDelete(t, mock)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
@@ -728,6 +754,9 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 // WHEN syncing of service account fails
 // THEN ensure that the VMC status is updated to Ready=false with an appropriate message
 func TestCreateVMCSyncSvcAccountFailed(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -761,6 +790,9 @@ func TestCreateVMCSyncSvcAccountFailed(t *testing.T) {
 // WHEN syncing of role binding fails
 // THEN ensure that the VMC status is updated to Ready=false with an appropriate message
 func TestCreateVMCSyncRoleBindingFailed(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	name := "test"
 
@@ -797,6 +829,9 @@ func TestCreateVMCSyncRoleBindingFailed(t *testing.T) {
 // WHEN a VerrazzanoManagedCluster resource has been deleted
 // THEN ensure the object is not processed
 func TestDeleteVMC(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := "verrazzano-install"
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -811,7 +846,8 @@ func TestDeleteVMC(t *testing.T) {
 
 	// Expect all of the calls when deleting a VMC
 	expectMockCallsForDelete(t, mock, namespace)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectRancherGetAuthTokenHTTPCall(t, mockRequestSender)
+	expectThanosDelete(t, mock)
 
 	// Expect an API call to delete the Rancher cluster
 	mockRequestSender.EXPECT().
@@ -833,6 +869,14 @@ func TestDeleteVMC(t *testing.T) {
 			return nil
 		})
 
+	mock.EXPECT().
+		List(gomock.Any(), &v1beta1.VerrazzanoList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, list *v1beta1.VerrazzanoList, opts ...client.ListOption) error {
+			vz := v1beta1.Verrazzano{}
+			list.Items = append(list.Items, vz)
+			return nil
+		})
+
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
@@ -848,6 +892,9 @@ func TestDeleteVMC(t *testing.T) {
 // TestDeleteVMCFailedDeletingRancherCluster tests deleting a VMC when there are errors attempting to
 // delete the Rancher cluster.
 func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	namespace := "verrazzano-install"
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -868,6 +915,7 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 
 	// Expect all of the calls when deleting a VMC
 	expectMockCallsForDelete(t, mock, namespace)
+	expectThanosDelete(t, mock)
 
 	// Expect an HTTP request to fetch the admin token from Rancher - return an error
 	mockRequestSender.EXPECT().
@@ -884,8 +932,8 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 			return resp, nil
 		})
 
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{})).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster) error {
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.GetOption) error {
 			return nil
 		})
 
@@ -895,6 +943,14 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.Equal(v1alpha1.DeleteFailed, vmc.Status.RancherRegistration.Status)
 			asserts.Equal("Failed to create Rancher API client", vmc.Status.RancherRegistration.Message)
+			return nil
+		})
+
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, list *v1beta1.VerrazzanoList, opts ...client.ListOption) error {
+			vz := v1beta1.Verrazzano{}
+			list.Items = append(list.Items, vz)
 			return nil
 		})
 
@@ -919,7 +975,8 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 
 	// Expect all of the calls when deleting a VMC
 	expectMockCallsForDelete(t, mock, namespace)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectRancherGetAuthTokenHTTPCall(t, mockRequestSender)
+	expectThanosDelete(t, mock)
 
 	// Expect an API call to delete the Rancher cluster - return an error
 	mockRequestSender.EXPECT().
@@ -934,8 +991,8 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 			return resp, nil
 		})
 
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{})).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster) error {
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.GetOption) error {
 			return nil
 		})
 
@@ -945,6 +1002,14 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.Equal(v1alpha1.DeleteFailed, vmc.Status.RancherRegistration.Status)
 			asserts.Equal("Failed deleting cluster", vmc.Status.RancherRegistration.Message)
+			return nil
+		})
+
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, list *v1beta1.VerrazzanoList, opts ...client.ListOption) error {
+			vz := v1beta1.Verrazzano{}
+			list.Items = append(list.Items, vz)
 			return nil
 		})
 
@@ -965,6 +1030,9 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 // WHEN Rancher registration fails
 // THEN the manifest secret is still created and syncManifestSecret returns no error
 func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -980,8 +1048,8 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 
 	// Expect a call to get the Agent secret
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetAgentSecretName(clusterName)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetAgentSecretName(clusterName)}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Data = map[string][]byte{
 				mcconstants.KubeconfigKey: []byte(kubeconfigData),
 			}
@@ -990,8 +1058,8 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 
 	// Expect a call to get the registration secret
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetRegistrationSecretName(clusterName)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetRegistrationSecretName(clusterName)}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Data = map[string][]byte{
 				mcconstants.ManagedClusterNameKey:   []byte(clusterName),
 				mcconstants.CaCrtKey:                []byte(caData),
@@ -1004,24 +1072,24 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 
 	// Expect a call to get the manifest secret - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetManifestSecretName(clusterName)}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetManifestSecretName(clusterName)}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoMultiClusterNamespace, Resource: "Secret"}, GetManifestSecretName(clusterName)))
 
 	// Expect a call to get the Rancher ingress and return no spec rules, which will cause registration to fail
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *networkingv1.Ingress) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *networkingv1.Ingress, opts ...client.GetOption) error {
 			return nil
 		})
 
 	// Expect to get existing VMC for status update
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: clusterName}, gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{})).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster) error {
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: clusterName}, gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.GetOption) error {
 			return nil
 		})
 
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.RancherSystemNamespace, Name: rancherAdminSecret}, gomock.AssignableToTypeOf(&corev1.Secret{})).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, secret *corev1.Secret) error {
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.RancherSystemNamespace, Name: rancherAdminSecret}, gomock.AssignableToTypeOf(&corev1.Secret{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Data = map[string][]byte{
 				"password": []byte("super-secret"),
 			}
@@ -1074,6 +1142,9 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 // WHEN Rancher returns an empty manifest
 // THEN the status is set to failed on the VMC with an appropriate message and the syncManifestSecret call returns an error
 func TestSyncManifestSecretEmptyRancherManifest(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1097,8 +1168,8 @@ func TestSyncManifestSecretEmptyRancherManifest(t *testing.T) {
 	urlData := "https://testhost:443"
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetAgentSecretName(testManagedCluster)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetAgentSecretName(testManagedCluster)}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Data = map[string][]byte{
 				mcconstants.KubeconfigKey: []byte(kubeconfigData),
 			}
@@ -1107,8 +1178,8 @@ func TestSyncManifestSecretEmptyRancherManifest(t *testing.T) {
 
 	// Expect a call to get the registration secret
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetRegistrationSecretName(testManagedCluster)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetRegistrationSecretName(testManagedCluster)}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Data = map[string][]byte{
 				mcconstants.ManagedClusterNameKey:   []byte(testManagedCluster),
 				mcconstants.CaCrtKey:                []byte(caData),
@@ -1124,8 +1195,8 @@ func TestSyncManifestSecretEmptyRancherManifest(t *testing.T) {
 	expectRegisterClusterWithRancher(t, mock, mockRequestSender, testManagedCluster, false, "")
 
 	// Expect to get existing VMC for status update
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{})).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster) error {
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.GetOption) error {
 			return nil
 		})
 
@@ -1156,6 +1227,9 @@ func TestSyncManifestSecretEmptyRancherManifest(t *testing.T) {
 // TestRegisterClusterWithRancherK8sErrorCases tests errors cases using the Kubernetes
 // client when registering with Rancher.
 func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1166,22 +1240,22 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 
 	// Expect a call to get the ingress host name but there are no ingress rules
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *networkingv1.Ingress) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *networkingv1.Ingress, opts ...client.GetOption) error {
 			return nil
 		})
 
 	// Expect a call for the verrazzano cluser user secret
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: constants.VerrazzanoClusterRancherName}, gomock.AssignableToTypeOf(&corev1.Secret{})).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: constants.VerrazzanoClusterRancherName}, gomock.AssignableToTypeOf(&corev1.Secret{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Data = map[string][]byte{
 				"password": []byte("super-secret"),
 			}
 			return nil
 		})
 
-	rc, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1195,8 +1269,8 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 
 	// Expect a call to get the ingress host name
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *networkingv1.Ingress) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *networkingv1.Ingress, opts ...client.GetOption) error {
 			rule := networkingv1.IngressRule{Host: "rancher.unit-test.com"}
 			ingress.Spec.Rules = append(ingress.Spec.Rules, rule)
 			return nil
@@ -1204,22 +1278,22 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 
 	// Expect a call to get the secret with the Rancher root CA cert but the call fails
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherTLSSecret}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherTLSSecret}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			return errors.NewResourceExpired("something bad happened")
 		})
 
 	// Expect a call for the verrazzano cluser user secret
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: constants.VerrazzanoClusterRancherName}, gomock.AssignableToTypeOf(&corev1.Secret{})).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: constants.VerrazzanoClusterRancherName}, gomock.AssignableToTypeOf(&corev1.Secret{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Data = map[string][]byte{
 				"password": []byte("super-secret"),
 			}
 			return nil
 		})
 
-	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1229,6 +1303,9 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 // TestRegisterClusterWithRancherHTTPErrorCases tests errors cases using the HTTP
 // client when registering with Rancher.
 func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1260,11 +1337,12 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	rc, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
 	asserts.Nil(rc)
+	rancherutil.DeleteStoredTokens()
 
 	// GIVEN a call to register a managed cluster with Rancher
 	// WHEN the call to import the cluster into Rancher fails
@@ -1303,7 +1381,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 	asserts.NoError(err)
 
 	regYAML, _, err := registerManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
@@ -1311,6 +1389,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	mocker.Finish()
 	asserts.Error(err)
 	asserts.Empty(regYAML)
+	rancherutil.DeleteStoredTokens()
 
 	// GIVEN a call to register a managed cluster with Rancher
 	// WHEN the call to create the Rancher registration token fails
@@ -1379,7 +1458,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 	asserts.NoError(err)
 
 	regYAML, _, err = registerManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
@@ -1387,6 +1466,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	mocker.Finish()
 	asserts.Error(err)
 	asserts.Empty(regYAML)
+	rancherutil.DeleteStoredTokens()
 
 	// GIVEN a call to register a managed cluster with Rancher
 	// WHEN the call to get the Rancher manifest YAML fails
@@ -1456,7 +1536,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 	asserts.NoError(err)
 
 	regYAML, _, err = registerManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
@@ -1471,6 +1551,9 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 // AND the error is retryable
 // THEN ensure that the request is retried
 func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1512,7 +1595,7 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 			return resp, nil
 		}).Times(retrySteps)
 
-	_, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, vzlog.DefaultLogger())
+	_, err := rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1520,6 +1603,9 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 
 // TestUpateStatus tests the updateStatus function
 func TestUpateStatus(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1527,8 +1613,8 @@ func TestUpateStatus(t *testing.T) {
 	asserts.NotNil(mockStatus)
 
 	// Expect the requests for the existing VMC resource
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{})).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster) error {
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.GetOption) error {
 			return nil
 		}).AnyTimes()
 
@@ -1645,7 +1731,7 @@ func expectSyncRoleBinding(t *testing.T, mock *mocks.MockClient, name string, su
 
 	// Expect a call to get the RoleBinding - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "RoleBinding"}, generateManagedResourceName(name)))
 
 	// Expect a call to create the RoleBinding - return success or failure based on the succeed argument
@@ -1669,7 +1755,7 @@ func expectSyncServiceAccount(t *testing.T, mock *mocks.MockClient, name string,
 
 	// Expect a call to get the ServiceAccount - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "ServiceAccount"}, generateManagedResourceName(name)))
 
 	// Expect a call to create the ServiceAccount - return success
@@ -1683,7 +1769,7 @@ func expectSyncServiceAccount(t *testing.T, mock *mocks.MockClient, name string,
 
 	// Expect a call to get the Token Secret - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: generateManagedResourceName(name) + "-token"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: generateManagedResourceName(name) + "-token"}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, generateManagedResourceName(name)+"-token"))
 
 	// Expect a call to create the Token Secret - return success
@@ -1717,8 +1803,8 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string, rancherE
 	if noSASecret {
 		// Expect a call to get the ServiceAccount, return without the secret set
 		mock.EXPECT().
-			Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, sa *corev1.ServiceAccount) error {
+			Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil()), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, sa *corev1.ServiceAccount, opts ...client.GetOption) error {
 				sa.Name = name.Name
 				return nil
 			})
@@ -1728,8 +1814,8 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string, rancherE
 	} else {
 		// Expect a call to get the ServiceAccount, return one with the secret testManagedCluster set
 		mock.EXPECT().
-			Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, sa *corev1.ServiceAccount) error {
+			Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil()), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, sa *corev1.ServiceAccount, opts ...client.GetOption) error {
 				sa.Secrets = []corev1.ObjectReference{{
 					Name: saSecretName,
 				}}
@@ -1758,8 +1844,8 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string, rancherE
 
 	// Expect a call to get the service token secret, return the secret with the token
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: saSecretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: saSecretName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Data = map[string][]byte{
 				mcconstants.TokenKey: []byte(token),
 			}
@@ -1769,13 +1855,13 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string, rancherE
 	if rancherEnabled {
 		// Expect a call to get the tls-ca-additional secret, return the secret as not found
 		mock.EXPECT().
-			Get(gomock.Any(), types.NamespacedName{Namespace: constants.RancherSystemNamespace, Name: constants.AdditionalTLS}, gomock.Not(gomock.Nil())).
+			Get(gomock.Any(), types.NamespacedName{Namespace: constants.RancherSystemNamespace, Name: constants.AdditionalTLS}, gomock.Not(gomock.Nil()), gomock.Any()).
 			Return(errors.NewNotFound(schema.GroupResource{Group: constants.RancherSystemNamespace, Resource: "Secret"}, constants.AdditionalTLS))
 
 		// Expect a call to get the Rancher ingress tls secret, return the secret with the fields set
 		mock.EXPECT().
-			Get(gomock.Any(), types.NamespacedName{Namespace: constants.RancherSystemNamespace, Name: rancherTLSSecret}, gomock.Not(gomock.Nil())).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			Get(gomock.Any(), types.NamespacedName{Namespace: constants.RancherSystemNamespace, Name: rancherTLSSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 				secret.Data = map[string][]byte{
 					mcconstants.CaCrtKey: []byte(rancherCAData),
 				}
@@ -1784,8 +1870,8 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string, rancherE
 	} else {
 		// Expect a call to get the verrazzano-admin-cluster configmap
 		mock.EXPECT().
-			Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: vpoconstants.AdminClusterConfigMapName}, gomock.Not(gomock.Nil())).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, cm *corev1.ConfigMap) error {
+			Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: vpoconstants.AdminClusterConfigMapName}, gomock.Not(gomock.Nil()), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, cm *corev1.ConfigMap, opts ...client.GetOption) error {
 				cm.Data = map[string]string{
 					vpoconstants.ServerDataKey: userAPIServerURL,
 				}
@@ -1795,7 +1881,7 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string, rancherE
 
 	// Expect a call to get the Agent secret - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetAgentSecretName(name)}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetAgentSecretName(name)}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoMultiClusterNamespace, Resource: "Secret"}, GetAgentSecretName(name)))
 
 	// Expect a call to create the Agent secret
@@ -1837,7 +1923,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 
 	// Expect a call to get the registration secret - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetRegistrationSecretName(name)}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetRegistrationSecretName(name)}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoMultiClusterNamespace, Resource: "Secret"}, GetRegistrationSecretName(name)))
 
 	// Expect a call to list Verrazzanos - return the Verrazzano configured with fluentd
@@ -1856,13 +1942,13 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			}
 			list.Items = append(list.Items, vz)
 			return nil
-		}).Times(3)
+		}).Times(5)
 
 	// Expect a call to get the tls ingress and return the ingress.
 	if !externalES {
 		mock.EXPECT().
-			Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: vmiIngest}, gomock.Not(gomock.Nil())).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *networkingv1.Ingress) error {
+			Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: vmiIngest}, gomock.Not(gomock.Nil()), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *networkingv1.Ingress, opts ...client.GetOption) error {
 				ingress.TypeMeta = metav1.TypeMeta{
 					APIVersion: "networking.k8s.io/v1",
 					Kind:       "ingress"}
@@ -1878,8 +1964,8 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 
 	// Expect a call to get the opensearch secret, return the secret with the fields set
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: esSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: esSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			if externalES {
 				secret.Data = map[string][]byte{
 					mcconstants.VerrazzanoUsernameKey: []byte(externalUserData),
@@ -1897,8 +1983,8 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 
 	// Expect a call to get the tls secret, return the secret with the fields set
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-tls"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-tls"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Data = map[string][]byte{
 				mcconstants.CaCrtKey: []byte(vzCaData),
 			}
@@ -1907,13 +1993,13 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 
 	// Expect a call to get the tls-ca-additional secret, return the secret as not found
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.RancherSystemNamespace, Name: constants.AdditionalTLS}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.RancherSystemNamespace, Name: constants.AdditionalTLS}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.RancherSystemNamespace, Resource: "Secret"}, constants.AdditionalTLS))
 
 	// Expect a call to get the keycloak ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "keycloak", Name: "keycloak"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *networkingv1.Ingress) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: "keycloak", Name: "keycloak"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *networkingv1.Ingress, opts ...client.GetOption) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "networking.k8s.io/v1",
 				Kind:       "ingress"}
@@ -1962,8 +2048,8 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 
 	// Expect a call to get the Agent secret
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetAgentSecretName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetAgentSecretName(name)}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Data = map[string][]byte{
 				mcconstants.KubeconfigKey: []byte(kubeconfigData),
 			}
@@ -1972,8 +2058,8 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 
 	// Expect a call to get the registration secret
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetRegistrationSecretName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetRegistrationSecretName(name)}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Data = map[string][]byte{
 				mcconstants.ManagedClusterNameKey:   []byte(clusterName),
 				mcconstants.CaCrtKey:                []byte(caData),
@@ -1986,15 +2072,15 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 
 	// Expect a call to get the manifest secret - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetManifestSecretName(name)}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetManifestSecretName(name)}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoMultiClusterNamespace, Resource: "Secret"}, GetManifestSecretName(name)))
 
 	// Expect all the calls needed to register the cluster with Rancher
 	expectRegisterClusterWithRancher(t, mock, mockRequestSender, name, clusterAlreadyRegistered, expectedRancherYAML)
 
 	// Expect to get existing VMC for status update
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{})).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster) error {
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.GetOption) error {
 			return nil
 		})
 
@@ -2032,7 +2118,10 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 		})
 }
 
-func expectPushManifestRequests(mockRequestSender *mocks.MockRequestSender) {
+func expectPushManifestRequests(t *testing.T, mockRequestSender *mocks.MockRequestSender) {
+	// expect a login request for the vz-cluster-reg user
+	expectRancherGetAuthTokenHTTPCall(t, mockRequestSender)
+
 	mockRequestSender.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clustersPath+"/"+unitTestRancherClusterID)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
@@ -2052,8 +2141,8 @@ func expectVmcGetAndUpdate(t *testing.T, mock *mocks.MockClient, name string, ca
 
 	// Expect a call to get the VerrazzanoManagedCluster resource.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: name}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.GetOption) error {
 			vmc.TypeMeta = metav1.TypeMeta{
 				APIVersion: apiVersion,
 				Kind:       kind}
@@ -2096,8 +2185,8 @@ func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometh
 	if caSecretExists {
 		// Expect a call to get the prometheus secret - return it
 		mock.EXPECT().
-			Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: getCASecretName(vmcName)}, gomock.Not(gomock.Nil())).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: getCASecretName(vmcName)}, gomock.Not(gomock.Nil()), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 
 				secret.Data = map[string][]byte{
 					"cacrt": []byte(cacrtSecretData),
@@ -2108,8 +2197,8 @@ func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometh
 
 	// Expect a call to get the Verrazzano Prometheus internal secret - return it
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VerrazzanoPromInternal}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VerrazzanoPromInternal}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Data = map[string][]byte{
 				mcconstants.VerrazzanoPasswordKey: []byte(internalSecretPassword),
 			}
@@ -2118,8 +2207,8 @@ func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometh
 
 	// Expect a call to get the additional scrape config secret - return it
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: constants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: constants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Data = map[string][]byte{
 				constants.PromAdditionalScrapeConfigsSecretKey: []byte(jobs),
 			}
@@ -2128,8 +2217,8 @@ func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometh
 
 	// Expect a call to get the additional scrape config secret (we call controllerruntime.CreateOrUpdate so it fetches again) - return it
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: constants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: constants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Data = map[string][]byte{
 				constants.PromAdditionalScrapeConfigsSecretKey: []byte(jobs),
 			}
@@ -2145,7 +2234,7 @@ func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometh
 
 	// Expect a call to get the managed cluster TLS certs secret - return NotFound error
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: vpoconstants.PromManagedClusterCACertsSecretName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: vpoconstants.PromManagedClusterCACertsSecretName}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, vpoconstants.PromManagedClusterCACertsSecretName))
 
 	// Expect a call to update the managed cluster TLS certs secret
@@ -2173,7 +2262,7 @@ func expectRegisterClusterWithRancher(t *testing.T,
 func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *mocks.MockRequestSender, clusterName string, clusterAlreadyRegistered bool, rancherManifestYAML string) {
 	asserts := assert.New(t)
 
-	expectRancherGetAdminTokenHTTPCall(t, requestSenderMock)
+	expectRancherGetAuthTokenHTTPCall(t, requestSenderMock)
 
 	if !clusterAlreadyRegistered {
 		// Cluster is not already registered - we now only expect import to happen if the cluster is NOT already registered
@@ -2256,7 +2345,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 		})
 }
 
-func expectRancherGetAdminTokenHTTPCall(t *testing.T, requestSenderMock *mocks.MockRequestSender) {
+func expectRancherGetAuthTokenHTTPCall(t *testing.T, requestSenderMock *mocks.MockRequestSender) {
 	asserts := assert.New(t)
 
 	// Expect an HTTP request to fetch the admin token from Rancher
@@ -2274,6 +2363,20 @@ func expectRancherGetAdminTokenHTTPCall(t *testing.T, requestSenderMock *mocks.M
 			return resp, nil
 		})
 
+}
+
+func expectThanosDelete(t *testing.T, mock *mocks.MockClient) {
+	// Expect a call to get the Istio CRDs
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Name: destinationRuleCRDName}), gomock.AssignableToTypeOf(&apiv1.CustomResourceDefinition{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, crd *apiv1.CustomResourceDefinition, opts ...client.GetOption) error {
+			return errors.NewNotFound(schema.GroupResource{}, "not found")
+		})
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Name: serviceEntryCRDName}), gomock.AssignableToTypeOf(&apiv1.CustomResourceDefinition{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, crd *apiv1.CustomResourceDefinition, opts ...client.GetOption) error {
+			return errors.NewNotFound(schema.GroupResource{}, "not found")
+		})
 }
 
 // expectSyncCACertRancherHTTPCalls asserts all of the expected calls on the HTTP client mock when sync'ing the managed cluster
@@ -2333,14 +2436,11 @@ func expectSyncCACertRancherK8sCalls(t *testing.T, k8sMock *mocks.MockClient, mo
 	asserts := assert.New(t)
 
 	if shouldSyncCACert {
-		// Expect K8S calls and admin token call to create new Rancher config
-		expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
-
 		expectRancherConfigK8sCalls(t, k8sMock, true)
 
 		// Expect a call to get the CA cert secret for the managed cluster - return not found
 		k8sMock.EXPECT().
-			Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: "ca-secret-test"}), gomock.Not(gomock.Nil())).
+			Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: "ca-secret-test"}), gomock.Not(gomock.Nil()), gomock.Any()).
 			Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoMultiClusterNamespace, Resource: "Secret"}, "ca-secret-test"))
 
 		// Expect a call to create the CA cert secret for the managed cluster
@@ -2399,8 +2499,8 @@ func getCaCrt() string {
 }
 
 func expectStatusUpdateReadyCondition(asserts *assert.Assertions, mock *mocks.MockClient, mockStatus *mocks.MockStatusWriter, expectReady corev1.ConditionStatus, msg string, assertManagedCACondition bool) {
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{})).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster) error {
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.GetOption) error {
 			return nil
 		})
 
@@ -2470,8 +2570,8 @@ func validateScrapeConfig(t *testing.T, scrapeConfig *gabs.Container, caBasePath
 func expectRancherConfigK8sCalls(t *testing.T, k8sMock *mocks.MockClient, admin bool) {
 	// Expect a call to get the ingress host name
 	k8sMock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *networkingv1.Ingress) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *networkingv1.Ingress, opts ...client.GetOption) error {
 			rule := networkingv1.IngressRule{Host: "rancher.unit-test.com"}
 			ingress.Spec.Rules = append(ingress.Spec.Rules, rule)
 			return nil
@@ -2479,8 +2579,8 @@ func expectRancherConfigK8sCalls(t *testing.T, k8sMock *mocks.MockClient, admin 
 
 	// Expect a call to get the secret with the Rancher root CA cert
 	k8sMock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherTLSSecret}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherTLSSecret}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Data = map[string][]byte{
 				"ca.crt": {},
 			}
@@ -2495,8 +2595,8 @@ func expectRancherConfigK8sCalls(t *testing.T, k8sMock *mocks.MockClient, admin 
 	}
 	// Expect a call to get the admin secret
 	k8sMock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: secNS, Name: secName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: secNS, Name: secName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Data = map[string][]byte{
 				"password": []byte("super-secret"),
 			}
@@ -2505,7 +2605,7 @@ func expectRancherConfigK8sCalls(t *testing.T, k8sMock *mocks.MockClient, admin 
 
 	// Expect a call to get the Rancher additional CA secret
 	k8sMock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: constants.AdditionalTLS}), gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: constants.AdditionalTLS}), gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: rancherNamespace, Resource: "Secret"}, constants.AdditionalTLS))
 }
 
@@ -2516,8 +2616,8 @@ func expectMockCallsForDelete(t *testing.T, mock *mocks.MockClient, namespace st
 
 	// Expect a call to get the VerrazzanoManagedCluster resource.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: testManagedCluster}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: testManagedCluster}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.GetOption) error {
 			vmc.TypeMeta = metav1.TypeMeta{
 				APIVersion: apiVersion,
 				Kind:       kind}
@@ -2547,8 +2647,8 @@ func expectMockCallsForDelete(t *testing.T, mock *mocks.MockClient, namespace st
 
 	// Expect a call to get the additional scrape config secret - return it configured with the two scrape jobs
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: constants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: constants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Data = map[string][]byte{
 				constants.PromAdditionalScrapeConfigsSecretKey: []byte(jobs),
 			}
@@ -2557,8 +2657,8 @@ func expectMockCallsForDelete(t *testing.T, mock *mocks.MockClient, namespace st
 
 	// Expect a call to get the additional scrape config secret (we call controllerruntime.CreateOrUpdate so it fetches again) - return it
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: constants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: constants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Data = map[string][]byte{
 				constants.PromAdditionalScrapeConfigsSecretKey: []byte(jobs),
 			}
@@ -2582,8 +2682,8 @@ func expectMockCallsForDelete(t *testing.T, mock *mocks.MockClient, namespace st
 
 	// Expect a call to get the managed cluster TLS certs secret - return it configured with two managed cluster certs
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: vpoconstants.PromManagedClusterCACertsSecretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: vpoconstants.PromManagedClusterCACertsSecretName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Data = map[string][]byte{
 				"ca-test":  []byte("ca-cert-1"),
 				"ca-test2": []byte("ca-cert-1"),
@@ -2615,8 +2715,8 @@ func expectMockCallsForDelete(t *testing.T, mock *mocks.MockClient, namespace st
 func expectMockCallsForCreateClusterRoleBindingTemplate(mock *mocks.MockClient, clusterID string) {
 	name := fmt.Sprintf("crtb-verrazzano-cluster-%s", clusterID)
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Name: name, Namespace: clusterID}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, resource *unstructured.Unstructured) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Name: name, Namespace: clusterID}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, resource *unstructured.Unstructured, opts ...client.GetOption) error {
 			data := resource.UnstructuredContent()
 			data[ClusterRoleTemplateBindingAttributeClusterName] = clusterID
 			data[ClusterRoleTemplateBindingAttributeUserName] = constants.VerrazzanoClusterRancherUsername

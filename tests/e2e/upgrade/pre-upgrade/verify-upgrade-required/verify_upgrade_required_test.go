@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package verify
@@ -23,6 +23,9 @@ import (
 )
 
 var t = framework.NewTestFramework("verify-upgrade-required")
+
+var waitTimeout = 3 * time.Minute
+var pollingInterval = 10 * time.Second
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	start := time.Now()
@@ -73,11 +76,12 @@ var _ = t.Describe("Verify upgrade required when new version is available", Labe
 				return
 			}
 
-			vz, err := pkg.GetVerrazzano()
-			if err != nil {
-				t.Fail(fmt.Sprintf("Error getting Verrazzano instance: %s", err.Error()))
-				return
-			}
+			var vz *vzalpha1.Verrazzano
+			Eventually(func() (*vzalpha1.Verrazzano, error) {
+				vz, err = pkg.GetVerrazzano()
+				return vz, err
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).
+				ShouldNot(BeNil(), "Unable to get Verrazzano instance")
 
 			if vz.Spec.Components.Istio == nil {
 				vz.Spec.Components.Istio = &vzalpha1.IstioComponent{}

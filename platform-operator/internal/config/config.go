@@ -4,6 +4,7 @@
 package config
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -26,6 +27,7 @@ const (
 	helmPromOpChartsDirSuffix    = "/platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack"
 	helmOamChartsDirSuffix       = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
 	helmOverridesDirSuffix       = "/platform-operator/helm_config/overrides"
+	kubernetesVersionsFile       = "kubernetes-versions.yaml"
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
@@ -82,6 +84,9 @@ type OperatorConfig struct {
 
 	// DryRun Run installs in a dry-run mode
 	DryRun bool
+
+	// ExperimentalModules toggles the VPO to use the experimental modules feature
+	ExperimentalModules bool
 }
 
 // The singleton instance of the operator config
@@ -98,6 +103,7 @@ var instance = OperatorConfig{
 	HealthCheckPeriodSeconds:       60,
 	MySQLCheckPeriodSeconds:        60,
 	MySQLRepairTimeoutSeconds:      120,
+	ExperimentalModules:            false,
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests
@@ -209,6 +215,10 @@ func GetProfilesDir() string {
 	return filepath.Join(instance.VerrazzanoRootDir, profilesDirSuffix)
 }
 
+func GetKubernetesVersionsFile() string {
+	return filepath.Join(instance.VerrazzanoRootDir, kubernetesVersionsFile)
+}
+
 // GetProfile returns API profiles dir
 func GetProfile(groupVersion schema.GroupVersion, profile string) string {
 	return filepath.Join(GetProfilesDir()+"/"+groupVersion.Version, profile+".yaml")
@@ -228,7 +238,7 @@ func GetDefaultBOMFilePath() string {
 }
 
 func GetInjectedSystemNamespaces() []string {
-	return []string{constants.VerrazzanoSystemNamespace, constants.VerrazzanoMonitoringNamespace, constants.IngressNginxNamespace, constants.KeycloakNamespace}
+	return []string{constants.VerrazzanoSystemNamespace, constants.VerrazzanoMonitoringNamespace, nginxutil.IngressNGINXNamespace(), constants.KeycloakNamespace}
 }
 
 func GetNoInjectionComponents() []string {

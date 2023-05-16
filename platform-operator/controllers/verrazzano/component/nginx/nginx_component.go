@@ -5,6 +5,7 @@ package nginx
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -16,7 +17,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -27,10 +27,8 @@ import (
 )
 
 // ComponentName is the name of the component
+// NOTE, ComponentNamespace namespace is determined at runtime, see nginxutil.go
 const ComponentName = "ingress-controller"
-
-// ComponentNamespace is the namespace of the component
-const ComponentNamespace = vpoconst.IngressNginxNamespace
 
 // ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "ingressNGINX"
@@ -55,7 +53,7 @@ func NewComponent() spi.Component {
 			ReleaseName:               ComponentName,
 			JSONName:                  ComponentJSONName,
 			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), "ingress-nginx"), // Note name is different than release name
-			ChartNamespace:            ComponentNamespace,
+			ChartNamespace:            nginxutil.IngressNGINXNamespace(),
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
@@ -70,11 +68,11 @@ func NewComponent() spi.Component {
 				DeploymentNames: []types.NamespacedName{
 					{
 						Name:      ControllerName,
-						Namespace: ComponentNamespace,
+						Namespace: nginxutil.IngressNGINXNamespace(),
 					},
 					{
 						Name:      backendName,
-						Namespace: ComponentNamespace,
+						Namespace: nginxutil.IngressNGINXNamespace(),
 					},
 				},
 			},
@@ -187,7 +185,7 @@ func (c nginxComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 // PostUninstall processing for NGINX
 func (c nginxComponent) PostUninstall(context spi.ComponentContext) error {
 	res := resource.Resource{
-		Name:   ComponentNamespace,
+		Name:   nginxutil.IngressNGINXNamespace(),
 		Client: context.Client(),
 		Object: &corev1.Namespace{},
 		Log:    context.Log(),

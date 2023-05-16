@@ -6,10 +6,11 @@ package thanos
 import (
 	"context"
 	"fmt"
+	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
+	"strconv"
 	"testing"
 
-	certapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -95,28 +96,216 @@ func TestGetOverrides(t *testing.T) {
 	}
 }
 
-// TestAppendOverrides tests if Thanos overrides are appendded
-// GIVEN a call to AppendOverrides
-// WHEN the bom is populated with the Thanos image
-// THEN the overrides are returned from this function
+// TestAppendOverrides tests if Thanos overrides are appended
 func TestAppendOverrides(t *testing.T) {
 	config.SetDefaultBomFilePath(bomFilePathOverride)
-	kvs, err := AppendOverrides(nil, "", "", "", []bom.KeyValue{})
-	asserts.NoError(t, err)
+	scheme := k8scheme.Scheme
+	falseVal := false
+	trueVal := true
 
-	expectedKVS := map[string]string{
+	service := &v1.Service{
+		ObjectMeta: metav1.ObjectMeta{Name: constants.NGINXControllerServiceName, Namespace: nginxutil.IngressNGINXNamespace()},
+		Spec: v1.ServiceSpec{
+			Type: v1.ServiceTypeLoadBalancer,
+		},
+		Status: v1.ServiceStatus{
+			LoadBalancer: v1.LoadBalancerStatus{
+				Ingress: []v1.LoadBalancerIngress{
+					{IP: "11.22.33.44"},
+				},
+			},
+		},
+	}
+
+	imageKVS := map[string]string{
 		"image.registry":   "ghcr.io",
 		"image.repository": "verrazzano/thanos",
+		"image.tag":        `v\d+\.\d+\.\d+-.+-.+`,
 	}
-	for _, kv := range kvs {
-		if kv.Key == "image.tag" {
-			asserts.NotEmpty(t, kv.Value)
-			continue
+
+	ingressKVs := map[string]string{
+		"queryFrontend.ingress.namespace":                                                      constants.VerrazzanoSystemNamespace,
+		"queryFrontend.ingress.ingressClassName":                                               "verrazzano-nginx",
+		"queryFrontend.ingress.extraRules[0].host":                                             "thanos-query.default.11.22.33.44.nip.io",
+		"queryFrontend.ingress.extraRules[0].http.paths[0].backend.service.name":               constants.VerrazzanoAuthProxyServiceName,
+		"queryFrontend.ingress.extraRules[0].http.paths[0].backend.service.port.number":        strconv.Itoa(constants.VerrazzanoAuthProxyServicePort),
+		"queryFrontend.ingress.extraRules[0].http.paths[0].path":                               "/(.*)()",
+		"queryFrontend.ingress.extraRules[0].http.paths[0].pathType":                           string(netv1.PathTypeImplementationSpecific),
+		"queryFrontend.ingress.extraTls[0].hosts[0]":                                           "thanos-query.default.11.22.33.44.nip.io",
+		"queryFrontend.ingress.extraTls[0].secretName":                                         queryCertificateName,
+		`queryFrontend.ingress.annotations.nginx\.ingress\.kubernetes\.io/session-cookie-name`: queryHostName,
+		`queryFrontend.ingress.annotations.cert-manager\.io/cluster-issuer`:                    constants2.VerrazzanoClusterIssuerName,
+		`queryFrontend.ingress.annotations.cert-manager\.io/common-name`:                       "thanos-query.default.11.22.33.44.nip.io",
+		"query.ingress.grpc.namespace":                                                         constants.VerrazzanoSystemNamespace,
+		"query.ingress.grpc.ingressClassName":                                                  "verrazzano-nginx",
+		"query.ingress.grpc.extraRules[0].host":                                                "thanos-query-store.default.11.22.33.44.nip.io",
+		"query.ingress.grpc.extraRules[0].http.paths[0].backend.service.name":                  constants.VerrazzanoAuthProxyServiceName,
+		"query.ingress.grpc.extraRules[0].http.paths[0].backend.service.port.number":           strconv.Itoa(constants.VerrazzanoAuthProxyGRPCServicePort),
+		"query.ingress.grpc.extraRules[0].http.paths[0].path":                                  "/",
+		"query.ingress.grpc.extraRules[0].http.paths[0].pathType":                              string(netv1.PathTypeImplementationSpecific),
+		"query.ingress.grpc.extraTls[0].hosts[0]":                                              "thanos-query-store.default.11.22.33.44.nip.io",
+		"query.ingress.grpc.extraTls[0].secretName":                                            queryStoreCertificateName,
+		`query.ingress.grpc.annotations.cert-manager\.io/cluster-issuer`:                       constants2.VerrazzanoClusterIssuerName,
+		`query.ingress.grpc.annotations.cert-manager\.io/common-name`:                          "thanos-query-store.default.11.22.33.44.nip.io",
+	}
+	sslipioKVs := map[string]string{
+		"queryFrontend.ingress.extraRules[0].host":                       "thanos-query.default.11.22.33.44.sslip.io",
+		"queryFrontend.ingress.extraTls[0].hosts[0]":                     "thanos-query.default.11.22.33.44.sslip.io",
+		`queryFrontend.ingress.annotations.cert-manager\.io/common-name`: "thanos-query.default.11.22.33.44.sslip.io",
+		"query.ingress.grpc.extraRules[0].host":                          "thanos-query-store.default.11.22.33.44.sslip.io",
+		"query.ingress.grpc.extraTls[0].hosts[0]":                        "thanos-query-store.default.11.22.33.44.sslip.io",
+		`query.ingress.grpc.annotations.cert-manager\.io/common-name`:    "thanos-query-store.default.11.22.33.44.sslip.io",
+	}
+	istioEnabledKV := map[string]string{
+		"verrazzano.isIstioEnabled": "true",
+	}
+
+	istioDisabledKV := map[string]string{
+		"verrazzano.isIstioEnabled": "false",
+	}
+
+	externalDNSKVs := map[string]string{
+		"queryFrontend.ingress.extraRules[0].host":                                     "thanos-query.default.mydomain.com",
+		"queryFrontend.ingress.extraTls[0].hosts[0]":                                   "thanos-query.default.mydomain.com",
+		`queryFrontend.ingress.annotations.external-dns\.alpha\.kubernetes\.io/target`: "verrazzano-ingress.default.mydomain.com",
+		`queryFrontend.ingress.annotations.external-dns\.alpha\.kubernetes\.io/ttl`:    "60",
+		`queryFrontend.ingress.annotations.cert-manager\.io/common-name`:               "thanos-query.default.mydomain.com",
+		"query.ingress.grpc.extraRules[0].host":                                        "thanos-query-store.default.mydomain.com",
+		"query.ingress.grpc.extraTls[0].hosts[0]":                                      "thanos-query-store.default.mydomain.com",
+		`query.ingress.grpc.annotations.external-dns\.alpha\.kubernetes\.io/target`:    "verrazzano-ingress.default.mydomain.com",
+		`query.ingress.grpc.annotations.external-dns\.alpha\.kubernetes\.io/ttl`:       "60",
+		`query.ingress.grpc.annotations.cert-manager\.io/common-name`:                  "thanos-query-store.default.mydomain.com",
+	}
+	externalDNSZone := "mydomain.com"
+
+	tests := []struct {
+		name     string
+		vz       *v1alpha1.Verrazzano
+		extraKVS map[string]string
+	}{
+		// GIVEN a call to AppendOverrides
+		// WHEN the NGINX is disabled
+		// THEN query ingresses are disabled
+		{
+			name: "test NGINX Disabled",
+			vz: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Ingress: &v1alpha1.IngressNginxComponent{
+							Enabled: &falseVal,
+						},
+					},
+				},
+			},
+			extraKVS: mergeMaps(map[string]string{
+				"query.ingress.grpc.enabled":    "false",
+				"queryFrontend.ingress.enabled": "false",
+			}, istioEnabledKV),
+		},
+		// GIVEN a call to AppendOverrides
+		// WHEN wildcard is enabled
+		// THEN the proper overrides are populated
+		{
+			name: "test ExternalDNS Disabled",
+			vz: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						DNS: &v1alpha1.DNSComponent{
+							Wildcard: &v1alpha1.Wildcard{
+								Domain: "sslip.io",
+							},
+						},
+					},
+				},
+			},
+			extraKVS: mergeMaps(ingressKVs, istioEnabledKV, sslipioKVs),
+		},
+		// GIVEN a call to AppendOverrides
+		// WHEN wildcard is enabled
+		// THEN the extra external DNS overrides are added
+		{
+			name: "test ExternalDNS Enabled",
+			vz: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						DNS: &v1alpha1.DNSComponent{
+							OCI: &v1alpha1.OCI{
+								DNSZoneName: externalDNSZone,
+							},
+						},
+					},
+				},
+			},
+			extraKVS: mergeMaps(ingressKVs, istioEnabledKV, externalDNSKVs),
+		},
+		// GIVEN a call to AppendOverrides
+		// WHEN Istio is disabled
+		// THEN isIstioEnabled is set to false
+		{
+			name: "test Istio Disabled",
+			vz: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
+							Enabled: &falseVal,
+						},
+					},
+				},
+			},
+			extraKVS: mergeMaps(ingressKVs, istioDisabledKV),
+		},
+		// GIVEN a call to AppendOverrides
+		// WHEN Istio is enabled but Istio injection is disabled
+		// THEN isIstioEnabled is set to false
+		{
+			name: "test Istio Injection Disabled",
+			vz: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
+							Enabled:          &trueVal,
+							InjectionEnabled: &falseVal,
+						},
+					},
+				},
+			},
+			extraKVS: mergeMaps(ingressKVs, istioDisabledKV),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(service).Build()
+			ctx := spi.NewFakeContext(client, tt.vz, nil, false)
+			kvs, err := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
+			asserts.NoError(t, err)
+
+			expectedKVS := map[string]string{}
+			for k, v := range imageKVS {
+				expectedKVS[k] = v
+			}
+			for k, v := range tt.extraKVS {
+				expectedKVS[k] = v
+			}
+
+			for _, kv := range kvs {
+				val, ok := expectedKVS[kv.Key]
+				asserts.Truef(t, ok, "Key %s not located in the Key Value pairs", kv.Key)
+				asserts.Regexp(t, val, kv.Value)
+			}
+		})
+	}
+}
+
+// mergeMaps merges the contents of the given maps, starting from the first, and treating the
+// rest as overlays on top of the first.
+func mergeMaps(mapsToMerge ...map[string]string) map[string]string {
+	mergedMap := map[string]string{}
+	for _, eachMap := range mapsToMerge {
+		for k, v := range eachMap {
+			mergedMap[k] = v
 		}
-		val, ok := expectedKVS[kv.Key]
-		asserts.True(t, ok)
-		asserts.Equal(t, val, kv.Value)
 	}
+	return mergedMap
 }
 
 // TestPreInstall tests the pre-install for the Thanos component
@@ -145,149 +334,4 @@ func TestPreInstallUpgrade(t *testing.T) {
 
 	ns := v1.Namespace{}
 	asserts.NoError(t, client.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoMonitoringNamespace}, &ns))
-}
-
-// TestPostInstallUpgrade tests the postInstallUpgrade for the Thanos component
-func TestPostInstallUpgrade(t *testing.T) {
-	enabled := true
-	disabled := false
-	time := metav1.Now()
-	scheme := k8scheme.Scheme
-	asserts.NoError(t, certapiv1.AddToScheme(scheme))
-
-	var tests = []struct {
-		name    string
-		vz      v1alpha1.Verrazzano
-		ingress netv1.Ingress
-		cert    certapiv1.Certificate
-	}{
-		// GIVEN a call to postInstallUpgrade
-		// WHEN everything is disabled
-		// THEN the Thanos postInstallUpgrade returns no error
-		{
-			name: "TestPostInstallUpgrade When everything is disabled",
-			vz: v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						AuthProxy: &v1alpha1.AuthProxyComponent{Enabled: &disabled},
-						Ingress:   &v1alpha1.IngressNginxComponent{Enabled: &disabled},
-						DNS: &v1alpha1.DNSComponent{
-							OCI: &v1alpha1.OCI{
-								DNSZoneName: "mydomain.com",
-							},
-						},
-					},
-				},
-			},
-			ingress: netv1.Ingress{
-				ObjectMeta: metav1.ObjectMeta{Name: constants.ThanosQueryFrontendIngress, Namespace: constants.VerrazzanoSystemNamespace},
-			},
-			cert: certapiv1.Certificate{
-				ObjectMeta: metav1.ObjectMeta{Name: frontendCertificateName, Namespace: constants.VerrazzanoSystemNamespace},
-				Status: certapiv1.CertificateStatus{
-					Conditions: []certapiv1.CertificateCondition{
-						{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
-					},
-				},
-			},
-		},
-		// GIVEN a call to postInstallUpgrade
-		// WHEN the authproxy is disabled
-		// THEN the Thanos postInstallUpgrade returns no error
-		{
-			name: "TestPostInstallUpgrade When authproxy is disabled",
-			vz: v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						AuthProxy: &v1alpha1.AuthProxyComponent{Enabled: &disabled},
-						Ingress:   &v1alpha1.IngressNginxComponent{Enabled: &enabled},
-						DNS: &v1alpha1.DNSComponent{
-							OCI: &v1alpha1.OCI{
-								DNSZoneName: "mydomain.com",
-							},
-						},
-					},
-				},
-			},
-			ingress: netv1.Ingress{
-				ObjectMeta: metav1.ObjectMeta{Name: constants.ThanosQueryFrontendIngress, Namespace: constants.VerrazzanoSystemNamespace},
-			},
-			cert: certapiv1.Certificate{
-				ObjectMeta: metav1.ObjectMeta{Name: frontendCertificateName, Namespace: constants.VerrazzanoSystemNamespace},
-				Status: certapiv1.CertificateStatus{
-					Conditions: []certapiv1.CertificateCondition{
-						{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
-					},
-				},
-			},
-		},
-		// GIVEN a call to postInstallUpgrade
-		// WHEN NGINX is disabled
-		// THEN the Thanos postInstallUpgrade returns no error
-		{
-			name: "TestPostInstallUpgrade When NGINX is disabled",
-			vz: v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						AuthProxy: &v1alpha1.AuthProxyComponent{Enabled: &enabled},
-						Ingress:   &v1alpha1.IngressNginxComponent{Enabled: &disabled},
-						DNS: &v1alpha1.DNSComponent{
-							OCI: &v1alpha1.OCI{
-								DNSZoneName: "mydomain.com",
-							},
-						},
-					},
-				},
-			},
-			ingress: netv1.Ingress{
-				ObjectMeta: metav1.ObjectMeta{Name: constants.ThanosQueryFrontendIngress, Namespace: constants.VerrazzanoSystemNamespace},
-			},
-			cert: certapiv1.Certificate{
-				ObjectMeta: metav1.ObjectMeta{Name: frontendCertificateName, Namespace: constants.VerrazzanoSystemNamespace},
-				Status: certapiv1.CertificateStatus{
-					Conditions: []certapiv1.CertificateCondition{
-						{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
-					},
-				},
-			},
-		},
-		// GIVEN a call to postInstallUpgrade
-		// WHEN all enabled
-		// THEN the Thanos postInstallUpgrade returns no error
-		{
-			name: "TestPostInstallUpgrade When all enabled",
-			vz: v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						AuthProxy: &v1alpha1.AuthProxyComponent{Enabled: &enabled},
-						Ingress:   &v1alpha1.IngressNginxComponent{Enabled: &enabled},
-						DNS: &v1alpha1.DNSComponent{
-							OCI: &v1alpha1.OCI{
-								DNSZoneName: "mydomain.com",
-							},
-						},
-					},
-				},
-			},
-			ingress: netv1.Ingress{
-				ObjectMeta: metav1.ObjectMeta{Name: constants.ThanosQueryFrontendIngress, Namespace: constants.VerrazzanoSystemNamespace},
-			},
-			cert: certapiv1.Certificate{
-				ObjectMeta: metav1.ObjectMeta{Name: frontendCertificateName, Namespace: constants.VerrazzanoSystemNamespace},
-				Status: certapiv1.CertificateStatus{
-					Conditions: []certapiv1.CertificateCondition{
-						{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
-					},
-				},
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&test.ingress, &test.cert).Build()
-			ctx := spi.NewFakeContext(client, &test.vz, nil, false)
-			err := postInstallUpgrade(ctx)
-			asserts.NoError(t, err)
-		})
-	}
 }

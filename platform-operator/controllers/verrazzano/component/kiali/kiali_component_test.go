@@ -1,10 +1,15 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package kiali
 
 import (
 	"context"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
 	"testing"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
@@ -328,10 +333,23 @@ func TestKialiPostUpgradeUpdateResources(t *testing.T) {
 //	WHEN I call PreUpgrade with defaults
 //	THEN no error is returned
 func TestPreUpgrade(t *testing.T) {
-	helmcli.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helmcli.ChartStatusDeployed, nil
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helmcli.CreateActionConfig(true, kialiSystemName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			now := time.Now()
+			return &release.Release{
+				Name:      kialiSystemName,
+				Namespace: ComponentNamespace,
+				Info: &release.Info{
+					FirstDeployed: now,
+					LastDeployed:  now,
+					Status:        releaseStatus,
+					Description:   "Named Release Stub",
+				},
+				Version: 1,
+			}
+		})
 	})
-	defer helmcli.SetDefaultChartStateFunction()
 
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook

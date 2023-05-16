@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -36,6 +36,9 @@ var validSecret = corev1.Secret{
 	Data: map[string][]byte{constants.ClusterNameData: []byte("cluster1"), mcconstants.KubeconfigKey: []byte("kubeconfig")},
 }
 
+const testManagedPrometheusHost = "prometheus"
+const testManagedThanosQueryStoreAPIHost = "thanos-query-store.example.com"
+
 // TestProcessAgentThreadNoProjects tests agent thread when no projects exist
 // GIVEN a request to process the agent loop
 // WHEN no new VerrazzanoProjects resources exists
@@ -55,8 +58,8 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 
 	// Managed Cluster - expect call to get the cluster registration secret.
 	mcMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.ObjectMeta = validSecret.ObjectMeta
 			secret.Data = validSecret.Data
 			return nil
@@ -65,8 +68,8 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 	// Managed Cluster - expect call to get the tls-ca-additional secret. Return not found since it
 	// is ok for it to be not present.
 	mcMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vzconstants.RancherSystemNamespace, Name: vzconstants.AdditionalTLS}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: vzconstants.RancherSystemNamespace, Name: vzconstants.AdditionalTLS}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			return errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, name.Name)
 		})
 
@@ -74,6 +77,7 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 	vmcName := types.NamespacedName{Name: string(validSecret.Data[constants.ClusterNameData]), Namespace: constants.VerrazzanoMultiClusterNamespace}
 	expectGetAPIServerURLCalled(mcMock)
 	expectGetPrometheusHostCalled(mcMock)
+	expectGetThanosQueryHostCalled(mcMock)
 	expectAdminVMCStatusUpdateSuccess(adminMock, vmcName, adminStatusMock, assert)
 
 	// Admin Cluster - expect call to list VerrazzanoProject objects - return an empty list
@@ -104,8 +108,8 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 	// expect the VMC to be retrieved to check for deletion
 	clusterCASecret := "clusterCASecret"
 	adminMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: "cluster1"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: "cluster1"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.GetOption) error {
 			vmc.DeletionTimestamp = nil
 			vmc.Name = vmcName.Name
 			vmc.Namespace = vmcName.Namespace
@@ -114,8 +118,8 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 		})
 
 	adminMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: getManifestSecretName("cluster1")}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: getManifestSecretName("cluster1")}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			return errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, name.Name)
 		})
 
@@ -170,8 +174,8 @@ func TestProcessAgentThreadSecretDeleted(t *testing.T) {
 
 	// Managed Cluster - expect call to get the cluster registration secret.
 	mcMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			return errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, name.Name)
 		})
 
@@ -297,14 +301,14 @@ func Test_discardStatusMessages(t *testing.T) {
 
 func expectAdminVMCStatusUpdateFailure(adminMock *mocks.MockClient, vmcName types.NamespacedName, adminStatusMock *mocks.MockStatusWriter, assert *asserts.Assertions) {
 	adminMock.EXPECT().
-		Get(gomock.Any(), vmcName, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), vmcName, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "VerrazzanoManagedCluster"}, vmcName.Name))
 }
 
 func expectAdminVMCStatusUpdateSuccess(adminMock *mocks.MockClient, vmcName types.NamespacedName, adminStatusMock *mocks.MockStatusWriter, assert *asserts.Assertions) {
 	adminMock.EXPECT().
-		Get(gomock.Any(), vmcName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+		Get(gomock.Any(), vmcName, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.GetOption) error {
 			vmc.Name = vmcName.Name
 			vmc.Namespace = vmcName.Namespace
 			return nil
@@ -318,7 +322,8 @@ func expectAdminVMCStatusUpdateSuccess(adminMock *mocks.MockClient, vmcName type
 			assert.NotNil(vmc.Status)
 			assert.NotNil(vmc.Status.LastAgentConnectTime)
 			assert.NotNil(vmc.Status.APIUrl)
-			assert.NotNil(vmc.Status.PrometheusHost)
+			assert.Equal(testManagedPrometheusHost, vmc.Status.PrometheusHost)
+			assert.Equal(testManagedThanosQueryStoreAPIHost, vmc.Status.ThanosQueryStore)
 			return nil
 		})
 }
@@ -329,29 +334,29 @@ func expectCASyncSuccess(localMock, adminMock *mocks.MockClient, assert *asserts
 	adminRegSecret := types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: getRegistrationSecretName(testClusterName)}
 	localIngressTLSSecret := types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VerrazzanoIngressTLSSecret}
 	adminMock.EXPECT().
-		Get(gomock.Any(), adminCASecret, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), adminCASecret, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Name = adminCASecret.Name
 			secret.Namespace = adminCASecret.Namespace
 			return nil
 		})
 	adminMock.EXPECT().
-		Get(gomock.Any(), adminRegSecret, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), adminRegSecret, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Name = adminRegSecret.Name
 			secret.Namespace = adminRegSecret.Namespace
 			return nil
 		})
 	localMock.EXPECT().
-		Get(gomock.Any(), localRegistrationSecret, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), localRegistrationSecret, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Name = localRegistrationSecret.Name
 			secret.Namespace = localRegistrationSecret.Namespace
 			return nil
 		})
 	localMock.EXPECT().
-		Get(gomock.Any(), localIngressTLSSecret, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), localIngressTLSSecret, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Name = localIngressTLSSecret.Name
 			secret.Namespace = localIngressTLSSecret.Namespace
 			return nil
@@ -360,8 +365,8 @@ func expectCASyncSuccess(localMock, adminMock *mocks.MockClient, assert *asserts
 	vmcName := types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testClusterName}
 	clusterCASecret := "clusterCASecret"
 	adminMock.EXPECT().
-		Get(gomock.Any(), vmcName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+		Get(gomock.Any(), vmcName, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.GetOption) error {
 			vmc.Name = vmcName.Name
 			vmc.Namespace = vmcName.Namespace
 			vmc.Spec.CASecret = clusterCASecret
@@ -369,8 +374,8 @@ func expectCASyncSuccess(localMock, adminMock *mocks.MockClient, assert *asserts
 		})
 	adminClusterCASecret := types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: clusterCASecret}
 	adminMock.EXPECT().
-		Get(gomock.Any(), adminClusterCASecret, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), adminClusterCASecret, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Name = adminClusterCASecret.Name
 			secret.Namespace = adminClusterCASecret.Namespace
 			return nil
@@ -404,6 +409,7 @@ func TestSyncer_updateVMCStatus(t *testing.T) {
 
 	expectGetAPIServerURLCalled(localClientMock)
 	expectGetPrometheusHostCalled(localClientMock)
+	expectGetThanosQueryHostCalled(localClientMock)
 	// Mock the success of status updates and assert that updateVMCStatus returns nil error
 	expectAdminVMCStatusUpdateSuccess(adminMock, vmcName, adminStatusMock, assert)
 	assert.Nil(s.updateVMCStatus())
@@ -418,8 +424,8 @@ func TestSyncer_updateVMCStatus(t *testing.T) {
 func expectGetAPIServerURLCalled(mock *mocks.MockClient) {
 	// Expect a call to get the console ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *networkingv1.Ingress) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *networkingv1.Ingress, opts ...client.GetOption) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "networking.k8s.io/v1",
 				Kind:       "ingress"}
@@ -435,9 +441,20 @@ func expectGetAPIServerURLCalled(mock *mocks.MockClient) {
 
 func expectGetPrometheusHostCalled(mock *mocks.MockClient) {
 	// Expect a call to get the prometheus ingress and return the host.
+	expectGetIngress(mock, constants.VerrazzanoSystemNamespace, constants.VzPrometheusIngress, testManagedPrometheusHost)
+}
+
+func expectGetThanosQueryHostCalled(mock *mocks.MockClient) {
+	// Expect a call to get the Thanos query ingress and return the host.
+	expectGetIngress(mock, constants.VerrazzanoSystemNamespace, vzconstants.ThanosQueryStoreIngress, testManagedThanosQueryStoreAPIHost)
+}
+
+// Expects a call to get an ingress with the given name and namespace, and returns an ingress with the specified
+// ingressHost
+func expectGetIngress(mock *mocks.MockClient, ingressNamespace string, ingressName string, ingressHost string) {
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzPrometheusIngress}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *networkingv1.Ingress) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ingressNamespace, Name: ingressName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *networkingv1.Ingress, opts ...client.GetOption) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "networking.k8s.io/v1",
 				Kind:       "ingress"}
@@ -445,7 +462,7 @@ func expectGetPrometheusHostCalled(mock *mocks.MockClient) {
 				Namespace: name.Namespace,
 				Name:      name.Name}
 			ingress.Spec.Rules = []networkingv1.IngressRule{{
-				Host: "prometheus",
+				Host: ingressHost,
 			}}
 			return nil
 		})

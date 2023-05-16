@@ -19,7 +19,6 @@ import (
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/operatorinit"
 	"go.uber.org/zap"
@@ -93,6 +92,7 @@ func main() {
 		"MySQL check period seconds; set to 0 to disable MySQL checks")
 	flag.Int64Var(&config.MySQLRepairTimeoutSeconds, "mysql-repair-timeout", config.MySQLRepairTimeoutSeconds,
 		"MySQL repair timeout seconds")
+	flag.BoolVar(&config.ExperimentalModules, "experimental-modules", config.ExperimentalModules, "enable experimental modules")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}
@@ -125,7 +125,6 @@ func main() {
 		log.Errorf("Failed to get the Verrazzano version from the BOM: %v", err)
 	}
 
-	registry.InitRegistry()
 	// This allows separation of webhooks and operator
 	var exitErr error
 	if config.RunWebhookInit {

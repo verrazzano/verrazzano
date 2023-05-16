@@ -6,10 +6,9 @@ package reconcile
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	networkingv1 "k8s.io/api/networking/v1"
-	"k8s.io/client-go/dynamic"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
+	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/config"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"reflect"
 	"sync"
 	"testing"
@@ -17,14 +16,24 @@ import (
 
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	constants3 "github.com/verrazzano/verrazzano/pkg/constants"
-	vzos "github.com/verrazzano/verrazzano/pkg/os"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	vzContext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
-	v1 "k8s.io/api/batch/v1"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	time2 "helm.sh/helm/v3/pkg/time"
+	batchv1 "k8s.io/api/batch/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	"k8s.io/client-go/dynamic"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/golang/mock/gomock"
 	"github.com/prometheus/client_golang/prometheus/testutil"
@@ -122,6 +131,7 @@ func TestGetUninstallJobName(t *testing.T) {
 //
 //	ensure a finalizer is added if it doesn't exist
 func TestInstall(t *testing.T) {
+	metricsexporter.Init()
 	tests := []struct {
 		namespace string
 		name      string
@@ -263,11 +273,23 @@ func TestInstallInitComponents(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
+	defer helm.SetDefaultActionConfigFunction()
+	helm.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helm.CreateActionConfig(true, name, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			now := time2.Now()
+			return &release.Release{
+				Name:      name,
+				Namespace: namespace,
+				Info: &release.Info{
+					FirstDeployed: now,
+					LastDeployed:  now,
+					Status:        releaseStatus,
+					Description:   "Named Release Stub",
+				},
+				Version: 1,
+			}
+		})
 	})
-	defer helm.SetDefaultChartStatusFunction()
 
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -315,12 +337,12 @@ func TestCreateLocalRegistrationSecret(t *testing.T) {
 	asserts.NotNil(mockStatus)
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
 
 	// Expect a call to get the local registration secret in the verrazzano-system namespace - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCLocalRegistrationSecret}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCLocalRegistrationSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCLocalRegistrationSecret))
 
 	// Expect a call to create the registration secret
@@ -356,12 +378,12 @@ func TestCreateLocalRegistrationSecretUnexpectedError(t *testing.T) {
 	asserts.NotNil(mockStatus)
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(fmt.Errorf("Unexpected error getting secret"))
 
 	// Expect a call to get the local registration secret in the verrazzano-system namespace - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCLocalRegistrationSecret}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCLocalRegistrationSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Times(0)
 
 	// Expect a call to create the registration secret
@@ -420,10 +442,23 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 		config.SetDefaultBomFilePath("")
 	}()
 	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
+	defer helm.SetDefaultActionConfigFunction()
+	helm.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helm.CreateActionConfig(true, name, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			now := time2.Now()
+			return &release.Release{
+				Name:      name,
+				Namespace: namespace,
+				Info: &release.Info{
+					FirstDeployed: now,
+					LastDeployed:  now,
+					Status:        releaseStatus,
+					Description:   "Named Release Stub",
+				},
+				Version: 1,
+			}
+		})
 	})
-	defer helm.SetDefaultChartStatusFunction()
 
 	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
@@ -433,8 +468,8 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 
 	// Expect a call to get the DNS config secret and return it
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			data := make(map[string][]byte)
 			data["passphrase"] = []byte("passphraseValue")
 			secret.ObjectMeta = metav1.ObjectMeta{
@@ -516,8 +551,8 @@ func TestUninstallComplete(t *testing.T) {
 
 	// Expect a call to get the Verrazzano resource.  Return resource with deleted timestamp.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano, opts ...client.GetOption) error {
 			verrazzano.TypeMeta = metav1.TypeMeta{
 				APIVersion: "install.verrazzano.io/v1alpha1",
 				Kind:       "Verrazzano"}
@@ -537,6 +572,10 @@ func TestUninstallComplete(t *testing.T) {
 			}
 			return nil
 		})
+
+	defer func() { cmCleanupFunc = cmconfig.UninstallCleanup }()
+	cmCleanupFunc = func(log vzlog.VerrazzanoLogger, cli client.Client, namespace string) error { return nil }
+	expectCertManagerCRDChecks(mock)
 
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, labels)
@@ -619,10 +658,14 @@ func TestUninstallStarted(t *testing.T) {
 	setFakeComponentsDisabled()
 	defer registry.ResetGetComponentsFn()
 
+	defer func() { cmCleanupFunc = cmconfig.UninstallCleanup }()
+	cmCleanupFunc = func(log vzlog.VerrazzanoLogger, cli client.Client, namespace string) error { return nil }
+	expectCertManagerCRDChecks(mock)
+
 	// Expect a call to get the Verrazzano resource.  Return resource with deleted timestamp.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano, opts ...client.GetOption) error {
 			verrazzano.TypeMeta = metav1.TypeMeta{
 				APIVersion: "install.verrazzano.io/v1alpha1",
 				Kind:       "Verrazzano"}
@@ -733,10 +776,14 @@ func TestUninstallSucceeded(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
+	defer func() { cmCleanupFunc = cmconfig.UninstallCleanup }()
+	cmCleanupFunc = func(log vzlog.VerrazzanoLogger, cli client.Client, namespace string) error { return nil }
+	expectCertManagerCRDChecks(mock)
+
 	// Expect a call to get the Verrazzano resource.  Return resource with deleted timestamp.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano, opts ...client.GetOption) error {
 			verrazzano.TypeMeta = metav1.TypeMeta{
 				APIVersion: "install.verrazzano.io/v1alpha1",
 				Kind:       "Verrazzano"}
@@ -811,7 +858,7 @@ func TestVerrazzanoNotFound(t *testing.T) {
 
 	// Expect a call to get the Verrazzano resource - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Verrazzano"}, name))
 
 	// Create and make the request
@@ -842,7 +889,7 @@ func TestVerrazzanoGetError(t *testing.T) {
 
 	// Expect a call to get the Verrazzano resource - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewBadRequest("failed to get Verrazzano custom resource"))
 
 	// Create and make the request
@@ -897,7 +944,7 @@ func TestVZSystemNamespaceGetError(t *testing.T) {
 	errMsg := "get vz system namespace error"
 	// Expect a call to get the Verrazzano system namespace - return a failure error
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewBadRequest(errMsg))
 
 	config.TestProfilesDir = relativeProfilesDir
@@ -955,7 +1002,7 @@ func TestVZSystemNamespaceCreateError(t *testing.T) {
 	errMsg := "create vz system namespace error"
 	// Expect a call to get the Verrazzano system namespace - return an IsNotFound
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.ParseGroupResource("namespaces"), constants.VerrazzanoSystemNamespace))
 
 	// Expect a call to create the Verrazzano system namespace - return a failure error
@@ -1025,7 +1072,7 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 
 	// Expect a call to get the DNS config secret but return a not found error
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewBadRequest("failed to get Secret"))
 
 	config.TestProfilesDir = relativeProfilesDir
@@ -1153,19 +1200,19 @@ func newVerrazzanoReconciler(c client.Client) Reconciler {
 }
 
 // Expect syncLocalRegistration related calls, happy-path secret exists
-func expectSyncLocalRegistration(t *testing.T, mock *mocks.MockClient, name string) {
+func expectSyncLocalRegistration(_ *testing.T, mock *mocks.MockClient, _ string) {
 	// Expect a call to get the Agent secret in the verrazzano-system namespace - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(nil)
 }
 
 // expectGetVerrazzanoSystemNamespaceExists expects a call to get the Verrazzano system namespace and returns
 // that it exists
-func expectGetVerrazzanoSystemNamespaceExists(mock *mocks.MockClient, asserts *assert.Assertions) {
+func expectGetVerrazzanoSystemNamespaceExists(mock *mocks.MockClient, _ *assert.Assertions) {
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 			ns.Name = constants.VerrazzanoSystemNamespace
 			ns.Labels = systemNamespaceLabels
 			return nil
@@ -1178,8 +1225,8 @@ func expectClusterRoleBindingExists(mock *mocks.MockClient, verrazzanoToUse vzap
 	// Expect a call to get the ClusterRoleBinding - return that it exists
 	clusterRoleBindingName := buildClusterRoleBindingName(namespace, name)
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: clusterRoleBindingName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, clusterRoleBinding *rbacv1.ClusterRoleBinding) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: clusterRoleBindingName}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, clusterRoleBinding *rbacv1.ClusterRoleBinding, opts ...client.GetOption) error {
 			crb := rbac.NewClusterRoleBinding(&verrazzanoToUse, nsName.Name, getInstallNamespace(), buildServiceAccountName(nsName.Name))
 			clusterRoleBinding.ObjectMeta = crb.ObjectMeta
 			clusterRoleBinding.RoleRef = crb.RoleRef
@@ -1193,20 +1240,32 @@ func expectClusterRoleBindingExists(mock *mocks.MockClient, verrazzanoToUse vzap
 func expectGetServiceAccountExists(mock *mocks.MockClient, name string, labels map[string]string) {
 	// Expect a call to get the ServiceAccount - return that it exists
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount, opts ...client.GetOption) error {
 			newSA := rbac.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
 		}).AnyTimes()
 }
 
+// expectCertManagerCRDChecks expects a call to check for the CertManager CRDs
+func expectCertManagerCRDChecks(mock *mocks.MockClient) {
+	// Expect a call to get the ServiceAccount - return that it exists
+	for _, crdName := range cmcommon.GetRequiredCertManagerCRDNames() {
+		mock.EXPECT().
+			Get(gomock.Any(), types.NamespacedName{Name: crdName}, gomock.Not(gomock.Nil()), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, crd *v1.CustomResourceDefinition, opts ...client.GetOption) error {
+				return nil
+			}).AnyTimes()
+	}
+}
+
 // expectGetVerrazzanoExists expects a call to get a Verrazzano with the given namespace and name, and returns
 // one that has the same content as the verrazzanoToUse argument
-func expectGetVerrazzanoExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Verrazzano, namespace string, name string, labels map[string]string) {
+func expectGetVerrazzanoExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Verrazzano, namespace string, name string, _ map[string]string) {
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano, opts ...client.GetOption) error {
 			verrazzano.TypeMeta = verrazzanoToUse.TypeMeta
 			verrazzano.ObjectMeta = verrazzanoToUse.ObjectMeta
 			verrazzano.Spec.Components.DNS = verrazzanoToUse.Spec.Components.DNS
@@ -1229,20 +1288,20 @@ func expectSharedNamespaceDeletes(mock *mocks.MockClient) {
 	const fakeNS = "fake"
 	for _, ns := range sharedNamespaces {
 		mock.EXPECT().
-			Get(gomock.Any(), types.NamespacedName{Name: ns}, gomock.Not(gomock.Nil())).
+			Get(gomock.Any(), types.NamespacedName{Name: ns}, gomock.Not(gomock.Nil()), gomock.Any()).
 			Return(nil)
 		mock.EXPECT().Delete(gomock.Any(), nsMatcher{Name: ns}, gomock.Any()).Return(nil)
 		mock.EXPECT().
-			Get(gomock.Any(), types.NamespacedName{Name: ns}, gomock.Not(gomock.Nil())).
+			Get(gomock.Any(), types.NamespacedName{Name: ns}, gomock.Not(gomock.Nil()), gomock.Any()).
 			Return(errors.NewNotFound(schema.ParseGroupResource("Namespace"), ns))
 	}
 	// Expect delete for component namesapces
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: fakeNS}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Name: fakeNS}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(nil)
 	mock.EXPECT().Delete(gomock.Any(), nsMatcher{Name: fakeNS}, gomock.Any()).Return(nil)
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: fakeNS}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Name: fakeNS}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.ParseGroupResource("Namespace"), fakeNS))
 
 }
@@ -1259,7 +1318,7 @@ func expectNodeExporterCleanup(mock *mocks.MockClient) {
 
 func expectMCCleanup(mock *mocks.MockClient) {
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
 
 	mock.EXPECT().
@@ -1429,7 +1488,10 @@ func TestReconcileErrorCounter(t *testing.T) {
 	reconcileErrorCounterMetric, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileError)
 	assert.NoError(t, err)
 	errorCounterBefore := testutil.ToFloat64(reconcileErrorCounterMetric.Get())
-	reconciler.Reconcile(context.TODO(), errorRequest)
+	_, err = reconciler.Reconcile(context.TODO(), errorRequest)
+	if err != nil {
+		return
+	}
 	errorCounterAfter := testutil.ToFloat64(reconcileErrorCounterMetric.Get())
 	assert.NoError(t, err)
 	asserts.Equal(errorCounterBefore, errorCounterAfter-1)
@@ -1443,7 +1505,7 @@ func TestUninstallJobCleanup(t *testing.T) {
 	asserts := assert.New(t)
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&v1.Job{
+		&batchv1.Job{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.VerrazzanoInstallNamespace,
 				Name:      "uninstall-201321",
@@ -1458,7 +1520,7 @@ func TestUninstallJobCleanup(t *testing.T) {
 	reconciler := newVerrazzanoReconciler(c)
 	err := reconciler.cleanupUninstallJob("uninstall-201321", constants.VerrazzanoInstallNamespace, vzlog.DefaultLogger())
 	asserts.Nil(err)
-	job := &v1.Job{}
+	job := &batchv1.Job{}
 	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
 	asserts.NotNil(err)
 	asserts.True(errors.IsNotFound(err))
@@ -1472,7 +1534,7 @@ func TestMysqlBackupJobCleanup(t *testing.T) {
 	asserts := assert.New(t)
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&v1.Job{
+		&batchv1.Job{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.KeycloakNamespace,
 				Name:      "one-off-backup-20221018-201321",
@@ -1500,7 +1562,7 @@ func TestMysqlBackupJobCleanup(t *testing.T) {
 	reconciler := newVerrazzanoReconciler(c)
 	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
 	asserts.Nil(err)
-	job := &v1.Job{}
+	job := &batchv1.Job{}
 	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
 	asserts.NotNil(err)
 	asserts.True(errors.IsNotFound(err))
@@ -1514,20 +1576,20 @@ func TestMysqlScheduledBackupJobCleanup(t *testing.T) {
 	asserts := assert.New(t)
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&v1.Job{
+		&batchv1.Job{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "one-off-backup-schedule20221018-201321",
 				Namespace: constants.KeycloakNamespace,
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: "batch/v1",
+						APIVersion: "batch/batchv1",
 						Kind:       "CronJob",
 						Name:       "one-off-backup-schedule-20221018-201321",
 					},
 				},
 			},
 		},
-		&v1.CronJob{
+		&batchv1.CronJob{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.KeycloakNamespace,
 				Name:      "one-off-backup-schedule-20221018-201321",
@@ -1555,11 +1617,11 @@ func TestMysqlScheduledBackupJobCleanup(t *testing.T) {
 	reconciler := newVerrazzanoReconciler(c)
 	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
 	asserts.Nil(err)
-	job := &v1.Job{}
+	job := &batchv1.Job{}
 	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
 	asserts.NotNil(err)
 	asserts.True(errors.IsNotFound(err))
-	cronJob := &v1.CronJob{}
+	cronJob := &batchv1.CronJob{}
 	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-schedule-20221018-201321", Namespace: constants.KeycloakNamespace}, cronJob)
 	asserts.Nil(err)
 }
@@ -1572,7 +1634,7 @@ func TestInProgressMysqlBackupJobCleanup(t *testing.T) {
 	asserts := assert.New(t)
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&v1.Job{
+		&batchv1.Job{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.KeycloakNamespace,
 				Name:      "one-off-backup-20221018-201321",
@@ -1598,7 +1660,7 @@ func TestInProgressMysqlBackupJobCleanup(t *testing.T) {
 	reconciler := newVerrazzanoReconciler(c)
 	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
 	asserts.NotNil(err)
-	job := &v1.Job{}
+	job := &batchv1.Job{}
 	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
 	asserts.Nil(err)
 	asserts.NotNil(job)
@@ -1612,7 +1674,7 @@ func TestFailedMysqlBackupJobCleanup(t *testing.T) {
 	asserts := assert.New(t)
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&v1.Job{
+		&batchv1.Job{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.KeycloakNamespace,
 				Name:      "one-off-backup-20221018-201321",
@@ -1640,7 +1702,7 @@ func TestFailedMysqlBackupJobCleanup(t *testing.T) {
 	reconciler := newVerrazzanoReconciler(c)
 	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
 	asserts.NotNil(err)
-	job := &v1.Job{}
+	job := &batchv1.Job{}
 	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
 	asserts.Nil(err)
 	asserts.NotNil(job)
@@ -1652,7 +1714,7 @@ type erroringFakeClient struct {
 }
 
 // List always returns an error - used to simulate an error listing a resource
-func (e *erroringFakeClient) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+func (e *erroringFakeClient) List(_ context.Context, _ client.ObjectList, _ ...client.ListOption) error {
 	return errors.NewNotFound(schema.GroupResource{}, "")
 }
 
@@ -1678,7 +1740,7 @@ func TestMysqlOperatorJobPredicateWrongNamespace(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	reconciler := newVerrazzanoReconciler(c)
-	job := &v1.Job{
+	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "WrongNamespace",
 			Name:      "one-off-backup-20221018-201321",
@@ -1697,7 +1759,7 @@ func TestMysqlOperatorJobPredicateOwnedByOperatorCronJob(t *testing.T) {
 	asserts := assert.New(t)
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&v1.CronJob{
+		&batchv1.CronJob{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.KeycloakNamespace,
 				Name:      "one-off-backup-schedule-20221018-201321",
@@ -1706,13 +1768,13 @@ func TestMysqlOperatorJobPredicateOwnedByOperatorCronJob(t *testing.T) {
 		},
 	).Build()
 	reconciler := newVerrazzanoReconciler(c)
-	job := &v1.Job{
+	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: mysql.ComponentNamespace,
 			Name:      "one-off-backup-20221018-201321",
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion: "batch/v1",
+					APIVersion: "batch/batchv1",
 					Kind:       "CronJob",
 					Name:       "one-off-backup-schedule-20221018-201321",
 				},
@@ -1732,7 +1794,7 @@ func TestMysqlOperatorJobPredicateValidBackupJob(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	reconciler := newVerrazzanoReconciler(c)
-	job := &v1.Job{
+	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: mysql.ComponentNamespace,
 			Name:      "one-off-backup-20221018-201321",
@@ -1751,6 +1813,10 @@ func TestReconcilerInitForVzResource(t *testing.T) {
 	}
 	logger := vzlog.DefaultLogger()
 	mocker := gomock.NewController(t)
+	podKind := &source.Kind{Type: &corev1.Pod{}}
+	jobKind := &source.Kind{Type: &batchv1.Job{}}
+	secretKind := &source.Kind{Type: &corev1.Secret{}}
+	namespaceKind := &source.Kind{Type: &corev1.Namespace{}}
 	getNoErrorMock := func() client.Client {
 		mockClient := mocks.NewMockClient(mocker)
 		mockClient.EXPECT().Delete(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil).AnyTimes()
@@ -1774,12 +1840,48 @@ func TestReconcilerInitForVzResource(t *testing.T) {
 	}
 	setMockControllerNoErr := func(reconciler *Reconciler) {
 		controller := mocks.NewMockController(mocker)
-		controller.EXPECT().Watch(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		controller.EXPECT().Watch(gomock.Eq(podKind), gomock.Any(), gomock.Any()).Return(nil)
+		controller.EXPECT().Watch(gomock.Eq(jobKind), gomock.Any(), gomock.Any()).Return(nil)
+		// watches 2 secrets - managed cluster registration and Thanos internal user
+		controller.EXPECT().Watch(gomock.Eq(secretKind), gomock.Any(), gomock.Any()).Return(nil).Times(2)
+		controller.EXPECT().Watch(gomock.Eq(namespaceKind), gomock.Any(), gomock.Any()).Return(nil)
 		reconciler.Controller = controller
 	}
-	setMockControllerErr := func(reconciler *Reconciler) {
+	setMockControllerPodWatchErr := func(reconciler *Reconciler) {
 		controller := mocks.NewMockController(mocker)
-		controller.EXPECT().Watch(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf(unExpectedError))
+		controller.EXPECT().Watch(gomock.Eq(podKind), gomock.Any(), gomock.Any()).Return(fmt.Errorf(unExpectedError))
+		reconciler.Controller = controller
+	}
+	setMockControllerJobWatchErr := func(reconciler *Reconciler) {
+		controller := mocks.NewMockController(mocker)
+		// pod watch succeeds, job watch fails
+		controller.EXPECT().Watch(gomock.Eq(podKind), gomock.Any(), gomock.Any()).Return(nil)
+		controller.EXPECT().Watch(gomock.Eq(jobKind), gomock.Any(), gomock.Any()).Return(fmt.Errorf(unExpectedError))
+		reconciler.Controller = controller
+	}
+	setMockControllerSecretWatchErr := func(reconciler *Reconciler) {
+		controller := mocks.NewMockController(mocker)
+		// pod and job watch succeeds, first secret watch fails
+		// TODO find a way to know which secret is being watched and fail each one selectively
+		controller.EXPECT().Watch(gomock.Eq(podKind), gomock.Any(), gomock.Any()).Return(nil)
+		controller.EXPECT().Watch(gomock.Eq(jobKind), gomock.Any(), gomock.Any()).Return(nil)
+		controller.EXPECT().Watch(gomock.Eq(secretKind), gomock.Any(), gomock.Any()).DoAndReturn(
+			func(kind *source.Kind, handler handler.EventHandler, funcs predicate.Funcs) error {
+				return fmt.Errorf(unExpectedError)
+			})
+		reconciler.Controller = controller
+	}
+	setMockControllerNamespaceWatchErr := func(reconciler *Reconciler) {
+		controller := mocks.NewMockController(mocker)
+		// pod and job watch succeeds, first secret watch fails
+		// TODO find a way to know which secret is being watched and fail each one selectively
+		controller.EXPECT().Watch(gomock.Eq(podKind), gomock.Any(), gomock.Any()).Return(nil)
+		controller.EXPECT().Watch(gomock.Eq(jobKind), gomock.Any(), gomock.Any()).Return(nil)
+		controller.EXPECT().Watch(gomock.Eq(secretKind), gomock.Any(), gomock.Any()).Return(nil).Times(2)
+		controller.EXPECT().Watch(gomock.Eq(namespaceKind), gomock.Any(), gomock.Any()).DoAndReturn(
+			func(kind *source.Kind, handler handler.EventHandler, funcs predicate.Funcs) error {
+				return fmt.Errorf(unExpectedError)
+			})
 		reconciler.Controller = controller
 	}
 	vzName := "vzTestName"
@@ -1881,10 +1983,40 @@ func TestReconcilerInitForVzResource(t *testing.T) {
 		// GIVEN Verrazzano CR
 		// WHEN initForVzResource is called and error occurs while watching pods
 		// THEN error is returned with result for requeue with delay
-		{"TestReconcilerInitForVzResource when watching for pods get failed",
+		{"TestReconcilerInitForVzResource when watching for pods failed",
 			argWithFinalizer,
 			getNoErrorMock,
-			setMockControllerErr,
+			setMockControllerPodWatchErr,
+			newRequeueWithDelay(),
+			true,
+		},
+		// GIVEN Verrazzano CR
+		// WHEN initForVzResource is called and error occurs while watching Jobs
+		// THEN error is returned with result for requeue with delay
+		{"TestReconcilerInitForVzResource when watching for jobs failed",
+			argWithFinalizer,
+			getNoErrorMock,
+			setMockControllerJobWatchErr,
+			newRequeueWithDelay(),
+			true,
+		},
+		// GIVEN Verrazzano CR
+		// WHEN initForVzResource is called and error occurs while watching Secrets
+		// THEN error is returned with result for requeue with delay
+		{"TestReconcilerInitForVzResource when watching for registration secret failed",
+			argWithFinalizer,
+			getNoErrorMock,
+			setMockControllerSecretWatchErr,
+			newRequeueWithDelay(),
+			true,
+		},
+		// GIVEN Verrazzano CR
+		// WHEN initForVzResource is called and error occurs while watching a namespace creation/update
+		// THEN error is returned with result for requeue with delay
+		{"TestReconcilerInitForVzResource when watching for namespace creation failed",
+			argWithFinalizer,
+			getNoErrorMock,
+			setMockControllerNamespaceWatchErr,
 			newRequeueWithDelay(),
 			true,
 		},
@@ -1947,6 +2079,59 @@ func TestIsManagedClusterRegistrationSecret(t *testing.T) {
 	secret := corev1.Secret{}
 	asserts.True(reconciler.isManagedClusterRegistrationSecret(&vzSecret))
 	asserts.False(reconciler.isManagedClusterRegistrationSecret(&secret))
+}
+
+// TestIsThanosInternalUserSecret tests isThanosInternalUserSecret
+// GIVEN Secret resource
+// WHEN isThanosInternalUserSecret is called
+// THEN true is returned if secret is the Thanos internal user secret
+// THEN false is returned if secret is not the Thanos internal user secret
+func TestIsThanosInternalUserSecret(t *testing.T) {
+	asserts := assert.New(t)
+	reconciler := newVerrazzanoReconciler(nil)
+	thanosSecret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.ThanosInternalUserSecretName,
+			Namespace: constants.VerrazzanoMonitoringNamespace,
+		},
+	}
+	secretSameNS := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "some-other-secret",
+			Namespace: constants.VerrazzanoMonitoringNamespace,
+		},
+	}
+	secretSameNameDiffNS := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.ThanosInternalUserSecretName,
+			Namespace: constants.VerrazzanoSystemNamespace,
+		},
+	}
+	asserts.True(reconciler.isThanosInternalUserSecret(&thanosSecret))
+	asserts.False(reconciler.isThanosInternalUserSecret(&secretSameNS))
+	asserts.False(reconciler.isThanosInternalUserSecret(&secretSameNameDiffNS))
+}
+
+// TestIsCattleGlobalDataNamespace tests isCattleGlobalDataNamespace
+// GIVEN Namespace resource
+// WHEN isCattleGlobalDataNamespace is called
+// THEN true is returned if namespace is the cattle global data namespace
+// THEN false is returned if namespace is not the cattle global data namespace
+func TestIsCattleGlobalDataNamespace(t *testing.T) {
+	asserts := assert.New(t)
+	reconciler := newVerrazzanoReconciler(nil)
+	globalDataNamesapce := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: rancher.CattleGlobalDataNamespace,
+		},
+	}
+	otherNS := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "some-other-ns",
+		},
+	}
+	asserts.True(reconciler.isCattleGlobalDataNamespace(&globalDataNamesapce))
+	asserts.False(reconciler.isCattleGlobalDataNamespace(&otherNS))
 }
 
 // TestReconcile tests Reconcile
@@ -2025,7 +2210,7 @@ func TestReconcile(t *testing.T) {
 // THEN false is returned if no error occurs
 func TestPersistJobLog(t *testing.T) {
 	type args struct {
-		backupJob v1.Job
+		backupJob batchv1.Job
 		jobPod    *corev1.Pod
 		log       vzlog.VerrazzanoLogger
 	}
@@ -2036,7 +2221,7 @@ func TestPersistJobLog(t *testing.T) {
 	}{
 		{
 			"TestPersistJobLog",
-			args{v1.Job{ObjectMeta: metav1.ObjectMeta{
+			args{batchv1.Job{ObjectMeta: metav1.ObjectMeta{
 				Name: "test-schedule-1",
 			}}, &corev1.Pod{}, vzlog.DefaultLogger()},
 			false,
@@ -2054,11 +2239,34 @@ func TestPersistJobLog(t *testing.T) {
 // dummy Status updater for testing purpose
 type statusUpdater string
 
-func (s *statusUpdater) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
+func (s *statusUpdater) Update(_ context.Context, _ client.Object, _ ...client.UpdateOption) error {
 	return nil
 }
-func (s *statusUpdater) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
+func (s *statusUpdater) Patch(context.Context, client.Object, client.Patch, ...client.PatchOption) error {
 	return nil
+}
+
+func createRelease(_ string, status release.Status) *release.Release {
+	now := time2.Now()
+	return &release.Release{
+		Name:      rancher.ComponentName,
+		Namespace: rancher.ComponentNamespace,
+		Info: &release.Info{
+			FirstDeployed: now,
+			LastDeployed:  now,
+			Status:        status,
+			Description:   "Named Release Stub",
+		},
+		Version: 1,
+	}
+}
+
+func testActionConfigWithInstallation(vzlog.VerrazzanoLogger, *cli.EnvSettings, string) (*action.Configuration, error) {
+	return helm.CreateActionConfig(true, rancher.ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
+}
+
+func testActionConfigWithoutInstallation(vzlog.VerrazzanoLogger, *cli.EnvSettings, string) (*action.Configuration, error) {
+	return helm.CreateActionConfig(false, rancher.ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
 }
 
 // TestReconcilerProcReadyState tests ProcReadyState
@@ -2069,11 +2277,7 @@ func TestReconcilerProcReadyState(t *testing.T) {
 	}()
 	unitTesting = false
 	helmOverrideNoErr := func() {
-		helm.SetCmdRunner(vzos.GenericTestRunner{
-			StdOut: []byte(""),
-			StdErr: []byte(""),
-			Err:    nil,
-		})
+		helm.SetActionConfigFunction(testActionConfigWithInstallation)
 	}
 
 	k8sClient := fakes.NewClientBuilder().WithScheme(newScheme()).Build()
@@ -2165,10 +2369,13 @@ func TestReconcilerProcReadyState(t *testing.T) {
 	}
 	defer func() { config.TestProfilesDir = "" }()
 	defer registry.ResetGetComponentsFn()
-	defer helm.SetDefaultRunner()
+	defer helm.SetDefaultActionConfigFunction()
 	for _, tt := range tests {
 		registry.OverrideGetComponentsFn(getCompFunc)
 		t.Run(tt.name, func(t *testing.T) {
+			k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace("cattle-system")
+			defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+
 			r := newVerrazzanoReconciler(tt.k8sClient)
 			if tt.setProfileFunc != nil {
 				tt.setProfileFunc()

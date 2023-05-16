@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package stop
@@ -45,10 +45,10 @@ func RunCmdStop(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	}
 
 	fmt.Fprintf(vzHelper.GetOutputStream(), "Stopping scenario %s\n", scenarioID)
-	msg, err := scenarioMan.StopScenarioByID(scenarioID, vzHelper)
+	err = scenarioMan.StopScenarioByID(scenarioID, vzHelper)
 	if err != nil {
 		// Cobra will display failure message
-		return fmt.Errorf("Failed to stop scenario %s/%s: %v\n%s", namespace, scenarioID, err, msg)
+		return fmt.Errorf("Failed to stop scenario %s/%s: %v", namespace, scenarioID, err)
 	}
 	fmt.Fprintf(vzHelper.GetOutputStream(), "Scenario %s successfully stopped\n", scenarioID)
 

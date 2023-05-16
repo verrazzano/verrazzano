@@ -5,7 +5,12 @@ package operator
 
 import (
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -281,22 +286,11 @@ func TestPostInstall(t *testing.T) {
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: constants.PrometheusIngress, Namespace: authproxy.ComponentNamespace},
 				},
-				{
-					ObjectMeta: metav1.ObjectMeta{Name: constants.ThanosSidecarIngress, Namespace: authproxy.ComponentNamespace},
-				},
 			},
 
 			certList: []certapiv1.Certificate{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: prometheusCertificateName, Namespace: authproxy.ComponentNamespace},
-					Status: certapiv1.CertificateStatus{
-						Conditions: []certapiv1.CertificateCondition{
-							{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
-						},
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{Name: thanosCertificateName, Namespace: authproxy.ComponentNamespace},
 					Status: certapiv1.CertificateStatus{
 						Conditions: []certapiv1.CertificateCondition{
 							{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
@@ -464,10 +458,23 @@ func TestPreInstallcomponent(t *testing.T) {
 
 // test PreUpgrade for component class
 func TestPreUpgradecomponent(t *testing.T) {
-	helmcli.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helmcli.ChartStatusDeployed, nil
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helmcli.CreateActionConfig(true, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			now := time.Now()
+			return &release.Release{
+				Name:      ComponentName,
+				Namespace: ComponentNamespace,
+				Info: &release.Info{
+					FirstDeployed: now,
+					LastDeployed:  now,
+					Status:        releaseStatus,
+					Description:   "Named Release Stub",
+				},
+				Version: 1,
+			}
+		})
 	})
-	defer helmcli.SetDefaultChartStateFunction()
 
 	c := fake.NewClientBuilder().Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, true)

@@ -8,7 +8,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
+	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/config"
+	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
+	cmocidns "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/ocidns"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
@@ -70,8 +73,11 @@ func InitRegistry() {
 		istio.NewComponent(),
 		weblogic.NewComponent(),
 		nginx.NewComponent(),
-		certmanager.NewComponent(),
+		cmcontroller.NewComponent(),
+		cmocidns.NewComponent(),
+		cmconfig.NewComponent(),
 		externaldns.NewComponent(),
+		capi.NewComponent(),
 		rancher.NewComponent(),
 		verrazzano.NewComponent(),
 		vmo.NewComponent(),
@@ -103,7 +109,6 @@ func InitRegistry() {
 }
 
 // GetComponents returns the list of components that are installable and upgradeable.
-// The components will be processed in the order items in the array
 // The components will be processed in the order items in the array
 func GetComponents() []spi.Component {
 	if len(componentsRegistry) == 0 {
@@ -142,6 +147,8 @@ func FindComponent(componentName string) (bool, spi.Component) {
 // to continue to deploy if it's not enabled.  In the long run, the dependency mechanism should likely go away and
 // allow components to individually make those decisions.
 func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) bool {
+	var notReadyDependencies []string
+	var dependenciesReady = true
 	log := context.Log()
 	trace, err := checkDirectDependenciesReady(c, context, make(map[string]bool))
 	if err != nil {
@@ -153,12 +160,17 @@ func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) boo
 		return true
 	}
 	log.Debugf("Trace results for %s: %v", c.Name(), trace)
-	for _, value := range trace {
+
+	for compName, value := range trace {
 		if !value {
-			return false
+			dependenciesReady = false
+			notReadyDependencies = append(notReadyDependencies, compName)
 		}
 	}
-	return true
+	if !dependenciesReady {
+		log.Progressf("Component %s waiting for dependencies %v to be ready", c.Name(), notReadyDependencies)
+	}
+	return dependenciesReady
 }
 
 // checkDependencies Check the ready state of any dependencies and check for cycles

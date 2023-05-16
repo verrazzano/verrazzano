@@ -104,6 +104,9 @@ func getConsoleURLsFromResource(kubeconfig string) ([]string, error) {
 	if vz.Status.VerrazzanoInstance.ArgoCDURL != nil {
 		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.ArgoCDURL)
 	}
+	if vz.Status.VerrazzanoInstance.ThanosQueryURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.ThanosQueryURL)
+	}
 
 	return consoleUrls, nil
 }
@@ -128,7 +131,10 @@ func getExpectedConsoleURLs(kubeConfig string) ([]string, error) {
 	for _, ingress := range ingresses.Items {
 		ingressHost := ingress.Spec.Rules[0].Host
 		// elasticsearch and kibana ingresses are created for permanent redirection when upgraded from older VZ releases to 1.5.0 or later.
-		if strings.HasPrefix(ingressHost, "elasticsearch") || strings.HasPrefix(ingressHost, "kibana") {
+		// The Thanos Store API endpoints are not stored in the Verrazzano instance and can be ignored
+		if strings.HasPrefix(ingressHost, "elasticsearch") ||
+			strings.HasPrefix(ingressHost, "kibana") ||
+			strings.HasPrefix(ingressHost, "thanos-query-store") {
 			continue
 		}
 		// Any verrazzano-managed ingresses in the Rancher namespace are created for managed clusters to be

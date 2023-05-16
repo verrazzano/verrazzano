@@ -1,11 +1,14 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package istio
 
 import (
 	"errors"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"os/exec"
 	"testing"
 
@@ -91,6 +94,9 @@ func TestInstall(t *testing.T) {
 //	THEN true is returned
 func TestIsInstalled(t *testing.T) {
 	assert := assert.New(t)
+
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.IstioSystemNamespace)
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 
 	SetCmdRunner(fakeIstioInstalledRunner{})
 	b, err := IsInstalled(vzlog.DefaultLogger())

@@ -1,11 +1,10 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mccoherence
 
 import (
 	"fmt"
-	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"net/http"
 	"os"
 	"strconv"
@@ -17,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 )
@@ -78,6 +78,7 @@ var (
 	clusterName       = os.Getenv("MANAGED_CLUSTER_NAME")
 	adminKubeconfig   = os.Getenv("ADMIN_KUBECONFIG")
 	managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
+	metricsTest       pkg.MetricsTest
 	failed            = false
 	beforeSuitePassed = false
 )
@@ -111,6 +112,13 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
+
+	var err error
+	metricsTest, err = pkg.NewMetricsTest(adminKubeconfig, map[string]string{}, managedKubeconfig)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
+	}
+
 	beforeSuitePassed = true
 })
 
@@ -315,7 +323,7 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 							m := make(map[string]string)
 							m[labelApp] = appName
 							m[clusterNameMetricsLabel] = clusterName
-							return pkg.MetricsExistInCluster(jvmUptime, m, adminKubeconfig)
+							return metricsTest.MetricsExist(jvmUptime, m)
 						}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 					},
 					func() {
@@ -324,7 +332,7 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 							m := make(map[string]string)
 							m[labelApp] = appName
 							m[clusterNameMetricsLabel] = clusterName
-							return pkg.MetricsExistInCluster(vendorRequestsCount, m, adminKubeconfig)
+							return metricsTest.MetricsExist(vendorRequestsCount, m)
 						}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 					},
 					func() {
@@ -333,7 +341,7 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 							m := make(map[string]string)
 							m[labelNS] = appNamespace
 							m[clusterNameMetricsLabel] = clusterName
-							return pkg.MetricsExistInCluster(memUsageBytes, m, adminKubeconfig)
+							return metricsTest.MetricsExist(memUsageBytes, m)
 						}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 					},
 					func() {
@@ -342,7 +350,7 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 							m := make(map[string]string)
 							m[labelCluster] = cohClusterName
 							m[clusterNameMetricsLabel] = clusterName
-							return pkg.MetricsExistInCluster(clusterSize, m, adminKubeconfig)
+							return metricsTest.MetricsExist(clusterSize, m)
 						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find coherence metric")
 					},
 					func() {
@@ -351,7 +359,7 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 							m := make(map[string]string)
 							m[labelCluster] = cohClusterName
 							m[clusterNameMetricsLabel] = clusterName
-							return pkg.MetricsExistInCluster(serviceMessagesLocal, m, adminKubeconfig)
+							return metricsTest.MetricsExist(serviceMessagesLocal, m)
 						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find coherence metric")
 					},
 				)

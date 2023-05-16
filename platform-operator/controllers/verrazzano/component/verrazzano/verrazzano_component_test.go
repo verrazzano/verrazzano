@@ -1,9 +1,12 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package verrazzano
 
 import (
-	"os/exec"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
 	"testing"
 
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -14,7 +17,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
@@ -44,31 +46,29 @@ var crEnabled = vzapi.Verrazzano{
 
 var getControllerRuntimeClient = getClient
 
-// genericTestRunner is used to run generic OS commands with expected results
-type genericTestRunner struct {
-}
-
-// Run genericTestRunner executor
-func (r genericTestRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
-	return nil, nil, nil
-}
-
-// fakeUpgrade override the upgrade function during unit tests
-func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
-	return []byte("success"), []byte(""), nil
-}
-
 // TestPreUpgrade tests the Verrazzano PreUpgrade call
 // GIVEN a Verrazzano component
 //
 //	WHEN I call PreUpgrade with defaults
 //	THEN no error is returned
 func TestPreUpgrade(t *testing.T) {
-	helmcli.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helmcli.ChartStatusDeployed, nil
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helmcli.CreateActionConfig(true, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			now := time.Now()
+			return &release.Release{
+				Name:      ComponentName,
+				Namespace: ComponentNamespace,
+				Info: &release.Info{
+					FirstDeployed: now,
+					LastDeployed:  now,
+					Status:        releaseStatus,
+					Description:   "Named Release Stub",
+				},
+				Version: 1,
+			}
+		})
 	})
-	defer helmcli.SetDefaultChartStateFunction()
-
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
 	config.TestHelmConfigDir = "../../../../helm_config"
@@ -101,12 +101,28 @@ func TestInstall(t *testing.T) {
 		},
 	}, nil, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
-	helm.SetUpgradeFunc(fakeUpgrade)
-	defer helm.SetDefaultUpgradeFunc()
-	helmcli.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
-		return helmcli.ChartStatusDeployed, nil
+
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../"})
+
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helmcli.CreateActionConfig(true, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			now := time.Now()
+			return &release.Release{
+				Name:      ComponentName,
+				Namespace: ComponentNamespace,
+				Info: &release.Info{
+					FirstDeployed: now,
+					LastDeployed:  now,
+					Status:        releaseStatus,
+					Description:   "Named Release Stub",
+				},
+				Version: 1,
+			}
+		})
 	})
-	defer helmcli.SetDefaultChartStateFunction()
+
 	err := NewComponent().Install(ctx)
 	assert.NoError(t, err)
 }
@@ -125,6 +141,25 @@ func TestPostInstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func createRelease(name string, status release.Status) *release.Release {
+	now := time.Now()
+	return &release.Release{
+		Name:      ComponentName,
+		Namespace: ComponentNamespace,
+		Info: &release.Info{
+			FirstDeployed: now,
+			LastDeployed:  now,
+			Status:        status,
+			Description:   "Named Release Stub",
+		},
+		Version: 1,
+	}
+}
+
+func testActionConfigWithInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return helmcli.CreateActionConfig(true, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
+}
+
 // TestUpgrade tests the Verrazzano Upgrade call; simple wrapper exercise, more detailed testing is done elsewhere
 // GIVEN a Verrazzano component upgrading from 1.1.0 to 1.2.0
 //
@@ -140,14 +175,8 @@ func TestUpgrade(t *testing.T) {
 		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"},
 	}, nil, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
-	helmcli.SetCmdRunner(genericTestRunner{})
-	defer helmcli.SetDefaultRunner()
-	helm.SetUpgradeFunc(fakeUpgrade)
-	defer helm.SetDefaultUpgradeFunc()
-	helmcli.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
-		return helmcli.ChartStatusDeployed, nil
-	})
-	defer helmcli.SetDefaultChartStateFunction()
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(testActionConfigWithInstallation)
 	err := NewComponent().Upgrade(ctx)
 	assert.NoError(t, err)
 }
@@ -394,7 +423,7 @@ func TestValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "disable-fluentd",
@@ -636,7 +665,7 @@ func TestValidateUpdateV1beta1(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "disable-fluentd",

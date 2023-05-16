@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package nginxistio
@@ -7,13 +7,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"reflect"
 	"strings"
 	"text/template"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -21,6 +21,9 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
+
+	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,8 +48,10 @@ const (
 	istioTestAnnotationValue = "value-i"
 	newReplicas              = 3
 	nginxLBShapeValue        = "flexible"
-	istioLBShapeValue        = "10Mbps"
+	istioLBShapeValue        = "flexible"
 )
+
+var ingressNGINXNamespace string
 
 var testNginxIngressPorts = []corev1.ServicePort{
 	{
@@ -366,6 +371,10 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
+	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	if err != nil {
+		Fail(err.Error())
+	}
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -381,7 +390,7 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 				expectedIstioRunning = 2
 				expectedNGINXRunning = 2
 			}
-			update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, expectedNGINXRunning, false)
+			update.ValidatePods(nginxLabelValue, nginxLabelKey, ingressNGINXNamespace, expectedNGINXRunning, false)
 			update.ValidatePods(istioIngressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, expectedIstioRunning, false)
 			update.ValidatePods(istioEgressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, expectedIstioRunning, false)
 		})
@@ -409,7 +418,7 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 			}
 			update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 
-			update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, newReplicas, false)
+			update.ValidatePods(nginxLabelValue, nginxLabelKey, ingressNGINXNamespace, newReplicas, false)
 			update.ValidatePods(istioIngressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, newReplicas, false)
 			update.ValidatePods(istioEgressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, newReplicas, false)
 		})
@@ -585,7 +594,7 @@ func getServiceLoadBalancerIP(ns, svcName string) (string, error) {
 func validateServiceAnnotations(m NginxIstioIngressServiceAnnotationModifier) {
 	gomega.Eventually(func() error {
 		var err error
-		nginxIngress, err := pkg.GetService(constants.IngressNamespace, nginxIngressServiceName)
+		nginxIngress, err := pkg.GetService(ingressNGINXNamespace, nginxIngressServiceName)
 		if err != nil {
 			return err
 		}
@@ -613,7 +622,7 @@ func validateServiceNodePortAndExternalIP(expectedSystemExternalIP, expectedAppl
 	gomega.Eventually(func() error {
 		// validate Nginx Ingress service
 		var err error
-		nginxIngress, err := pkg.GetService(constants.IngressNamespace, nginxIngressServiceName)
+		nginxIngress, err := pkg.GetService(ingressNGINXNamespace, nginxIngressServiceName)
 		if err != nil {
 			return err
 		}
@@ -668,14 +677,14 @@ func validateServiceLoadBalancer() {
 	gomega.Eventually(func() error {
 		// validate Nginx Ingress service
 		var err error
-		nginxIngress, err := pkg.GetService(constants.IngressNamespace, nginxIngressServiceName)
+		nginxIngress, err := pkg.GetService(ingressNGINXNamespace, nginxIngressServiceName)
 		if err != nil {
 			return err
 		}
 		if nginxIngress.Spec.Type != corev1.ServiceTypeLoadBalancer {
 			return fmt.Errorf("expect nginx ingress with type LoadBalancer, but got %v", nginxIngress.Spec.Type)
 		}
-		nginxLBIP, err := getServiceLoadBalancerIP(constants.IngressNamespace, nginxIngressServiceName)
+		nginxLBIP, err := getServiceLoadBalancerIP(ingressNGINXNamespace, nginxIngressServiceName)
 		if err != nil {
 			return err
 		}

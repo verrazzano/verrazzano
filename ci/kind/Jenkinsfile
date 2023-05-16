@@ -95,6 +95,7 @@ pipeline {
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
+        ENABLE_THANOS_STORE_GATEWAY = true
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
         DATABASE_PSW = credentials('todo-mysql-password') // required by console ingress test
@@ -482,14 +483,6 @@ pipeline {
                                runGinkgo('jaeger/system')
                             }
                         }
-                        stage('jaeger hotrod') {
-                            environment {
-                               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-hotrod"
-                            }
-                            steps {
-                               runGinkgo('jaeger/hotrod')
-                            }
-                        }
                         stage('jwt helidon') {
                             when {
                                 expression {params.ENABLE_JWT_TESTING == true}
@@ -525,6 +518,14 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('examples/helidonmetrics')
+                            }
+                        }
+                        stage('logging trait Helidon workload') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-helidonworkload"
+                            }
+                            steps {
+                                runGinkgo('loggingtrait/helidonworkload')
                             }
                         }
                     }
@@ -573,14 +574,6 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('workloads/oam')
-                            }
-                        }
-                        stage('logging trait Helidon workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-helidonworkload"
-                            }
-                            steps {
-                                runGinkgo('loggingtrait/helidonworkload')
                             }
                         }
                         stage('logging trait Coherence workload') {

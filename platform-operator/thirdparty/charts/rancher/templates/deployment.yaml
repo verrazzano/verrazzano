@@ -147,14 +147,27 @@ spec:
           httpGet:
             path: /healthz
             port: 80
-          initialDelaySeconds: 60
-          periodSeconds: 30
+          initialDelaySeconds: {{.Values.livenessProbe.initialDelaySeconds | default 60 }}
+          periodSeconds: {{ .Values.livenessProbe.periodSeconds | default 30 }}
         readinessProbe:
           httpGet:
             path: /healthz
             port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 30
+          initialDelaySeconds: {{.Values.readinessProbe.initialDelaySeconds | default  5}}
+          periodSeconds: {{ .Values.readinessProbe.periodSeconds | default 30}}
+{{- if .Values.startupProbe }}
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: 80
+          failureThreshold: {{.Values.startupProbe.failureThreshold | default 1}}
+          periodSeconds: {{ .Values.startupProbe.periodSeconds | default 30}}
+{{- end }}
+        # CRI-O does not deliver MKNOD by default so we need to add it
+        securityContext:
+          capabilities:
+            add:
+            - MKNOD
         resources:
 {{ toYaml .Values.resources | indent 10 }}
         volumeMounts:
