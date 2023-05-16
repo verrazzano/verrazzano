@@ -11,6 +11,7 @@ groupName: verrazzano.io
 
 certManager:
   namespace: cert-manager
+  clusterResourceNamespace: cert-manager
   serviceAccountName: cert-manager
 
 image:
@@ -47,6 +48,8 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+ociAuthSecrets: []
 
 securityContext:
   allowPrivilegeEscalation: false

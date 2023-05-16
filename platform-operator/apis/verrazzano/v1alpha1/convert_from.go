@@ -118,6 +118,7 @@ func convertSecuritySpecFromV1Beta1(security v1beta1.SecuritySpec) SecuritySpec 
 func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 	return ComponentSpec{
 		CertManager:            convertCertManagerFromV1Beta1(in.CertManager),
+		ExternalCertManager:    convertExternalCertManagerFromV1Beta1(in.ExternalCertManager),
 		CoherenceOperator:      convertCoherenceOperatorFromV1Beta1(in.CoherenceOperator),
 		ApplicationOperator:    convertApplicationOperatorFromV1Beta1(in.ApplicationOperator),
 		AuthProxy:              convertAuthProxyFromV1Beta1(in.AuthProxy),
@@ -149,6 +150,19 @@ func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 		Verrazzano:             convertVerrazzanoFromV1Beta1(in.Verrazzano),
 		ArgoCD:                 convertArgoCDFromV1Beta1(in.ArgoCD),
 		CAPI:                   convertCAPIFromV1Beta1(in.CAPI),
+	}
+}
+
+func convertExternalCertManagerFromV1Beta1(in *v1beta1.ExternalCertManagerComponent) *ExternalCertManagerComponent {
+	if in == nil {
+		return nil
+	}
+	return &ExternalCertManagerComponent{
+		Certificate:              convertCertificateFromV1Beta1(in.Certificate),
+		Enabled:                  in.Enabled,
+		Namespace:                in.Namespace,
+		ServiceAccountName:       in.ServiceAccountName,
+		ClusterResourceNamespace: in.ClusterResourceNamespace,
 	}
 }
 

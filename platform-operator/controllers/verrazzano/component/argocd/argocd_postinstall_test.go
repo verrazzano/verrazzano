@@ -24,6 +24,91 @@ func (f FakeArgoClientSecretProvider) GetClientSecret(_ spi.ComponentContext) (s
 	return "blah", nil
 }
 
+const (
+	policyWithVzadminTop = `g, verrazzano-admins, role:admin
+p, role:staging-dev-admins, applications, create, dev-project/*, allow
+p, role:staging-dev-admins, applications, get, dev-project/*, allow
+p, role:staging-dev-admins, applications, override, dev-project/*, allow
+p, role:staging-dev-admins, applications, sync, dev-project/*, allow
+p, role:staging-dev-admins, applications, update, dev-project/*, allow
+p, role:staging-dev-admins, exec, create, dev-project/*, allow
+g, dev-project-key, role:staging-dev-admins`
+
+	policyWithVzadminMiddle = `p, role:staging-dev-admins, applications, create, dev-project/*, allow
+p, role:staging-dev-admins, applications, get, dev-project/*, allow
+p, role:staging-dev-admins, applications, override, dev-project/*, allow
+p, role:staging-dev-admins, applications, sync, dev-project/*, allow
+g, verrazzano-admins, role:admin
+p, role:staging-dev-admins, applications, update, dev-project/*, allow
+p, role:staging-dev-admins, exec, create, dev-project/*, allow
+g, dev-project-key, role:staging-dev-admins`
+
+	policyWithVzadminBottom = `p, role:staging-dev-admins, applications, create, dev-project/*, allow
+p, role:staging-dev-admins, applications, get, dev-project/*, allow
+p, role:staging-dev-admins, applications, override, dev-project/*, allow
+p, role:staging-dev-admins, applications, sync, dev-project/*, allow
+p, role:staging-dev-admins, applications, update, dev-project/*, allow
+p, role:staging-dev-admins, exec, create, dev-project/*, allow
+g, dev-project-key, role:staging-dev-admins
+g, verrazzano-admins, role:admin`
+
+	policyWithVzadminMissing = `p, role:staging-dev-admins, applications, create, dev-project/*, allow
+p, role:staging-dev-admins, applications, get, dev-project/*, allow
+p, role:staging-dev-admins, applications, override, dev-project/*, allow
+p, role:staging-dev-admins, applications, sync, dev-project/*, allow
+p, role:staging-dev-admins, applications, update, dev-project/*, allow
+p, role:staging-dev-admins, exec, create, dev-project/*, allow
+g, dev-project-key, role:staging-dev-admins`
+
+	policyWithVzadminOnly = `g, verrazzano-admins, role:admin`
+)
+
+// TestArgoCDRBAC should apply a policy that grants admin (role:admin) to verrazzano-admins group
+// GIVEN a ArgoCD rbac config map
+//
+//	WHEN patchArgoCDRbacConfigMap is called for various cases
+//	THEN the argocd-rbac-cm config map is patched correctly
+func TestArgoCDRBAC(t *testing.T) {
+	const cmName = "argocd-rbac-cm"
+
+	tests := []struct {
+		name         string
+		initialRBAC  string
+		expectedRBAC string
+	}{
+		{name: "test-empty", initialRBAC: "", expectedRBAC: policyWithVzadminOnly},
+		{name: "test-missing", initialRBAC: policyWithVzadminMissing, expectedRBAC: policyWithVzadminBottom},
+		{name: "test-top", initialRBAC: policyWithVzadminTop, expectedRBAC: policyWithVzadminTop},
+		{name: "test-middle", initialRBAC: policyWithVzadminMiddle, expectedRBAC: policyWithVzadminMiddle},
+		{name: "test-bottom", initialRBAC: policyWithVzadminBottom, expectedRBAC: policyWithVzadminBottom},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			rbaccm := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      cmName,
+					Namespace: constants.ArgoCDNamespace,
+				},
+				Data: map[string]string{policyCSVKey: test.initialRBAC},
+			}
+			fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(rbaccm).Build()
+			ctx := spi.NewFakeContext(fakeClient, nil, nil, false)
+			assert.NoError(t, patchArgoCDRbacConfigMap(ctx))
+
+			cm := corev1.ConfigMap{
+				TypeMeta:   metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{},
+				Immutable:  nil,
+				Data:       nil,
+				BinaryData: nil,
+			}
+			err := fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: constants.ArgoCDNamespace, Name: cmName}, &cm)
+			assert.NoError(t, err)
+			assert.Equal(t, test.expectedRBAC, cm.Data[policyCSVKey])
+		})
+	}
+}
+
 // TestPatchArgoCDSecret should add the oidc configuration client secret for keycloak
 // GIVEN a ArgoCD secret
 //
