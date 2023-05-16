@@ -1,0 +1,59 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: FluentBitConfig
+metadata:
+  labels:
+    verrazzano.io/logging: "true"
+  name: kiali-fbc
+  namespace: {{ .Release.Namespace }}
+spec:
+  filterSelector:
+    matchLabels:
+      verrazzano.io/component: "kiali"
+  parserSelector:
+    matchLabels:
+      verrazzano.io/component: "kiali"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    verrazzano.io/component: "kiali"
+  name: kiali-filter
+  namespace: {{ .Release.Namespace }}
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        parser: kiali-parser1,kiali-parser2
+  matchRegex: "kube.var.log.containers.*vmi-system-kiali.*verrazzano-system_vmi-system-kiali.*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "kiali"
+  name: kiali-parser1
+  namespace: {{ .Release.Namespace }}
+spec:
+  regex:
+    regex: '/^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z) (?<level>.*?) (?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeFormat: "%Y-%m-%dT%H:%M:%SZ"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "kiali"
+  name: kiali-parser2
+  namespace: {{ .Release.Namespace }}
+spec:
+  regex:
+    regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeFormat: "%H:%M:%S.%N"
+{{ end -}}

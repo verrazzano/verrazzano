@@ -1,0 +1,72 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: FluentBitConfig
+metadata:
+  labels:
+    verrazzano.io/logging: "true"
+  name: jaeger-fbc
+  namespace: {{ .Release.Namespace }}
+spec:
+  filterSelector:
+    matchLabels:
+      verrazzano.io/component: "jaeger"
+  parserSelector:
+    matchLabels:
+      verrazzano.io/component: "jaeger"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    verrazzano.io/component: "jaeger"
+  name: jaeger-filter
+  namespace: {{ .Release.Namespace }}
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        parser: jaeger-parser1,jaeger-parser2,jaeger-parser3
+  matchRegex: "kube.var.log.containers.*jaeger-operator-.*verrazzano-monitoring_jaeger.*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "jaeger"
+  name: jaeger-parser1
+  namespace: {{ .Release.Namespace }}
+spec:
+  regex:
+    regex: '/^(?<logtime>.*?) (?<level>\S+?) (?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    types: "float"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "jaeger"
+  name: jaeger-parser2
+  namespace: {{ .Release.Namespace }}
+spec:
+  regex:
+    regex: '/^(?<logtime>.*?) (?<level>\S+?) (?<component>[\.\S]+?) (?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    types: "float"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "jaeger"
+  name: jaeger-parser3
+  namespace: {{ .Release.Namespace }}
+spec:
+  regex:
+    regex: '/^time=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z) level=(?<level>.*?) message=(?<message>[\s\S]*?) error=(?<error>[\s\S]*?) execution=(?<executiontime>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+ \+\d{3} \w+?) instance=(?<instance>[\s\S]*?) namespace=(?<namespace>[\s\S]*?)$/'
+    timeKey: logtime
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%NZ"
+{{ end -}}

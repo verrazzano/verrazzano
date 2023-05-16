@@ -6,7 +6,6 @@ package fluentoperator
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -44,10 +43,10 @@ const (
 	HelmChartDir = "fluent-operator"
 )
 
-var (
-	// For Unit test purposes
-	writeFileFunc = os.WriteFile
-)
+//var (
+//	// For Unit test purposes
+//	writeFileFunc = os.WriteFile
+//)
 
 // fluentOperatorComponent represents an Fluent-Operator component
 type fluentOperatorComponent struct {
@@ -63,7 +62,7 @@ func NewComponent() spi.Component {
 		helm.HelmComponent{
 			ReleaseName:               HelmChartReleaseName,
 			JSONName:                  ComponentJSONName,
-			ChartDir:                  filepath.Join(config.GetHelmChartsDir(), HelmChartDir),
+			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), HelmChartDir),
 			ChartNamespace:            ComponentNamespace,
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
@@ -136,7 +135,7 @@ func (c fluentOperatorComponent) checkEnabled(old *v1beta1.Verrazzano, new *v1be
 	return nil
 }
 
-// PostInstall - post-install, clean up temp files
+// PostInstall - post-install
 func (c fluentOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
 	return c.HelmComponent.PostInstall(ctx)
 }
@@ -167,6 +166,9 @@ func (c fluentOperatorComponent) Reconcile(ctx spi.ComponentContext) error {
 // Install Fluent-Operator component install processing
 func (c fluentOperatorComponent) Install(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.Install(ctx); err != nil {
+		return err
+	}
+	if err := applyClusterOutput(ctx); err != nil {
 		return err
 	}
 	return nil

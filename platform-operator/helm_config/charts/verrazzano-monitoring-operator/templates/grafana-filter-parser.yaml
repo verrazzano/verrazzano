@@ -1,0 +1,62 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: FluentBitConfig
+metadata:
+  labels:
+    verrazzano.io/logging: "true"
+  name: grafana-fbc
+  namespace: {{ .Values.namespace }}
+spec:
+  filterSelector:
+    matchLabels:
+      verrazzano.io/component: "grafana"
+  parserSelector:
+    matchLabels:
+      verrazzano.io/component: "grafana"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    verrazzano.io/component: "grafana"
+  name: grafana-filter
+  namespace: {{ .Values.namespace }}
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        parser: grafana-parser1,grafana-parser2
+    - recordModifier:
+        records:
+          - 'message ${record["@message"] ? record["@message"] : record["message"] ? record["message"] : ""}'
+          - 'level ${record["@level"] ? record["@level"] : record["level"] ? record["level"] : ""}'
+  matchRegex: "kube.var.log.containers.*vmi-system-grafana.*verrazzano-system.*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "grafana"
+  name: grafana-parser1
+  namespace: {{ .Values.namespace }}
+spec:
+  json:
+    timeKey: logtime
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%NZ"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "grafana"
+  name: grafana-parser2
+  namespace: {{ .Values.namespace }}
+spec:
+  regex:
+    regex: '/^t=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\+\d{4} lvl=(?<level>\S+) msg="(?<message>.*?)".*?$/'
+    timeKey: logtime
+    timeFormat: "%Y-%m-%dT%H:%M:%S"
+{{ end -}}

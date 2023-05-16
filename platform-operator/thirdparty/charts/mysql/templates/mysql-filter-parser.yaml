@@ -1,0 +1,59 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: FluentBitConfig
+metadata:
+  labels:
+    verrazzano.io/logging: "true"
+  name: mysql-fbc
+  namespace: {{ .Release.Namespace }}
+spec:
+  filterSelector:
+    matchLabels:
+      verrazzano.io/component: "mysql"
+  parserSelector:
+    matchLabels:
+      verrazzano.io/component: "mysql"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    verrazzano.io/component: "mysql"
+  name: mysql-filter
+  namespace: {{ .Release.Namespace }}
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        parser: mysql-parser1,mysql-parser2
+  matchRegex: "kube.var.log.containers.*mysql.*keycloak_mysql.*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "mysql"
+  name: mysql-parser1
+  namespace: {{ .Release.Namespace }}
+spec:
+  regex:
+    regex: '/^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{6}Z) \d+ \[(?<level>.*?)\] (\[.*?\] ){2}(?<message>.*?)$/'
+    timeKey: logtime
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%NZ"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "mysql"
+  name: mysql-parser2
+  namespace: {{ .Release.Namespace }}
+spec:
+  regex:
+    regex: '/^(?<logtime>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\+\d{2}:\d{2} \[(?<level>.*?)\] \[.*?\]: (?<message>.*?)$/'
+    timeKey: logtime
+    timeFormat: "%Y-%m-%d %H:%M:%S"
+{{ end -}}

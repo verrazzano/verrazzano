@@ -1,0 +1,45 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: FluentBitConfig
+metadata:
+  labels:
+    verrazzano.io/logging: "true"
+  name: authproxy-fbc
+  namespace: {{ .Values.namespace }}
+spec:
+  filterSelector:
+    matchLabels:
+      verrazzano.io/component: "authproxy"
+  parserSelector:
+    matchLabels:
+      verrazzano.io/component: "authproxy"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    verrazzano.io/component: "authproxy"
+  name: authproxy-filter
+  namespace: {{ .Values.namespace }}
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        parser: authproxy-parser
+  matchRegex: "kube.var.log.containers.verrazzano-authproxy.*_verrazzano-system.*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "authproxy"
+  name: authproxy-parser
+  namespace: {{ .Values.namespace }}
+spec:
+  json:
+    timeKey: "@timestamp"
+    timeFormat: "%Y-%m-%dT%H:%M:%S,%N"
+{{ end -}}

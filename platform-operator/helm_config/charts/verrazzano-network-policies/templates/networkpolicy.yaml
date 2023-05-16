@@ -37,6 +37,12 @@ spec:
           podSelector:
             matchLabels:
               app: fluentd
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+            podSelector:
+              matchLabels:
+                app.kubernetes.io/name: fluent-bit
       ports:
         - protocol: TCP
           port: 8775

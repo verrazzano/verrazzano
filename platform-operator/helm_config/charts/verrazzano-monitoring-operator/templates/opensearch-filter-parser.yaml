@@ -1,0 +1,46 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: FluentBitConfig
+metadata:
+  labels:
+    verrazzano.io/logging: "true"
+  name: opensearch-fbc
+  namespace: {{ .Values.namespace }}
+spec:
+  filterSelector:
+    matchLabels:
+      verrazzano.io/component: "opensearch"
+  parserSelector:
+    matchLabels:
+      verrazzano.io/component: "opensearch"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    verrazzano.io/component: "opensearch"
+  name: opensearch-filter
+  namespace: {{ .Values.namespace }}
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        parser: opensearch-parser
+  matchRegex: "kube.var.log.containers.*vmi-system-es.*verrazzano-system.*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "opensearch"
+  name: opensearch-parser
+  namespace: {{ .Values.namespace }}
+spec:
+  regex:
+    regex: '/^\[(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2},\d{3})\]\[(?<level>.*?)\]\[.*vmi-system-es-.*?\]\s(?<message>.*?)$/'
+    timeKey: logtime
+    timeFormat: "%Y-%m-%dT%H:%M:%S,%N"
+{{ end -}}

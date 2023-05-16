@@ -5,6 +5,7 @@ package externaldns
 
 import (
 	"fmt"
+
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -15,8 +16,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"k8s.io/apimachinery/pkg/runtime"
-	"path/filepath"
 )
 
 // ComponentName is the name of the component
@@ -51,7 +50,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "external-dns-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_0_0,
-			Dependencies:              []string{"verrazzano-network-policies"},
+			Dependencies:              []string{"verrazzano-network-policies", fluentoperator.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 
 			// Resolve the namespace dynamically
