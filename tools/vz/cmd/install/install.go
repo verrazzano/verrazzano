@@ -6,26 +6,28 @@ package install
 import (
 	"context"
 	"fmt"
-	"os"
-	"strings"
-	"time"
-
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
-
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"helm.sh/helm/v3/pkg/strvals"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/kubectl/pkg/util/openapi"
+	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
+	"strings"
+	"time"
 )
 
 const (
@@ -92,6 +94,8 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	// Hide the flag for overriding the default wait timeout for the platform-operator
 	cmd.PersistentFlags().MarkHidden(constants.VPOTimeoutFlag)
 
+	// Set to true to always validate an install from a CR
+	cmd.PersistentFlags().BoolP(constants.ValidateCR, constants.ValidateCRShort, true, "Used to validate installing with a Custom Resource")
 	return cmd
 }
 
@@ -283,7 +287,14 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper, version st
 			return nil, err
 		}
 		gv = obj.GroupVersionKind().GroupVersion()
+		gvk := obj.GroupVersionKind()
 		vz = obj
+
+		// Validate Custom Resource if present
+		err = validateCR(obj, gvk, filenames)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Generate yaml for the set flags passed on the command line
@@ -392,3 +403,60 @@ func validateCmd(cmd *cobra.Command) error {
 	}
 	return nil
 }
+
+// validateCR - validates a Custom Resource before proceeding with an install
+func validateCR(obj *unstructured.Unstructured, gvk schema.GroupVersionKind, filenames []string) error {
+	//validateModel.ValidateModel(obj, gv, "verrazzano")
+	//var doc open.Resources
+	//var openDoc *openapi_v2.Document
+	//var fake = testing.Fake{Path: filenames[0]}
+	//var doc, _ = fake.OpenAPISchema()
+	//var schema val.SchemaValidation
+	//newObj := obj.Object
+	//println(newObj)
+	//schema.validate(newObj.([]byte))
+	kubeConfig, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		return err
+	}
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(kubeConfig)
+	if err != nil {
+		return err
+	}
+	doc, err := discoveryClient.OpenAPISchema()
+	if err != nil {
+		return err
+	}
+	s, err := openapi.NewOpenAPIData(doc)
+	if err != nil {
+		return err
+	}
+	s.LookupResource(gvk)
+
+	return nil
+}
+
+//func (f *Fake) OpenAPISchema() (*openapi_v2.Document, error) {
+//	f.once.Do(func() {
+//		_, err := os.Stat(f.Path)
+//		if err != nil {
+//			f.err = err
+//			return
+//		}
+//		spec, err := os.ReadFile(f.Path)
+//		if err != nil {
+//			f.err = err
+//			return
+//		}
+//		f.document, f.err = openapi_v2.ParseDocument(spec)
+//	})
+//	return f.document, f.err
+//}
+
+//func (d *document) LookupResource(gvk schema.GroupVersionKind) proto.Schema {
+//	modelName, found := d.resources[gvk]
+//	if !found {
+//		return nil
+//	}
+//	return d.models.LookupModel(modelName)
+//}

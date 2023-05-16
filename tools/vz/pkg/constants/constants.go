@@ -47,6 +47,8 @@ const (
 	SkipConfirmationFlagHelp = "Non-interactive mode - assumes the answers to all interactive questions to be 'Y'."
 	SkipConfirmationFlag     = "skip-confirmation"
 	SkipConfirmationShort    = "y"
+	ValidateCR               = "validate"
+	ValidateCRShort          = "w"
 	VerboseFlag              = "verbose"
 	VerboseFlagShorthand     = "v"
 	VerboseFlagDefault       = false

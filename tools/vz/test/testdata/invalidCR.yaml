@@ -1,0 +1,9 @@
+apiVersion: install.verrazzano.io/v1alpha1
+kind: Verrazzano
+metadata:
+  name: my-verrazzano
+spec:
+  profile: prod
+  components:
+    argoCD:
+      enabled: false
