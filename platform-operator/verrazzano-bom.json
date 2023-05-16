@@ -844,7 +844,7 @@
           "images": [
             {
               "image": "redis",
-              "tag": "v6.2.7-20230124164724-26c8b963",
+              "tag": "v6.2.7-20230516204818-26c8b963",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
