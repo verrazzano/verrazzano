@@ -150,11 +150,11 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 	}, nil
 }
 
-func ConvertExternalCertManagerToV1Beta1(src *ExternalCertManagerComponent) *v1beta1.ExternalCertManagerComponent {
+func ConvertExternalCertManagerToV1Beta1(src *ExternalCertManagerComponent) *v1beta1.CertificateIssuerComponent {
 	if src == nil {
 		return nil
 	}
-	return &v1beta1.ExternalCertManagerComponent{
+	return &v1beta1.CertificateIssuerComponent{
 		Certificate:              convertCertificateToV1Beta1(src.Certificate),
 		Enabled:                  src.Enabled,
 		Namespace:                src.Namespace,
