@@ -27,7 +27,6 @@ const (
 	helmPromOpChartsDirSuffix    = "/platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack"
 	helmOamChartsDirSuffix       = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
 	helmOverridesDirSuffix       = "/platform-operator/helm_config/overrides"
-	kubernetesVersionsFile       = "kubernetes-versions.yaml"
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
@@ -213,10 +212,6 @@ func GetProfilesDir() string {
 		return TestProfilesDir
 	}
 	return filepath.Join(instance.VerrazzanoRootDir, profilesDirSuffix)
-}
-
-func GetKubernetesVersionsFile() string {
-	return filepath.Join(instance.VerrazzanoRootDir, kubernetesVersionsFile)
 }
 
 // GetProfile returns API profiles dir
