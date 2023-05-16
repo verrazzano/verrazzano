@@ -198,7 +198,7 @@ pipeline {
                     // derive the prefix for the OKE cluster
                     OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_oke_cluster_name.sh").trim()
                 }
-
+                performVerrazzanoDirectoryOperations()
                 downloadCLI()
             }
         }
@@ -544,6 +544,16 @@ def getVerrazzanoOperatorYaml() {
                 echo "Generating operator.yaml based on image name provided: ${params.VERRAZZANO_OPERATOR_IMAGE}"
                 env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${params.VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${OPERATOR_YAML_FILE}
             fi
+        """
+    }
+}
+
+def performVerrazzanoDirectoryOperations() {
+    script {
+        sh """
+            rm -rf ${GO_REPO_PATH}/verrazzano
+            mkdir -p ${GO_REPO_PATH}/verrazzano
+            tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
         """
     }
 }
