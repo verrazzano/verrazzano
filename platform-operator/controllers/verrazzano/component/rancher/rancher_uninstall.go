@@ -58,7 +58,6 @@ var rancherSystemNS = []string{
 	"cattle-fleet-clusters-system",
 	"cattle-fleet-system",
 	"cattle-fleet-local-system",
-	"tigera-operator",
 	"cattle-impersonation-system",
 	"rancher-operator-system",
 	"cattle-csp-adapter-system",
