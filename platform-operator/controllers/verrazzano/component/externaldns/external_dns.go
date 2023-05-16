@@ -38,8 +38,6 @@ const (
 
 	clusterRoleName        = ComponentName
 	clusterRoleBindingName = ComponentName
-	// fluentOperatorFilterFile is the file name that consiste Filter and Parser resource for Fluent-Operator
-	fluentOperatorFilterFile = "external-dns-filter-parser.yaml"
 )
 
 type isInstalledFuncType func(releaseName string, namespace string) (found bool, err error)
