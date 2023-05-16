@@ -25,6 +25,7 @@ spec:
       labels:
         app: {{ include "cert-manager-webhook-oci.name" . }}
         release: {{ .Release.Name }}
+        sidecar.istio.io/inject: "false"
     spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}

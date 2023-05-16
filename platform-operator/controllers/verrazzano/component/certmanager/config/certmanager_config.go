@@ -26,7 +26,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/security/password"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -231,8 +230,11 @@ func checkRenewAllCertificates(compContext spi.ComponentContext, isCAConfig bool
 		return err
 	}
 	// Obtain the CA Common Name for comparison
-	comp := vzapi.ConvertCertManagerToV1Beta1(compContext.EffectiveCR().Spec.Components.CertManager)
-	issuerCNs, err := findIssuerCommonName(comp.Certificate, isCAConfig)
+	certManager := compContext.EffectiveCR().Spec.Components.CertManager
+	if certManager == nil {
+		return nil
+	}
+	issuerCNs, err := findIssuerCommonName(certManager.Certificate, isCAConfig)
 	if err != nil {
 		return err
 	}
@@ -554,7 +556,7 @@ func createOrUpdateCAResources(compContext spi.ComponentContext) (controllerutil
 	return opResult, nil
 }
 
-func findIssuerCommonName(certificate v1beta1.Certificate, isCAValue bool) ([]string, error) {
+func findIssuerCommonName(certificate vzapi.Certificate, isCAValue bool) ([]string, error) {
 	if isCAValue {
 		return extractCACommonName(certificate.CA)
 	}
@@ -562,14 +564,14 @@ func findIssuerCommonName(certificate v1beta1.Certificate, isCAValue bool) ([]st
 }
 
 // getACMEIssuerName Let's encrypt certificates are published, and the intermediate signing CA CNs are well-known
-func getACMEIssuerName(acme v1beta1.Acme) ([]string, error) {
+func getACMEIssuerName(acme vzapi.Acme) ([]string, error) {
 	if cmcommon.IsLetsEncryptProductionEnv(acme) {
 		return letsEncryptProductionCACommonNames, nil
 	}
 	return letsEncryptStagingCACommonNames, nil
 }
 
-func extractCACommonName(ca v1beta1.CA) ([]string, error) {
+func extractCACommonName(ca vzapi.CA) ([]string, error) {
 	secret, err := cmcommon.GetCASecret(ca)
 	if err != nil {
 		return []string{}, err

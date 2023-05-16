@@ -2,7 +2,11 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
+  {{- if .Values.deployment.view_only_mode }}
+  name: {{ include "kiali-server.fullname" . }}-viewer
+  {{- else }}
   name: {{ include "kiali-server.fullname" . }}
+  {{- end }}
   labels:
     {{- include "kiali-server.labels" . | nindent 4 }}
 roleRef:

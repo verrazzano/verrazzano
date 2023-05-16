@@ -62,18 +62,8 @@ cd ${GO_REPO_PATH}/verrazzano
 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${REGISTRY}" "${PRIVATE_REGISTRY_USR}" "${PRIVATE_REGISTRY_PSW}"
 ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
 
-echo "Install Platform Operator"
-VPO_IMAGE=$(cat ${BOM_FILE} | jq -r '.components[].subcomponents[] | select(.name == "verrazzano-platform-operator") | "\(.repository)/\(.images[].image):\(.images[].tag)"')
-
-helm upgrade --install myv8o ${CHART_LOCATION}/verrazzano-platform-operator \
-    --set global.imagePullSecrets[0]=${IMAGE_PULL_SECRET} \
-    --set image=${REGISTRY}/${PRIVATE_REPO}/${VPO_IMAGE} --set global.registry=${REGISTRY} \
-    --set global.repository=${PRIVATE_REPO}
-
-# make sure ns exists
-./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
-
 # Create docker secret for platform operator image
+kubectl create ns verrazzano-install
 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${REGISTRY}" "${PRIVATE_REGISTRY_USR}" "${PRIVATE_REGISTRY_PSW}" verrazzano-install
 
 # optionally create a cluster dump snapshot for verifying uninstalls
@@ -89,26 +79,10 @@ yq eval -i '.spec.components.velero.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
 yq eval -i '.spec.components.rancherBackup.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
 yq eval -i '.spec.components.jaegerOperator.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
 yq eval -i '.spec.components.argoCD.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+yq eval -i '.spec.components.capi.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
 
 # Configure the custom resource to install Verrazzano on Kind
 ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
 
-echo "Wait for Operator to be ready"
-cd ${GO_REPO_PATH}/verrazzano
-kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-if [ $? -ne 0 ]; then
-  echo "Operator is not ready"
-  exit 1
-fi
-
 echo "Installing Verrazzano on Kind"
-# ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE_KIND}
-kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}
-
-# wait for Verrazzano install to complete
-./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
-if [ $? -ne 0 ]; then
-  exit 1
-fi
-
-exit 0
+${GO_REPO_PATH}/vz install -f "${INSTALL_CONFIG_FILE_KIND}" --manifests "${TARBALL_DIR}/manifests/k8s/verrazzano-platform-operator.yaml" --image-registry ${REGISTRY} --image-prefix ${PRIVATE_REPO}
