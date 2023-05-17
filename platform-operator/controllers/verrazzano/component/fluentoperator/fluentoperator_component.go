@@ -67,7 +67,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			AppendOverridesFunc:       appendOverrides,
-			Dependencies:              []string{},
+			Dependencies:              []string{"verrazzano-network-policies"},
 			GetInstallOverridesFunc:   GetOverrides,
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DaemonsetNames: []types.NamespacedName{
@@ -170,6 +170,7 @@ func (c fluentOperatorComponent) Install(ctx spi.ComponentContext) error {
 	if err := applyClusterOutput(ctx); err != nil {
 		return err
 	}
+
 	return nil
 }
 

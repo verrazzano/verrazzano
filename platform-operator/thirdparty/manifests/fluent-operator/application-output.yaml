@@ -20,6 +20,8 @@ spec:
         secretKeyRef:
           key: username
           name: verrazzano-es-internal
-    index: verrazzano-application-{$kubernetes["namespace_name"]}
+    dataStreamMode: true
+    dataStreamName: verrazzano-application-{$kubernetes["namespace_name"]}
+    templateFile: "/fluent-bit/etc/opensearch-template-verrazzano.json"
     port: 8775
     suppressTypeName: true

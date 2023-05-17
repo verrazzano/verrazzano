@@ -20,6 +20,8 @@ spec:
         secretKeyRef:
           key: username
           name: verrazzano-es-internal
-    index: verrazzano-system
+    dataStreamMode: true
+    dataStreamName: verrazzano-system
+    templateFile: "/fluent-bit/etc/opensearch-template-verrazzano.json"
     port: 8775
     suppressTypeName: true

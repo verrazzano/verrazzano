@@ -29,6 +29,7 @@ type chartValues struct {
 	Velero              *veleroValues            `json:"velero,omitempty"`
 	ArgoCD              *argoCDValues            `json:"argoCd,omitempty"`
 	Capi                *capiValues              `json:"capi,omitempty"`
+	FluentOperator      *fluentOperatorValues    `json:"fluentOperator,omitempty"`
 }
 
 type authproxyValues struct {
@@ -110,5 +111,9 @@ type argoCDValues struct {
 }
 
 type capiValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type fluentOperatorValues struct {
 	Enabled bool `json:"enabled"` // Always write
 }

@@ -20,16 +20,24 @@ import (
 )
 
 const (
-	fluentbitDaemonset         = "fluent-bit"
-	fluentOperatorFullImageKey = "operator.container.repository"
-	fluentBitFullImageKey      = "fluentbit.image.repository"
-	fluentOperatorInitImageKey = "operator.initcontainer.repository"
-	fluentOperatorImageTag     = "operator.container.tag"
-	fluentOperatorInitTag      = "operator.initcontainer.tag"
-	fluentBitImageTag          = "fluentbit.image.tag"
-	clusterOutputDirectory     = "fluent-operator"
-	systemOutputFile           = "system-output.yaml"
-	applicationOutputFile      = "application-output.yaml"
+	fluentbitDaemonset              = "fluent-bit"
+	fluentOperatorFullImageKey      = "operator.container.repository"
+	fluentBitFullImageKey           = "fluentbit.image.repository"
+	fluentOperatorInitImageKey      = "operator.initcontainer.repository"
+	fluentOperatorImageTag          = "operator.container.tag"
+	fluentOperatorInitTag           = "operator.initcontainer.tag"
+	fluentBitImageTag               = "fluentbit.image.tag"
+	clusterOutputDirectory          = "fluent-operator"
+	systemOutputFile                = "system-output.yaml"
+	applicationOutputFile           = "application-output.yaml"
+	fluentbitConfigMap              = fluentbitDaemonset + "-config"
+	fluentbitVolumeName             = fluentbitConfigMap
+	fluentbitConfigMapFile          = "fluentbit-config-configmap.yaml"
+	fluentbitVolumeNameKey          = "additionalVolumes[0].name"
+	fluentbitVolumeConfigMapKey     = "additionalVolumes[0].configMap.name"
+	fluentbitVolumeMountNameKey     = "additionalVolumesMounts[0].mountPath.name"
+	fluentbitVolumeMountPathKey     = "additionalVolumesMounts[0].mountPath.path"
+	fluentbitVolumeMountReadOnlyKey = "additionalVolumesMounts[0].mountPath.readOnly"
 )
 
 var (
@@ -95,6 +103,11 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		return kvs, ctx.Log().ErrorfNewErr("Failed to construct fluent-operator related images from BOM")
 	}
 	kvs = append(kvs, bom.KeyValue{Key: "image.pullSecrets.enabled", Value: "true"})
+	kvs = append(kvs, bom.KeyValue{Key: fluentbitVolumeConfigMapKey, Value: fluentbitConfigMap})
+	kvs = append(kvs, bom.KeyValue{Key: fluentbitVolumeNameKey, Value: fluentbitVolumeName})
+	kvs = append(kvs, bom.KeyValue{Key: fluentbitVolumeMountNameKey, Value: fluentbitVolumeName})
+	kvs = append(kvs, bom.KeyValue{Key: fluentbitVolumeMountPathKey, Value: "/fluent-bit/etc"})
+	kvs = append(kvs, bom.KeyValue{Key: fluentbitVolumeMountReadOnlyKey, Value: "true"})
 	return kvs, nil
 }
 
@@ -102,6 +115,14 @@ func applyClusterOutput(compContext spi.ComponentContext) error {
 	crdManifestDir := filepath.Join(config.GetThirdPartyManifestsDir(), clusterOutputDirectory)
 	systemClusterOutput := filepath.Join(crdManifestDir, systemOutputFile)
 	applicationClusterOutput := filepath.Join(crdManifestDir, applicationOutputFile)
+	fluentbitCM := filepath.Join(crdManifestDir, fluentbitConfigMapFile)
+	args := make(map[string]interface{})
+	args["namespace"] = ComponentNamespace
+	args["fluentbitConfigMap"] = fluentbitConfigMap
+	args["fluentbitComponent"] = fluentbitDaemonset
+	if err := k8sutil.NewYAMLApplier(compContext.Client(), "").ApplyFT(fluentbitCM, args); err != nil {
+		return compContext.Log().ErrorfNewErr("Failed applying Fluentbit ConfigMap: %v", err)
+	}
 	// Apply the ClusterOutput for System related logs
 	if err := k8sutil.NewYAMLApplier(compContext.Client(), "").ApplyF(systemClusterOutput); err != nil {
 		return compContext.Log().ErrorfNewErr("Failed applying ClusterOutput for System related logs: %v", err)
