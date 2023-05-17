@@ -624,7 +624,7 @@ type CAPIComponent struct {
 
 // CertManagerComponent specifies the cert-manager configuration.
 type CertManagerComponent struct {
-	// The certificate configuration.
+	// Deprecated.  Use the ClusterIssuerComponent to configure the Verrazzano ClusterIssuer instead
 	// +optional
 	// +patchStrategy=replace
 	Certificate Certificate `json:"certificate,omitempty" patchStrategy:"replace"`
