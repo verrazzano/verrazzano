@@ -117,52 +117,60 @@ func convertSecuritySpecFromV1Beta1(security v1beta1.SecuritySpec) SecuritySpec 
 
 func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 	return ComponentSpec{
-		CertManager:            convertCertManagerFromV1Beta1(in.CertManager),
-		ExternalCertManager:    convertExternalCertManagerFromV1Beta1(in.ExternalCertManager),
-		CoherenceOperator:      convertCoherenceOperatorFromV1Beta1(in.CoherenceOperator),
-		ApplicationOperator:    convertApplicationOperatorFromV1Beta1(in.ApplicationOperator),
-		AuthProxy:              convertAuthProxyFromV1Beta1(in.AuthProxy),
-		OAM:                    convertOAMFromV1Beta1(in.OAM),
-		Console:                convertConsoleFromV1Beta1(in.Console),
-		ClusterOperator:        convertClusterOperatorFromV1Beta1(in.ClusterOperator),
-		DNS:                    convertDNSFromV1Beta1(in.DNS),
-		Elasticsearch:          convertOpenSearchFromV1Beta1(in.OpenSearch),
-		Fluentd:                convertFluentdFromV1Beta1(in.Fluentd),
-		Grafana:                convertGrafanaFromV1Beta1(in.Grafana),
-		Ingress:                convertIngressNGINXFromV1Beta1(in.IngressNGINX),
-		Istio:                  convertIstioFromV1Beta1(in.Istio),
-		JaegerOperator:         convertJaegerOperatorFromV1Beta1(in.JaegerOperator),
-		Kiali:                  convertKialiFromV1Beta1(in.Kiali),
-		Keycloak:               convertKeycloakFromV1Beta1(in.Keycloak),
-		Kibana:                 convertOSDFromV1Beta1(in.OpenSearchDashboards),
-		KubeStateMetrics:       convertKubeStateMetricsFromV1Beta1(in.KubeStateMetrics),
-		MySQLOperator:          convertMySQLOperatorFromV1Beta1(in.MySQLOperator),
-		Prometheus:             convertPrometheusFromV1Beta1(in.Prometheus),
-		PrometheusAdapter:      convertPrometheusAdapterFromV1Beta1(in.PrometheusAdapter),
-		PrometheusNodeExporter: convertPrometheusNodeExporterFromV1Beta1(in.PrometheusNodeExporter),
-		PrometheusOperator:     convertPrometheusOperatorFromV1Beta1(in.PrometheusOperator),
-		PrometheusPushgateway:  convertPrometheusPushGatewayFromV1Beta1(in.PrometheusPushgateway),
-		Rancher:                convertRancherFromV1Beta1(in.Rancher),
-		RancherBackup:          convertRancherBackupFromV1Beta1(in.RancherBackup),
-		Thanos:                 convertThanosFromV1Beta1(in.Thanos),
-		WebLogicOperator:       convertWeblogicOperatorFromV1Beta1(in.WebLogicOperator),
-		Velero:                 convertVeleroFromV1Beta1(in.Velero),
-		Verrazzano:             convertVerrazzanoFromV1Beta1(in.Verrazzano),
-		ArgoCD:                 convertArgoCDFromV1Beta1(in.ArgoCD),
-		CAPI:                   convertCAPIFromV1Beta1(in.CAPI),
+		CertManager:              convertCertManagerFromV1Beta1(in.CertManager),
+		ClusterIssuer:            convertClusterIssuerFromV1Beta1(in.ClusterIssuer),
+		CertManagerOCIDNSWebhook: convertOCIDNSWebhookFromV1Beta1(in.CertManagerOCIDNSWebhook),
+		CoherenceOperator:        convertCoherenceOperatorFromV1Beta1(in.CoherenceOperator),
+		ApplicationOperator:      convertApplicationOperatorFromV1Beta1(in.ApplicationOperator),
+		AuthProxy:                convertAuthProxyFromV1Beta1(in.AuthProxy),
+		OAM:                      convertOAMFromV1Beta1(in.OAM),
+		Console:                  convertConsoleFromV1Beta1(in.Console),
+		ClusterOperator:          convertClusterOperatorFromV1Beta1(in.ClusterOperator),
+		DNS:                      convertDNSFromV1Beta1(in.DNS),
+		Elasticsearch:            convertOpenSearchFromV1Beta1(in.OpenSearch),
+		Fluentd:                  convertFluentdFromV1Beta1(in.Fluentd),
+		Grafana:                  convertGrafanaFromV1Beta1(in.Grafana),
+		Ingress:                  convertIngressNGINXFromV1Beta1(in.IngressNGINX),
+		Istio:                    convertIstioFromV1Beta1(in.Istio),
+		JaegerOperator:           convertJaegerOperatorFromV1Beta1(in.JaegerOperator),
+		Kiali:                    convertKialiFromV1Beta1(in.Kiali),
+		Keycloak:                 convertKeycloakFromV1Beta1(in.Keycloak),
+		Kibana:                   convertOSDFromV1Beta1(in.OpenSearchDashboards),
+		KubeStateMetrics:         convertKubeStateMetricsFromV1Beta1(in.KubeStateMetrics),
+		MySQLOperator:            convertMySQLOperatorFromV1Beta1(in.MySQLOperator),
+		Prometheus:               convertPrometheusFromV1Beta1(in.Prometheus),
+		PrometheusAdapter:        convertPrometheusAdapterFromV1Beta1(in.PrometheusAdapter),
+		PrometheusNodeExporter:   convertPrometheusNodeExporterFromV1Beta1(in.PrometheusNodeExporter),
+		PrometheusOperator:       convertPrometheusOperatorFromV1Beta1(in.PrometheusOperator),
+		PrometheusPushgateway:    convertPrometheusPushGatewayFromV1Beta1(in.PrometheusPushgateway),
+		Rancher:                  convertRancherFromV1Beta1(in.Rancher),
+		RancherBackup:            convertRancherBackupFromV1Beta1(in.RancherBackup),
+		Thanos:                   convertThanosFromV1Beta1(in.Thanos),
+		WebLogicOperator:         convertWeblogicOperatorFromV1Beta1(in.WebLogicOperator),
+		Velero:                   convertVeleroFromV1Beta1(in.Velero),
+		Verrazzano:               convertVerrazzanoFromV1Beta1(in.Verrazzano),
+		ArgoCD:                   convertArgoCDFromV1Beta1(in.ArgoCD),
+		CAPI:                     convertCAPIFromV1Beta1(in.CAPI),
 	}
 }
 
-func convertExternalCertManagerFromV1Beta1(in *v1beta1.CertificateIssuerComponent) *ExternalCertManagerComponent {
+func convertClusterIssuerFromV1Beta1(in *v1beta1.ClusterIssuerComponent) *ClusterIssuerComponent {
 	if in == nil {
 		return nil
 	}
-	return &ExternalCertManagerComponent{
-		Certificate:              convertCertificateFromV1Beta1(in.Certificate),
-		Enabled:                  in.Enabled,
-		Namespace:                in.Namespace,
-		ServiceAccountName:       in.ServiceAccountName,
-		ClusterResourceNamespace: in.ClusterResourceNamespace,
+	return &ClusterIssuerComponent{
+		Enabled:     in.Enabled,
+		Certificate: convertCertificateFromV1Beta1(in.Certificate),
+	}
+}
+
+func convertOCIDNSWebhookFromV1Beta1(in *v1beta1.CertManagerOCIDNSWebhookSolverComponent) *CertManagerOCIDNSWebhookSolverComponent {
+	if in == nil {
+		return nil
+	}
+	return &CertManagerOCIDNSWebhookSolverComponent{
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
 	}
 }
 
