@@ -7,10 +7,16 @@ import (
 	"context"
 	"path/filepath"
 
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-	"k8s.io/apimachinery/pkg/runtime"
+
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -19,9 +25,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 // ComponentName is the name of the component
@@ -54,7 +57,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			AppendOverridesFunc:       appendVMOOverrides,
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0]",
-			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, fluentoperator.ComponentName},
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DeploymentNames: []types.NamespacedName{
 					{

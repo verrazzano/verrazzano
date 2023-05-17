@@ -1416,6 +1416,14 @@ spec:
                             x-kubernetes-map-type: atomic
                         type: object
                     type: object
+                  dataStreamMode:
+                    type: boolean
+                  dataStreamName:
+                    type: string
+                  templateFile:
+                    type: string
+                  dataStreamTemplateName:
+                    type: string
                   idKey:
                     description: If set, _id will be the value of the key from incoming
                       record and Generate_ID option is ignored.

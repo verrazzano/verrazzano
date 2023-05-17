@@ -10,7 +10,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -50,7 +49,7 @@ func (o opensearchComponent) ShouldInstallBeforeUpgrade() bool {
 
 // GetDependencies returns the dependencies of the OpenSearch component
 func (o opensearchComponent) GetDependencies() []string {
-	return []string{networkpolicies.ComponentName, vmo.ComponentName, fluentoperator.ComponentName}
+	return []string{networkpolicies.ComponentName, vmo.ComponentName}
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the OpenSearch component

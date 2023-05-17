@@ -7,10 +7,10 @@ global:
 image:
   pullPolicy: IfNotPresent
 
-namespace: verrazzano-system
 
 monitoringOperator:
   name: verrazzano-monitoring-operator
+  namespace: verrazzano-system
   metricsPort: 8090
   exporterPort: 9100
   defaultSimpleCompReplicas: 1

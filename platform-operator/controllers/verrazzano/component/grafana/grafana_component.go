@@ -11,7 +11,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafanadashboards"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
@@ -62,7 +61,7 @@ func (g grafanaComponent) ShouldInstallBeforeUpgrade() bool {
 
 // GetDependencies returns the dependencies of the Grafana component
 func (g grafanaComponent) GetDependencies() []string {
-	return []string{networkpolicies.ComponentName, vmo.ComponentName, grafanadashboards.ComponentName, fluentoperator.ComponentName}
+	return []string{networkpolicies.ComponentName, vmo.ComponentName, grafanadashboards.ComponentName}
 }
 
 // GetCertificateNames returns the Grafana certificate names if Nginx is enabled, otherwise returns
