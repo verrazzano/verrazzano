@@ -324,10 +324,18 @@ type ComponentSpec struct {
 	// +optional
 	CAPI *CAPIComponent `json:"capi,omitempty"`
 
+	// ClusterIssuer defines the Cert-Manager ClusterIssuer configuration for Verrazzano
+	// +optional
+	ClusterIssuer *ClusterIssuerComponent `json:"clusterIssuer,omitempty"`
+
 	// The Verrazzano-managed Cert-Manager component configuration; note that this is mutually exclusive of the
 	// ExternalCertManager component
 	// +optional
 	CertManager *CertManagerComponent `json:"certManager,omitempty"`
+
+	// CertManagerOCIDNSWebhook configures the Verrazzano OCI DNS webhook plugin for Cert-Manager
+	// +optional
+	CertManagerOCIDNSWebhook *CertManagerOCIDNSWebhookSolverComponent `json:"certManagerOCIDNSWebhook,omitempty"`
 
 	// The Cluster Operator component configuration.
 	// +optional
@@ -349,11 +357,6 @@ type ComponentSpec struct {
 	// The Elasticsearch component configuration.
 	// +optional
 	Elasticsearch *ElasticsearchComponent `json:"elasticsearch,omitempty"`
-
-	// Defines the settings for an externally-managed Cert-Manager instance to be used by this Verrazzano installation;
-	// note that this is mutually exclusive of the CertManager component
-	// +optional
-	ExternalCertManager *ExternalCertManagerComponent `json:"externalCertManager,omitempty"`
 
 	// The Fluentd component configuration.
 	// +optional
@@ -619,31 +622,6 @@ type CAPIComponent struct {
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
-// ExternalCertManagerComponent Defines the values for using an externally-managed Cert-Manager installation; this
-// instance is not managed by Verrazzano but will be utilized for configuring Verrazzano's ClusterIssuer and related
-// resources
-type ExternalCertManagerComponent struct {
-	// If true, indicates that Verrazzano will use an externally-managed Cert-Manager installation
-	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
-	// The namespace where the existing Cert-Manager has been installed
-	// +kubebuilder:default=cert-manager
-	// +optional
-	Namespace string `json:"namespace,omitempty"`
-	// The clusterResourceNamespace configured for this Cert-Manager instance
-	ClusterResourceNamespace string `json:"clusterResourceNamespace,omitempty"`
-	// The ServiceAccount name for the existing Cert-Manager installation
-	// +kubebuilder:default=cert-manager
-	ServiceAccountName string `json:"serviceAccount,omitempty"`
-	// The certificate configuration.
-	// +optional
-	// +patchStrategy=replace
-	Certificate Certificate `json:"certificate,omitempty" patchStrategy:"replace"`
-	// Optional configuration for the OCI DNS webhook solver
-	// +optional
-	Webhook *CertManagerOCIDNSWebhookSolver `json:"webhook,omitempty"`
-}
-
 // CertManagerComponent specifies the cert-manager configuration.
 type CertManagerComponent struct {
 	// The certificate configuration.
@@ -660,6 +638,33 @@ type CertManagerComponent struct {
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
 	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/cert-manager/values.yaml %}} )
+	// and invalid values will be ignored.
+	// +optional
+	InstallOverrides `json:",inline"`
+}
+
+// ClusterIssuerComponent configures the Verrazzano ClusterIssuer
+type ClusterIssuerComponent struct {
+	// If true, indicates that Verrazzano will use an externally-managed Cert-Manager installation
+	// +kubebuilder:default=true
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// The certificate configuration.
+	// +optional
+	// +patchStrategy=replace
+	Certificate `json:",inline"`
+}
+
+// CertManagerOCIDNSWebhookSolverComponent configures the CertManager OCI DNS solver webhook; the
+// webhook is required for ACME Certificates using OCI DNS
+type CertManagerOCIDNSWebhookSolverComponent struct {
+	// If true, indicates that Verrazzano will use an externally-managed Cert-Manager installation
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano-cert-manager-ocidns-webhook/values.yaml %}} )
 	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
