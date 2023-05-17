@@ -26,3 +26,20 @@ spec:
     - vz_opensearch_admin
   roles:
     - all_access
+
+---
+# Maps to Verrazzano role which has access to fetch metrics
+apiVersion: opensearch.opster.io/v1
+kind: OpensearchUserRoleBinding
+metadata:
+  name: vz-metrics-fetcher-rb
+  namespace: {{ .Release.Namespace }}
+spec:
+  opensearchCluster:
+    name: {{ .Values.OpenSearchClusterSpec.name }}
+  backendRoles:
+    - vz_metrics_fetcher
+  users:
+    - "prometheus-operator"
+  roles:
+    - vz_metrics_fetcher

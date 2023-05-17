@@ -120,3 +120,29 @@ spec:
     kind: ClusterIssuer
     name: verrazzano-cluster-issuer
 status: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.OpenSearchClusterSpec.name }}-monitor-certs
+  namespace: verrazzano-monitoring
+spec:
+  commonName: prometheus-operator
+  secretName: {{ .Values.OpenSearchClusterSpec.name }}-monitor-certs
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS8
+    size: 2048
+  renewBefore: 360h0m0s
+  duration: 2160h0m0s
+  subject:
+    organizations:
+      - verrazzano
+  usages:
+    - server auth
+    - client auth
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: verrazzano-cluster-issuer
+status: {}

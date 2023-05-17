@@ -23,3 +23,27 @@ spec:
         - "*verrazzano*"
       allowedActions:
         - indices_all
+---
+# Metrics fetcher role for verrazzano to be used by fluentd
+
+apiVersion: opensearch.opster.io/v1
+kind: OpensearchRole
+metadata:
+  name: vz-metrics-fetcher
+  namespace: {{ .Release.Namespace }}
+spec:
+  opensearchCluster:
+    name: {{ .Values.OpenSearchClusterSpec.name }}
+  clusterPermissions:
+    - "cluster:monitor/state"
+    - "cluster:monitor/nodes/stats"
+    - "cluster:monitor/main"
+    - "cluster:monitor/health"
+    - "cluster:monitor/nodes/info"
+    - "cluster:monitor/prometheus/metrics"
+    - "indices:monitor/stats"
+  indexPermissions:
+    - indexPatterns:
+        - "*"
+      allowedActions:
+        - "indices:*"
