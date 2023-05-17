@@ -447,13 +447,13 @@
           "images": [
             {
               "image": "iad.ocir.io/odsbuilddev/sandboxes/aditya.b.bharadwaj/fluent-operator",
-              "tag": "v24",
+              "tag": "testy",
               "helmImageKey": "operator.container.repository",
               "helmTagKey": "operator.container.tag"
             },
             {
               "image": "iad.ocir.io/odsbuilddev/sandboxes/aditya.b.bharadwaj/fluent-bit",
-              "tag": "v2.0.9-10",
+              "tag": "testf",
               "helmImageKey": "fluentbit.image.repository",
               "helmTagKey": "fluentbit.image.tag"
             },

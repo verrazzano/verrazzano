@@ -52,13 +52,13 @@ var (
 	}
 )
 
-// isFluentOperatorReady checks if the Fluent operator is ready
+// isFluentOperatorReady checks if the Fluent Operator is ready or not
 func isFluentOperatorReady(context spi.ComponentContext) bool {
 	return ready.DeploymentsAreReady(context.Log(), context.Client(), []types.NamespacedName{fluentOperatorDeployment}, 1, componentPrefix) &&
 		ready.DaemonSetsAreReady(context.Log(), context.Client(), []types.NamespacedName{fluentBitDaemonSet}, 1, componentPrefix)
 }
 
-// GetOverrides returns install overrides for a component
+// GetOverrides returns install overrides for the Fluent Operator
 func GetOverrides(object runtime.Object) interface{} {
 	if effectiveCR, ok := object.(*v1alpha1.Verrazzano); ok {
 		if effectiveCR.Spec.Components.FluentOperator != nil {
@@ -73,7 +73,7 @@ func GetOverrides(object runtime.Object) interface{} {
 	return []v1beta1.Overrides{}
 }
 
-// appendOverrides appends the overrides for the component
+// appendOverrides appends the overrides for the Fluent Operator
 func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
@@ -103,6 +103,7 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		return kvs, ctx.Log().ErrorfNewErr("Failed to construct fluent-operator related images from BOM")
 	}
 	kvs = append(kvs, bom.KeyValue{Key: "image.pullSecrets.enabled", Value: "true"})
+	// mounting fluentbit-config configmap as volume
 	kvs = append(kvs, bom.KeyValue{Key: fluentbitVolumeConfigMapKey, Value: fluentbitConfigMap})
 	kvs = append(kvs, bom.KeyValue{Key: fluentbitVolumeNameKey, Value: fluentbitVolumeName})
 	kvs = append(kvs, bom.KeyValue{Key: fluentbitVolumeMountNameKey, Value: fluentbitVolumeName})
@@ -111,18 +112,26 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	return kvs, nil
 }
 
-func applyClusterOutput(compContext spi.ComponentContext) error {
+// applyFluentBitConfigMap applies the fluent-bit configmap.
+func applyFluentBitConfigMap(compContext spi.ComponentContext) error {
 	crdManifestDir := filepath.Join(config.GetThirdPartyManifestsDir(), clusterOutputDirectory)
-	systemClusterOutput := filepath.Join(crdManifestDir, systemOutputFile)
-	applicationClusterOutput := filepath.Join(crdManifestDir, applicationOutputFile)
 	fluentbitCM := filepath.Join(crdManifestDir, fluentbitConfigMapFile)
 	args := make(map[string]interface{})
 	args["namespace"] = ComponentNamespace
 	args["fluentbitConfigMap"] = fluentbitConfigMap
 	args["fluentbitComponent"] = fluentbitDaemonset
 	if err := k8sutil.NewYAMLApplier(compContext.Client(), "").ApplyFT(fluentbitCM, args); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed applying Fluentbit ConfigMap: %v", err)
+		return compContext.Log().ErrorfNewErr("Failed applying FluentBit ConfigMap: %v", err)
 	}
+	return nil
+}
+
+// applyFluentBitConfigMap applies the Fluent-bit ClusterOutput CRDs for the OpenSearch.
+func applyOpenSearchClusterOutputs(compContext spi.ComponentContext) error {
+	crdManifestDir := filepath.Join(config.GetThirdPartyManifestsDir(), clusterOutputDirectory)
+	systemClusterOutput := filepath.Join(crdManifestDir, systemOutputFile)
+	applicationClusterOutput := filepath.Join(crdManifestDir, applicationOutputFile)
+
 	// Apply the ClusterOutput for System related logs
 	if err := k8sutil.NewYAMLApplier(compContext.Client(), "").ApplyF(systemClusterOutput); err != nil {
 		return compContext.Log().ErrorfNewErr("Failed applying ClusterOutput for System related logs: %v", err)

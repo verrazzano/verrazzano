@@ -32,7 +32,7 @@ spec:
     - recordModifier:
         removeKeys:
           - timestamp
-  match: 'kubernetes.**weblogic-operator**verrazzano-system_weblogic-operator**'
+  match: 'kube.*weblogic-operator*_weblogic-operator*'
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser

@@ -29,7 +29,7 @@ spec:
         keyName: log
         reserveData: true
         parser: rancher-parser1,rancher-parser2,rancher-parser3
-  matchRegex: "kube.var.log.containers.*cattle-system.*|kube.var.log.containers.*fleet-system.*|kube.var.log.containers.*local-path-provisioner.*"
+  match: "kube.*rancher*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser
@@ -64,6 +64,144 @@ metadata:
     verrazzano.io/component: "rancher"
   name: rancher-parser3
   namespace: {{ .Release.Namespace }}
+spec:
+  regex:
+    regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeFormat: "%H:%M:%S.%N"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: FluentBitConfig
+metadata:
+  labels:
+    verrazzano.io/logging: "true"
+  name: fleetsystem-fbc
+  namespace: "cattle-fleet-system"
+spec:
+  filterSelector:
+    matchLabels:
+      verrazzano.io/component: "fleetsystem"
+  parserSelector:
+    matchLabels:
+      verrazzano.io/component: "fleetsystem"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    verrazzano.io/component: "fleetsystem"
+  name: fleetsystem-filter
+  namespace: "cattle-fleet-system"
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        parser: fleetsystem-parser1,fleetsystem-parser2,fleetsystem-parser3
+  match: "kube.*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "fleetsystem"
+  name: fleetsystem-parser1
+  namespace: "cattle-fleet-system"
+spec:
+  regex:
+    regex: '/^time="(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)" level=(?<level>.*?) msg="(?<message>.*?)"[\s\S]*?$/'
+    timeKey: logtime
+    timeFormat: "%Y-%m-%dT%H:%M:%SZ"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "fleetsystem"
+  name: fleetsystem-parser2
+  namespace: "cattle-fleet-system"
+spec:
+  regex:
+    regex: '/^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) \[(?<level>.*?)\] (?<message>[\s\S]*?)?$/'
+    timeKey: logtime
+    timeFormat: "%Y/%m/%d %H:%M:%S"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "fleetsystem"
+  name: fleetsystem-parser3
+  namespace: "cattle-fleet-system"
+spec:
+  regex:
+    regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeFormat: "%H:%M:%S.%N"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: FluentBitConfig
+metadata:
+  labels:
+    verrazzano.io/logging: "true"
+  name: localpathstorage-fbc
+  namespace: "local-path-storage"
+spec:
+  filterSelector:
+    matchLabels:
+      verrazzano.io/component: "localpathstorage"
+  parserSelector:
+    matchLabels:
+      verrazzano.io/component: "localpathstorage"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    verrazzano.io/component: "localpathstorage"
+  name: localpathstorage-filter
+  namespace: "local-path-storage"
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        parser: localpathstorage-parser1,localpathstorage-parser2,localpathstorage-parser3
+  match: "kube.*local-path-provisioner*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "localpathstorage"
+  name: localpathstorage-parser1
+  namespace: "local-path-storage"
+spec:
+  regex:
+    regex: '/^time="(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)" level=(?<level>.*?) msg="(?<message>.*?)"[\s\S]*?$/'
+    timeKey: logtime
+    timeFormat: "%Y-%m-%dT%H:%M:%SZ"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "localpathstorage"
+  name: localpathstorage-parser2
+  namespace: "local-path-storage"
+spec:
+  regex:
+    regex: '/^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) \[(?<level>.*?)\] (?<message>[\s\S]*?)?$/'
+    timeKey: logtime
+    timeFormat: "%Y/%m/%d %H:%M:%S"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "localpathstorage"
+  name: localpathstorage-parser3
+  namespace: "local-path-storage"
 spec:
   regex:
     regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'

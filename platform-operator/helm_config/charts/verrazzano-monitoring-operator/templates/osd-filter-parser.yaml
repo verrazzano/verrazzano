@@ -31,7 +31,7 @@ spec:
         parser: osd-parser
     - recordModifier:
         records:
-           - 'level ${!!record["tags"] ? !(['trace', 'debug', 'info', 'warn', 'error', 'fail'] & record["tags"])[0].nil? ? (['trace', 'debug', 'info', 'warn', 'error', 'fail'] & record["tags"])[0] : "" : ""}'
+           - "level ${!!record[\"tags\"] ? !(['trace', 'debug', 'info', 'warn', 'error', 'fail'] & record[\"tags\"])[0].nil? ? (['trace', 'debug', 'info', 'warn', 'error', 'fail'] & record[\"tags\"])[0] : \"\" : \"\"}"
   matchRegex: "kube.var.log.containers.*vmi-system-osd.*verrazzano-system.*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2

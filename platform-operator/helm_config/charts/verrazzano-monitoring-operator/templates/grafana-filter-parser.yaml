@@ -31,8 +31,8 @@ spec:
         parser: grafana-parser1,grafana-parser2
     - recordModifier:
         records:
-          - 'message ${record["@message"] ? record["@message"] : record["message"] ? record["message"] : ""}'
-          - 'level ${record["@level"] ? record["@level"] : record["level"] ? record["level"] : ""}'
+          - "message ${record[\"@message\"] ? record[\"@message\"] : record[\"message\"] ? record[\"message\"] : \"\"}"
+          - "level ${record[\"@level\"] ? record[\"@level\"] : record[\"level\"] ? record[\"level\"] : \"\"}"
   matchRegex: "kube.var.log.containers.*vmi-system-grafana.*verrazzano-system.*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2

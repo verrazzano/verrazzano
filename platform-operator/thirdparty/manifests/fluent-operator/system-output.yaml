@@ -7,7 +7,7 @@ metadata:
     fluentbit.fluent.io/enabled: "true"
   name: verrazzano-system
 spec:
-  matchRegex: '^(.*)\.(.*)_(?:verrazzano\-system|keycloak|istio\-system)_.*$'
+  matchRegex: '^(.*)\.(.*)_(?:verrazzano-system|keycloak|istio-system)_.*$'
   opensearch:
     host: verrazzano-authproxy-opensearch.verrazzano-system.svc.cluster.local
     httpPassword:
@@ -22,6 +22,7 @@ spec:
           name: verrazzano-es-internal
     dataStreamMode: true
     dataStreamName: verrazzano-system
+    dataStreamTemplateName: verrazzano-datastream
     templateFile: "/fluent-bit/etc/opensearch-template-verrazzano.json"
     port: 8775
     suppressTypeName: true

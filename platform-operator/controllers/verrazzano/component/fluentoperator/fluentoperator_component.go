@@ -66,6 +66,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
+			InstallBeforeUpgrade:      true,
 			AppendOverridesFunc:       appendOverrides,
 			Dependencies:              []string{"verrazzano-network-policies"},
 			GetInstallOverridesFunc:   GetOverrides,
@@ -145,12 +146,15 @@ func (c fluentOperatorComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	return c.HelmComponent.PostUpgrade(ctx)
 }
 
-// PreInstall Fluent-Operator component pre-install processing; create and label required namespaces, copy any
-// required secrets
+// PreInstall Fluent-Operator component pre-install processing; adding the fluentbit-config config-map.
 func (c fluentOperatorComponent) PreInstall(ctx spi.ComponentContext) error {
+	if err := applyFluentBitConfigMap(ctx); err != nil {
+		return err
+	}
 	return c.HelmComponent.PreInstall(ctx)
 }
 
+// Reconcile reconciles the FluentOperator
 func (c fluentOperatorComponent) Reconcile(ctx spi.ComponentContext) error {
 	installed, err := c.IsInstalled(ctx)
 	if err != nil {
@@ -167,7 +171,7 @@ func (c fluentOperatorComponent) Install(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.Install(ctx); err != nil {
 		return err
 	}
-	if err := applyClusterOutput(ctx); err != nil {
+	if err := applyOpenSearchClusterOutputs(ctx); err != nil {
 		return err
 	}
 
@@ -176,12 +180,6 @@ func (c fluentOperatorComponent) Install(ctx spi.ComponentContext) error {
 
 // PreUpgrade Fluentd component pre-upgrade processing
 func (c fluentOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	//if err := fluentdPreUpgrade(ctx, ComponentNamespace); err != nil {
-	//	return err
-	//}
-	//if err := checkSecretExists(ctx); err != nil {
-	//	return err
-	//}
 	return c.HelmComponent.PreUpgrade(ctx)
 }
 
@@ -198,30 +196,15 @@ func (c fluentOperatorComponent) Uninstall(context spi.ComponentContext) error {
 		return c.HelmComponent.Uninstall(context)
 	}
 
-	// Attempt to delete the Fluent-operator resources
-	//rs := getFluentdManagedResources()
-	//for _, r := range rs {
-	//	err := resource.Resource{
-	//		Name:      r.NamespacedName.Name,
-	//		Namespace: r.NamespacedName.Namespace,
-	//		Client:    context.Client(),
-	//		Object:    r.Obj,
-	//		Log:       context.Log(),
-	//	}.Delete()
-	//	if err != nil {
-	//		return err
-	//	}
-	//}
-
 	return nil
 }
 
-// Upgrade Fluentd component upgrade processing
+// Upgrade process the Fluent Operator upgrade.
 func (c fluentOperatorComponent) Upgrade(ctx spi.ComponentContext) error {
 	return c.HelmComponent.Install(ctx)
 }
 
-// IsReady component check
+// IsReady component check if Fluent Operator is ready or not.
 func (c fluentOperatorComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
 		return isFluentOperatorReady(ctx)
@@ -229,7 +212,7 @@ func (c fluentOperatorComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
-// IsInstalled component check
+// IsInstalled component check if Fluent Operator is installed or not.
 func (c fluentOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	deployment := &appsv1.Deployment{}
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, deployment)
@@ -243,7 +226,7 @@ func (c fluentOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, er
 	return true, nil
 }
 
-// IsEnabled fluentd-specific enabled check for installation
+// IsEnabled Fluent Operator specific enabled check for installation.
 func (c fluentOperatorComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzcr.IsFluentOperatorEnabled(effectiveCR)
 }
