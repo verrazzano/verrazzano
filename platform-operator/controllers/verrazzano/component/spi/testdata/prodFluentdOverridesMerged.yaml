@@ -122,6 +122,8 @@ spec:
           readOnly: false
         - source: /u01/dataro
           readOnly: true
+    fluentOperator:
+      enabled: false
     grafana:
       enabled: true
     ingress:
