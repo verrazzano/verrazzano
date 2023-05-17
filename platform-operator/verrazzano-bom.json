@@ -502,6 +502,7 @@
               "tag": "8.0.33-2.0.9",
               "helmRegKey": "image.registry",
               "helmRepoKey": "image.repository",
+              "helmImageKey": "image.name",
               "helmTagKey": "image.tag"
             }
           ]
