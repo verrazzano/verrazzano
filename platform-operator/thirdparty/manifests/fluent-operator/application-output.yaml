@@ -7,7 +7,7 @@ metadata:
     fluentbit.fluent.io/enabled: "true"
   name: verrazzano-application
 spec:
-  matchRegex: '^(.*)\.(.*)_(?!(keycloak|istio-system|verrazzano\-system))(.*)\_.*$'
+  matchRegex: '^kube.*(?!(_kube-|_verrazzano-|cattle-|rancher-|fleet|ingress-nginx|istio-system|keycloak|mysql-operator|_metallb-|cert-manager|_monitoring_|_local-path-storage_|_local_)).*'
   opensearch:
     host: verrazzano-authproxy-opensearch.verrazzano-system.svc.cluster.local
     httpPassword:

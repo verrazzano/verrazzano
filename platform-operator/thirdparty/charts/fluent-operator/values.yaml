@@ -51,6 +51,8 @@ fluentbit:
   # Installs a sub chart carrying the CRDs for the fluent-bit controller. The sub chart is enabled by default.
   crdsEnable: true
   enable: true
+  namespaceFluentBitCfgSelector:
+    matchLabels: 
   image:
     repository: "kubesphere/fluent-bit"
     tag: "v2.0.11"
@@ -231,6 +233,7 @@ fluentd:
         type: file
         path: /buffers/kafka
     opensearch: {}
+
 
 nameOverride: ""
 fullnameOverride: ""

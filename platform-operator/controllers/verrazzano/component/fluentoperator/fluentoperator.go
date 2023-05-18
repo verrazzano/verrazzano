@@ -33,11 +33,13 @@ const (
 	fluentbitConfigMap              = fluentbitDaemonset + "-config"
 	fluentbitVolumeName             = fluentbitConfigMap
 	fluentbitConfigMapFile          = "fluentbit-config-configmap.yaml"
-	fluentbitVolumeNameKey          = "additionalVolumes[0].name"
-	fluentbitVolumeConfigMapKey     = "additionalVolumes[0].configMap.name"
-	fluentbitVolumeMountNameKey     = "additionalVolumesMounts[0].mountPath.name"
-	fluentbitVolumeMountPathKey     = "additionalVolumesMounts[0].mountPath.path"
-	fluentbitVolumeMountReadOnlyKey = "additionalVolumesMounts[0].mountPath.readOnly"
+	fluentbitVolumeNameKey          = "fluentbit.additionalVolumes[0].name"
+	fluentbitVolumeConfigMapKey     = "fluentbit.additionalVolumes[0].configMap.name"
+	fluentbitVolumeMountNameKey     = "fluentbit.additionalVolumesMounts[0].mountPath.name"
+	fluentbitVolumeMountPathKey     = "fluentbit.additionalVolumesMounts[0].mountPath.path"
+	fluentbitVolumeMountReadOnlyKey = "fluentbit.additionalVolumesMounts[0].mountPath.readOnly"
+	namespaceFluentbitCfgSelector   = "fluentbit.namespaceFluentBitCfgSelector.matchLabels"
+	fluentbitNamespaceConfigLabel   = "fluentbit.verrazzano.io/namespace-config: \"verrazzano\""
 )
 
 var (
@@ -109,6 +111,7 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	kvs = append(kvs, bom.KeyValue{Key: fluentbitVolumeMountNameKey, Value: fluentbitVolumeName})
 	kvs = append(kvs, bom.KeyValue{Key: fluentbitVolumeMountPathKey, Value: "/fluent-bit/etc"})
 	kvs = append(kvs, bom.KeyValue{Key: fluentbitVolumeMountReadOnlyKey, Value: "true"})
+	kvs = append(kvs, bom.KeyValue{Key: namespaceFluentbitCfgSelector, Value: fluentbitNamespaceConfigLabel})
 	return kvs, nil
 }
 

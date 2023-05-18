@@ -5,7 +5,7 @@ apiVersion: fluentbit.fluent.io/v1alpha2
 kind: FluentBitConfig
 metadata:
   labels:
-    verrazzano.io/logging: "true"
+    fluentbit.verrazzano.io/namespace-config: "verrazzano"
   name: opensearchdashboards-fbc
   namespace: {{ .Values.monitoringOperator.namespace }}
 spec:
@@ -32,7 +32,7 @@ spec:
     - recordModifier:
         records:
            - "level ${!!record[\"tags\"] ? !(['trace', 'debug', 'info', 'warn', 'error', 'fail'] & record[\"tags\"])[0].nil? ? (['trace', 'debug', 'info', 'warn', 'error', 'fail'] & record[\"tags\"])[0] : \"\" : \"\"}"
-  matchRegex: "kube.var.log.containers.*vmi-system-osd.*verrazzano-system.*"
+  match: "kube.*vmi-system-osd*osd*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser

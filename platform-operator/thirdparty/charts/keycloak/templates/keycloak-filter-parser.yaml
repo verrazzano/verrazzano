@@ -5,7 +5,7 @@ apiVersion: fluentbit.fluent.io/v1alpha2
 kind: FluentBitConfig
 metadata:
   labels:
-    verrazzano.io/logging: "true"
+    fluentbit.verrazzano.io/namespace-config: "verrazzano"
   name: keycloak-fbc
   namespace: {{ .Release.Namespace }}
 spec:
@@ -29,7 +29,7 @@ spec:
         keyName: log
         reserveData: true
         parser: keycloak-parser
-  matchRegex: "kube.var.log.containers.*keycloak.*keycloak.*keycloak"
+  match: "kube.*keycloak*_keycloak*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser

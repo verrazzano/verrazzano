@@ -5,7 +5,7 @@ apiVersion: fluentbit.fluent.io/v1alpha2
 kind: FluentBitConfig
 metadata:
   labels:
-    verrazzano.io/logging: "true"
+    fluentbit.verrazzano.io/namespace-config: "verrazzano"
   name: jaeger-fbc
   namespace: {{ .Release.Namespace }}
 spec:
@@ -29,7 +29,7 @@ spec:
         keyName: log
         reserveData: true
         parser: jaeger-parser1,jaeger-parser2,jaeger-parser3
-  matchRegex: "kube.var.log.containers.*jaeger-operator-.*verrazzano-monitoring_jaeger.*"
+  match: "kube.*jaeger-operator*_jaeger*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser

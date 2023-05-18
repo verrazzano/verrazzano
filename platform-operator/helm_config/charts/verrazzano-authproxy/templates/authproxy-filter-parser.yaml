@@ -5,7 +5,7 @@ apiVersion: fluentbit.fluent.io/v1alpha2
 kind: FluentBitConfig
 metadata:
   labels:
-    verrazzano.io/logging: "true"
+    fluentbit.verrazzano.io/namespace-config: "verrazzano"
   name: authproxy-fbc
   namespace: {{ .Values.namespace }}
 spec:
@@ -29,7 +29,7 @@ spec:
         keyName: log
         reserveData: true
         parser: authproxy-parser
-  matchRegex: "kube.var.log.containers.verrazzano-authproxy.*_verrazzano-system.*"
+  match: "kube.*verrazzano-authproxy*verrazzano-authproxy*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser

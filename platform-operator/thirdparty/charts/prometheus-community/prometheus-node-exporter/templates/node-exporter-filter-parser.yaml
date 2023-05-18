@@ -5,7 +5,7 @@ apiVersion: fluentbit.fluent.io/v1alpha2
 kind: FluentBitConfig
 metadata:
   labels:
-    verrazzano.io/logging: "true"
+    fluentbit.verrazzano.io/namespace-config: "verrazzano"
   name: nodeexporter-fbc
   namespace: {{ template "prometheus-node-exporter.namespace" . }}
 spec:
@@ -29,7 +29,7 @@ spec:
         keyName: log
         reserveData: true
         parser: nodeexporter-parser1,nodeexporter-parser2
-  matchRegex: "kube.var.log.containers.*node-exporter*.*monitoring_node-exporter.*"
+  match: "kube.*node-exporter*_node-exporter*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser

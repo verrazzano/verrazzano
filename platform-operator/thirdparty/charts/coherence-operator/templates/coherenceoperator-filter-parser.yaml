@@ -5,7 +5,7 @@ apiVersion: fluentbit.fluent.io/v1alpha2
 kind: FluentBitConfig
 metadata:
   labels:
-    verrazzano.io/logging: "true"
+    fluentbit.verrazzano.io/namespace-config: "verrazzano"
   name: coherenceoperator-fbc
   namespace: {{ .Release.Namespace }}
 spec:
@@ -29,7 +29,7 @@ spec:
         keyName: log
         reserveData: true
         parser: coherenceoperator-parser1,coherenceoperator-parser2
-  matchRegex: "kube.var.log.containers.coherence-operator.*verrazzano-system.*"
+  matchRegex: "kube.*coherence-operator*manager*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser

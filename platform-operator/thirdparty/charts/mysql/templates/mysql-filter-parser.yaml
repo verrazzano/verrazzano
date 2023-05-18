@@ -5,7 +5,7 @@ apiVersion: fluentbit.fluent.io/v1alpha2
 kind: FluentBitConfig
 metadata:
   labels:
-    verrazzano.io/logging: "true"
+    fluentbit.verrazzano.io/namespace-config: "verrazzano"
   name: mysql-fbc
   namespace: {{ .Release.Namespace }}
 spec:
@@ -29,7 +29,7 @@ spec:
         keyName: log
         reserveData: true
         parser: mysql-parser1,mysql-parser2
-  matchRegex: "kube.var.log.containers.*mysql.*keycloak_mysql.*"
+  match: "kube.*mysql*_mysql*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser

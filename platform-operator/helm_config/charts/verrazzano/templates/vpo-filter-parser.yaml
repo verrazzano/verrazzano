@@ -5,7 +5,7 @@ apiVersion: fluentbit.fluent.io/v1alpha2
 kind: FluentBitConfig
 metadata:
   labels:
-    verrazzano.io/logging: "true"
+    fluentbit.verrazzano.io/namespace-config: "verrazzano"
   name: vpo-fbc
   namespace: {{ .Values.platformOperator.namespace }}
 spec:
@@ -29,7 +29,7 @@ spec:
         keyName: log
         reserveData: true
         parser: vpo-parser1,vpo-parser2
-  matchRegex: "kube.var.log.containers.*verrazzano-.*operator.*|kube.var.log.containers.*verrazzano.*_webhook-init.*"
+  matchRegex: "kube.*verrazzano-.*operator.*|kube.*verrazzano.*_webhook-init.*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser

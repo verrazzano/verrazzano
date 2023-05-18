@@ -5,7 +5,7 @@ apiVersion: fluentbit.fluent.io/v1alpha2
 kind: FluentBitConfig
 metadata:
   labels:
-    verrazzano.io/logging: "true"
+    fluentbit.verrazzano.io/namespace-config: "verrazzano"
   name: nginx-fbc
   namespace: {{ .Release.Namespace }}
 spec:
@@ -28,21 +28,30 @@ spec:
     - parser:
         keyName: log
         reserveData: true
-        parser: nginx-parser
-  matchRegex: "kube.var.log.containers.*ingress-nginx-controller.*ingress-nginx_controller-.*"
+        parser: nginx-parser1,nginx-parser2
+  match: "kube.*ingress-nginx-controller*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser
 metadata:
   labels:
     verrazzano.io/component: "nginx"
-  name: nginx-parser
+  name: nginx-parser1
   namespace: {{ .Release.Namespace }}
 spec:
   regex:
     regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'
     timeKey: logtime
     timeFormat: "%Y-%m-%dT%H:%M:%S,%N"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "nginx"
+  name: nginx-parser2
+  namespace: {{ .Release.Namespace }}
+spec:
   json:
     timeKey: logtime
     timeFormat: "%Y-%m-%dT%H:%M:%S+%N"

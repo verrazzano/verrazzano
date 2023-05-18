@@ -5,7 +5,7 @@ apiVersion: fluentbit.fluent.io/v1alpha2
 kind: FluentBitConfig
 metadata:
   labels:
-    verrazzano.io/logging: "true"
+    fluentbit.verrazzano.io/namespace-config: "verrazzano"
   name: prometheusconfig-fbc
   namespace: {{ template "prometheus-node-exporter.namespace" . }}
 spec:
@@ -29,7 +29,7 @@ spec:
         keyName: log
         reserveData: true
         parser: prometheusconfig-parser
-  matchRegex: "kube.var.log.containers.*vmi-system-prometheus*.*verrazzano-system_config-reloader.*"
+  match: "kube.*prometheus-prometheus-operator*config-reloader*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser
