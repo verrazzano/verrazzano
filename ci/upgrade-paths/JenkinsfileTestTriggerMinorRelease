@@ -176,7 +176,6 @@ pipeline {
                         }
                         echo "List of Releases after excluding the user requested releases: ${finalReleaseList}"
                         listOfUpgradeJobs = addTargetUpgradeVersion(finalReleaseList)
-                        
                         minorReleaseList = getCleanReleaseVersion(finalReleaseList)
                         echo "List of minor release: ${minorReleaseList}"
                         def listOfTipOfReleaseUpgradeJobs = []
@@ -186,6 +185,7 @@ pipeline {
                             String key = "v"+minorRelease
                             releaseCommitMap.put(releaseCommit, getTipOfBranchToMasterJob(key, releaseCommit))
                         }
+                        
                         listOfTipOfReleaseUpgradeJobs.add(releaseCommitMap)
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                         echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
