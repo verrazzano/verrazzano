@@ -1,5 +1,8 @@
-# contains certificates to be used by opensearch cluster
-# certificate name and secret name as kept as common and will be generating based on OpenSearchClusterSpec.name variable.
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+# Contains certificates to be used by OpenSearch cluster
+# Certificate name and secret name are kept as common and will be generating based on OpenSearchClusterSpec.name variable.
 
 apiVersion: cert-manager.io/v1
 kind: Certificate
