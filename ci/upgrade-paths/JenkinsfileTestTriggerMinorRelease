@@ -166,13 +166,10 @@ pipeline {
                                 String[] splitReleaseTag  = releaseTag.replace('v', '').split("\\.")
                                 def releaseTagMinorVersion = "v"+ splitReleaseTag[0] + "." + splitReleaseTag[1]
                                 String[] splitDevVersion = VERRAZZANO_DEV_VERSION.split("\\.")
-                                if((splitReleaseTag[0] <= splitDevVersion[0]) && (splitReleaseTag[1] <= splitDevVersion[1])) {
-                                    if(releaseTagMinorVersion != excludedRelease){
-                                        excluded = false
-                                    }
-                                }else {
+                                if (splitReleaseTag[0] > splitDevVersion[0] || splitReleaseTag[1] > splitDevVersion[1] || releaseTagMinorVersion == excludedRelease) {
                                     excluded = true
                                 }
+                                println(splitDevVersion)
                                 println("Printing releaseTag minor versions")
                                 println(releaseTagMinorVersion)
                                 println(excludedRelease)
