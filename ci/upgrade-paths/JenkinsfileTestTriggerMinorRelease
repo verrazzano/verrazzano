@@ -163,14 +163,19 @@ pipeline {
                         for(releaseTag in gitTags){
                             def excluded = false
                             for(excludedRelease in excludeReleasesList){
-                                String[] splitReleaseTag  = releaseTag.split("\\.")
-
-                                def releaseTagMinorVersion = releaseTag
-                                def majorVersion = releaseTag[1..1]
-
-                                if(releaseTagMinorVersion[1..3] == excludedRelease){
+                                String[] splitReleaseTag  = releaseTag.replace('v', '').split("\\.")
+                                def releaseTagMinorVersion = "v"+ splitReleaseTag[0] + "." + splitReleaseTag[1]
+                                String[] splitDevVersion = VERRAZZANO_DEV_VERSION.split("\\.")
+                                if((splitReleaseTag[0] <= splitDevVersion[0]) && (splitReleaseTag[1] <= splitDevVersion[1])) {
+                                    if(releaseTagMinorVersion != excludedRelease){
+                                        excluded = false
+                                    }
+                                }else {
                                     excluded = true
                                 }
+                                println("Printing releaseTag minor versions")
+                                println(releaseTagMinorVersion)
+                                println(excludedRelease)
                             }
                             if(excluded == false){
                                 finalReleaseList.add(releaseTag)
@@ -189,7 +194,6 @@ pipeline {
                             releaseCommitMap.put(releaseCommit, getTipOfBranchToMasterJob(key, releaseCommit))
                         }
                         listOfTipOfReleaseUpgradeJobs.add(releaseCommitMap)
-
 
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                         echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
