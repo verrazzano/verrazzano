@@ -303,6 +303,9 @@ func (s *Syncer) GetAPIServerURL() (string, error) {
 	ingress := &networkingv1.Ingress{}
 	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.VzConsoleIngress, Namespace: constants.VerrazzanoSystemNamespace}, ingress)
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", nil
+		}
 		return "", fmt.Errorf("Unable to fetch ingress %s/%s, %v", constants.VerrazzanoSystemNamespace, constants.VzConsoleIngress, err)
 	}
 	return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host), nil

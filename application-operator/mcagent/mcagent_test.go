@@ -359,6 +359,7 @@ func expectCASyncSuccess(localMock, adminMock *mocks.MockClient, assert *asserts
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Name = localIngressTLSSecret.Name
 			secret.Namespace = localIngressTLSSecret.Namespace
+			secret.Data = map[string][]byte{mcconstants.CaCrtKey: []byte("somekey")}
 			return nil
 		})
 
@@ -378,6 +379,8 @@ func expectCASyncSuccess(localMock, adminMock *mocks.MockClient, assert *asserts
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 			secret.Name = adminClusterCASecret.Name
 			secret.Namespace = adminClusterCASecret.Namespace
+			// make the value equal to the managed cluster CA - we are not looking for updates to this secret
+			secret.Data = map[string][]byte{keyCaCrtNoDot: []byte("somekey")}
 			return nil
 		})
 }
