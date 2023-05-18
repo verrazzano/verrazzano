@@ -109,37 +109,37 @@ spec:
 {{- end }}
 {{ if ((.Values).podSpec) }}
   podSpec:
-  securityContext:
-    seccompProfile:
-      type: RuntimeDefault
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
 {{ if ((.Values).podSpec.affinity) }}
     affinity:
 {{ toYaml ((.Values).podSpec.affinity) | indent 6 }}
 {{ end }}
 {{ if (.Values).configurationFiles }}
     containers:
-    - name: sidecar
-      image: {{ (.Values).mysqlOperator.image }}
-      securityContext:
-        allowPrivilegeEscalation: false
-        privileged: false
-        runAsNonRoot: true
-        runAsUser: 27
-        runAsGroup: 27
-        capabilities:
-          drop:
-            - ALL
-    - name: mysql
-      securityContext:
-        allowPrivilegeEscalation: false
-        privileged: false
-        runAsNonRoot: true
-        runAsUser: 27
-        runAsGroup: 27
-        capabilities:
-          drop:
-            - ALL
-      volumeMounts:
+      - name: sidecar
+        image: {{ (.Values).mysqlOperator.image }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          privileged: false
+          runAsNonRoot: true
+          runAsUser: 27
+          runAsGroup: 27
+          capabilities:
+            drop:
+              - ALL
+      - name: mysql
+        securityContext:
+          allowPrivilegeEscalation: false
+          privileged: false
+          runAsNonRoot: true
+          runAsUser: 27
+          runAsGroup: 27
+          capabilities:
+            drop:
+              - ALL
+        volumeMounts:
 {{- range $key, $val := .Values.configurationFiles }}
         - name: configurations
           mountPath: {{ $.Values.configurationFilesPath }}{{ $key }}
