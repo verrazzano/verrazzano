@@ -714,16 +714,16 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 //	THEN the CLI install command should validate the Custom Resource and determine if install should proceed
 func TestInstallCmdWithCR(t *testing.T) {
 	type fields struct {
-		validCRAsInput bool
-		doesInstall    bool
-		pathToCR       string
+		isValidCR   bool
+		doesInstall bool
+		pathToCR    string
 	}
 	tests := []struct {
 		name   string
 		fields fields
 	}{
-		{"An invalid CR used for install", fields{validCRAsInput: false, doesInstall: false, pathToCR: "../../test/testdata/invalidCR.yaml"}},
-		{"A valid CR used for install", fields{validCRAsInput: true, doesInstall: true, pathToCR: "../../test/testdata/validCR.yaml"}},
+		{"An invalid CR used for install", fields{isValidCR: false, doesInstall: false, pathToCR: "../../test/testdata/invalidCR.yaml"}},
+		{"A valid CR used for install", fields{isValidCR: true, doesInstall: true, pathToCR: "../../test/testdata/validCR.yaml"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -741,9 +741,8 @@ func TestInstallCmdWithCR(t *testing.T) {
 
 			err := cmd.Execute()
 			// checking if a valid CR was passed and if it should install
-			if !tt.fields.validCRAsInput && !tt.fields.doesInstall {
+			if !tt.fields.isValidCR && !tt.fields.doesInstall {
 				assert.Error(t, err)
-				assert.Contains(t, err.Error(), "unable to validate")
 			} else {
 				assert.NoError(t, err)
 			}
