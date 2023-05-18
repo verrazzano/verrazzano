@@ -93,7 +93,11 @@ precommit: precommit-check precommit-build unit-test-coverage
 precommit-nocover: precommit-check precommit-build unit-test
 
 .PHONY: precommit-check
+<<<<<<< HEAD
 precommit-check: check check-tests copyright-check
+=======
+precommit-check: check-tidy check check-tests copyright-check ## run precommit checks without unit testing
+>>>>>>> a11e400ad (Remove unintended direct dependency on gopkg.in/yaml.v2 (#6022))
 
 .PHONY: precommit-build
 precommit-build:
@@ -154,3 +158,8 @@ check-eventually: check-eventually-test ## check for correct use of Gomega Event
 .PHONY: check-eventually-test
 check-eventually-test: ## run tests for Gomega Eventually checker
 	(cd tools/eventually-checker; go test .)
+
+.PHONY: check-tidy
+check-tidy: ## check if go mod tidy results in no changes
+	go mod tidy
+	ci/scripts/check_if_clean_after_generate.sh

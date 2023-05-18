@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -13,8 +13,8 @@ if [[ -n $(git status --porcelain) ]]; then
   git status
   git diff
   echo "****************************************************************************************************************"
-  echo "* ERROR: The result of a 'make generate', 'make manifests' or 'make copyright-check' resulted in files being   *"
-  echo "*        modified. These changes need to be included in your PR.                                               *"
+  echo "* ERROR: The result of a 'go mod tidy', 'make generate', 'make manifests' or 'make copyright-check' resulted   *"
+  echo "* in files being modified. These changes need to be included in your PR.                                       *"
   echo "****************************************************************************************************************"
   exit 1
 fi
