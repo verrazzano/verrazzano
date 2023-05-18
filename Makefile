@@ -95,7 +95,7 @@ precommit: precommit-check precommit-build unit-test-coverage ## run all precomm
 precommit-nocover: precommit-check precommit-build unit-test ## run precommit checks without code coverage check
 
 .PHONY: precommit-check
-precommit-check: check check-tests copyright-check ## run precommit checks without unit testing
+precommit-check: check-tidy check check-tests copyright-check ## run precommit checks without unit testing
 
 .PHONY: precommit-build
 precommit-build:  ## go build the project
@@ -156,3 +156,8 @@ check-eventually: check-eventually-test ## check for correct use of Gomega Event
 .PHONY: check-eventually-test
 check-eventually-test: ## run tests for Gomega Eventually checker
 	(cd tools/eventually-checker; go test .)
+
+.PHONY: check-tidy
+check-tidy: ## check if go mod tidy results in no changes
+	go mod tidy
+	ci/scripts/check_if_clean_after_generate.sh
