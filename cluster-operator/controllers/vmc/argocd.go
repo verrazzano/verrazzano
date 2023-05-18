@@ -85,11 +85,7 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), err
 	}
 	isActive, err := isManagedClusterActiveInRancher(rc, clusterID, r.log)
-	if err != nil {
-		msg := fmt.Sprintf("Error checking Rancher status of managed cluster with id %s: %v", clusterID, err)
-		return newArgoCDRegistration(clusterapi.RegistrationPendingRancher, msg), err
-	}
-	if !isActive {
+	if err != nil || !isActive {
 		msg := fmt.Sprintf("Waiting for managed cluster with id %s to become active before registering in Argo CD", clusterID)
 		return newArgoCDRegistration(clusterapi.RegistrationPendingRancher, msg), err
 	}
@@ -200,7 +196,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateArgoCDClusterSecret(secret *c
 		createNewToken = now.After(timeCreated.Add(lifespan * 3 / 4))
 	}
 	if okCreated && !okExpires {
-		// get token by userId/clusterId
+		//get token by userId/clusterId
 		userID, err := r.getArgoCDClusterUserID()
 		if err != nil {
 			return err
