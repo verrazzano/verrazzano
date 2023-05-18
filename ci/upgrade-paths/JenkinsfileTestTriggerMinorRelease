@@ -169,10 +169,6 @@ pipeline {
                                 if (splitReleaseTag[0] > splitDevVersion[0] || splitReleaseTag[1] > splitDevVersion[1] || releaseTagMinorVersion == excludedRelease) {
                                     excluded = true
                                 }
-                                println(splitDevVersion[0] + "." + splitDevVersion[1] + "." + splitDevVersion[2])
-                                println("Printing releaseTag minor versions")
-                                println(releaseTagMinorVersion)
-                                println(excludedRelease)
                             }
                             if(excluded == false){
                                 finalReleaseList.add(releaseTag)
@@ -191,7 +187,6 @@ pipeline {
                             releaseCommitMap.put(releaseCommit, getTipOfBranchToMasterJob(key, releaseCommit))
                         }
                         listOfTipOfReleaseUpgradeJobs.add(releaseCommitMap)
-
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                         echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
                         def k = 0
