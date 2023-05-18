@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/spf13/cobra"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -17,11 +16,10 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"helm.sh/helm/v3/pkg/strvals"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/kube-openapi/pkg/util/proto/validation"
 	"k8s.io/kubectl/pkg/util/openapi"
 	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -287,14 +285,7 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper, version st
 			return nil, err
 		}
 		gv = obj.GroupVersionKind().GroupVersion()
-		gvk := obj.GroupVersionKind()
 		vz = obj
-
-		// Validate Custom Resource if present
-		err = validateCR(obj, gvk, filenames)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	// Generate yaml for the set flags passed on the command line
@@ -308,6 +299,12 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper, version st
 	vz, err = cmdhelpers.MergeSetFlags(gv, vz, outYAML)
 	if err != nil {
 		return nil, err
+	}
+
+	// Validate Custom Resource if present
+	var errorArray = validateCR(cmd, vz, gv.WithKind("Verrazzano"), vzHelper)
+	if len(errorArray) != 0 {
+		return nil, fmt.Errorf("was unable to validate the given CR, the following error occurred: \"%v\"", errorArray[0])
 	}
 
 	// Return the merged verrazzano install resource to be created
@@ -405,58 +402,29 @@ func validateCmd(cmd *cobra.Command) error {
 }
 
 // validateCR - validates a Custom Resource before proceeding with an install
-func validateCR(obj *unstructured.Unstructured, gvk schema.GroupVersionKind, filenames []string) error {
-	//validateModel.ValidateModel(obj, gv, "verrazzano")
-	//var doc open.Resources
-	//var openDoc *openapi_v2.Document
-	//var fake = testing.Fake{Path: filenames[0]}
-	//var doc, _ = fake.OpenAPISchema()
-	//var schema val.SchemaValidation
-	//newObj := obj.Object
-	//println(newObj)
-	//schema.validate(newObj.([]byte))
-	kubeConfig, err := k8sutil.GetKubeConfig()
+func validateCR(cmd *cobra.Command, vz clipkg.Object, gvk schema.GroupVersionKind, vzHelper helpers.VZHelper) []error {
+	discoveryClient, err := vzHelper.GetDiscoveryClient(cmd)
 	if err != nil {
-		return err
+		return []error{err}
 	}
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(kubeConfig)
-	if err != nil {
-		return err
-	}
+	//discovery.NewDiscoveryClientForConfig(kubeConfig)
 	doc, err := discoveryClient.OpenAPISchema()
 	if err != nil {
-		return err
+		return []error{err}
 	}
 	s, err := openapi.NewOpenAPIData(doc)
 	if err != nil {
-		return err
+		return []error{err}
 	}
-	s.LookupResource(gvk)
 
+	schema := s.LookupResource(gvk)
+	if schema == nil {
+		return []error{fmt.Errorf("the schema for \"%v\" was not found", gvk.Kind)}
+	}
+	// ValidateModel validates the keys of
+	errorArray := validation.ValidateModel(vz, schema, gvk.Kind)
+	if len(errorArray) != 0 {
+		return errorArray
+	}
 	return nil
 }
-
-//func (f *Fake) OpenAPISchema() (*openapi_v2.Document, error) {
-//	f.once.Do(func() {
-//		_, err := os.Stat(f.Path)
-//		if err != nil {
-//			f.err = err
-//			return
-//		}
-//		spec, err := os.ReadFile(f.Path)
-//		if err != nil {
-//			f.err = err
-//			return
-//		}
-//		f.document, f.err = openapi_v2.ParseDocument(spec)
-//	})
-//	return f.document, f.err
-//}
-
-//func (d *document) LookupResource(gvk schema.GroupVersionKind) proto.Schema {
-//	modelName, found := d.resources[gvk]
-//	if !found {
-//		return nil
-//	}
-//	return d.models.LookupModel(modelName)
-//}

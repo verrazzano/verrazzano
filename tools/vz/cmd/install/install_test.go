@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	"sigs.k8s.io/yaml"
 	"testing"
 )
@@ -721,14 +722,17 @@ func TestInstallCmdWithCR(t *testing.T) {
 		name   string
 		fields fields
 	}{
-		{"An invalid CR is passed for install", fields{validCRAsInput: false, doesInstall: false, pathToCR: "../../test/testdata/invalidCR.yaml"}},
-		{"A valid CR is passed for install", fields{validCRAsInput: true, doesInstall: true, pathToCR: "../../test/testdata/validCR.yaml"}},
+		{"An invalid CR used for install", fields{validCRAsInput: false, doesInstall: false, pathToCR: "../../test/testdata/invalidCR.yaml"}},
+		{"A valid CR used for install", fields{validCRAsInput: true, doesInstall: true, pathToCR: "../../test/testdata/validCR.yaml"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 			cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
+			//discoveryClient.OpenAPISchema(fakeRootCmdContext.GetKubeClient())
+
 			cmd.PersistentFlags().Set(constants.FilenameFlag, tt.fields.pathToCR)
+
 			cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 			defer cmdHelpers.SetDefaultDeleteFunc()
 
@@ -736,8 +740,10 @@ func TestInstallCmdWithCR(t *testing.T) {
 			defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 			err := cmd.Execute()
+			// checking if a valid CR was passed and if it should install
 			if !tt.fields.validCRAsInput && !tt.fields.doesInstall {
 				assert.Error(t, err)
+				assert.Contains(t, err.Error(), "unable to validate")
 			} else {
 				assert.NoError(t, err)
 			}
