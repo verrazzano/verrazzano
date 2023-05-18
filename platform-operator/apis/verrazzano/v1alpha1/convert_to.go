@@ -157,6 +157,17 @@ func ConvertCertManagerToV1Beta1(src *CertManagerComponent) *v1beta1.CertManager
 		Certificate:      convertCertificateToV1Beta1(src.Certificate),
 		Enabled:          src.Enabled,
 		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
+		Webhook:          convertCertManagerOCIWebhookToV1Beta1(src.Webhook),
+	}
+}
+
+func convertCertManagerOCIWebhookToV1Beta1(src *CertManagerOCIDNSWebhookSolver) *v1beta1.CertManagerOCIDNSWebhookSolver {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.CertManagerOCIDNSWebhookSolver{
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
 	}
 }
 

@@ -622,10 +622,29 @@ type CertManagerComponent struct {
 	// If true, then cert-manager will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
+	// Webhook provides optional configuration for the OCI DNS webhook solver; the solver is deployed when OCI DNS and
+	// ACME certificates are configured
+	// +optional
+	Webhook *CertManagerOCIDNSWebhookSolver `json:"ociWebhook,omitempty"`
 	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
 	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/cert-manager/values.yaml %}} )
+	// and invalid values will be ignored.
+	// +optional
+	InstallOverrides `json:",inline"`
+}
+
+// CertManagerOCIDNSWebhookSolver configures the CertManager OCI DNS solver webhook; the
+// webhook is required for ACME Certificates using OCI DNS
+type CertManagerOCIDNSWebhookSolver struct {
+	// If true, indicates that Verrazzano will use an externally-managed Cert-Manager installation
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano-cert-manager-ocidns-webhook/values.yaml %}} )
 	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
