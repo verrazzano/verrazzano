@@ -51,15 +51,6 @@ spec:
             capabilities:
               drop:
                 - ALL
-{{- if (((.Values).router).podSpec) }}
-    podSpec:  {{ toYaml (((.Values).router).podSpec) | nindent 6 }}
-{{- end }}
-{{ if (((.Values).router).podLabels) }}
-    podLabels: {{ toYaml (((.Values).router).podLabels) | nindent 6 }}
-{{ end }}
-{{ if (((.Values).router).podAnnotations) }}
-    podAnnotations: {{ toYaml (((.Values).router).podAnnotations) | nindent 6 }}
-{{ end }}
 {{- if not $use_self_signed }}
   {{- if and (((.Values).tls).routerCertAndPKsecretName) (((.Values).router).certAndPKsecretName) }}
     {{- if ne (((.Values).tls).routerCertAndPKsecretName) (((.Values).router).certAndPKsecretName) }}
@@ -74,6 +65,15 @@ spec:
     {{- fail $err }}
   {{- end }}
     tlsSecretName: {{ $secret_name }}
+  {{- if (((.Values).router).podSpec) }}
+    podSpec:  {{ toYaml (((.Values).router).podSpec) | nindent 6 }}
+  {{- end }}
+  {{ if (((.Values).router).podLabels) }}
+    podLabels: {{ toYaml (((.Values).router).podLabels) | nindent 6 }}
+  {{ end }}
+  {{ if (((.Values).router).podAnnotations) }}
+    podAnnotations: {{ toYaml (((.Values).router).podAnnotations) | nindent 6 }}
+  {{ end }}
 {{- end }}
   secretName: {{ .Release.Name }}-cluster-secret
   imagePullPolicy : {{ .Values.image.pullPolicy }}
@@ -191,7 +191,7 @@ spec:
       configMap:
         name: {{ $cluster_name }}-configuration
         defaultMode: 0755
-      items:
+        items:
 {{- range $key, $val := .Values.configurationFiles }}
           - key: {{ $key }}
             path: {{ $key }}
