@@ -523,14 +523,3 @@ spec:
     {{- end }}
   {{- end }}
 {{- end }}
-
-{{ if ((.Values).podSpec) }}
-  podSpec: {{ toYaml ((.Values).podSpec) | nindent 4 }}
-{{ end }}
-{{- if ((.Values).podLabels) }}
-  podLabels: {{ toYaml ((.Values).podLabels) | nindent 4 }}
-{{- end }}
-{{- if ((.Values).podAnnotations) }}
-  podAnnotations: {{ toYaml ((.Values).podAnnotations) | nindent 4 }}
-{{- end }}
-
