@@ -169,7 +169,7 @@ pipeline {
                                 if (splitReleaseTag[0] > splitDevVersion[0] || splitReleaseTag[1] > splitDevVersion[1] || releaseTagMinorVersion == excludedRelease) {
                                     excluded = true
                                 }
-                                println(splitDevVersion)
+                                println(splitDevVersion[0] + "." + splitDevVersion[1] + "." + splitDevVersion[2])
                                 println("Printing releaseTag minor versions")
                                 println(releaseTagMinorVersion)
                                 println(excludedRelease)
