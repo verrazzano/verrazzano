@@ -641,6 +641,9 @@ type CertManagerOCIDNSWebhookSolver struct {
 	// If true, indicates that Verrazzano will use an externally-managed Cert-Manager installation
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
+	// The clusterResourceNamespace configured for this Cert-Manager instance
+	// +kubebuilder:default=cert-manager
+	ClusterResourceNamespace string `json:"clusterResourceNamespace,omitempty"`
 	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values

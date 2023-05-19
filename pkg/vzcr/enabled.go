@@ -112,6 +112,24 @@ func IsCertManagerEnabled(cr runtime.Object) bool {
 	return true
 }
 
+// IsCertManagerOCIDNSWebhookEnabled - Returns true IFF the ExternalCertManager component is explicitly enabled
+func IsCertManagerOCIDNSWebhookEnabled(cr runtime.Object) bool {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.CertManager != nil &&
+			vzv1alpha1.Spec.Components.CertManager.Webhook != nil &&
+			vzv1alpha1.Spec.Components.CertManager.Webhook.Enabled != nil {
+			return *vzv1alpha1.Spec.Components.CertManager.Webhook.Enabled
+		}
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 != nil && vzv1beta1.Spec.Components.CertManager != nil &&
+			vzv1beta1.Spec.Components.CertManager.Webhook != nil &&
+			vzv1beta1.Spec.Components.CertManager.Webhook.Enabled != nil {
+			return *vzv1beta1.Spec.Components.CertManager.Webhook.Enabled
+		}
+	}
+	return false
+}
+
 // IsKialiEnabled - Returns false only if explicitly disabled in the CR
 func IsKialiEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
