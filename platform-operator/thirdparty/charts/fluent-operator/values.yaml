@@ -84,10 +84,18 @@ fluentbit:
   # - name: "image-pull-secret"
   secrets: []
   # List of volumes that can be mounted by containers belonging to the pod.
-  additionalVolumes: []
-  # Pod volumes to mount into the container's filesystem.
-  additionalVolumesMounts: []
-
+#  additionalVolumes: []
+#  # Pod volumes to mount into the container's filesystem.
+#  additionalVolumesMounts: []
+  additionalVolumes:
+    - configMap:
+        name: fluent-bit-config
+      name: fluent-bit-config
+  additionalVolumesMounts:
+    - mountPath:
+        name: fluent-bit-config
+        path: /fluent-bit/etc
+        readOnly: true
   # Remove the above empty volumes and volumesMounts, and then set additionalVolumes and additionalVolumesMounts as below if you want to collect node exporter metrics
   # additionalVolumes:
   #   - name: hostProc
