@@ -29,9 +29,9 @@ spec:
         keyName: log
         reserveData: true
         parser: weblogic-parser
-    - recordModifier:
-        removeKeys:
-          - timestamp
+#    - recordModifier:
+#        removeKeys:
+#          - timestamp
   match: 'kube.*weblogic-operator*_weblogic-operator*'
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2

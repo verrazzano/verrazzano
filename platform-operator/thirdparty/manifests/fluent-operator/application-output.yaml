@@ -7,7 +7,7 @@ metadata:
     fluentbit.fluent.io/enabled: "true"
   name: verrazzano-application
 spec:
-  matchRegex: '^kube.*(?!(_kube-|_verrazzano-|cattle-|rancher-|fleet|ingress-nginx|istio-system|keycloak|mysql-operator|_metallb-|cert-manager|_monitoring_|_local-path-storage_|_local_)).*'
+  matchRegex: '^.*(?!(_kube-|_verrazzano-|cattle-|rancher-|fleet|ingress-nginx|istio-system|keycloak|mysql-operator|_metallb-|cert-manager|_monitoring_|_local-path-storage_|_local_)).*'
   opensearch:
     host: verrazzano-authproxy-opensearch.verrazzano-system.svc.cluster.local
     httpPassword:
@@ -23,6 +23,6 @@ spec:
     dataStreamMode: true
     dataStreamName: verrazzano-application-{$kubernetes["namespace_name"]}
     dataStreamTemplateName: verrazzano-datastream
-    templateFile: "/fluent-bit/etc/opensearch-template-verrazzano.json"
+    templateFile: "/fluent-bit/etc/opensearch-config/opensearch-template-verrazzano.json"
     port: 8775
     suppressTypeName: true

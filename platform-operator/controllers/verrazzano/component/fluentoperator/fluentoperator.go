@@ -35,9 +35,9 @@ const (
 	fluentbitConfigMapFile           = "fluentbit-config-configmap.yaml"
 	overrideFbVolumeNameKey          = "fluentbit.additionalVolumes[0].name"
 	overrideFbVolumeCMKey            = "fluentbit.additionalVolumes[0].configMap.name"
-	overrideFbVolumeMountNameKey     = "fluentbit.additionalVolumesMounts[0].mountPath.name"
-	overrideFbVolumeMountPathKey     = "fluentbit.additionalVolumesMounts[0].mountPath.path"
-	overrideFbVolumeMountReadOnlyKey = "fluentbit.additionalVolumesMounts[0].mountPath.readOnly"
+	overrideFbVolumeMountNameKey     = "fluentbit.additionalVolumesMounts[0].name"
+	overrideFbVolumeMountPathKey     = "fluentbit.additionalVolumesMounts[0].mountPath"
+	overrideFbVolumeMountReadOnlyKey = "fluentbit.additionalVolumesMounts[0].readOnly"
 	overrideFbCfgLabelKeyKey         = "fluentbit.namespaceFluentBitCfgSelector.matchLabels.key"
 	overrideFbCfgLabelValueKey       = "fluentbit.namespaceFluentBitCfgSelector.matchLabels.value"
 	overrideFbCfgLabelKeyValue       = "fluentbit.verrazzano.io/namespace-config"
@@ -111,7 +111,7 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	kvs = append(kvs, bom.KeyValue{Key: overrideFbVolumeCMKey, Value: fluentbitConfigMap})
 	kvs = append(kvs, bom.KeyValue{Key: overrideFbVolumeNameKey, Value: fluentbitVolumeName})
 	kvs = append(kvs, bom.KeyValue{Key: overrideFbVolumeMountNameKey, Value: fluentbitVolumeName})
-	kvs = append(kvs, bom.KeyValue{Key: overrideFbVolumeMountPathKey, Value: "/fluent-bit/etc"})
+	kvs = append(kvs, bom.KeyValue{Key: overrideFbVolumeMountPathKey, Value: "/fluent-bit/etc/opensearch-config"})
 	kvs = append(kvs, bom.KeyValue{Key: overrideFbVolumeMountReadOnlyKey, Value: "true"})
 	kvs = append(kvs, bom.KeyValue{Key: overrideFbCfgLabelKeyKey, Value: overrideFbCfgLabelKeyValue})
 	kvs = append(kvs, bom.KeyValue{Key: overrideFbCfgLabelValueKey, Value: overrideFbCfgLabelValueValue})
