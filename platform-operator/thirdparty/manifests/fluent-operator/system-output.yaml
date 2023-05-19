@@ -22,7 +22,7 @@ spec:
           name: verrazzano-es-internal
     dataStreamMode: true
     dataStreamName: verrazzano-system
-    dataStreamTemplateName: verrazzano-datastream
-    templateFile: "/fluent-bit/etc/opensearch-template-verrazzano.json"
+    dataStreamTemplateName: verrazzano-data-stream
+    templateFile: "/fluent-bit/etc/opensearch-config/opensearch-template-verrazzano.json"
     port: 8775
     suppressTypeName: true

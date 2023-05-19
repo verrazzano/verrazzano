@@ -22,7 +22,7 @@ spec:
           name: verrazzano-es-internal
     dataStreamMode: true
     dataStreamName: verrazzano-application-$kubernetes['namespace_name']
-    dataStreamTemplateName: verrazzano-datastream
+    dataStreamTemplateName: verrazzano-data-stream
     templateFile: "/fluent-bit/etc/opensearch-config/opensearch-template-verrazzano.json"
     port: 8775
     suppressTypeName: true
