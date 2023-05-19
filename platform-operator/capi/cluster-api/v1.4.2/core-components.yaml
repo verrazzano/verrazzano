@@ -14,7 +14,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: capi-system/capi-serving-cert
-    controller-gen.kubebuilder.io/version: v0.10.0
+    controller-gen.kubebuilder.io/version: v0.11.4
   labels:
     cluster.x-k8s.io/provider: cluster-api
   name: clusterclasses.cluster.x-k8s.io
@@ -51,8 +51,9 @@ spec:
     name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: ClusterClass is a template which can be used to create managed
-          topologies.
+        description: "ClusterClass is a template which can be used to create managed
+          topologies. \n Deprecated: This type will be removed in one of the next
+          releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -584,11 +585,13 @@ spec:
                     - ref
                     type: object
                   metadata:
-                    description: "Metadata is the metadata applied to the machines
-                      of the ControlPlane. At runtime this metadata is merged with
-                      the corresponding metadata from the topology. \n This field
-                      is supported if and only if the control plane provider template
-                      referenced is Machine based."
+                    description: "Metadata is the metadata applied to the ControlPlane
+                      and the Machines of the ControlPlane if the ControlPlaneTemplate
+                      referenced is machine based. If not, it is applied only to the
+                      ControlPlane. At runtime this metadata is merged with the corresponding
+                      metadata from the topology. \n This field is supported if and
+                      only if the control plane provider template referenced is Machine
+                      based."
                     properties:
                       annotations:
                         additionalProperties:
@@ -855,10 +858,21 @@ spec:
                       description: 'External defines an external patch. Note: Exactly
                         one of Definitions or External must be set.'
                       properties:
+                        discoverVariablesExtension:
+                          description: DiscoverVariablesExtension references an extension
+                            which is called to discover variables.
+                          type: string
                         generateExtension:
                           description: GenerateExtension references an extension which
                             is called to generate patches.
                           type: string
+                        settings:
+                          additionalProperties:
+                            type: string
+                          description: Settings defines key value pairs to be passed
+                            to the extensions. Values defined here take precedence
+                            over the values defined in the corresponding ExtensionConfig.
+                          type: object
                         validateExtension:
                           description: ValidateExtension references an extension which
                             is called to validate the topology.
@@ -1374,9 +1388,9 @@ spec:
                               type: object
                             metadata:
                               description: Metadata is the metadata applied to the
-                                machines of the MachineDeployment. At runtime this
-                                metadata is merged with the corresponding metadata
-                                from the topology.
+                                MachineDeployment and the machines of the MachineDeployment.
+                                At runtime this metadata is merged with the corresponding
+                                metadata from the topology.
                               properties:
                                 annotations:
                                   additionalProperties:
@@ -1455,6 +1469,200 @@ spec:
                   - type
                   type: object
                 type: array
+              observedGeneration:
+                description: ObservedGeneration is the latest generation observed
+                  by the controller.
+                format: int64
+                type: integer
+              variables:
+                description: Variables is a list of ClusterClassStatusVariable that
+                  are defined for the ClusterClass.
+                items:
+                  description: ClusterClassStatusVariable defines a variable which
+                    appears in the status of a ClusterClass.
+                  properties:
+                    definitions:
+                      description: Definitions is a list of definitions for a variable.
+                      items:
+                        description: ClusterClassStatusVariableDefinition defines
+                          a variable which appears in the status of a ClusterClass.
+                        properties:
+                          from:
+                            description: From specifies the origin of the variable
+                              definition. This will be `inline` for variables defined
+                              in the ClusterClass or the name of a patch defined in
+                              the ClusterClass for variables discovered from a DiscoverVariables
+                              runtime extensions.
+                            type: string
+                          required:
+                            description: 'Required specifies if the variable is required.
+                              Note: this applies to the variable as a whole and thus
+                              the top-level object defined in the schema. If nested
+                              fields are required, this will be specified inside the
+                              schema.'
+                            type: boolean
+                          schema:
+                            description: Schema defines the schema of the variable.
+                            properties:
+                              openAPIV3Schema:
+                                description: OpenAPIV3Schema defines the schema of
+                                  a variable via OpenAPI v3 schema. The schema is
+                                  a subset of the schema used in Kubernetes CRDs.
+                                properties:
+                                  additionalProperties:
+                                    description: 'AdditionalProperties specifies the
+                                      schema of values in a map (keys are always strings).
+                                      NOTE: Can only be set if type is object. NOTE:
+                                      AdditionalProperties is mutually exclusive with
+                                      Properties. NOTE: This field uses PreserveUnknownFields
+                                      and Schemaless, because recursive validation
+                                      is not possible.'
+                                    x-kubernetes-preserve-unknown-fields: true
+                                  default:
+                                    description: 'Default is the default value of
+                                      the variable. NOTE: Can be set for all types.'
+                                    x-kubernetes-preserve-unknown-fields: true
+                                  description:
+                                    description: Description is a human-readable description
+                                      of this variable.
+                                    type: string
+                                  enum:
+                                    description: 'Enum is the list of valid values
+                                      of the variable. NOTE: Can be set for all types.'
+                                    items:
+                                      x-kubernetes-preserve-unknown-fields: true
+                                    type: array
+                                  example:
+                                    description: Example is an example for this variable.
+                                    x-kubernetes-preserve-unknown-fields: true
+                                  exclusiveMaximum:
+                                    description: 'ExclusiveMaximum specifies if the
+                                      Maximum is exclusive. NOTE: Can only be set
+                                      if type is integer or number.'
+                                    type: boolean
+                                  exclusiveMinimum:
+                                    description: 'ExclusiveMinimum specifies if the
+                                      Minimum is exclusive. NOTE: Can only be set
+                                      if type is integer or number.'
+                                    type: boolean
+                                  format:
+                                    description: 'Format is an OpenAPI v3 format string.
+                                      Unknown formats are ignored. For a list of supported
+                                      formats please see: (of the k8s.io/apiextensions-apiserver
+                                      version we''re currently using) https://github.com/kubernetes/apiextensions-apiserver/blob/master/pkg/apiserver/validation/formats.go
+                                      NOTE: Can only be set if type is string.'
+                                    type: string
+                                  items:
+                                    description: 'Items specifies fields of an array.
+                                      NOTE: Can only be set if type is array. NOTE:
+                                      This field uses PreserveUnknownFields and Schemaless,
+                                      because recursive validation is not possible.'
+                                    x-kubernetes-preserve-unknown-fields: true
+                                  maxItems:
+                                    description: 'MaxItems is the max length of an
+                                      array variable. NOTE: Can only be set if type
+                                      is array.'
+                                    format: int64
+                                    type: integer
+                                  maxLength:
+                                    description: 'MaxLength is the max length of a
+                                      string variable. NOTE: Can only be set if type
+                                      is string.'
+                                    format: int64
+                                    type: integer
+                                  maximum:
+                                    description: 'Maximum is the maximum of an integer
+                                      or number variable. If ExclusiveMaximum is false,
+                                      the variable is valid if it is lower than, or
+                                      equal to, the value of Maximum. If ExclusiveMaximum
+                                      is true, the variable is valid if it is strictly
+                                      lower than the value of Maximum. NOTE: Can only
+                                      be set if type is integer or number.'
+                                    format: int64
+                                    type: integer
+                                  minItems:
+                                    description: 'MinItems is the min length of an
+                                      array variable. NOTE: Can only be set if type
+                                      is array.'
+                                    format: int64
+                                    type: integer
+                                  minLength:
+                                    description: 'MinLength is the min length of a
+                                      string variable. NOTE: Can only be set if type
+                                      is string.'
+                                    format: int64
+                                    type: integer
+                                  minimum:
+                                    description: 'Minimum is the minimum of an integer
+                                      or number variable. If ExclusiveMinimum is false,
+                                      the variable is valid if it is greater than,
+                                      or equal to, the value of Minimum. If ExclusiveMinimum
+                                      is true, the variable is valid if it is strictly
+                                      greater than the value of Minimum. NOTE: Can
+                                      only be set if type is integer or number.'
+                                    format: int64
+                                    type: integer
+                                  pattern:
+                                    description: 'Pattern is the regex which a string
+                                      variable must match. NOTE: Can only be set if
+                                      type is string.'
+                                    type: string
+                                  properties:
+                                    description: 'Properties specifies fields of an
+                                      object. NOTE: Can only be set if type is object.
+                                      NOTE: Properties is mutually exclusive with
+                                      AdditionalProperties. NOTE: This field uses
+                                      PreserveUnknownFields and Schemaless, because
+                                      recursive validation is not possible.'
+                                    x-kubernetes-preserve-unknown-fields: true
+                                  required:
+                                    description: 'Required specifies which fields
+                                      of an object are required. NOTE: Can only be
+                                      set if type is object.'
+                                    items:
+                                      type: string
+                                    type: array
+                                  type:
+                                    description: 'Type is the type of the variable.
+                                      Valid values are: object, array, string, integer,
+                                      number or boolean.'
+                                    type: string
+                                  uniqueItems:
+                                    description: 'UniqueItems specifies if items in
+                                      an array must be unique. NOTE: Can only be set
+                                      if type is array.'
+                                    type: boolean
+                                  x-kubernetes-preserve-unknown-fields:
+                                    description: XPreserveUnknownFields allows setting
+                                      fields in a variable object which are not defined
+                                      in the variable schema. This affects fields
+                                      recursively, except if nested properties or
+                                      additionalProperties are specified in the schema.
+                                    type: boolean
+                                required:
+                                - type
+                                type: object
+                            required:
+                            - openAPIV3Schema
+                            type: object
+                        required:
+                        - from
+                        - required
+                        - schema
+                        type: object
+                      type: array
+                    definitionsConflict:
+                      description: DefinitionsConflict specifies whether or not there
+                        are conflicting definitions for a single variable name.
+                      type: boolean
+                    name:
+                      description: Name is the name of the variable.
+                      type: string
+                  required:
+                  - definitions
+                  - name
+                  type: object
+                type: array
             type: object
         type: object
     served: true
@@ -1467,7 +1675,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: capi-system/capi-serving-cert
-    controller-gen.kubebuilder.io/version: v0.10.0
+    controller-gen.kubebuilder.io/version: v0.11.4
   labels:
     cluster.x-k8s.io/provider: cluster-api
   name: clusterresourcesetbindings.addons.cluster.x-k8s.io
@@ -1497,8 +1705,9 @@ spec:
   - name: v1alpha3
     schema:
       openAPIV3Schema:
-        description: ClusterResourceSetBinding lists all matching ClusterResourceSets
-          with the cluster it belongs to.
+        description: "ClusterResourceSetBinding lists all matching ClusterResourceSets
+          with the cluster it belongs to. \n Deprecated: This type will be removed
+          in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -1585,8 +1794,9 @@ spec:
     name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: ClusterResourceSetBinding lists all matching ClusterResourceSets
-          with the cluster it belongs to.
+        description: "ClusterResourceSetBinding lists all matching ClusterResourceSets
+          with the cluster it belongs to. \n Deprecated: This type will be removed
+          in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -1747,6 +1957,10 @@ spec:
                   - clusterResourceSetName
                   type: object
                 type: array
+              clusterName:
+                description: 'ClusterName is the name of the Cluster this binding
+                  applies to. Note: this field mandatory in v1beta2.'
+                type: string
             type: object
         type: object
     served: true
@@ -1759,7 +1973,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: capi-system/capi-serving-cert
-    controller-gen.kubebuilder.io/version: v0.10.0
+    controller-gen.kubebuilder.io/version: v0.11.4
   labels:
     cluster.x-k8s.io/provider: cluster-api
   name: clusterresourcesets.addons.cluster.x-k8s.io
@@ -1789,8 +2003,8 @@ spec:
   - name: v1alpha3
     schema:
       openAPIV3Schema:
-        description: ClusterResourceSet is the Schema for the clusterresourcesets
-          API.
+        description: "ClusterResourceSet is the Schema for the clusterresourcesets
+          API. \n Deprecated: This type will be removed in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -1951,8 +2165,8 @@ spec:
     name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: ClusterResourceSet is the Schema for the clusterresourcesets
-          API.
+        description: "ClusterResourceSet is the Schema for the clusterresourcesets
+          API. \n Deprecated: This type will be removed in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -2207,6 +2421,7 @@ spec:
                   Defaults to ApplyOnce. This field is immutable.
                 enum:
                 - ApplyOnce
+                - Reconcile
                 type: string
             required:
             - clusterSelector
@@ -2276,7 +2491,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: capi-system/capi-serving-cert
-    controller-gen.kubebuilder.io/version: v0.10.0
+    controller-gen.kubebuilder.io/version: v0.11.4
   labels:
     cluster.x-k8s.io/provider: cluster-api
   name: clusters.cluster.x-k8s.io
@@ -2574,7 +2789,8 @@ spec:
     name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: Cluster is the Schema for the clusters API.
+        description: "Cluster is the Schema for the clusters API. \n Deprecated: This
+          type will be removed in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -3237,12 +3453,12 @@ spec:
                             type: string
                         type: object
                       metadata:
-                        description: "Metadata is the metadata applied to the machines
-                          of the ControlPlane. At runtime this metadata is merged
-                          with the corresponding metadata from the ClusterClass. \n
-                          This field is supported if and only if the control plane
-                          provider template referenced in the ClusterClass is Machine
-                          based."
+                        description: Metadata is the metadata applied to the ControlPlane
+                          and the Machines of the ControlPlane if the ControlPlaneTemplate
+                          referenced by the ClusterClass is machine based. If not,
+                          it is applied only to the ControlPlane. At runtime this
+                          metadata is merged with the corresponding metadata from
+                          the ClusterClass.
                         properties:
                           annotations:
                             additionalProperties:
@@ -3292,9 +3508,10 @@ spec:
                         type: integer
                     type: object
                   rolloutAfter:
-                    description: RolloutAfter performs a rollout of the entire cluster
+                    description: 'RolloutAfter performs a rollout of the entire cluster
                       one component at a time, control plane first and then machine
-                      deployments.
+                      deployments. Deprecated: This field has no function and is going
+                      to be removed in the next apiVersion.'
                     format: date-time
                     type: string
                   variables:
@@ -3303,9 +3520,18 @@ spec:
                       defined in the ClusterClass.
                     items:
                       description: ClusterVariable can be used to customize the Cluster
-                        through patches. It must comply to the corresponding ClusterClassVariable
-                        defined in the ClusterClass.
+                        through patches. Each ClusterVariable is associated with a
+                        Variable definition in the ClusterClass `status` variables.
                       properties:
+                        definitionFrom:
+                          description: 'DefinitionFrom specifies where the definition
+                            of this Variable is from. DefinitionFrom is `inline` when
+                            the definition is from the ClusterClass `.spec.variables`
+                            or the name of a patch defined in the ClusterClass `.spec.patches`
+                            where the patch is external and provides external variables.
+                            This field is mandatory if the variable has `DefinitionsConflict:
+                            true` in ClusterClass `status.variables[]`'
+                          type: string
                         name:
                           description: Name of the variable.
                           type: string
@@ -3475,9 +3701,9 @@ spec:
                               type: object
                             metadata:
                               description: Metadata is the metadata applied to the
-                                machines of the MachineDeployment. At runtime this
-                                metadata is merged with the corresponding metadata
-                                from the ClusterClass.
+                                MachineDeployment and the machines of the MachineDeployment.
+                                At runtime this metadata is merged with the corresponding
+                                metadata from the ClusterClass.
                               properties:
                                 annotations:
                                   additionalProperties:
@@ -3537,8 +3763,8 @@ spec:
                               description: Replicas is the number of worker nodes
                                 belonging to this set. If the value is nil, the MachineDeployment
                                 is created without the number of Replicas (defaulting
-                                to zero) and it's assumed that an external entity
-                                (like cluster autoscaler) is responsible for the management
+                                to 1) and it's assumed that an external entity (like
+                                cluster autoscaler) is responsible for the management
                                 of this value.
                               format: int32
                               type: integer
@@ -3620,10 +3846,21 @@ spec:
                                     level variables.
                                   items:
                                     description: ClusterVariable can be used to customize
-                                      the Cluster through patches. It must comply
-                                      to the corresponding ClusterClassVariable defined
-                                      in the ClusterClass.
+                                      the Cluster through patches. Each ClusterVariable
+                                      is associated with a Variable definition in
+                                      the ClusterClass `status` variables.
                                     properties:
+                                      definitionFrom:
+                                        description: 'DefinitionFrom specifies where
+                                          the definition of this Variable is from.
+                                          DefinitionFrom is `inline` when the definition
+                                          is from the ClusterClass `.spec.variables`
+                                          or the name of a patch defined in the ClusterClass
+                                          `.spec.patches` where the patch is external
+                                          and provides external variables. This field
+                                          is mandatory if the variable has `DefinitionsConflict:
+                                          true` in ClusterClass `status.variables[]`'
+                                        type: string
                                       name:
                                         description: Name of the variable.
                                         type: string
@@ -3760,8 +3997,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.10.0
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.11.4
   labels:
     cluster.x-k8s.io/provider: cluster-api
   name: extensionconfigs.runtime.cluster.x-k8s.io
@@ -3899,6 +4135,13 @@ spec:
                       are ANDed.
                     type: object
                 type: object
+              settings:
+                additionalProperties:
+                  type: string
+                description: 'Settings defines key value pairs to be passed to all
+                  calls to all supported RuntimeExtensions. Note: Settings can be
+                  overridden on the ClusterClass.'
+                type: object
             required:
             - clientConfig
             type: object
@@ -4005,8 +4248,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.10.0
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.11.4
   labels:
     cluster.x-k8s.io/provider: cluster-api
   name: ipaddressclaims.ipam.cluster.x-k8s.io
@@ -4131,8 +4373,6 @@ spec:
                   - type
                   type: object
                 type: array
-            required:
-            - addressRef
             type: object
         type: object
     served: true
@@ -4144,8 +4384,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.10.0
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.11.4
   labels:
     cluster.x-k8s.io/provider: cluster-api
   name: ipaddresses.ipam.cluster.x-k8s.io
@@ -4236,7 +4475,6 @@ spec:
             required:
             - address
             - claimRef
-            - gateway
             - poolRef
             - prefix
             type: object
@@ -4250,7 +4488,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: capi-system/capi-serving-cert
-    controller-gen.kubebuilder.io/version: v0.10.0
+    controller-gen.kubebuilder.io/version: v0.11.4
   labels:
     cluster.x-k8s.io/provider: cluster-api
   name: machinedeployments.cluster.x-k8s.io
@@ -4304,7 +4542,8 @@ spec:
     name: v1alpha3
     schema:
       openAPIV3Schema:
-        description: MachineDeployment is the Schema for the machinedeployments API.
+        description: "MachineDeployment is the Schema for the machinedeployments API.
+          \n Deprecated: This type will be removed in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -4803,7 +5042,8 @@ spec:
     name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: MachineDeployment is the Schema for the machinedeployments API.
+        description: "MachineDeployment is the Schema for the machinedeployments API.
+          \n Deprecated: This type will be removed in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -5314,9 +5554,22 @@ spec:
                 format: int32
                 type: integer
               replicas:
-                default: 1
-                description: Number of desired machines. Defaults to 1. This is a
-                  pointer to distinguish between explicit zero and not specified.
+                description: "Number of desired machines. This is a pointer to distinguish
+                  between explicit zero and not specified. \n Defaults to: * if the
+                  Kubernetes autoscaler min size and max size annotations are set:
+                  - if it's a new MachineDeployment, use min size - if the replicas
+                  field of the old MachineDeployment is < min size, use min size -
+                  if the replicas field of the old MachineDeployment is > max size,
+                  use max size - if the replicas field of the old MachineDeployment
+                  is in the (min size, max size) range, keep the value from the oldMD
+                  * otherwise use 1 Note: Defaulting will be run whenever the replicas
+                  field is not set: * A new MachineDeployment is created with replicas
+                  not set. * On an existing MachineDeployment the replicas field was
+                  first set and is now unset. Those cases are especially relevant
+                  for the following Kubernetes autoscaler use cases: * A new MachineDeployment
+                  is created and replicas should be managed by the autoscaler * An
+                  existing MachineDeployment which initially wasn't controlled by
+                  the autoscaler should be later controlled by the autoscaler"
                 format: int32
                 type: integer
               revisionHistoryLimit:
@@ -5325,6 +5578,14 @@ spec:
                   Defaults to 1.
                 format: int32
                 type: integer
+              rolloutAfter:
+                description: 'RolloutAfter is a field to indicate a rollout should
+                  be performed after the specified time even if no changes have been
+                  made to the MachineDeployment. Example: In the YAML the time can
+                  be specified in the RFC3339 format. To specify the rolloutAfter
+                  target as March 9, 2023, at 9 am UTC use "2023-03-09T09:00:00Z".'
+                format: date-time
+                type: string
               selector:
                 description: Label selector for machines. Existing MachineSets whose
                   machines are selected by this will be the ones affected by this
@@ -5720,7 +5981,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: capi-system/capi-serving-cert
-    controller-gen.kubebuilder.io/version: v0.10.0
+    controller-gen.kubebuilder.io/version: v0.11.4
   labels:
     cluster.x-k8s.io/provider: cluster-api
   name: machinehealthchecks.cluster.x-k8s.io
@@ -5766,8 +6027,8 @@ spec:
     name: v1alpha3
     schema:
       openAPIV3Schema:
-        description: MachineHealthCheck is the Schema for the machinehealthchecks
-          API.
+        description: "MachineHealthCheck is the Schema for the machinehealthchecks
+          API. \n Deprecated: This type will be removed in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -6026,8 +6287,8 @@ spec:
     name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: MachineHealthCheck is the Schema for the machinehealthchecks
-          API.
+        description: "MachineHealthCheck is the Schema for the machinehealthchecks
+          API. \n Deprecated: This type will be removed in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -6551,7 +6812,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: capi-system/capi-serving-cert
-    controller-gen.kubebuilder.io/version: v0.10.0
+    controller-gen.kubebuilder.io/version: v0.11.4
   labels:
     cluster.x-k8s.io/provider: cluster-api
   name: machinepools.cluster.x-k8s.io
@@ -6597,7 +6858,8 @@ spec:
     name: v1alpha3
     schema:
       openAPIV3Schema:
-        description: MachinePool is the Schema for the machinepools API.
+        description: "MachinePool is the Schema for the machinepools API. \n Deprecated:
+          This type will be removed in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -7147,7 +7409,8 @@ spec:
     name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: MachinePool is the Schema for the machinepools API.
+        description: "MachinePool is the Schema for the machinepools API. \n Deprecated:
+          This type will be removed in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -7968,7 +8231,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: capi-system/capi-serving-cert
-    controller-gen.kubebuilder.io/version: v0.10.0
+    controller-gen.kubebuilder.io/version: v0.11.4
   labels:
     cluster.x-k8s.io/provider: cluster-api
   name: machines.cluster.x-k8s.io
@@ -8018,7 +8281,8 @@ spec:
     name: v1alpha3
     schema:
       openAPIV3Schema:
-        description: Machine is the Schema for the machines API.
+        description: "Machine is the Schema for the machines API. \n Deprecated: This
+          type will be removed in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -8364,7 +8628,8 @@ spec:
     name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: Machine is the Schema for the machines API.
+        description: "Machine is the Schema for the machines API. \n Deprecated: This
+          type will be removed in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -8929,8 +9194,8 @@ spec:
                       description: The machine address.
                       type: string
                     type:
-                      description: Machine address type, one of Hostname, ExternalIP
-                        or InternalIP.
+                      description: Machine address type, one of Hostname, ExternalIP,
+                        InternalIP, ExternalDNS or InternalDNS.
                       type: string
                   required:
                   - address
@@ -9140,7 +9405,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: capi-system/capi-serving-cert
-    controller-gen.kubebuilder.io/version: v0.10.0
+    controller-gen.kubebuilder.io/version: v0.11.4
   labels:
     cluster.x-k8s.io/provider: cluster-api
   name: machinesets.cluster.x-k8s.io
@@ -9185,7 +9450,8 @@ spec:
     name: v1alpha3
     schema:
       openAPIV3Schema:
-        description: MachineSet is the Schema for the machinesets API.
+        description: "MachineSet is the Schema for the machinesets API. \n Deprecated:
+          This type will be removed in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -9630,7 +9896,8 @@ spec:
     name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: MachineSet is the Schema for the machinesets API.
+        description: "MachineSet is the Schema for the machinesets API. \n Deprecated:
+          This type will be removed in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -10859,7 +11126,7 @@ spec:
       - args:
         - --leader-elect
         - --metrics-bind-addr=localhost:8080
-        - --feature-gates=MachinePool=${EXP_MACHINE_POOL:=false},ClusterResourceSet=${EXP_CLUSTER_RESOURCE_SET:=false},ClusterTopology=${CLUSTER_TOPOLOGY:=false},RuntimeSDK=${EXP_RUNTIME_SDK:=false}
+        - --feature-gates=MachinePool=${EXP_MACHINE_POOL:=false},ClusterResourceSet=${EXP_CLUSTER_RESOURCE_SET:=false},ClusterTopology=${CLUSTER_TOPOLOGY:=false},RuntimeSDK=${EXP_RUNTIME_SDK:=false},LazyRestmapper=${EXP_LAZY_RESTMAPPER:=false}
         command:
         - /manager
         env:
@@ -10875,7 +11142,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.uid
-        image: registry.k8s.io/cluster-api/cluster-api-controller:v1.3.3
+        image: registry.k8s.io/cluster-api/cluster-api-controller:v1.4.2
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -10893,10 +11160,22 @@ spec:
           httpGet:
             path: /readyz
             port: healthz
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          runAsGroup: 65532
+          runAsUser: 1000
         volumeMounts:
         - mountPath: /tmp/k8s-webhook-server/serving-certs
           name: cert
           readOnly: true
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       serviceAccountName: capi-manager
       terminationGracePeriodSeconds: 10
       tolerations:
@@ -11354,6 +11633,28 @@ webhooks:
     - UPDATE
     resources:
     - clusterresourcesets
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: capi-webhook-service
+      namespace: capi-system
+      path: /validate-addons-cluster-x-k8s-io-v1beta1-clusterresourcesetbinding
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.clusterresourcesetbinding.addons.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - addons.cluster.x-k8s.io
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - clusterresourcesetbindings
   sideEffects: None
 - admissionReviewVersions:
   - v1

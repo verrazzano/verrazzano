@@ -21,7 +21,6 @@ var compartmentID string
 var workerNodeSubnet string
 var controlPlaneSubnet string
 var loadBalancerSubnet string
-var podCidr string
 
 func init() {
 	flag.StringVar(&region, "region", "", "region represents the region where the CAPI cluster will be created")
@@ -35,7 +34,6 @@ func init() {
 	flag.StringVar(&workerNodeSubnet, "workerNodeSubnet", "", "workerNodeSubnet represents the worker node subnet")
 	flag.StringVar(&controlPlaneSubnet, "controlPlaneSubnet", "", "controlPlaneSubnet represents the control plane node subnet")
 	flag.StringVar(&loadBalancerSubnet, "loadBalancerSubnet", "", "loadBalancerSubnet represents the load balancer subnet")
-	flag.StringVar(&podCidr, "podCidr", "", "podCidr represents the pod CIDR")
 }
 
 func TestOCNEClusterDriver(test *testing.T) {
