@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusteroperator
@@ -60,6 +60,9 @@ func NewComponent() spi.Component {
 
 // PreInstall processing for the cluster-operator
 func (c clusterOperatorComponent) PreInstall(ctx spi.ComponentContext) error {
+	if err := associateClusterRegistrarClusterRoleWithVPO(ctx); err != nil {
+		return err
+	}
 	return applyCRDs(ctx)
 }
 
@@ -70,6 +73,9 @@ func (c clusterOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
 
 // PreUpgrade processing for the cluster-operator
 func (c clusterOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	if err := associateClusterRegistrarClusterRoleWithVPO(ctx); err != nil {
+		return err
+	}
 	return applyCRDs(ctx)
 }
 
