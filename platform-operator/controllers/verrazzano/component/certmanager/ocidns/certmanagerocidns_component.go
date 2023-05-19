@@ -45,6 +45,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			InstallBeforeUpgrade:      true,
+			AppendOverridesFunc:       appendOCIDNSOverrides,
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0].name",
 			Dependencies:              []string{networkpolicies.ComponentName, controller.ComponentName},
 		},

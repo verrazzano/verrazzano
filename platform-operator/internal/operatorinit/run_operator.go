@@ -4,10 +4,8 @@
 package operatorinit
 
 import (
-	"context"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
-	"github.com/verrazzano/verrazzano/pkg/ocne"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
@@ -35,9 +33,6 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 		return err
 	}
 	nginxutil.SetIngressNGINXNamespace(ingressNGINXNamespace)
-	if err = ocne.CreateOCNEMetadataConfigMap(context.Background(), config.GetKubernetesVersionsFile()); err != nil {
-		return err
-	}
 
 	registry.InitRegistry()
 	metricsexporter.Init()

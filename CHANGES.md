@@ -8,7 +8,7 @@ Features:
 
 Component version updates:
 
-- Rancher v2.7.2
+- Rancher v2.7.3
 - WebLogic Kubernetes Operator v4.0.6
 - WebLogic Monitoring Exporter v2.1.3
 - Jaeger v1.42.0
@@ -67,6 +67,7 @@ Fixes:
 - Fixed IngressTrait JWT related issues to allow multiple paths where one path has requestPrincipals and the other doesn't.
 - Fixed IngressTrait JWT so that requestPrincipals with no paths are allowed.
 - Fixed IngressTrait related AuthorizationPolicy cleanup when application is deleted.
+- Fixed Argo CD bug to allow the policy.csv field in the argocd-rbac-cm ConfigMap to be overridden.
 
 ### v1.4.0
 Features:

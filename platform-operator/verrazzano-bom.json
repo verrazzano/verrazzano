@@ -86,7 +86,7 @@
           "images": [
             {
               "image": "cert-manager-ocidns-provider",
-              "tag": "v1.6.0-20230508022415-4c191ba",
+              "tag": "v1.6.0-20230516012126-783aef9",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -139,7 +139,7 @@
     },
     {
       "name": "rancher",
-      "version": "v2.7.2",
+      "version": "v2.7.3",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -148,13 +148,13 @@
             {
               "image": "rancher",
               "dashboard": "v2.7.2-20230509143745-870a44e17",
-              "tag": "v2.7.2-20230511150331-f226b7e4e",
+              "tag": "v2.7.3-20230518204126-3aad2b0ff",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.2-20230511150331-f226b7e4e"
+              "tag": "v2.7.3-20230518204126-3aad2b0ff"
             }
           ]
         },
@@ -168,7 +168,7 @@
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.3.2-20230420144706-e94a4e1"
+              "tag": "v0.3.3-20230511200909-abfe60f"
             },
             {
               "image": "rancher-fleet-agent",
@@ -192,7 +192,7 @@
     },
     {
       "name": "capi-cluster-api",
-      "version": "v1.3.3",
+      "version": "v1.4.2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -200,7 +200,7 @@
           "images": [
             {
               "image": "cluster-api-controller",
-              "tag": "v1.3.3-20230427222746-876fe3dc9"
+              "tag": "v1.4.2-20230515185906-d75d4df4d"
             }
           ]
         }
@@ -232,11 +232,11 @@
           "images": [
             {
               "image": "cluster-api-ocne-bootstrap-controller",
-              "tag": "v0.1.0-20230427222244-4ef1141"
+              "tag": "v0.1.0-20230516205451-d9da513"
             },
             {
               "image": "cluster-api-ocne-control-plane-controller",
-              "tag": "v0.1.0-20230427222244-4ef1141"
+              "tag": "v0.1.0-20230516205451-d9da513"
             }
           ]
         }
@@ -262,7 +262,7 @@
             },
             {
               "image": "console",
-              "tag": "v1.6.0-20230411132135-bd3ca29",
+              "tag": "v1.6.0-20230518201121-1c995fb",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -457,15 +457,15 @@
     },
     {
       "name": "mysql",
-      "version": "8.0.32",
+      "version": "8.0.33",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "mysql-upgrade",
           "images": [
             {
-              "image": "mysql-server",
-              "tag": "8.0.32",
+              "image": "community-server",
+              "tag": "8.0.33",
               "helmFullImageKey": "legacyUpgrade.container.image"
             },
             {
@@ -482,8 +482,8 @@
           "name": "additional-mysql",
           "images": [
             {
-              "image": "mysql-router",
-              "tag": "8.0.32"
+              "image": "community-router",
+              "tag": "8.0.33"
             }
           ]
         }
@@ -491,17 +491,18 @@
     },
     {
       "name": "mysql-operator",
-      "version": "8.0.32",
+      "version": "8.0.33",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "mysql-operator",
           "images": [
             {
-              "image": "mysql-operator",
-              "tag": "8.0.32-2.0.8",
+              "image": "community-operator",
+              "tag": "8.0.33-2.0.9",
               "helmRegKey": "image.registry",
               "helmRepoKey": "image.repository",
+              "helmImageKey": "image.name",
               "helmTagKey": "image.tag"
             }
           ]
@@ -518,7 +519,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v20.0.1-20230511162845-f765e95713",
+              "tag": "v20.0.1-20230517204511-228d40b314",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -844,7 +845,7 @@
           "images": [
             {
               "image": "redis",
-              "tag": "v6.2.7-20230124164724-26c8b963",
+              "tag": "v6.2.7-20230516204818-26c8b963",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
