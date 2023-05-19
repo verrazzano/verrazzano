@@ -19,7 +19,7 @@ pipeline {
 
     agent {
        docker {
-            image "${RUNNER_DOCKER_IMAGE}"
+            image getRunnerImage("${RUNNER_DOCKER_IMAGE}")
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "https://${ocirRegistry}"
             registryCredentialsId 'ocir-pull-and-push-account'
@@ -810,4 +810,11 @@ def listHelmReleases(customMessage) {
         helm list -A
         echo "-----------------------------------------------------"
     """
+}
+
+def getRunnerImage(runnerImageIn) {
+    if (params.DISTRIBUTION_VARIANT.equals("Full")) {
+        return runnerImageIn.replaceFirst("phx", "fra")
+    }
+    return runnerImageIn
 }
