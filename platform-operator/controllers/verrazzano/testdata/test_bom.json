@@ -384,7 +384,7 @@
           "name": "mysql-upgrade",
           "images": [
             {
-              "image": "community-server",
+              "image": "mysql-server",
               "tag": "8.0.30",
               "helmFullImageKey": "legacyUpgrade.container.image"
             },
@@ -401,7 +401,7 @@
           "name": "additional-mysql",
           "images": [
             {
-              "image": "community-router",
+              "image": "mysql-router",
               "tag": "8.0.30"
             }
           ]
@@ -417,7 +417,7 @@
           "name": "mysql-operator",
           "images": [
             {
-              "image": "community-operator",
+              "image": "mysql-operator",
               "tag": "8.0.30-2.0.6",
               "helmRegKey": "image.registry",
               "helmRepoKey": "image.repository",

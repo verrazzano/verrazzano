@@ -457,15 +457,15 @@
     },
     {
       "name": "mysql",
-      "version": "8.0.33",
+      "version": "8.0.32",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "mysql-upgrade",
           "images": [
             {
-              "image": "community-server",
-              "tag": "8.0.33",
+              "image": "mysql-server",
+              "tag": "8.0.32",
               "helmFullImageKey": "legacyUpgrade.container.image"
             },
             {
@@ -482,8 +482,8 @@
           "name": "additional-mysql",
           "images": [
             {
-              "image": "community-router",
-              "tag": "8.0.33"
+              "image": "mysql-router",
+              "tag": "8.0.32"
             }
           ]
         }
@@ -491,18 +491,17 @@
     },
     {
       "name": "mysql-operator",
-      "version": "8.0.33",
+      "version": "8.0.32",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "mysql-operator",
           "images": [
             {
-              "image": "community-operator",
-              "tag": "8.0.33-2.0.9",
+              "image": "mysql-operator",
+              "tag": "8.0.32-2.0.8",
               "helmRegKey": "image.registry",
               "helmRepoKey": "image.repository",
-              "helmImageKey": "image.name",
               "helmTagKey": "image.tag"
             }
           ]
