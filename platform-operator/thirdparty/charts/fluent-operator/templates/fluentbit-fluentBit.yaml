@@ -20,7 +20,9 @@ spec:
   fluentBitConfigName: fluent-bit-config
   namespaceFluentBitCfgSelector:
     matchLabels:
+      {{- if .Values.fluentbit.namespaceFluentBitCfgSelector.matchLabels.key }}
       {{ .Values.fluentbit.namespaceFluentBitCfgSelector.matchLabels.key }}: {{ .Values.fluentbit.namespaceFluentBitCfgSelector.matchLabels.value }}
+      {{- end }}
   tolerations:
     - operator: Exists
   affinity:
