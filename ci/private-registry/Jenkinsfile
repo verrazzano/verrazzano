@@ -812,9 +812,9 @@ def listHelmReleases(customMessage) {
     """
 }
 
-def updateRunnerRegion() {
-  if "full" {
-      return inputRunnerImage.strReplace("phx", "fra)
-  }
-  return inputRunnerImage
+def updateRunnerRegion(inputRunnerImage){
+    if ("full"){
+        return inputRunnerImage.replace("phx","fra")
+    }
+    return inputRunnerImage
 }
