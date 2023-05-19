@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package fluentd
@@ -122,10 +122,7 @@ func (c fluentdComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c fluentdComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
-	// Do not allow disabling active components
-	if err := c.checkEnabled(old, new); err != nil {
-		return err
-	}
+
 	if err := validateFluentd(new); err != nil {
 		return err
 	}
