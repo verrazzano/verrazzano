@@ -26,8 +26,8 @@ import (
 	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
 	"sigs.k8s.io/yaml"
+	"strings"
 	"testing"
 )
 
@@ -727,12 +727,11 @@ func TestInstallCmdWithCR(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
+			c := getClientWithWatch()
+			//c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 			cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
-			//discoveryClient.OpenAPISchema(fakeRootCmdContext.GetKubeClient())
 
 			cmd.PersistentFlags().Set(constants.FilenameFlag, tt.fields.pathToCR)
-
 			cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 			defer cmdHelpers.SetDefaultDeleteFunc()
 
@@ -743,6 +742,10 @@ func TestInstallCmdWithCR(t *testing.T) {
 			// checking if a valid CR was passed and if it should install
 			if !tt.fields.isValidCR && !tt.fields.doesInstall {
 				assert.Error(t, err)
+				assert.Contains(t, err.Error(), "garbage")
+				if strings.Contains(err.Error(), "not found") {
+					assert.NoError(t, err)
+				}
 			} else {
 				assert.NoError(t, err)
 			}

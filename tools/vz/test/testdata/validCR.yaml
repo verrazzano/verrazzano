@@ -5,8 +5,6 @@ apiVersion: install.verrazzano.io/v1alpha1
 kind: Verrazzano
 metadata:
   name: my-verrazzano
+  namespace: default
 spec:
   profile: prod
-  components:
-    argoCD:
-      enabled: false

@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"helm.sh/helm/v3/pkg/strvals"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -191,7 +192,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		vzName = existingvz.Name
 	} else {
 		// Get the verrazzano install resource to be created
-		vz, err := getVerrazzanoYAML(cmd, vzHelper, version)
+		vz, obj, err := getVerrazzanoYAML(cmd, vzHelper, version)
 		if err != nil {
 			return err
 		}
@@ -207,6 +208,13 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		if err != nil {
 			return err
 		}
+
+		// Validate Custom Resource if present
+		var errorArray = validateCR(cmd, obj, vzHelper)
+		if len(errorArray) != 0 {
+			return fmt.Errorf("was unable to validate the given CR, the following error occurred: \"%v\"", errorArray[0])
+		}
+
 		err = installVerrazzano(cmd, vzHelper, vz, client, version, vpoTimeout)
 		if err != nil {
 			return bugreport.AutoBugReport(cmd, vzHelper, err)
@@ -256,17 +264,17 @@ func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz clipkg.
 }
 
 // getVerrazzanoYAML returns the verrazzano install resource to be created
-func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper, version string) (vz clipkg.Object, err error) {
+func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper, version string) (vz clipkg.Object, obj *unstructured.Unstructured, err error) {
 	// Get the list yaml filenames specified
 	filenames, err := cmd.PersistentFlags().GetStringSlice(constants.FilenameFlag)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Get the set arguments - returning a list of properties and value
 	pvs, err := getSetArguments(cmd, vzHelper)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// If no yamls files were passed on the command line then create a minimal verrazzano
@@ -276,13 +284,13 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper, version st
 	if len(filenames) == 0 {
 		gv, vz, err = helpers.NewVerrazzanoForVZVersion(version)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	} else {
 		// Merge the yaml files passed on the command line
 		obj, err := cmdhelpers.MergeYAMLFiles(filenames, os.Stdin)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		gv = obj.GroupVersionKind().GroupVersion()
 		vz = obj
@@ -291,24 +299,18 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper, version st
 	// Generate yaml for the set flags passed on the command line
 	outYAML, err := generateYAMLForSetFlags(pvs)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Merge the set flags passed on the command line. The set flags take precedence over
 	// the yaml files passed on the command line.
-	vz, err = cmdhelpers.MergeSetFlags(gv, vz, outYAML)
+	vz, unstructuredVZObj, err := cmdhelpers.MergeSetFlags(gv, vz, outYAML)
 	if err != nil {
-		return nil, err
-	}
-
-	// Validate Custom Resource if present
-	var errorArray = validateCR(cmd, vz, gv.WithKind("Verrazzano"), vzHelper)
-	if len(errorArray) != 0 {
-		return nil, fmt.Errorf("was unable to validate the given CR, the following error occurred: \"%v\"", errorArray[0])
+		return nil, nil, err
 	}
 
 	// Return the merged verrazzano install resource to be created
-	return vz, nil
+	return vz, unstructuredVZObj, nil
 }
 
 // generateYAMLForSetFlags creates a YAML string from a map of property value pairs representing --set flags
@@ -402,29 +404,36 @@ func validateCmd(cmd *cobra.Command) error {
 }
 
 // validateCR - validates a Custom Resource before proceeding with an install
-func validateCR(cmd *cobra.Command, vz clipkg.Object, gvk schema.GroupVersionKind, vzHelper helpers.VZHelper) []error {
-	discoveryClient, err := vzHelper.GetDiscoveryClient(cmd)
+func validateCR(cmd *cobra.Command, obj *unstructured.Unstructured, vzHelper helpers.VZHelper) []error {
+	fileNames, err := cmd.PersistentFlags().GetStringSlice(constants.FilenameFlag)
 	if err != nil {
-		return []error{err}
+		return nil
 	}
-	//discovery.NewDiscoveryClientForConfig(kubeConfig)
-	doc, err := discoveryClient.OpenAPISchema()
-	if err != nil {
-		return []error{err}
-	}
-	s, err := openapi.NewOpenAPIData(doc)
-	if err != nil {
-		return []error{err}
-	}
+	if len(fileNames) != 0 {
 
-	schema := s.LookupResource(gvk)
-	if schema == nil {
-		return []error{fmt.Errorf("the schema for \"%v\" was not found", gvk.Kind)}
-	}
-	// ValidateModel validates the keys of
-	errorArray := validation.ValidateModel(vz, schema, gvk.Kind)
-	if len(errorArray) != 0 {
-		return errorArray
+		discoveryClient, err := vzHelper.GetDiscoveryClient(cmd)
+		if err != nil {
+			return []error{err}
+		}
+		doc, err := discoveryClient.OpenAPISchema()
+		if err != nil {
+			return []error{err}
+		}
+		s, err := openapi.NewOpenAPIData(doc)
+		if err != nil {
+			return []error{err}
+		}
+
+		gvk := obj.GroupVersionKind()
+		schema := s.LookupResource(gvk)
+		if schema == nil {
+			return []error{fmt.Errorf("the schema for \"%v\" was not found", gvk.Kind)}
+		}
+		// ValidateModel validates a given schema
+		errorArray := validation.ValidateModel(obj.Object, schema, gvk.Kind)
+		if len(errorArray) != 0 {
+			return errorArray
+		}
 	}
 	return nil
 }
