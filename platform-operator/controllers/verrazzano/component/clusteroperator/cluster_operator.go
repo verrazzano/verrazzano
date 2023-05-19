@@ -43,6 +43,9 @@ const (
 
 	clusterRegName = "Verrazzano Cluster Registrar"
 	argocdRegName  = "ArgoCD Cluster Registrar"
+
+	helmReleaseNameAnnotation      = "meta.helm.sh/release-name"
+	helmReleaseNamespaceAnnotation = "meta.helm.sh/release-namespace"
 )
 
 // AppendOverrides appends any additional overrides needed by the Cluster Operator component
@@ -83,7 +86,7 @@ func associateClusterRegistrarClusterRoleWithVPO(ctx spi.ComponentContext) error
 	}
 	// Associate the policy with the verrazzano-network-policies helm chart
 	annotations := registrarClusterRole.GetAnnotations()
-	if annotations["meta.helm.sh/release-name"] == constants.VerrazzanoPlatformOperatorHelmName {
+	if annotations[helmReleaseNameAnnotation] == constants.VerrazzanoPlatformOperatorHelmName {
 		return nil
 	}
 	vpoReleaseNsn := types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: constants.VerrazzanoPlatformOperatorHelmName}
