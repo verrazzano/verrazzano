@@ -8,15 +8,14 @@ import (
 	"fmt"
 	"path/filepath"
 
-	common2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
-
 	v1 "k8s.io/api/core/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	common2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -67,7 +66,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "cert-manager-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_0_0,
-			Dependencies:              []string{networkpolicies.ComponentName, fluentoperator.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DeploymentNames: []types.NamespacedName{

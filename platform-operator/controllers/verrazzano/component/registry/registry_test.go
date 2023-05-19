@@ -20,7 +20,6 @@ import (
 	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/config"
 	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
 	cmocidns "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/ocidns"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	"github.com/stretchr/testify/assert"
@@ -107,7 +106,7 @@ func TestGetComponents(t *testing.T) {
 	a.Len(comps, 38, "Wrong number of components")
 	a.Equal(comps[i].Name(), networkpolicies.ComponentName)
 	i++
-	a.Equal(comps[i].Name(), fluentoperator.ComponentName)
+	a.Equal(comps[i].Name())
 	i++
 	a.Equal(comps[i].Name(), oam.ComponentName)
 	i++

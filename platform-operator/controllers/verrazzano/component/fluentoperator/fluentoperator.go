@@ -20,26 +20,28 @@ import (
 )
 
 const (
-	fluentbitDaemonset              = "fluent-bit"
-	fluentOperatorFullImageKey      = "operator.container.repository"
-	fluentBitFullImageKey           = "fluentbit.image.repository"
-	fluentOperatorInitImageKey      = "operator.initcontainer.repository"
-	fluentOperatorImageTag          = "operator.container.tag"
-	fluentOperatorInitTag           = "operator.initcontainer.tag"
-	fluentBitImageTag               = "fluentbit.image.tag"
-	clusterOutputDirectory          = "fluent-operator"
-	systemOutputFile                = "system-output.yaml"
-	applicationOutputFile           = "application-output.yaml"
-	fluentbitConfigMap              = fluentbitDaemonset + "-config"
-	fluentbitVolumeName             = fluentbitConfigMap
-	fluentbitConfigMapFile          = "fluentbit-config-configmap.yaml"
-	fluentbitVolumeNameKey          = "fluentbit.additionalVolumes[0].name"
-	fluentbitVolumeConfigMapKey     = "fluentbit.additionalVolumes[0].configMap.name"
-	fluentbitVolumeMountNameKey     = "fluentbit.additionalVolumesMounts[0].mountPath.name"
-	fluentbitVolumeMountPathKey     = "fluentbit.additionalVolumesMounts[0].mountPath.path"
-	fluentbitVolumeMountReadOnlyKey = "fluentbit.additionalVolumesMounts[0].mountPath.readOnly"
-	namespaceFluentbitCfgSelector   = "fluentbit.namespaceFluentBitCfgSelector.matchLabels"
-	fluentbitNamespaceConfigLabel   = "fluentbit.verrazzano.io/namespace-config: \"verrazzano\""
+	fluentbitDaemonset                 = "fluent-bit"
+	fluentOperatorFullImageKey         = "operator.container.repository"
+	fluentBitFullImageKey              = "fluentbit.image.repository"
+	fluentOperatorInitImageKey         = "operator.initcontainer.repository"
+	fluentOperatorImageTag             = "operator.container.tag"
+	fluentOperatorInitTag              = "operator.initcontainer.tag"
+	fluentBitImageTag                  = "fluentbit.image.tag"
+	clusterOutputDirectory             = "fluent-operator"
+	systemOutputFile                   = "system-output.yaml"
+	applicationOutputFile              = "application-output.yaml"
+	fluentbitConfigMap                 = fluentbitDaemonset + "-config"
+	fluentbitVolumeName                = fluentbitConfigMap
+	fluentbitConfigMapFile             = "fluentbit-config-configmap.yaml"
+	fluentbitVolumeNameKey             = "fluentbit.additionalVolumes[0].name"
+	fluentbitVolumeConfigMapKey        = "fluentbit.additionalVolumes[0].configMap.name"
+	fluentbitVolumeMountNameKey        = "fluentbit.additionalVolumesMounts[0].mountPath.name"
+	fluentbitVolumeMountPathKey        = "fluentbit.additionalVolumesMounts[0].mountPath.path"
+	fluentbitVolumeMountReadOnlyKey    = "fluentbit.additionalVolumesMounts[0].mountPath.readOnly"
+	fluentbitCfgLabelKey               = "fluentbit.namespaceFluentBitCfgSelector.matchLabels.key"
+	fluentbitCfgLabelValue             = "fluentbit.namespaceFluentBitCfgSelector.matchLabels.value"
+	fluentbitNamespaceConfigLabelKey   = "fluentbit.verrazzano.io/namespace-config"
+	fluentbitNamespaceConfigLabelValue = "verrazzano"
 )
 
 var (
@@ -111,7 +113,8 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	kvs = append(kvs, bom.KeyValue{Key: fluentbitVolumeMountNameKey, Value: fluentbitVolumeName})
 	kvs = append(kvs, bom.KeyValue{Key: fluentbitVolumeMountPathKey, Value: "/fluent-bit/etc"})
 	kvs = append(kvs, bom.KeyValue{Key: fluentbitVolumeMountReadOnlyKey, Value: "true"})
-	kvs = append(kvs, bom.KeyValue{Key: namespaceFluentbitCfgSelector, Value: fluentbitNamespaceConfigLabel})
+	kvs = append(kvs, bom.KeyValue{Key: fluentbitCfgLabelKey, Value: fluentbitNamespaceConfigLabelKey})
+	kvs = append(kvs, bom.KeyValue{Key: fluentbitCfgLabelValue, Value: fluentbitNamespaceConfigLabelValue})
 	return kvs, nil
 }
 

@@ -10,8 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
-
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -54,7 +52,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "external-dns-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_0_0,
-			Dependencies:              []string{"verrazzano-network-policies", fluentoperator.ComponentName},
+			Dependencies:              []string{"verrazzano-network-policies"},
 			GetInstallOverridesFunc:   GetOverrides,
 
 			// Resolve the namespace dynamically

@@ -8,13 +8,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
-
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/time"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -647,7 +646,7 @@ func TestGetMinVerrazzanoVersion(t *testing.T) {
 // TestGetDependencies tests whether the cert-manager and opensearch components are dependencies
 // that need to be installed prior to Jaeger operator
 func TestGetDependencies(t *testing.T) {
-	assert.Equal(t, []string{"verrazzano-network-policies", "cert-manager", "opensearch", fluentoperator.ComponentName}, NewComponent().GetDependencies())
+	assert.Equal(t, []string{"verrazzano-network-policies", "cert-manager", "opensearch"}, NewComponent().GetDependencies())
 }
 
 // TestIsReady tests the IsReady function for the Jaeger Operator
