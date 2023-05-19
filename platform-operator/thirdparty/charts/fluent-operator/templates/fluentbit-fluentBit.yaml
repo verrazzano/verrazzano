@@ -19,7 +19,10 @@ spec:
 {{- toYaml .Values.fluentbit.resources | nindent 4  }}
   fluentBitConfigName: fluent-bit-config
   namespaceFluentBitCfgSelector:
-    matchLabels: {{ .Values.fluentbit.namespaceFluentBitCfgSelector.matchLabels }}
+    matchLabels:
+      {{- if .Values.fluentbit.namespaceFluentBitCfgSelector.matchLabels.key }}
+      {{ .Values.fluentbit.namespaceFluentBitCfgSelector.matchLabels.key }}: {{ .Values.fluentbit.namespaceFluentBitCfgSelector.matchLabels.value }}
+      {{- end }}
   tolerations:
     - operator: Exists
   affinity:
