@@ -134,13 +134,14 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 	// Verify that we are using CA certs before appending override
 	//certConfig := compContext.EffectiveCR().Spec.Components.CertManager.Certificate
 	//resourceNamespace := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace
-	clusterIssuerComponent := compContext.EffectiveCR().Spec.Components.ClusterIssuer
+	effectiveCR := compContext.EffectiveCR()
+	clusterIssuerComponent := effectiveCR.Spec.Components.ClusterIssuer
 	//if clusterIssuerComponent != nil {
 	//	certConfig = clusterIssuerComponent.Certificate
 	//	resourceNamespace = clusterIssuerComponent.ClusterResourceNamespace
 	//}
 
-	isCAValue, err := cmcommon.IsCAConfig(clusterIssuerComponent.Certificate)
+	isCAValue, err := cmcommon.IsCAConfig(effectiveCR)
 	if err != nil {
 		err = compContext.Log().ErrorfNewErr("Failed to verify the config type: %v", err)
 		return []bom.KeyValue{}, err
