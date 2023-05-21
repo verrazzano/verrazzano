@@ -148,6 +148,9 @@ captureBundleContents() {
   then
     sort -u -o "${generatedDir}/${textFile}" "${generatedDir}/${textFile}"
   fi
+  if [ "${OCI_OS_REGION}" != "${OCI_OS_DIST_REGION}" ]; then
+    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${textFile} --file ${generatedDir}/${textFile}
+  fi
   oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${textFile} --file ${generatedDir}/${textFile}
   rm ${generatedDir}/${textFile}
 }
@@ -220,6 +223,10 @@ generateVZSourceBundle() {
   sha256sum ${srcGeneratedDir}/${VZ_SRC_BUNDLE} > ${srcGeneratedDir}/${VZ_SRC_BUNDLE_SHA256}
   cd $srcGeneratedDir
   echo "Uploading Verrazzano source bundle to $OCI_OS_DIST_REGION in bucket ${OCI_OS_COMMIT_BUCKET} with name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_SRC_BUNDLE} ..."
+  if [ "${OCI_OS_REGION}" != "${OCI_OS_DIST_REGION}" ]; then
+    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_SRC_BUNDLE} --file ${VZ_SRC_BUNDLE}
+    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_SRC_BUNDLE_SHA256} --file ${VZ_SRC_BUNDLE_SHA256}
+  fi
   oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_SRC_BUNDLE} --file ${VZ_SRC_BUNDLE}
   oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_SRC_BUNDLE_SHA256} --file ${VZ_SRC_BUNDLE_SHA256}
   echo "Successfully uploaded ${VZ_SRC_BUNDLE}"
@@ -267,6 +274,11 @@ generateVZLiteDistribution() {
   sha256sum ${VZ_LITE_RELEASE_BUNDLE} > ${VZ_LITE_RELEASE_BUNDLE_SHA256}
 
   echo "Upload Verrazzano lite distribution ${generatedDir}/${VZ_LITE_RELEASE_BUNDLE} ..."
+
+  if [ "${OCI_OS_REGION}" != "${OCI_OS_DIST_REGION}" ]; then
+    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_LITE_RELEASE_BUNDLE} --file ${VZ_LITE_RELEASE_BUNDLE}
+    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_LITE_RELEASE_BUNDLE_SHA256} --file ${VZ_LITE_RELEASE_BUNDLE_SHA256}
+  fi
   oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_LITE_RELEASE_BUNDLE} --file ${VZ_LITE_RELEASE_BUNDLE}
   oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_LITE_RELEASE_BUNDLE_SHA256} --file ${VZ_LITE_RELEASE_BUNDLE_SHA256}
 
@@ -299,10 +311,16 @@ generateVZFullDistribution() {
   captureBundleContents ${rootDir} ${generatedDir} ${FULL_BUNDLE_CONTENTS}
   cd ${rootDir}
   zip -r ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE} *
+  if [ "${OCI_OS_REGION}" != "${OCI_OS_DIST_REGION}" ]; then
+    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE} --file ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE}
+  fi
   oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE} --file ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE}
 
   cd ${generatedDir}
   sha256sum ${VZ_FULL_RELEASE_BUNDLE} > ${VZ_FULL_RELEASE_BUNDLE_SHA256}
+  if [ "${OCI_OS_REGION}" != "${OCI_OS_DIST_REGION}" ]; then
+    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE_SHA256} --file ${VZ_FULL_RELEASE_BUNDLE_SHA256}
+  fi
   oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE_SHA256} --file ${VZ_FULL_RELEASE_BUNDLE_SHA256}
 
   echo "Successfully uploaded ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE}"
@@ -335,6 +353,10 @@ loadExampleTarFiles() {
   sha256sum "${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE}" > "${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE_SHA256}"
   cd "${generatedDir}"
   echo "Uploading example images bundle to $OCI_OS_DIST_REGION in bucket ${OCI_OS_COMMIT_BUCKET} with name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_EXAMPLE_IMAGES_BUNDLE} ..."
+  if [ "${OCI_OS_REGION}" != "${OCI_OS_DIST_REGION}" ]; then
+    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_EXAMPLE_IMAGES_BUNDLE} --file ${VZ_EXAMPLE_IMAGES_BUNDLE}
+    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_EXAMPLE_IMAGES_BUNDLE_SHA256} --file ${VZ_EXAMPLE_IMAGES_BUNDLE_SHA256}
+  fi
   oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_EXAMPLE_IMAGES_BUNDLE} --file ${VZ_EXAMPLE_IMAGES_BUNDLE}
   oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_EXAMPLE_IMAGES_BUNDLE_SHA256} --file ${VZ_EXAMPLE_IMAGES_BUNDLE_SHA256}
   echo "Successfully uploaded ${VZ_EXAMPLE_IMAGES_BUNDLE}"
