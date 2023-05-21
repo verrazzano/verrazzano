@@ -63,6 +63,9 @@ func (c clusterOperatorComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := associateClusterRegistrarClusterRoleWithVPO(ctx); err != nil {
 		return err
 	}
+	if ctx.IsDryRun() {
+		return nil
+	}
 	return applyCRDs(ctx)
 }
 
@@ -75,6 +78,9 @@ func (c clusterOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
 func (c clusterOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := associateClusterRegistrarClusterRoleWithVPO(ctx); err != nil {
 		return err
+	}
+	if ctx.IsDryRun() {
+		return nil
 	}
 	return applyCRDs(ctx)
 }
