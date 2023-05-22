@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1beta1
@@ -10,6 +10,8 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -20,7 +22,6 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
-	"testing"
 )
 
 // For unit testing
@@ -1092,7 +1093,7 @@ region=us-ashburn-1
 fingerprint=a0:bb:dd:c2:dd:e0:f1:fa:cd:d1:8a:11:bb:c0:f1:55
 key_file=/root/.oci/key
 `
-	runTestFluentdOCIConfig(t, ociConfigBytes, "Tenancy OCID not specified in Fluentd OCI config secret \"fluentd-oci\"")
+	runTestFluentdOCIConfig(t, ociConfigBytes, "tenancy OCID can not be empty when reading from config file")
 }
 
 // TestValidateFluentdOCISecretNoRegion tests validateOCISecrets
@@ -1124,7 +1125,7 @@ region=us-ashburn-1
 fingerprint=
 key_file=/root/.oci/key
 `
-	runTestFluentdOCIConfig(t, ociConfigBytes, "Fingerprint not specified in Fluentd OCI config secret \"fluentd-oci\"")
+	runTestFluentdOCIConfig(t, ociConfigBytes, "fingerprint can not be empty when reading from config file")
 }
 
 func runTestFluentdOCIConfig(t *testing.T, ociConfigBytes string, errorMsg ...string) {
