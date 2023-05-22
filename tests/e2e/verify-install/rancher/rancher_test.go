@@ -4,18 +4,19 @@
 package rancher
 
 import (
+	"context"
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"k8s.io/client-go/kubernetes"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 )
 
 const (
@@ -24,18 +25,13 @@ const (
 )
 
 var (
-	client     *kubernetes.Clientset
-	httpClient *retryablehttp.Client
-	kialiErr   error
+	clientset dynamic.Interface
 )
 
 var t = framework.NewTestFramework("rancher")
 var kubeconfig = getKubeConfigOrAbort()
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
-	client, kialiErr = k8sutil.GetKubernetesClientset()
-	Expect(kialiErr).ToNot(HaveOccurred())
-	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -63,15 +59,26 @@ var _ = t.Describe("Rancher", Label("f:platform-lcm.install"), func() {
 
 	t.Context("after successful installation", func() {
 
-		WhenRancherInstalledIt("should have a running pod", func() {
-			kialiPodsRunning := func() bool {
-				result, err := pkg.PodsRunning(kiali.ComponentNamespace, []string{pkg.KialiName})
+		WhenRancherInstalledIt("kontainerdrivers should be ready", func() {
+			// Get dynamic client
+			Eventually(func() (dynamic.Interface, error) {
+				kubePath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
-					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", pkg.KialiName, kiali.ComponentNamespace, err))
+					return nil, err
 				}
-				return result
+				clientset, err = pkg.GetDynamicClientInCluster(kubePath)
+				return clientset, err
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+			driversActive := func() bool {
+				cattleDrivers, err := clientset.Resource(schema.GroupVersionResource{
+					Group:    "management.cattle.io",
+					Version:  "v3",
+					Resource: "kontainerdrivers",
+				}).List(context.TODO(), metav1.ListOptions{})
 			}
-			Eventually(kialiPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(driversActive, waitTimeout, pollingInterval).Should(BeTrue())
+
 		})
 	})
 })
