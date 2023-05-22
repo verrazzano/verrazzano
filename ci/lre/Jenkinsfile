@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 properties([[$class: 'ThrottleJobProperty', categories: [], limitOneJobWithMatchingParams: false, maxConcurrentPerNode: 1,
@@ -67,12 +67,9 @@ pipeline {
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
 
-<<<<<<< HEAD
-=======
         DEV_LRE_SUSPECT_LIST = credentials('dev_lre_suspect_list')
         PIPELINE_OWNERS = credentials('lretests-owners')
         DEV_LRE_KUBECONFIG = credentials('dev-lre-kubeconfig')
->>>>>>> 3e7561c37... Add alerting for pipeline owners for periodics, backend, and LRE (#6040)
         KUBECONFIG = "${WORKSPACE}/.kube/config"
         VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
         TEST_ENV = "LRE"
