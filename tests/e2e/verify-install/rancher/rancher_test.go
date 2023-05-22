@@ -64,7 +64,7 @@ var _ = t.Describe("Rancher", Label("f:platform-lcm.install"), func() {
 			return clientset, err
 		}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-		WhenRancherInstalledIt("kontainerdrivers should be ready", func() {
+		WhenRancherInstalledIt("kontainerdrivers must be ready", func() {
 
 			driversActive := func() bool {
 				cattleDrivers, err := clientset.Resource(schema.GroupVersionResource{
@@ -85,10 +85,49 @@ var _ = t.Describe("Rancher", Label("f:platform-lcm.install"), func() {
 							}
 						}
 					}
+				} else {
+					return false
 				}
 				return true
 			}
 			Eventually(driversActive, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+
+		WhenRancherInstalledIt("expected kontainerdrivers must exist", func() {
+
+			expectedDriversFound := func() bool {
+				cattleDrivers, err := clientset.Resource(schema.GroupVersionResource{
+					Group:    "management.cattle.io",
+					Version:  "v3",
+					Resource: "kontainerdrivers",
+				}).List(context.TODO(), metav1.ListOptions{})
+
+				foundCount := 0
+				if err == nil {
+					// The condition of each driver must be active
+					for _, driver := range cattleDrivers.Items {
+						switch driver.GetName() {
+						case "amazonelasticcontainerservice":
+							foundCount++
+						case "azurekubernetesservice":
+							foundCount++
+						case "googlekubernetesengine":
+							foundCount++
+						case "ociocneengine":
+							foundCount++
+						case "oraclecontainerengine":
+							foundCount++
+						}
+					}
+					if foundCount != 5 {
+						return false
+					}
+				} else {
+					return false
+				}
+				return true
+			}
+			Eventually(expectedDriversFound, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 })
