@@ -30,8 +30,9 @@ const (
 	ociRegionEnvVar   = "OCI_CLI_REGION"
 	skipUpgradeEnvVar = "SKIP_KUBERNETES_UPGRADE"
 
-	waitTimeout     = 20 * time.Minute
-	pollingInterval = 30 * time.Second
+	waitTimeout            = 20 * time.Minute
+	waitTimeoutWorkRequest = 25 * time.Minute
+	pollingInterval        = 30 * time.Second
 
 	waitForDeleteTimeout = 600 * time.Second
 )
@@ -203,7 +204,7 @@ func waitForWorkRequest(workRequestID string) {
 		}
 		t.Logs.Debugf("Work request response: %+v", workRequestResponse)
 		return workRequestResponse.Status, nil
-	}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(Equal(ocice.WorkRequestStatusSucceeded))
+	}).WithTimeout(waitTimeoutWorkRequest).WithPolling(pollingInterval).Should(Equal(ocice.WorkRequestStatusSucceeded))
 }
 
 // terminateComputeInstance terminates a compute instance
