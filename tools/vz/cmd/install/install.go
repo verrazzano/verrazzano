@@ -209,13 +209,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			return err
 		}
 
-		// Validate Custom Resource if present
-		var errorArray = validateCR(cmd, obj, vzHelper)
-		if len(errorArray) != 0 {
-			return fmt.Errorf("was unable to validate the given CR, the following error occurred: \"%v\"", errorArray[0])
-		}
-
-		err = installVerrazzano(cmd, vzHelper, vz, client, version, vpoTimeout)
+		err = installVerrazzano(cmd, vzHelper, vz, client, version, vpoTimeout, obj)
 		if err != nil {
 			return bugreport.AutoBugReport(cmd, vzHelper, err)
 		}
@@ -231,11 +225,17 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	return nil
 }
 
-func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz clipkg.Object, client clipkg.Client, version string, vpoTimeout time.Duration) error {
+func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz clipkg.Object, client clipkg.Client, version string, vpoTimeout time.Duration, obj *unstructured.Unstructured) error {
 	// Wait for the platform operator to be ready before we create the Verrazzano resource.
 	_, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondInstallComplete, vpoTimeout)
 	if err != nil {
 		return err
+	}
+
+	// Validate Custom Resource if present
+	var errorArray = ValidateCRFunc(cmd, obj, vzHelper)
+	if len(errorArray) != 0 {
+		return fmt.Errorf("was unable to validate the given CR, the following error occurred: \"%v\"", errorArray[0])
 	}
 
 	err = kubectlutil.SetLastAppliedConfigurationAnnotation(vz)
@@ -404,36 +404,47 @@ func validateCmd(cmd *cobra.Command) error {
 }
 
 // validateCR - validates a Custom Resource before proceeding with an install
-func validateCR(cmd *cobra.Command, obj *unstructured.Unstructured, vzHelper helpers.VZHelper) []error {
-	fileNames, err := cmd.PersistentFlags().GetStringSlice(constants.FilenameFlag)
+func ValidateCR(cmd *cobra.Command, obj *unstructured.Unstructured, vzHelper helpers.VZHelper) []error {
+	discoveryClient, err := vzHelper.GetDiscoveryClient(cmd)
 	if err != nil {
-		return nil
+		return []error{err}
 	}
-	if len(fileNames) != 0 {
-
-		discoveryClient, err := vzHelper.GetDiscoveryClient(cmd)
-		if err != nil {
-			return []error{err}
-		}
-		doc, err := discoveryClient.OpenAPISchema()
-		if err != nil {
-			return []error{err}
-		}
-		s, err := openapi.NewOpenAPIData(doc)
-		if err != nil {
-			return []error{err}
-		}
-
-		gvk := obj.GroupVersionKind()
-		schema := s.LookupResource(gvk)
-		if schema == nil {
-			return []error{fmt.Errorf("the schema for \"%v\" was not found", gvk.Kind)}
-		}
-		// ValidateModel validates a given schema
-		errorArray := validation.ValidateModel(obj.Object, schema, gvk.Kind)
-		if len(errorArray) != 0 {
-			return errorArray
-		}
+	doc, err := discoveryClient.OpenAPISchema()
+	if err != nil {
+		return []error{err}
 	}
+	s, err := openapi.NewOpenAPIData(doc)
+	if err != nil {
+		return []error{err}
+	}
+
+	gvk := obj.GroupVersionKind()
+	schema := s.LookupResource(gvk)
+	if schema == nil {
+		return []error{fmt.Errorf("the schema for \"%v\" was not found", gvk.Kind)}
+	}
+
+	// ValidateModel validates a given schema
+	errorArray := validation.ValidateModel(obj.Object, schema, gvk.Kind)
+	if len(errorArray) != 0 {
+		return errorArray
+	}
+
+	return nil
+}
+
+type validateCRSig func(cmd *cobra.Command, obj *unstructured.Unstructured, vzHelper helpers.VZHelper) []error
+
+var ValidateCRFunc validateCRSig = ValidateCR
+
+func SetValidateCRFunc(f validateCRSig) {
+	ValidateCRFunc = f
+}
+
+func SetDefaultValidateCRFunc() {
+	ValidateCRFunc = ValidateCR
+}
+
+func FakeValidateCRFunc(cmd *cobra.Command, obj *unstructured.Unstructured, vzHelper helpers.VZHelper) []error {
 	return nil
 }
