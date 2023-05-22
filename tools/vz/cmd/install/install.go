@@ -61,6 +61,23 @@ EOF`, version.GetCLIVersion())
 
 var logsEnum = cmdhelpers.LogFormatSimple
 
+// validateCR functions used for unit-tests
+type validateCRSig func(cmd *cobra.Command, obj *unstructured.Unstructured, vzHelper helpers.VZHelper) []error
+
+var ValidateCRFunc validateCRSig = ValidateCR
+
+func SetValidateCRFunc(f validateCRSig) {
+	ValidateCRFunc = f
+}
+
+func SetDefaultValidateCRFunc() {
+	ValidateCRFunc = ValidateCR
+}
+
+func FakeValidateCRFunc(cmd *cobra.Command, obj *unstructured.Unstructured, vzHelper helpers.VZHelper) []error {
+	return nil
+}
+
 func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
@@ -235,7 +252,7 @@ func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz clipkg.
 	// Validate Custom Resource if present
 	var errorArray = ValidateCRFunc(cmd, obj, vzHelper)
 	if len(errorArray) != 0 {
-		return fmt.Errorf("was unable to validate the given CR, the following error occurred: \"%v\"", errorArray[0])
+		return fmt.Errorf("was unable to validate the given CR, the following error occurred: \"%v\"", errorArray)
 	}
 
 	err = kubectlutil.SetLastAppliedConfigurationAnnotation(vz)
@@ -430,21 +447,5 @@ func ValidateCR(cmd *cobra.Command, obj *unstructured.Unstructured, vzHelper hel
 		return errorArray
 	}
 
-	return nil
-}
-
-type validateCRSig func(cmd *cobra.Command, obj *unstructured.Unstructured, vzHelper helpers.VZHelper) []error
-
-var ValidateCRFunc validateCRSig = ValidateCR
-
-func SetValidateCRFunc(f validateCRSig) {
-	ValidateCRFunc = f
-}
-
-func SetDefaultValidateCRFunc() {
-	ValidateCRFunc = ValidateCR
-}
-
-func FakeValidateCRFunc(cmd *cobra.Command, obj *unstructured.Unstructured, vzHelper helpers.VZHelper) []error {
 	return nil
 }

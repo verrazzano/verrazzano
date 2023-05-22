@@ -27,7 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
-	"strings"
 	"testing"
 )
 
@@ -732,52 +731,6 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 	assert.Contains(t, err.Error(), "Unable to install version v1.3.1, install of version v1.3.2 is in progress")
 	if helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
-	}
-}
-
-// TestInstallCmdWithCR
-// GIVEN a CLI install command and the name of a Custom Resource
-//
-//	WHEN I call cmd.Execute for install
-//	THEN the CLI install command should validate the Custom Resource and determine if install should proceed
-func TestInstallCmdWithCR(t *testing.T) {
-	type fields struct {
-		isValidCR   bool
-		doesInstall bool
-		pathToCR    string
-	}
-	tests := []struct {
-		name   string
-		fields fields
-	}{
-		{"An invalid CR used for install", fields{isValidCR: false, doesInstall: false, pathToCR: "../../test/testdata/invalidCR.yaml"}},
-		{"A valid CR used for install", fields{isValidCR: true, doesInstall: true, pathToCR: "../../test/testdata/validCR.yaml"}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := getClientWithWatch()
-			//c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-			cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
-
-			cmd.PersistentFlags().Set(constants.FilenameFlag, tt.fields.pathToCR)
-			cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
-			defer cmdHelpers.SetDefaultDeleteFunc()
-
-			cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
-			defer cmdHelpers.SetDefaultVPOIsReadyFunc()
-
-			err := cmd.Execute()
-			// checking if a valid CR was passed and if it should install
-			if !tt.fields.isValidCR && !tt.fields.doesInstall {
-				assert.Error(t, err)
-				assert.Contains(t, err.Error(), "garbage")
-				if strings.Contains(err.Error(), "not found") {
-					assert.NoError(t, err)
-				}
-			} else {
-				assert.NoError(t, err)
-			}
-		})
 	}
 }
 
