@@ -3,8 +3,8 @@
 
 def DOCKER_IMAGE_TAG
 def agentLabel = params.DISTRIBUTION_VARIANT == "Lite" ? "phx-large" : "blocked-large"
-def ocirRegion = "fra"
-def ociRegionFull     = "eu-frankfurt-1"
+def ocirRegion = params.DISTRIBUTION_VARIANT == "Lite" ? "phx" : "fra"
+def ociRegionFull = params.DISTRIBUTION_VARIANT == "Lite" ? "us-phoenix-1" : "eu-frankfurt-1"
 def ocirRegistry = "${ocirRegion}.ocir.io"
 def imageRepoSubPath=""
 def baseImageRepo=""
@@ -19,7 +19,7 @@ pipeline {
 
     agent {
        docker {
-            image "${RUNNER_DOCKER_IMAGE}"
+            image getRunnerImage("${RUNNER_DOCKER_IMAGE}")
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "https://${ocirRegistry}"
             registryCredentialsId 'ocir-pull-and-push-account'
@@ -219,7 +219,7 @@ pipeline {
                     mkdir -p ${GO_REPO_PATH}/verrazzano
 
                     echo "Downloading VZ source tarball"
-                    oci --region eu-frankfurt-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${srcTar} --file ${downloadLocation}
+                    oci --region ${ociRegionFull} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${srcTar} --file ${downloadLocation}
 
                     echo "Extracting source"
                     tar xvf ${downloadLocation}
@@ -278,7 +278,7 @@ pipeline {
 
                     sh """
                         mkdir -p $zipDir || true
-                        oci --region eu-frankfurt-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${zipFileLoc} --file ${downloadLocation}
+                        oci --region ${ociRegionFull} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${zipFileLoc} --file ${downloadLocation}
                     """
 
                     dir(env.TARBALL_ROOT_DIR) {
@@ -339,7 +339,7 @@ pipeline {
                     if (params.DISTRIBUTION_VARIANT == "Full") {
                         sh """
                             # Create OCIR repos for the images in the tarballs in the test compartment
-                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -r eu-frankfurt-1 -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
+                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -r ${ociRegionFull} -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
                             echo "Upload OCIR region: $ocirRegion"
                             echo "Upload OCIR Repository: ${ocirRegistry}"
                             cd ${TARBALL_DIR}
@@ -365,7 +365,7 @@ pipeline {
                             cd ${TARBALL_DIR}
                             sh ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -b ${TARBALL_DIR}/manifests/verrazzano-bom.json -f ${TARBALL_DIR}/images
                             cd ${TEST_SCRIPTS_DIR}
-                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -r eu-frankfurt-1 -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
+                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -r ${ociRegionFull} -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
                             echo "Upload OCIR region: $ocirRegion"
                             echo "Upload OCIR Repository: ${ocirRegistry}"
                             # Run the image-helper to load the images into the OCIR registry in the runner's region
@@ -427,7 +427,7 @@ pipeline {
                             echo "example image tarball download location: ${downloadLocation}"
                         }
                         sh """
-                            oci --region eu-frankfurt-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${exampleImagesTar} --file ${downloadLocation}
+                            oci --region ${ociRegionFull} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${exampleImagesTar} --file ${downloadLocation}
                             kind load image-archive ${downloadLocation} --name verrazzano
                         """
                     }
@@ -810,4 +810,11 @@ def listHelmReleases(customMessage) {
         helm list -A
         echo "-----------------------------------------------------"
     """
+}
+
+def getRunnerImage(runnerImageIn) {
+    if (params.DISTRIBUTION_VARIANT.equals("Full")) {
+        return runnerImageIn.replaceFirst("phx", "fra")
+    }
+    return runnerImageIn
 }
