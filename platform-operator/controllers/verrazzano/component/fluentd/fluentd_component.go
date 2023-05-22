@@ -5,7 +5,6 @@ package fluentd
 
 import (
 	"context"
-	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -127,14 +126,6 @@ func (c fluentdComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1
 		return err
 	}
 	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
-}
-
-func (c fluentdComponent) checkEnabled(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
-	// Do not allow disabling of any component post-install for now
-	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
-	}
-	return nil
 }
 
 // PostInstall - post-install, clean up temp files
