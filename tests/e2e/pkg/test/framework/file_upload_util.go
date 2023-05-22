@@ -7,15 +7,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/oracle/oci-go-sdk/v53/common"
-	"github.com/oracle/oci-go-sdk/v53/common/auth"
-	"github.com/oracle/oci-go-sdk/v53/objectstorage"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"io"
 	"net/http"
 	"os"
 	"path"
 	"time"
+
+	"github.com/oracle/oci-go-sdk/v65/common"
+	"github.com/oracle/oci-go-sdk/v65/common/auth"
+	"github.com/oracle/oci-go-sdk/v65/objectstorage"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
 var (
