@@ -59,16 +59,17 @@ var _ = t.Describe("Rancher", Label("f:platform-lcm.install"), func() {
 
 	t.Context("after successful installation", func() {
 
+		// Get dynamic client
+		Eventually(func() (dynamic.Interface, error) {
+			kubePath, err := k8sutil.GetKubeConfigLocation()
+			if err != nil {
+				return nil, err
+			}
+			clientset, err = pkg.GetDynamicClientInCluster(kubePath)
+			return clientset, err
+		}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
 		WhenRancherInstalledIt("kontainerdrivers should be ready", func() {
-			// Get dynamic client
-			Eventually(func() (dynamic.Interface, error) {
-				kubePath, err := k8sutil.GetKubeConfigLocation()
-				if err != nil {
-					return nil, err
-				}
-				clientset, err = pkg.GetDynamicClientInCluster(kubePath)
-				return clientset, err
-			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 			driversActive := func() bool {
 				cattleDrivers, err := clientset.Resource(schema.GroupVersionResource{
@@ -76,9 +77,23 @@ var _ = t.Describe("Rancher", Label("f:platform-lcm.install"), func() {
 					Version:  "v3",
 					Resource: "kontainerdrivers",
 				}).List(context.TODO(), metav1.ListOptions{})
+
+				if err == nil {
+					// The condition of each driver must be active
+					for _, driver := range cattleDrivers.Items {
+						status := driver.UnstructuredContent()["status"].(map[string]interface{})
+						conditions := status["conditions"].([]interface{})
+						for _, condition := range conditions {
+							conditionData := condition.(map[string]interface{})
+							if conditionData["type"].(string) != "Active" && conditionData["status"].(string) != "True" {
+								return false
+							}
+						}
+					}
+				}
+				return true
 			}
 			Eventually(driversActive, waitTimeout, pollingInterval).Should(BeTrue())
-
 		})
 	})
 })
