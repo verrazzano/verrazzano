@@ -100,7 +100,7 @@ create_kind_cluster() {
   for (( n=2; n<=${NODE_COUNT}; n++ ))
   do
     echo "  - role: worker" >> ${KIND_CONFIG_FILE}
-    echo "    KIND_IMAGE" >> ${KIND_CONFIG_FILE}
+    echo "    image: KIND_IMAGE" >> ${KIND_CONFIG_FILE}
   done
   sed -i -e "s|KIND_IMAGE|${KIND_IMAGE}|g" ${KIND_CONFIG_FILE}
 
