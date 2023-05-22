@@ -6,6 +6,10 @@ package uninstall
 import (
 	"bytes"
 	"context"
+	"os"
+	"strings"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -21,11 +25,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"os"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"strings"
-	"testing"
 )
 
 const (
@@ -47,9 +48,10 @@ func TestUninstallCmd(t *testing.T) {
 	namespace := createNamespace()
 	validatingWebhookConfig := createWebhook()
 	clusterRoleBinding := createClusterRoleBinding()
-	clusterRole := createClusterRole()
+	mcClusterRole := createMCClusterRole()
+	registrarClusterRole := createRegistrarClusterRoleForRancher()
 	vz := createVz()
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vpo, vz, namespace, validatingWebhookConfig, clusterRoleBinding, clusterRole).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vpo, vz, namespace, validatingWebhookConfig, clusterRoleBinding, mcClusterRole, registrarClusterRole).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -98,9 +100,10 @@ func TestUninstallCmdUninstallJob(t *testing.T) {
 	namespace := createNamespace()
 	validatingWebhookConfig := createWebhook()
 	clusterRoleBinding := createClusterRoleBinding()
-	clusterRole := createClusterRole()
+	mcClusterRole := createMCClusterRole()
+	registrarClusterRole := createRegistrarClusterRoleForRancher()
 	vz := createVz()
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, job, vz, namespace, validatingWebhookConfig, clusterRoleBinding, clusterRole).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, job, vz, namespace, validatingWebhookConfig, clusterRoleBinding, mcClusterRole, registrarClusterRole).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -134,9 +137,10 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	namespace := createNamespace()
 	vz := createVz()
 	webhook := createWebhook()
-	cr := createClusterRole()
+	mcClusterRole := createMCClusterRole()
+	registrarClusterRole := createRegistrarClusterRoleForRancher()
 	crb := createClusterRoleBinding()
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vpo, vz, namespace, webhook, cr, crb).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vpo, vz, namespace, webhook, mcClusterRole, registrarClusterRole, crb).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -177,9 +181,10 @@ func TestUninstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	namespace := createNamespace()
 	vz := createVz()
 	webhook := createWebhook()
-	cr := createClusterRole()
+	mcClusterRole := createMCClusterRole()
+	registrarClusterRole := createRegistrarClusterRoleForRancher()
 	crb := createClusterRoleBinding()
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vpo, vz, namespace, webhook, cr, crb).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vpo, vz, namespace, webhook, mcClusterRole, registrarClusterRole, crb).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -218,9 +223,10 @@ func TestUninstallCmdDefaultNoWait(t *testing.T) {
 	namespace := createNamespace()
 	vz := createVz()
 	webhook := createWebhook()
-	cr := createClusterRole()
+	mcClusterRole := createMCClusterRole()
+	registrarClusterRole := createRegistrarClusterRoleForRancher()
 	crb := createClusterRoleBinding()
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vpo, vz, namespace, webhook, cr, crb).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vpo, vz, namespace, webhook, mcClusterRole, registrarClusterRole, crb).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -403,10 +409,11 @@ func TestUninstallWithConfirmUninstallFlag(t *testing.T) {
 			namespace := createNamespace()
 			validatingWebhookConfig := createWebhook()
 			clusterRoleBinding := createClusterRoleBinding()
-			clusterRole := createClusterRole()
+			mcClusterRole := createMCClusterRole()
+			registrarClusterRole := createRegistrarClusterRoleForRancher()
 			vz := createVz()
 			c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(
-				deployment, vpo, vz, namespace, validatingWebhookConfig, clusterRoleBinding, clusterRole).Build()
+				deployment, vpo, vz, namespace, validatingWebhookConfig, clusterRoleBinding, mcClusterRole, registrarClusterRole).Build()
 
 			if tt.fields.cmdLineInput != "" {
 				content := []byte(tt.fields.cmdLineInput)
@@ -511,11 +518,20 @@ func createClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	}
 }
 
-func createClusterRole() *rbacv1.ClusterRole {
+func createMCClusterRole() *rbacv1.ClusterRole {
 	return &rbacv1.ClusterRole{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.VerrazzanoManagedCluster,
+		},
+	}
+}
+
+func createRegistrarClusterRoleForRancher() *rbacv1.ClusterRole {
+	return &rbacv1.ClusterRole{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: vzconstants.VerrazzanoClusterRancherName,
 		},
 	}
 }
@@ -541,9 +557,14 @@ func ensureResourcesDeleted(t *testing.T, client ctrlclient.Client) {
 	err = client.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoPlatformOperator}, &crb)
 	assert.True(t, errors.IsNotFound(err))
 
-	// Expect the Cluster Role to be deleted
+	// Expect the managed cluster Cluster Role to be deleted
 	cr := rbacv1.ClusterRole{}
 	err = client.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoManagedCluster}, &cr)
+	assert.True(t, errors.IsNotFound(err))
+
+	// Expect the cluster Registrar Cluster Role to be deleted
+	cr = rbacv1.ClusterRole{}
+	err = client.Get(context.TODO(), types.NamespacedName{Name: vzconstants.VerrazzanoClusterRancherName}, &cr)
 	assert.True(t, errors.IsNotFound(err))
 }
 
@@ -563,8 +584,13 @@ func ensureResourcesNotDeleted(t *testing.T, client ctrlclient.Client) {
 	err = client.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoPlatformOperator}, &crb)
 	assert.NoError(t, err)
 
-	// Expect the Cluster Role not to be deleted
+	// Expect the managed cluster Cluster Role not to be deleted
 	cr := rbacv1.ClusterRole{}
 	err = client.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoManagedCluster}, &cr)
+	assert.NoError(t, err)
+
+	// Expect the cluster Registrar Cluster Role not to be deleted
+	cr = rbacv1.ClusterRole{}
+	err = client.Get(context.TODO(), types.NamespacedName{Name: vzconstants.VerrazzanoClusterRancherName}, &cr)
 	assert.NoError(t, err)
 }

@@ -266,3 +266,6 @@ const ThanosInternalUserSecretName = "verrazzano-thanos-internal" //nolint:gosec
 
 // ThanosInternalUserName is the name of the VZ internal Thanos user
 const ThanosInternalUserName = "verrazzano-thanos-internal"
+
+// VerrazzanoPlatformOperatorHelmName is the Helm release name of the Verrazzano Platform Operator
+const VerrazzanoPlatformOperatorHelmName = "verrazzano-platform-operator"
