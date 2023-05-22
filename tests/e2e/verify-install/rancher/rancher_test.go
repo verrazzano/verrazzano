@@ -31,11 +31,6 @@ var (
 var t = framework.NewTestFramework("rancher")
 var kubeconfig = getKubeConfigOrAbort()
 
-var beforeSuite = t.BeforeSuiteFunc(func() {
-})
-
-var _ = BeforeSuite(beforeSuite)
-
 // 'It' Wrapper to only run spec if Rancher is supported on the current Verrazzano installation
 func WhenRancherInstalledIt(description string, f func()) {
 	t.It(description, func() {
