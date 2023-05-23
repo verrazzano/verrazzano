@@ -7,7 +7,7 @@ metadata:
   labels:
     fluentbit.verrazzano.io/namespace-config: "verrazzano"
   name: opensearchdashboards-fbc
-  namespace: {{ .Values.monitoringOperator.namespace }}
+  namespace: {{ .namespace }}
 spec:
   filterSelector:
     matchLabels:
@@ -22,16 +22,34 @@ metadata:
   labels:
     verrazzano.io/component: "opensearchdashboards"
   name: osd-filter
-  namespace: {{ .Values.monitoringOperator.namespace }}
+  namespace: {{ .namespace }}
 spec:
   filters:
     - parser:
         keyName: log
         reserveData: true
         parser: osd-parser
-#    - recordModifier:
-#        records:
-#           - "level ${!!record[\"tags\"] ? !(['trace', 'debug', 'info', 'warn', 'error', 'fail'] & record[\"tags\"])[0].nil? ? (['trace', 'debug', 'info', 'warn', 'error', 'fail'] & record[\"tags\"])[0] : \"\" : \"\"}"
+    - modify:
+        conditions:
+          - keyDoesNotExist:
+              tags: ""
+        rules:
+          - add:
+              level: "\"\""
+    - modify:
+        conditions:
+          - keyValueDoesNotMatch:
+              tags: "trace|debug|info|warn|error|fail"
+        rules:
+          - add:
+              level: "\"\""
+    - modify:
+        conditions:
+          - keyValueMatches:
+              tags: "trace|debug|info|warn|error|fail"
+        rules:
+          - copy:
+              tags: "level"
   match: "kube.*vmi-system-osd*osd*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
@@ -40,7 +58,7 @@ metadata:
   labels:
     verrazzano.io/component: "opensearchdashboards"
   name: osd-parser
-  namespace: {{ .Values.monitoringOperator.namespace }}
+  namespace: {{ .namespace }}
 spec:
   json:
     timeKey: logtime

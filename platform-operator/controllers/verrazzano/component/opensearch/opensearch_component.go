@@ -30,6 +30,9 @@ const (
 
 	// Certificate names
 	osCertificateName = "system-tls-os-ingest"
+
+	// fluentbitFilterAndParserTemplate is the template name that consists Fluentbit Filter and Parser resource for Opensearch.
+	fluentbitFilterAndParserTemplate = "opensearch-filter-parser.yaml"
 )
 
 // ComponentJSONName is the JSON name of the opensearch component in CRD
@@ -129,6 +132,9 @@ func (o opensearchComponent) Uninstall(context spi.ComponentContext) error {
 }
 
 func (o opensearchComponent) PostUninstall(context spi.ComponentContext) error {
+	if err := common.ExecuteFluentbitFilterAndParser(context, fluentbitFilterAndParserTemplate, ComponentNamespace, true); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -155,6 +161,9 @@ func (o opensearchComponent) IsReady(ctx spi.ComponentContext) bool {
 // PostInstall OpenSearch post-install processing
 func (o opensearchComponent) PostInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("OpenSearch component post-upgrade")
+	if err := common.ExecuteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, ComponentNamespace, false); err != nil {
+		return err
+	}
 	return common.CheckIngressesAndCerts(ctx, o)
 }
 

@@ -7,7 +7,7 @@ metadata:
   labels:
     fluentbit.verrazzano.io/namespace-config: "verrazzano"
   name: grafana-fbc
-  namespace: {{ .Values.monitoringOperator.namespace }}
+  namespace: {{ .namespace }}
 spec:
   filterSelector:
     matchLabels:
@@ -22,17 +22,41 @@ metadata:
   labels:
     verrazzano.io/component: "grafana"
   name: grafana-filter
-  namespace: {{ .Values.monitoringOperator.namespace }}
+  namespace: {{ .namespace }}
 spec:
   filters:
     - parser:
         keyName: log
         reserveData: true
         parser: grafana-parser1,grafana-parser2
-#    - recordModifier:
-#        records:
-#          - "message ${record[\"@message\"] ? record[\"@message\"] : record[\"message\"] ? record[\"message\"] : \"\"}"
-#          - "level ${record[\"@level\"] ? record[\"@level\"] : record[\"level\"] ? record[\"level\"] : \"\"}"
+    - modify:
+        conditions:
+          - keyDoesNotExist:
+              message: ""
+              "@message": ""
+        rules:
+          - add:
+              "message": "\"\""
+    - modify:
+        conditions:
+          - keyExists: "@message"
+        rules:
+          - copy:
+              "@message": "message"
+    - modify:
+        conditions:
+          - keyDoesNotExist:
+              level: ""
+              "@level": ""
+        rules:
+          - add:
+              "level": "\"\""
+    - modify:
+        conditions:
+          - keyExists: "@level"
+        rules:
+          - copy:
+              "@level": "level"
   match: "kube.*vmi-system-grafana*grafana*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
@@ -41,7 +65,7 @@ metadata:
   labels:
     verrazzano.io/component: "grafana"
   name: grafana-parser1
-  namespace: {{ .Values.monitoringOperator.namespace }}
+  namespace: {{ .namespace }}
 spec:
   json:
     timeKey: logtime
@@ -53,7 +77,7 @@ metadata:
   labels:
     verrazzano.io/component: "grafana"
   name: grafana-parser2
-  namespace: {{ .Values.monitoringOperator.namespace }}
+  namespace: {{ .namespace }}
 spec:
   regex:
     regex: '/^t=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\+\d{4} lvl=(?<level>\S+) msg="(?<message>.*?)".*?$/'

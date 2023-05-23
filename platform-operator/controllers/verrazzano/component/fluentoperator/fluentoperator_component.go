@@ -71,8 +71,10 @@ func NewComponent() spi.Component {
 			Dependencies:              []string{"verrazzano-network-policies"},
 			GetInstallOverridesFunc:   GetOverrides,
 			AvailabilityObjects: &ready.AvailabilityObjects{
-				DaemonsetNames: []types.NamespacedName{
+				DeploymentNames: []types.NamespacedName{
 					fluentOperatorDeployment,
+				},
+				DaemonsetNames: []types.NamespacedName{
 					fluentBitDaemonSet,
 				},
 			},
