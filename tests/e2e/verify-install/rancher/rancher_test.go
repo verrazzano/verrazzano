@@ -78,28 +78,29 @@ var _ = t.Describe("Rancher", Label("f:platform-lcm.install"), func() {
 					Resource: "kontainerdrivers",
 				}).List(context.TODO(), metav1.ListOptions{})
 
+				allActive := true
 				if err == nil {
 					// The condition of each driver must be active
 					for _, driver := range cattleDrivers.Items {
 						status := driver.UnstructuredContent()["status"].(map[string]interface{})
 						conditions := status["conditions"].([]interface{})
-						active := false
+						driverActive := false
 						for _, condition := range conditions {
 							conditionData := condition.(map[string]interface{})
 							if conditionData["type"].(string) == "Active" && conditionData["status"].(string) == "True" {
-								active = true
+								driverActive = true
 								break
 							}
 						}
-						if !active {
+						if !driverActive {
 							t.Logs.Infof("Driver %s not Active", driver.GetName())
-							return false
+							allActive = false
 						}
 					}
 				} else {
 					return false
 				}
-				return true
+				return allActive
 			}
 			Eventually(driversActive, waitTimeout, pollingInterval).Should(BeTrue())
 		})
