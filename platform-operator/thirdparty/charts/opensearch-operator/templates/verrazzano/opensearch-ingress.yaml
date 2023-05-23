@@ -1,5 +1,6 @@
-# Copyright (c) 2023, Oracle and/or its affiliates.
-# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+# Verrazzano Specific
+# Create ingress for OpenSearch and OpenSearch Dashboards with Verrazzano authproxy as backend
+# Required to access OpenSearch and OpenSearch Dashboards through Verrazzano Keycloak
 
 apiVersion: networking.k8s.io/v1
 kind: Ingress
