@@ -447,7 +447,7 @@
           "images": [
             {
               "image": "iad.ocir.io/odsbuilddev/sandboxes/aditya.b.bharadwaj/fluent-operator",
-              "tag": "testz",
+              "tag": "vzy",
               "helmImageKey": "operator.container.repository",
               "helmTagKey": "operator.container.tag"
             },
