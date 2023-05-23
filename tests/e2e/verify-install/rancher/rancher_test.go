@@ -8,6 +8,10 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -70,35 +74,29 @@ var _ = t.Describe("Rancher", Label("f:platform-lcm.install"), func() {
 		}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 		WhenRancherInstalledIt("kontainerdrivers must be ready", func() {
-
 			driversActive := func() bool {
-				cattleDrivers, err := clientset.Resource(schema.GroupVersionResource{
-					Group:    "management.cattle.io",
-					Version:  "v3",
-					Resource: "kontainerdrivers",
-				}).List(context.TODO(), metav1.ListOptions{})
+				cattleDrivers, err := listKontainerDrivers()
+				if err != nil {
+					return false
+				}
 
 				allActive := true
-				if err == nil {
-					// The condition of each driver must be active
-					for _, driver := range cattleDrivers.Items {
-						status := driver.UnstructuredContent()["status"].(map[string]interface{})
-						conditions := status["conditions"].([]interface{})
-						driverActive := false
-						for _, condition := range conditions {
-							conditionData := condition.(map[string]interface{})
-							if conditionData["type"].(string) == "Active" && conditionData["status"].(string) == "True" {
-								driverActive = true
-								break
-							}
-						}
-						if !driverActive {
-							t.Logs.Infof("Driver %s not Active", driver.GetName())
-							allActive = false
+				// The condition of each driver must be active
+				for _, driver := range cattleDrivers.Items {
+					status := driver.UnstructuredContent()["status"].(map[string]interface{})
+					conditions := status["conditions"].([]interface{})
+					driverActive := false
+					for _, condition := range conditions {
+						conditionData := condition.(map[string]interface{})
+						if conditionData["type"].(string) == "Active" && conditionData["status"].(string) == "True" {
+							driverActive = true
+							break
 						}
 					}
-				} else {
-					return false
+					if !driverActive {
+						t.Logs.Infof("Driver %s not Active", driver.GetName())
+						allActive = false
+					}
 				}
 				return allActive
 			}
@@ -108,33 +106,28 @@ var _ = t.Describe("Rancher", Label("f:platform-lcm.install"), func() {
 		WhenRancherInstalledIt("expected kontainerdrivers must exist", func() {
 
 			expectedDriversFound := func() bool {
-				cattleDrivers, err := clientset.Resource(schema.GroupVersionResource{
-					Group:    "management.cattle.io",
-					Version:  "v3",
-					Resource: "kontainerdrivers",
-				}).List(context.TODO(), metav1.ListOptions{})
+				cattleDrivers, err := listKontainerDrivers()
+				if err != nil {
+					return false
+				}
 
 				foundCount := 0
-				if err == nil {
-					// The condition of each driver must be active
-					for _, driver := range cattleDrivers.Items {
-						switch driver.GetName() {
-						case "amazonelasticcontainerservice":
-							foundCount++
-						case "azurekubernetesservice":
-							foundCount++
-						case "googlekubernetesengine":
-							foundCount++
-						case "ociocneengine":
-							foundCount++
-						case "oraclecontainerengine":
-							foundCount++
-						}
+				// The condition of each driver must be active
+				for _, driver := range cattleDrivers.Items {
+					switch driver.GetName() {
+					case "amazonelasticcontainerservice":
+						foundCount++
+					case "azurekubernetesservice":
+						foundCount++
+					case "googlekubernetesengine":
+						foundCount++
+					case "ociocneengine":
+						foundCount++
+					case "oraclecontainerengine":
+						foundCount++
 					}
-					if foundCount != 5 {
-						return false
-					}
-				} else {
+				}
+				if foundCount != 5 {
 					return false
 				}
 				return true
@@ -150,4 +143,17 @@ func getKubeConfigOrAbort() string {
 		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
 	return kubeconfigPath
+}
+
+func listKontainerDrivers() (*unstructured.UnstructuredList, error) {
+	cattleDrivers, err := clientset.Resource(schema.GroupVersionResource{
+		Group:    "management.cattle.io",
+		Version:  "v3",
+		Resource: "kontainerdrivers",
+	}).List(context.TODO(), metav1.ListOptions{})
+
+	if err != nil && errors.IsNotFound(err) {
+		t.Logs.Info("No kontainerdrivers found")
+	}
+	return cattleDrivers, err
 }
