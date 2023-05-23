@@ -201,7 +201,7 @@ pipeline {
                             script {
                                 build job: "/verrazzano-analyze-tool-test/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.25'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     ], wait: true
                             }
