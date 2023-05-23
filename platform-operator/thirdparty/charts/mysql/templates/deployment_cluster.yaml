@@ -51,7 +51,7 @@ spec:
             capabilities:
               drop:
                 - ALL
-  {{- if not $use_self_signed }}
+{{- if not $use_self_signed }}
   {{- if and (((.Values).tls).routerCertAndPKsecretName) (((.Values).router).certAndPKsecretName) }}
     {{- if ne (((.Values).tls).routerCertAndPKsecretName) (((.Values).router).certAndPKsecretName) }}
       {{- $err := printf "tls.routerCertAndPKsecretName and router.certAndPKsecretName are both specified and have different values %s and %s. Use only one" (((.Values).tls).routerCertAndPKsecretName) (((.Values).router).certAndPKsecretName) }}
@@ -60,7 +60,7 @@ spec:
   {{- end }}
   {{- $default_secret_name := printf "%s-router-tls" $cluster_name }}
   {{- $secret_name := coalesce ((.Values.tls).routerCertAndPKsecretName) ((.Values.router).certAndPKsecretName) $default_secret_name}}
-  {{- if not (lookup "v1" "Secret" .Release.Namespace $secret_name) }}
+  {{- if and (not $disable_lookups) (not (lookup "v1" "Secret" .Release.Namespace $secret_name)) }}
     {{- $err := printf "tls.routerCertAndPKsecretName: secret '%s' not found in namespace '%s'" $secret_name .Release.Namespace }}
     {{- fail $err }}
   {{- end }}
@@ -83,11 +83,15 @@ spec:
 {{- end }}
   baseServerId: {{ required "baseServerId is required" .Values.baseServerId }}
   version: {{ .Values.serverVersion | default .Chart.AppVersion }}
+  {{- if ((.Values).edition) }}
+  edition: {{ .Values.edition | quote }}
+  {{- end }}
   serviceAccountName: {{ .Release.Name }}-sa
+
 {{- if not $use_self_signed }}
   {{- $default_secret_name := printf "%s-ca" $cluster_name }}
   {{- $secret_name := default $default_secret_name ((.Values.tls).caSecretName) }}
-  {{- if not (lookup "v1" "Secret" .Release.Namespace $secret_name) }}
+  {{- if and (not $disable_lookups) (not (lookup "v1" "Secret" .Release.Namespace $secret_name)) }}
     {{- $err := printf "tls.caSecretName: secret '%s' not found in namespace '%s'" $secret_name .Release.Namespace }}
     {{- fail $err }}
   {{- end }}
@@ -95,7 +99,7 @@ spec:
 
   {{- $default_secret_name := printf "%s-tls" $cluster_name }}
   {{- $secret_name := default $default_secret_name ((.Values.tls).serverCertAndPKsecretName) }}
-  {{- if not (lookup "v1" "Secret" .Release.Namespace $secret_name) }}
+  {{- if and (not $disable_lookups) (not (lookup "v1" "Secret" .Release.Namespace $secret_name)) }}
     {{- $err := printf "tls.serverCertAndPKsecretName: secret '%s' not found in namespace '%s'" $secret_name .Release.Namespace }}
     {{- fail $err }}
   {{- end }}
@@ -119,7 +123,7 @@ spec:
 {{ if (.Values).configurationFiles }}
     containers:
       - name: sidecar
-        image: {{ (.Values).mysqlOperator.image  }}
+        image: {{ (.Values).mysqlOperator.image }}
         securityContext:
           allowPrivilegeEscalation: false
           privileged: false
@@ -150,7 +154,7 @@ spec:
     initContainers:
     - name: fixdatadir
       runAsUser: 0
-      image: {{ (.Values).mysqlOperator.image  }}
+      image: {{ (.Values).mysqlOperator.image }}
     - name: initconf
       securityContext:
         allowPrivilegeEscalation: false
@@ -161,7 +165,7 @@ spec:
         capabilities:
           drop:
             - ALL
-      image: {{ (.Values).mysqlOperator.image  }}
+      image: {{ (.Values).mysqlOperator.image }}
     - name: initmysql
       securityContext:
         allowPrivilegeEscalation: false
@@ -321,7 +325,7 @@ spec:
     {{- fail "Dump and Clone are mutually exclusive" }}
   {{- end }}
 
-  {{- if and .Values.initDB .Values.initDB.clone }}
+  {{- if (((.Values).initDB).clone) }}
     {{- with .Values.initDB.clone }}
   initDB:
     clone:
@@ -332,9 +336,9 @@ spec:
     {{- end }}
   {{- end }}
 
-  {{- if and .Values.initDB .Values.initDB.dump }}
+  {{- if (((.Values).initDB).dump) }}
     {{- with .Values.initDB.dump }}
-      {{- if and .name (or .ociObjectStorage .s3 .persistentVolumeClaim .options) }}
+      {{- if and .name (or .ociObjectStorage .s3 .azure .persistentVolumeClaim .options) }}
   initDB:
     dump:
         {{- if .name }}
@@ -344,8 +348,7 @@ spec:
       path: {{ .path }}
         {{- end }}
         {{- if .options }}
-      options:
-        {{- toYaml .options | nindent 8}}
+      options: {{ toYaml .options | nindent 8 }}
         {{- end }}
       storage:
         {{- if .ociObjectStorage }}
@@ -366,9 +369,14 @@ spec:
           endpoint: {{ .s3.endpoint }}
           {{- end }}
         {{- end }}
+        {{- if .azure }}
+        azure:
+          prefix: {{ required "initDB.dump.azure.prefix is required" .azure.prefix }}
+          containerName: {{ required "initDB.dump.azure.containerName is required" .azure.containerName }}
+          config: {{ required "initDB.dump.azure.config is required" .azure.config }}
+        {{- end }}
         {{- if .persistentVolumeClaim }}
-        persistentVolumeClaim:
-          {{- toYaml .persistentVolumeClaim | nindent 10}}
+        persistentVolumeClaim: {{ toYaml .persistentVolumeClaim | nindent 10}}
         {{- end }}
       {{- end }}
     {{- end }}
@@ -409,7 +417,7 @@ spec:
         {{- end }}
           bucketName: {{ required "bucketName is required"  $backupProfile.storage.ociObjectStorage.bucketName }}
           credentials: {{ required "credentials is required"  $backupProfile.storage.ociObjectStorage.credentials }}
-          {{- else if hasKey $backupProfile.storage "s3" }}
+        {{- else if hasKey $backupProfile.storage "s3" }}
       storage:
         s3:
         {{- if $backupProfile.storage.s3.prefix }}
@@ -423,6 +431,14 @@ spec:
           {{- if $backupProfile.storage.s3.endpoint }}
           endpoint: {{ $backupProfile.storage.s3.endpoint }}
           {{- end }}
+        {{- else if hasKey $backupProfile.storage "azure" }}
+      storage:
+        azure:
+        {{- if $backupProfile.storage.azure.prefix }}
+          prefix: {{ $backupProfile.storage.azure.prefix }}
+        {{- end }}
+          containerName: {{ required "containerName is required" $backupProfile.storage.azure.containerName }}
+          config: {{ required "config is required" $backupProfile.storage.azure.config }}
         {{- else if hasKey $backupProfile.storage "persistentVolumeClaim" }}
       storage:
         persistentVolumeClaim: {{ toYaml $backupProfile.storage.persistentVolumeClaim | nindent 12}}
@@ -482,12 +498,20 @@ spec:
           {{- end }}
             bucketName: {{ required "bucketName is required" $backupProfile.storage.s3.bucketName }}
             config: {{ required "config is required" $backupProfile.storage.s3.config }}
-            {{- if $backupProfile.storage.s3.profile }}
+          {{- if $backupProfile.storage.s3.profile }}
             profile: {{ $backupProfile.storage.s3.profile }}
-            {{- end }}
-            {{- if $backupProfile.storage.s3.endpoint }}
+          {{- end }}
+          {{- if $backupProfile.storage.s3.endpoint }}
             endpoint: {{ $backupProfile.storage.s3.endpoint }}
-            {{- end }}
+          {{- end }}
+        {{- else if hasKey $backupProfile.storage "azure" }}
+        storage:
+          azure:
+          {{- if $backupProfile.storage.azure.prefix }}
+            prefix: {{ $backupProfile.storage.azure.prefix }}
+          {{- end }}
+            containerName: {{ required "containerName is required" $backupProfile.storage.azure.containerName }}
+            config: {{ required "config is required" $backupProfile.storage.azure.config }}
         {{- else if hasKey $backupProfile.storage "persistentVolumeClaim" }}
         storage:
           persistentVolumeClaim: {{ toYaml $backupProfile.storage.persistentVolumeClaim | nindent 12}}
@@ -502,6 +526,4 @@ spec:
       {{- fail "Neither backupProfileName nor backupProfile provided for a schedule" }}
     {{- end }}
   {{- end }}
-{{- end }}
-{{- if false }}
 {{- end }}
