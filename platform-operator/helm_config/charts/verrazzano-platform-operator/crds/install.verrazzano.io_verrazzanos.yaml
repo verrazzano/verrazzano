@@ -601,44 +601,8 @@ spec:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
-                      webhook:
-                        properties:
-                          monitorChanges:
-                            type: boolean
-                          overrides:
-                            items:
-                              properties:
-                                configMapRef:
-                                  properties:
-                                    key:
-                                      type: string
-                                    name:
-                                      type: string
-                                    optional:
-                                      type: boolean
-                                  required:
-                                  - key
-                                  type: object
-                                  x-kubernetes-map-type: atomic
-                                secretRef:
-                                  properties:
-                                    key:
-                                      type: string
-                                    name:
-                                      type: string
-                                    optional:
-                                      type: boolean
-                                  required:
-                                  - key
-                                  type: object
-                                  x-kubernetes-map-type: atomic
-                                values:
-                                  x-kubernetes-preserve-unknown-fields: true
-                              type: object
-                            type: array
-                        type: object
                     type: object
-                  certManagerOCIDNSWebhook:
+                  certManagerWebhookOCI:
                     properties:
                       enabled:
                         type: boolean
@@ -678,30 +642,26 @@ spec:
                     type: object
                   clusterIssuer:
                     properties:
-                      acme:
+                      ca:
+                        properties:
+                          secretName:
+                            type: string
+                        required:
+                        - secretName
+                        type: object
+                      clusterResourceNamespace:
+                        default: cert-manager
+                        type: string
+                      enabled:
+                        default: true
+                        type: boolean
+                      letsEncrypt:
                         properties:
                           emailAddress:
                             type: string
                           environment:
                             type: string
-                          provider:
-                            type: string
-                        required:
-                        - provider
                         type: object
-                      ca:
-                        properties:
-                          clusterResourceNamespace:
-                            type: string
-                          secretName:
-                            type: string
-                        required:
-                        - clusterResourceNamespace
-                        - secretName
-                        type: object
-                      enabled:
-                        default: true
-                        type: boolean
                     type: object
                   clusterOperator:
                     properties:
@@ -4551,7 +4511,7 @@ spec:
                           type: object
                         type: array
                     type: object
-                  certManagerOCIDNSWebhook:
+                  certManagerWebhookOCI:
                     properties:
                       enabled:
                         type: boolean
@@ -4591,7 +4551,20 @@ spec:
                     type: object
                   clusterIssuer:
                     properties:
-                      acme:
+                      ca:
+                        properties:
+                          secretName:
+                            type: string
+                        required:
+                        - secretName
+                        type: object
+                      clusterResourceNamespace:
+                        default: cert-manager
+                        type: string
+                      enabled:
+                        default: true
+                        type: boolean
+                      letsEncrypt:
                         properties:
                           emailAddress:
                             type: string
@@ -4602,19 +4575,6 @@ spec:
                         required:
                         - provider
                         type: object
-                      ca:
-                        properties:
-                          clusterResourceNamespace:
-                            type: string
-                          secretName:
-                            type: string
-                        required:
-                        - clusterResourceNamespace
-                        - secretName
-                        type: object
-                      enabled:
-                        default: true
-                        type: boolean
                     type: object
                   clusterOperator:
                     properties:

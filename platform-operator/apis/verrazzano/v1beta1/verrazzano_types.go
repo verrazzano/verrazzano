@@ -323,9 +323,9 @@ type ComponentSpec struct {
 	// +optional
 	CertManager *CertManagerComponent `json:"certManager,omitempty"`
 
-	// CertManagerOCIDNSWebhook configures the Verrazzano OCI DNS webhook plugin for Cert-Manager
+	// CertManagerWebhookOCI configures the Verrazzano OCI DNS webhook plugin for Cert-Manager
 	// +optional
-	CertManagerOCIDNSWebhook *CertManagerOCIDNSWebhookSolverComponent `json:"certManagerOCIDNSWebhook,omitempty"`
+	CertManagerWebhookOCI *CertManagerWebhookOCIComponent `json:"certManagerWebhookOCI,omitempty"`
 
 	// The Cluster Operator component configuration.
 	// +optional
@@ -609,20 +609,23 @@ type CAPIComponent struct {
 
 // ClusterIssuerComponent configures the Verrazzano ClusterIssuer
 type ClusterIssuerComponent struct {
-	// If true, indicates that Verrazzano will use an externally-managed Cert-Manager installation
+	// Enabled indicates that Verrazzano ClusterIssuer shall be configured
 	// +kubebuilder:default=true
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// The certificate configuration.
-	// +optional
-	// +patchStrategy=replace
-	Certificate `json:",inline"`
+	// The clusterResourceNamespace configured for the Verrazzano Cert-Manager instance; if an externally-managed
+	// Cert-Manager is being used with a non-default location, this should point to the clusterResourceNamespace used by
+	// that installation. See the Cert-Manager documentation details on this namespace.
+	// +kubebuilder:default=cert-manager
+	ClusterResourceNamespace string `json:"clusterResourceNamespace,omitempty"`
+	// IssuerConfig contains the configuration for the Verrazzano Cert-Manager ClusterIssuer
+	IssuerConfig `json:",inline"`
 }
 
-// CertManagerOCIDNSWebhookSolverComponent configures the CertManager OCI DNS solver webhook; the
-// webhook is required for ACME Certificates using OCI DNS
-type CertManagerOCIDNSWebhookSolverComponent struct {
-	// If true, indicates that Verrazzano will use an externally-managed Cert-Manager installation
+// CertManagerWebhookOCIComponent configures the CertManager OCI DNS solver webhook; the
+// webhook is required for LetsEncrypt Certificates using OCI DNS
+type CertManagerWebhookOCIComponent struct {
+	// Enabled will deploy the webhook if true, or if the LetsEncrypt issuer is configured with OCI DNS
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
@@ -1043,7 +1046,7 @@ const (
 	LetsEncrypt ProviderType = "LetsEncrypt"
 )
 
-// Acme identifies the ACME cert issuer.
+// Deprecated.  Acme identifies the LetsEncrypt cert issuer.
 type Acme struct {
 	// Email address of the user.
 	// +optional
@@ -1055,7 +1058,19 @@ type Acme struct {
 	Provider ProviderType `json:"provider"`
 }
 
-// CA identifies the Certificate Authority cert issuer.
+// LetsEncryptAcmeIssuer identifies the configuration used for the LetsEncrypt cert issuer
+type LetsEncryptACMEIssuer struct {
+	// Email address of the user.
+	// +optional
+	EmailAddress string `json:"emailAddress,omitempty"`
+	// Environment can be "staging" or "production"
+	// +optional
+	Environment string `json:"environment,omitempty"`
+	// Name of the Acme provider.
+	Provider ProviderType `json:"provider"`
+}
+
+// CA - Deprecated.  Identifies the Certificate Authority cert issuer.
 type CA struct {
 	// The secret namespace.
 	ClusterResourceNamespace string `json:"clusterResourceNamespace"`
@@ -1063,12 +1078,28 @@ type CA struct {
 	SecretName string `json:"secretName"`
 }
 
-// Certificate represents the type of cert issuer for an installation.
+// CAIssuer Identifies the configuration used for the Certificate Authority issuer
+type CAIssuer struct {
+	// The secret name.
+	SecretName string `json:"secretName"`
+}
+
+// IssuerConfig identifies the configuration for the Verrazzano ClusterIssuer.  Only one value may be set.
+type IssuerConfig struct {
+	// The LetsEncrypt issuer configuration.
+	// +optional
+	LetsEncrypt *LetsEncryptACMEIssuer `json:"letsEncrypt,omitempty"`
+	// The certificate configuration.
+	// +optional
+	CA *CAIssuer `json:"ca,omitempty"`
+}
+
+// Certificate - Deprecated. Represents the type of cert issuer for an installation.
 type Certificate struct {
-	// The ACME configuration. Either `acme` or `ca` must be specified.
+	// The LetsEncrypt configuration. Either `acme` or `ca` must be specified.
 	// +optional
 	Acme Acme `json:"acme,omitempty"`
-	// The ACME configuration. Either `acme` or `ca` must be specified.
+	// The LetsEncrypt configuration. Either `acme` or `ca` must be specified.
 	// +optional
 	CA CA `json:"ca,omitempty"`
 }
