@@ -127,7 +127,7 @@ func NewFakeRootCmdContext(streams genericclioptions.IOStreams) *FakeRootCmdCont
 func (rc *FakeRootCmdContext) GetDiscoveryClient(cmd *cobra.Command) (discovery.DiscoveryInterface, error) {
 	client := rc.kubeClient
 	discoveryClient, ok := client.Discovery().(*discoveryFake.FakeDiscovery)
-	if ok != true {
+	if !ok {
 		return nil, fmt.Errorf("DiscoveryClient was not successfully created")
 	}
 	return discoveryClient, nil

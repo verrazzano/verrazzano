@@ -105,7 +105,7 @@ func NewRootCmdContext(streams genericclioptions.IOStreams) *RootCmdContext {
 func (rc *RootCmdContext) GetDiscoveryClient(cmd *cobra.Command) (discovery.DiscoveryInterface, error) {
 	client, _ := rc.GetKubeClient(cmd)
 	discoveryClient, ok := client.Discovery().(*discovery.DiscoveryClient)
-	if ok != true {
+	if !ok {
 		return nil, fmt.Errorf("DiscoveryClient was not successfully created")
 	}
 	return discoveryClient, nil

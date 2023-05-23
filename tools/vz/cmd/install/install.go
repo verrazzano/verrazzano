@@ -110,8 +110,6 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	// Hide the flag for overriding the default wait timeout for the platform-operator
 	cmd.PersistentFlags().MarkHidden(constants.VPOTimeoutFlag)
 
-	// Set to true to always validate an install from a CR
-	cmd.PersistentFlags().BoolP(constants.ValidateCR, constants.ValidateCRShort, true, "Used to validate installing with a Custom Resource")
 	return cmd
 }
 
@@ -252,7 +250,7 @@ func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz clipkg.
 	// Validate Custom Resource if present
 	var errorArray = ValidateCRFunc(cmd, obj, vzHelper)
 	if len(errorArray) != 0 {
-		return fmt.Errorf("was unable to validate the given CR, the following error occurred: \"%v\"", errorArray)
+		return fmt.Errorf("was unable to validate the given CR, the following error(s) occurred: \"%v\"", errorArray)
 	}
 
 	err = kubectlutil.SetLastAppliedConfigurationAnnotation(vz)
