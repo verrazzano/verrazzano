@@ -7,7 +7,7 @@ networking:
   podSubnet: 192.168.0.0/16 # set to Calico's default subnet
 nodes:
   - role: control-plane
-    image: kindest/node:KIND_IMAGE
+    image: KIND_IMAGE
     kubeadmConfigPatches:
       - |
         kind: ClusterConfiguration

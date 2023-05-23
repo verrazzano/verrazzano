@@ -5,6 +5,7 @@ Features:
 - Added a None profile that comes with all components disabled by default
 - Added Thanos, which supports high availability and long-term storage on top of Prometheus
 - Enhanced the Verrazzano CLI to support installing and upgrading from a private registry and in air-gapped environments
+- Added support for Kubernetes v1.25
 
 Component version updates:
 

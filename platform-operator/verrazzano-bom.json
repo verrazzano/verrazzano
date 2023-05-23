@@ -232,11 +232,11 @@
           "images": [
             {
               "image": "cluster-api-ocne-bootstrap-controller",
-              "tag": "v0.1.0-20230516205451-d9da513"
+              "tag": "v0.1.0-20230522163916-38da305"
             },
             {
               "image": "cluster-api-ocne-control-plane-controller",
-              "tag": "v0.1.0-20230516205451-d9da513"
+              "tag": "v0.1.0-20230522163916-38da305"
             }
           ]
         }
@@ -257,7 +257,7 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.14.5-20230512021939-f85741b",
+              "tag": "v1.14.5-20230522051724-403c5d3",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
@@ -457,15 +457,15 @@
     },
     {
       "name": "mysql",
-      "version": "8.0.32",
+      "version": "8.0.33",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "mysql-upgrade",
           "images": [
             {
-              "image": "mysql-server",
-              "tag": "8.0.32",
+              "image": "community-server",
+              "tag": "8.0.33",
               "helmFullImageKey": "legacyUpgrade.container.image"
             },
             {
@@ -482,8 +482,8 @@
           "name": "additional-mysql",
           "images": [
             {
-              "image": "mysql-router",
-              "tag": "8.0.32"
+              "image": "community-router",
+              "tag": "8.0.33"
             }
           ]
         }
@@ -491,17 +491,18 @@
     },
     {
       "name": "mysql-operator",
-      "version": "8.0.32",
+      "version": "8.0.33",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "mysql-operator",
           "images": [
             {
-              "image": "mysql-operator",
-              "tag": "8.0.32-2.0.8",
+              "image": "community-operator",
+              "tag": "8.0.33-2.0.9",
               "helmRegKey": "image.registry",
               "helmRepoKey": "image.repository",
+              "helmImageKey": "image.name",
               "helmTagKey": "image.tag"
             }
           ]
