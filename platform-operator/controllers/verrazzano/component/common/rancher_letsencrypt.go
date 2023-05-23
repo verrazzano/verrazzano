@@ -56,7 +56,7 @@ func (c *certBuilder) appendCertWithHTTP(uri string) error {
 
 // buildLetsEncryptStagingChain builds the LetsEncrypt Staging certificate chain
 // LetsEncrypt staging provides a certificate chain for staging environments, mimicking production.
-// Verrazzano uses the LetsEncrypt staging certificate chain for Rancher ingress on ACME staging environments.
+// Verrazzano uses the LetsEncrypt staging certificate chain for Rancher ingress on LetsEncrypt staging environments.
 // See https://letsencrypt.org/docs/staging-environment/ for more information.
 func (c *certBuilder) buildLetsEncryptStagingChain() error {
 	if err := c.appendCertWithHTTP(intR3PEM); err != nil {
@@ -71,8 +71,11 @@ func (c *certBuilder) buildLetsEncryptStagingChain() error {
 	return nil
 }
 
-func useAdditionalCAs(acme vzapi.Acme) bool {
-	return acme != vzapi.Acme{} && acme.Environment != "production"
+func useAdditionalCAs(acme *vzapi.LetsEncryptACMEIssuer) bool {
+	if acme == nil {
+		return false
+	}
+	return *acme != vzapi.LetsEncryptACMEIssuer{} && acme.Environment != "production"
 }
 
 func ProcessAdditionalCertificates(log vzlog.VerrazzanoLogger, cli client.Client, vz *vzapi.Verrazzano) error {
@@ -87,7 +90,7 @@ func ProcessAdditionalCertificates(log vzlog.VerrazzanoLogger, cli client.Client
 			Name:      constants.AdditionalTLS,
 		},
 	}
-	if cm != nil && useAdditionalCAs(cm.Certificate.Acme) {
+	if cm != nil && useAdditionalCAs(cm.LetsEncrypt) {
 		log.Debugf("Creating additional Rancher certificates for non-production environment")
 		return createAdditionalCertificates(log, cli, secret)
 	}

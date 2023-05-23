@@ -11,35 +11,35 @@ import (
 
 // TestIsLetsEncryptProductionEnv tests the IsLetsEncryptProductionEnv functions
 // GIVEN a call to IsLetsEncryptProductionEnv
-// WHEN an ACME configuration is passed in
-// THEN the function returns true if the ACME environment is for the LE production env
+// WHEN an LetsEncrypt configuration is passed in
+// THEN the function returns true if the LetsEncrypt environment is for the LE production env
 func TestIsLetsEncryptProductionEnv(t *testing.T) {
-	assert.True(t, IsLetsEncryptProductionEnv(v1alpha1.Acme{Environment: letsencryptProduction}))
-	assert.False(t, IsLetsEncryptProductionEnv(v1alpha1.Acme{Environment: letsEncryptStaging}))
+	assert.True(t, IsLetsEncryptProductionEnv(v1alpha1.LetsEncryptACMEIssuer{Environment: LetsencryptProduction}))
+	assert.False(t, IsLetsEncryptProductionEnv(v1alpha1.LetsEncryptACMEIssuer{Environment: LetsEncryptStaging}))
 }
 
 // TestIsLetsEncryptStaging tests the IsLetsEncryptStaging functions
 // GIVEN a call to IsLetsEncryptStaging
 // WHEN a Verrazzano configuration is passed in
-// THEN the function returns true if the ACME environment is for the LE staging env
+// THEN the function returns true if the LetsEncrypt environment is for the LE staging env
 func TestIsLetsEncryptStaging(t *testing.T) {
 	assert.True(t, IsLetsEncryptStaging(
-		v1alpha1.Acme{
-			Environment: letsEncryptStaging,
+		v1alpha1.LetsEncryptACMEIssuer{
+			Environment: LetsEncryptStaging,
 		},
 	))
 	assert.False(t, IsLetsEncryptStaging(
-		v1alpha1.Acme{
-			Environment: letsencryptProduction,
+		v1alpha1.LetsEncryptACMEIssuer{
+			Environment: LetsencryptProduction,
 		},
 	))
 	assert.False(t, IsLetsEncryptStaging(
-		v1alpha1.Acme{
+		v1alpha1.LetsEncryptACMEIssuer{
 			Environment: "foo",
 		},
 	))
 	assert.False(t, IsLetsEncryptStaging(
-		v1alpha1.Acme{
+		v1alpha1.LetsEncryptACMEIssuer{
 			Environment: "",
 		},
 	))

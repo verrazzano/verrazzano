@@ -4,7 +4,9 @@
 package v1alpha1
 
 import (
+	"fmt"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -1179,7 +1181,7 @@ type LetsEncryptACMEIssuer struct {
 
 // CA - Deprecated.  Identifies the Certificate Authority cert issuer.
 type CA struct {
-	// Deprecated, use the ClusterIssuerComponent ClusterResourceNamespace field instead
+	// The secret namespace.
 	ClusterResourceNamespace string `json:"clusterResourceNamespace"`
 	// The secret name.
 	SecretName string `json:"secretName"`
@@ -1293,4 +1295,25 @@ type Overrides struct {
 	// <a href="../../../../docs/customize/installationoverrides/#values">Values</a>.
 	// +optional
 	Values *apiextensionsv1.JSON `json:"values,omitempty"`
+}
+
+func (c *ClusterIssuerComponent) IsCAIssuer() (bool, error) {
+	if c.CA != nil && c.LetsEncrypt != nil {
+		return false, fmt.Errorf("Illegal state, can not configure CAIssuer and LetsEncrypt issuer simultaneously")
+	}
+	return c.CA != nil, nil
+}
+
+func (c *ClusterIssuerComponent) IsACMEIssuer() (bool, error) {
+	isCAIssuer, err := c.IsCAIssuer()
+	return !isCAIssuer, err
+}
+
+func (c *ClusterIssuerComponent) IsDefaultIssuer() bool {
+	isCAIssuer, err := c.IsCAIssuer()
+	if err != nil {
+		return false
+	}
+	return isCAIssuer && c.ClusterResourceNamespace == constants.CertManagerNamespace &&
+		c.CA.SecretName == constants.DefaultVerrazzanoCASecretName
 }

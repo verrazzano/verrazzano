@@ -31,9 +31,10 @@ import (
 )
 
 const (
-	profileDir    = "../../../../../manifests/profiles"
-	testNamespace = "testNamespace"
-	testBomFile   = "../../../testdata/test_bom.json"
+	profileDir     = "../../../../../manifests/profiles"
+	testNamespace  = "testNamespace"
+	testBomFile    = "../../../testdata/test_bom.json"
+	defaultBomFile = "../../../../../verrazzano-bom.json"
 )
 
 const (
@@ -130,12 +131,15 @@ func TestAppendCertManagerOverrides(t *testing.T) {
 // WHEN a VZ spec is passed with install args
 // THEN the values created properly
 func TestAppendCertManagerOverridesWithInstallArgs(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFile)
+	defer config.SetDefaultBomFilePath("")
+
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 	defer func() { common.ResetCoreV1ClientFunc() }()
 	common.GetClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, "defaultVZConfig-cn")
 
-	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, nil, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, nil, false, profileDir), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1)
 	assert.Contains(t, kvs, bom.KeyValue{Key: clusterResourceNamespaceKey, Value: testNamespace})

@@ -9,22 +9,32 @@ import (
 	"strings"
 )
 
-func IsLetsEncryptProductionEnv(acme vzapi.Acme) bool {
-	return strings.ToLower(acme.Environment) == letsencryptProduction
+func IsLetsEncryptProductionEnv(acme interface{}) bool {
+	if v1alpha1ACME, ok := acme.(vzapi.LetsEncryptACMEIssuer); ok {
+		return strings.ToLower(v1alpha1ACME.Environment) == LetsencryptProduction
+	}
+	if v1beta1ACME, ok := acme.(v1beta1.LetsEncryptACMEIssuer); ok {
+		return strings.ToLower(v1beta1ACME.Environment) == LetsencryptProduction
+	}
+	return false
 }
 
-func IsLetsEncryptStaging(acme vzapi.Acme) bool {
-	return acme.Environment == letsEncryptStaging
+func IsLetsEncryptStaging(acme interface{}) bool {
+	if v1alpha1ACME, ok := acme.(vzapi.LetsEncryptACMEIssuer); ok {
+		return v1alpha1ACME.Environment == LetsEncryptStaging
+	}
+	if v1beta1ACME, ok := acme.(v1beta1.LetsEncryptACMEIssuer); ok {
+		return v1beta1ACME.Environment == LetsEncryptStaging
+	}
+	return false
 }
 
-func isLetsEncryptProvider(acme v1beta1.Acme) bool {
-	return strings.ToLower(string(acme.Provider)) == strings.ToLower(string(vzapi.LetsEncrypt))
-}
-
-func isLetsEncryptStagingEnv(acme v1beta1.Acme) bool {
-	return strings.ToLower(acme.Environment) == letsEncryptStaging
-}
-
-func isLetsEncryptProductionEnv(acme v1beta1.Acme) bool {
-	return strings.ToLower(acme.Environment) == letsencryptProduction
+func IsLetsEncryptStagingEnv(acme interface{}) bool {
+	if v1alpha1ACME, ok := acme.(vzapi.LetsEncryptACMEIssuer); ok {
+		return strings.ToLower(v1alpha1ACME.Environment) == LetsEncryptStaging
+	}
+	if v1beta1ACME, ok := acme.(v1beta1.LetsEncryptACMEIssuer); ok {
+		return strings.ToLower(v1beta1ACME.Environment) == LetsEncryptStaging
+	}
+	return false
 }

@@ -21,7 +21,7 @@ const (
 	name      = "NAME"
 )
 
-// TestAddAcmeIngressAnnotations verifies if ACME Annotations are added to the Ingress
+// TestAddAcmeIngressAnnotations verifies if LetsEncrypt Annotations are added to the Ingress
 // GIVEN a Rancher Ingress
 //
 //	WHEN addAcmeIngressAnnotations is called

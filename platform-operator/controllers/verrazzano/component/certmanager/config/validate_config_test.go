@@ -44,11 +44,12 @@ var simpleValidationTests = []validationTestStruct{
 				Components: vzapi.ComponentSpec{
 					CertManager: &vzapi.CertManagerComponent{
 						Enabled: getBoolPtr(true),
-						Certificate: vzapi.Certificate{
-							Acme: vzapi.Acme{
+					},
+					ClusterIssuer: &vzapi.ClusterIssuerComponent{
+						IssuerConfig: vzapi.IssuerConfig{
+							LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
 								EmailAddress: emailAddress,
 								Environment:  letsEncryptStaging,
-								Provider:     "LetsEncrypt",
 							},
 						},
 					},
@@ -74,11 +75,12 @@ var simpleValidationTests = []validationTestStruct{
 				Components: vzapi.ComponentSpec{
 					CertManager: &vzapi.CertManagerComponent{
 						Enabled: getBoolPtr(false),
-						Certificate: vzapi.Certificate{
-							Acme: vzapi.Acme{
+					},
+					ClusterIssuer: &vzapi.ClusterIssuerComponent{
+						IssuerConfig: vzapi.IssuerConfig{
+							LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
 								EmailAddress: emailAddress,
 								Environment:  letsEncryptStaging,
-								Provider:     "LetsEncrypt",
 							},
 						},
 					},
@@ -182,26 +184,26 @@ var configValidationTests = []validationTestStruct{
 		new:     getAcmeCR(vzapi.LetsEncrypt, emailAddress, letsencryptProduction),
 		wantErr: false,
 	},
-	{
-		name: "invalidACMEProvider",
-		old:  &vzapi.Verrazzano{},
-		new: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					CertManager: &vzapi.CertManagerComponent{
-						Certificate: vzapi.Certificate{
-							Acme: vzapi.Acme{
-								Provider:     "blah",
-								EmailAddress: emailAddress,
-								Environment:  letsencryptProduction,
-							},
-						},
-					},
-				},
-			},
-		},
-		wantErr: true,
-	},
+	//{
+	//	name: "invalidACMEProvider",
+	//	old:  &vzapi.Verrazzano{},
+	//	new: &vzapi.Verrazzano{
+	//		Spec: vzapi.VerrazzanoSpec{
+	//			Components: vzapi.ComponentSpec{
+	//				CertManager: &vzapi.CertManagerComponent{
+	//					Certificate: vzapi.Certificate{
+	//						Acme: vzapi.Acme{
+	//							Provider:     "blah",
+	//							EmailAddress: emailAddress,
+	//							Environment:  letsencryptProduction,
+	//						},
+	//					},
+	//				},
+	//			},
+	//		},
+	//	},
+	//	wantErr: true,
+	//},
 	{
 		name:    "invalidLetsEncryptEnv",
 		old:     &vzapi.Verrazzano{},
@@ -335,11 +337,11 @@ func getCaSecretCR() *vzapi.Verrazzano {
 	return &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
-				CertManager: &vzapi.CertManagerComponent{
-					Certificate: vzapi.Certificate{
-						CA: vzapi.CA{
-							SecretName:               secretName,
-							ClusterResourceNamespace: secretNamespace,
+				ClusterIssuer: &vzapi.ClusterIssuerComponent{
+					ClusterResourceNamespace: secretNamespace,
+					IssuerConfig: vzapi.IssuerConfig{
+						CA: &vzapi.CAIssuer{
+							SecretName: secretName,
 						},
 					},
 				},

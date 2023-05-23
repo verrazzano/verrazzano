@@ -5,7 +5,10 @@ package config
 
 import (
 	"context"
-	"testing"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	cmcommonfake "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common/fake"
+	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 
 	cmutil "github.com/cert-manager/cert-manager/pkg/api/util"
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -14,15 +17,10 @@ import (
 	certv1client "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
-	cmcommonfake "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common/fake"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
-	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -30,6 +28,9 @@ import (
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"testing"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
 const (
@@ -206,7 +207,7 @@ func runCAUpdateTest(t *testing.T, upgrade bool) {
 	}
 
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(localvz).Build()
-	ctx := spi.NewFakeContext(client, updatedVZ, nil, false)
+	ctx := spi.NewFakeContext(client, updatedVZ, nil, false, profileDir)
 
 	var err error
 	if upgrade {
@@ -351,7 +352,7 @@ auth:
 	expectedIssuer, _ := createAcmeClusterIssuer(vzlog.DefaultLogger(), expectedIssuerTemplateData)
 
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(localvz, oldSecret, newSecret, existingIssuer).Build()
-	ctx := spi.NewFakeContext(client, updatedVz, nil, false)
+	ctx := spi.NewFakeContext(client, updatedVz, nil, false, profileDir)
 
 	var err error
 	if upgrade {
@@ -361,12 +362,10 @@ auth:
 	}
 	assert.NoError(t, err)
 
-	cmConfig, err := cmcommon.GetCertManagerConfiguration(ctx.EffectiveCR())
+	actualIssuer, err := createACMEIssuerObject(ctx.Log(), ctx.Client(), ctx.EffectiveCR(), ctx.EffectiveCR().Spec.Components.ClusterIssuer)
 	assert.NoError(t, err)
-
-	actualIssuer, err := createACMEIssuerObject(vzlog.DefaultLogger(), client, ctx.EffectiveCR(), cmConfig)
+	assert.NotNil(t, actualIssuer)
 	assert.Equal(t, expectedIssuer.Object["spec"], actualIssuer.Object["spec"])
-	assert.NoError(t, err)
 }
 
 // TestClusterIssuerUpdated tests the createOrUpdateClusterIssuer function
@@ -473,7 +472,7 @@ func TestClusterIssuerUpdated(t *testing.T) {
 
 	// Fake controllerruntime client and ComponentContext for the call
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(existingClusterIssuer, certificate, ociSecret).Build()
-	ctx := spi.NewFakeContext(client, localvz, nil, false)
+	ctx := spi.NewFakeContext(client, localvz, nil, false, profileDir)
 
 	// Fake Go client for the CertManager clientset
 	cmClient := certv1fake.NewSimpleClientset(certificate, certificateRequest1, certificateRequest2, otherCertRequest)
@@ -564,7 +563,7 @@ func runUninstallTest(t *testing.T, objs ...clipkg.Object) {
 		return apiextv1fake.NewSimpleClientset(crtObjectToRuntimeObject(objs...)...).ApiextensionsV1(), nil
 	}
 
-	fakeContext := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
+	fakeContext := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false, profileDir)
 
 	// We do more exhaustive testing of uninstall in the tests for uninstallVerrazzanoCertManagerResources, so
 	// we don't expect errors here

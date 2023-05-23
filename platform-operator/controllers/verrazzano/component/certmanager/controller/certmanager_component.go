@@ -132,11 +132,6 @@ func (c certManagerComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) err
 		return nil
 	}
 
-	// Can not enable both CM and External CM
-	if err := cmcommon.ValidateConfiguration(vz); err != nil {
-		return err
-	}
-
 	// Verify there isn't a CertManager installation that already exists in the cert-manager namespace
 	if err := checkExistingCertManager(vz); err != nil {
 		return err
@@ -151,12 +146,6 @@ func (c certManagerComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-
-	// Can not enable both CM and External CM
-	if err := cmcommon.ValidateConfiguration(new); err != nil {
-		return err
-	}
-
 	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }
 

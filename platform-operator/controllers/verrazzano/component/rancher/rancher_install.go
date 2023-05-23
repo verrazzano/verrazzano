@@ -43,7 +43,7 @@ func patchRancherIngress(c client.Client, vz *vzapi.Verrazzano) error {
 	ingress.Annotations["nginx.ingress.kubernetes.io/force-ssl-redirect"] = "true"
 	ingress.Annotations["cert-manager.io/cluster-issuer"] = constants.VerrazzanoClusterIssuerName
 	ingress.Annotations["cert-manager.io/common-name"] = fmt.Sprintf("%s.%s.%s", common.RancherName, vz.Spec.EnvironmentName, dnsSuffix)
-	if (cm.Certificate.Acme != vzapi.Acme{}) {
+	if (cm != nil && *cm.LetsEncrypt != vzapi.LetsEncryptACMEIssuer{}) {
 		addAcmeIngressAnnotations(vz.Spec.EnvironmentName, dnsSuffix, ingress)
 	} else {
 		addCAIngressAnnotations(vz.Spec.EnvironmentName, dnsSuffix, ingress)
@@ -51,7 +51,7 @@ func patchRancherIngress(c client.Client, vz *vzapi.Verrazzano) error {
 	return c.Patch(context.TODO(), ingress, ingressMerge)
 }
 
-// addAcmeIngressAnnotations annotate ingress with ACME specific values
+// addAcmeIngressAnnotations annotate ingress with LetsEncrypt specific values
 func addAcmeIngressAnnotations(name, dnsSuffix string, ingress *networking.Ingress) {
 	ingress.Annotations["nginx.ingress.kubernetes.io/auth-realm"] = fmt.Sprintf("%s auth", dnsSuffix)
 	ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = fmt.Sprintf("verrazzano-ingress.%s.%s", name, dnsSuffix)

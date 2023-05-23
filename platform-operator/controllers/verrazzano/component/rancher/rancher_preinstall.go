@@ -74,8 +74,8 @@ func copyDefaultCACertificate(log vzlog.VerrazzanoLogger, c client.Client, vz *v
 }
 
 func isUsingDefaultCACertificate(cm *vzapi.ClusterIssuerComponent) bool {
-	return cm != nil &&
-		cm.Certificate.CA != vzapi.CA{} &&
-		cm.Certificate.CA.SecretName == defaultVerrazzanoName &&
+	return cm != nil && cm.CA != nil &&
+		*cm.CA != vzapi.CAIssuer{} &&
+		cm.CA.SecretName == defaultVerrazzanoName &&
 		cm.ClusterResourceNamespace == defaultSecretNamespace
 }
