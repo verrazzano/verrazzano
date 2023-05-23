@@ -30,7 +30,9 @@ const (
 	ociRegionEnvVar   = "OCI_CLI_REGION"
 	skipUpgradeEnvVar = "SKIP_KUBERNETES_UPGRADE"
 
-	waitTimeout     = 20 * time.Minute
+	waitTimeout             = 20 * time.Minute
+	waitTimeoutControlPlane = 2 * time.Hour
+
 	pollingInterval = 30 * time.Second
 
 	waitForDeleteTimeout = 600 * time.Second
@@ -113,7 +115,7 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 		Expect(updateResponse.OpcWorkRequestId).ShouldNot(BeNil())
 
 		// wait for the work request to complete, this can take roughly 5-15 minutes
-		waitForWorkRequest(*updateResponse.OpcWorkRequestId)
+		waitForWorkRequest(*updateResponse.OpcWorkRequestId, waitTimeoutControlPlane)
 	})
 
 	t.It("upgrades the node pool Kubernetes version", func() {
@@ -135,7 +137,7 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 		Expect(updateResponse.OpcWorkRequestId).ShouldNot(BeNil())
 
 		// wait for the work request to complete
-		waitForWorkRequest(*updateResponse.OpcWorkRequestId)
+		waitForWorkRequest(*updateResponse.OpcWorkRequestId, waitTimeout)
 	})
 
 	t.It("replaces each worker node in the node pool", func() {
@@ -194,7 +196,7 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 })
 
 // waitForWorkRequest waits for the work request to transition to success
-func waitForWorkRequest(workRequestID string) {
+func waitForWorkRequest(workRequestID string, timeout time.Duration) {
 	Eventually(func() (ocice.WorkRequestStatusEnum, error) {
 		t.Logs.Infof("Waiting for work request with id %s to complete", workRequestID)
 		workRequestResponse, err := okeClient.GetWorkRequest(context.Background(), ocice.GetWorkRequestRequest{WorkRequestId: &workRequestID})
@@ -203,7 +205,7 @@ func waitForWorkRequest(workRequestID string) {
 		}
 		t.Logs.Debugf("Work request response: %+v", workRequestResponse)
 		return workRequestResponse.Status, nil
-	}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(Equal(ocice.WorkRequestStatusSucceeded))
+	}).WithTimeout(timeout).WithPolling(pollingInterval).Should(Equal(ocice.WorkRequestStatusSucceeded))
 }
 
 // terminateComputeInstance terminates a compute instance
