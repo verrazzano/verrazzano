@@ -192,7 +192,6 @@ pipeline {
                         def k = 0
                         def  mapOfJobsInBatches = []
                         upgradeJobsStageMapping = [:]
-                        mapOfJobsInBatches.add(releaseCommitMap)
                         for(int i=0;i<listOfUpgradeJobs.size();i++){
                             if(k<NJObs){
                                 upgradeJobsStageMapping.put(listOfUpgradeJobs.get(i),getStageOfUpgradeJob(listOfUpgradeJobs.get(i)))
@@ -203,20 +202,14 @@ pipeline {
                                 upgradeJobsStageMapping = [:]
                                 k = 0;
                             }
-                    }
-                    print mapOfJobsInBatches
-                    for(batch in mapOfJobsInBatches){
-                        parallel batch
-                        sleep 5
-                    }
-                    echo "Running upgrades from tip of release branch to master:"
-                    print listOfTipOfReleaseUpgradeJobs
-                    for(job in listOfTipOfReleaseUpgradeJobs){
-                        parallel job
-                        sleep 5
-                    }
-                    //parallel upgradeJobsStageMapping
-                     }
+                        }
+                            mapOfJobsInBatches.add(releaseCommitMap)
+                            print mapOfJobsInBatches
+                            for(batch in mapOfJobsInBatches){
+                                parallel batch
+                                sleep 5
+                            }
+                       }
                    }
                 }
             }
