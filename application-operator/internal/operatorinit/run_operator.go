@@ -55,12 +55,27 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		return err
 	}
 
-	// Create a buffered channel of size 10 for the multi cluster agent to receive messages
-	agentChannel := make(chan clusters.StatusUpdateMessage, constants.StatusUpdateChannelBufferSize)
+	var agentChannel chan clusters.StatusUpdateMessage
+
+	if runClusterAgent {
+		// Create a buffered channel of size 10 for the multi cluster agent to receive messages
+		agentChannel = make(chan clusters.StatusUpdateMessage, constants.StatusUpdateChannelBufferSize)
+
+		log.Info("Starting agent reconciler for syncing multi-cluster objects")
+		if err := (&mcagent.Reconciler{
+			Client:       mgr.GetClient(),
+			Log:          log.With(vzlog.FieldAgent, "multi-cluster"),
+			Scheme:       mgr.GetScheme(),
+			AgentChannel: agentChannel,
+		}).SetupWithManager(mgr); err != nil {
+			log.Errorf("Failed to create managed cluster agent controller: %v", err)
+			return err
+		}
+	}
 
 	if runReconcilers {
 		log.Info("Starting application reconcilers")
-		if err := startReconcilers(mgr, defaultMetricsScraper, log); err != nil {
+		if err := startAppReconcilers(mgr, defaultMetricsScraper, log); err != nil {
 			return err
 		}
 		if err := startMulticlusterReconcilers(mgr, agentChannel, log); err != nil {
@@ -75,11 +90,6 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 	}
 
 	// +kubebuilder:scaffold:builder
-
-	if runClusterAgent {
-		log.Info("Starting agent for syncing multi-cluster objects")
-		go mcagent.StartAgent(mgr.GetClient(), agentChannel, log)
-	}
 
 	log.Info("Starting manager")
 	if err = mgr.Start(ctrl.SetupSignalHandler()); err != nil {
@@ -140,7 +150,7 @@ func startMulticlusterReconcilers(mgr manager.Manager, agentChannel chan cluster
 	return nil
 }
 
-func startReconcilers(mgr manager.Manager, defaultMetricsScraper string, log *zap.SugaredLogger) error {
+func startAppReconcilers(mgr manager.Manager, defaultMetricsScraper string, log *zap.SugaredLogger) error {
 	logger, err := vzlog.BuildZapInfoLogger(0)
 	if err != nil {
 		return err

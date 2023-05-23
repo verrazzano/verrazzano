@@ -519,6 +519,9 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileManagedClusterDelete(ctx c
 	if err := r.syncThanosQueryEndpointDelete(ctx, vmc); err != nil {
 		return err
 	}
+	if _, err := r.deleteManifestObjects(vmc); err != nil {
+		return err
+	}
 	if err := r.mutateManagedClusterCACertsSecret(ctx, vmc, nil); err != nil {
 		return err
 	}

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -24,15 +24,11 @@ import (
 
 // Syncer contains context for synchronize operations
 type Syncer struct {
-	AdminClient           client.Client
-	LocalClient           client.Client
-	Log                   *zap.SugaredLogger
-	ManagedClusterName    string
-	Context               context.Context
-	AgentSecretFound      bool
-	AgentSecretValid      bool
-	SecretResourceVersion string
-	CattleAgentHash       string
+	AdminClient        client.Client
+	LocalClient        client.Client
+	Log                *zap.SugaredLogger
+	ManagedClusterName string
+	Context            context.Context
 
 	// List of namespaces to watch for multi-cluster objects.
 	ProjectNamespaces   []string
@@ -101,12 +97,6 @@ func (s *Syncer) getManagedNamespaces() ([]string, error) {
 	}
 
 	return nsList, nil
-}
-
-// AgentReadyToSync - the agent has all the information it needs to sync resources i.e.
-// there is an agent secret and a kubernetes client to the Admin cluster was created
-func (s *Syncer) AgentReadyToSync() bool {
-	return s.AgentSecretFound && s.AgentSecretValid
 }
 
 func (s *Syncer) performAdminStatusUpdate(msg clusters.StatusUpdateMessage) error {

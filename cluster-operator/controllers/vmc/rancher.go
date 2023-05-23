@@ -465,6 +465,31 @@ func createOrUpdateSecretRancherProxy(secret *corev1.Secret, rc *rancherutil.Ran
 	return controllerutil.OperationResultUpdated, nil
 }
 
+// deleteSecretRancherProxy deletes a secret on a remote cluster through the Rancher Proxy API and
+// returns true if deletion occurred, false otherwise
+func deleteSecretRancherProxy(secret *corev1.Secret, rc *rancherutil.RancherConfig, clusterID string, log vzlog.VerrazzanoLogger) (bool, error) {
+	if secret == nil {
+		return false, log.ErrorNewErr("Failed to get secret, nil value passed to get request")
+	}
+	reqURL := constructSecretURL(secret, rc.Host, clusterID, false)
+	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
+	resp, _, err := rancherutil.SendRequest(http.MethodDelete, reqURL, headers, "", rc, log)
+	if err != nil && (resp == nil || resp.StatusCode != 404) {
+		return false, err
+	}
+	if resp == nil {
+		return false, log.ErrorfNewErr("Failed to find response from GET request %s", secret.GetNamespace(), secret.GetName(), reqURL)
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		log.Progressf("Secret %s/%s is not found on cluster %s - nothing to delete", secret.Namespace, secret.Name, clusterID)
+		return false, nil
+	}
+	if resp.StatusCode != http.StatusOK {
+		return false, log.ErrorfNewErr("Failed to delete secret %s/%s from DELETE request %s with code %d", secret.GetNamespace(), secret.GetName(), reqURL, resp.StatusCode)
+	}
+	return true, nil
+}
+
 // rancherSecretMutate mutates the rancher secret from the given Mutate function
 func rancherSecretMutate(f controllerutil.MutateFn, secret *corev1.Secret, log vzlog.VerrazzanoLogger) error {
 	key := client.ObjectKeyFromObject(secret)

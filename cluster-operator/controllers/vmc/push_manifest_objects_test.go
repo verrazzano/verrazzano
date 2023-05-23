@@ -5,6 +5,7 @@ package vmc
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"testing"
@@ -108,6 +109,88 @@ func TestPushManifestObjects(t *testing.T) {
 	}
 }
 
+// TestDeleteManifestObjects tests the deletion of manifest objects from a managed cluster
+// GIVEN a call to deleteManifestObjects
+//
+//	WHEN the status of the VMC does not contain the condition update
+//	THEN the manifest objects should get pushed to the managed cluster
+func TestDeleteManifestObjects(t *testing.T) {
+	a := asserts.New(t)
+	c := generateClientObjects()
+
+	savedRancherHTTPClient := rancherutil.RancherHTTPClient
+	defer func() {
+		rancherutil.RancherHTTPClient = savedRancherHTTPClient
+	}()
+
+	savedRetry := rancherutil.DefaultRetry
+	defer func() {
+		rancherutil.DefaultRetry = savedRetry
+	}()
+	rancherutil.DefaultRetry = wait.Backoff{
+		Steps:    1,
+		Duration: 1 * time.Millisecond,
+		Factor:   1.0,
+		Jitter:   0.1,
+	}
+
+	vmc := &v1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: rancherNamespace,
+			Name:      "cluster",
+		},
+		Status: v1alpha1.VerrazzanoManagedClusterStatus{
+			RancherRegistration: v1alpha1.RancherRegistration{
+				ClusterID: "cluster-id",
+			},
+		},
+	}
+	r := &VerrazzanoManagedClusterReconciler{
+		Client: c,
+		log:    vzlog.DefaultLogger(),
+	}
+
+	statusTrueVMC := vmc.DeepCopy()
+	statusTrueVMC.Status.Conditions = append(statusTrueVMC.Status.Conditions, v1alpha1.Condition{
+		Type:   v1alpha1.ConditionManifestPushed,
+		Status: corev1.ConditionTrue,
+	})
+
+	mocker := gomock.NewController(t)
+
+	tests := []struct {
+		name    string
+		vmc     *v1alpha1.VerrazzanoManagedCluster
+		deleted bool
+		mock    *mocks.MockRequestSender
+	}{
+		{
+			name:    "test not active",
+			vmc:     vmc,
+			deleted: false,
+			mock:    addInactiveClusterMock(mocks.NewMockRequestSender(mocker), vmc.Status.RancherRegistration.ClusterID),
+		},
+		{
+			name:    "test active",
+			vmc:     vmc,
+			deleted: true,
+			mock:    addActiveClusterMockWithDelete(mocks.NewMockRequestSender(mocker), a, vmc, r, vmc.Status.RancherRegistration.ClusterID, true, true),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// clear any cached user auth tokens when the test completes
+			defer rancherutil.DeleteStoredTokens()
+
+			rancherutil.RancherHTTPClient = tt.mock
+			deleted, err := r.deleteManifestObjects(tt.vmc)
+			a.Equal(tt.deleted, deleted)
+			// registration and manifest secrets should no longer exist
+			a.NoError(err)
+		})
+	}
+}
+
 func generateClientObjects() client.WithWatch {
 	return fake.NewClientBuilder().WithRuntimeObjects(
 		&networkv1.Ingress{
@@ -181,6 +264,23 @@ func addInactiveClusterMock(httpMock *mocks.MockRequestSender, clusterID string)
 	return httpMock
 }
 
+func addActiveClusterMockWithDelete(httpMock *mocks.MockRequestSender, a *asserts.Assertions, vmc *v1alpha1.VerrazzanoManagedCluster, r *VerrazzanoManagedClusterReconciler, clusterID string, regSecretExists, agentSecretExists bool) *mocks.MockRequestSender {
+	httpMock = addTokenMock(httpMock)
+	expectActiveCluster(httpMock)
+
+	emptyBody := io.NopCloser(bytes.NewReader([]byte("")))
+	rancherSecPath := "/k8s/clusters/%s/api/v1/namespaces/%s/secrets/%s"
+	managedClusterAgentSecPath := fmt.Sprintf(rancherSecPath, clusterID, constants.VerrazzanoSystemNamespace, constants.MCAgentSecret)
+	managedClusterRegSecPath := fmt.Sprintf(rancherSecPath, clusterID, constants.VerrazzanoSystemNamespace, constants.MCRegistrationSecret)
+	httpMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodDelete, managedClusterAgentSecPath)).
+		Return(&http.Response{StatusCode: http.StatusOK, Body: emptyBody}, nil)
+	httpMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodDelete, managedClusterRegSecPath)).
+		Return(&http.Response{StatusCode: http.StatusOK, Body: emptyBody}, nil)
+	return httpMock
+}
+
 func addActiveClusterMock(httpMock *mocks.MockRequestSender, a *asserts.Assertions, vmc *v1alpha1.VerrazzanoManagedCluster, r *VerrazzanoManagedClusterReconciler, clusterID string) *mocks.MockRequestSender {
 	httpMock = addTokenMock(httpMock)
 
@@ -196,6 +296,11 @@ func addActiveClusterMock(httpMock *mocks.MockRequestSender, a *asserts.Assertio
 	regSecret.Name = constants.MCRegistrationSecret
 	httpMock = addNotFoundMock(httpMock, &regSecret, clusterID)
 
+	expectActiveCluster(httpMock)
+	return httpMock
+}
+
+func expectActiveCluster(httpMock *mocks.MockRequestSender) {
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clustersPath+"/"+clusterID)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
@@ -207,7 +312,6 @@ func addActiveClusterMock(httpMock *mocks.MockRequestSender, a *asserts.Assertio
 			}
 			return resp, nil
 		})
-	return httpMock
 }
 
 func addTokenMock(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender {

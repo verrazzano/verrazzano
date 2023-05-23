@@ -7,9 +7,13 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"time"
 
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -17,7 +21,6 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -30,71 +33,123 @@ import (
 )
 
 // ENV VAR for registration secret version
-const registrationSecretVersion = "REGISTRATION_SECRET_VERSION"
+const (
+	registrationSecretVersion = "REGISTRATION_SECRET_VERSION"
+	cattleAgentHashData       = "cattle-agent-hash" // the data field name for the cattleAgentHash in the agent state configmap
+	requeueDelayMinSeconds    = 50
+	requeueDelayMaxSeconds    = 70
+)
 
-// StartAgent - start the agent thread for syncing multi-cluster objects
-func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUpdateMessage, log *zap.SugaredLogger) {
-	// Wait for the existence of the verrazzano-cluster-agent secret.  It contains the credentials
-	// for connecting to a managed cluster.
-	log = log.With(vzlog.FieldAgent, "multi-cluster")
-	log.Info("Starting multi-cluster agent")
+// Name of config map that stores mc agent state
+var mcAgentStateConfigMapName = types.NamespacedName{Name: "mc-agent-state", Namespace: constants.VerrazzanoMultiClusterNamespace}
 
-	// Initialize the syncer object
-	s := &Syncer{
-		LocalClient:           client,
-		Log:                   log,
-		Context:               context.TODO(),
-		ProjectNamespaces:     []string{},
-		AgentSecretFound:      false,
-		SecretResourceVersion: "",
-		CattleAgentHash:       "",
-		StatusUpdateChannel:   statusUpdateChannel,
-	}
+var getAdminClientFunc = createAdminClient
 
-	for {
-		// Process one iteration of the agent thread
-		err := s.ProcessAgentThread()
-		if err != nil {
-			s.Log.Errorf("Failed processing multi-cluster resources: %v", err)
-		}
-		if !s.AgentReadyToSync() {
-			// there is no admin cluster we are connected to, so nowhere to send any status updates
-			// received - discard them
-			discardStatusMessages(s.StatusUpdateChannel)
-		}
-		time.Sleep(vzconstants.VMCAgentPollingTimeInterval)
+var mcAppConfCRDName = fmt.Sprintf("%s.%s", clustersv1alpha1.MultiClusterAppConfigResource, clustersv1alpha1.SchemeGroupVersion.Group)
+
+// Reconciler reconciles one iteration of the Managed cluster agent
+type Reconciler struct {
+	client.Client
+	Log          *zap.SugaredLogger
+	Scheme       *runtime.Scheme
+	AgentChannel chan clusters.StatusUpdateMessage
+}
+
+// SetupWithManager registers our controller with the manager
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&corev1.Secret{}).
+		WithEventFilter(r.createAgentPredicate()).
+		Complete(r)
+}
+
+func (r *Reconciler) createAgentPredicate() predicate.Predicate {
+	return predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			return r.isAgentSecret(e.Object)
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return r.isAgentSecret(e.Object)
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return r.isAgentSecret(e.ObjectNew)
+		},
 	}
 }
 
+func (r *Reconciler) isAgentSecret(object client.Object) bool {
+	return object.GetNamespace() == constants.VerrazzanoSystemNamespace && object.GetName() == constants.MCAgentSecret
+}
+
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	// Get the agent secret
+	agentSecret := corev1.Secret{}
+	if err := r.Get(ctx, req.NamespacedName, &agentSecret); err != nil {
+		// there is no admin cluster we are connected to, so nowhere to send any status updates
+		// received - discard them
+		discardStatusMessages(r.AgentChannel)
+		return clusters.IgnoreNotFoundWithLog(err, r.Log)
+	}
+	if agentSecret.DeletionTimestamp != nil {
+		r.Log.Debugf("the secret %v was deleted", req.NamespacedName)
+		// there is no admin cluster we are connected to, so nowhere to send any status updates
+		// received - discard them
+		discardStatusMessages(r.AgentChannel)
+		return clusters.NewRequeueWithRandomDelay(requeueDelayMinSeconds, requeueDelayMaxSeconds), nil
+	}
+	if err := validateAgentSecret(&agentSecret); err != nil {
+		// agent secret is invalid - log and also discard status messages on the channel since there
+		// is no valid admin cluster to send status updates to
+		discardStatusMessages(r.AgentChannel)
+		return clusters.NewRequeueWithRandomDelay(requeueDelayMinSeconds, requeueDelayMaxSeconds), fmt.Errorf("Agent secret validation failed: %v", err)
+	}
+	r.Log.Debug("Reconciling multi-cluster agent")
+
+	// Process one iteration of the agent thread
+	err := r.ProcessAgentThread(ctx, agentSecret)
+	if err != nil {
+		r.Log.Errorf("failed processing multi-cluster resources: %v", err)
+	}
+	return clusters.NewRequeueWithRandomDelay(requeueDelayMinSeconds, requeueDelayMaxSeconds), nil
+}
+
 // ProcessAgentThread - process one iteration of the agent thread
-func (s *Syncer) ProcessAgentThread() error {
-	secret := corev1.Secret{}
+func (r *Reconciler) ProcessAgentThread(ctx context.Context, agentSecret corev1.Secret) error {
+	managedClusterName := string(agentSecret.Data[constants.ClusterNameData])
 
-	// Get the secret
-	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCAgentSecret, Namespace: constants.VerrazzanoSystemNamespace}, &secret)
-	if err != nil {
-		if client.IgnoreNotFound(err) == nil && s.AgentSecretFound {
-			s.Log.Debugf("the secret %s in namespace %s was deleted", constants.MCAgentSecret, constants.VerrazzanoSystemNamespace)
-			s.AgentSecretFound = false
-			s.AgentSecretValid = false
-		}
-		return nil
-	}
-	err = validateAgentSecret(&secret)
-	if err != nil {
-		s.AgentSecretValid = false
-		return fmt.Errorf("secret validation failed: %v", err)
+	// Initialize the syncer object
+	s := &Syncer{
+		LocalClient:         r.Client,
+		Log:                 r.Log,
+		Context:             ctx,
+		ProjectNamespaces:   []string{},
+		StatusUpdateChannel: r.AgentChannel,
+		ManagedClusterName:  managedClusterName,
 	}
 
-	// Remember the secret had been found in order to notice if it gets deleted
-	s.AgentSecretFound = true
-	s.AgentSecretValid = true
+	// Read current agent state from config map
+	mcAgentStateConfigMap := corev1.ConfigMap{Data: map[string]string{}}
+	if err := r.Get(ctx, mcAgentStateConfigMapName, &mcAgentStateConfigMap); client.IgnoreNotFound(err) != nil {
+		return fmt.Errorf("failed to get the agent state config map %v: %v", mcAgentStateConfigMapName, err)
+	}
 
-	// The cluster secret exists - log the cluster name only if it changes
-	managedClusterName := string(secret.Data[constants.ClusterNameData])
-	if managedClusterName != s.ManagedClusterName {
-		s.Log.Debugf("Found secret named %s in namespace %s, cluster name changed from %q to %q", secret.Name, secret.Namespace, s.ManagedClusterName, managedClusterName)
-		s.ManagedClusterName = managedClusterName
+	// Create the client for accessing the admin cluster
+	adminClient, err := getAdminClientFunc(&agentSecret)
+	if err != nil {
+		return fmt.Errorf("failed to get the client for cluster %q with error %v", managedClusterName, err)
+	}
+	s.AdminClient = adminClient
+
+	// Sync cattle-cluster-agent deployment which will set the new cattleAgentHash on the Syncer
+	cattleAgentHashValue, err := s.syncCattleClusterAgent(mcAgentStateConfigMap.Data[cattleAgentHashData], "")
+	if err != nil {
+		// we couldn't sync the cattle-cluster-agent - but we should keep going with the rest of the work
+		r.Log.Errorf("Failed to synchronize cattle-cluster-agent: %v", err)
+	}
+
+	// Update mc-agent-state config map with the managed cluster name or cattle agent hash if needed
+	if err := r.updateMCAgentStateConfigMap(ctx, managedClusterName, cattleAgentHashValue); err != nil {
+		return err
 	}
 
 	// Update all Prometheus monitors relabel configs in all namespaces with new cluster name if needed
@@ -102,21 +157,12 @@ func (s *Syncer) ProcessAgentThread() error {
 	if err != nil {
 		return fmt.Errorf("failed to update the cluster name to %s on Prometheus monitor resources with error %v", s.ManagedClusterName, err)
 	}
-	// Create the client for accessing the admin cluster when there is a change in the secret
-	if secret.ResourceVersion != s.SecretResourceVersion {
-		adminClient, err := getAdminClient(&secret)
-		if err != nil {
-			return fmt.Errorf("failed to get the client for cluster %q with error %v", managedClusterName, err)
-		}
-		s.AdminClient = adminClient
-		s.SecretResourceVersion = secret.ResourceVersion
-	}
 
 	// Update the status of our VMC on the admin cluster to record the last time we connected
 	err = s.updateVMCStatus()
 	if err != nil {
 		// we couldn't update status of the VMC - but we should keep going with the rest of the work
-		s.Log.Errorf("Failed to update VMC status on admin cluster: %v", err)
+		r.Log.Errorf("Failed to update VMC status on admin cluster: %v", err)
 	}
 
 	// Sync multi-cluster objects
@@ -126,21 +172,45 @@ func (s *Syncer) ProcessAgentThread() error {
 	err = s.syncDeregistration()
 	if err != nil {
 		// we couldn't delete the managed cluster resources - but we should keep going with the rest of the work
-		s.Log.Errorf("Failed to sync the deregistration process: %v", err)
+		r.Log.Errorf("Failed to sync the deregistration process: %v", err)
 	}
 
 	// Check whether the admin or local clusters' CA certs have rolled, and sync as necessary
 	_, err = s.syncClusterCAs()
 	if err != nil {
 		// we couldn't sync the cluster CAs - but we should keep going with the rest of the work
-		s.Log.Errorf("Failed to synchronize cluster CA certificates: %v", err)
+		r.Log.Errorf("Failed to synchronize cluster CA certificates: %v", err)
 	}
 
-	// Sync cattle-cluster-agent deployment
-	err = s.syncCattleClusterAgent("")
+	return nil
+}
+
+// updateMCAgentStateConfigMap updates the managed cluster name and cattle agent hash in the
+// agent state config map if those have changed from what was there before
+func (r *Reconciler) updateMCAgentStateConfigMap(ctx context.Context, managedClusterName string, cattleAgentHashValue string) error {
+	mcAgentStateConfigMap := corev1.ConfigMap{}
+	mcAgentStateConfigMap.Name = mcAgentStateConfigMapName.Name
+	mcAgentStateConfigMap.Namespace = mcAgentStateConfigMapName.Namespace
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &mcAgentStateConfigMap, func() error {
+		if mcAgentStateConfigMap.Data == nil {
+			mcAgentStateConfigMap.Data = map[string]string{}
+		}
+		existingClusterName := mcAgentStateConfigMap.Data[constants.ClusterNameData]
+		if existingClusterName != managedClusterName {
+			// Log the cluster name only if it changes
+			r.Log.Infof("Cluster name changed from '%q' to '%q', updating the agent state ConfigMap", existingClusterName, managedClusterName)
+			mcAgentStateConfigMap.Data[constants.ClusterNameData] = managedClusterName
+		}
+		existingCattleAgentHash := mcAgentStateConfigMap.Data[cattleAgentHashData]
+		if existingCattleAgentHash != cattleAgentHashValue {
+			// Log that the cattle agent hash has changed
+			r.Log.Infof("The %s has changed, updating the agent state ConfigMap", cattleAgentHashData)
+			mcAgentStateConfigMap.Data[cattleAgentHashData] = cattleAgentHashValue
+		}
+		return nil
+	})
 	if err != nil {
-		// we couldn't sync the cattle-cluster-agent - but we should keep going with the rest of the work
-		s.Log.Errorf("Failed to synchronize cattle-cluster-agent: %v", err)
+		return fmt.Errorf("failed to update agent state in ConfigMap %v: %v", mcAgentStateConfigMapName, err)
 	}
 	return nil
 }
@@ -186,6 +256,17 @@ func (s *Syncer) updateVMCStatus() error {
 
 // SyncMultiClusterResources - sync multi-cluster objects
 func (s *Syncer) SyncMultiClusterResources() {
+	// if the MultiClusterApplicationConfiguration CRD does not exist, the other MC resources are
+	// unlikely to exist, and we don't need to sync the resources
+	mcAppConfCRD := apiextv1.CustomResourceDefinition{}
+	if err := s.LocalClient.Get(s.Context,
+		types.NamespacedName{Name: mcAppConfCRDName}, &mcAppConfCRD); err != nil {
+		if apierrors.IsNotFound(err) {
+			s.Log.Debugf("CRD %s not found - skip syncing multicluster resources", mcAppConfCRDName)
+			return
+		}
+		s.Log.Errorf("Failed retrieving CRD %s: %v", mcAppConfCRDName, err)
+	}
 	err := s.syncVerrazzanoProjects()
 	if err != nil {
 		s.Log.Errorf("Failed syncing VerrazzanoProject objects: %v", err)
@@ -237,7 +318,7 @@ func validateAgentSecret(secret *corev1.Secret) error {
 }
 
 // Get the clientset for accessing the admin cluster
-func getAdminClient(secret *corev1.Secret) (client.Client, error) {
+func createAdminClient(secret *corev1.Secret) (client.Client, error) {
 	// Create a temp file that contains the kubeconfig
 	tmpFile, err := os.CreateTemp("", "kubeconfig")
 	if err != nil {

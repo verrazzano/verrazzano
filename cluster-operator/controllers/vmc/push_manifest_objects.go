@@ -63,3 +63,40 @@ func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(vmc *clusterapi
 	regModified := regOperation != controllerutil.OperationResultNone
 	return agentModified || regModified, nil
 }
+
+// deleteManifestObjects deletes the Verrazzano manifest objects on the managed cluster.
+// To access the managed cluster, we are taking advantage of the Rancher proxy
+func (r *VerrazzanoManagedClusterReconciler) deleteManifestObjects(vmc *clusterapi.VerrazzanoManagedCluster) (bool, error) {
+	clusterID := vmc.Status.RancherRegistration.ClusterID
+	if len(clusterID) == 0 {
+		r.log.Progressf("Cannot delete manifest objects, Rancher ClusterID not found in the VMC %s/%s status", vmc.GetNamespace(), vmc.GetName())
+		return false, nil
+	}
+	rc, err := rancherutil.NewVerrazzanoClusterRancherConfig(r.Client, r.RancherIngressHost, r.log)
+	if err != nil || rc == nil {
+		return false, err
+	}
+
+	// If the managed cluster is not active, we should not attempt the connection
+	if isActive, err := isManagedClusterActiveInRancher(rc, clusterID, r.log); !isActive || err != nil {
+		return false, err
+	}
+
+	// Delete the agent and registration secrets from the managed cluster
+	agentSecret := corev1.Secret{}
+	agentSecret.Namespace = constants.VerrazzanoSystemNamespace
+	agentSecret.Name = constants.MCAgentSecret
+	regSecret := corev1.Secret{}
+	regSecret.Namespace = constants.VerrazzanoSystemNamespace
+	regSecret.Name = constants.MCRegistrationSecret
+
+	agentDeleted, err := deleteSecretRancherProxy(&agentSecret, rc, clusterID, r.log)
+	if err != nil {
+		return false, err
+	}
+	regDeleted, err := deleteSecretRancherProxy(&regSecret, rc, clusterID, r.log)
+	if err != nil {
+		return regDeleted && agentDeleted, err
+	}
+	return regDeleted && agentDeleted, nil
+}
