@@ -85,7 +85,10 @@ var _ = t.Describe("Rancher", Label("f:platform-lcm.install"), func() {
 						conditions := status["conditions"].([]interface{})
 						for _, condition := range conditions {
 							conditionData := condition.(map[string]interface{})
-							if conditionData["type"].(string) != "Active" && conditionData["status"].(string) != "True" {
+							conditionType := conditionData["type"].(string)
+							conditionStatus := conditionData["status"].(string)
+							t.Logs.Infof("Driver %s: type=%s, status=%s", driver.GetName(), conditionType, conditionStatus)
+							if conditionType != "Active" && conditionStatus != "True" {
 								return false
 							}
 						}
