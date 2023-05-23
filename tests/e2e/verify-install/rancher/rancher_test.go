@@ -40,10 +40,15 @@ func WhenRancherInstalledIt(description string, f func()) {
 		}
 		isRancherEnabled := vzcr.IsRancherEnabled(inClusterVZ)
 
-		if isRancherEnabled {
+		supported, err := pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfig)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %v", err))
+		}
+
+		if isRancherEnabled && supported {
 			f()
 		} else {
-			t.Logs.Infof("Skipping test '%v', Rancher is not installed on this cluster", description)
+			t.Logs.Infof("Skipping test '%v', not supported for the configuration installed on this cluster", description)
 		}
 	})
 }
