@@ -171,6 +171,10 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 			componentStatus.ReconcilingGeneration = cr.Generation
 		}
 	}
+	if conditionType == installv1alpha1.CondUpgradeComplete {
+		log.Infof("----> DEBUG: Component %s ReconcilingGeneration = %i", componentName, componentStatus.ReconcilingGeneration)
+		log.Infof("----> DEBUG: Component %s LastReconcilingGeneration = %i", componentName, componentStatus.LastReconciledGeneration)
+	}
 	componentStatus.Conditions = appendConditionIfNecessary(log, componentStatus.Name, componentStatus.Conditions, condition)
 
 	// Set the state of resource
@@ -187,7 +191,9 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 	}
 
 	// Update the status
-	compContext.Log().Infof("----> DEBUG: Updating component %s status to %v", componentName, componentStatus)
+	if conditionType == installv1alpha1.CondUpgradeComplete {
+		log.Infof("----> DEBUG: Updating component %s status to %v", componentName, componentStatus)
+	}
 	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
 		Verrazzano: cr,
 		Components: map[string]*installv1alpha1.ComponentStatusDetails{
