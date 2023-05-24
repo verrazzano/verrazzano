@@ -186,7 +186,6 @@ pipeline {
                             releaseCommitMap.put(releaseCommit, getTipOfBranchToMasterJob(key, releaseCommit))
                         }
 
-                        listOfTipOfReleaseUpgradeJobs.add(releaseCommitMap)
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                         echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
                         def k = 0
@@ -202,20 +201,14 @@ pipeline {
                                 upgradeJobsStageMapping = [:]
                                 k = 0;
                             }
-                    }
-                    print mapOfJobsInBatches
-                    for(batch in mapOfJobsInBatches){
-                        parallel batch
-                        sleep 5
-                    }
-                    echo "Running upgrades from tip of release branch to master:"
-                    print listOfTipOfReleaseUpgradeJobs
-                    for(job in listOfTipOfReleaseUpgradeJobs){
-                        parallel job
-                        sleep 5
-                    }
-                    //parallel upgradeJobsStageMapping
-                     }
+                        }
+                            mapOfJobsInBatches.add(releaseCommitMap)
+                            print mapOfJobsInBatches
+                            for(batch in mapOfJobsInBatches){
+                                parallel batch
+                                sleep 5
+                            }
+                       }
                    }
                 }
             }

@@ -601,41 +601,66 @@ spec:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
-                      webhook:
-                        properties:
-                          monitorChanges:
-                            type: boolean
-                          overrides:
-                            items:
+                    type: object
+                  certManagerWebhookOCI:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
                               properties:
-                                configMapRef:
-                                  properties:
-                                    key:
-                                      type: string
-                                    name:
-                                      type: string
-                                    optional:
-                                      type: boolean
-                                  required:
-                                  - key
-                                  type: object
-                                  x-kubernetes-map-type: atomic
-                                secretRef:
-                                  properties:
-                                    key:
-                                      type: string
-                                    name:
-                                      type: string
-                                    optional:
-                                      type: boolean
-                                  required:
-                                  - key
-                                  type: object
-                                  x-kubernetes-map-type: atomic
-                                values:
-                                  x-kubernetes-preserve-unknown-fields: true
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
                               type: object
-                            type: array
+                              x-kubernetes-map-type: atomic
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                    type: object
+                  clusterIssuer:
+                    properties:
+                      ca:
+                        properties:
+                          secretName:
+                            type: string
+                        required:
+                        - secretName
+                        type: object
+                      clusterResourceNamespace:
+                        default: cert-manager
+                        type: string
+                      enabled:
+                        default: true
+                        type: boolean
+                      letsEncrypt:
+                        properties:
+                          emailAddress:
+                            type: string
+                          environment:
+                            type: string
                         type: object
                     type: object
                   clusterOperator:
@@ -922,79 +947,6 @@ spec:
                           - policyName
                           type: object
                         type: array
-                    type: object
-                  externalCertManager:
-                    properties:
-                      certificate:
-                        properties:
-                          acme:
-                            properties:
-                              emailAddress:
-                                type: string
-                              environment:
-                                type: string
-                              provider:
-                                type: string
-                            required:
-                            - provider
-                            type: object
-                          ca:
-                            properties:
-                              clusterResourceNamespace:
-                                type: string
-                              secretName:
-                                type: string
-                            required:
-                            - clusterResourceNamespace
-                            - secretName
-                            type: object
-                        type: object
-                      clusterResourceNamespace:
-                        type: string
-                      enabled:
-                        type: boolean
-                      namespace:
-                        default: cert-manager
-                        type: string
-                      serviceAccount:
-                        default: cert-manager
-                        type: string
-                      webhook:
-                        properties:
-                          monitorChanges:
-                            type: boolean
-                          overrides:
-                            items:
-                              properties:
-                                configMapRef:
-                                  properties:
-                                    key:
-                                      type: string
-                                    name:
-                                      type: string
-                                    optional:
-                                      type: boolean
-                                  required:
-                                  - key
-                                  type: object
-                                  x-kubernetes-map-type: atomic
-                                secretRef:
-                                  properties:
-                                    key:
-                                      type: string
-                                    name:
-                                      type: string
-                                    optional:
-                                      type: boolean
-                                  required:
-                                  - key
-                                  type: object
-                                  x-kubernetes-map-type: atomic
-                                values:
-                                  x-kubernetes-preserve-unknown-fields: true
-                              type: object
-                            type: array
-                        type: object
                     type: object
                   fluentd:
                     properties:
@@ -4559,6 +4511,71 @@ spec:
                           type: object
                         type: array
                     type: object
+                  certManagerWebhookOCI:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                    type: object
+                  clusterIssuer:
+                    properties:
+                      ca:
+                        properties:
+                          secretName:
+                            type: string
+                        required:
+                        - secretName
+                        type: object
+                      clusterResourceNamespace:
+                        default: cert-manager
+                        type: string
+                      enabled:
+                        default: true
+                        type: boolean
+                      letsEncrypt:
+                        properties:
+                          emailAddress:
+                            type: string
+                          environment:
+                            type: string
+                          provider:
+                            type: string
+                        required:
+                        - provider
+                        type: object
+                    type: object
                   clusterOperator:
                     properties:
                       enabled:
@@ -4740,43 +4757,6 @@ spec:
                         required:
                         - domain
                         type: object
-                    type: object
-                  externalCertManager:
-                    properties:
-                      certificate:
-                        properties:
-                          acme:
-                            properties:
-                              emailAddress:
-                                type: string
-                              environment:
-                                type: string
-                              provider:
-                                type: string
-                            required:
-                            - provider
-                            type: object
-                          ca:
-                            properties:
-                              clusterResourceNamespace:
-                                type: string
-                              secretName:
-                                type: string
-                            required:
-                            - clusterResourceNamespace
-                            - secretName
-                            type: object
-                        type: object
-                      clusterResourceNamespace:
-                        type: string
-                      enabled:
-                        type: boolean
-                      namespace:
-                        default: cert-manager
-                        type: string
-                      serviceAccount:
-                        default: cert-manager
-                        type: string
                     type: object
                   fluentd:
                     properties:
