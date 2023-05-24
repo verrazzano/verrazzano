@@ -187,6 +187,7 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 	}
 
 	// Update the status
+	compContext.Log().Infof("----> DEBUG: Updating component %s status to %v", componentName, componentStatus)
 	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
 		Verrazzano: cr,
 		Components: map[string]*installv1alpha1.ComponentStatusDetails{
@@ -207,7 +208,7 @@ func appendConditionIfNecessary(log vzlog.VerrazzanoLogger, resourceName string,
 			newConditionsList = append(newConditionsList, conditions[i])
 		}
 	}
-	log.Debugf("Adding/modifying %s resource newCondition: %v", resourceName, newCondition.Type)
+	log.Infof("Adding/modifying %s resource newCondition: %v", resourceName, newCondition.Type)
 	// Always put the new condition at the end of the list since the kubectl status display and
 	// some upgrade stuff depends on the most recent condition being the last one
 	return append(newConditionsList, newCondition)
