@@ -733,11 +733,6 @@ def isPagerDutyEnabled() {
 }
 
 def getCronSchedule() {
-    if (env.BRANCH_NAME.equals("master")) {
-        return "H */6 * * *"
-    } else if (env.BRANCH_NAME.startsWith("release-1")) {
-        return "@daily"
-    }
     return ""
 }
 
