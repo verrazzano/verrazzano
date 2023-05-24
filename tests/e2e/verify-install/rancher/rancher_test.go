@@ -152,8 +152,12 @@ func listKontainerDrivers() (*unstructured.UnstructuredList, error) {
 		Resource: "kontainerdrivers",
 	}).List(context.TODO(), metav1.ListOptions{})
 
-	if err != nil && errors.IsNotFound(err) {
-		t.Logs.Info("No kontainerdrivers found")
+	if err != nil {
+		if errors.IsNotFound(err) {
+			t.Logs.Info("No kontainerdrivers found")
+		} else {
+			t.Logs.Errorf("Failed to list kontainerdrivers: %v", err)
+		}
 	}
 	return cattleDrivers, err
 }
