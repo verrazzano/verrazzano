@@ -20,7 +20,7 @@
     },
     {
       "name": "ingress-nginx",
-      "version": "v1.3.1",
+      "version": "v1.7.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -28,13 +28,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.3.1-20230322153500-05e7a995d",
+              "tag": "20230524165909-aaae0c58",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "v1.3.1-20230322153500-05e7a995d",
+              "tag": "20230524165909-aaae0c58",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
