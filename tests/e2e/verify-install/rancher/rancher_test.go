@@ -8,17 +8,16 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
-	"k8s.io/apimachinery/pkg/api/errors"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 )
@@ -38,7 +37,7 @@ func WhenRancherInstalledIt(description string, f func()) {
 		if err != nil {
 			AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
 		}
-		isRancherEnabled := vzcr.IsRancherEnabled(inClusterVZ)
+		isRancherEnabled := vzcr.IsComponentStatusEnabled(inClusterVZ, rancher.ComponentName)
 
 		supported, err := pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfig)
 		if err != nil {
