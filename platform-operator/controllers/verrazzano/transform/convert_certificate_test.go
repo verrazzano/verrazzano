@@ -35,10 +35,10 @@ var (
 	}
 )
 
-// Test_convertCertificateToClusterIssuerV1Beta1 tests the convertCertificateToClusterIssuerV1Beta1 function
+// TestConvertCertificateToClusterIssuerV1Beta1 tests the convertCertificateToClusterIssuerV1Beta1 function
 // GIVEN a call to convertCertificateToClusterIssuerV1Beta1
 // THEN the appropriate conversions from the deprecated Certificate object to the ClusterIssuer Component
-func Test_convertCertificateToClusterIssuerV1Beta1(t *testing.T) {
+func TestConvertCertificateToClusterIssuerV1Beta1(t *testing.T) {
 	asserts := assert.New(t)
 	for _, tt := range v1beta1Tests {
 		t.Run(tt.testName, func(t *testing.T) {
@@ -62,10 +62,10 @@ func Test_convertCertificateToClusterIssuerV1Beta1(t *testing.T) {
 	}
 }
 
-// Test_convertCertificateToClusterIssuerV1Alpha1 tests the convertCertificateToClusterIssuerV1Alpha1 function
+// TestConvertCertificateToClusterIssuerV1Alpha1 tests the convertCertificateToClusterIssuerV1Alpha1 function
 // GIVEN a call to convertCertificateToClusterIssuerV1Beta1
 // THEN the appropriate conversions from the deprecated Certificate object to the ClusterIssuer Component
-func Test_convertCertificateToClusterIssuerV1Alpha1(t *testing.T) {
+func TestConvertCertificateToClusterIssuerV1Alpha1(t *testing.T) {
 	asserts := assert.New(t)
 	for _, tt := range v1alpha1Tests {
 		t.Run(tt.testName, func(t *testing.T) {

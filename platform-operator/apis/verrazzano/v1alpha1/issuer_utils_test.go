@@ -9,6 +9,13 @@ import (
 	"testing"
 )
 
+const (
+	emailAddress                 = "foo@bar.com"
+	envType                      = "staging"
+	testClusterResourceNamespace = "myclusterResourceNamespace"
+	customCAName                 = "myCA"
+)
+
 // TestNewDefaultClusterIssuer Tests the TestNewDefaultClusterIssuer constructor
 // GIVEN a call to NewDefaultClusterIssuer()
 // THEN a valid ClusterIssuerComponent is returned with the default self-signed CA issuer configuration
@@ -33,17 +40,17 @@ func TestNewDefaultClusterIssuer(t *testing.T) {
 	asserts.NoError(err)
 }
 
-// TestClusterIssuerComponent_IsCAIssuer_IsLEIssuer Tests the IsCAIssuer and IsLetsEncryptIssuer methods
+// TestClusterIssuerComponentIsCAIssuerIsLEIssuer Tests the IsCAIssuer and IsLetsEncryptIssuer methods
 // GIVEN a call to IsCAIssuer() or IsLetsEncryptIssuer() for various configurations
 // THEN the functions behave as expected
-func TestClusterIssuerComponent_IsCAIssuer_IsLEIssuer(t *testing.T) {
+func TestClusterIssuerComponentIsCAIssuerIsLEIssuer(t *testing.T) {
 	asserts := assert.New(t)
 
 	caIssuer := ClusterIssuerComponent{
 		Enabled:                  newBool(true),
 		ClusterResourceNamespace: constants.CertManagerNamespace,
 		IssuerConfig: IssuerConfig{
-			CA: &CAIssuer{SecretName: "myCA"},
+			CA: &CAIssuer{SecretName: customCAName},
 		},
 	}
 
@@ -60,8 +67,8 @@ func TestClusterIssuerComponent_IsCAIssuer_IsLEIssuer(t *testing.T) {
 		ClusterResourceNamespace: constants.CertManagerNamespace,
 		IssuerConfig: IssuerConfig{
 			LetsEncrypt: &LetsEncryptACMEIssuer{
-				EmailAddress: "foo@bar.com",
-				Environment:  "staging",
+				EmailAddress: emailAddress,
+				Environment:  envType,
 			},
 		},
 	}
@@ -75,11 +82,11 @@ func TestClusterIssuerComponent_IsCAIssuer_IsLEIssuer(t *testing.T) {
 	asserts.NoError(err)
 }
 
-// TestClusterIssuerComponent_NotDefaultIssuer Tests the IsDefaultIssuer method
+// TestClusterIssuerComponentNotDefaultIssuer Tests the IsDefaultIssuer method
 // GIVEN a call to IsDefaultIssuer()
 // WHEN the issuer configuration is not a default self-signed configuration
 // THEN the function returns false, or an error if the issuer is misconfigured
-func TestClusterIssuerComponent_NotDefaultIssuer(t *testing.T) {
+func TestClusterIssuerComponentNotDefaultIssuer(t *testing.T) {
 	asserts := assert.New(t)
 
 	// Test default clusterResourceNamespace, non-default secret name
@@ -98,7 +105,7 @@ func TestClusterIssuerComponent_NotDefaultIssuer(t *testing.T) {
 	// Test default secret name, non-default cluster resource namespace
 	caIssuer2 := ClusterIssuerComponent{
 		Enabled:                  newBool(true),
-		ClusterResourceNamespace: "mycluserResourceNamespace",
+		ClusterResourceNamespace: testClusterResourceNamespace,
 		IssuerConfig: IssuerConfig{
 			CA: &CAIssuer{SecretName: constants.DefaultVerrazzanoCASecretName},
 		},
@@ -113,8 +120,8 @@ func TestClusterIssuerComponent_NotDefaultIssuer(t *testing.T) {
 		ClusterResourceNamespace: constants.CertManagerNamespace,
 		IssuerConfig: IssuerConfig{
 			LetsEncrypt: &LetsEncryptACMEIssuer{
-				EmailAddress: "foo@bar.com",
-				Environment:  "staging",
+				EmailAddress: emailAddress,
+				Environment:  envType,
 			},
 		},
 	}
@@ -123,21 +130,21 @@ func TestClusterIssuerComponent_NotDefaultIssuer(t *testing.T) {
 	asserts.NoError(err)
 }
 
-// TestClusterIssuerComponent_BadIssuerConfig Tests the various IsXXX method
+// TestClusterIssuerComponentBadIssuerConfig Tests the various IsXXX method
 // GIVEN a call to IsXXXXIssuer()
 // WHEN the issuer configuration is invalid
 // THEN the functions returns false and an error
-func TestClusterIssuerComponent_BadIssuerConfig(t *testing.T) {
+func TestClusterIssuerComponentBadIssuerConfig(t *testing.T) {
 	asserts := assert.New(t)
 
 	badConfig := ClusterIssuerComponent{
 		Enabled:                  newBool(true),
 		ClusterResourceNamespace: constants.CertManagerNamespace,
 		IssuerConfig: IssuerConfig{
-			CA: &CAIssuer{SecretName: "myCA"},
+			CA: &CAIssuer{SecretName: customCAName},
 			LetsEncrypt: &LetsEncryptACMEIssuer{
-				EmailAddress: "foo@bar.com",
-				Environment:  "staging",
+				EmailAddress: emailAddress,
+				Environment:  envType,
 			},
 		},
 	}
