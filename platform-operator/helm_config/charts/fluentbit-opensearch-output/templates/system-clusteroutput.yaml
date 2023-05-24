@@ -1,0 +1,38 @@
+{{- if .Values.system.enabled -}}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterOutput
+metadata:
+  name: opensearch-system-clusteroutput
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+spec:
+  matchRegex: {{ .Values.system.matchRegex }}
+  retry_limit: "no_limits"
+  opensearch:
+    {{- if .Values.system.host}}
+    host: {{ .Values.system.host }}
+    {{- end}}
+    {{- if .Values.system.port}}
+    port: {{ .Values.system.port }}
+    {{- end}}
+    {{- if .Values.system.dataStreamMode}}
+    dataStreamMode: {{ .Values.system.dataStreamMode }}
+    {{- end}}
+    {{- if .Values.system.dataStreamName}}
+    dataStreamName: {{ .Values.system.dataStreamName }}
+    {{- end}}
+    {{- if .Values.system.dataStreamTemplateName}}
+    dataStreamTemplateName: {{ .Values.system.dataStreamTemplateName }}
+    {{- end}}
+    {{- if .Values.system.templateFile}}
+    templateFile: {{ .Values.system.templateFile }}
+    {{- end}}
+    {{- if .Values.system.httpUser }}
+    httpUser:
+{{  toYaml .Values.system.httpUser | indent 4 }}
+    {{- end}}
+    {{- if .Values.system.httpPassword }}
+    httpPassword:
+{{ toYaml .Values.system.httpPassword | indent 4 }}
+    {{- end}}
+{{- end }}
