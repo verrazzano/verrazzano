@@ -6,7 +6,6 @@ package transform
 import (
 	"errors"
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -195,6 +194,10 @@ func convertCertificateConfiguration(cmCertificateConfig interface{}, clusterIss
 		return nil
 	}
 
+	return doConversion(cmCertificateConfig, clusterIssuerConfig, isCAConfig)
+}
+
+func doConversion(cmCertificateConfig interface{}, clusterIssuerConfig interface{}, isCAConfig bool) error {
 	if issuerV1Alpha1, ok := clusterIssuerConfig.(*v1alpha1.ClusterIssuerComponent); ok {
 		certV1Alpha1, _ := cmCertificateConfig.(v1alpha1.Certificate)
 		if isCAConfig {
@@ -213,6 +216,7 @@ func convertCertificateConfiguration(cmCertificateConfig interface{}, clusterIss
 		if isNotDefaultCANamespace(certV1Alpha1) {
 			issuerV1Alpha1.ClusterResourceNamespace = certV1Alpha1.CA.ClusterResourceNamespace
 		}
+		return nil
 	}
 	if issuerV1Beta1, ok := clusterIssuerConfig.(*v1beta1.ClusterIssuerComponent); ok {
 		certV1Beta1, _ := cmCertificateConfig.(v1beta1.Certificate)
@@ -232,7 +236,7 @@ func convertCertificateConfiguration(cmCertificateConfig interface{}, clusterIss
 		if isNotDefaultCANamespace(certV1Beta1) {
 			issuerV1Beta1.ClusterResourceNamespace = certV1Beta1.CA.ClusterResourceNamespace
 		}
+		return nil
 	}
-
-	return nil
+	return fmt.Errorf("Unknown issuer type passed in: %T", clusterIssuerConfig)
 }
