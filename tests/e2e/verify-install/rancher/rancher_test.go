@@ -28,16 +28,12 @@ const (
 	pollingInterval = 10 * time.Second
 )
 
-var (
-	clientset dynamic.Interface
-)
-
 var t = framework.NewTestFramework("rancher")
-var kubeconfig = getKubeConfigOrAbort()
 
 // 'It' Wrapper to only run spec if Rancher is supported on the current Verrazzano installation
 func WhenRancherInstalledIt(description string, f func()) {
 	t.It(description, func() {
+		kubeconfig := getKubeConfigOrAbort()
 		inClusterVZ, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
 		if err != nil {
 			AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
@@ -62,6 +58,7 @@ var _ = t.AfterEach(func() {})
 var _ = t.Describe("Rancher", Label("f:platform-lcm.install"), func() {
 
 	t.Context("after successful installation", func() {
+		var clientset dynamic.Interface
 
 		// Get dynamic client
 		Eventually(func() (dynamic.Interface, error) {
@@ -75,7 +72,7 @@ var _ = t.Describe("Rancher", Label("f:platform-lcm.install"), func() {
 
 		WhenRancherInstalledIt("kontainerdrivers must be ready", func() {
 			driversActive := func() bool {
-				cattleDrivers, err := listKontainerDrivers()
+				cattleDrivers, err := listKontainerDrivers(clientset)
 				if err != nil {
 					return false
 				}
@@ -106,7 +103,7 @@ var _ = t.Describe("Rancher", Label("f:platform-lcm.install"), func() {
 		WhenRancherInstalledIt("expected kontainerdrivers must exist", func() {
 
 			expectedDriversFound := func() bool {
-				cattleDrivers, err := listKontainerDrivers()
+				cattleDrivers, err := listKontainerDrivers(clientset)
 				if err != nil {
 					return false
 				}
@@ -142,7 +139,7 @@ func getKubeConfigOrAbort() string {
 	return kubeconfigPath
 }
 
-func listKontainerDrivers() (*unstructured.UnstructuredList, error) {
+func listKontainerDrivers(clientset dynamic.Interface) (*unstructured.UnstructuredList, error) {
 	cattleDrivers, err := clientset.Resource(schema.GroupVersionResource{
 		Group:    "management.cattle.io",
 		Version:  "v3",
