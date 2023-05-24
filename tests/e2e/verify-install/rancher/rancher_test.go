@@ -127,10 +127,7 @@ var _ = t.Describe("Rancher", Label("f:platform-lcm.install"), func() {
 						foundCount++
 					}
 				}
-				if foundCount != 5 {
-					return false
-				}
-				return true
+				return foundCount == 5
 			}
 			Eventually(expectedDriversFound, waitTimeout, pollingInterval).Should(BeTrue())
 		})
