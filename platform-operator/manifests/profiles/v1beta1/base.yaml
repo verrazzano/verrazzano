@@ -290,3 +290,5 @@ spec:
       enabled: false
     fluentOperator:
       enabled: false
+    fluentbitOpensearchOutput:
+      enabled: false

@@ -41,6 +41,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
+			InstallBeforeUpgrade:      true,
 		},
 	}
 }
