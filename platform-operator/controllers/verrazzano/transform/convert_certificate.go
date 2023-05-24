@@ -28,83 +28,67 @@ var (
 	}
 )
 
-// convertCertificateToClusterIssuerV1Beta1 aligns the ClusterIssuer configurations between CertManager and the newer ClusterIssuer
-// configurations.  The webhook validators will ensure only one is set to a non-defaulted value, so if one is
-// configured align it with the other.
+// convertCertificateToClusterIssuerV1Beta1 Ensures backwards compatibility between the newer ClusterIssuerComponent
+// and the legacy CertManagerComponent.Certificate object.
+//
+// The general rule is if the ClusterIssuerComponent is not set or is defaulted, then use the CertManagerComponent.Certificate
+// configuration if appropriate.
 func convertCertificateToClusterIssuerV1Beta1(effectiveCR *v1beta1.Verrazzano) error {
-	// Internally components will derive Issuer configuration from the ClusterIssuerComponent, so
-	// we need to determine if the legacy CertManager component is configured and convert that to the ClusterIssuer
-	// configuration.
-	certManagerConfig := effectiveCR.Spec.Components.CertManager
-	clusterIssuerConfig := effectiveCR.Spec.Components.ClusterIssuer
+	// Initialize the ClusterIssuer if necessary; because of the other merging, this should not really happen in practice
+	if effectiveCR.Spec.Components.ClusterIssuer == nil {
+		effectiveCR.Spec.Components.ClusterIssuer = v1beta1.NewDefaultClusterIssuer()
+	}
 
+	certManagerConfig := effectiveCR.Spec.Components.CertManager
+	if certManagerConfig == nil {
+		// again, in practice should never happen or we have other problems, but nothing to do otherwise
+		return nil
+	}
+
+	clusterIssuerConfig := effectiveCR.Spec.Components.ClusterIssuer
 	isDefaultIssuer, err := clusterIssuerConfig.IsDefaultIssuer()
 	if err != nil {
 		return err
 	}
 
-	cmCertificateConfig := certManagerConfig.Certificate
-
-	// Check if it's a CA issuer config
-	isCAConfig, err := isCAConfig(cmCertificateConfig)
-	if err != nil {
-		// The certificate object is invalid
+	// Issuer is the default configuration, but the CM Certificate config is configured explicitly,
+	// align the ClusterIssuer configuration internally on the CM configuration
+	if err := convertCertificateConfiguration(certManagerConfig.Certificate, clusterIssuerConfig, isDefaultIssuer); err != nil {
 		return err
 	}
 
-	isDefaultCertificateConfig := isDefaultCertificateConfig(cmCertificateConfig)
-	if !isDefaultCertificateConfig && !isDefaultIssuer {
-		return fmt.Errorf("Illegal state, both CertManager Certificate and ClusterIssuer components are configured")
-	}
-
-	if isDefaultIssuer && !isDefaultCertificateConfig {
-		// Issuer is the default configuration, but the CM Certificate config is configured explicitly,
-		// align the ClusterIssuer configuration internally on the CM configuration
-		if err := convertCertificateConfiguration(cmCertificateConfig, clusterIssuerConfig, isCAConfig); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
-// convertCertificateToClusterIssuerV1Alpha1 converts a legacy CertManagerComponent.Certificate object to a
-// ClusterIssuerComponent configuration.  The conversion is done only in the case where the ClusterIssuerComponent is
-// not explicitly configured with a non-default issuer configuration.
+// convertCertificateToClusterIssuerV1Beta1 Ensures backwards compatibility between the newer ClusterIssuerComponent
+// and the legacy CertManagerComponent.Certificate object.
 //
-// The webhook validators will ensure only one is set to a non-defaulted value.
+// The general rule is if the ClusterIssuerComponent is not set or is defaulted, then use the CertManagerComponent.Certificate
+// configuration if appropriate.
 func convertCertificateToClusterIssuerV1Alpha1(effectiveCR *v1alpha1.Verrazzano) error {
-	// Internally components will derive Issuer configuration from the ClusterIssuerComponent, so
-	// we need to determine if the legacy CertManager component is configured and convert that to the ClusterIssuer
-	// configuration.
-	certManagerConfig := effectiveCR.Spec.Components.CertManager
-	clusterIssuerConfig := effectiveCR.Spec.Components.ClusterIssuer
+	// Initialize the ClusterIssuer if necessary; because of the other merging, this should not really happen in practice
+	if effectiveCR.Spec.Components.ClusterIssuer == nil {
+		effectiveCR.Spec.Components.ClusterIssuer = v1alpha1.NewDefaultClusterIssuer()
+	}
 
+	certManagerConfig := effectiveCR.Spec.Components.CertManager
+	if certManagerConfig == nil {
+		// again, in practice should never happen or we have other problems, but nothing to do otherwise
+		return nil
+	}
+
+	clusterIssuerConfig := effectiveCR.Spec.Components.ClusterIssuer
 	isDefaultIssuer, err := clusterIssuerConfig.IsDefaultIssuer()
 	if err != nil {
 		return err
 	}
 
-	cmCertificateConfig := certManagerConfig.Certificate
-
-	// Check if it's a CA issuer config
-	isCAConfig, err := isCAConfig(cmCertificateConfig)
-	if err != nil {
-		// The certificate object is invalid
+	// Issuer is the default configuration, but the CM Certificate config is configured explicitly,
+	// align the ClusterIssuer configuration internally on the CM configuration
+	if err := convertCertificateConfiguration(certManagerConfig.Certificate, clusterIssuerConfig, isDefaultIssuer); err != nil {
 		return err
 	}
 
-	isDefaultCertificateConfig := isDefaultCertificateConfig(cmCertificateConfig)
-	if !isDefaultCertificateConfig && !isDefaultIssuer {
-		return fmt.Errorf("Illegal state, both CertManager Certificate and ClusterIssuer components are configured")
-	}
-
-	if isDefaultIssuer && !isDefaultCertificateConfig {
-		// Issuer is the default configuration, but the CM Certificate config is configured explicitly,
-		// align the ClusterIssuer configuration internally on the CM configuration
-		if err := convertCertificateConfiguration(cmCertificateConfig, clusterIssuerConfig, isCAConfig); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
@@ -155,7 +139,26 @@ func isCAConfig(certConfig interface{}) (isCAConfig bool, err error) {
 	return caNotEmpty, nil
 }
 
-func convertCertificateConfiguration(cmCertificateConfig interface{}, clusterIssuerConfig interface{}, isCAConfig bool) error {
+func convertCertificateConfiguration(cmCertificateConfig interface{}, clusterIssuerConfig interface{}, isDefaultIssuer bool) error {
+	// Check if it's a CA issuer config
+	isCAConfig, err := isCAConfig(cmCertificateConfig)
+	if err != nil {
+		// The certificate object is invalid
+		return err
+	}
+
+	isDefaultCertificateConfig := isDefaultCertificateConfig(cmCertificateConfig)
+	if !isDefaultCertificateConfig && !isDefaultIssuer {
+		return fmt.Errorf("Illegal state, both CertManager Certificate and ClusterIssuer components are configured")
+	}
+
+	if !isDefaultIssuer {
+		if !isDefaultCertificateConfig {
+			return fmt.Errorf("Illegal state, can not simultaneously configure both the ClusterIssuerComponent and the CertManagerComponent")
+		}
+		// Don't overwrite an explicitly configured ClusterIssuerComponent
+		return nil
+	}
 	if issuerV1Alpha1, ok := clusterIssuerConfig.(*v1alpha1.ClusterIssuerComponent); ok {
 		certV1Alpha1, _ := cmCertificateConfig.(v1alpha1.Certificate)
 		if isCAConfig {

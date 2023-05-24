@@ -16,27 +16,86 @@ import (
 // THEN the appropriate conversions from the deprecated Certificate object to the ClusterIssuer Component
 func Test_convertCertificateToClusterIssuerV1Beta1(t *testing.T) {
 	asserts := assert.New(t)
+	nonDefaultCA := v1beta1.Certificate{
+		CA: v1beta1.CA{
+			ClusterResourceNamespace: "myns",
+			SecretName:               "mySecret",
+		},
+	}
 	tests := []struct {
 		testName             string
-		certConfig           v1beta1.Certificate
+		certConfig           *v1beta1.CertManagerComponent
 		issuerConfig         *v1beta1.ClusterIssuerComponent
 		expectErr            bool
 		expectedIssuerConfig *v1beta1.ClusterIssuerComponent
 	}{
 		{
-			testName:             "Neither configured",
-			certConfig:           v1beta1.Certificate{},
+			testName:             "No CM or ClusterIssuer",
+			certConfig:           nil,
+			issuerConfig:         nil,
+			expectedIssuerConfig: v1beta1.NewDefaultClusterIssuer(),
+			expectErr:            false,
+		},
+		{
+			testName:             "Empty CM Certificate nil ClusterIssuer",
+			certConfig:           &v1beta1.CertManagerComponent{},
+			issuerConfig:         nil,
+			expectedIssuerConfig: v1beta1.NewDefaultClusterIssuer(),
+			expectErr:            true,
+		},
+		{
+			testName:             "Default CM Certificate nil ClusterIssuer",
+			certConfig:           &v1beta1.CertManagerComponent{Certificate: defaultCertConfigV1Beta1},
+			issuerConfig:         nil,
+			expectedIssuerConfig: v1beta1.NewDefaultClusterIssuer(),
+			expectErr:            false,
+		},
+		{
+			testName:             "Empty CM Certificate default ClusterIssuer",
+			certConfig:           &v1beta1.CertManagerComponent{},
+			issuerConfig:         v1beta1.NewDefaultClusterIssuer(),
+			expectedIssuerConfig: v1beta1.NewDefaultClusterIssuer(),
+			expectErr:            true,
+		},
+		{
+			testName:             "Neither Certificate field configured",
+			certConfig:           &v1beta1.CertManagerComponent{},
 			issuerConfig:         v1beta1.NewDefaultClusterIssuer(),
 			expectedIssuerConfig: v1beta1.NewDefaultClusterIssuer(),
 			expectErr:            true,
 		},
 		{
 			testName: "Non Default CA Certificate",
-			certConfig: v1beta1.Certificate{
-				CA: v1beta1.CA{
-					ClusterResourceNamespace: "myns",
-					SecretName:               "mySecret",
+			certConfig: &v1beta1.CertManagerComponent{
+				Certificate: nonDefaultCA,
+			},
+			issuerConfig: v1beta1.NewDefaultClusterIssuer(),
+			expectedIssuerConfig: &v1beta1.ClusterIssuerComponent{
+				ClusterResourceNamespace: "myns",
+				IssuerConfig: v1beta1.IssuerConfig{
+					CA: &v1beta1.CAIssuer{SecretName: "mySecret"},
 				},
+			},
+			expectErr: false,
+		},
+		{
+			testName: "Non Default CA Certificate nil ClusterIssuer",
+			certConfig: &v1beta1.CertManagerComponent{
+				Certificate: nonDefaultCA,
+			},
+			issuerConfig: nil,
+			expectedIssuerConfig: &v1beta1.ClusterIssuerComponent{
+				ClusterResourceNamespace: "myns",
+				IssuerConfig: v1beta1.IssuerConfig{
+					CA: &v1beta1.CAIssuer{SecretName: "mySecret"},
+				},
+			},
+			expectErr: false,
+		},
+		{
+			testName: "Non Default CA Certificate",
+			certConfig: &v1beta1.CertManagerComponent{
+				Certificate: nonDefaultCA,
 			},
 			issuerConfig: v1beta1.NewDefaultClusterIssuer(),
 			expectedIssuerConfig: &v1beta1.ClusterIssuerComponent{
@@ -49,11 +108,13 @@ func Test_convertCertificateToClusterIssuerV1Beta1(t *testing.T) {
 		},
 		{
 			testName: "LetsEncrypt Certificate",
-			certConfig: v1beta1.Certificate{
-				Acme: v1beta1.Acme{
-					EmailAddress: "foo@bar.com",
-					Environment:  "staging",
-					Provider:     v1beta1.LetsEncrypt,
+			certConfig: &v1beta1.CertManagerComponent{
+				Certificate: v1beta1.Certificate{
+					Acme: v1beta1.Acme{
+						EmailAddress: "foo@bar.com",
+						Environment:  "staging",
+						Provider:     v1beta1.LetsEncrypt,
+					},
 				},
 			},
 			issuerConfig: v1beta1.NewDefaultClusterIssuer(),
@@ -69,20 +130,79 @@ func Test_convertCertificateToClusterIssuerV1Beta1(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			testName: "Illegal Certificate",
-			certConfig: v1beta1.Certificate{
-				CA: v1beta1.CA{
-					ClusterResourceNamespace: "myns",
-					SecretName:               "mySecret",
+			testName:   "LetsEncrypt ClusterIssuer",
+			certConfig: &v1beta1.CertManagerComponent{Certificate: defaultCertConfigV1Beta1},
+			issuerConfig: &v1beta1.ClusterIssuerComponent{
+				ClusterResourceNamespace: constants.CertManagerNamespace,
+				IssuerConfig: v1beta1.IssuerConfig{
+					LetsEncrypt: &v1beta1.LetsEncryptACMEIssuer{
+						EmailAddress: "foo@bar.com",
+						Environment:  "staging",
+					},
 				},
-				Acme: v1beta1.Acme{
-					EmailAddress: "foo@bar.com",
-					Environment:  "staging",
-					Provider:     v1beta1.LetsEncrypt,
+			},
+			expectedIssuerConfig: &v1beta1.ClusterIssuerComponent{
+				ClusterResourceNamespace: constants.CertManagerNamespace,
+				IssuerConfig: v1beta1.IssuerConfig{
+					LetsEncrypt: &v1beta1.LetsEncryptACMEIssuer{
+						EmailAddress: "foo@bar.com",
+						Environment:  "staging",
+					},
+				},
+			},
+			expectErr: false,
+		},
+		{
+			testName:   "CA ClusterIssuer",
+			certConfig: &v1beta1.CertManagerComponent{Certificate: defaultCertConfigV1Beta1},
+			issuerConfig: &v1beta1.ClusterIssuerComponent{
+				ClusterResourceNamespace: "clusterIssuerNamespace",
+				IssuerConfig: v1beta1.IssuerConfig{
+					CA: &v1beta1.CAIssuer{SecretName: "issuerSecret"},
+				},
+			},
+			expectedIssuerConfig: &v1beta1.ClusterIssuerComponent{
+				ClusterResourceNamespace: "clusterIssuerNamespace",
+				IssuerConfig: v1beta1.IssuerConfig{
+					CA: &v1beta1.CAIssuer{SecretName: "issuerSecret"},
+				},
+			},
+			expectErr: false,
+		},
+		{
+			testName: "Illegal Certificate",
+			certConfig: &v1beta1.CertManagerComponent{
+				Certificate: v1beta1.Certificate{
+					CA: v1beta1.CA{
+						ClusterResourceNamespace: "myns",
+						SecretName:               "mySecret",
+					},
+					Acme: v1beta1.Acme{
+						EmailAddress: "foo@bar.com",
+						Environment:  "staging",
+						Provider:     v1beta1.LetsEncrypt,
+					},
 				},
 			},
 			issuerConfig: v1beta1.NewDefaultClusterIssuer(),
 			expectErr:    true,
+		},
+		{
+			testName:   "Both Certificate and ClusterIssuer Configured",
+			certConfig: &v1beta1.CertManagerComponent{Certificate: nonDefaultCA},
+			issuerConfig: &v1beta1.ClusterIssuerComponent{
+				ClusterResourceNamespace: "clusterIssuerNamespace",
+				IssuerConfig: v1beta1.IssuerConfig{
+					CA: &v1beta1.CAIssuer{SecretName: "issuerSecret"},
+				},
+			},
+			expectedIssuerConfig: &v1beta1.ClusterIssuerComponent{
+				ClusterResourceNamespace: "clusterIssuerNamespace",
+				IssuerConfig: v1beta1.IssuerConfig{
+					CA: &v1beta1.CAIssuer{SecretName: "issuerSecret"},
+				},
+			},
+			expectErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -90,9 +210,7 @@ func Test_convertCertificateToClusterIssuerV1Beta1(t *testing.T) {
 			vz := &v1beta1.Verrazzano{
 				Spec: v1beta1.VerrazzanoSpec{
 					Components: v1beta1.ComponentSpec{
-						CertManager: &v1beta1.CertManagerComponent{
-							Certificate: tt.certConfig,
-						},
+						CertManager:   tt.certConfig,
 						ClusterIssuer: tt.issuerConfig,
 					},
 				},
@@ -113,26 +231,86 @@ func Test_convertCertificateToClusterIssuerV1Beta1(t *testing.T) {
 // THEN the appropriate conversions from the deprecated Certificate object to the ClusterIssuer Component
 func Test_convertCertificateToClusterIssuerV1Alpha1(t *testing.T) {
 	asserts := assert.New(t)
+	nonDefaultCA := v1alpha1.Certificate{
+		CA: v1alpha1.CA{
+			ClusterResourceNamespace: "myns",
+			SecretName:               "mySecret",
+		},
+	}
 	tests := []struct {
 		testName             string
-		certConfig           v1alpha1.Certificate
+		certConfig           *v1alpha1.CertManagerComponent
 		issuerConfig         *v1alpha1.ClusterIssuerComponent
 		expectErr            bool
 		expectedIssuerConfig *v1alpha1.ClusterIssuerComponent
 	}{
 		{
-			testName:     "Neither configured",
-			certConfig:   v1alpha1.Certificate{},
-			issuerConfig: v1alpha1.NewDefaultClusterIssuer(),
-			expectErr:    true,
+			testName:             "No CM or ClusterIssuer",
+			certConfig:           nil,
+			issuerConfig:         nil,
+			expectedIssuerConfig: v1alpha1.NewDefaultClusterIssuer(),
+			expectErr:            false,
+		},
+		{
+			testName:             "Empty CM Certificate nil ClusterIssuer",
+			certConfig:           &v1alpha1.CertManagerComponent{},
+			issuerConfig:         nil,
+			expectedIssuerConfig: v1alpha1.NewDefaultClusterIssuer(),
+			expectErr:            true,
+		},
+		{
+			testName:             "Default CM Certificate nil ClusterIssuer",
+			certConfig:           &v1alpha1.CertManagerComponent{Certificate: defaultCertConfigV1Alpha1},
+			issuerConfig:         nil,
+			expectedIssuerConfig: v1alpha1.NewDefaultClusterIssuer(),
+			expectErr:            false,
+		},
+		{
+			testName:             "Empty CM Certificate default ClusterIssuer",
+			certConfig:           &v1alpha1.CertManagerComponent{},
+			issuerConfig:         v1alpha1.NewDefaultClusterIssuer(),
+			expectedIssuerConfig: v1alpha1.NewDefaultClusterIssuer(),
+			expectErr:            true,
+		},
+		{
+			testName:             "Neither Certificate field configured",
+			certConfig:           &v1alpha1.CertManagerComponent{},
+			issuerConfig:         v1alpha1.NewDefaultClusterIssuer(),
+			expectedIssuerConfig: v1alpha1.NewDefaultClusterIssuer(),
+			expectErr:            true,
 		},
 		{
 			testName: "Non Default CA Certificate",
-			certConfig: v1alpha1.Certificate{
-				CA: v1alpha1.CA{
-					ClusterResourceNamespace: "myns",
-					SecretName:               "mySecret",
+			certConfig: &v1alpha1.CertManagerComponent{
+				Certificate: nonDefaultCA,
+			},
+			issuerConfig: v1alpha1.NewDefaultClusterIssuer(),
+			expectedIssuerConfig: &v1alpha1.ClusterIssuerComponent{
+				ClusterResourceNamespace: "myns",
+				IssuerConfig: v1alpha1.IssuerConfig{
+					CA: &v1alpha1.CAIssuer{SecretName: "mySecret"},
 				},
+			},
+			expectErr: false,
+		},
+		{
+			testName: "Non Default CA Certificate nil ClusterIssuer",
+			certConfig: &v1alpha1.CertManagerComponent{
+				Certificate: nonDefaultCA,
+			},
+			issuerConfig: nil,
+			expectedIssuerConfig: &v1alpha1.ClusterIssuerComponent{
+				ClusterResourceNamespace: "myns",
+				IssuerConfig: v1alpha1.IssuerConfig{
+					CA: &v1alpha1.CAIssuer{SecretName: "mySecret"},
+				},
+			},
+			expectErr: false,
+		},
+		{
+			testName: "Non Default CA Certificate",
+			certConfig: &v1alpha1.CertManagerComponent{
+				Certificate: nonDefaultCA,
 			},
 			issuerConfig: v1alpha1.NewDefaultClusterIssuer(),
 			expectedIssuerConfig: &v1alpha1.ClusterIssuerComponent{
@@ -145,11 +323,13 @@ func Test_convertCertificateToClusterIssuerV1Alpha1(t *testing.T) {
 		},
 		{
 			testName: "LetsEncrypt Certificate",
-			certConfig: v1alpha1.Certificate{
-				Acme: v1alpha1.Acme{
-					EmailAddress: "foo@bar.com",
-					Environment:  "staging",
-					Provider:     v1alpha1.LetsEncrypt,
+			certConfig: &v1alpha1.CertManagerComponent{
+				Certificate: v1alpha1.Certificate{
+					Acme: v1alpha1.Acme{
+						EmailAddress: "foo@bar.com",
+						Environment:  "staging",
+						Provider:     v1alpha1.LetsEncrypt,
+					},
 				},
 			},
 			issuerConfig: v1alpha1.NewDefaultClusterIssuer(),
@@ -165,20 +345,79 @@ func Test_convertCertificateToClusterIssuerV1Alpha1(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			testName: "Illegal Certificate",
-			certConfig: v1alpha1.Certificate{
-				CA: v1alpha1.CA{
-					ClusterResourceNamespace: "myns",
-					SecretName:               "mySecret",
+			testName:   "LetsEncrypt ClusterIssuer",
+			certConfig: &v1alpha1.CertManagerComponent{Certificate: defaultCertConfigV1Alpha1},
+			issuerConfig: &v1alpha1.ClusterIssuerComponent{
+				ClusterResourceNamespace: constants.CertManagerNamespace,
+				IssuerConfig: v1alpha1.IssuerConfig{
+					LetsEncrypt: &v1alpha1.LetsEncryptACMEIssuer{
+						EmailAddress: "foo@bar.com",
+						Environment:  "staging",
+					},
 				},
-				Acme: v1alpha1.Acme{
-					EmailAddress: "foo@bar.com",
-					Environment:  "staging",
-					Provider:     v1alpha1.LetsEncrypt,
+			},
+			expectedIssuerConfig: &v1alpha1.ClusterIssuerComponent{
+				ClusterResourceNamespace: constants.CertManagerNamespace,
+				IssuerConfig: v1alpha1.IssuerConfig{
+					LetsEncrypt: &v1alpha1.LetsEncryptACMEIssuer{
+						EmailAddress: "foo@bar.com",
+						Environment:  "staging",
+					},
+				},
+			},
+			expectErr: false,
+		},
+		{
+			testName:   "CA ClusterIssuer",
+			certConfig: &v1alpha1.CertManagerComponent{Certificate: defaultCertConfigV1Alpha1},
+			issuerConfig: &v1alpha1.ClusterIssuerComponent{
+				ClusterResourceNamespace: "clusterIssuerNamespace",
+				IssuerConfig: v1alpha1.IssuerConfig{
+					CA: &v1alpha1.CAIssuer{SecretName: "issuerSecret"},
+				},
+			},
+			expectedIssuerConfig: &v1alpha1.ClusterIssuerComponent{
+				ClusterResourceNamespace: "clusterIssuerNamespace",
+				IssuerConfig: v1alpha1.IssuerConfig{
+					CA: &v1alpha1.CAIssuer{SecretName: "issuerSecret"},
+				},
+			},
+			expectErr: false,
+		},
+		{
+			testName: "Illegal Certificate",
+			certConfig: &v1alpha1.CertManagerComponent{
+				Certificate: v1alpha1.Certificate{
+					CA: v1alpha1.CA{
+						ClusterResourceNamespace: "myns",
+						SecretName:               "mySecret",
+					},
+					Acme: v1alpha1.Acme{
+						EmailAddress: "foo@bar.com",
+						Environment:  "staging",
+						Provider:     v1alpha1.LetsEncrypt,
+					},
 				},
 			},
 			issuerConfig: v1alpha1.NewDefaultClusterIssuer(),
 			expectErr:    true,
+		},
+		{
+			testName:   "Both Certificate and ClusterIssuer Configured",
+			certConfig: &v1alpha1.CertManagerComponent{Certificate: nonDefaultCA},
+			issuerConfig: &v1alpha1.ClusterIssuerComponent{
+				ClusterResourceNamespace: "clusterIssuerNamespace",
+				IssuerConfig: v1alpha1.IssuerConfig{
+					CA: &v1alpha1.CAIssuer{SecretName: "issuerSecret"},
+				},
+			},
+			expectedIssuerConfig: &v1alpha1.ClusterIssuerComponent{
+				ClusterResourceNamespace: "clusterIssuerNamespace",
+				IssuerConfig: v1alpha1.IssuerConfig{
+					CA: &v1alpha1.CAIssuer{SecretName: "issuerSecret"},
+				},
+			},
+			expectErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -186,9 +425,7 @@ func Test_convertCertificateToClusterIssuerV1Alpha1(t *testing.T) {
 			vz := &v1alpha1.Verrazzano{
 				Spec: v1alpha1.VerrazzanoSpec{
 					Components: v1alpha1.ComponentSpec{
-						CertManager: &v1alpha1.CertManagerComponent{
-							Certificate: tt.certConfig,
-						},
+						CertManager:   tt.certConfig,
 						ClusterIssuer: tt.issuerConfig,
 					},
 				},
