@@ -13,12 +13,16 @@ import (
 )
 
 var (
+	emptyCertConfigV1Alpha1 = v1alpha1.Certificate{}
+
 	defaultCertConfigV1Alpha1 = v1alpha1.Certificate{
 		CA: v1alpha1.CA{
 			SecretName:               constants.DefaultVerrazzanoCASecretName,
 			ClusterResourceNamespace: constants.CertManagerNamespace,
 		},
 	}
+
+	emptyCertConfigV1Beta1 = v1beta1.Certificate{}
 
 	defaultCertConfigV1Beta1 = v1beta1.Certificate{
 		CA: v1beta1.CA{
@@ -34,18 +38,26 @@ var (
 // The general rule is if the ClusterIssuerComponent is not set or is defaulted, then use the CertManagerComponent.Certificate
 // configuration if appropriate.
 func convertCertificateToClusterIssuerV1Beta1(effectiveCR *v1beta1.Verrazzano) error {
-	// Initialize the ClusterIssuer if necessary; because of the other merging, this should not really happen in practice
+	// Edge case, initialize CertManager with defaults if necessary
+	if effectiveCR.Spec.Components.CertManager == nil {
+		effectiveCR.Spec.Components.CertManager = &v1beta1.CertManagerComponent{}
+	}
+	certManagerConfig := effectiveCR.Spec.Components.CertManager
+	if isEmptyCertificateConfig(certManagerConfig.Certificate) {
+		certManagerConfig.Certificate = v1beta1.Certificate{
+			CA: v1beta1.CA{
+				SecretName:               constants.DefaultVerrazzanoCASecretName,
+				ClusterResourceNamespace: constants.CertManagerNamespace,
+			},
+		}
+	}
+
+	// Edge case, initialize ClusterIssuer with defaults if necessary
 	if effectiveCR.Spec.Components.ClusterIssuer == nil {
 		effectiveCR.Spec.Components.ClusterIssuer = v1beta1.NewDefaultClusterIssuer()
 	}
-
-	certManagerConfig := effectiveCR.Spec.Components.CertManager
-	if certManagerConfig == nil {
-		// again, in practice should never happen or we have other problems, but nothing to do otherwise
-		return nil
-	}
-
 	clusterIssuerConfig := effectiveCR.Spec.Components.ClusterIssuer
+
 	isDefaultIssuer, err := clusterIssuerConfig.IsDefaultIssuer()
 	if err != nil {
 		return err
@@ -66,18 +78,26 @@ func convertCertificateToClusterIssuerV1Beta1(effectiveCR *v1beta1.Verrazzano) e
 // The general rule is if the ClusterIssuerComponent is not set or is defaulted, then use the CertManagerComponent.Certificate
 // configuration if appropriate.
 func convertCertificateToClusterIssuerV1Alpha1(effectiveCR *v1alpha1.Verrazzano) error {
-	// Initialize the ClusterIssuer if necessary; because of the other merging, this should not really happen in practice
+	// Edge case, initialize CertManager with defaults if necessary
+	if effectiveCR.Spec.Components.CertManager == nil {
+		effectiveCR.Spec.Components.CertManager = &v1alpha1.CertManagerComponent{}
+	}
+	certManagerConfig := effectiveCR.Spec.Components.CertManager
+	if isEmptyCertificateConfig(certManagerConfig.Certificate) {
+		certManagerConfig.Certificate = v1alpha1.Certificate{
+			CA: v1alpha1.CA{
+				SecretName:               constants.DefaultVerrazzanoCASecretName,
+				ClusterResourceNamespace: constants.CertManagerNamespace,
+			},
+		}
+	}
+
+	// Edge case, initialize ClusterIssuer with defaults if necessary
 	if effectiveCR.Spec.Components.ClusterIssuer == nil {
 		effectiveCR.Spec.Components.ClusterIssuer = v1alpha1.NewDefaultClusterIssuer()
 	}
-
-	certManagerConfig := effectiveCR.Spec.Components.CertManager
-	if certManagerConfig == nil {
-		// again, in practice should never happen or we have other problems, but nothing to do otherwise
-		return nil
-	}
-
 	clusterIssuerConfig := effectiveCR.Spec.Components.ClusterIssuer
+
 	isDefaultIssuer, err := clusterIssuerConfig.IsDefaultIssuer()
 	if err != nil {
 		return err
@@ -98,6 +118,16 @@ func isDefaultCertificateConfig(certificateConfig interface{}) bool {
 	}
 	if v1beta1Config, ok := certificateConfig.(v1beta1.Certificate); ok {
 		return v1beta1Config == defaultCertConfigV1Beta1
+	}
+	return false
+}
+
+func isEmptyCertificateConfig(certificateConfig interface{}) bool {
+	if v1alpha1Config, ok := certificateConfig.(v1alpha1.Certificate); ok {
+		return v1alpha1Config == emptyCertConfigV1Alpha1
+	}
+	if v1beta1Config, ok := certificateConfig.(v1beta1.Certificate); ok {
+		return v1beta1Config == emptyCertConfigV1Beta1
 	}
 	return false
 }
@@ -143,8 +173,9 @@ func convertCertificateConfiguration(cmCertificateConfig interface{}, clusterIss
 	// Check if it's a CA issuer config
 	isCAConfig, err := isCAConfig(cmCertificateConfig)
 	if err != nil {
-		// The certificate object is invalid
-		return err
+		// The certificate object is invalid, do nothing; validators should catch it and returning an error
+		// here will throw off the validators.
+		return nil
 	}
 
 	isDefaultCertificateConfig := isDefaultCertificateConfig(cmCertificateConfig)
@@ -159,6 +190,11 @@ func convertCertificateConfiguration(cmCertificateConfig interface{}, clusterIss
 		// Don't overwrite an explicitly configured ClusterIssuerComponent
 		return nil
 	}
+
+	if isEmptyCertificateConfig(cmCertificateConfig) {
+		return nil
+	}
+
 	if issuerV1Alpha1, ok := clusterIssuerConfig.(*v1alpha1.ClusterIssuerComponent); ok {
 		certV1Alpha1, _ := cmCertificateConfig.(v1alpha1.Certificate)
 		if isCAConfig {

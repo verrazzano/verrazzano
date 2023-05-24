@@ -4,11 +4,12 @@
 package transform
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"testing"
 )
 
 // Test_convertCertificateToClusterIssuerV1Beta1 tests the convertCertificateToClusterIssuerV1Beta1 function
@@ -41,7 +42,7 @@ func Test_convertCertificateToClusterIssuerV1Beta1(t *testing.T) {
 			certConfig:           &v1beta1.CertManagerComponent{},
 			issuerConfig:         nil,
 			expectedIssuerConfig: v1beta1.NewDefaultClusterIssuer(),
-			expectErr:            true,
+			expectErr:            false,
 		},
 		{
 			testName:             "Default CM Certificate nil ClusterIssuer",
@@ -55,14 +56,14 @@ func Test_convertCertificateToClusterIssuerV1Beta1(t *testing.T) {
 			certConfig:           &v1beta1.CertManagerComponent{},
 			issuerConfig:         v1beta1.NewDefaultClusterIssuer(),
 			expectedIssuerConfig: v1beta1.NewDefaultClusterIssuer(),
-			expectErr:            true,
+			expectErr:            false,
 		},
 		{
 			testName:             "Neither Certificate field configured",
 			certConfig:           &v1beta1.CertManagerComponent{},
 			issuerConfig:         v1beta1.NewDefaultClusterIssuer(),
 			expectedIssuerConfig: v1beta1.NewDefaultClusterIssuer(),
-			expectErr:            true,
+			expectErr:            false,
 		},
 		{
 			testName: "Non Default CA Certificate",
@@ -184,8 +185,9 @@ func Test_convertCertificateToClusterIssuerV1Beta1(t *testing.T) {
 					},
 				},
 			},
-			issuerConfig: v1beta1.NewDefaultClusterIssuer(),
-			expectErr:    true,
+			issuerConfig:         v1beta1.NewDefaultClusterIssuer(),
+			expectedIssuerConfig: v1beta1.NewDefaultClusterIssuer(),
+			expectErr:            false,
 		},
 		{
 			testName:   "Both Certificate and ClusterIssuer Configured",
@@ -207,6 +209,7 @@ func Test_convertCertificateToClusterIssuerV1Beta1(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
+			t.Logf("Running test %s", tt.testName)
 			vz := &v1beta1.Verrazzano{
 				Spec: v1beta1.VerrazzanoSpec{
 					Components: v1beta1.ComponentSpec{
@@ -256,7 +259,7 @@ func Test_convertCertificateToClusterIssuerV1Alpha1(t *testing.T) {
 			certConfig:           &v1alpha1.CertManagerComponent{},
 			issuerConfig:         nil,
 			expectedIssuerConfig: v1alpha1.NewDefaultClusterIssuer(),
-			expectErr:            true,
+			expectErr:            false,
 		},
 		{
 			testName:             "Default CM Certificate nil ClusterIssuer",
@@ -270,14 +273,14 @@ func Test_convertCertificateToClusterIssuerV1Alpha1(t *testing.T) {
 			certConfig:           &v1alpha1.CertManagerComponent{},
 			issuerConfig:         v1alpha1.NewDefaultClusterIssuer(),
 			expectedIssuerConfig: v1alpha1.NewDefaultClusterIssuer(),
-			expectErr:            true,
+			expectErr:            false,
 		},
 		{
 			testName:             "Neither Certificate field configured",
 			certConfig:           &v1alpha1.CertManagerComponent{},
 			issuerConfig:         v1alpha1.NewDefaultClusterIssuer(),
 			expectedIssuerConfig: v1alpha1.NewDefaultClusterIssuer(),
-			expectErr:            true,
+			expectErr:            false,
 		},
 		{
 			testName: "Non Default CA Certificate",
@@ -399,8 +402,9 @@ func Test_convertCertificateToClusterIssuerV1Alpha1(t *testing.T) {
 					},
 				},
 			},
-			issuerConfig: v1alpha1.NewDefaultClusterIssuer(),
-			expectErr:    true,
+			issuerConfig:         v1alpha1.NewDefaultClusterIssuer(),
+			expectedIssuerConfig: v1alpha1.NewDefaultClusterIssuer(),
+			expectErr:            false,
 		},
 		{
 			testName:   "Both Certificate and ClusterIssuer Configured",
@@ -422,6 +426,7 @@ func Test_convertCertificateToClusterIssuerV1Alpha1(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
+			t.Logf("Running test %s", tt.testName)
 			vz := &v1alpha1.Verrazzano{
 				Spec: v1alpha1.VerrazzanoSpec{
 					Components: v1alpha1.ComponentSpec{
