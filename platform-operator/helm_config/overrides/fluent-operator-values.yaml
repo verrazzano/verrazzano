@@ -1,0 +1,18 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+fluentbit:
+  additionalVolumes:
+    - configMap:
+        name: fluent-bit-os-config
+      name: fluent-bit-os-config
+  additionalVolumesMounts:
+    - mountPath: /fluent-bit/etc/opensearch-config
+      name: fluent-bit-os-config
+      readOnly: true
+  namespaceFluentBitCfgSelector:
+    matchLabels:
+      fluentbit.verrazzano.io/namespace-config: verrazzano
+  input:
+    tail:
+      readFromHead: true

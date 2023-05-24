@@ -1,6 +1,5 @@
 # Copyright (c) 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: FluentBitConfig
 metadata:
@@ -63,4 +62,3 @@ spec:
   json:
     timeKey: logtime
     timeFormat: "%Y-%m-%dT%H:%M:%SZ"
-{{ end -}}
