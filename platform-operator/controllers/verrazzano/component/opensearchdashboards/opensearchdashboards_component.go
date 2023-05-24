@@ -8,11 +8,12 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-
-	"k8s.io/apimachinery/pkg/types"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -30,6 +31,9 @@ const (
 
 	// Certificate names
 	osdCertificateName = "system-tls-osd"
+
+	// fluentbitFilterAndParserTemplate is the template name that consists Fluentbit Filter and Parser resource for OSD.
+	fluentbitFilterAndParserTemplate = "osd-filter-parser.yaml"
 )
 
 // ComponentJSONName is the JSON name of the OpenSearch-Dashboards component in CRD
@@ -49,7 +53,7 @@ func (d opensearchDashboardsComponent) ShouldInstallBeforeUpgrade() bool {
 
 // GetDependencies returns the dependencies of the OpenSearch-Dashbaords component
 func (d opensearchDashboardsComponent) GetDependencies() []string {
-	return []string{vmo.ComponentName}
+	return []string{vmo.ComponentName, fluentoperator.ComponentName}
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the OpenSearch-Dashboards component
@@ -133,6 +137,9 @@ func (d opensearchDashboardsComponent) Uninstall(context spi.ComponentContext) e
 }
 
 func (d opensearchDashboardsComponent) PostUninstall(context spi.ComponentContext) error {
+	if err := common.ExecuteFluentbitFilterAndParser(context, fluentbitFilterAndParserTemplate, ComponentNamespace, true); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -159,6 +166,9 @@ func (d opensearchDashboardsComponent) IsReady(ctx spi.ComponentContext) bool {
 // PostInstall OpenSearch-Dashboards post-install processing
 func (d opensearchDashboardsComponent) PostInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("OpenSearch-Dashboards component post-upgrade")
+	if err := common.ExecuteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, ComponentNamespace, false); err != nil {
+		return err
+	}
 	return common.CheckIngressesAndCerts(ctx, d)
 
 }

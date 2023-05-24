@@ -16,9 +16,8 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -47,7 +46,7 @@ const (
 //	writeFileFunc = os.WriteFile
 //)
 
-// fluentOperatorComponent represents an Fluent-Operator component
+// fluentOperatorComponent represents an FluentOperator component
 type fluentOperatorComponent struct {
 	helm.HelmComponent
 }
@@ -71,8 +70,10 @@ func NewComponent() spi.Component {
 			Dependencies:              []string{"verrazzano-network-policies"},
 			GetInstallOverridesFunc:   GetOverrides,
 			AvailabilityObjects: &ready.AvailabilityObjects{
-				DaemonsetNames: []types.NamespacedName{
+				DeploymentNames: []types.NamespacedName{
 					fluentOperatorDeployment,
+				},
+				DaemonsetNames: []types.NamespacedName{
 					fluentBitDaemonSet,
 				},
 			},
@@ -140,13 +141,13 @@ func (c fluentOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
 	return c.HelmComponent.PostInstall(ctx)
 }
 
-// PostUpgrade Fluent-Operator component post-upgrade processing
+// PostUpgrade FluentOperator component post-upgrade processing
 func (c fluentOperatorComponent) PostUpgrade(ctx spi.ComponentContext) error {
-	ctx.Log().Debugf("Fluentd-Operator component post-upgrade")
+	ctx.Log().Debugf("FluentOperator-Operator component post-upgrade")
 	return c.HelmComponent.PostUpgrade(ctx)
 }
 
-// PreInstall Fluent-Operator component pre-install processing; adding the fluentbit-config config-map.
+// PreInstall FluentOperator component pre-install processing; adding the fluentbit-config config-map.
 func (c fluentOperatorComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := applyFluentBitConfigMap(ctx); err != nil {
 		return err
@@ -166,7 +167,7 @@ func (c fluentOperatorComponent) Reconcile(ctx spi.ComponentContext) error {
 	return err
 }
 
-// Install Fluent-Operator component install processing
+// Install FluentOperator component install processing
 func (c fluentOperatorComponent) Install(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.Install(ctx); err != nil {
 		return err
@@ -178,13 +179,13 @@ func (c fluentOperatorComponent) Install(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// PreUpgrade Fluentd component pre-upgrade processing
+// PreUpgrade FluentOperator component pre-upgrade processing
 func (c fluentOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return c.HelmComponent.PreUpgrade(ctx)
 }
 
-// Uninstall Fluentd to handle upgrade case where Fluentd was not its own helm chart.
-// In that case, we need to delete the Fluentd resources explicitly
+// Uninstall FluentOperator to handle upgrade case where FluentOperator was not its own helm chart.
+// In that case, we need to delete the FluentOperator resources explicitly
 func (c fluentOperatorComponent) Uninstall(context spi.ComponentContext) error {
 	installed, err := c.HelmComponent.IsInstalled(context)
 	if err != nil {

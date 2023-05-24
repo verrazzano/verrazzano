@@ -20,26 +20,29 @@ import (
 )
 
 const (
-	fluentbitDaemonset              = "fluent-bit"
-	fluentOperatorFullImageKey      = "operator.container.repository"
-	fluentBitFullImageKey           = "fluentbit.image.repository"
-	fluentOperatorInitImageKey      = "operator.initcontainer.repository"
-	fluentOperatorImageTag          = "operator.container.tag"
-	fluentOperatorInitTag           = "operator.initcontainer.tag"
-	fluentBitImageTag               = "fluentbit.image.tag"
-	clusterOutputDirectory          = "fluent-operator"
-	systemOutputFile                = "system-output.yaml"
-	applicationOutputFile           = "application-output.yaml"
-	fluentbitConfigMap              = fluentbitDaemonset + "-config"
-	fluentbitVolumeName             = fluentbitConfigMap
-	fluentbitConfigMapFile          = "fluentbit-config-configmap.yaml"
-	fluentbitVolumeNameKey          = "fluentbit.additionalVolumes[0].name"
-	fluentbitVolumeConfigMapKey     = "fluentbit.additionalVolumes[0].configMap.name"
-	fluentbitVolumeMountNameKey     = "fluentbit.additionalVolumesMounts[0].mountPath.name"
-	fluentbitVolumeMountPathKey     = "fluentbit.additionalVolumesMounts[0].mountPath.path"
-	fluentbitVolumeMountReadOnlyKey = "fluentbit.additionalVolumesMounts[0].mountPath.readOnly"
-	namespaceFluentbitCfgSelector   = "fluentbit.namespaceFluentBitCfgSelector.matchLabels"
-	fluentbitNamespaceConfigLabel   = "fluentbit.verrazzano.io/namespace-config: \"verrazzano\""
+	fluentbitDaemonset               = "fluent-bit"
+	fluentOperatorImageKey           = "operator.container.repository"
+	fluentBitImageKey                = "fluentbit.image.repository"
+	fluentOperatorInitImageKey       = "operator.initcontainer.repository"
+	fluentOperatorImageTag           = "operator.container.tag"
+	fluentOperatorInitTag            = "operator.initcontainer.tag"
+	fluentBitImageTag                = "fluentbit.image.tag"
+	clusterOutputDirectory           = "fluent-operator"
+	systemOutputFile                 = "system-output.yaml"
+	applicationOutputFile            = "application-output.yaml"
+	fluentbitConfigMap               = fluentbitDaemonset + "-os-config"
+	fluentbitVolumeName              = fluentbitConfigMap
+	fluentbitConfigMapFile           = "fluentbit-config-configmap.yaml"
+	fluentbitCMMountPath             = "/fluent-bit/etc/opensearch-config"
+	overrideFbVolumeNameKey          = "fluentbit.additionalVolumes[0].name"
+	overrideFbVolumeCMKey            = "fluentbit.additionalVolumes[0].configMap.name"
+	overrideFbVolumeMountNameKey     = "fluentbit.additionalVolumesMounts[0].name"
+	overrideFbVolumeMountPathKey     = "fluentbit.additionalVolumesMounts[0].mountPath"
+	overrideFbVolumeMountReadOnlyKey = "fluentbit.additionalVolumesMounts[0].readOnly"
+	overrideFbNsCfgLabelKeyKey       = "fluentbit.namespaceFluentBitCfgSelector.matchLabels.key"
+	overrideFbNsCfgLabelValueKey     = "fluentbit.namespaceFluentBitCfgSelector.matchLabels.value"
+	overrideFbNsCfgLabelKeyValue     = "fluentbit.verrazzano.io/namespace-config"
+	overrideFbNsCfgLabelValueValue   = "verrazzano"
 )
 
 var (
@@ -54,7 +57,7 @@ var (
 	}
 )
 
-// isFluentOperatorReady checks if the Fluent Operator is ready or not
+// isFluentOperatorReady checks if Fluent Operator is ready or not
 func isFluentOperatorReady(context spi.ComponentContext) bool {
 	return ready.DeploymentsAreReady(context.Log(), context.Client(), []types.NamespacedName{fluentOperatorDeployment}, 1, componentPrefix) &&
 		ready.DaemonSetsAreReady(context.Log(), context.Client(), []types.NamespacedName{fluentBitDaemonSet}, 1, componentPrefix)
@@ -87,12 +90,12 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 	for _, image := range images {
 		switch image.Key {
-		case fluentOperatorFullImageKey:
-			kvs = append(kvs, bom.KeyValue{Key: fluentOperatorFullImageKey, Value: image.Value})
+		case fluentOperatorImageKey:
+			kvs = append(kvs, bom.KeyValue{Key: fluentOperatorImageKey, Value: image.Value})
 		case fluentOperatorInitImageKey:
 			kvs = append(kvs, bom.KeyValue{Key: fluentOperatorInitImageKey, Value: image.Value})
-		case fluentBitFullImageKey:
-			kvs = append(kvs, bom.KeyValue{Key: fluentBitFullImageKey, Value: image.Value})
+		case fluentBitImageKey:
+			kvs = append(kvs, bom.KeyValue{Key: fluentBitImageKey, Value: image.Value})
 		case fluentOperatorImageTag:
 			kvs = append(kvs, bom.KeyValue{Key: fluentOperatorImageTag, Value: image.Value})
 		case fluentOperatorInitTag:
@@ -106,12 +109,13 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 	kvs = append(kvs, bom.KeyValue{Key: "image.pullSecrets.enabled", Value: "true"})
 	// mounting fluentbit-config configmap as volume
-	kvs = append(kvs, bom.KeyValue{Key: fluentbitVolumeConfigMapKey, Value: fluentbitConfigMap})
-	kvs = append(kvs, bom.KeyValue{Key: fluentbitVolumeNameKey, Value: fluentbitVolumeName})
-	kvs = append(kvs, bom.KeyValue{Key: fluentbitVolumeMountNameKey, Value: fluentbitVolumeName})
-	kvs = append(kvs, bom.KeyValue{Key: fluentbitVolumeMountPathKey, Value: "/fluent-bit/etc"})
-	kvs = append(kvs, bom.KeyValue{Key: fluentbitVolumeMountReadOnlyKey, Value: "true"})
-	kvs = append(kvs, bom.KeyValue{Key: namespaceFluentbitCfgSelector, Value: fluentbitNamespaceConfigLabel})
+	kvs = append(kvs, bom.KeyValue{Key: overrideFbVolumeCMKey, Value: fluentbitConfigMap})
+	kvs = append(kvs, bom.KeyValue{Key: overrideFbVolumeNameKey, Value: fluentbitVolumeName})
+	kvs = append(kvs, bom.KeyValue{Key: overrideFbVolumeMountNameKey, Value: fluentbitVolumeName})
+	kvs = append(kvs, bom.KeyValue{Key: overrideFbVolumeMountPathKey, Value: fluentbitCMMountPath})
+	kvs = append(kvs, bom.KeyValue{Key: overrideFbVolumeMountReadOnlyKey, Value: "true"})
+	kvs = append(kvs, bom.KeyValue{Key: overrideFbNsCfgLabelKeyKey, Value: overrideFbNsCfgLabelKeyValue})
+	kvs = append(kvs, bom.KeyValue{Key: overrideFbNsCfgLabelValueKey, Value: overrideFbNsCfgLabelValueValue})
 	return kvs, nil
 }
 

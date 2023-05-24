@@ -52,7 +52,9 @@ fluentbit:
   crdsEnable: true
   enable: true
   namespaceFluentBitCfgSelector:
-    matchLabels: 
+    matchLabels:
+      key:
+      value:
   image:
     repository: "kubesphere/fluent-bit"
     tag: "v2.0.11"
