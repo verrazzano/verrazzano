@@ -4,7 +4,7 @@
 application:
   enabled: true
   matchRegex: '^(?!.*(?:_kube-|_verrazzano-|cattle-|rancher-|fleet|ingress-nginx|istio-system|keycloak|mysql-operator|_metallb-|cert-manager|_monitoring_|_local-path-storage_|_local_)).*$'
-  host: http://verrazzano-authproxy-opensearch
+  host: verrazzano-authproxy-opensearch.verrazzano-system.svc.cluster.local
   port: 8775
   dataStreamMode: true
   dataStreamName: verrazzano-application-$kubernetes['namespace_name']
@@ -23,7 +23,7 @@ application:
 system:
   enabled: true
   matchRegex: '^.*(?:_kube-|_verrazzano-|cattle-|rancher-|fleet|ingress-nginx|istio-system|keycloak|mysql-operator|_metallb-|cert-manager|_monitoring_|_local-path-storage_|_local_).*'
-  host: http://verrazzano-authproxy-opensearch
+  host: verrazzano-authproxy-opensearch.verrazzano-system.svc.cluster.local
   port: 8775
   dataStreamMode: true
   dataStreamName: verrazzano-system

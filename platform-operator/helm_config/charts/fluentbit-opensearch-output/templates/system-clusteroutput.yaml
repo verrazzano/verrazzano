@@ -35,4 +35,5 @@ spec:
     httpPassword:
 {{ toYaml .Values.system.httpPassword | indent 6 }}
     {{- end}}
+    suppressTypeName: true
 {{- end }}
