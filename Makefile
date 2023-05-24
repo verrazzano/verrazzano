@@ -95,13 +95,13 @@ precommit: precommit-check precommit-build unit-test-coverage ## run all precomm
 precommit-nocover: precommit-check precommit-build unit-test ## run precommit checks without code coverage check
 
 .PHONY: precommit-check
-precommit-check: check check-tests copyright-check ## run precommit checks without unit testing
+precommit-check: check-tidy check check-tests copyright-check ## run precommit checks without unit testing
 
 .PHONY: precommit-build
 precommit-build:  ## go build the project
 	go build ./...
 
-unit-test-coverage: export COVERAGE_EXCLUSIONS ?= tests/e2e|tools/psr
+unit-test-coverage: export COVERAGE_EXCLUSIONS ?= tests/e2e|tools/psr|tools/charts-manager/vcm
 .PHONY: unit-test-coverage
 unit-test-coverage:  ## run unit tests with coverage
 	${SCRIPT_DIR}/coverage.sh html
@@ -112,7 +112,7 @@ unit-test-coverage-ratcheting:  ## run unit tests with coverage ratcheting
 
 .PHONY: unit-test
 unit-test:  ## run all unit tests in project
-	go test $$(go list ./... | grep -Ev "/tests/e2e|/tools/psr")
+	go test $$(go list ./... | grep -Ev "/tests/e2e|/tools/psr|tools/charts-manager/vcm")
 
 #
 #  Compliance check targets
@@ -156,3 +156,8 @@ check-eventually: check-eventually-test ## check for correct use of Gomega Event
 .PHONY: check-eventually-test
 check-eventually-test: ## run tests for Gomega Eventually checker
 	(cd tools/eventually-checker; go test .)
+
+.PHONY: check-tidy
+check-tidy: ## check if go mod tidy results in no changes
+	go mod tidy
+	ci/scripts/check_if_clean_after_generate.sh

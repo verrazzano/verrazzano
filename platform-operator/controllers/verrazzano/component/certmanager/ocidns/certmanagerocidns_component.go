@@ -22,7 +22,7 @@ import (
 const ComponentName = cmcommon.CertManagerOCIDNSComponentName
 
 // ComponentNamespace is the namespace of the component
-const ComponentNamespace = constants.CertManagerNamespace
+const ComponentNamespace = constants.VerrazzanoSystemNamespace
 
 const componentChartName = "verrazzano-cert-manager-ocidns-webhook"
 
@@ -45,6 +45,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			InstallBeforeUpgrade:      true,
+			AppendOverridesFunc:       appendOCIDNSOverrides,
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0].name",
 			Dependencies:              []string{networkpolicies.ComponentName, controller.ComponentName},
 		},
@@ -52,7 +53,7 @@ func NewComponent() spi.Component {
 }
 
 func (c certManagerOciDNSComponent) PreInstall(ctx spi.ComponentContext) error {
-	if err := common.CopyOCIDNSSecret(ctx, ComponentNamespace); err != nil {
+	if err := common.CopyOCIDNSSecret(ctx, constants.CertManagerNamespace); err != nil {
 		return err
 	}
 	return nil
@@ -66,7 +67,16 @@ func (c certManagerOciDNSComponent) IsEnabled(effectiveCR runtime.Object) bool {
 		logger.ErrorfThrottled("Unexpected error checking for CertManager in cluster: %v", err)
 		return false
 	}
-	return vzcr.IsOCIDNSEnabled(effectiveCR)
+	isACMEConfig, err := cmcommon.IsACMEConfig(effectiveCR)
+	if err != nil {
+		logger.ErrorfThrottled("Unexpected error checking certificate configuration: %v", err.Error())
+		return false
+	}
+	return isACMEConfig && vzcr.IsOCIDNSEnabled(effectiveCR)
+}
+
+func (c certManagerOciDNSComponent) PostUninstall(ctx spi.ComponentContext) error {
+	return c.postUninstall(ctx)
 }
 
 // IsReady component check

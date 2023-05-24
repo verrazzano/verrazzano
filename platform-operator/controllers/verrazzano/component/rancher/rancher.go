@@ -402,26 +402,6 @@ func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client) {
 	log.Once("Successfully deleted Rancher local cluster")
 }
 
-// activateDrivers activates the oraclecontainerengine kontainerDriver
-func activatOKEDriver(log vzlog.VerrazzanoLogger, c client.Client) error {
-	okeDriver := unstructured.Unstructured{}
-	okeDriver.SetGroupVersionKind(GVKKontainerDriver)
-	okeDriverName := types.NamespacedName{Name: KontainerDriverOKE}
-	err := c.Get(context.Background(), okeDriverName, &okeDriver)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed getting OKE Driver: %s", err.Error())
-	}
-
-	okeDriverMerge := client.MergeFrom(okeDriver.DeepCopy())
-	okeDriver.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
-	err = c.Patch(context.Background(), &okeDriver, okeDriverMerge)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed patching OKE Driver: %s", err.Error())
-	}
-
-	return nil
-}
-
 // putServerURL updates the server-url Setting
 func putServerURL(log vzlog.VerrazzanoLogger, c client.Client, serverURL string) error {
 	serverURLSetting := unstructured.Unstructured{}

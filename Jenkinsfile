@@ -106,7 +106,8 @@ pipeline {
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
-        OCI_OS_REGION="us-phoenix-1"
+        OCI_OS_REGION="us-phoenix-1" // where to download existing artifacts from
+        OCI_OS_DIST_REGION="eu-frankfurt-1" // where to upload distributions to
 
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
@@ -358,7 +359,7 @@ pipeline {
             }
         }
 
-        stage('Kind Acceptance Tests on 1.24') {
+        stage('Kind Acceptance Tests on 1.25') {
             when {
                 allOf {
                     not { buildingTag() }
@@ -381,7 +382,7 @@ pipeline {
                     script {
                         build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                             parameters: [
-                                string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
+                                string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.25'),
                                 string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                 string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                 string(name: 'CRD_API_VERSION', value: params.CRD_API_VERSION),
@@ -441,6 +442,21 @@ pipeline {
             stages{
                 stage("Build Product Zip") {
                     steps {
+                        script {
+                            try {
+                                sh """
+                                     echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
+                                """
+                            } catch(error) {
+                                echo "OCIR docker login at ${OCIR_REPO} failed, retrying after sleep"
+                                retry(4) {
+                                    sleep(30)
+                                    sh """
+                                        echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
+                                    """
+                                }
+                            }
+                        }
                         script {
                             sh """
                                 ci/scripts/generate_vz_distribution.sh ${WORKSPACE} ${VERRAZZANO_DEV_VERSION} ${SHORT_COMMIT_HASH}

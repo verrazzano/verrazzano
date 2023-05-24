@@ -115,6 +115,8 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 	}
 	return v1beta1.ComponentSpec{
 		CertManager:            ConvertCertManagerToV1Beta1(src.CertManager),
+		ClusterIssuer:          ConvertClusterIssuerToV1Beta1(src.ClusterIssuer),
+		CertManagerWebhookOCI:  ConvertCertManagerWebhookOCIToV1Beta1(src.CertManagerWebhookOCI),
 		CoherenceOperator:      convertCoherenceOperatorToV1Beta1(src.CoherenceOperator),
 		ApplicationOperator:    convertApplicationOperatorToV1Beta1(src.ApplicationOperator),
 		ArgoCD:                 convertArgoCDToV1Beta1(src.ArgoCD),
@@ -147,6 +149,45 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		Verrazzano:             verrazzanoComponent,
 		CAPI:                   convertCAPIToV1Beta1(src.CAPI),
 	}, nil
+}
+
+func ConvertClusterIssuerToV1Beta1(src *ClusterIssuerComponent) *v1beta1.ClusterIssuerComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.ClusterIssuerComponent{
+		Enabled:                  src.Enabled,
+		ClusterResourceNamespace: src.ClusterResourceNamespace,
+		IssuerConfig:             convertIssuerConfig(src.IssuerConfig),
+	}
+}
+
+func convertIssuerConfig(src IssuerConfig) v1beta1.IssuerConfig {
+	var leIssuer *v1beta1.LetsEncryptACMEIssuer
+	if src.LetsEncrypt != nil {
+		leIssuer = &v1beta1.LetsEncryptACMEIssuer{
+			EmailAddress: src.LetsEncrypt.EmailAddress,
+			Environment:  src.LetsEncrypt.Environment,
+		}
+	}
+	var caIssuer *v1beta1.CAIssuer
+	if src.CA != nil {
+		caIssuer = &v1beta1.CAIssuer{SecretName: src.CA.SecretName}
+	}
+	return v1beta1.IssuerConfig{
+		LetsEncrypt: leIssuer,
+		CA:          caIssuer,
+	}
+}
+
+func ConvertCertManagerWebhookOCIToV1Beta1(src *CertManagerWebhookOCIComponent) *v1beta1.CertManagerWebhookOCIComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.CertManagerWebhookOCIComponent{
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
+	}
 }
 
 func ConvertCertManagerToV1Beta1(src *CertManagerComponent) *v1beta1.CertManagerComponent {

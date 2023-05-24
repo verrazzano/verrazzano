@@ -57,19 +57,20 @@ helm fetch rancher-stable/rancher --untar=true --version=${RANCHER_CHART_VERSION
 The `mysql` folder was created by running the following commands:
 
 ```shell
-export MYSQL_CHART_VERSION=2.0.8
+export MYSQL_CHART_VERSION=2.0.9
 rm -rf mysql
 helm repo add mysql-operator https://mysql.github.io/mysql-operator/
 helm repo update
 helm fetch mysql-operator/mysql-innodbcluster --untar=true --version=${MYSQL_CHART_VERSION}
+mv mysql-innodbcluster mysql
 ```
 
 ## MySQL Operator
 
-The `mysql` folder was created by running the following commands:
+The `mysql-operator` folder was created by running the following commands:
 
 ```shell
-export MYSQL_OPERATOR_CHART_VERSION=2.0.8
+export MYSQL_OPERATOR_CHART_VERSION=2.0.9
 rm -rf mysql-operator
 helm repo add mysql-operator https://mysql.github.io/mysql-operator/
 helm repo update
@@ -201,7 +202,7 @@ helm fetch kiali/kiali-server --untar=true --version=${KIALI_SERVER_CHART_VERSIO
 The `argo-cd` folder was created by running the followiong commands:
 
 ```shell
-export ARGOCD_CHART_VERSION=5.16.1
+export ARGOCD_CHART_VERSION=5.34.3
 helm repo add argocd https://argoproj.github.io/argo-helm
 helm repo update
 rm -rf argo-cd

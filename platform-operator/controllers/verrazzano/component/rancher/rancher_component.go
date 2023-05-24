@@ -39,7 +39,6 @@ import (
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
 	"path/filepath"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strconv"
 	"strings"
 )
@@ -486,7 +485,6 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed setting Rancher server URL: %s", err.Error())
 	}
 
-	err = activateDrivers(log, c)
 	if err != nil {
 		return err
 	}
@@ -534,10 +532,6 @@ func (r rancherComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	c := ctx.Client()
 	log := ctx.Log()
-	err := activateDrivers(log, c)
-	if err != nil {
-		return err
-	}
 
 	if err := configureUISettings(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring rancher UI settings: %s", err.Error())
@@ -552,16 +546,6 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 
 // Reconcile for the Rancher component
 func (r rancherComponent) Reconcile(ctx spi.ComponentContext) error {
-	return nil
-}
-
-// activateDrivers activates the nodeDriver oci and oraclecontainerengine kontainerDriver
-func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
-	err := activatOKEDriver(log, c)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
