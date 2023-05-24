@@ -15,6 +15,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
+  "id": 71,
+  "iteration": 1684918839561,
   "links": [],
   "panels": [
     {
@@ -102,11 +104,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_cluster_status{cluster=\"system\"})/count(opensearch_cluster_status{cluster=\"system\"})",
+          "expr": "sum(opensearch_cluster_status{cluster=\"$clustername\"})/count(opensearch_cluster_status{cluster=\"$clustername\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -169,11 +171,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_cluster_nodes_number{verrazzano_cluster=\"local\",cluster=\"system\"})/count(opensearch_cluster_nodes_number{verrazzano_cluster=\"local\",cluster=\"system\"})",
+          "expr": "sum(opensearch_cluster_nodes_number{cluster=\"$clustername\"})/count(opensearch_cluster_nodes_number{cluster=\"$clustername\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -238,11 +240,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_cluster_datanodes_number{verrazzano_cluster=\"local\",cluster=\"system\"})/count(opensearch_cluster_datanodes_number{verrazzano_cluster=\"local\",cluster=\"system\"})",
+          "expr": "sum(opensearch_cluster_datanodes_number{cluster=\"$clustername\"})/count(opensearch_cluster_datanodes_number{cluster=\"$clustername\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -295,11 +297,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "targets": [
         {
           "exemplar": true,
-          "expr": "count(count by (index) (opensearch_index_replicas_number{verrazzano_cluster=\"local\",cluster=\"system\"}))",
+          "expr": "count(count by (index) (opensearch_index_replicas_number{cluster=\"$clustername\"}))",
           "interval": "",
           "legendFormat": "index count",
           "refId": "A"
@@ -364,11 +366,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_cluster_pending_tasks_number{verrazzano_cluster=\"local\",cluster=\"system\"})/count(opensearch_cluster_pending_tasks_number{verrazzano_cluster=\"local\",cluster=\"system\"})",
+          "expr": "sum(opensearch_cluster_pending_tasks_number{cluster=\"$clustername\"})/count(opensearch_cluster_pending_tasks_number{cluster=\"$clustername\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -435,11 +437,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(opensearch_cluster_shards_number{cluster=\"system\", type=\"active\"})",
+          "expr": "max(opensearch_cluster_shards_number{cluster=\"$clustername\", type=\"active\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -462,10 +464,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           }
@@ -494,11 +492,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(opensearch_cluster_shards_number{cluster=\"system\", type=\"active_primary\"})",
+          "expr": "max(opensearch_cluster_shards_number{cluster=\"$clustername\", type=\"active_primary\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -557,11 +555,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(opensearch_cluster_shards_number{cluster=\"system\", type=\"unassigned\"})",
+          "expr": "max(opensearch_cluster_shards_number{cluster=\"$clustername\", type=\"unassigned\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -620,11 +618,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(opensearch_cluster_shards_number{cluster=\"system\", type=\"initializing\"})",
+          "expr": "max(opensearch_cluster_shards_number{cluster=\"$clustername\", type=\"initializing\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -683,11 +681,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(opensearch_cluster_shards_number{cluster=\"system\", type=\"relocating\"})",
+          "expr": "max(opensearch_cluster_shards_number{cluster=\"$clustername\", type=\"relocating\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -733,7 +731,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -744,7 +742,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(opensearch_index_shards_number{cluster=\"system\",type=\"active\"}) by (index)",
+          "expr": "max(opensearch_index_shards_number{cluster=\"$clustername\",type=\"active\"}) by (index)",
           "interval": "",
           "legendFormat": "{{index}}",
           "refId": "A"
@@ -844,7 +842,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -855,7 +853,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "count(count by (index) (opensearch_index_replicas_number{cluster=\"system\"}))",
+          "expr": "count(count by (index) (opensearch_index_replicas_number{cluster=\"$clustername\"}))",
           "interval": "",
           "legendFormat": "index count",
           "refId": "A"
@@ -939,7 +937,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -950,7 +948,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "opensearch_indices_store_size_bytes{cluster=\"system\",job=\"vmi-system-es-data\"}",
+          "expr": "opensearch_indices_store_size_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|opensearch-data\"}",
           "interval": "",
           "legendFormat": "{{kubernetes_pod_name}}",
           "refId": "A"
@@ -1046,7 +1044,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1057,7 +1055,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rate(opensearch_indices_indexing_index_count{job=\"vmi-system-es-data\", verrazzano_cluster=\"local\",cluster=\"system\"}[5m])",
+          "expr": "rate(opensearch_indices_indexing_index_count{job=~\"vmi-system-es-data|opensearch-data\", cluster=\"$clustername\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
@@ -1154,7 +1152,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1165,7 +1163,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rate(opensearch_indices_indexing_index_time_seconds{job=\"vmi-system-es-data\", verrazzano_cluster=\"local\",cluster=\"system\"}[5m])/rate(opensearch_indices_indexing_index_count{job=\"vmi-system-es-data\", verrazzano_cluster=\"local\",cluster=\"system\"}[5m])",
+          "expr": "rate(opensearch_indices_indexing_index_time_seconds{job=~\"vmi-system-es-data|opensearch-data\", cluster=\"$clustername\"}[5m])/rate(opensearch_indices_indexing_index_count{job=~\"vmi-system-es-data|opensearch\",cluster=\"$clustername\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
@@ -1268,7 +1266,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1279,7 +1277,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(opensearch_index_doc_number{cluster=\"system\",job=\"vmi-system-es-data\",context=\"total\",cluster=\"system\"}[1h])) by (pod)",
+          "expr": "sum(rate(opensearch_index_doc_number{cluster=\"$clustername\",job=~\"vmi-system-es-data|opensearch-data\",context=\"total\"}[1h])) by (pod)",
           "interval": "",
           "legendFormat": "{{pod}}",
           "refId": "A"
@@ -1363,7 +1361,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1374,7 +1372,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_indices_merges_total_docs_count{cluster=\"system\",job=\"vmi-system-es-data\"})",
+          "expr": "sum(opensearch_indices_merges_total_docs_count{cluster=\"$clustername\",job=~\"vmi-system-es-data|opensearch-data\"})",
           "interval": "",
           "legendFormat": "total documents",
           "refId": "A"
@@ -1487,7 +1485,7 @@
         "textMode": "auto"
       },
       "percentage": false,
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1498,7 +1496,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(opensearch_fs_total_total_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master\"}-opensearch_fs_total_free_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master\"}) by (node)",
+          "expr": "max(opensearch_fs_total_total_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|opensearch-data|opensearch-masters\"}-opensearch_fs_total_free_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|opensearch-data|opensearch-masters\"}) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -1582,7 +1580,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1593,14 +1591,14 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max((1 - (opensearch_fs_path_available_bytes{cluster=\"system\"}/opensearch_fs_path_total_bytes{cluster=\"system\"}))* 100)",
+          "expr": "max((1 - (opensearch_fs_path_available_bytes{cluster=\"$clustername\"} /opensearch_fs_path_total_bytes{cluster=\"$clustername\"}))* 100)",
           "interval": "",
           "legendFormat": "current_disk_watermark",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "max(opensearch_cluster_routing_allocation_disk_watermark_low_pct{cluster=\"system\"})",
+          "expr": "max(opensearch_cluster_routing_allocation_disk_watermark_low_pct{cluster=\"$clustername\"})",
           "hide": false,
           "interval": "",
           "legendFormat": "disk_watermark_low_pct",
@@ -1608,7 +1606,7 @@
         },
         {
           "exemplar": true,
-          "expr": "max(opensearch_cluster_routing_allocation_disk_watermark_high_pct{cluster=\"system\"})",
+          "expr": "max(opensearch_cluster_routing_allocation_disk_watermark_high_pct{cluster=\"$clustername\"})",
           "hide": false,
           "interval": "",
           "legendFormat": "disk_watermark_high_pct",
@@ -1616,7 +1614,7 @@
         },
         {
           "exemplar": true,
-          "expr": "max(opensearch_cluster_routing_allocation_disk_watermark_flood_stage_pct{cluster=\"system\"})",
+          "expr": "max(opensearch_cluster_routing_allocation_disk_watermark_flood_stage_pct{cluster=\"$clustername\"})",
           "hide": false,
           "interval": "",
           "legendFormat": "disk_watermark_flood_stage_pct",
@@ -1718,7 +1716,7 @@
         "textMode": "auto"
       },
       "percentage": false,
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1729,7 +1727,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max((1-(opensearch_fs_total_available_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master\"}/opensearch_fs_total_total_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master\"}))*100) by (node)",
+          "expr": "max((1-(opensearch_fs_total_available_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|opensearch-data|opensearch-masters\"}/opensearch_fs_total_total_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|opensearch-data|opensearch-masters\"}))*100) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -1830,7 +1828,7 @@
         "textMode": "auto"
       },
       "percentage": false,
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1841,7 +1839,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max((opensearch_jvm_mem_heap_used_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}/opensearch_jvm_mem_heap_max_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"})*100) by (node)",
+          "expr": "max((opensearch_jvm_mem_heap_used_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-data|opensearch-masters|opensearch-ingest\"}/opensearch_jvm_mem_heap_max_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-data|opensearch-masters|opensearch-ingest\"})*100) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -1940,7 +1938,7 @@
         "textMode": "auto"
       },
       "percentage": false,
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1951,7 +1949,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(opensearch_jvm_mem_heap_max_bytes{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}) by (node)",
+          "expr": "max(opensearch_jvm_mem_heap_max_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-data|opensearch-masters|opensearch-ingest\"}) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -2037,7 +2035,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -2048,7 +2046,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(avg_over_time(opensearch_jvm_mem_heap_used_bytes{cluster=\"system\",instance=~\".*:9200\", verrazzano_cluster=\"local\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}[15m])) by (node)",
+          "expr": "max(avg_over_time(opensearch_jvm_mem_heap_used_bytes{instance=~\".*:9200\", cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-data|opensearch-masters|opensearch-ingest\"}[15m])) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -2148,7 +2146,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -2245,7 +2243,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -2256,7 +2254,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(rate(opensearch_indices_search_fetch_count{cluster=\"system\",job=~\"vmi-system-es-data|vmi-system-os-ingest|vmi-system-es-master\"}[1h])) by (pod)",
+          "expr": "max(rate(opensearch_indices_search_fetch_count{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-os-ingest|vmi-system-es-master|opensearch-data|opensearch-masters|opensearch-ingest\"}[1h])) by (pod)",
           "interval": "",
           "legendFormat": "{{pod}}",
           "refId": "A"
@@ -2344,7 +2342,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -2355,7 +2353,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_threadpool_threads_number{cluster=\"system\",verrazzano_cluster=\"local\", name!=\"management\", type=\"active\"}) by (name)",
+          "expr": "sum(opensearch_threadpool_threads_number{cluster=\"$clustername\", name!=\"management\", type=\"active\"}) by (name)",
           "interval": "",
           "legendFormat": "{{name}}",
           "refId": "A"
@@ -2441,7 +2439,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -2452,7 +2450,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "group by (node)(opensearch_process_file_descriptors_max_number{cluster=\"system\"})",
+          "expr": "group by (node)(opensearch_process_file_descriptors_max_number{cluster=\"$clustername\"})",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -2540,7 +2538,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -2551,7 +2549,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(irate(opensearch_jvm_gc_collection_time_seconds{cluster=\"system\",verrazzano_cluster=\"local\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest\"}[5m])) by (node,gc)",
+          "expr": "max(irate(opensearch_jvm_gc_collection_time_seconds{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-data|opensearch-masters|opensearch-ingest\"}[5m])) by (node,gc)",
           "interval": "",
           "legendFormat": "{{node}}:{{gc}}",
           "refId": "A"
@@ -2659,7 +2657,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -2670,7 +2668,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rate(opensearch_indices_search_query_count{cluster=\"system\",job=\"vmi-system-es-data\", verrazzano_cluster=\"local\"}[5m])",
+          "expr": "rate(opensearch_indices_search_query_count{job=~\"vmi-system-es-data|opensearch-data\", cluster=\"$clustername\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
@@ -2768,7 +2766,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "7.5.17",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -2779,7 +2777,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rate(opensearch_indices_search_query_time_seconds{cluster=\"system\",job=\"vmi-system-es-data\", verrazzano_cluster=\"local\"}[5m])/rate(opensearch_indices_search_query_count{cluster=\"system\",job=\"vmi-system-es-data\", verrazzano_cluster=\"local\"}[5m])",
+          "expr": "rate(opensearch_indices_search_query_time_seconds{job=~\"vmi-system-es-data|opensearch-data\", cluster=\"$clustername\"}[5m])/rate(opensearch_indices_search_query_count{job=~\"vmi-system-es-data|opensearch-data\", cluster=\"$clustername\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
@@ -2838,7 +2836,87 @@
   "style": "dark",
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "allValue": null,
+        "current": {
+          "selected": false,
+          "text": "opensearch",
+          "value": "opensearch"
+        },
+        "datasource": null,
+        "definition": "label_values(opensearch_cluster_status{}, cluster)",
+        "description": null,
+        "error": null,
+        "hide": 0,
+        "includeAll": false,
+        "label": "Cluster",
+        "multi": false,
+        "name": "clustername",
+        "options": [
+          {
+            "selected": true,
+            "text": "opensearch",
+            "value": "opensearch"
+          },
+          {
+            "selected": false,
+            "text": "system",
+            "value": "system"
+          }
+        ],
+        "query": {
+          "query": "label_values(opensearch_cluster_status{}, cluster)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 0,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {
+          "selected": false,
+          "text": "verrazzano-logging",
+          "value": "verrazzano-logging"
+        },
+        "datasource": null,
+        "definition": "label_values(opensearch_cluster_status{cluster=\"$clustername\"}, namespace)",
+        "description": null,
+        "error": null,
+        "hide": 0,
+        "includeAll": false,
+        "label": "Namespace",
+        "multi": false,
+        "name": "namespace",
+        "options": [
+          {
+            "selected": true,
+            "text": "verrazzano-logging",
+            "value": "verrazzano-logging"
+          }
+        ],
+        "query": {
+          "query": "label_values(opensearch_cluster_status{cluster=\"$clustername\"}, namespace)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 0,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      }
+    ]
   },
   "time": {
     "from": "now-6h",
@@ -2848,5 +2926,5 @@
   "timezone": "",
   "title": "OpenSearch Summary Dashboard",
   "uid": "pIZicTl7z",
-  "version": 2
+  "version": 3
 }
