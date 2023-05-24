@@ -43,6 +43,9 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
+
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
@@ -65,6 +68,7 @@ func TestInstallCmdDefaultTimeout(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2s")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
+	defer os.RemoveAll(tempKubeConfigPath.Name())
 
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
@@ -134,6 +138,9 @@ func TestInstallCmdJsonLogFormat(t *testing.T) {
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
+
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
@@ -174,6 +181,8 @@ func TestInstallCmdFilenamesV1Beta1(t *testing.T) {
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
@@ -205,6 +214,8 @@ func TestInstallCmdFilenames(t *testing.T) {
 
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -233,6 +244,9 @@ func TestInstallCmdFilenamesCsv(t *testing.T) {
 
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -263,6 +277,9 @@ func TestInstallCmdSets(t *testing.T) {
 
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -297,6 +314,9 @@ func TestInstallCmdFilenamesAndSets(t *testing.T) {
 
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -345,6 +365,9 @@ func TestInstallCmdManifestsFile(t *testing.T) {
 			defer cmdHelpers.SetDefaultDeleteFunc()
 			cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 			defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+			SetValidateCRFunc(FakeValidateCRFunc)
+			defer SetDefaultValidateCRFunc()
+
 			// Run install command
 			err := cmd.Execute()
 			assert.NoError(t, err)
@@ -650,6 +673,9 @@ func TestInstallFromPrivateRegistry(t *testing.T) {
 
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
 
 	// Run install command
 	err := cmd.Execute()
