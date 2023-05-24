@@ -20,6 +20,7 @@ import (
 	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/config"
 	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
 	cmocidns "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/ocidns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentbitopensearchoutput"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
@@ -104,10 +105,12 @@ func TestGetComponents(t *testing.T) {
 	comps := GetComponents()
 
 	var i int
-	a.Len(comps, 38, "Wrong number of components")
+	a.Len(comps, 39, "Wrong number of components")
 	a.Equal(comps[i].Name(), networkpolicies.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), fluentoperator.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), fluentbitopensearchoutput.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), oam.ComponentName)
 	i++

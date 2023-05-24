@@ -4,6 +4,13 @@
 package fluentbitopensearchoutput
 
 import (
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -12,7 +19,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"k8s.io/apimachinery/pkg/runtime"
+
+	"context"
 	"path/filepath"
 )
 
@@ -47,12 +55,16 @@ func NewComponent() spi.Component {
 }
 
 func (c fluentbitOpensearchOutput) PreInstall(ctx spi.ComponentContext) error {
-	// TODO: check for verrazzano-es-internal secret
+	if err := checkOpensearchSecretExists(ctx); err != nil {
+		return err
+	}
 	return c.HelmComponent.PreInstall(ctx)
 }
 
 func (c fluentbitOpensearchOutput) PreUpgrade(ctx spi.ComponentContext) error {
-	// TODO: check for verrazzano-es-internal secret
+	if err := checkOpensearchSecretExists(ctx); err != nil {
+		return err
+	}
 	return c.HelmComponent.PreUpgrade(ctx)
 }
 
@@ -94,4 +106,27 @@ func (c fluentbitOpensearchOutput) MonitorOverrides(ctx spi.ComponentContext) bo
 
 func (c fluentbitOpensearchOutput) IsEnabled(cr runtime.Object) bool {
 	return vzcr.IsFluentbitOpensearchOutputEnabled(cr)
+}
+
+// checkOpensearchSecretExists checks if secret with Opensearch Credential exists or not.
+func checkOpensearchSecretExists(ctx spi.ComponentContext) error {
+	if vzcr.IsKeycloakEnabled(ctx.EffectiveCR()) {
+		secretName := globalconst.VerrazzanoESInternal
+		secret := &corev1.Secret{}
+		err := ctx.Client().Get(context.TODO(), clipkg.ObjectKey{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      secretName,
+		}, secret)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				ctx.Log().Progressf("Component Fluentd waiting for the secret %s/%s to exist",
+					constants.VerrazzanoSystemNamespace, secretName)
+				return ctrlerrors.RetryableError{Source: ComponentName}
+			}
+			ctx.Log().Errorf("Component Fluentd failed to get the secret %s/%s: %v",
+				constants.VerrazzanoSystemNamespace, secretName, err)
+			return err
+		}
+	}
+	return nil
 }

@@ -123,6 +123,8 @@ spec:
       enabled: true
     fluentOperator:
       enabled: false
+    fluentbitOpensearchOutput:
+      enabled: false
     grafana:
       enabled: true
     ingress:
