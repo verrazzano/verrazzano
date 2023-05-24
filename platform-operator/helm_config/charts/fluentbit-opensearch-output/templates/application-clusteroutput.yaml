@@ -29,10 +29,10 @@ spec:
     {{- end}}
     {{- if .Values.application.httpUser }}
     httpUser:
-{{  toYaml .Values.application.httpUser | indent 4 }}
+{{  toYaml .Values.application.httpUser | indent 6 }}
     {{- end}}
     {{- if .Values.application.httpPassword }}
     httpPassword:
-{{ toYaml .Values.application.httpPassword | indent 4 }}
+{{ toYaml .Values.application.httpPassword | indent 6 }}
     {{- end}}
 {{- end }}
