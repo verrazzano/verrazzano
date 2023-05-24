@@ -21,11 +21,16 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	cli "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -38,6 +43,9 @@ const (
 
 	clusterRegName = "Verrazzano Cluster Registrar"
 	argocdRegName  = "ArgoCD Cluster Registrar"
+
+	helmReleaseNameAnnotation      = "meta.helm.sh/release-name"
+	helmReleaseNamespaceAnnotation = "meta.helm.sh/release-namespace"
 )
 
 // AppendOverrides appends any additional overrides needed by the Cluster Operator component
@@ -60,6 +68,35 @@ func (c clusterOperatorComponent) isClusterOperatorReady(ctx spi.ComponentContex
 		return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)
 	}
 	return true
+}
+
+// associateClusterRegistrarClusterRoleWithVPO associates the ClusterRole verrazzano-cluster-registrar
+// with the VPO Helm release, since it is no longer part of the cluster operator Helm chart, and should
+// not be deleted when the cluster operator Helm chart is upgraded
+func associateClusterRegistrarClusterRoleWithVPO(ctx spi.ComponentContext) error {
+	nsn := types.NamespacedName{Name: vzconst.VerrazzanoClusterRancherName}
+	registrarClusterRole := v1.ClusterRole{}
+	compClient := ctx.Client()
+	err := compClient.Get(context.TODO(), nsn, &registrarClusterRole)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return ctx.Log().ErrorfNewErr("Error getting ClusterRole %v: %v", nsn, err)
+	}
+	// Associate the policy with the verrazzano-network-policies helm chart
+	annotations := registrarClusterRole.GetAnnotations()
+	if annotations[helmReleaseNameAnnotation] == constants.VerrazzanoPlatformOperatorHelmName {
+		return nil
+	}
+	vpoReleaseNsn := types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: constants.VerrazzanoPlatformOperatorHelmName}
+	ctx.Log().Progressf("Associating ClusterRole %v with the %s Helm release", nsn, vpoReleaseNsn.Name)
+
+	objs := []cli.Object{&registrarClusterRole}
+	if _, err := common.AssociateHelmObject(compClient, objs[0], vpoReleaseNsn, nsn, true); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed associating ClusterRole %s:%s with %s Helm release: %v", registrarClusterRole.Namespace, registrarClusterRole.Name, constants.VerrazzanoPlatformOperatorHelmName, err)
+	}
+	return nil
 }
 
 // GetOverrides gets the install overrides for the Cluster Operator component

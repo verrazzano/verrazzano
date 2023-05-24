@@ -2883,16 +2883,17 @@ rules:
   - patch
   - watch
 - apiGroups:
-  - ""
+    - ""
   resources:
-  - secrets
+    - secrets
+    - configmaps
   verbs:
-  - create
-  - get
-  - list
-  - patch
-  - update
-  - watch
+    - create
+    - get
+    - list
+    - patch
+    - update
+    - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

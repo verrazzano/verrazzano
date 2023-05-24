@@ -45,7 +45,7 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "1.21", "1.22", "1.23", "1.24" ])
         string (name: 'EXCLUDE_RELEASES',
-                defaultValue: "v1.0.0, v1.0.1, v1.0.2, v1.0.3, v1.0.4, v1.1.0, v1.1.1, v1.1.2, v1.2.0, v1.2.1, v1.2.2",
+                defaultValue: "v1.0, v1.1, v1.2",
                 description: 'This is to exclude the specified releases from upgrade tests.', trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                         defaultValue: 'NONE',
@@ -163,7 +163,10 @@ pipeline {
                         for(releaseTag in gitTags){
                             def excluded = false
                             for(excludedRelease in excludeReleasesList){
-                                if(releaseTag == excludedRelease){
+                                String[] splitReleaseTag  = releaseTag.replace('v', '').split("\\.")
+                                def releaseTagMinorVersion = "v"+ splitReleaseTag[0] + "." + splitReleaseTag[1]
+                                String[] splitDevVersion = VERRAZZANO_DEV_VERSION.split("\\.")
+                                if (splitReleaseTag[0] > splitDevVersion[0] || splitReleaseTag[1] > splitDevVersion[1] || releaseTagMinorVersion == excludedRelease) {
                                     excluded = true
                                 }
                             }
@@ -173,7 +176,6 @@ pipeline {
                         }
                         echo "List of Releases after excluding the user requested releases: ${finalReleaseList}"
                         listOfUpgradeJobs = addTargetUpgradeVersion(finalReleaseList)
-                        
                         minorReleaseList = getCleanReleaseVersion(finalReleaseList)
                         echo "List of minor release: ${minorReleaseList}"
                         def listOfTipOfReleaseUpgradeJobs = []
@@ -183,9 +185,8 @@ pipeline {
                             String key = "v"+minorRelease
                             releaseCommitMap.put(releaseCommit, getTipOfBranchToMasterJob(key, releaseCommit))
                         }
+
                         listOfTipOfReleaseUpgradeJobs.add(releaseCommitMap)
-
-
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                         echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
                         def k = 0
@@ -202,15 +203,15 @@ pipeline {
                                 k = 0;
                             }
                     }
+                    print mapOfJobsInBatches
+                    for(batch in mapOfJobsInBatches){
+                        parallel batch
+                        sleep 5
+                    }
                     echo "Running upgrades from tip of release branch to master:"
                     print listOfTipOfReleaseUpgradeJobs
                     for(job in listOfTipOfReleaseUpgradeJobs){
                         parallel job
-                        sleep 5
-                    }
-                    print mapOfJobsInBatches
-                    for(batch in mapOfJobsInBatches){
-                        parallel batch
                         sleep 5
                     }
                     //parallel upgradeJobsStageMapping

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -452,7 +453,7 @@ func isIstioManifestNotInstalledError(err error) bool {
 
 // GetDependencies returns the dependencies of this component
 func (i istioComponent) GetDependencies() []string {
-	return []string{networkpolicies.ComponentName}
+	return []string{networkpolicies.ComponentName, fluentoperator.ComponentName}
 }
 
 func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {

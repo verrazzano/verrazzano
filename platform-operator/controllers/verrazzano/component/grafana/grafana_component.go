@@ -16,6 +16,7 @@ import (
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafanadashboards"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -63,7 +64,7 @@ func (g grafanaComponent) ShouldInstallBeforeUpgrade() bool {
 
 // GetDependencies returns the dependencies of the Grafana component
 func (g grafanaComponent) GetDependencies() []string {
-	return []string{networkpolicies.ComponentName, vmo.ComponentName, grafanadashboards.ComponentName}
+	return []string{networkpolicies.ComponentName, vmo.ComponentName, grafanadashboards.ComponentName, fluentoperator.ComponentName}
 }
 
 // GetCertificateNames returns the Grafana certificate names if Nginx is enabled, otherwise returns

@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -52,7 +53,7 @@ func (d opensearchDashboardsComponent) ShouldInstallBeforeUpgrade() bool {
 
 // GetDependencies returns the dependencies of the OpenSearch-Dashbaords component
 func (d opensearchDashboardsComponent) GetDependencies() []string {
-	return []string{vmo.ComponentName}
+	return []string{vmo.ComponentName, fluentoperator.ComponentName}
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the OpenSearch-Dashboards component

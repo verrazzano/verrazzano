@@ -148,13 +148,13 @@
             {
               "image": "rancher",
               "dashboard": "v2.7.2-20230509143745-870a44e17",
-              "tag": "v2.7.3-20230515184120-457dea93d",
+              "tag": "v2.7.3-20230522205503-de33fa931",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.3-20230515184120-457dea93d"
+              "tag": "v2.7.3-20230522205503-de33fa931"
             }
           ]
         },
@@ -232,11 +232,11 @@
           "images": [
             {
               "image": "cluster-api-ocne-bootstrap-controller",
-              "tag": "v0.1.0-20230427222244-4ef1141"
+              "tag": "v0.1.0-20230516205451-d9da513"
             },
             {
               "image": "cluster-api-ocne-control-plane-controller",
-              "tag": "v0.1.0-20230427222244-4ef1141"
+              "tag": "v0.1.0-20230516205451-d9da513"
             }
           ]
         }
@@ -257,12 +257,12 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.14.5-20230512021939-f85741b",
+              "tag": "v1.14.5-20230522051724-403c5d3",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
               "image": "console",
-              "tag": "v1.6.0-20230411132135-bd3ca29",
+              "tag": "v1.6.0-20230518201121-1c995fb",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -548,7 +548,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v20.0.1-20230511162845-f765e95713",
+              "tag": "v20.0.1-20230517204511-228d40b314",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -874,7 +874,7 @@
           "images": [
             {
               "image": "redis",
-              "tag": "v6.2.7-20230124164724-26c8b963",
+              "tag": "v6.2.7-20230516204818-26c8b963",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
