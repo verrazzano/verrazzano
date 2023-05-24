@@ -51,10 +51,6 @@ fluentbit:
   # Installs a sub chart carrying the CRDs for the fluent-bit controller. The sub chart is enabled by default.
   crdsEnable: true
   enable: true
-  namespaceFluentBitCfgSelector:
-    matchLabels:
-      key:
-      value:
   image:
     repository: "kubesphere/fluent-bit"
     tag: "v2.0.11"
@@ -106,6 +102,8 @@ fluentbit:
   #     name: hostProc
   #     readOnly: true
 
+  namespaceFluentBitCfgSelector: {}
+
   # Set a limit of memory that Tail plugin can use when appending data to the Engine.
   # You can find more details here: https://docs.fluentbit.io/manual/pipeline/inputs/tail#config
   # If the limit is reach, it will be paused; when the data is flushed it resumes.
@@ -119,6 +117,7 @@ fluentbit:
       memBufLimit: 5MB
       path: "/var/log/containers/*.log"
       skipLongLines: true
+      readFromHead: false
     systemd:
       enable: true
       path: "/var/log/journal"
@@ -235,7 +234,6 @@ fluentd:
         type: file
         path: /buffers/kafka
     opensearch: {}
-
 
 nameOverride: ""
 fullnameOverride: ""
