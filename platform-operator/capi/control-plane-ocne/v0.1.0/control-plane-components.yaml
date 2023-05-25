@@ -109,6 +109,51 @@ spec:
           spec:
             description: OCNEControlPlaneSpec defines the desired state of OCNEControlPlane.
             properties:
+              addons:
+                items:
+                  properties:
+                    chartName:
+                      description: ChartName is the name of the Helm chart in the
+                        repository.
+                      type: string
+                    local:
+                      description: Local indicates whether chart is local or needs
+                        to be pulled in from the internet. When Local is set to true
+                        the RepoURL would be the local path to the chart directory
+                        in the container. By default, Local is set to false.
+                      type: boolean
+                    namespace:
+                      description: ReleaseNamespace is the namespace the Helm release
+                        will be installed on each selected Cluster. If it is not specified,
+                        it will be set to the default namespace.
+                      type: string
+                    releaseName:
+                      description: ReleaseName is the release name of the installed
+                        Helm chart. If it is not specified, a name will be generated.
+                      type: string
+                    repoURL:
+                      description: ChartLocation is the URL of the Helm chart repository.
+                      type: string
+                    uninstall:
+                      description: Uninstall indicates whether chart needs to be cleaned
+                        up from the workload cluster By default it is set to false
+                      type: boolean
+                    valuesTemplate:
+                      description: valuesTemplate is an inline YAML representing the
+                        values for the Helm chart. This YAML supports Go templating
+                        to reference fields from each selected workload Cluster and
+                        programatically create and set values.
+                      type: string
+                    version:
+                      description: Version is the version of the Helm chart. If it
+                        is not specified, the chart will use and be kept up to date
+                        with the latest version.
+                      type: string
+                  required:
+                  - chartName
+                  - repoURL
+                  type: object
+                type: array
               controlPlaneConfig:
                 description: ControlPlaneConfig is a bootstrap OCNEConfigSpec to use
                   for initializing and joining machines to the control plane.
@@ -2875,6 +2920,17 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - configmaps
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - events
   verbs:
   - create
@@ -2883,17 +2939,16 @@ rules:
   - patch
   - watch
 - apiGroups:
-    - ""
+  - ""
   resources:
-    - secrets
-    - configmaps
+  - secrets
   verbs:
-    - create
-    - get
-    - list
-    - patch
-    - update
-    - watch
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -2980,8 +3035,9 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.uid
-        image: ghcr.io/verrazzano/cluster-api-ocne-control-plane-controller:v0.1.0-20230421153459-16a5418
-        imagePullPolicy: Always
+        # This image will be overridden by the Verrazzano controller
+        image: ghcr.io/verrazzano/cluster-api-ocne-control-plane-controller:v0.1.0-20230525020552-c2d7135
+        imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
             path: /healthz
