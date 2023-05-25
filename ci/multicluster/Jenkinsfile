@@ -47,11 +47,11 @@ pipeline {
         choice (name: 'OKE_CLUSTER_VERSION',
                 description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
-                choices: [ "v1.25.4", "v1.24.1", "v1.22.5", "v1.23.4" ])
+                choices: [ "v1.26.2", "v1.25.4", "v1.24.1", "v1.22.5", "v1.23.4" ])
         choice (name: 'KIND_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KIND Cluster',
                 // 1st choice is the default value
-                choices: [ "1.25", "1.24", "1.22", "1.23" ])
+                choices: [ "1.26", "1.25", "1.24", "1.22", "1.23" ])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
