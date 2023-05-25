@@ -228,7 +228,8 @@ func convertClusterAgentFromV1Beta1(in *v1beta1.ClusterAgentComponent) *ClusterA
 		return nil
 	}
 	return &ClusterAgentComponent{
-		Enabled: in.Enabled,
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
 	}
 }
 
