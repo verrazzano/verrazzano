@@ -116,6 +116,9 @@ type BomImage struct {
 	// if the full image name is myreg.io/foo/bar/myimage:v1.0 the value of this key will be "myreg.io/foo/bar".
 	// See `image.repository` in the external-dns component
 	HelmRegistryAndRepoKey string `json:"helmRegistryAndRepoKey"`
+
+	OCNEDriverVersion  string `json:"ocneDriverVersion"`
+	OCNEDriverChecksum string `json:"ocneDriverChecksum"`
 }
 
 // keyVal defines the Key, Value pair used to override a single helm Value

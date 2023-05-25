@@ -5,12 +5,26 @@ package capi
 
 import (
 	"bytes"
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"context"
 	"os"
 	"strings"
 	"text/template"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/dynamic"
+
+	"k8s.io/apimachinery/pkg/api/errors"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
 const clusterctlYamlTemplate = `
@@ -248,4 +262,59 @@ func applyTemplate(templateContent string, params interface{}) (bytes.Buffer, er
 
 	// Return the result containing the processed template
 	return buf, nil
+}
+
+func createOrUpdateKontainerCR(ctx spi.ComponentContext) error {
+	var GVKKontainerDriver = common.GetRancherMgmtAPIGVKForKind("KontainerDriver")
+
+	kontainerResource := schema.GroupVersionResource{
+		Group:    GVKKontainerDriver.Group,
+		Version:  GVKKontainerDriver.Version,
+		Resource: "kontainerdrivers",
+	}
+
+	// Get BOM file
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return ctx.Log().ErrorNewErr("Failed to get the BOM file: ", err)
+	}
+
+	// Parse Rancher settings for ociocne driver
+	subComponent, err := bomFile.GetSubcomponent("rancher")
+	if err != nil {
+		return ctx.Log().ErrorNewErr("Failed to get BOM images for subcomponent rancher: %v", err)
+	}
+	image, err := bomFile.FindImage(subComponent, "rancher")
+	driverVersion := image.OCNEDriverVersion
+	driverChecksum := image.OCNEDriverChecksum
+
+	// Setup dynamic client
+	dynClient, err := k8sutil.GetDynamicClient()
+	if err != nil {
+		return ctx.Log().ErrorNewErr("Failed to get dynamic client: %v", err)
+	}
+
+	// Does the object already exist?
+	_, err = dynClient.Resource(kontainerResource).Get(context.TODO(), kontainerDriverName, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			_, err = createDriver(dynClient, kontainerResource, kontainerDriverName, driverVersion, driverChecksum)
+		} else {
+			return ctx.Log().ErrorfNewErr("Failed to get %s/%s/%s %s: %v", kontainerResource.Resource, kontainerResource.Group, kontainerResource.Version, kontainerDriverName, err)
+		}
+	}
+
+	return nil
+}
+
+func createDriver(dynClient dynamic.Interface, gvr schema.GroupVersionResource, name string, version string, checksum string) (*unstructured.Unstructured, error) {
+	driverObj := unstructured.Unstructured{}
+	driverObj.SetGroupVersionKind(common.GetRancherMgmtAPIGVKForKind("KontainerDriver"))
+	driverObj.SetName(name)
+	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
+	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["builtIn"] = false
+	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["checksum"] = checksum
+	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = checksum
+
+	return dynClient.Resource(gvr).Create(context.TODO(), &driverObj, metav1.CreateOptions{})
 }
