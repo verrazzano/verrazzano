@@ -159,7 +159,7 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 		}
 	}
 	var instanceInfo *installv1alpha1.InstanceInfo
-	if conditionType == installv1alpha1.CondInstallComplete {
+	if conditionType == installv1alpha1.CondInstallComplete || conditionType == installv1alpha1.CondUpgradeComplete {
 		if componentStatus.ReconcilingGeneration > 0 {
 			componentStatus.LastReconciledGeneration = componentStatus.ReconcilingGeneration
 			componentStatus.ReconcilingGeneration = 0
