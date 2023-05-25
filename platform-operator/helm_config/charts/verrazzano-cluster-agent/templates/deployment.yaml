@@ -26,9 +26,6 @@ spec:
           image: {{ .Values.image }}
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           ports:
-            - containerPort: 9443
-              name: https-webhook
-              protocol: TCP
             - containerPort: 9100
               name: http-metric
               protocol: TCP
