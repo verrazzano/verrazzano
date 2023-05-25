@@ -12,8 +12,6 @@ import (
 	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
-	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
@@ -44,11 +42,12 @@ var simpleValidationTests = []validationTestStruct{
 				Components: vzapi.ComponentSpec{
 					CertManager: &vzapi.CertManagerComponent{
 						Enabled: getBoolPtr(true),
-						Certificate: vzapi.Certificate{
-							Acme: vzapi.Acme{
+					},
+					ClusterIssuer: &vzapi.ClusterIssuerComponent{
+						IssuerConfig: vzapi.IssuerConfig{
+							LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
 								EmailAddress: emailAddress,
 								Environment:  letsEncryptStaging,
-								Provider:     "LetsEncrypt",
 							},
 						},
 					},
@@ -74,11 +73,12 @@ var simpleValidationTests = []validationTestStruct{
 				Components: vzapi.ComponentSpec{
 					CertManager: &vzapi.CertManagerComponent{
 						Enabled: getBoolPtr(false),
-						Certificate: vzapi.Certificate{
-							Acme: vzapi.Acme{
+					},
+					ClusterIssuer: &vzapi.ClusterIssuerComponent{
+						IssuerConfig: vzapi.IssuerConfig{
+							LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
 								EmailAddress: emailAddress,
 								Environment:  letsEncryptStaging,
-								Provider:     "LetsEncrypt",
 							},
 						},
 					},
@@ -99,8 +99,48 @@ var simpleValidationTests = []validationTestStruct{
 		},
 		wantErr: false,
 	},
+	//{
+	//	name: "CertManager and ClusterIssuer both explicitly configured",
+	//	old:  &vzapi.Verrazzano{},
+	//	new: &vzapi.Verrazzano{
+	//		Spec: vzapi.VerrazzanoSpec{
+	//			Components: vzapi.ComponentSpec{
+	//				CertManager: &vzapi.CertManagerComponent{
+	//					Enabled: getBoolPtr(false),
+	//					Certificate: vzapi.Certificate{
+	//						CA: vzapi.CA{
+	//							ClusterResourceNamespace: secretNamespace,
+	//							SecretName:               secretName,
+	//						},
+	//					},
+	//				},
+	//				ClusterIssuer: &vzapi.ClusterIssuerComponent{
+	//					IssuerConfig: vzapi.IssuerConfig{
+	//						LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
+	//							EmailAddress: emailAddress,
+	//							Environment:  letsEncryptStaging,
+	//						},
+	//					},
+	//				},
+	//				DNS: &vzapi.DNSComponent{
+	//					OCI: &vzapi.OCI{
+	//						DNSScope:               "GLOBAL",
+	//						DNSZoneCompartmentOCID: "ocid",
+	//						DNSZoneOCID:            "zoneOcid",
+	//						DNSZoneName:            "zoneName",
+	//						OCIConfigSecret:        "oci",
+	//					},
+	//				},
+	//			},
+	//		},
+	//	},
+	//	caSecret: &corev1.Secret{
+	//		ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: secretNamespace},
+	//	},
+	//	wantErr: true,
+	//},
 	{
-		name: "CertManager Component enabled",
+		name: "CertManager Component Custom CA",
 		old:  &vzapi.Verrazzano{},
 		new:  getCaSecretCR(),
 		caSecret: &corev1.Secret{
@@ -110,7 +150,7 @@ var simpleValidationTests = []validationTestStruct{
 	},
 }
 
-var configValidationTests = []validationTestStruct{
+var issuerConfigurationTests = []validationTestStruct{
 	{
 		name: "updateCustomCA",
 		old:  &vzapi.Verrazzano{},
@@ -215,7 +255,7 @@ var configValidationTests = []validationTestStruct{
 		wantErr: true,
 	},
 	{
-		name: "updateInvalidBothConfigured",
+		name: "updateInvalidCertificateBothConfigured",
 		old:  &vzapi.Verrazzano{},
 		new: &vzapi.Verrazzano{
 			Spec: vzapi.VerrazzanoSpec{
@@ -254,15 +294,11 @@ func validationTests(t *testing.T, isUpdate bool) {
 	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
 
 	tests := simpleValidationTests
-	tests = append(tests, configValidationTests...)
+	tests = append(tests, issuerConfigurationTests...)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.name == "Cert Manager Namespace already exists" && isUpdate { // will throw error only during installation
 				tt.wantErr = false
-			}
-			crdObjs := createCertManagerCRDs()
-			k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
-				return apiextv1fake.NewSimpleClientset(crtObjectToRuntimeObject(crdObjs...)...).ApiextensionsV1(), nil
 			}
 			c := NewComponent()
 			cmcommon.GetClientFunc = getTestClient(tt)
@@ -335,11 +371,11 @@ func getCaSecretCR() *vzapi.Verrazzano {
 	return &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
-				CertManager: &vzapi.CertManagerComponent{
-					Certificate: vzapi.Certificate{
-						CA: vzapi.CA{
-							SecretName:               secretName,
-							ClusterResourceNamespace: secretNamespace,
+				ClusterIssuer: &vzapi.ClusterIssuerComponent{
+					ClusterResourceNamespace: secretNamespace,
+					IssuerConfig: vzapi.IssuerConfig{
+						CA: &vzapi.CAIssuer{
+							SecretName: secretName,
 						},
 					},
 				},

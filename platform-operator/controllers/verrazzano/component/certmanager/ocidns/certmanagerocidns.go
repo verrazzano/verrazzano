@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	vzresource "github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -40,6 +41,7 @@ func appendOCIDNSOverrides(ctx spi.ComponentContext, _ string, namespace string,
 
 	overrides := []bom.KeyValue{
 		{Key: "ociAuthSecrets[0]", Value: secretName},
+		{Key: "certManager.clusterResourceNamespace", Value: getClusterResourceNamespace(ctx.EffectiveCR())},
 	}
 
 	return append(kvs, overrides...), nil
@@ -57,7 +59,7 @@ func GetOCIDNSSecretName(ctx spi.ComponentContext) (string, error) {
 	return ociDNS.OCIConfigSecret, nil
 }
 
-func (c certManagerOciDNSComponent) postUninstall(ctx spi.ComponentContext) error {
+func (c certManagerWebhookOCIComponent) postUninstall(ctx spi.ComponentContext) error {
 	// Clean up the OCI DNS secret in the clusterResourceNamespace
 	dns := ctx.EffectiveCR().Spec.Components.DNS
 	if dns == nil || dns.OCI == nil {
@@ -67,7 +69,7 @@ func (c certManagerOciDNSComponent) postUninstall(ctx spi.ComponentContext) erro
 
 	err := vzresource.Resource{
 		Name:      ociDNS.OCIConfigSecret,
-		Namespace: constants.CertManagerNamespace,
+		Namespace: getClusterResourceNamespace(ctx.EffectiveCR()),
 		Client:    ctx.Client(),
 		Object:    &corev1.Secret{},
 		Log:       ctx.Log(),
@@ -76,4 +78,11 @@ func (c certManagerOciDNSComponent) postUninstall(ctx spi.ComponentContext) erro
 		return err
 	}
 	return nil
+}
+
+func getClusterResourceNamespace(cr *vzapi.Verrazzano) string {
+	if cr == nil || cr.Spec.Components.ClusterIssuer == nil {
+		return constants.CertManagerNamespace
+	}
+	return cr.Spec.Components.ClusterIssuer.ClusterResourceNamespace
 }

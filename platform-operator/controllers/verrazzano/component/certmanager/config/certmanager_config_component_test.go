@@ -6,6 +6,11 @@ package config
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	cmcommonfake "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common/fake"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/ocidns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 
@@ -37,6 +42,30 @@ const (
 	testOCIDNSName = "ociDNS"
 )
 
+// TestSimpleMethods tests the set of trivial/simple boilerplate Component SPI impls
+func TestSimpleMethods(t *testing.T) {
+	asserts := assert.New(t)
+
+	c := clusterIssuerComponent{}
+
+	asserts.Equal(ComponentName, c.Name())
+	asserts.Equal(ComponentNamespace, c.Namespace())
+	asserts.Equal(ComponentJSONName, c.GetJSONName())
+	asserts.False(c.ShouldInstallBeforeUpgrade())
+	asserts.ElementsMatch([]string{networkpolicies.ComponentName, controller.ComponentName, ocidns.ComponentName}, c.GetDependencies())
+	asserts.Equal(constants.VerrazzanoVersion1_0_0, c.GetMinVerrazzanoVersion())
+	asserts.ElementsMatch([]types.NamespacedName{}, c.GetIngressNames(nil))
+	asserts.ElementsMatch([]types.NamespacedName{}, c.GetCertificateNames(nil))
+	asserts.ElementsMatch([]vzapi.Overrides{}, c.GetOverrides(nil))
+	asserts.True(c.MonitorOverrides(nil))
+	asserts.True(c.IsOperatorUninstallSupported())
+	asserts.True(c.IsOperatorInstallSupported())
+	asserts.NoError(c.PreUninstall(nil))
+	asserts.NoError(c.PostUninstall(nil))
+	asserts.NoError(c.PostUpgrade(nil))
+	asserts.NoError(c.Reconcile(nil))
+}
+
 // TestIsInstalledCMNotPresent tests the IsInstalled function
 // GIVEN a call to IsInstalled
 //
@@ -52,7 +81,7 @@ func TestIsInstalledCMNotPresent(t *testing.T) {
 //	WHEN the CM CRDs are present and the VZ cluster issuer exists
 //	THEN no error is returned and the result is true
 func TestIsInstalledCMAndIssuerArePresent(t *testing.T) {
-	runIsInstalledTest(t, true, false, createCertManagerCRDs()...)
+	runIsInstalledTest(t, true, false)
 }
 
 func runIsInstalledTest(t *testing.T, expectInstalled bool, expectErr bool, objs ...clipkg.Object) {
@@ -66,7 +95,7 @@ func runIsInstalledTest(t *testing.T, expectInstalled bool, expectErr bool, objs
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(clientObjs...).Build()
 	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
 	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1.ApiextensionsV1Interface, error) {
-		return apiextv1fake.NewSimpleClientset(crtObjectToRuntimeObject(objs...)...).ApiextensionsV1(), nil
+		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
 	}
 
 	fakeContext := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
@@ -94,7 +123,7 @@ func TestIsNotReadyNoCertManagerResourcesPresent(t *testing.T) {
 //	WHEN the CM CRDs are present but the issuer is not
 //	THEN false is returned
 func TestIsNotReady(t *testing.T) {
-	runIsReadyTest(t, false, createCertManagerCRDs()...)
+	runIsReadyTest(t, false)
 }
 
 // TestIsReady tests the IsReady function
@@ -103,7 +132,7 @@ func TestIsNotReady(t *testing.T) {
 //	WHEN the CM CRDs and the ClusterIssuer are present
 //	THEN true is returned
 func TestIsReady(t *testing.T) {
-	runIsReadyTest(t, true, createCertManagerCRDs()...)
+	runIsReadyTest(t, true)
 }
 
 func runIsReadyTest(t *testing.T, expectedReady bool, objs ...clipkg.Object) {
@@ -117,21 +146,37 @@ func runIsReadyTest(t *testing.T, expectedReady bool, objs ...clipkg.Object) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(clientObjs...).Build()
 	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
 	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1.ApiextensionsV1Interface, error) {
-		return apiextv1fake.NewSimpleClientset(crtObjectToRuntimeObject(objs...)...).ApiextensionsV1(), nil
+		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
 	}
 
 	fakeContext := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
 	ready := fakeComponent.IsReady(fakeContext)
 	assert.Equal(t, expectedReady, ready, "Did not get expected result")
+	if expectedReady {
+		_, availability := fakeComponent.IsAvailable(fakeContext)
+		assert.Equal(t, vzapi.ComponentAvailability(vzapi.ComponentAvailable), availability)
+	} else {
+		_, availability := fakeComponent.IsAvailable(fakeContext)
+		assert.Equal(t, vzapi.ComponentAvailability(vzapi.ComponentUnavailable), availability)
+	}
 }
 
 // TestValidateInstall tests the ValidateInstall function
 // GIVEN a call to ValidateInstall
 //
-//	WHEN for various CM configurations
+//	WHEN for various Issuer configurations
 //	THEN an error is returned if anything is misconfigured
 func TestValidateInstall(t *testing.T) {
 	validationTests(t, false)
+}
+
+// TestValidateUpdate tests the ValidateInstall function
+// GIVEN a call to ValidateInstall
+//
+//	WHEN for various Issuer configurations
+//	THEN an error is returned if anything is misconfigured
+func TestValidateUpdate(t *testing.T) {
+	validationTests(t, true)
 }
 
 // TestPostInstallCA tests the PostInstall function
@@ -206,7 +251,7 @@ func runCAUpdateTest(t *testing.T, upgrade bool) {
 	}
 
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(localvz).Build()
-	ctx := spi.NewFakeContext(client, updatedVZ, nil, false)
+	ctx := spi.NewFakeContext(client, updatedVZ, nil, false, profileDir)
 
 	var err error
 	if upgrade {
@@ -351,7 +396,7 @@ auth:
 	expectedIssuer, _ := createAcmeClusterIssuer(vzlog.DefaultLogger(), expectedIssuerTemplateData)
 
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(localvz, oldSecret, newSecret, existingIssuer).Build()
-	ctx := spi.NewFakeContext(client, updatedVz, nil, false)
+	ctx := spi.NewFakeContext(client, updatedVz, nil, false, profileDir)
 
 	var err error
 	if upgrade {
@@ -361,9 +406,10 @@ auth:
 	}
 	assert.NoError(t, err)
 
-	actualIssuer, err := createACMEIssuerObject(ctx)
-	assert.Equal(t, expectedIssuer.Object["spec"], actualIssuer.Object["spec"])
+	actualIssuer, err := createACMEIssuerObject(ctx.Log(), ctx.Client(), ctx.EffectiveCR(), ctx.EffectiveCR().Spec.Components.ClusterIssuer)
 	assert.NoError(t, err)
+	assert.NotNil(t, actualIssuer)
+	assert.Equal(t, expectedIssuer.Object["spec"], actualIssuer.Object["spec"])
 }
 
 // TestClusterIssuerUpdated tests the createOrUpdateClusterIssuer function
@@ -470,7 +516,7 @@ func TestClusterIssuerUpdated(t *testing.T) {
 
 	// Fake controllerruntime client and ComponentContext for the call
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(existingClusterIssuer, certificate, ociSecret).Build()
-	ctx := spi.NewFakeContext(client, localvz, nil, false)
+	ctx := spi.NewFakeContext(client, localvz, nil, false, profileDir)
 
 	// Fake Go client for the CertManager clientset
 	cmClient := certv1fake.NewSimpleClientset(certificate, certificateRequest1, certificateRequest2, otherCertRequest)
@@ -482,8 +528,8 @@ func TestClusterIssuerUpdated(t *testing.T) {
 
 	// Create an issuer
 	issuerName := caCertCommonName + "-a23asdfa"
-	fakeIssuerCert := cmcommon.CreateFakeCertificate(issuerName)
-	fakeIssuerCertBytes, err := cmcommon.CreateFakeCertBytes(issuerName, nil)
+	fakeIssuerCert := cmcommonfake.CreateFakeCertificate(issuerName)
+	fakeIssuerCertBytes, err := cmcommonfake.CreateFakeCertBytes(issuerName, nil)
 	if err != nil {
 		return
 	}
@@ -492,7 +538,7 @@ func TestClusterIssuerUpdated(t *testing.T) {
 		return
 	}
 	// Create a leaf cert signed by the above issuer
-	fakeCertBytes, err := cmcommon.CreateFakeCertBytes("common-name", fakeIssuerCert)
+	fakeCertBytes, err := cmcommonfake.CreateFakeCertBytes("common-name", fakeIssuerCert)
 	if err != nil {
 		return
 	}
@@ -506,7 +552,7 @@ func TestClusterIssuerUpdated(t *testing.T) {
 	defer func() { cmcommon.ResetCoreV1ClientFunc() }()
 
 	// create the component and issue the call
-	component := NewComponent().(certManagerConfigComponent)
+	component := NewComponent().(clusterIssuerComponent)
 	asserts.NoError(component.createOrUpdateClusterIssuer(ctx))
 
 	// Verify the certificate status has an Issuing condition; this informs CertManager to renew the certificate
@@ -549,7 +595,7 @@ func TestUninstallNoCRDs(t *testing.T) {
 //	WHEN the CM CRDs are present
 //	THEN no error is returned
 func TestUninstall(t *testing.T) {
-	runUninstallTest(t, createCertManagerCRDs()...)
+	runUninstallTest(t)
 }
 
 func runUninstallTest(t *testing.T, objs ...clipkg.Object) {
@@ -558,10 +604,10 @@ func runUninstallTest(t *testing.T, objs ...clipkg.Object) {
 
 	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
 	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1.ApiextensionsV1Interface, error) {
-		return apiextv1fake.NewSimpleClientset(crtObjectToRuntimeObject(objs...)...).ApiextensionsV1(), nil
+		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
 	}
 
-	fakeContext := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
+	fakeContext := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false, profileDir)
 
 	// We do more exhaustive testing of uninstall in the tests for uninstallVerrazzanoCertManagerResources, so
 	// we don't expect errors here
@@ -610,7 +656,7 @@ func createCertSecret(name string, namespace string, fakeCertBytes []byte) (*cor
 }
 
 func createCertSecretNoParent(name string, namespace string, cn string) (*corev1.Secret, error) {
-	fakeCertBytes, err := cmcommon.CreateFakeCertBytes(cn, nil)
+	fakeCertBytes, err := cmcommonfake.CreateFakeCertBytes(cn, nil)
 	if err != nil {
 		return nil, err
 	}
