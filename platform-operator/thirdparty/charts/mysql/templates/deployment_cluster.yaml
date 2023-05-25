@@ -77,6 +77,10 @@ spec:
 {{- end }}
   secretName: {{ .Release.Name }}-cluster-secret
   imagePullPolicy : {{ .Values.image.pullPolicy }}
+{{- $repositoryPath := .Values.image.repository }}
+{{- if $repositoryPath }}
+  imageRepository: {{ $repositoryPath }}
+{{- end }}
   baseServerId: {{ required "baseServerId is required" .Values.baseServerId }}
   version: {{ .Values.serverVersion | default .Chart.AppVersion }}
   {{- if ((.Values).edition) }}
