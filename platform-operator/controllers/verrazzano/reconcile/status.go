@@ -172,8 +172,8 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 		}
 	}
 	if conditionType == installv1alpha1.CondUpgradeComplete {
-		log.Infof("----> DEBUG: Component %s ReconcilingGeneration = %i", componentName, componentStatus.ReconcilingGeneration)
-		log.Infof("----> DEBUG: Component %s LastReconcilingGeneration = %i", componentName, componentStatus.LastReconciledGeneration)
+		log.Infof("----> DEBUG: Component %s ReconcilingGeneration = %d", componentName, componentStatus.ReconcilingGeneration)
+		log.Infof("----> DEBUG: Component %s LastReconcilingGeneration = %d", componentName, componentStatus.LastReconciledGeneration)
 	}
 	componentStatus.Conditions = appendConditionIfNecessary(log, componentStatus.Name, componentStatus.Conditions, condition)
 
