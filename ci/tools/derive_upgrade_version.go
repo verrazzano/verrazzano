@@ -5,7 +5,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/blang/semver"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	"os"
 	"os/exec"
 	"strconv"
@@ -257,7 +257,7 @@ func getInstallRelease(releaseTags []string) string {
 func getTagsGTE(tags []string, oldestAllowedVersion string) (string, error) {
 	builder := strings.Builder{}
 
-	o, err := semver.New(oldestAllowedVersion)
+	o, err := semver.NewSemVersion(oldestAllowedVersion)
 	if err != nil {
 		return "", err
 	}
@@ -267,11 +267,11 @@ func getTagsGTE(tags []string, oldestAllowedVersion string) (string, error) {
 		if tag[0] == 'v' || tag[0] == 'V' {
 			t = tag[1:]
 		}
-		tagVersion, err := semver.New(t)
+		tagVersion, err := semver.NewSemVersion(t)
 		if err != nil {
 			return "", err
 		}
-		if tagVersion.GTE(*o) {
+		if tagVersion.IsGreaterThanOrEqualTo(o) {
 			builder.WriteString(tag)
 			builder.WriteString("\n")
 		}
