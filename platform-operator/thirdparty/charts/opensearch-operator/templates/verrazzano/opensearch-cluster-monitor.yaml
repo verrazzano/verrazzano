@@ -23,14 +23,14 @@ spec:
       tlsConfig:
         ca:
           secret:
-            name: {{ .Values.OpenSearchClusterSpec.name }}-monitor-certs
+            name: {{ .Values.openSearchCluster.name }}-monitor-certs
             key: ca.crt
         cert:
           secret:
-            name: {{ .Values.OpenSearchClusterSpec.name }}-monitor-certs
+            name: {{ .Values.openSearchCluster.name }}-monitor-certs
             key: tls.crt
         keySecret:
-          name: {{ .Values.OpenSearchClusterSpec.name }}-monitor-certs
+          name: {{ .Values.openSearchCluster.name }}-monitor-certs
           key: tls.key
         insecureSkipVerify: true
       scheme: https

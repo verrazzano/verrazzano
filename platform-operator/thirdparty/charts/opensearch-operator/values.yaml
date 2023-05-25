@@ -100,7 +100,7 @@ ingress:
       #      - chart-example.local
 
 
-OpenSearchClusterSpec:
+openSearchCluster:
   enabled: true
   name: opensearch
   security:

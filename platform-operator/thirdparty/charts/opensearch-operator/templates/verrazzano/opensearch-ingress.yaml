@@ -40,7 +40,7 @@ spec:
 {{- end }}
 
 ---
-{{- if and (.Values.ingress.openSearchDashboards.enable) (.Values.OpenSearchClusterSpec.dashboards.enable) }}
+{{- if and (.Values.ingress.openSearchDashboards.enable) (.Values.openSearchCluster.dashboards.enable) }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
