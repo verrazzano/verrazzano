@@ -28,8 +28,6 @@ const (
 	fluentOperatorInitTag      = "operator.initcontainer.tag"
 	fluentBitImageTag          = "fluentbit.image.tag"
 	clusterOutputDirectory     = "fluent-operator"
-	systemOutputFile           = "system-output.yaml"
-	applicationOutputFile      = "application-output.yaml"
 	fluentbitConfigMap         = fluentbitDaemonset + "-os-config"
 	fluentbitConfigMapFile     = "fluentbit-config-configmap.yaml"
 )
@@ -110,23 +108,6 @@ func applyFluentBitConfigMap(compContext spi.ComponentContext) error {
 	args["fluentbitComponent"] = fluentbitDaemonset
 	if err := k8sutil.NewYAMLApplier(compContext.Client(), "").ApplyFT(fluentbitCM, args); err != nil {
 		return compContext.Log().ErrorfNewErr("Failed applying FluentBit ConfigMap: %v", err)
-	}
-	return nil
-}
-
-// applyFluentBitConfigMap applies the Fluent-bit ClusterOutput CRDs for the OpenSearch.
-func applyOpenSearchClusterOutputs(compContext spi.ComponentContext) error {
-	crdManifestDir := filepath.Join(config.GetThirdPartyManifestsDir(), clusterOutputDirectory)
-	systemClusterOutput := filepath.Join(crdManifestDir, systemOutputFile)
-	applicationClusterOutput := filepath.Join(crdManifestDir, applicationOutputFile)
-
-	// Apply the ClusterOutput for System related logs
-	if err := k8sutil.NewYAMLApplier(compContext.Client(), "").ApplyF(systemClusterOutput); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed applying ClusterOutput for System related logs: %v", err)
-
-	}
-	if err := k8sutil.NewYAMLApplier(compContext.Client(), "").ApplyF(applicationClusterOutput); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed applying ClusterOutput for Application related logs: %v", err)
 	}
 	return nil
 }

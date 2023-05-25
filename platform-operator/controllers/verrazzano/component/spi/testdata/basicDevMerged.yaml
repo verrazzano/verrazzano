@@ -103,6 +103,10 @@ spec:
       elasticsearchSecret: verrazzano-es-internal
     fluentOperator:
       enabled: false
+    fluentbitOpensearchOutput:
+      enabled: false
+    fluentbitOpensearchOutput:
+      enabled: false
     grafana:
       enabled: true
     ingress:

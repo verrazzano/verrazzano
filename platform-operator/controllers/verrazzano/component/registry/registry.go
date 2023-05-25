@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentbitopensearchoutput"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
@@ -70,6 +71,7 @@ func InitRegistry() {
 	componentsRegistry = []spi.Component{
 		networkpolicies.NewComponent(), // This must be first, don't move it.  see netpol_components.go
 		fluentoperator.NewComponent(),
+		fluentbitopensearchoutput.NewComponent(),
 		oam.NewComponent(),
 		appoper.NewComponent(),
 		istio.NewComponent(),

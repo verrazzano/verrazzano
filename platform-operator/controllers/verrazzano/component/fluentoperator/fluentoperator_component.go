@@ -173,9 +173,11 @@ func (c fluentOperatorComponent) Install(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.Install(ctx); err != nil {
 		return err
 	}
-	if err := applyOpenSearchClusterOutputs(ctx); err != nil {
-		return err
-	}
+	/*
+		if err := applyOpenSearchClusterOutputs(ctx); err != nil {
+			return err
+		}
+	*/
 
 	return nil
 }
