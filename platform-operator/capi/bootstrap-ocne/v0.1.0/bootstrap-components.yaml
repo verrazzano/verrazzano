@@ -2540,7 +2540,7 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         image: ghcr.io/verrazzano/cluster-api-ocne-bootstrap-controller:v0.1.0-20230525020552-c2d7135
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
             path: /healthz
