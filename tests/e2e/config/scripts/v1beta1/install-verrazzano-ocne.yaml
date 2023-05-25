@@ -10,7 +10,7 @@ spec:
     dns:
       wildcard:
         domain: nip.io
-    ingress:
+    ingressNGINX:
       type: LoadBalancer
     istio:
       enabled: true
