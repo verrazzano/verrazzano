@@ -2,70 +2,78 @@
 # Create ingress for OpenSearch and OpenSearch Dashboards with Verrazzano authproxy as backend
 # Required to access OpenSearch and OpenSearch Dashboards through Verrazzano Keycloak
 
+{{- if .Values.ingress.openSearch.enable }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: opensearch
   namespace: verrazzano-system
+{{- with .Values.ingress.openSearch.annotations }}
   annotations:
-    cert-manager.io/common-name: opensearch.logging.default.1.2.3.4.nip.io
-    external-dns.alpha.kubernetes.io/target: verrazzano-ingress.default.1.2.3.4.nip.io
-    external-dns.alpha.kubernetes.io/ttl: "60"
-    kubernetes.io/tls-acme: "true"
-    nginx.ingress.kubernetes.io/proxy-body-size: 65M
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
-    nginx.ingress.kubernetes.io/service-upstream: "true"
-    nginx.ingress.kubernetes.io/upstream-vhost: ${service_name}.${namespace}.svc.cluster.local
+{{ toYaml . | indent 4 }}
+{{- end }}
 spec:
-  ingressClassName: verrazzano-nginx
+  {{- if .Values.ingress.openSearch.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.openSearch.ingressClassName }}
+  {{- end }}
   rules:
-    - host: "opensearch.logging.default.1.2.3.4.nip.io"
+    - host: {{ .Values.ingress.openSearch.host | quote }}
       http:
         paths:
           - pathType: ImplementationSpecific
-            path: /()(.*)
+            path: {{ .Values.ingress.openSearch.path }}
             backend:
               service:
-                name: verrazzano-authproxy
+                name: {{ .Values.ingress.openSearch.serviceName }}
                 port:
-                  number: 8775
+                  number: {{ .Values.ingress.openSearch.portNumber }}
+{{- if .Values.ingress.openSearch.tls }}
   tls:
+  {{- range .Values.ingress.openSearch.tls }}
     - hosts:
-        - "opensearch.logging.default.1.2.3.4.nip.io"
-      secretName: tls-opensearch-ingress
+      {{- range .hosts }}
+        - {{ . }}
+      {{- end }}
+      secretName: {{ .secretName }}
+  {{- end }}
+{{- end }}
+{{- end }}
 
 ---
-{{- if eq (.Values.OpenSearchClusterSpec.dashboards.enable | toString | default "false") "true" }}
+{{- if and (.Values.ingress.openSearchDashboards.enable) (.Values.OpenSearchClusterSpec.dashboards.enable) }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: opensearch-dashboards
   namespace: verrazzano-system
+{{- with .Values.ingress.openSearchDashboards.annotations }}
   annotations:
-    cert-manager.io/common-name: osd.logging.default.1.2.3.4.nip.io
-    external-dns.alpha.kubernetes.io/target: verrazzano-ingress.default.1.2.3.4.nip.io
-    external-dns.alpha.kubernetes.io/ttl: "60"
-    kubernetes.io/tls-acme: "true"
-    nginx.ingress.kubernetes.io/proxy-body-size: 65M
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
-    nginx.ingress.kubernetes.io/service-upstream: "true"
-    nginx.ingress.kubernetes.io/upstream-vhost: ${service_name}.${namespace}.svc.cluster.local
+{{ toYaml . | indent 4 }}
+{{- end }}
 spec:
-  ingressClassName: verrazzano-nginx
+  {{- if .Values.ingress.openSearchDashboards.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.openSearchDashboards.ingressClassName }}
+  {{- end }}
   rules:
-    - host: "osd.logging.default.1.2.3.4.nip.io"
+    - host: {{ .Values.ingress.openSearchDashboards.host | quote }}
       http:
         paths:
           - pathType: ImplementationSpecific
-            path: /()(.*)
+            path: {{ .Values.ingress.openSearchDashboards.path }}
             backend:
               service:
-                name: verrazzano-authproxy
+                name: {{ .Values.ingress.openSearchDashboards.serviceName }}
                 port:
-                  number: 8775
+                  number: {{ .Values.ingress.openSearchDashboards.portNumber }}
+{{- if .Values.ingress.openSearchDashboards.tls }}
   tls:
+  {{- range .Values.ingress.openSearchDashboards.tls }}
     - hosts:
-        - "osd.logging.default.1.2.3.4.nip.io"
-      secretName: tls-osd-ingress
+      {{- range .hosts }}
+        - {{ . }}
+      {{- end }}
+      secretName: {{ .secretName }}
+  {{- end }}
+{{- end }}
 {{- end }}
 ---

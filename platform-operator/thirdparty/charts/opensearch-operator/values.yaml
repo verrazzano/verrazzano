@@ -72,11 +72,41 @@ kubeRbacProxy:
     repository: "gcr.io/kubebuilder/kube-rbac-proxy"
     tag: "v0.8.0"
 
+ingress:
+  openSearch:
+    enable: true
+    annotations: {}
+    path: /()(.*)
+    ingressClassName: nginx
+    host: chart-example.local
+    serviceName: opensearch
+    portNumber: 9200
+    tls: []
+      #  - secretName: chart-example-tls
+      #    hosts:
+      #      - chart-example.local
+
+  openSearchDashboards:
+    enable: true
+    annotations: {}
+    path: /()(.*)
+    ingressClassName: nginx
+    host: chart-example.local
+    serviceName: opensearch-dashboards
+    portNumber: 5601
+    tls: []
+      #  - secretName: chart-example-tls
+      #    hosts:
+      #      - chart-example.local
+
+
 OpenSearchClusterSpec:
   enabled: true
   name: opensearch
   security:
     config:
+      adminCredentialsSecret:
+        name: admin-credentials-secret
       securityConfigSecret:
         name: securityconfig-secret
       adminSecret:
@@ -98,6 +128,8 @@ OpenSearchClusterSpec:
     version: 2.3.0
     drainDataNodes: true
   dashboards:
+    opensearchCredentialsSecret:
+      name: admin-credentials-secret
     additionalConfig:
       server.name: opensearch-dashboards
       opensearch_security.auth.type: "proxy"
