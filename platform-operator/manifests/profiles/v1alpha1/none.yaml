@@ -10,6 +10,12 @@ spec:
       enabled: false
     certManager:
       enabled: false
+      certificate:
+        ca:
+          secretName: "verrazzano-ca-certificate-secret"
+          clusterResourceNamespace: "cert-manager"
+    clusterIssuer:
+      enabled: false
     clusterOperator:
       enabled: false
     coherenceOperator:
