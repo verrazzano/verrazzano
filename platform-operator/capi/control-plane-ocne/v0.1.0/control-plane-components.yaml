@@ -3035,6 +3035,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.uid
+        # This image will be overridden by the Verrazzano controller
         image: ghcr.io/verrazzano/cluster-api-ocne-control-plane-controller:v0.1.0-20230525020552-c2d7135
         imagePullPolicy: IfNotPresent
         livenessProbe:
