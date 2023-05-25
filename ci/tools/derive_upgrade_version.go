@@ -16,7 +16,7 @@ const (
 	VersionForInstall             = "install-version"
 	InterimVersionForUpgrade      = "interim-version"
 	LatestVersionForCurrentBranch = "latest-version-for-branch"
-	VersionsAfter                 = "versions-after"
+	VersionsGTE                   = "versions-gte"
 )
 
 var (
@@ -48,8 +48,8 @@ func main() {
 	case LatestVersionForCurrentBranch:
 		latestRelease := getLatestReleaseForCurrentBranch(releaseTags)
 		fmt.Println(latestRelease)
-	case VersionsAfter:
-		tagsAfter, err := getTagsAfter(releaseTags, excludeReleaseTags[0])
+	case VersionsGTE:
+		tagsAfter, err := getTagsGTE(releaseTags, excludeReleaseTags[0])
 		if err != nil {
 			panic(err)
 		}
@@ -254,7 +254,7 @@ func getInstallRelease(releaseTags []string) string {
 	return fmt.Sprintf("v%s\n", installRelease)
 }
 
-func getTagsAfter(tags []string, oldestAllowedVersion string) (string, error) {
+func getTagsGTE(tags []string, oldestAllowedVersion string) (string, error) {
 	builder := strings.Builder{}
 
 	o, err := semver.New(oldestAllowedVersion)
@@ -271,7 +271,7 @@ func getTagsAfter(tags []string, oldestAllowedVersion string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if tagVersion.GT(*o) {
+		if tagVersion.GTE(*o) {
 			builder.WriteString(tag)
 			builder.WriteString("\n")
 		}
