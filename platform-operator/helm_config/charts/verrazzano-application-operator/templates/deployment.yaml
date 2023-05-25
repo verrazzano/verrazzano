@@ -46,6 +46,7 @@ spec:
               protocol: TCP
           args:
             - --zap-log-level={{ .Values.logLevel }}
+            - --run-cluster-agent=false
           resources:
             requests:
               memory: {{ .Values.requestMemory }}
