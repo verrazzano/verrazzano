@@ -3,6 +3,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -255,7 +256,7 @@ func getInstallRelease(releaseTags []string) string {
 }
 
 func getTagsGTE(tags []string, oldestAllowedVersion string) (string, error) {
-	builder := strings.Builder{}
+	var gteTags []string
 
 	o, err := semver.NewSemVersion(oldestAllowedVersion)
 	if err != nil {
@@ -272,12 +273,15 @@ func getTagsGTE(tags []string, oldestAllowedVersion string) (string, error) {
 			return "", err
 		}
 		if tagVersion.IsGreaterThanOrEqualTo(o) {
-			builder.WriteString(tag)
-			builder.WriteString("\n")
+			gteTags = append(gteTags, tag)
 		}
 	}
 
-	return builder.String(), nil
+	data, err := json.Marshal(gteTags)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
 
 func parseInt(s string) int {
