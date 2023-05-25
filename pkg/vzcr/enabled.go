@@ -586,6 +586,20 @@ func IsThanosEnabled(cr runtime.Object) bool {
 	return false
 }
 
+// IsClusterAgentEnabled returns false only if Cluster Agent is explicitly disabled in the CR
+func IsClusterAgentEnabled(cr runtime.Object) bool {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.ClusterAgent != nil && vzv1alpha1.Spec.Components.ClusterAgent.Enabled != nil {
+			return *vzv1alpha1.Spec.Components.ClusterAgent.Enabled
+		}
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 != nil && vzv1beta1.Spec.Components.ClusterAgent != nil && vzv1beta1.Spec.Components.ClusterAgent.Enabled != nil {
+			return *vzv1beta1.Spec.Components.ClusterAgent.Enabled
+		}
+	}
+	return true
+}
+
 // IsComponentStatusEnabled checks if the component is enabled by looking at the component status State field
 func IsComponentStatusEnabled(cr runtime.Object, componentName string) bool {
 	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
