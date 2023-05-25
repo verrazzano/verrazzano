@@ -5,7 +5,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/blang/semver"
 	"os"
 	"os/exec"
 	"strconv"
@@ -16,7 +15,6 @@ const (
 	VersionForInstall             = "install-version"
 	InterimVersionForUpgrade      = "interim-version"
 	LatestVersionForCurrentBranch = "latest-version-for-branch"
-	VersionsGTE                   = "versions-gte"
 )
 
 var (
@@ -38,25 +36,17 @@ func main() {
 
 	//Extract release tags from git tag command.
 	releaseTags := getReleaseTags(workspace, excludeReleaseTags)
-	switch versionType {
-	case InterimVersionForUpgrade:
+	if versionType == InterimVersionForUpgrade {
 		interimRelease := getInterimRelease(releaseTags)
 		fmt.Print(interimRelease)
-	case VersionForInstall:
+	} else if versionType == VersionForInstall {
 		installRelease := getInstallRelease(releaseTags)
 		fmt.Print(installRelease)
-	case LatestVersionForCurrentBranch:
+	} else if versionType == LatestVersionForCurrentBranch {
 		latestRelease := getLatestReleaseForCurrentBranch(releaseTags)
 		fmt.Println(latestRelease)
-	case VersionsGTE:
-		tagsAfter, err := getTagsGTE(releaseTags, excludeReleaseTags[0])
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(tagsAfter)
-	default:
+	} else {
 		fmt.Printf("invalid command line argument for derive version type \n")
-		os.Exit(1)
 	}
 }
 
@@ -252,32 +242,6 @@ func getInstallRelease(releaseTags []string) string {
 
 	// Return the interim release tag
 	return fmt.Sprintf("v%s\n", installRelease)
-}
-
-func getTagsGTE(tags []string, oldestAllowedVersion string) (string, error) {
-	builder := strings.Builder{}
-
-	o, err := semver.New(oldestAllowedVersion)
-	if err != nil {
-		return "", err
-	}
-
-	for _, tag := range tags {
-		var t = tag
-		if tag[0] == 'v' || tag[0] == 'V' {
-			t = tag[1:]
-		}
-		tagVersion, err := semver.New(t)
-		if err != nil {
-			return "", err
-		}
-		if tagVersion.GTE(*o) {
-			builder.WriteString(tag)
-			builder.WriteString("\n")
-		}
-	}
-
-	return builder.String(), nil
 }
 
 func parseInt(s string) int {
