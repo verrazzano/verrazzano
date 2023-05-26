@@ -58,7 +58,10 @@ func IsACMEConfig(vz interface{}) (bool, error) {
 	}
 	if vzv1alpha1.Spec.Components.CertManager != nil {
 		isCA, err := checkExactlyOneIssuerConfiguration(vzv1alpha1.Spec.Components.CertManager.Certificate)
-		return !isCA, err
+		if err != nil {
+			return false, err
+		}
+		return !isCA, nil
 	}
 	return false, nil
 }
