@@ -68,8 +68,8 @@
               "helmTagKey": "cainjector.image.tag"
             },
             {
-              "image": "cert-manager-webhook",
-              "tag": "v1.9.1-20230524125601-3a732e40",
+              "image": "cert-manager-webhook-oci",
+              "tag": "v0.1.0-20230526160243-7a73e30",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
