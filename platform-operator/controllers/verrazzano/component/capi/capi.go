@@ -303,16 +303,17 @@ func createOrUpdateKontainerCR(ctx spi.ComponentContext) error {
 
 	// Does the object already exist?
 	var driverObj *unstructured.Unstructured
-	driverObj, err = dynClient.Resource(kontainerResource).Get(context.TODO(), kontainerDriverName, metav1.GetOptions{})
+	driverObj, err = dynClient.Resource(kontainerResource).Get(context.TODO(), kontainerDriverObjectName, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			_, err = createDriver(dynClient, kontainerResource, kontainerDriverName, driverURL, driverChecksum)
+			_, err = createDriver(dynClient, kontainerResource, kontainerDriverObjectName, driverURL, driverChecksum)
 		} else {
-			return ctx.Log().ErrorfNewErr("Failed to get %s/%s/%s %s: %v", kontainerResource.Resource, kontainerResource.Group, kontainerResource.Version, kontainerDriverName, err)
+			return ctx.Log().ErrorfNewErr("Failed to get %s/%s/%s %s: %v", kontainerResource.Resource, kontainerResource.Group, kontainerResource.Version, kontainerDriverObjectName, err)
 		}
 	}
 
 	// Update the existing record
+	ctx.Log().Infof("MGIANATA driverObj: %v", driverObj)
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["checksum"] = driverChecksum
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = driverURL
 

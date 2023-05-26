@@ -39,7 +39,8 @@ const (
 	ocneProviderName                 = "ocne"
 	ociProviderName                  = "oci"
 	clusterAPIProviderName           = "cluster-api"
-	kontainerDriverName              = "ociocneengine"
+	kontainerDriverObjectName        = "ociocneengine"
+	kontainerDriverName              = "ociocne"
 )
 
 var capiDeployments = []types.NamespacedName{
