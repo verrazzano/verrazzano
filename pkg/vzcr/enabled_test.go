@@ -219,6 +219,102 @@ func TestIsKeycloakEnabled(t *testing.T) {
 		}}))
 }
 
+// TestIsClusterIssuerEnabled tests the IsClusterIssuerEnabled function
+// GIVEN a call to IsClusterIssuerEnabled
+//
+//	THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
+func TestIsClusterIssuerEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.True(IsClusterIssuerEnabled(nil))
+	asserts.True(IsClusterIssuerEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.True(IsClusterIssuerEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ClusterIssuer: &vzapi.ClusterIssuerComponent{},
+			},
+		}}))
+	asserts.True(IsClusterIssuerEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ClusterIssuer: &vzapi.ClusterIssuerComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsClusterIssuerEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ClusterIssuer: &vzapi.ClusterIssuerComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+	asserts.True(IsClusterIssuerEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				ClusterIssuer: &installv1beta1.ClusterIssuerComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsClusterIssuerEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				ClusterIssuer: &installv1beta1.ClusterIssuerComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}
+
+// TestIsCertManagerOCIDNSWebhookEnabled tests the IsCertManagerWebhookOCIEnabled function
+// GIVEN a call to IsCertManagerWebhookOCIEnabled
+//
+//	THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default)
+func TestIsCertManagerOCIDNSWebhookEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.False(IsCertManagerWebhookOCIEnabled(nil))
+	asserts.False(IsCertManagerWebhookOCIEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.False(IsCertManagerWebhookOCIEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				CertManagerWebhookOCI: &vzapi.CertManagerWebhookOCIComponent{},
+			},
+		}}))
+	asserts.True(IsCertManagerWebhookOCIEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				CertManagerWebhookOCI: &vzapi.CertManagerWebhookOCIComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsCertManagerWebhookOCIEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				CertManagerWebhookOCI: &vzapi.CertManagerWebhookOCIComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+	asserts.True(IsCertManagerWebhookOCIEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				CertManagerWebhookOCI: &installv1beta1.CertManagerWebhookOCIComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsCertManagerWebhookOCIEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				CertManagerWebhookOCI: &installv1beta1.CertManagerWebhookOCIComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}
+
 // TestIsConsoleEnabled tests the IsConsoleEnabled function
 // GIVEN a call to IsConsoleEnabled
 //

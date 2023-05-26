@@ -88,6 +88,16 @@ func ConvertVolumeClaimTemplateTo(src []VolumeClaimSpecTemplate) []v1beta1.Volum
 	return templates
 }
 
+func convertFluentbitOpensearchOutputToV1Beta1(src *FluentbitOpensearchOutputComponent) *v1beta1.FluentbitOpensearchOutputComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.FluentbitOpensearchOutputComponent{
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
+	}
+}
+
 func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 	authProxyComponent, err := convertAuthProxyToV1Beta1(src.AuthProxy)
 	if err != nil {
@@ -115,7 +125,8 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 	}
 	return v1beta1.ComponentSpec{
 		CertManager:               ConvertCertManagerToV1Beta1(src.CertManager),
-		ExternalCertManager:       ConvertExternalCertManagerToV1Beta1(src.ExternalCertManager),
+		ClusterIssuer:             ConvertClusterIssuerToV1Beta1(src.ClusterIssuer),
+		CertManagerWebhookOCI:     ConvertCertManagerWebhookOCIToV1Beta1(src.CertManagerWebhookOCI),
 		CoherenceOperator:         convertCoherenceOperatorToV1Beta1(src.CoherenceOperator),
 		ApplicationOperator:       convertApplicationOperatorToV1Beta1(src.ApplicationOperator),
 		ArgoCD:                    convertArgoCDToV1Beta1(src.ArgoCD),
@@ -152,26 +163,42 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 	}, nil
 }
 
-func convertFluentbitOpensearchOutputToV1Beta1(src *FluentbitOpensearchOutputComponent) *v1beta1.FluentbitOpensearchOutputComponent {
+func ConvertClusterIssuerToV1Beta1(src *ClusterIssuerComponent) *v1beta1.ClusterIssuerComponent {
 	if src == nil {
 		return nil
 	}
-	return &v1beta1.FluentbitOpensearchOutputComponent{
-		Enabled:          src.Enabled,
-		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
+	return &v1beta1.ClusterIssuerComponent{
+		Enabled:                  src.Enabled,
+		ClusterResourceNamespace: src.ClusterResourceNamespace,
+		IssuerConfig:             convertIssuerConfig(src.IssuerConfig),
 	}
 }
 
-func ConvertExternalCertManagerToV1Beta1(src *ExternalCertManagerComponent) *v1beta1.ExternalCertManagerComponent {
+func convertIssuerConfig(src IssuerConfig) v1beta1.IssuerConfig {
+	var leIssuer *v1beta1.LetsEncryptACMEIssuer
+	if src.LetsEncrypt != nil {
+		leIssuer = &v1beta1.LetsEncryptACMEIssuer{
+			EmailAddress: src.LetsEncrypt.EmailAddress,
+			Environment:  src.LetsEncrypt.Environment,
+		}
+	}
+	var caIssuer *v1beta1.CAIssuer
+	if src.CA != nil {
+		caIssuer = &v1beta1.CAIssuer{SecretName: src.CA.SecretName}
+	}
+	return v1beta1.IssuerConfig{
+		LetsEncrypt: leIssuer,
+		CA:          caIssuer,
+	}
+}
+
+func ConvertCertManagerWebhookOCIToV1Beta1(src *CertManagerWebhookOCIComponent) *v1beta1.CertManagerWebhookOCIComponent {
 	if src == nil {
 		return nil
 	}
-	return &v1beta1.ExternalCertManagerComponent{
-		Certificate:              convertCertificateToV1Beta1(src.Certificate),
-		Enabled:                  src.Enabled,
-		Namespace:                src.Namespace,
-		ServiceAccountName:       src.ServiceAccountName,
-		ClusterResourceNamespace: src.ClusterResourceNamespace,
+	return &v1beta1.CertManagerWebhookOCIComponent{
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
 	}
 }
 

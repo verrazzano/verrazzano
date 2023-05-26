@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package profiles
@@ -192,6 +192,12 @@ func AppendComponentOverrides(actual, profile *v1alpha1.Verrazzano) {
 	profileCertManager := profile.Spec.Components.CertManager
 	if actualCertManager != nil && profileCertManager != nil {
 		actualCertManager.ValueOverrides = mergeOverrides(actualCertManager.ValueOverrides, profileCertManager.ValueOverrides)
+	}
+
+	actualOCIWebhook := actual.Spec.Components.CertManagerWebhookOCI
+	profileOCIWebhook := profile.Spec.Components.CertManagerWebhookOCI
+	if actualOCIWebhook != nil && profileOCIWebhook != nil {
+		actualOCIWebhook.ValueOverrides = mergeOverrides(actualOCIWebhook.ValueOverrides, profileOCIWebhook.ValueOverrides)
 	}
 
 	actualCoherenceOperator := actual.Spec.Components.CoherenceOperator

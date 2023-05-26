@@ -7,10 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
-	"testing"
-
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
@@ -26,9 +22,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"os"
+	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
+	"testing"
 )
 
 const (
@@ -52,6 +51,9 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -87,6 +89,9 @@ func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
+
 	// Run install command
 	err := cmd.Execute()
 	assert.Error(t, err)
@@ -117,6 +122,9 @@ func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -199,6 +207,9 @@ func TestInstallCmdJsonLogFormat(t *testing.T) {
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
+
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
@@ -245,6 +256,8 @@ func TestInstallCmdFilenamesV1Beta1(t *testing.T) {
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
@@ -276,6 +289,8 @@ func TestInstallCmdFilenames(t *testing.T) {
 
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -304,6 +319,9 @@ func TestInstallCmdFilenamesCsv(t *testing.T) {
 
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -334,6 +352,9 @@ func TestInstallCmdSets(t *testing.T) {
 
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -368,6 +389,9 @@ func TestInstallCmdFilenamesAndSets(t *testing.T) {
 
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -416,6 +440,9 @@ func TestInstallCmdManifestsFile(t *testing.T) {
 			defer cmdHelpers.SetDefaultDeleteFunc()
 			cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 			defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+			SetValidateCRFunc(FakeValidateCRFunc)
+			defer SetDefaultValidateCRFunc()
+
 			// Run install command
 			err := cmd.Execute()
 			assert.NoError(t, err)
@@ -763,6 +790,8 @@ func createStdTempFiles(t *testing.T) (*os.File, *os.File) {
 // THEN expect the command to analyze the live cluster
 func TestAnalyzeCommandDefault(t *testing.T) {
 	c := getClientWithWatch()
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
 	installVZ(t, c)
 
 	// Verify the vz resource is as expected
@@ -850,6 +879,9 @@ func TestInstallFromPrivateRegistry(t *testing.T) {
 
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
 
 	// Run install command
 	err := cmd.Execute()

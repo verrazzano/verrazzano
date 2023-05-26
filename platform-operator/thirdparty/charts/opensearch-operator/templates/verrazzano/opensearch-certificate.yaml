@@ -1,0 +1,150 @@
+# Verrazzano Specific
+# Create certificates to be used by OpenSearch cluster with Verrazzano CA
+# Required for the security plugin in OpenSearch
+
+# Certificate name and secret name are kept same and will be generated based on openSearchCluster.name variable
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.openSearchCluster.name }}-admin-cert
+  namespace: {{ .Release.Namespace }}
+spec:
+  commonName: admin
+  secretName: {{ .Values.openSearchCluster.name }}-admin-cert
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS8
+    size: 2048
+  duration: 2160h0m0s
+  renewBefore: 360h0m0s
+  subject:
+    organizations:
+      - verrazzano
+  usages:
+    - server auth
+    - client auth
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: verrazzano-cluster-issuer
+status: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.openSearchCluster.name }}-dashboards-cert
+  namespace: {{ .Release.Namespace }}
+spec:
+  commonName: {{ .Values.openSearchCluster.name }}
+  secretName: {{ .Values.openSearchCluster.name }}-dashboards-cert
+  dnsNames:
+    - {{ .Values.openSearchCluster.name }}
+    - {{ .Values.openSearchCluster.name }}.{{ .Release.Namespace }}
+    - {{ .Values.openSearchCluster.name }}.{{ .Release.Namespace }}.svc
+    - {{ .Values.openSearchCluster.name }}.{{ .Release.Namespace }}.svc.cluster.local
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS8
+    size: 2048
+  renewBefore: 360h0m0s
+  duration: 2160h0m0s
+  subject:
+    organizations:
+      - verrazzano
+  usages:
+    - server auth
+    - client auth
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: verrazzano-cluster-issuer
+status: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.openSearchCluster.name }}-master-cert
+  namespace: {{ .Release.Namespace }}
+spec:
+  commonName: {{ .Values.openSearchCluster.name }}
+  secretName: {{ .Values.openSearchCluster.name }}-master-cert
+  dnsNames:
+    - {{ .Values.openSearchCluster.name }}
+    - {{ .Values.openSearchCluster.name }}.{{ .Release.Namespace }}
+    - {{ .Values.openSearchCluster.name }}.{{ .Release.Namespace }}.svc
+    - {{ .Values.openSearchCluster.name }}.{{ .Release.Namespace }}.svc.cluster.local
+    - {{ .Values.openSearchCluster.name }}-discovery
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS8
+    size: 2048
+  renewBefore: 360h0m0s
+  duration: 2160h0m0s
+  subject:
+    organizations:
+      - verrazzano
+  usages:
+    - server auth
+    - client auth
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: verrazzano-cluster-issuer
+status: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.openSearchCluster.name }}-node-cert
+  namespace: {{ .Release.Namespace }}
+spec:
+  commonName: {{ .Values.openSearchCluster.name }}
+  secretName: {{ .Values.openSearchCluster.name }}-node-cert
+  dnsNames:
+    - {{ .Values.openSearchCluster.name }}
+    - {{ .Values.openSearchCluster.name }}.{{ .Release.Namespace }}
+    - {{ .Values.openSearchCluster.name }}.{{ .Release.Namespace }}.svc
+    - {{ .Values.openSearchCluster.name }}.{{ .Release.Namespace }}.svc.cluster.local
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS8
+    size: 2048
+  renewBefore: 360h0m0s
+  duration: 2160h0m0s
+  subject:
+    organizations:
+      - verrazzano
+  usages:
+    - server auth
+    - client auth
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: verrazzano-cluster-issuer
+status: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.openSearchCluster.name }}-monitor-certs
+  namespace: verrazzano-monitoring
+spec:
+  commonName: prometheus-operator
+  secretName: {{ .Values.openSearchCluster.name }}-monitor-certs
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS8
+    size: 2048
+  renewBefore: 360h0m0s
+  duration: 2160h0m0s
+  subject:
+    organizations:
+      - verrazzano
+  usages:
+    - server auth
+    - client auth
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: verrazzano-cluster-issuer
+status: {}

@@ -5,6 +5,7 @@ Features:
 - Added a None profile that comes with all components disabled by default
 - Added Thanos, which supports high availability and long-term storage on top of Prometheus
 - Enhanced the Verrazzano CLI to support installing and upgrading from a private registry and in air-gapped environments
+- Added support for Kubernetes v1.25, and dropped support of Kubernetes v1.21
 
 Component version updates:
 
@@ -75,7 +76,7 @@ Features:
 - Added the Verrazzano command-line tool (CLI) for interactive installation, upgrade, uninstall, cluster analysis, and bug reporting.
 - Added backup and restore functionality using Velero and rancher-backup.
 - Added Prometheus Operator based metrics collection (using ServiceMonitors and PodMonitors) for both Verrazzano system components and applications.
-- Added a new API version for the Verrazzano resource, `install.verrazzano.io/v1beta1`. See the [Deprecated API Migration Guide](https://verrazzano.io/latest/docs/reference/migration").
+- Added a new API version for the Verrazzano resource, `install.verrazzano.io/v1beta1`. See the [Deprecated API Migration Guide](https://verrazzano.io/latest/docs/reference/migration/").
 - Verrazzano distribution `tar.gz` artifacts now include the new CLI binaries and tooling.
 - Replaced Elasticsearch and Kibana with OpenSearch and OpenSearch dashboards (pods, URLs, CRD fields).
 - Improved Rancher integration.

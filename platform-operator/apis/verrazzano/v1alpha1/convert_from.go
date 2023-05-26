@@ -115,10 +115,21 @@ func convertSecuritySpecFromV1Beta1(security v1beta1.SecuritySpec) SecuritySpec 
 	}
 }
 
+func convertFluentbitOpensearchOutputFromV1Beta1(in *v1beta1.FluentbitOpensearchOutputComponent) *FluentbitOpensearchOutputComponent {
+	if in == nil {
+		return nil
+	}
+	return &FluentbitOpensearchOutputComponent{
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
+	}
+}
+
 func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 	return ComponentSpec{
 		CertManager:               convertCertManagerFromV1Beta1(in.CertManager),
-		ExternalCertManager:       convertExternalCertManagerFromV1Beta1(in.ExternalCertManager),
+		ClusterIssuer:             convertClusterIssuerFromV1Beta1(in.ClusterIssuer),
+		CertManagerWebhookOCI:     convertCertManagerWebhookOCIFromV1Beta1(in.CertManagerWebhookOCI),
 		CoherenceOperator:         convertCoherenceOperatorFromV1Beta1(in.CoherenceOperator),
 		ApplicationOperator:       convertApplicationOperatorFromV1Beta1(in.ApplicationOperator),
 		AuthProxy:                 convertAuthProxyFromV1Beta1(in.AuthProxy),
@@ -155,25 +166,42 @@ func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 	}
 }
 
-func convertFluentbitOpensearchOutputFromV1Beta1(in *v1beta1.FluentbitOpensearchOutputComponent) *FluentbitOpensearchOutputComponent {
+func convertClusterIssuerFromV1Beta1(in *v1beta1.ClusterIssuerComponent) *ClusterIssuerComponent {
 	if in == nil {
 		return nil
 	}
-	return &FluentbitOpensearchOutputComponent{
-		Enabled:          in.Enabled,
-		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
+	return &ClusterIssuerComponent{
+		Enabled:                  in.Enabled,
+		ClusterResourceNamespace: in.ClusterResourceNamespace,
+		IssuerConfig:             convertIssuerConfigFromV1Beta1(in.IssuerConfig),
 	}
 }
-func convertExternalCertManagerFromV1Beta1(in *v1beta1.ExternalCertManagerComponent) *ExternalCertManagerComponent {
+
+func convertIssuerConfigFromV1Beta1(in v1beta1.IssuerConfig) IssuerConfig {
+	var leIssuer *LetsEncryptACMEIssuer
+	if in.LetsEncrypt != nil {
+		leIssuer = &LetsEncryptACMEIssuer{
+			EmailAddress: in.LetsEncrypt.EmailAddress,
+			Environment:  in.LetsEncrypt.Environment,
+		}
+	}
+	var caIssuer *CAIssuer
+	if in.CA != nil {
+		caIssuer = &CAIssuer{SecretName: in.CA.SecretName}
+	}
+	return IssuerConfig{
+		LetsEncrypt: leIssuer,
+		CA:          caIssuer,
+	}
+}
+
+func convertCertManagerWebhookOCIFromV1Beta1(in *v1beta1.CertManagerWebhookOCIComponent) *CertManagerWebhookOCIComponent {
 	if in == nil {
 		return nil
 	}
-	return &ExternalCertManagerComponent{
-		Certificate:              convertCertificateFromV1Beta1(in.Certificate),
-		Enabled:                  in.Enabled,
-		Namespace:                in.Namespace,
-		ServiceAccountName:       in.ServiceAccountName,
-		ClusterResourceNamespace: in.ClusterResourceNamespace,
+	return &CertManagerWebhookOCIComponent{
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
 	}
 }
 
@@ -217,16 +245,16 @@ func convertCertManagerFromV1Beta1(in *v1beta1.CertManagerComponent) *CertManage
 	}
 }
 
-func convertCertificateFromV1Beta1(certificate v1beta1.Certificate) Certificate {
+func convertCertificateFromV1Beta1(in v1beta1.Certificate) Certificate {
 	return Certificate{
 		Acme: Acme{
-			Provider:     ProviderType(certificate.Acme.Provider),
-			EmailAddress: certificate.Acme.EmailAddress,
-			Environment:  certificate.Acme.Environment,
+			EmailAddress: in.Acme.EmailAddress,
+			Environment:  in.Acme.Environment,
+			Provider:     ProviderType(in.Acme.Provider),
 		},
 		CA: CA{
-			SecretName:               certificate.CA.SecretName,
-			ClusterResourceNamespace: certificate.CA.ClusterResourceNamespace,
+			ClusterResourceNamespace: in.CA.ClusterResourceNamespace,
+			SecretName:               in.CA.SecretName,
 		},
 	}
 }
