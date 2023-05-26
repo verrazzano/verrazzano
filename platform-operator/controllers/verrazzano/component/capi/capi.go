@@ -307,6 +307,9 @@ func createOrUpdateKontainerCR(ctx spi.ComponentContext) error {
 	if err != nil {
 		if errors.IsNotFound(err) {
 			_, err = createDriver(dynClient, kontainerResource, kontainerDriverObjectName, driverURL, driverChecksum)
+			if err != nil {
+				return ctx.Log().ErrorfNewErr("Failed to create %s/%s/%s %s: %v", kontainerResource.Resource, kontainerResource.Group, kontainerResource.Version, kontainerDriverObjectName, err)
+			}
 		} else {
 			return ctx.Log().ErrorfNewErr("Failed to get %s/%s/%s %s: %v", kontainerResource.Resource, kontainerResource.Group, kontainerResource.Version, kontainerDriverObjectName, err)
 		}
