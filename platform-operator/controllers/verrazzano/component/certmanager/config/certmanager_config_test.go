@@ -77,29 +77,53 @@ func init() {
 	_ = apiextv1.AddToScheme(testScheme)
 }
 
-// TestIsClusterIssuerEnabled tests the IsCertManagerEnabled fn
+// TestIsCertManagerEnabled tests the IsCertManagerEnabled fn
 // GIVEN a call to IsCertManagerEnabled
 // WHEN cert-manager is enabled
 // THEN the function returns true
-func TestIsClusterIssuerEnabled(t *testing.T) {
-	assert.True(t, fakeComponent.IsEnabled(&vzapi.Verrazzano{}))
+func TestIsCertManagerEnabled(t *testing.T) {
+	crdObjs := createCertManagerCRDs()
+
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset(crtObjectToRuntimeObject(crdObjs...)...).ApiextensionsV1(), nil
+	}
 
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(true)
-	assert.True(t, fakeComponent.IsEnabled(localvz))
 
-	localvz = defaultVZConfig.DeepCopy()
-	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(false)
-	localvz.Spec.Components.ClusterIssuer = &vzapi.ClusterIssuerComponent{
-		Enabled: getBoolPtr(true),
-	}
 	assert.True(t, fakeComponent.IsEnabled(localvz))
+}
 
-	localvz = defaultVZConfig.DeepCopy()
-	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(false)
-	localvz.Spec.Components.ClusterIssuer = &vzapi.ClusterIssuerComponent{
-		Enabled: getBoolPtr(false),
+// TestIsCertManagerEnabledCRDsNotPresent tests the IsCertManagerEnabled fn
+// GIVEN a call to IsCertManagerEnabled
+// WHEN no CertManager CRDs are present
+// THEN the function returns false
+func TestIsCertManagerEnabledCRDsNotPresent(t *testing.T) {
+
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
 	}
+
+	localvz := defaultVZConfig.DeepCopy()
+	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(true)
+
+	assert.False(t, fakeComponent.IsEnabled(localvz))
+}
+
+// TestIsCertManagerDisabled tests the IsCertManagerEnabled fn
+// GIVEN a call to IsCertManagerEnabled
+// WHEN cert-manager is disabled
+// THEN the function returns false
+func TestIsCertManagerDisabled(t *testing.T) {
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
+	}
+
+	localvz := defaultVZConfig.DeepCopy()
+	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(false)
 	assert.False(t, fakeComponent.IsEnabled(localvz))
 }
 
@@ -139,6 +163,22 @@ func TestCertManagerOCIDNSPreUpgrade(t *testing.T) {
 	defer func() { config.Set(defaultConfig) }()
 
 	runPreChecksTest(t, true, false, createCertManagerCRDs()...)
+}
+
+// TestCertManagerOCIDNSPreInstallNoCertManagerCRDs tests the PreInstall fn
+// GIVEN a call to this fn
+// WHEN I call PreInstall and the CertManager CRDs are not present in the cluster
+// THEN An error is returned
+func TestCertManagerOCIDNSPreInstallNoCertManagerCRDs(t *testing.T) {
+	runPreChecksTest(t, false, true)
+}
+
+// TestCertManagerOCIDNSPreUpgradeNoCertManagerCRDs tests the PreUpgrade fn
+// GIVEN a call to this fn
+// WHEN I call PreInstall and the CertManager CRDs are not present in the cluster
+// THEN An error is returned
+func TestCertManagerOCIDNSPreUpgradeNoCertManagerCRDs(t *testing.T) {
+	runPreChecksTest(t, true, true)
 }
 
 func runPreChecksTest(t *testing.T, isUpgrade bool, expectErr bool, crdObjs ...clipkg.Object) {

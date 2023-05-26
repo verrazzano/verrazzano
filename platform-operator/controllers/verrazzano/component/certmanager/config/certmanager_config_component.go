@@ -5,6 +5,7 @@ package config
 
 import (
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -51,8 +52,12 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled returns true if the cert-manager-config is enabled, which is the default
-func (c certManagerConfigComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzcr.IsClusterIssuerEnabled(effectiveCR) || vzcr.IsCertManagerEnabled(effectiveCR)
+func (c certManagerConfigComponent) IsEnabled(_ runtime.Object) bool {
+	exists, err := cmcommon.CertManagerCrdsExist()
+	if err != nil {
+		vzlog.DefaultLogger().ErrorfThrottled("CertManager config: unexpected error checking for existing Cert-Manager: %v", err)
+	}
+	return exists
 }
 
 // IsReady component check
@@ -60,6 +65,9 @@ func (c certManagerConfigComponent) IsReady(ctx spi.ComponentContext) bool {
 	if ctx.IsDryRun() {
 		ctx.Log().Debug("cert-manager-config IsReady dry run")
 		return true
+	}
+	if !c.cmCRDsExist(ctx.Log(), ctx.Client()) {
+		return false
 	}
 	return c.verrazzanoCertManagerResourcesReady(ctx)
 }
@@ -78,6 +86,9 @@ func (c certManagerConfigComponent) PreInstall(compContext spi.ComponentContext)
 	if compContext.IsDryRun() {
 		compContext.Log().Debug("cert-manager-config PreInstall dry run")
 		return nil
+	}
+	if err := cmcommon.CertManagerExistsInCluster(compContext.Log()); err != nil {
+		return err
 	}
 	if err := common.ProcessAdditionalCertificates(compContext.Log(), compContext.Client(), compContext.EffectiveCR()); err != nil {
 		return err
@@ -104,7 +115,11 @@ func (c certManagerConfigComponent) Upgrade(compContext spi.ComponentContext) er
 }
 
 func (c certManagerConfigComponent) PreUpgrade(compContext spi.ComponentContext) error {
-	return nil
+	if compContext.IsDryRun() {
+		compContext.Log().Debug("cert-manager-config PreUpgrade dry run")
+		return nil
+	}
+	return cmcommon.CertManagerExistsInCluster(compContext.Log())
 }
 
 // Uninstall removes cert-manager-config objects that are created outside of Helm

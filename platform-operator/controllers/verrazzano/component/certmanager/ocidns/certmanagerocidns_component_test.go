@@ -27,6 +27,10 @@ import (
 // WHEN cert-manager is enabled with ACME and OCI DNS is configured
 // THEN the function returns true
 func TestIsCertManagerOciDNSEnabled(t *testing.T) {
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset(crtObjectToRuntimeObject(createCertManagerCRDs()...)...).ApiextensionsV1(), nil
+	}
 
 	bt := true
 
@@ -52,7 +56,8 @@ func TestIsCertManagerOciDNSEnabled(t *testing.T) {
 		},
 		Enabled: &bt,
 	}
-	assert.False(t, NewComponent().IsEnabled(localvz))
+	localvz.Spec.Components.DNS = &vzapi.DNSComponent{OCI: &vzapi.OCI{}}
+	assert.True(t, NewComponent().IsEnabled(localvz))
 
 	localvz = vz.DeepCopy()
 	localvz.Spec.Components.CertManager = &vzapi.CertManagerComponent{
@@ -61,8 +66,7 @@ func TestIsCertManagerOciDNSEnabled(t *testing.T) {
 		},
 		Enabled: &bt,
 	}
-	localvz.Spec.Components.DNS = &vzapi.DNSComponent{OCI: &vzapi.OCI{}}
-	assert.True(t, NewComponent().IsEnabled(localvz))
+	assert.False(t, NewComponent().IsEnabled(localvz))
 }
 
 // TestIsCertManagerOciDNSDisabledNoCRDs tests the IsCertManagerEnabled fn
