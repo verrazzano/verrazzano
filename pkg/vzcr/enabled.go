@@ -112,6 +112,38 @@ func IsCertManagerEnabled(cr runtime.Object) bool {
 	return true
 }
 
+// IsClusterIssuerEnabled - Returns false only if the ClusterIssuerComponent is explicitly disabled
+func IsClusterIssuerEnabled(cr runtime.Object) bool {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.ClusterIssuer != nil &&
+			vzv1alpha1.Spec.Components.ClusterIssuer.Enabled != nil {
+			return *vzv1alpha1.Spec.Components.ClusterIssuer.Enabled
+		}
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 != nil && vzv1beta1.Spec.Components.ClusterIssuer != nil &&
+			vzv1beta1.Spec.Components.ClusterIssuer.Enabled != nil {
+			return *vzv1beta1.Spec.Components.ClusterIssuer.Enabled
+		}
+	}
+	return true
+}
+
+// IsCertManagerWebhookOCIEnabled - Returns true IFF the ExternalCertManager component is explicitly enabled
+func IsCertManagerWebhookOCIEnabled(cr runtime.Object) bool {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.CertManagerWebhookOCI != nil &&
+			vzv1alpha1.Spec.Components.CertManagerWebhookOCI.Enabled != nil {
+			return *vzv1alpha1.Spec.Components.CertManagerWebhookOCI.Enabled
+		}
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 != nil && vzv1beta1.Spec.Components.CertManagerWebhookOCI != nil &&
+			vzv1beta1.Spec.Components.CertManagerWebhookOCI.Enabled != nil {
+			return *vzv1beta1.Spec.Components.CertManagerWebhookOCI.Enabled
+		}
+	}
+	return false
+}
+
 // IsKialiEnabled - Returns false only if explicitly disabled in the CR
 func IsKialiEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
