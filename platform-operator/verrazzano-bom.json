@@ -106,12 +106,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.15.3-20230209181608-900a5c7b",
+              "tag": "1.15.3-20230524145143-a25ae2d1",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.15.3-20230209181608-900a5c7b",
+              "tag": "1.15.3-20230524145143-a25ae2d1",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -183,7 +183,7 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.15.3-20230209181608-900a5c7b",
+              "tag": "1.15.3-20230524145143-a25ae2d1",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -229,7 +229,7 @@
             },
             {
               "image": "proxyv2",
-              "tag": "1.15.3-20230209181608-900a5c7b",
+              "tag": "1.15.3-20230524145143-a25ae2d1",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -554,7 +554,7 @@
           "images": [
             {
               "image": "kube-state-metrics",
-              "tag": "v2.6.0-20230223191441-e3cc4e3d",
+              "tag": "v2.6.0-20230524165333-36212f20",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -701,7 +701,7 @@
           "images": [
             {
               "image": "velero",
-              "tag": "v1.9.1-20230209073855-edba946d",
+              "tag": "v1.9.1-20230524144448-edba946d",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
