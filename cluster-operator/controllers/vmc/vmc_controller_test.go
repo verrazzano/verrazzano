@@ -848,7 +848,6 @@ func TestDeleteVMC(t *testing.T) {
 	expectMockCallsForDelete(t, mock, namespace)
 	expectRancherGetAuthTokenHTTPCall(t, mockRequestSender)
 	expectThanosDelete(t, mock)
-	expectDeleteManifestRequests(t, mock, mockRequestSender)
 
 	// Expect an API call to delete the Rancher cluster
 	mockRequestSender.EXPECT().
@@ -917,7 +916,6 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 	// Expect all of the calls when deleting a VMC
 	expectMockCallsForDelete(t, mock, namespace)
 	expectThanosDelete(t, mock)
-	expectDeleteManifestRequests(t, mock, mockRequestSender)
 
 	// Expect an HTTP request to fetch the admin token from Rancher - return an error
 	mockRequestSender.EXPECT().
@@ -979,7 +977,6 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 	expectMockCallsForDelete(t, mock, namespace)
 	expectRancherGetAuthTokenHTTPCall(t, mockRequestSender)
 	expectThanosDelete(t, mock)
-	expectDeleteManifestRequests(t, mock, mockRequestSender)
 
 	// Expect an API call to delete the Rancher cluster - return an error
 	mockRequestSender.EXPECT().
@@ -2136,36 +2133,6 @@ func expectPushManifestRequests(t *testing.T, mockRequestSender *mocks.MockReque
 			}
 			return resp, nil
 		})
-}
-
-func expectDeleteManifestRequests(t *testing.T, mock *mocks.MockClient, mockRequestSender *mocks.MockRequestSender) {
-	// expect all the K8S calls to create Rancher config for a request to the managed cluster
-	expectRancherConfigK8sCalls(t, mock, false)
-
-	// expect a http login request for the vz-cluster-reg user
-	expectRancherGetAuthTokenHTTPCall(t, mockRequestSender)
-
-	mockRequestSender.EXPECT().
-		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodGet, clustersPath+"/"+unitTestRancherClusterID)).
-		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			var resp *http.Response
-			r := io.NopCloser(bytes.NewReader([]byte(`{"state":"active", "agentImage":"test"}`)))
-			resp = &http.Response{
-				StatusCode: http.StatusOK,
-				Body:       r,
-			}
-			return resp, nil
-		})
-	rancherSecPath := "/k8s/clusters/%s/api/v1/namespaces/%s/secrets/%s"
-	agentSecPath := fmt.Sprintf(rancherSecPath, unitTestRancherClusterID, constants.VerrazzanoSystemNamespace, vpoconstants.MCAgentSecret)
-	regSecPath := fmt.Sprintf(rancherSecPath, unitTestRancherClusterID, constants.VerrazzanoSystemNamespace, vpoconstants.MCRegistrationSecret)
-	emptyBody := io.NopCloser(bytes.NewReader([]byte("")))
-	mockRequestSender.EXPECT().
-		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodDelete, agentSecPath)).
-		Return(&http.Response{StatusCode: http.StatusOK, Body: emptyBody}, nil)
-	mockRequestSender.EXPECT().
-		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodDelete, regSecPath)).
-		Return(&http.Response{StatusCode: http.StatusOK, Body: emptyBody}, nil)
 }
 
 func expectVmcGetAndUpdate(t *testing.T, mock *mocks.MockClient, name string, caSecretExists bool, rancherClusterAlreadyRegistered bool) {
