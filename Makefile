@@ -55,7 +55,7 @@ clean: ## remove coverage and test results
 
 .PHONY: minimum-supported-versions
 minimum-supported-versions:
-	$(GO) run ./ci/tools/derive_upgrade_version.go . versions-gte $(SUPPORTED_VZ_VERSION) > versions.json
+	$(GO) run ./ci/tools/derive_upgrade_version.go . versions-gte $(SUPPORTED_VZ_VERSION) > platform-operator/verrazzano-versions.json
 
 .PHONY: docker-push
 docker-push: minimum-supported-versions ## build and push all images
