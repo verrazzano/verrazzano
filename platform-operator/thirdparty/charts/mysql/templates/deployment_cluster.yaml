@@ -38,19 +38,15 @@ spec:
   tlsUseSelfSigned: {{ $use_self_signed }}
   router:
     instances: {{ required "router.instances is required" $routerInstances }}
-    podSpec:
-      securityContext:
-        seccompProfile:
-          type: RuntimeDefault
-      containers:
-        - name: router
-          securityContext:
-            allowPrivilegeEscalation: false
-            privileged: false
-            runAsNonRoot: true
-            capabilities:
-              drop:
-                - ALL
+{{- if (((.Values).router).podSpec) }}
+    podSpec:  {{ toYaml (((.Values).router).podSpec) | nindent 6 }}
+{{- end }}
+{{ if (((.Values).router).podLabels) }}
+    podLabels: {{ toYaml (((.Values).router).podLabels) | nindent 6 }}
+{{ end }}
+{{ if (((.Values).router).podAnnotations) }}
+    podAnnotations: {{ toYaml (((.Values).router).podAnnotations) | nindent 6 }}
+{{ end }}
 {{- if not $use_self_signed }}
   {{- if and (((.Values).tls).routerCertAndPKsecretName) (((.Values).router).certAndPKsecretName) }}
     {{- if ne (((.Values).tls).routerCertAndPKsecretName) (((.Values).router).certAndPKsecretName) }}
@@ -65,22 +61,9 @@ spec:
     {{- fail $err }}
   {{- end }}
     tlsSecretName: {{ $secret_name }}
-  {{- if (((.Values).router).podSpec) }}
-    podSpec:  {{ toYaml (((.Values).router).podSpec) | nindent 6 }}
-  {{- end }}
-  {{ if (((.Values).router).podLabels) }}
-    podLabels: {{ toYaml (((.Values).router).podLabels) | nindent 6 }}
-  {{ end }}
-  {{ if (((.Values).router).podAnnotations) }}
-    podAnnotations: {{ toYaml (((.Values).router).podAnnotations) | nindent 6 }}
-  {{ end }}
 {{- end }}
   secretName: {{ .Release.Name }}-cluster-secret
   imagePullPolicy : {{ .Values.image.pullPolicy }}
-{{- $repositoryPath := .Values.image.repository }}
-{{- if $repositoryPath }}
-  imageRepository: {{ $repositoryPath }}
-{{- end }}
   baseServerId: {{ required "baseServerId is required" .Values.baseServerId }}
   version: {{ .Values.serverVersion | default .Chart.AppVersion }}
   {{- if ((.Values).edition) }}
@@ -105,115 +88,7 @@ spec:
   {{- end }}
   tlsSecretName: {{ $secret_name }}
 {{- end }}
-{{- if ((.Values).podLabels) }}
-  podLabels: {{ toYaml ((.Values).podLabels) | nindent 4 }}
-{{- end }}
-{{- if ((.Values).podAnnotations) }}
-  podAnnotations: {{ toYaml ((.Values).podAnnotations) | nindent 4 }}
-{{- end }}
-{{ if ((.Values).podSpec) }}
-  podSpec:
-    securityContext:
-      seccompProfile:
-        type: RuntimeDefault
-{{ if ((.Values).podSpec.affinity) }}
-    affinity:
-{{ toYaml ((.Values).podSpec.affinity) | indent 6 }}
-{{ end }}
-{{ if (.Values).configurationFiles }}
-    containers:
-      - name: sidecar
-        image: {{ (.Values).mysqlOperator.image }}
-        securityContext:
-          allowPrivilegeEscalation: false
-          privileged: false
-          runAsNonRoot: true
-          runAsUser: 27
-          runAsGroup: 27
-          capabilities:
-            drop:
-              - ALL
-      - name: mysql
-        securityContext:
-          allowPrivilegeEscalation: false
-          privileged: false
-          runAsNonRoot: true
-          runAsUser: 27
-          runAsGroup: 27
-          capabilities:
-            drop:
-              - ALL
-        volumeMounts:
-{{- range $key, $val := .Values.configurationFiles }}
-        - name: configurations
-          mountPath: {{ $.Values.configurationFilesPath }}{{ $key }}
-          subPath: {{ $key }}
-{{- end -}}
-{{ end }}
-{{ if(.Values).initdbScripts }}
-    initContainers:
-    - name: fixdatadir
-      runAsUser: 0
-      image: {{ (.Values).mysqlOperator.image }}
-    - name: initconf
-      securityContext:
-        allowPrivilegeEscalation: false
-        privileged: false
-        runAsNonRoot: true
-        runAsUser: 27
-        runAsGroup: 27
-        capabilities:
-          drop:
-            - ALL
-      image: {{ (.Values).mysqlOperator.image }}
-    - name: initmysql
-      securityContext:
-        allowPrivilegeEscalation: false
-        privileged: false
-        runAsNonRoot: true
-        runAsUser: 27
-        runAsGroup: 27
-        capabilities:
-          drop:
-            - ALL
-{{ if ((.Values).initDB) }}
-      env:
-        - name: DB_RESTORE
-          value: "true"
-{{ end }}
-      volumeMounts:
-{{- range $key, $val := .Values.initdbScripts }}
-      - name: custominitsql
-        mountPath: /docker-entrypoint-initdb.d/{{ $key }}
-        subPath: {{ $key }}
-{{- end -}}
-{{ end }}
-{{ if (or (.Values).initdbScripts (.Values).configurationFiles) }}
-    volumes:
-{{- if .Values.configurationFiles }}
-    - name: configurations
-      configMap:
-        name: {{ $cluster_name }}-configuration
-        defaultMode: 0755
-        items:
-{{- range $key, $val := .Values.configurationFiles }}
-          - key: {{ $key }}
-            path: {{ $key }}
-{{- end -}}
-{{- end -}}
-{{- if .Values.initdbScripts }}
-    - name: custominitsql
-      configMap:
-        name: initsql
-        defaultMode: 0755
-        items:
-{{- range $key, $val := .Values.initdbScripts }}
-          - key: {{ $key }}
-            path: {{ $key }}
-{{- end -}}
-{{- end -}}
-{{ end }}
-{{ end }}
+
 {{- if ((.Values).serverConfig) }}
   {{- if (((.Values).serverConfig).mycnf) }}
   mycnf: |
@@ -527,3 +402,14 @@ spec:
     {{- end }}
   {{- end }}
 {{- end }}
+
+{{ if ((.Values).podSpec) }}
+  podSpec: {{ toYaml ((.Values).podSpec) | nindent 4 }}
+{{ end }}
+{{- if ((.Values).podLabels) }}
+  podLabels: {{ toYaml ((.Values).podLabels) | nindent 4 }}
+{{- end }}
+{{- if ((.Values).podAnnotations) }}
+  podAnnotations: {{ toYaml ((.Values).podAnnotations) | nindent 4 }}
+{{- end }}
+
