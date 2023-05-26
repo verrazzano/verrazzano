@@ -35,10 +35,10 @@ const (
 	ComponentJSONName = "fluentOperator"
 
 	// HelmChartReleaseName is the helm chart release name
-	HelmChartReleaseName = "fluent-operator"
+	HelmChartReleaseName = ComponentName
 
 	// HelmChartDir is the name of the helm chart directory
-	HelmChartDir = "fluent-operator"
+	HelmChartDir = ComponentName
 )
 
 //var (
@@ -69,7 +69,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "fluent-operator-values.yaml"),
 			AppendOverridesFunc:       appendOverrides,
 			Dependencies:              []string{"verrazzano-network-policies"},
-			GetInstallOverridesFunc:   GetOverrides,
+			GetInstallOverridesFunc:   getOverrides,
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DeploymentNames: []types.NamespacedName{
 					fluentOperatorDeployment,
@@ -121,7 +121,7 @@ func (c fluentOperatorComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, 
 		return err
 	}
 	// Validate install overrides
-	if new.Spec.Components.Velero != nil {
+	if new.Spec.Components.FluentOperator != nil {
 		if err := v1alpha1.ValidateInstallOverridesV1Beta1(new.Spec.Components.FluentOperator.ValueOverrides); err != nil {
 			return err
 		}
@@ -173,10 +173,6 @@ func (c fluentOperatorComponent) Install(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.Install(ctx); err != nil {
 		return err
 	}
-	if err := applyOpenSearchClusterOutputs(ctx); err != nil {
-		return err
-	}
-
 	return nil
 }
 

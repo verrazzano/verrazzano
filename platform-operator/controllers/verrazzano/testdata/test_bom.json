@@ -733,6 +733,36 @@
           ]
         }
       ]
+    },
+    {
+      "name": "fluent-operator",
+      "version": "2.2.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "fluent-operator",
+          "images": [
+            {
+              "image": "iad.ocir.io/odsbuilddev/sandboxes/test/fluent-operator",
+              "tag": "v1",
+              "helmImageKey": "operator.container.repository",
+              "helmTagKey": "operator.container.tag"
+            },
+            {
+              "image": "iad.ocir.io/odsbuilddev/sandboxes/test/fluent-bit",
+              "tag": "v1",
+              "helmImageKey": "fluentbit.image.repository",
+              "helmTagKey": "fluentbit.image.tag"
+            },
+            {
+              "image": "ghcr.io/oracle/oraclelinux",
+              "tag": "8",
+              "helmImageKey": "operator.initcontainer.repository",
+              "helmTagKey": "operator.initcontainer.tag"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

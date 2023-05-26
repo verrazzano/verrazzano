@@ -27,9 +27,7 @@ const (
 	fluentOperatorImageTag     = "operator.container.tag"
 	fluentOperatorInitTag      = "operator.initcontainer.tag"
 	fluentBitImageTag          = "fluentbit.image.tag"
-	clusterOutputDirectory     = "fluent-operator"
-	systemOutputFile           = "system-output.yaml"
-	applicationOutputFile      = "application-output.yaml"
+	clusterOutputDirectory     = ComponentName
 	fluentbitConfigMap         = fluentbitDaemonset + "-os-config"
 	fluentbitConfigMapFile     = "fluentbit-config-configmap.yaml"
 )
@@ -52,8 +50,8 @@ func isFluentOperatorReady(context spi.ComponentContext) bool {
 		ready.DaemonSetsAreReady(context.Log(), context.Client(), []types.NamespacedName{fluentBitDaemonSet}, 1, componentPrefix)
 }
 
-// GetOverrides returns install overrides for the Fluent Operator
-func GetOverrides(object runtime.Object) interface{} {
+// getOverrides returns install overrides for the Fluent Operator
+func getOverrides(object runtime.Object) interface{} {
 	if effectiveCR, ok := object.(*v1alpha1.Verrazzano); ok {
 		if effectiveCR.Spec.Components.FluentOperator != nil {
 			return effectiveCR.Spec.Components.FluentOperator.ValueOverrides
@@ -110,23 +108,6 @@ func applyFluentBitConfigMap(compContext spi.ComponentContext) error {
 	args["fluentbitComponent"] = fluentbitDaemonset
 	if err := k8sutil.NewYAMLApplier(compContext.Client(), "").ApplyFT(fluentbitCM, args); err != nil {
 		return compContext.Log().ErrorfNewErr("Failed applying FluentBit ConfigMap: %v", err)
-	}
-	return nil
-}
-
-// applyFluentBitConfigMap applies the Fluent-bit ClusterOutput CRDs for the OpenSearch.
-func applyOpenSearchClusterOutputs(compContext spi.ComponentContext) error {
-	crdManifestDir := filepath.Join(config.GetThirdPartyManifestsDir(), clusterOutputDirectory)
-	systemClusterOutput := filepath.Join(crdManifestDir, systemOutputFile)
-	applicationClusterOutput := filepath.Join(crdManifestDir, applicationOutputFile)
-
-	// Apply the ClusterOutput for System related logs
-	if err := k8sutil.NewYAMLApplier(compContext.Client(), "").ApplyF(systemClusterOutput); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed applying ClusterOutput for System related logs: %v", err)
-
-	}
-	if err := k8sutil.NewYAMLApplier(compContext.Client(), "").ApplyF(applicationClusterOutput); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed applying ClusterOutput for Application related logs: %v", err)
 	}
 	return nil
 }

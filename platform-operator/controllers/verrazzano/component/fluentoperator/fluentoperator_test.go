@@ -7,17 +7,28 @@ import (
 	"reflect"
 	"testing"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
 var (
 	testScheme = runtime.NewScheme()
+)
+
+const (
+	profileDir             = "../../../../../manifests/profiles"
+	testBomFilePath        = "../../testdata/test_bom.json"
+	invalidTestBomFilePath = "../../testdata/invalid_test_bom.json"
 )
 
 func TestGetOverrides(t *testing.T) {
@@ -84,32 +95,75 @@ func TestGetOverrides(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := GetOverrides(tt.args.object); !reflect.DeepEqual(got, tt.want) {
+			if got := getOverrides(tt.args.object); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetOverrides() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func Test_appendOverrides(t *testing.T) {
-	//testCR := v1alpha1.Verrazzano{}
-	//fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	//fakeContext := spi.NewFakeContext(fakeClient, &testCR, nil, false, profileDir)
+func TestAppendOverrides(t *testing.T) {
+	testCR := v1alpha1.Verrazzano{}
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	fakeContext := spi.NewFakeContext(fakeClient, &testCR, nil, false)
+	emptyString := ""
+
+	expectedKVS := []bom.KeyValue{
+		{Key: fluentOperatorImageKey, Value: "iad.ocir.io/odsbuilddev/sandboxes/test/fluent-operator"},
+		{Key: fluentOperatorImageTag, Value: "v1"},
+		{Key: fluentBitImageKey, Value: "iad.ocir.io/odsbuilddev/sandboxes/test/fluent-bit"},
+		{Key: fluentBitImageTag, Value: "v1"},
+		{Key: fluentOperatorInitImageKey, Value: "ghcr.io/oracle/oraclelinux"},
+		{Key: fluentOperatorInitTag, Value: "8"},
+		{Key: "image.pullSecrets.enabled", Value: "true"},
+	}
 	type args struct {
-		ctx spi.ComponentContext
-		in1 string
-		in2 string
-		in3 string
-		kvs []bom.KeyValue
+		ctx     spi.ComponentContext
+		in1     string
+		in2     string
+		in3     string
+		bomFile string
+		kvs     []bom.KeyValue
 	}
 	tests := []struct {
 		name    string
 		args    args
 		want    []bom.KeyValue
 		wantErr bool
-	}{}
+	}{
+		{
+			"With all overrides values",
+			args{
+				fakeContext,
+				emptyString,
+				emptyString,
+				emptyString,
+				testBomFilePath,
+				[]bom.KeyValue{},
+			},
+			expectedKVS,
+			false,
+		},
+		{
+			"With invalid BOM file",
+			args{
+				fakeContext,
+				emptyString,
+				emptyString,
+				emptyString,
+				invalidTestBomFilePath,
+				[]bom.KeyValue{},
+			},
+			[]bom.KeyValue{},
+			true,
+		},
+	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			config.SetDefaultBomFilePath(tt.args.bomFile)
+			defer func() {
+				config.SetDefaultBomFilePath("")
+			}()
 			got, err := appendOverrides(tt.args.ctx, tt.args.in1, tt.args.in2, tt.args.in3, tt.args.kvs)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("appendOverrides() error = %v, wantErr %v", err, tt.wantErr)
@@ -122,17 +176,45 @@ func Test_appendOverrides(t *testing.T) {
 	}
 }
 
-func Test_applyFluentBitConfigMap(t *testing.T) {
+func TestApplyFluentBitConfigMap(t *testing.T) {
 	type args struct {
-		compContext spi.ComponentContext
+		compContext     spi.ComponentContext
+		testManifestDir string
 	}
+	testCR := v1alpha1.Verrazzano{}
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	fakeContext := spi.NewFakeContext(fakeClient, &testCR, nil, false)
+	defer func() {
+		config.TestThirdPartyManifestDir = ""
+	}()
 	tests := []struct {
 		name    string
 		args    args
 		wantErr bool
-	}{}
+	}{
+		{
+			"test with valid configmap map",
+			args{
+				fakeContext,
+				"../../../../thirdparty/manifests",
+			},
+			false,
+		},
+		{
+			"test with inValid configmap map",
+
+			args{
+				fakeContext,
+				"test",
+			},
+			true,
+		},
+	}
+
 	for _, tt := range tests {
+
 		t.Run(tt.name, func(t *testing.T) {
+			config.TestThirdPartyManifestDir = tt.args.testManifestDir
 			if err := applyFluentBitConfigMap(tt.args.compContext); (err != nil) != tt.wantErr {
 				t.Errorf("applyFluentBitConfigMap() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -140,33 +222,96 @@ func Test_applyFluentBitConfigMap(t *testing.T) {
 	}
 }
 
-func Test_applyOpenSearchClusterOutputs(t *testing.T) {
-	type args struct {
-		compContext spi.ComponentContext
+func getFluentOperatorDeployment(name string, labels map[string]string, notReady bool) *appsv1.Deployment {
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      name,
+			Labels:    labels,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
+		},
+		Status: appsv1.DeploymentStatus{
+			Replicas:          1,
+			AvailableReplicas: 1,
+			UpdatedReplicas:   1,
+		},
 	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := applyOpenSearchClusterOutputs(tt.args.compContext); (err != nil) != tt.wantErr {
-				t.Errorf("applyOpenSearchClusterOutputs() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
+
+	if !notReady {
+		deployment.Status = appsv1.DeploymentStatus{
+			Replicas:          1,
+			AvailableReplicas: 0,
+			UpdatedReplicas:   0,
+		}
 	}
+	return deployment
 }
 
-func Test_isFluentOperatorReady(t *testing.T) {
+func getFluentbitDaemonset(name string, labels map[string]string, notReady bool) *appsv1.DaemonSet {
+	deployment := &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      name,
+			Labels:    labels,
+		},
+		Spec: appsv1.DaemonSetSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
+		},
+		Status: appsv1.DaemonSetStatus{
+			NumberAvailable:        1,
+			UpdatedNumberScheduled: 1,
+		},
+	}
+	if !notReady {
+		deployment.Status = appsv1.DaemonSetStatus{
+			NumberAvailable:        0,
+			UpdatedNumberScheduled: 1,
+		}
+	}
+	return deployment
+}
+
+func TestIsFluentOperatorReady(t *testing.T) {
 	type args struct {
 		context spi.ComponentContext
 	}
+	testCR := v1alpha1.Verrazzano{}
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		getFluentOperatorDeployment("testFluentOperator", map[string]string{"app": "fluent-operator"}, false),
+		getFluentbitDaemonset("testFluentbit", map[string]string{"app": "fluent-bit"}, false),
+	).Build()
+	fakeClientWithNotReadyStatus := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		getFluentOperatorDeployment("testFluentOperator", map[string]string{"app": "fluent-operator"}, true),
+		getFluentbitDaemonset("testFluentbit", map[string]string{"app": "fluent-bit"}, true),
+	).Build()
+	fakeContext := spi.NewFakeContext(fakeClient, &testCR, nil, false)
+	fakeCtxWithNotReadyStatus := spi.NewFakeContext(fakeClientWithNotReadyStatus, &testCR, nil, false)
 	tests := []struct {
 		name string
 		args args
 		want bool
-	}{}
+	}{
+		{
+			"When fluentOperator is ready",
+			args{
+				fakeContext,
+			},
+			false,
+		},
+		{
+			"When fluentOperator is not ready",
+			args{
+				fakeCtxWithNotReadyStatus,
+			},
+			false,
+		},
+	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := isFluentOperatorReady(tt.args.context); got != tt.want {
