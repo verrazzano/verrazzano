@@ -33,8 +33,6 @@ VERRAZZANO_PLATFORM_OPERATOR_IMAGE = ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${VERRAZ
 VERRAZZANO_APPLICATION_OPERATOR_IMAGE = ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 VERRAZZANO_CLUSTER_OPERATOR_IMAGE = ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${VERRAZZANO_CLUSTER_OPERATOR_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
-SUPPORTED_VZ_VERSION = 1.5.0
-
 CURRENT_YEAR = $(shell date +"%Y")
 
 PARENT_BRANCH ?= origin/master
@@ -53,12 +51,8 @@ clean: ## remove coverage and test results
 
 ##@ Build
 
-.PHONY: minimum-supported-versions
-minimum-supported-versions:
-	$(GO) run ./ci/tools/derive_upgrade_version.go . versions-gte $(SUPPORTED_VZ_VERSION) > platform-operator/verrazzano-versions.json
-
 .PHONY: docker-push
-docker-push: minimum-supported-versions ## build and push all images
+docker-push: ## build and push all images
 	(cd cluster-operator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_CLUSTER_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
 	(cd application-operator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
 	(cd platform-operator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} VERRAZZANO_APPLICATION_OPERATOR_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} VERRAZZANO_CLUSTER_OPERATOR_IMAGE=${VERRAZZANO_CLUSTER_OPERATOR_IMAGE})

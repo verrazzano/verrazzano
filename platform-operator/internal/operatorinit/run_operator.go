@@ -4,6 +4,7 @@
 package operatorinit
 
 import (
+	"context"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
@@ -33,6 +34,9 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 		return err
 	}
 	nginxutil.SetIngressNGINXNamespace(ingressNGINXNamespace)
+	if err := CreateVZMeta(context.Background()); err != nil {
+		return err
+	}
 
 	registry.InitRegistry()
 	metricsexporter.Init()

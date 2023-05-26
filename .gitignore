@@ -51,4 +51,3 @@ ATTRIBUTION-HELPER-DEPS
 tools/vz/cmd/bugreport/bug-report.tar.gz
 tools/vz/pkg/analysis/internal/util/report/report
 tools/vz/cmd/analyze/details-*.out
-versions.json
