@@ -324,6 +324,7 @@ func createDriver(dynClient dynamic.Interface, gvr schema.GroupVersionResource, 
 	driverObj := unstructured.Unstructured{}
 	driverObj.SetGroupVersionKind(common.GetRancherMgmtAPIGVKForKind("KontainerDriver"))
 	driverObj.SetName(name)
+	driverObj.UnstructuredContent()["spec"] = map[string]interface{}{}
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["builtIn"] = false
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["checksum"] = checksum
