@@ -8,11 +8,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -30,21 +31,21 @@ const (
 var t = framework.NewTestFramework("rancher")
 
 // 'It' Wrapper to only run spec if Rancher is supported on the current Verrazzano installation
-func WhenRancherInstalledIt(description string, f func()) {
+func WhenCapiInstalledIt(description string, f func()) {
 	t.It(description, func() {
 		kubeconfig := getKubeConfigOrAbort()
 		inClusterVZ, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
 		if err != nil {
 			AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
 		}
-		isRancherEnabled := vzcr.IsComponentStatusEnabled(inClusterVZ, rancher.ComponentName)
+		isCapiEnabled := vzcr.IsComponentStatusEnabled(inClusterVZ, capi.ComponentName)
 
 		supported, err := pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfig)
 		if err != nil {
 			AbortSuite(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %v", err))
 		}
 
-		if isRancherEnabled && supported {
+		if isCapiEnabled && supported {
 			f()
 		} else {
 			t.Logs.Infof("Skipping test '%v', not supported for the configuration installed on this cluster", description)
@@ -69,7 +70,7 @@ var _ = t.Describe("Rancher", Label("f:platform-lcm.install"), func() {
 			return clientset, err
 		}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-		WhenRancherInstalledIt("kontainerdrivers must be ready", func() {
+		WhenCapiInstalledIt("kontainerdrivers must be ready", func() {
 			driversActive := func() bool {
 				cattleDrivers, err := listKontainerDrivers(clientset)
 				if err != nil {
@@ -99,7 +100,7 @@ var _ = t.Describe("Rancher", Label("f:platform-lcm.install"), func() {
 			Eventually(driversActive, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		WhenRancherInstalledIt("expected kontainerdrivers must exist", func() {
+		WhenCapiInstalledIt("expected kontainerdrivers must exist", func() {
 
 			expectedDriversFound := func() bool {
 				cattleDrivers, err := listKontainerDrivers(clientset)
