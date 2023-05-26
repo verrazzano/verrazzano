@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -65,7 +66,7 @@ func WhenCapiInstalledIt(description string, f func()) {
 		if err != nil {
 			AbortSuite(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %v", err))
 		}
-		isComponentStatusEnabled := vzcr.IsComponentStatusEnabled(inClusterVZ, constants.VerrazzanoCAPINamespace)
+		isComponentStatusEnabled := vzcr.IsComponentStatusEnabled(inClusterVZ, capi.ComponentName)
 		if isMinimumK8sVersion && isCAPISupported && (isCAPIEnabled && isComponentStatusEnabled) {
 			f()
 		} else {
