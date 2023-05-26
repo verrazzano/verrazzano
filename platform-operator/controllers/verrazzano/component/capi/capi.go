@@ -293,9 +293,8 @@ func createOrUpdateKontainerCR(ctx spi.ComponentContext) error {
 				return ctx.Log().ErrorfNewErr("Failed to create %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
 			}
 			return nil
-		} else {
-			return ctx.Log().ErrorfNewErr("Failed to get %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
 		}
+		return ctx.Log().ErrorfNewErr("Failed to get %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
 	}
 
 	// Update the existing record
