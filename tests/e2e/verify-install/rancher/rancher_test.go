@@ -29,7 +29,7 @@ const (
 
 var t = framework.NewTestFramework("rancher")
 
-// 'It' Wrapper to only run spec if Rancher is supported on the current Verrazzano installation
+// 'It' Wrapper to only run spec if Capi is enabled on the current Verrazzano installation
 func WhenCapiInstalledIt(description string, f func()) {
 	t.It(description, func() {
 		kubeconfig := getKubeConfigOrAbort()
