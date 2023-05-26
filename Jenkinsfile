@@ -591,7 +591,7 @@ def checkRepoClean() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano
         echo 'Check for forgotten manifest/generate actions...'
-        (cd platform-operator; make check-repo-clean)
+        (cd platform-operator; make check-repo-clean GIT_WORKSPACE=${workspace})
         (cd application-operator; make check-repo-clean)
         (cd cluster-operator; make check-repo-clean)
     """

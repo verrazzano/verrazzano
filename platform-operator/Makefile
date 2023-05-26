@@ -17,7 +17,8 @@ CREATE_LATEST_TAG=0
 CRD_OPTIONS ?= "crd:crdVersions=v1,maxDescLen=0"
 KUBECONFIG ?= ${HOME}/.kube/config
 
-SUPPORTED_VZ_VERSION = 1.5.0
+SUPPORTED_VZ_VERSION ?= 1.5.0
+GIT_WORKSPACE ?= .
 
 ifndef DOCKER_IMAGE_FULLNAME
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
@@ -114,7 +115,7 @@ manifests: minimum-supported-versions platform-manifests
 
 .PHONY: minimum-supported-versions
 minimum-supported-versions:
-	$(GO) run ../ci/tools/derive_upgrade_version.go . versions-gte $(SUPPORTED_VZ_VERSION) > internal/operatorinit/meta/verrazzano-versions.json
+	$(GO) run ../ci/tools/derive_upgrade_version.go $(GIT_WORKSPACE) versions-gte $(SUPPORTED_VZ_VERSION) > internal/operatorinit/meta/verrazzano-versions.json
 
 # Generate mocks
 .PHONY: mock-gen
