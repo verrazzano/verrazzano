@@ -191,6 +191,7 @@ pipeline {
                         def k = 0
                         def  mapOfJobsInBatches = []
                         upgradeJobsStageMapping = [:]
+                        mapOfJobsInBatches.add(releaseCommitMap)
                         for(int i=0;i<listOfUpgradeJobs.size();i++){
                             if(k<NJObs){
                                 upgradeJobsStageMapping.put(listOfUpgradeJobs.get(i),getStageOfUpgradeJob(listOfUpgradeJobs.get(i)))
@@ -202,7 +203,6 @@ pipeline {
                                 k = 0;
                             }
                         }
-                            mapOfJobsInBatches.add(releaseCommitMap)
                             print mapOfJobsInBatches
                             for(batch in mapOfJobsInBatches){
                                 parallel batch
