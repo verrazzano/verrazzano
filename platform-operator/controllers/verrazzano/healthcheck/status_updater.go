@@ -102,7 +102,6 @@ func (v *VerrazzanoStatusUpdater) doUpdate(event *UpdateEvent) error {
 		err = v.client.Status().Update(context.TODO(), vz)
 		if err == nil || !apierrors.IsConflict(err) {
 			// Update didn't have a conflict, so return and exit update loop
-			v.logger.Infof("Verrazzano status updated: %v", vz.Status.Conditions)
 			return err
 		}
 		time.Sleep(100 * time.Millisecond)

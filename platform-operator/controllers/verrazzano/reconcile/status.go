@@ -171,10 +171,6 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 			componentStatus.ReconcilingGeneration = cr.Generation
 		}
 	}
-	if conditionType == installv1alpha1.CondUpgradeComplete {
-		log.Infof("----> DEBUG: Component %s ReconcilingGeneration = %d", componentName, componentStatus.ReconcilingGeneration)
-		log.Infof("----> DEBUG: Component %s LastReconcilingGeneration = %d", componentName, componentStatus.LastReconciledGeneration)
-	}
 	componentStatus.Conditions = appendConditionIfNecessary(log, componentStatus.Name, componentStatus.Conditions, condition)
 
 	// Set the state of resource
@@ -191,9 +187,6 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 	}
 
 	// Update the status
-	if conditionType == installv1alpha1.CondUpgradeComplete {
-		log.Infof("----> DEBUG: Updating component %s status to %v", componentName, componentStatus)
-	}
 	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
 		Verrazzano: cr,
 		Components: map[string]*installv1alpha1.ComponentStatusDetails{
@@ -214,7 +207,7 @@ func appendConditionIfNecessary(log vzlog.VerrazzanoLogger, resourceName string,
 			newConditionsList = append(newConditionsList, conditions[i])
 		}
 	}
-	log.Infof("Adding/modifying %s resource newCondition: %v", resourceName, newCondition.Type)
+	log.Debugf("Adding/modifying %s resource newCondition: %v", resourceName, newCondition.Type)
 	// Always put the new condition at the end of the list since the kubectl status display and
 	// some upgrade stuff depends on the most recent condition being the last one
 	return append(newConditionsList, newCondition)
