@@ -117,7 +117,10 @@ type BomImage struct {
 	// See `image.repository` in the external-dns component
 	HelmRegistryAndRepoKey string `json:"helmRegistryAndRepoKey"`
 
-	OCNEDriverVersion  string `json:"ocneDriverVersion"`
+	// OCNEDriverVersion is an additional attribute for using the Rancher image
+	OCNEDriverVersion string `json:"ocneDriverVersion"`
+
+	// OCNEDriverChecksum is an additional attribute for using the Rancher image
 	OCNEDriverChecksum string `json:"ocneDriverChecksum"`
 }
 
