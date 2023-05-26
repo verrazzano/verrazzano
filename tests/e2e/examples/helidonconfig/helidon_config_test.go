@@ -5,7 +5,6 @@ package helidonconfig
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -30,17 +29,14 @@ const (
 
 	ingress        = "helidon-config-ingress-rule"
 	helidonService = "helidon-config-deployment"
-	targetsVersion = "1.4.0"
 )
 
 var (
 	t                  = framework.NewTestFramework("helidonconfig")
 	generatedNamespace = pkg.GenerateNamespace("helidon-config")
-	kubeConfig         = os.Getenv("KUBECONFIG")
 	host               = ""
 	metricsTest        pkg.MetricsTest
 )
-var isMinVersion140 bool
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
@@ -75,14 +71,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 			return pkg.ContainerImagePullWait(namespace, expectedPodsHelidonConfig)
 		}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	}
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-	}
-	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
-	if err != nil {
-		Fail(err.Error())
-	}
 
 	// Verify helidon-config-deployment pod is running
 	// GIVEN OAM helidon-config app is deployed
@@ -115,6 +103,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return result
 	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Helidon Config Failed to Deploy: VirtualService is not ready")
 
+	var err error
 	// Get the host from the Istio gateway resource.
 	start := time.Now()
 	t.Logs.Info("Helidon Config: check expected Gateway is ready")
@@ -233,16 +222,23 @@ var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 		})
 	})
 
-	// Verify Prometheus scraped targets
+	// Verify Prometheus scraped metrics
 	// GIVEN OAM helidon-config app is deployed
 	// WHEN the component and appconfig without metrics-trait(using default) are created
-	// THEN the application scrape targets must be healthy
+	// THEN the application metrics must be accessible
 	t.Describe("Metrics.", Label("f:observability.monitoring.prom"), func() {
-		t.It("Verify all scrape targets are healthy for the application", func() {
-			Eventually(func() (bool, error) {
-				var componentNames = []string{"helidon-config-component"}
-				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "helidon-config-appconf", componentNames, isMinVersion140))
-			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+		t.It("Retrieve Prometheus scraped metrics", func() {
+			pkg.Concurrently(
+				func() {
+					Eventually(appMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(appComponentMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(appConfigMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
+				},
+			)
 		})
 	})
 
@@ -283,4 +279,16 @@ func helidonConfigPodsRunning() bool {
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 	}
 	return result
+}
+
+func appMetricsExists() bool {
+	return metricsTest.MetricsExist("base_jvm_uptime_seconds", map[string]string{"app": "helidon-config"})
+}
+
+func appComponentMetricsExists() bool {
+	return metricsTest.MetricsExist("vendor_requests_count_total", map[string]string{"app_oam_dev_name": "helidon-config-appconf"})
+}
+
+func appConfigMetricsExists() bool {
+	return metricsTest.MetricsExist("vendor_requests_count_total", map[string]string{"app_oam_dev_component": "helidon-config-component"})
 }
