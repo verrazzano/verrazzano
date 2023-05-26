@@ -13,6 +13,7 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -260,30 +261,16 @@ func applyTemplate(templateContent string, params interface{}) (bytes.Buffer, er
 	return buf, nil
 }
 
+// createOrUpdateKontainerCR - Create or update the kontainerdrivers.management.cattle.io object that
+// registers the ociocne driver
 func createOrUpdateKontainerCR(ctx spi.ComponentContext) error {
-	var GVKKontainerDriver = common.GetRancherMgmtAPIGVKForKind("KontainerDriver")
-
-	kontainerResource := schema.GroupVersionResource{
-		Group:    GVKKontainerDriver.Group,
-		Version:  GVKKontainerDriver.Version,
-		Resource: "kontainerdrivers",
-	}
-
-	// Get BOM file
-	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	gvr := common.GetRancherMgmtAPIGVRForResource("kontainerdrivers")
+	driverVersion, driverChecksum, err := parseRancherBOM(ctx.Log())
 	if err != nil {
-		return ctx.Log().ErrorNewErr("Failed to get the BOM file: ", err)
+		return ctx.Log().ErrorNewErr("Failed to obtain additional Rancher settings from the BOM file: ", err)
 	}
 
-	// Parse Rancher settings for ociocne driver
-	subComponent, err := bomFile.GetSubcomponent("rancher")
-	if err != nil {
-		return ctx.Log().ErrorNewErr("Failed to get BOM images for subcomponent rancher: %v", err)
-	}
-	image, err := bomFile.FindImage(subComponent, "rancher")
-	driverVersion := image.OCNEDriverVersion
-	driverChecksum := image.OCNEDriverChecksum
-
+	// Form the URL for downloading the driver
 	rancherURL, err := k8sutil.GetURLForIngress(ctx.Client(), "rancher", "cattle-system", "https")
 	if err != nil {
 		return err
@@ -298,25 +285,43 @@ func createOrUpdateKontainerCR(ctx spi.ComponentContext) error {
 
 	// Does the object already exist?
 	var driverObj *unstructured.Unstructured
-	driverObj, err = dynClient.Resource(kontainerResource).Get(context.TODO(), kontainerDriverObjectName, metav1.GetOptions{})
+	driverObj, err = dynClient.Resource(gvr).Get(context.TODO(), kontainerDriverObjectName, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			_, err = createDriver(dynClient, kontainerResource, kontainerDriverObjectName, driverURL, driverChecksum)
+			_, err = createDriver(dynClient, gvr, kontainerDriverObjectName, driverURL, driverChecksum)
 			if err != nil {
-				return ctx.Log().ErrorfNewErr("Failed to create %s/%s/%s %s: %v", kontainerResource.Resource, kontainerResource.Group, kontainerResource.Version, kontainerDriverObjectName, err)
+				return ctx.Log().ErrorfNewErr("Failed to create %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
 			}
+			return nil
 		} else {
-			return ctx.Log().ErrorfNewErr("Failed to get %s/%s/%s %s: %v", kontainerResource.Resource, kontainerResource.Group, kontainerResource.Version, kontainerDriverObjectName, err)
+			return ctx.Log().ErrorfNewErr("Failed to get %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
 		}
 	}
 
 	// Update the existing record
-	ctx.Log().Infof("MGIANATA driverObj: %v", driverObj)
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["checksum"] = driverChecksum
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = driverURL
-
-	_, err = dynClient.Resource(kontainerResource).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
+	_, err = dynClient.Resource(gvr).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
 	return err
+}
+
+func parseRancherBOM(log vzlog.VerrazzanoLogger) (string, string, error) {
+	// Get BOM file
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return "", "", log.ErrorNewErr("Failed to get the BOM file: ", err)
+	}
+
+	// Parse Rancher settings for ociocne driver
+	subComponent, err := bomFile.GetSubcomponent("rancher")
+	if err != nil {
+		return "", "", log.ErrorNewErr("Failed to get rancher subcomponent from BOM: %v", err)
+	}
+	image, err := bomFile.FindImage(subComponent, "rancher")
+	if err != nil {
+		return "", "", log.ErrorNewErr("Failed to get rancher image from subcomponent: %v", err)
+	}
+	return image.OCNEDriverVersion, image.OCNEDriverChecksum, nil
 }
 
 func createDriver(dynClient dynamic.Interface, gvr schema.GroupVersionResource, name string, driverURL string, checksum string) (*unstructured.Unstructured, error) {
@@ -328,6 +333,5 @@ func createDriver(dynClient dynamic.Interface, gvr schema.GroupVersionResource, 
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["builtIn"] = false
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["checksum"] = checksum
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = driverURL
-
 	return dynClient.Resource(gvr).Create(context.TODO(), &driverObj, metav1.CreateOptions{})
 }

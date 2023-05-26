@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package common
@@ -7,13 +7,12 @@ import (
 	"context"
 	"crypto/x509"
 
-	"k8s.io/apimachinery/pkg/api/errors"
-
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -98,6 +97,15 @@ func GetRancherMgmtAPIGVKForKind(kind string) schema.GroupVersionKind {
 		Group:   APIGroupRancherManagement,
 		Version: APIGroupVersionRancherManagement,
 		Kind:    kind,
+	}
+}
+
+// GetRancherMgmtAPIGVRForResource returns a management.cattle.io/v3 GroupVersionKind structure for specified kind
+func GetRancherMgmtAPIGVRForResource(kind string) schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    APIGroupRancherManagement,
+		Version:  APIGroupVersionRancherManagement,
+		Resource: "kontainerdrivers",
 	}
 }
 
