@@ -95,7 +95,6 @@ func parseCliArgs(args []string) {
 func getReleaseTags(workspace string, excludeReleaseTags []string) []string {
 	// Change the working directory to the verrazzano workspace
 	err := os.Chdir(workspace)
-	fmt.Println(workspace)
 	if err != nil {
 		fmt.Printf("\nunable to change the current working directory %v", err.Error())
 	}
@@ -120,7 +119,6 @@ func getReleaseTags(workspace string, excludeReleaseTags []string) []string {
 			}
 		}
 	}
-	fmt.Println(releaseTags)
 	return releaseTags
 }
 

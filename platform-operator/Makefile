@@ -111,7 +111,7 @@ go-install:
 
 manifests: export EXP_CRD_PATH ?= experimental/crds
 .PHONY: manifests
-manifests: minimum-supported-versions platform-manifests
+manifests: platform-manifests
 
 .PHONY: minimum-supported-versions
 minimum-supported-versions:
