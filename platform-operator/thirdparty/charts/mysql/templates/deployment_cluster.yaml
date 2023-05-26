@@ -145,71 +145,71 @@ spec:
               - ALL
         volumeMounts:
 {{- range $key, $val := .Values.configurationFiles }}
-          - name: configurations
-            mountPath: {{ $.Values.configurationFilesPath }}{{ $key }}
-            subPath: {{ $key }}
+        - name: configurations
+          mountPath: {{ $.Values.configurationFilesPath }}{{ $key }}
+          subPath: {{ $key }}
 {{- end -}}
 {{ end }}
 {{ if(.Values).initdbScripts }}
     initContainers:
-      - name: fixdatadir
-        runAsUser: 0
-        image: {{ (.Values).mysqlOperator.image }}
-      - name: initconf
-        securityContext:
-          allowPrivilegeEscalation: false
-          privileged: false
-          runAsNonRoot: true
-          runAsUser: 27
-          runAsGroup: 27
-          capabilities:
-            drop:
-              - ALL
-        image: {{ (.Values).mysqlOperator.image }}
-      - name: initmysql
-        securityContext:
-          allowPrivilegeEscalation: false
-          privileged: false
-          runAsNonRoot: true
-          runAsUser: 27
-          runAsGroup: 27
-          capabilities:
-            drop:
-              - ALL
+    - name: fixdatadir
+      runAsUser: 0
+      image: {{ (.Values).mysqlOperator.image }}
+    - name: initconf
+      securityContext:
+        allowPrivilegeEscalation: false
+        privileged: false
+        runAsNonRoot: true
+        runAsUser: 27
+        runAsGroup: 27
+        capabilities:
+          drop:
+            - ALL
+      image: {{ (.Values).mysqlOperator.image }}
+    - name: initmysql
+      securityContext:
+        allowPrivilegeEscalation: false
+        privileged: false
+        runAsNonRoot: true
+        runAsUser: 27
+        runAsGroup: 27
+        capabilities:
+          drop:
+            - ALL
 {{ if ((.Values).initDB) }}
-        env:
-          - name: DB_RESTORE
-            value: "true"
+      env:
+        - name: DB_RESTORE
+          value: "true"
 {{ end }}
-        volumeMounts:
+      volumeMounts:
 {{- range $key, $val := .Values.initdbScripts }}
-          - name: custominitsql
-            mountPath: /docker-entrypoint-initdb.d/{{ $key }}
-            subPath: {{ $key }}
+      - name: custominitsql
+        mountPath: /docker-entrypoint-initdb.d/{{ $key }}
+        subPath: {{ $key }}
 {{- end -}}
 {{ end }}
 {{ if (or (.Values).initdbScripts (.Values).configurationFiles) }}
     volumes:
 {{- if .Values.configurationFiles }}
-      - name: configurations
-        configMap:
-          name: {{ $cluster_name }}-configuration
-          defaultMode: 0755
-          items:
+    - name: configurations
+      configMap:
+        name: {{ $cluster_name }}-configuration
+        defaultMode: 0755
+        items:
 {{- range $key, $val := .Values.configurationFiles }}
-            - key: {{ $key }}
-              path: {{ $key }}
+          - key: {{ $key }}
+            path: {{ $key }}
 {{- end -}}
 {{- end -}}
 {{- if .Values.initdbScripts }}
-      - name: custominitsql
-        configMap:
-          name: initsql
-          defaultMode: 0755
-          items:
+    - name: custominitsql
+      configMap:
+        name: initsql
+        defaultMode: 0755
+        items:
 {{- range $key, $val := .Values.initdbScripts }}
-            - key: {{ $key }}
-              path: {{ $key }}
+          - key: {{ $key }}
+            path: {{ $key }}
 {{- end -}}
 {{- end -}}
 {{ end }}
