@@ -6,6 +6,7 @@ package capi
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"text/template"
@@ -288,6 +289,12 @@ func createOrUpdateKontainerCR(ctx spi.ComponentContext) error {
 	driverVersion := image.OCNEDriverVersion
 	driverChecksum := image.OCNEDriverChecksum
 
+	rancherURL, err := k8sutil.GetURLForIngress(ctx.Client(), "rancher", "cattle-system", "https")
+	if err != nil {
+		return err
+	}
+	driverURL := fmt.Sprintf("%s/kontainerdriver/%s/%s/kontainer-engine-driver-%s-linux", rancherURL, kontainerDriverName, driverVersion, kontainerDriverName)
+
 	// Setup dynamic client
 	dynClient, err := k8sutil.GetDynamicClient()
 	if err != nil {
@@ -295,26 +302,32 @@ func createOrUpdateKontainerCR(ctx spi.ComponentContext) error {
 	}
 
 	// Does the object already exist?
-	_, err = dynClient.Resource(kontainerResource).Get(context.TODO(), kontainerDriverName, metav1.GetOptions{})
+	var driverObj *unstructured.Unstructured
+	driverObj, err = dynClient.Resource(kontainerResource).Get(context.TODO(), kontainerDriverName, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			_, err = createDriver(dynClient, kontainerResource, kontainerDriverName, driverVersion, driverChecksum)
+			_, err = createDriver(dynClient, kontainerResource, kontainerDriverName, driverURL, driverChecksum)
 		} else {
 			return ctx.Log().ErrorfNewErr("Failed to get %s/%s/%s %s: %v", kontainerResource.Resource, kontainerResource.Group, kontainerResource.Version, kontainerDriverName, err)
 		}
 	}
 
-	return nil
+	// Update the existing record
+	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["checksum"] = driverChecksum
+	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = driverURL
+
+	_, err = dynClient.Resource(kontainerResource).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
+	return err
 }
 
-func createDriver(dynClient dynamic.Interface, gvr schema.GroupVersionResource, name string, version string, checksum string) (*unstructured.Unstructured, error) {
+func createDriver(dynClient dynamic.Interface, gvr schema.GroupVersionResource, name string, driverURL string, checksum string) (*unstructured.Unstructured, error) {
 	driverObj := unstructured.Unstructured{}
 	driverObj.SetGroupVersionKind(common.GetRancherMgmtAPIGVKForKind("KontainerDriver"))
 	driverObj.SetName(name)
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["builtIn"] = false
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["checksum"] = checksum
-	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = checksum
+	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = driverURL
 
 	return dynClient.Resource(gvr).Create(context.TODO(), &driverObj, metav1.CreateOptions{})
 }

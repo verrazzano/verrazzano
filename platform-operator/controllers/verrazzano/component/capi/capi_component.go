@@ -25,7 +25,7 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "capi"
 
-// Namespace for CAPI providers
+// ComponentNamespace - namespace for CAPI providers
 const ComponentNamespace = constants.VerrazzanoCAPINamespace
 
 // ComponentJSONName is the JSON name of the component in CRD
@@ -191,7 +191,10 @@ func (c capiComponent) Install(ctx spi.ComponentContext) error {
 	}
 
 	_, err = capiClient.Init(initOptions)
-	return err
+	if err != nil {
+		return err
+	}
+	return createOrUpdateKontainerCR(ctx)
 }
 
 func (c capiComponent) PostInstall(_ spi.ComponentContext) error {
@@ -255,7 +258,11 @@ func (c capiComponent) Upgrade(ctx spi.ComponentContext) error {
 		InfrastructureProviders: []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ociProviderName, overrides.OCIVersion)},
 	}
 
-	return capiClient.ApplyUpgrade(applyUpgradeOptions)
+	err = capiClient.ApplyUpgrade(applyUpgradeOptions)
+	if err != nil {
+		return err
+	}
+	return createOrUpdateKontainerCR(ctx)
 }
 
 func (c capiComponent) PostUpgrade(_ spi.ComponentContext) error {
