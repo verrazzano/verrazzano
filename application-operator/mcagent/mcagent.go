@@ -135,6 +135,11 @@ func (r *Reconciler) ProcessAgentThread(ctx context.Context, agentSecret corev1.
 
 	// Create the client for accessing the admin cluster
 	adminClient, err := getAdminClientFunc(&agentSecret)
+	// If we are unauthorized to create a client on the admin cluster
+	// the cluster must have been deregistered
+	if apierrors.IsUnauthorized(err) {
+		return s.syncDeregistration()
+	}
 	if err != nil {
 		return fmt.Errorf("failed to get the client for cluster %q with error %v", managedClusterName, err)
 	}
