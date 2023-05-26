@@ -161,12 +161,6 @@ func Test_makeClusterPayload(t *testing.T) {
 	}
 }
 
-func addDeleteMock(httpMock *mocks.MockRequestSender, secret *corev1.Secret, clusterID string, responseStatus int, errToReturn error) *mocks.MockRequestSender {
-	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodDelete, getTestPath(secret, clusterID, false))).
-		Return(&http.Response{StatusCode: responseStatus, Body: io.NopCloser(bytes.NewReader([]byte("")))}, errToReturn).AnyTimes()
-	return httpMock
-}
-
 func addNotFoundMock(httpMock *mocks.MockRequestSender, secret *corev1.Secret, clusterID string) *mocks.MockRequestSender {
 	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodGet, getTestPath(secret, clusterID, false))).
 		Return(&http.Response{StatusCode: 404, Body: io.NopCloser(bytes.NewReader([]byte("")))}, fmt.Errorf("not found")).AnyTimes()

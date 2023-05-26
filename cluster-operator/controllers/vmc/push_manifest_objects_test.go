@@ -5,7 +5,6 @@ package vmc
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"net/http"
 	"testing"
@@ -179,23 +178,6 @@ func addInactiveClusterMock(httpMock *mocks.MockRequestSender, clusterID string)
 			}
 			return resp, nil
 		})
-	return httpMock
-}
-
-func addActiveClusterMockWithDelete(httpMock *mocks.MockRequestSender, a *asserts.Assertions, vmc *v1alpha1.VerrazzanoManagedCluster, r *VerrazzanoManagedClusterReconciler, clusterID string, regSecretExists, agentSecretExists bool) *mocks.MockRequestSender {
-	httpMock = addTokenMock(httpMock)
-	expectActiveCluster(httpMock)
-
-	emptyBody := io.NopCloser(bytes.NewReader([]byte("")))
-	rancherSecPath := "/k8s/clusters/%s/api/v1/namespaces/%s/secrets/%s"
-	managedClusterAgentSecPath := fmt.Sprintf(rancherSecPath, clusterID, constants.VerrazzanoSystemNamespace, constants.MCAgentSecret)
-	managedClusterRegSecPath := fmt.Sprintf(rancherSecPath, clusterID, constants.VerrazzanoSystemNamespace, constants.MCRegistrationSecret)
-	httpMock.EXPECT().
-		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodDelete, managedClusterAgentSecPath)).
-		Return(&http.Response{StatusCode: http.StatusOK, Body: emptyBody}, nil)
-	httpMock.EXPECT().
-		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodDelete, managedClusterRegSecPath)).
-		Return(&http.Response{StatusCode: http.StatusOK, Body: emptyBody}, nil)
 	return httpMock
 }
 
