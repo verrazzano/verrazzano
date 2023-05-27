@@ -121,7 +121,6 @@ var _ = t.Describe("Rancher", Label("f:platform-lcm.install"), func() {
 		})
 
 		WhenCapiInstalledIt("expected kontainerdrivers must exist", func() {
-
 			expectedDriversFound := func() bool {
 				cattleDrivers, err := listKontainerDrivers(clientset)
 				if err != nil {
