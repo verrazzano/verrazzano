@@ -26,7 +26,6 @@ var (
 )
 
 const (
-	profileDir             = "../../../../../manifests/profiles"
 	testBomFilePath        = "../../testdata/test_bom.json"
 	invalidTestBomFilePath = "../../testdata/invalid_test_bom.json"
 )
@@ -109,12 +108,12 @@ func TestAppendOverrides(t *testing.T) {
 	emptyString := ""
 
 	expectedKVS := []bom.KeyValue{
-		{Key: fluentOperatorImageKey, Value: "iad.ocir.io/odsbuilddev/sandboxes/test/fluent-operator"},
-		{Key: fluentOperatorImageTag, Value: "v1"},
-		{Key: fluentBitImageKey, Value: "iad.ocir.io/odsbuilddev/sandboxes/test/fluent-bit"},
-		{Key: fluentBitImageTag, Value: "v1"},
-		{Key: fluentOperatorInitImageKey, Value: "ghcr.io/oracle/oraclelinux"},
+		{Key: fluentOperatorImageTag, Value: "v2.2.0-20230526122409-3662eb4"},
+		{Key: fluentOperatorImageKey, Value: "ghcr.io/verrazzano/fluent-operator"},
+		{Key: fluentBitImageTag, Value: "v2.0.11-20230526122435-3bff26487"},
+		{Key: fluentBitImageKey, Value: "ghcr.io/verrazzano/fluent-bit"},
 		{Key: fluentOperatorInitTag, Value: "8"},
+		{Key: fluentOperatorInitImageKey, Value: "ghcr.io/oracle/oraclelinux"},
 		{Key: "image.pullSecrets.enabled", Value: "true"},
 	}
 	type args struct {
