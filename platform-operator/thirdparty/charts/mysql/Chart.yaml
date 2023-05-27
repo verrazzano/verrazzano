@@ -5,4 +5,4 @@ description: MySQL InnoDB Cluster Helm Chart for deploying MySQL InnoDB Cluster 
 icon: https://labs.mysql.com/common/themes/sakila/favicon.ico
 name: mysql-innodbcluster
 type: application
-version: 2.0.9
+version: 2.0.10
