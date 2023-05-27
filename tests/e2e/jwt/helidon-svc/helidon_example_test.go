@@ -45,7 +45,6 @@ var (
 	expectedPodsHelloHelidon = []string{"hello-helidon-svc-deployment"}
 	metricsTest              pkg.MetricsTest
 )
-var isMinVersion140 bool
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
@@ -63,14 +62,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	// THEN the expected pod must be running in the test namespace
 	if !skipVerify {
 		Eventually(helloHelidonPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
-	}
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-	}
-	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
-	if err != nil {
-		Fail(err.Error())
 	}
 
 	kubeconfig, err := k8sutil.GetKubeConfigLocation()
@@ -159,19 +150,32 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		})
 	})
 
-	// Verify Prometheus scraped targets
+	// Verify Prometheus scraped metrics
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig without metrics-trait(using default) are created
-	// THEN the application scrape targets must be healthy
+	// THEN the application metrics must be accessible
 	t.Describe("for Metrics.", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
-		t.It("Verify all scrape targets are healthy for the application", func() {
+		t.It("Retrieve Prometheus scraped metrics", func() {
 			if skipVerify {
 				Skip(skipVerifications)
 			}
-			Eventually(func() (bool, error) {
-				var componentNames = []string{"hello-helidon-component"}
-				return pkg.ScrapeTargetsHealthy(pkg.GetScrapePools(namespace, "hello-helidon", componentNames, isMinVersion140))
-			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+			pkg.Concurrently(
+				func() {
+					Eventually(appMetricsExists, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(appComponentMetricsExists, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(appConfigMetricsExists, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(nodeExporterProcsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(nodeExporterDiskIoNow, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+			)
 		})
 	})
 
@@ -370,4 +374,24 @@ func appEndpointAccess(url string, hostname string, token string, requestShouldS
 		}
 	}
 	return true
+}
+
+func appMetricsExists() bool {
+	return metricsTest.MetricsExist("base_jvm_uptime_seconds", map[string]string{"app": "hello-helidon-svc-application"})
+}
+
+func appComponentMetricsExists() bool {
+	return metricsTest.MetricsExist("vendor_requests_count_total", map[string]string{"app_oam_dev_name": "hello-helidon-svc-application"})
+}
+
+func appConfigMetricsExists() bool {
+	return metricsTest.MetricsExist("vendor_requests_count_total", map[string]string{"app_oam_dev_component": "hello-helidon-deploy-component"})
+}
+
+func nodeExporterProcsRunning() bool {
+	return metricsTest.MetricsExist("node_procs_running", map[string]string{"job": nodeExporterJobName})
+}
+
+func nodeExporterDiskIoNow() bool {
+	return metricsTest.MetricsExist("node_disk_io_now", map[string]string{"job": nodeExporterJobName})
 }
