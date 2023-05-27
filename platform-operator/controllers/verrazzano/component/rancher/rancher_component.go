@@ -69,6 +69,9 @@ const cattleShellImageName = "rancher-shell"
 // cattleUIEnvName is the environment variable name to set for the Rancher dashboard
 const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
 
+// fluentbitFilterAndParserTemplate is the template name that consists Fluentbit Filter and Parser resource for Istio.
+const fluentbitFilterAndParserTemplate = "rancher-filter-parser.yaml"
+
 // Environment variables for the Rancher images
 // format: imageName: baseEnvVar
 var imageEnvVars = map[string]string{
@@ -499,7 +502,10 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := configureUISettings(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring rancher UI settings: %s", err.Error())
 	}
-
+	// Create Fluentbit filter and parser for Rancher in cattle-fleet-system namespace
+	if err = common.ExecuteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, FleetSystemNamespace, false); err != nil {
+		return err
+	}
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("Failed helm component post install: %s", err.Error())
 	}
@@ -516,6 +522,10 @@ func (r rancherComponent) PostUninstall(ctx spi.ComponentContext) error {
 	if ctx.IsDryRun() {
 		ctx.Log().Debug("Rancher postUninstall dry run")
 		return nil
+	}
+	// Delete Fluentbit filter and parser for Rancher in cattle-fleet-system namespace
+	if err := common.ExecuteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, FleetSystemNamespace, true); err != nil {
+		return err
 	}
 	return postUninstall(ctx, r.monitor)
 }
