@@ -4,6 +4,10 @@
 package capi
 
 import (
+	"os"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -13,14 +17,14 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networking "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/dynamic"
+	dynfake "k8s.io/client-go/dynamic/fake"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"os"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
-	"time"
 )
 
 const (
@@ -340,9 +344,31 @@ func TestInstall(t *testing.T) {
 	defer ResetCAPIInitFunc()
 	config.SetDefaultBomFilePath(testBomFilePath)
 
-	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&networking.Ingress{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "rancher",
+				Namespace: "cattle-system",
+			},
+			Spec: networking.IngressSpec{
+				Rules: []networking.IngressRule{
+					{
+						Host: "rancher.default.1.2.3.4.nip.io",
+					},
+				},
+			},
+		}).Build()
 	var comp capiComponent
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
+
+	fakeDynamicClient := dynfake.NewSimpleDynamicClient(k8scheme.Scheme, []runtime.Object{}...)
+	// override the getDynamicClientFunc for unit testing and reset it when done
+	prevGetDynamicClientFunc := getDynamicClientFunc
+	getDynamicClientFunc = func() (dynamic.Interface, error) { return fakeDynamicClient, nil }
+	defer func() {
+		getDynamicClientFunc = prevGetDynamicClientFunc
+	}()
+
 	err := comp.Install(compContext)
 	assert.NoError(t, err)
 }
@@ -389,9 +415,31 @@ func TestUpgrade(t *testing.T) {
 	defer ResetCAPIInitFunc()
 	config.SetDefaultBomFilePath(testBomFilePath)
 
-	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&networking.Ingress{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "rancher",
+				Namespace: "cattle-system",
+			},
+			Spec: networking.IngressSpec{
+				Rules: []networking.IngressRule{
+					{
+						Host: "rancher.default.1.2.3.4.nip.io",
+					},
+				},
+			},
+		}).Build()
 	var comp capiComponent
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
+
+	fakeDynamicClient := dynfake.NewSimpleDynamicClient(k8scheme.Scheme, []runtime.Object{}...)
+	// override the getDynamicClientFunc for unit testing and reset it when done
+	prevGetDynamicClientFunc := getDynamicClientFunc
+	getDynamicClientFunc = func() (dynamic.Interface, error) { return fakeDynamicClient, nil }
+	defer func() {
+		getDynamicClientFunc = prevGetDynamicClientFunc
+	}()
+
 	err := comp.Upgrade(compContext)
 	assert.NoError(t, err)
 }

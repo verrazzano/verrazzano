@@ -24,6 +24,13 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
+// getDynamicClientFuncSig defines the signature for a function that returns a k8s dynamic client
+type getDynamicClientFuncSig func() (dynamic.Interface, error)
+
+// getDynamicClientFunc is the function for getting a k8s dynamic client - this allows us to override
+// the function for unit testing
+var getDynamicClientFunc getDynamicClientFuncSig = k8sutil.GetDynamicClient
+
 const clusterctlYamlTemplate = `
 images:
   cluster-api:
@@ -278,7 +285,7 @@ func createOrUpdateKontainerCR(ctx spi.ComponentContext) error {
 	driverURL := fmt.Sprintf("%s/kontainerdriver/%s/%s/kontainer-engine-driver-%s-linux", rancherURL, kontainerDriverName, driverVersion, kontainerDriverName)
 
 	// Setup dynamic client
-	dynClient, err := k8sutil.GetDynamicClient()
+	dynClient, err := getDynamicClientFunc()
 	if err != nil {
 		return ctx.Log().ErrorNewErr("Failed to get dynamic client: %v", err)
 	}
