@@ -192,14 +192,11 @@ func (c capiComponent) Install(ctx spi.ComponentContext) error {
 	}
 
 	_, err = capiClient.Init(initOptions)
-	if err != nil {
-		return err
-	}
-	return createOrUpdateKontainerCR(ctx)
+	return err
 }
 
-func (c capiComponent) PostInstall(_ spi.ComponentContext) error {
-	return nil
+func (c capiComponent) PostInstall(ctx spi.ComponentContext) error {
+	return createOrUpdateKontainerCR(ctx)
 }
 
 func (c capiComponent) IsOperatorUninstallSupported() bool {
@@ -259,15 +256,11 @@ func (c capiComponent) Upgrade(ctx spi.ComponentContext) error {
 		InfrastructureProviders: []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ociProviderName, overrides.OCIVersion)},
 	}
 
-	err = capiClient.ApplyUpgrade(applyUpgradeOptions)
-	if err != nil {
-		return err
-	}
-	return createOrUpdateKontainerCR(ctx)
+	return capiClient.ApplyUpgrade(applyUpgradeOptions)
 }
 
-func (c capiComponent) PostUpgrade(_ spi.ComponentContext) error {
-	return nil
+func (c capiComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	return createOrUpdateKontainerCR(ctx)
 }
 
 func (c capiComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
