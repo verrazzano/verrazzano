@@ -296,7 +296,7 @@ func ScrapeTargetsHealthyFromExec(scrapePools []string) (bool, error) {
 // verifyScrapePoolsHealthy iterates through the scrape pools and makes sure that it is present in the scrape targets
 func verifyScrapePoolsHealthy(scrapeTargets []interface{}, scrapePools []string) (bool, error) {
 	for _, target := range scrapeTargets {
-		Log(Info, fmt.Sprintf("-----printing scrapeTargets -----", target))
+		Log(Info, fmt.Sprintf("-----printing scrapeTargets ----- %s ", target))
 	}
 	for _, scrapePool := range scrapePools {
 		found := false
