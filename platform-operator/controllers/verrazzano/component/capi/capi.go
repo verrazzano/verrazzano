@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -273,6 +274,10 @@ func applyTemplate(templateContent string, params interface{}) (bytes.Buffer, er
 // createOrUpdateKontainerCR - Create or update the kontainerdrivers.management.cattle.io object that
 // registers the ociocne driver
 func createOrUpdateKontainerCR(ctx spi.ComponentContext) error {
+	// Nothing to do if Rancher is not enabled
+	if !vzcr.IsComponentStatusEnabled(ctx.EffectiveCR(), "rancher") {
+		return nil
+	}
 	gvr := common.GetRancherMgmtAPIGVRForResource("kontainerdrivers")
 	driverVersion, driverChecksum, err := parseRancherBOM(ctx.Log())
 	if err != nil {
