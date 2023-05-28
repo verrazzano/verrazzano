@@ -15,12 +15,15 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 )
 
@@ -278,37 +281,43 @@ func createOrUpdateKontainerCR(ctx spi.ComponentContext) error {
 	}
 
 	// Form the URL for downloading the driver
-	rancherURL, err := k8sutil.GetURLForIngress(ctx.Client(), "rancher", "cattle-system", "https")
+	var ingress = &networkingv1.Ingress{}
+	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: rancher.ComponentNamespace, Name: rancher.ComponentName}, ingress)
 	if err != nil {
 		return err
 	}
-	driverURL := fmt.Sprintf("%s/kontainerdriver/%s/%s/kontainer-engine-driver-%s-linux", rancherURL, kontainerDriverName, driverVersion, kontainerDriverName)
-
-	// Setup dynamic client
-	dynClient, err := getDynamicClientFunc()
-	if err != nil {
-		return ctx.Log().ErrorNewErr("Failed to get dynamic client: %v", err)
-	}
-
-	// Does the object already exist?
-	var driverObj *unstructured.Unstructured
-	driverObj, err = dynClient.Resource(gvr).Get(context.TODO(), kontainerDriverObjectName, metav1.GetOptions{})
-	if err != nil {
-		if errors.IsNotFound(err) {
-			_, err = createDriver(dynClient, gvr, kontainerDriverObjectName, driverURL, driverChecksum)
-			if err != nil {
-				return ctx.Log().ErrorfNewErr("Failed to create %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
-			}
-			return nil
+	if ingress.Annotations != nil {
+		var driverURL string
+		if commonName, ok := ingress.Annotations["cert-manager.io/common-name"]; ok {
+			driverURL = fmt.Sprintf("https://%s/kontainerdriver/%s/%s/kontainer-engine-driver-%s-linux", commonName, kontainerDriverName, driverVersion, kontainerDriverName)
 		}
-		return ctx.Log().ErrorfNewErr("Failed to get %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
-	}
+		// Setup dynamic client
+		dynClient, err := getDynamicClientFunc()
+		if err != nil {
+			return ctx.Log().ErrorNewErr("Failed to get dynamic client: %v", err)
+		}
 
-	// Update the existing record
-	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["checksum"] = driverChecksum
-	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = driverURL
-	_, err = dynClient.Resource(gvr).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
-	return err
+		// Does the object already exist?
+		var driverObj *unstructured.Unstructured
+		driverObj, err = dynClient.Resource(gvr).Get(context.TODO(), kontainerDriverObjectName, metav1.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				_, err = createDriver(dynClient, gvr, kontainerDriverObjectName, driverURL, driverChecksum)
+				if err != nil {
+					return ctx.Log().ErrorfNewErr("Failed to create %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
+				}
+				return nil
+			}
+			return ctx.Log().ErrorfNewErr("Failed to get %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
+		}
+
+		// Update the existing record
+		driverObj.UnstructuredContent()["spec"].(map[string]interface{})["checksum"] = driverChecksum
+		driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = driverURL
+		_, err = dynClient.Resource(gvr).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
+		return err
+	}
+	return fmt.Errorf("failed to create hosted driver, %s/rancher ingress not ready", rancher.ComponentNamespace)
 }
 
 func parseRancherBOM(log vzlog.VerrazzanoLogger) (string, string, error) {
