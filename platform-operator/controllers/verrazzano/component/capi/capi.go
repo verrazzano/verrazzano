@@ -15,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -282,7 +281,7 @@ func createOrUpdateKontainerCR(ctx spi.ComponentContext) error {
 
 	// Form the URL for downloading the driver
 	var ingress = &networkingv1.Ingress{}
-	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: rancher.ComponentNamespace, Name: rancher.ComponentName}, ingress)
+	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, ingress)
 	if err != nil {
 		return err
 	}
@@ -317,7 +316,7 @@ func createOrUpdateKontainerCR(ctx spi.ComponentContext) error {
 		_, err = dynClient.Resource(gvr).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
 		return err
 	}
-	return fmt.Errorf("failed to create hosted driver, %s/rancher ingress not ready", rancher.ComponentNamespace)
+	return fmt.Errorf("failed to create hosted driver, %s/rancher ingress not ready", "cattle-system")
 }
 
 func parseRancherBOM(log vzlog.VerrazzanoLogger) (string, string, error) {
