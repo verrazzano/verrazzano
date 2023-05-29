@@ -79,86 +79,84 @@ func WhenCapiInstalledIt(description string, f func()) {
 var _ = t.Describe("KontainerDriver status", Label("f:platform-lcm.install"), func() {
 
 	t.Context("after successful installation", func() {
-		It("when rancher configured", func() {
-			kubeconfig := getKubeConfigOrAbort()
-			inClusterVZ, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
+		kubeconfig := getKubeConfigOrAbort()
+		inClusterVZ, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
+		}
+		rancherConfigured := vzcr.IsComponentStatusEnabled(inClusterVZ, rancher.ComponentName)
+
+		var clientset dynamic.Interface
+
+		// Get dynamic client
+		Eventually(func() (dynamic.Interface, error) {
+			kubePath, err := k8sutil.GetKubeConfigLocation()
 			if err != nil {
-				AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
+				return nil, err
 			}
-			if !vzcr.IsComponentStatusEnabled(inClusterVZ, rancher.ComponentName) {
+			clientset, err = pkg.GetDynamicClientInCluster(kubePath)
+			return clientset, err
+		}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+		WhenCapiInstalledIt("kontainerdrivers must be ready", func() {
+			if !rancherConfigured {
 				Skip("Skipping test because Rancher is not configured")
-				return
 			}
-
-			var clientset dynamic.Interface
-
-			// Get dynamic client
-			Eventually(func() (dynamic.Interface, error) {
-				kubePath, err := k8sutil.GetKubeConfigLocation()
+			driversActive := func() bool {
+				cattleDrivers, err := listKontainerDrivers(clientset)
 				if err != nil {
-					return nil, err
+					return false
 				}
-				clientset, err = pkg.GetDynamicClientInCluster(kubePath)
-				return clientset, err
-			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-			WhenCapiInstalledIt("kontainerdrivers must be ready", func() {
-				driversActive := func() bool {
-					cattleDrivers, err := listKontainerDrivers(clientset)
-					if err != nil {
-						return false
-					}
-
-					allActive := true
-					// The condition of each driver must be active
-					for _, driver := range cattleDrivers.Items {
-						status := driver.UnstructuredContent()["status"].(map[string]interface{})
-						conditions := status["conditions"].([]interface{})
-						driverActive := false
-						for _, condition := range conditions {
-							conditionData := condition.(map[string]interface{})
-							if conditionData["type"].(string) == "Active" && conditionData["status"].(string) == "True" {
-								driverActive = true
-								break
-							}
-						}
-						if !driverActive {
-							t.Logs.Infof("Driver %s not Active", driver.GetName())
-							allActive = false
+				allActive := true
+				// The condition of each driver must be active
+				for _, driver := range cattleDrivers.Items {
+					status := driver.UnstructuredContent()["status"].(map[string]interface{})
+					conditions := status["conditions"].([]interface{})
+					driverActive := false
+					for _, condition := range conditions {
+						conditionData := condition.(map[string]interface{})
+						if conditionData["type"].(string) == "Active" && conditionData["status"].(string) == "True" {
+							driverActive = true
+							break
 						}
 					}
-					return allActive
-				}
-				Eventually(driversActive, waitTimeout, pollingInterval).Should(BeTrue())
-			})
-
-			WhenCapiInstalledIt("expected kontainerdrivers must exist", func() {
-				expectedDriversFound := func() bool {
-					cattleDrivers, err := listKontainerDrivers(clientset)
-					if err != nil {
-						return false
+					if !driverActive {
+						t.Logs.Infof("Driver %s not Active", driver.GetName())
+						allActive = false
 					}
-
-					foundCount := 0
-					// The condition of each driver must be active
-					for _, driver := range cattleDrivers.Items {
-						switch driver.GetName() {
-						case "amazonelasticcontainerservice":
-							foundCount++
-						case "azurekubernetesservice":
-							foundCount++
-						case "googlekubernetesengine":
-							foundCount++
-						case "ociocneengine":
-							foundCount++
-						case "oraclecontainerengine":
-							foundCount++
-						}
-					}
-					return foundCount == 5
 				}
-				Eventually(expectedDriversFound, waitTimeout, pollingInterval).Should(BeTrue())
-			})
+				return allActive
+			}
+			Eventually(driversActive, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+
+		WhenCapiInstalledIt("expected kontainerdrivers must exist", func() {
+			expectedDriversFound := func() bool {
+				cattleDrivers, err := listKontainerDrivers(clientset)
+				if err != nil {
+					return false
+				}
+
+				foundCount := 0
+				// The condition of each driver must be active
+				for _, driver := range cattleDrivers.Items {
+					switch driver.GetName() {
+					case "amazonelasticcontainerservice":
+						foundCount++
+					case "azurekubernetesservice":
+						foundCount++
+					case "googlekubernetesengine":
+						foundCount++
+					case "ociocneengine":
+						foundCount++
+					case "oraclecontainerengine":
+						foundCount++
+					}
+				}
+				return foundCount == 5
+			}
+			Eventually(expectedDriversFound, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 })
