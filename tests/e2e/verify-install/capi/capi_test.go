@@ -76,10 +76,10 @@ func WhenCapiInstalledIt(description string, f func()) {
 	})
 }
 
-var _ = t.Describe("KontainerDriver", Label("f:platform-lcm.install"), func() {
+var _ = t.Describe("KontainerDriver status", Label("f:platform-lcm.install"), func() {
 
 	t.Context("after successful installation", func() {
-		It("rancher configured", func() {
+		It("when rancher configured", func() {
 			kubeconfig := getKubeConfigOrAbort()
 			inClusterVZ, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
 			if err != nil {
