@@ -275,7 +275,7 @@ func applyTemplate(templateContent string, params interface{}) (bytes.Buffer, er
 // registers the ociocne driver
 func createOrUpdateKontainerCR(ctx spi.ComponentContext) error {
 	// Nothing to do if Rancher is not enabled
-	if !vzcr.IsComponentStatusEnabled(ctx.EffectiveCR(), "rancher") {
+	if !vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
 		return nil
 	}
 	gvr := common.GetRancherMgmtAPIGVRForResource("kontainerdrivers")
