@@ -32,6 +32,10 @@ const (
 	testBomFilePath = "../../testdata/test_bom.json"
 )
 
+// TestReconcile tests Reconcile function for the FluentbitOpensearchOutput component
+// GIVEN a FluentbitOpensearchOutput component
+// WHEN I call Reconcile function with FluentbitOpensearchOutput context
+// THEN nil is returned, if FluentbitOpensearchOutput is successfully reconciled; otherwise, error will be returned.
 func TestReconcile(t *testing.T) {
 	type args struct {
 		ctx spi.ComponentContext
@@ -92,7 +96,11 @@ func TestReconcile(t *testing.T) {
 	}
 }
 
-func TestPreUpgradeAndInstall(t *testing.T) {
+// TestPreUpgradeAndInstall tests PreUpgrade and  PreInstall function for the FluentbitOpensearchOutput component
+// GIVEN a FluentbitOpensearchOutput component
+// WHEN I call Reconcile function with FluentbitOpensearchOutput context
+// THEN nil is returned, if all PreInstall And PreUpgrade tasks of FluentbitOpensearchOutput are successfully executed; otherwise, error will be returned.
+func TestPreUpgradeAndPreInstall(t *testing.T) {
 	type args struct {
 		ctx spi.ComponentContext
 	}
@@ -117,7 +125,7 @@ func TestPreUpgradeAndInstall(t *testing.T) {
 					FirstDeployed: now,
 					LastDeployed:  now,
 					Status:        releaseStatus,
-					Description:   "Named Release Stub",
+					Description:   "FluentOpensearchOutput release",
 				},
 				Version: 1,
 			}
@@ -160,6 +168,10 @@ func TestPreUpgradeAndInstall(t *testing.T) {
 	}
 }
 
+// TestGetOverrides tests getOverrides functions for the FluentbitOpensearchOutput component
+// GIVEN a FluentbitOpensearchOutput component
+// WHEN I call GetOverrides function with Verrazzano CR object
+// THEN all installed overrides available in Verrazzano CR for the FluentbitOpensearchOutput are returned.
 func TestGetOverrides(t *testing.T) {
 	type args struct {
 		object runtime.Object
@@ -231,6 +243,10 @@ func TestGetOverrides(t *testing.T) {
 	}
 }
 
+// TestMonitorOverrides tests the MonitorOverrides function for the FluentbitOpensearchOutput component
+// GIVEN a FluentbitOpensearchOutput component
+// WHEN I call MonitorOverrides with Verrazzano CR
+// THEN true is returned if MonitorChanges is enabled in Verrazzano CR; otherwise, false will be returned.
 func TestMonitorOverrides(t *testing.T) {
 	component := NewComponent()
 	cr := &v1alpha1.Verrazzano{
@@ -264,6 +280,7 @@ func TestMonitorOverrides(t *testing.T) {
 	assert.False(t, monitor, "Monitoring of install overrides should be disabled")
 }
 
+// getFluentOSOutputCR returns the Verrazzano CR with enabled/disabled FluentbitOpensearchOutput based on the passed argument.
 func getFluentOSOutputCR(enabled bool) *v1alpha1.Verrazzano {
 	return &v1alpha1.Verrazzano{
 		Spec: v1alpha1.VerrazzanoSpec{

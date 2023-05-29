@@ -25,14 +25,22 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
+// TestValidateInstall tests the ValidateInstall function for the FluentOperator component
+// GIVEN a FluentOperator component
+// WHEN I call ValidateInstall with valid Verrazzano CR
+// THEN no error is returned
 func TestValidateInstall(t *testing.T) {
 	component := NewComponent()
-	vz := &v1alpha1.Verrazzano{}
+	vz := getFluentOperatorCR(true)
 	err := component.ValidateInstall(vz)
 	assert.NoError(t, err, "ValidateInstall should not return an error")
 
 }
 
+// TestIsEnabled tests the IsEnabled function for the FluentOperator component
+// GIVEN a FluentOperator component
+// WHEN I call IsEnabled with Verrazzano CR
+// THEN If FluentOperator is enabled, true will be returned; otherwise, false will be returned.
 func TestIsEnabled(t *testing.T) {
 	component := NewComponent()
 	cr := getFluentOperatorCR(true)
@@ -40,6 +48,10 @@ func TestIsEnabled(t *testing.T) {
 	assert.True(t, enabled, "FluentOperator component should be enabled")
 }
 
+// TestMonitorOverrides tests the MonitorOverrides function for the FluentOperator component
+// GIVEN a FluentOperator component
+// WHEN I call MonitorOverrides with Verrazzano CR
+// THEN true is returned if MonitorChanges is enabled in Verrazzano CR; otherwise, false will be returned.
 func TestMonitorOverrides(t *testing.T) {
 	component := NewComponent()
 	cr := &v1alpha1.Verrazzano{
@@ -73,6 +85,10 @@ func TestMonitorOverrides(t *testing.T) {
 	assert.Falsef(t, monitor, "Monitoring of install overrides should be disabled")
 }
 
+// TestValidateUpdate tests the ValidateUpdate function for the FluentOperator component
+// GIVEN a FluentOperator component
+// WHEN I call ValidateUpdate with old and new Verrazzano CR
+// THEN nil is returned, if specified new Verrazzano CR is valid for this component to be updated; otherwise, error will be returned.
 func TestValidateUpdate(t *testing.T) {
 	type args struct {
 		old *v1alpha1.Verrazzano
@@ -139,18 +155,11 @@ func TestValidateUpdate(t *testing.T) {
 	}
 }
 
-func getFluentOperatorCR(enabled bool) *v1alpha1.Verrazzano {
-	return &v1alpha1.Verrazzano{
-		Spec: v1alpha1.VerrazzanoSpec{
-			Components: v1alpha1.ComponentSpec{
-				FluentOperator: &v1alpha1.FluentOperatorComponent{
-					Enabled: common.BoolPtr(enabled),
-				},
-			},
-		},
-	}
-}
-func TestInstallAndUpgrade(t *testing.T) {
+// TestInstall tests Install, PostInstall, PreInstall functions for the FluentOperator component
+// GIVEN a FluentOperator component
+// WHEN I call Install, PostInstall, PreInstall functions with FluentOperator context
+// THEN nil is returned, if FluentOperator is successfully installed; otherwise, error will be returned.
+func TestInstall(t *testing.T) {
 	type args struct {
 		ctx spi.ComponentContext
 	}
@@ -169,17 +178,7 @@ func TestInstallAndUpgrade(t *testing.T) {
 	helmcli.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
 		return helmcli.CreateActionConfig(true, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
 			now := time.Now()
-			return &release.Release{
-				Name:      ComponentName,
-				Namespace: ComponentNamespace,
-				Info: &release.Info{
-					FirstDeployed: now,
-					LastDeployed:  now,
-					Status:        releaseStatus,
-					Description:   "Named Release Stub",
-				},
-				Version: 1,
-			}
+			return getTestHelmRelease(now, releaseStatus)
 		})
 	})
 	tests := []struct {
@@ -188,7 +187,7 @@ func TestInstallAndUpgrade(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			"Successful Install/Upgrade of FluentOperator",
+			"Successful Install of FluentOperator",
 			args{
 				fakeContext,
 			},
@@ -203,11 +202,6 @@ func TestInstallAndUpgrade(t *testing.T) {
 				t.Errorf("PostInstall() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			err = c.PostUpgrade(tt.args.ctx)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("PostUpgrade() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
 			config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
 			err = c.PreInstall(tt.args.ctx)
 			if (err != nil) != tt.wantErr {
@@ -219,6 +213,58 @@ func TestInstallAndUpgrade(t *testing.T) {
 				t.Errorf("Install() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+		})
+	}
+}
+
+// TestUpgrade tests Upgrade, PostUpgrade, PreUpgrade functions for the FluentOperator component
+// GIVEN a FluentOperator component
+// WHEN I call Upgrade, PostUpgrade, PreUpgrade functions with FluentOperator context
+// THEN nil is returned, if FluentOperator is successfully Upgraded; otherwise, error will be returned.
+func TestUpgrade(t *testing.T) {
+	type args struct {
+		ctx spi.ComponentContext
+	}
+	defer func() {
+		config.TestThirdPartyManifestDir = ""
+	}()
+	cr := getFluentOperatorCR(true)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	fakeContext := spi.NewFakeContext(fakeClient, cr, nil, false)
+	config.SetDefaultBomFilePath(testBomFilePath)
+
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../"})
+
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helmcli.CreateActionConfig(true, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			now := time.Now()
+			return getTestHelmRelease(now, releaseStatus)
+		})
+	})
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			"Successful Upgrade of FluentOperator",
+			args{
+				fakeContext,
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			err := c.PostUpgrade(tt.args.ctx)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("PostUpgrade() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
 			err = c.PreUpgrade(tt.args.ctx)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("PreUpgrade() error = %v, wantErr %v", err, tt.wantErr)
@@ -233,6 +279,10 @@ func TestInstallAndUpgrade(t *testing.T) {
 	}
 }
 
+// TestReconcile tests Reconcile function for the FluentOperator component
+// GIVEN a FluentOperator component
+// WHEN I call Reconcile function with FluentOperator context
+// THEN nil is returned, if FluentOperator is successfully reconciled; otherwise, error will be returned.
 func TestReconcile(t *testing.T) {
 	type args struct {
 		ctx spi.ComponentContext
@@ -245,17 +295,7 @@ func TestReconcile(t *testing.T) {
 	helmcli.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
 		return helmcli.CreateActionConfig(true, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
 			now := time.Now()
-			return &release.Release{
-				Name:      ComponentName,
-				Namespace: ComponentNamespace,
-				Info: &release.Info{
-					FirstDeployed: now,
-					LastDeployed:  now,
-					Status:        releaseStatus,
-					Description:   "Named Release Stub",
-				},
-				Version: 1,
-			}
+			return getTestHelmRelease(now, releaseStatus)
 		})
 	})
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
@@ -296,13 +336,24 @@ func TestReconcile(t *testing.T) {
 	}
 }
 
+// TestIsReady tests IsReady function for the FluentOperator component
+// GIVEN a FluentOperator component
+// WHEN I call IsReady function with FluentOperator context
+// THEN true is returned, if both FluentOperator Deployment and Fluentbit DaemonSet are ready; otherwise, false will be returned.
 func TestIsReady(t *testing.T) {
 	type args struct {
 		ctx spi.ComponentContext
 	}
 	cr := getFluentOperatorCR(true)
-	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	fakeContext := spi.NewFakeContext(fakeClient, cr, nil, false)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		getFluentOperatorDeployment(ComponentName, map[string]string{"app": "fluent-operator"}, false),
+		getFluentbitDaemonset(fluentbitDaemonSet, map[string]string{"app": "fluent-bit"}, false),
+		getTestPod(ComponentName, ComponentNamespace, ComponentName),
+		getTestReplicaSet(ComponentName, ComponentNamespace),
+		getTestControllerRevision(fluentbitDaemonSet, ComponentNamespace),
+		getTestDaemonSetPod(fluentbitDaemonSet, ComponentNamespace, fluentbitDaemonSet),
+	).Build()
+	fakeContext := spi.NewFakeContext(fakeClient, cr, nil, true)
 	tests := []struct {
 		name string
 		args args
@@ -313,7 +364,7 @@ func TestIsReady(t *testing.T) {
 			args{
 				fakeContext,
 			},
-			false,
+			true,
 		},
 	}
 	for _, tt := range tests {
@@ -324,6 +375,10 @@ func TestIsReady(t *testing.T) {
 	}
 }
 
+// TestIsReady tests Uninstall function for the FluentOperator component
+// GIVEN a FluentOperator component
+// WHEN I call Uninstall function with FluentOperator context
+// THEN nil is returned, if FluentOperator is successfully uninstalled; otherwise, error will be returned.
 func TestUninstall(t *testing.T) {
 	type args struct {
 		context spi.ComponentContext
@@ -382,6 +437,10 @@ func TestUninstall(t *testing.T) {
 	}
 }
 
+// TestIsReady tests IsInstalled function for the FluentOperator component
+// GIVEN a FluentOperator component
+// WHEN I call IsInstalled function with FluentOperator context
+// THEN true is returned, if both FluentOperator Deployment and Fluentbit DaemonSet are ready; otherwise, false will be returned.
 func TestIsInstalled(t *testing.T) {
 	type args struct {
 		ctx spi.ComponentContext
@@ -437,5 +496,33 @@ func TestIsInstalled(t *testing.T) {
 			}
 			assert.Equalf(t, tt.want, got, "IsInstalled(%v)", tt.args.ctx)
 		})
+	}
+}
+
+// getFluentOperatorCR returns the Verrazzano CR with enabled/disabled FluentOperator  based on the passed argument.
+func getFluentOperatorCR(enabled bool) *v1alpha1.Verrazzano {
+	return &v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				FluentOperator: &v1alpha1.FluentOperatorComponent{
+					Enabled: common.BoolPtr(enabled),
+				},
+			},
+		},
+	}
+}
+
+// getTestHelmRelease returns the test HelmRelease for the Unit tests.
+func getTestHelmRelease(releaseTime time.Time, releaseStatus release.Status) *release.Release {
+	return &release.Release{
+		Name:      ComponentName,
+		Namespace: ComponentNamespace,
+		Info: &release.Info{
+			FirstDeployed: releaseTime,
+			LastDeployed:  releaseTime,
+			Status:        releaseStatus,
+			Description:   "FluentOperator Named Release ",
+		},
+		Version: 1,
 	}
 }

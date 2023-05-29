@@ -88,6 +88,7 @@ func ConvertVolumeClaimTemplateTo(src []VolumeClaimSpecTemplate) []v1beta1.Volum
 	return templates
 }
 
+// convertFluentbitOpensearchOutputToV1Beta1 converts the v1alpha1 FluentbitOpensearchOutputComponent to v1beta1 FluentbitOpensearchOutputComponent
 func convertFluentbitOpensearchOutputToV1Beta1(src *FluentbitOpensearchOutputComponent) *v1beta1.FluentbitOpensearchOutputComponent {
 	if src == nil {
 		return nil
@@ -508,6 +509,7 @@ func convertFluentdToV1Beta1(src *FluentdComponent) *v1beta1.FluentdComponent {
 	}
 }
 
+// convertFluentOperatorToV1Beta1 converts the v1alpha1 FluentOperatorComponent to v1beta1 FluentOperatorComponent
 func convertFluentOperatorToV1Beta1(src *FluentOperatorComponent) *v1beta1.FluentOperatorComponent {
 	if src == nil {
 		return nil

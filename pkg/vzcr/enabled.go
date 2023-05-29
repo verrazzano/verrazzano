@@ -201,7 +201,7 @@ func IsFluentdEnabled(cr runtime.Object) bool {
 	return true
 }
 
-// IsFluentOperatorEnabled - Returns false only if disabled in the CR
+// IsFluentOperatorEnabled - Returns true IFF the FluentOperator component is explicitly enabled
 func IsFluentOperatorEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.FluentOperator != nil && vzv1alpha1.Spec.Components.FluentOperator.Enabled != nil {
@@ -215,6 +215,7 @@ func IsFluentOperatorEnabled(cr runtime.Object) bool {
 	return false
 }
 
+// IsFluentbitOpensearchOutputEnabled - Returns true IFF the FluentbitOpensearchOutput component is explicitly enabled
 func IsFluentbitOpensearchOutputEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.FluentbitOpensearchOutput != nil && vzv1alpha1.Spec.Components.FluentbitOpensearchOutput.Enabled != nil {

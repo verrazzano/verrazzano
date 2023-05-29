@@ -115,6 +115,7 @@ func convertSecuritySpecFromV1Beta1(security v1beta1.SecuritySpec) SecuritySpec 
 	}
 }
 
+// convertFluentbitOpensearchOutputFromV1Beta1 converts the v1beta1 FluentbitOpensearchOutputComponent to v1alpha1 FluentbitOpensearchOutputComponent
 func convertFluentbitOpensearchOutputFromV1Beta1(in *v1beta1.FluentbitOpensearchOutputComponent) *FluentbitOpensearchOutputComponent {
 	if in == nil {
 		return nil
@@ -368,6 +369,7 @@ func convertFluentdFromV1Beta1(in *v1beta1.FluentdComponent) *FluentdComponent {
 	}
 }
 
+// // convertFluentOperatorFromV1Beta1 converts the v1beta1 FluentOperatorComponent to v1alpha1 FluentOperatorComponent
 func convertFluentOperatorFromV1Beta1(in *v1beta1.FluentOperatorComponent) *FluentOperatorComponent {
 	if in == nil {
 		return nil

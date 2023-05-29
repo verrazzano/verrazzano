@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	fluentbitDaemonset         = "fluent-bit"
+	fluentbitDaemonSet         = "fluent-bit"
 	fluentOperatorImageKey     = "operator.container.repository"
 	fluentBitImageKey          = "fluentbit.image.repository"
 	fluentOperatorInitImageKey = "operator.initcontainer.repository"
@@ -28,7 +28,7 @@ const (
 	fluentOperatorInitTag      = "operator.initcontainer.tag"
 	fluentBitImageTag          = "fluentbit.image.tag"
 	clusterOutputDirectory     = ComponentName
-	fluentbitConfigMap         = fluentbitDaemonset + "-os-config"
+	fluentbitConfigMap         = fluentbitDaemonSet + "-os-config"
 	fluentbitConfigMapFile     = "fluentbit-config-configmap.yaml"
 )
 
@@ -39,7 +39,7 @@ var (
 		Namespace: ComponentNamespace,
 	}
 	fluentBitDaemonSet = types.NamespacedName{
-		Name:      fluentbitDaemonset,
+		Name:      fluentbitDaemonSet,
 		Namespace: ComponentNamespace,
 	}
 )
@@ -105,7 +105,7 @@ func applyFluentBitConfigMap(compContext spi.ComponentContext) error {
 	args := make(map[string]interface{})
 	args["namespace"] = ComponentNamespace
 	args["fluentbitConfigMap"] = fluentbitConfigMap
-	args["fluentbitComponent"] = fluentbitDaemonset
+	args["fluentbitComponent"] = fluentbitDaemonSet
 	if err := k8sutil.NewYAMLApplier(compContext.Client(), "").ApplyFT(fluentbitCM, args); err != nil {
 		return compContext.Log().ErrorfNewErr("Failed applying FluentBit ConfigMap: %v", err)
 	}

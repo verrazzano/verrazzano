@@ -30,6 +30,9 @@ const (
 	invalidTestBomFilePath = "../../testdata/invalid_test_bom.json"
 )
 
+// TestGetOverrides tests getOverrides functions for the FluentOperator component
+// WHEN I call GetOverrides function with Verrazzano CR object
+// THEN all installed overrides available in Verrazzano CR for the FluentOperator are returned.
 func TestGetOverrides(t *testing.T) {
 	type args struct {
 		object runtime.Object
@@ -101,6 +104,10 @@ func TestGetOverrides(t *testing.T) {
 	}
 }
 
+// TestAppendOverrides tests appendOverrides functions for the FluentOperator component
+// GIVEN a FluentOperator component
+// WHEN I call AppendOverrides function with FluentOperator context and slice of key-value
+// THEN slice of the array is updated with FluentOperator Overrides.
 func TestAppendOverrides(t *testing.T) {
 	testCR := v1alpha1.Verrazzano{}
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
@@ -175,6 +182,9 @@ func TestAppendOverrides(t *testing.T) {
 	}
 }
 
+// TestApplyFluentBitConfigMap tests applyFluentBitConfigMap functions for the FluentOperator component
+// WHEN I call ApplyFluentBitConfigMap function with FluentOperator context
+// THEN nil is returned if Fluentbit ConfigMap is successfully created; otherwise, error is returned.
 func TestApplyFluentBitConfigMap(t *testing.T) {
 	type args struct {
 		compContext     spi.ComponentContext
@@ -221,6 +231,58 @@ func TestApplyFluentBitConfigMap(t *testing.T) {
 	}
 }
 
+// TestIsFluentOperatorReady tests isFluentOperatorReady functions for the FluentOperator component
+// WHEN I call isFluentOperatorReady function with FluentOperator context
+// THEN true is returned, if both FluentOperator Deployment and Fluentbit DaemonSet are ready; otherwise, false will be returned.
+func TestIsFluentOperatorReady(t *testing.T) {
+	type args struct {
+		context spi.ComponentContext
+	}
+	testCR := v1alpha1.Verrazzano{}
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		getFluentOperatorDeployment(ComponentName, map[string]string{"app": "fluent-operator"}, false),
+		getFluentbitDaemonset(fluentbitDaemonSet, map[string]string{"app": "fluent-bit"}, false),
+		getTestPod(ComponentName, ComponentNamespace, ComponentName),
+		getTestReplicaSet(ComponentName, ComponentNamespace),
+		getTestControllerRevision(fluentbitDaemonSet, ComponentNamespace),
+		getTestDaemonSetPod(fluentbitDaemonSet, ComponentNamespace, fluentbitDaemonSet),
+	).Build()
+	fakeClientWithNotReadyStatus := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		getFluentOperatorDeployment(ComponentName, map[string]string{"app": "fluent-operator"}, true),
+		getFluentbitDaemonset(fluentbitDaemonSet, map[string]string{"app": "fluent-bit"}, true),
+	).Build()
+	fakeContext := spi.NewFakeContext(fakeClient, &testCR, nil, false)
+	fakeCtxWithNotReadyStatus := spi.NewFakeContext(fakeClientWithNotReadyStatus, &testCR, nil, false)
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			"When fluentOperator is ready",
+			args{
+				fakeContext,
+			},
+			true,
+		},
+		{
+			"When fluentOperator is not ready",
+			args{
+				fakeCtxWithNotReadyStatus,
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isFluentOperatorReady(tt.args.context); got != tt.want {
+				t.Errorf("isFluentOperatorReady() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// getFluentOperatorDeployment returns FluentOperator deployment for the Unit tests.
 func getFluentOperatorDeployment(name string, labels map[string]string, notReady bool) *appsv1.Deployment {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -240,7 +302,7 @@ func getFluentOperatorDeployment(name string, labels map[string]string, notReady
 		},
 	}
 
-	if !notReady {
+	if notReady {
 		deployment.Status = appsv1.DeploymentStatus{
 			Replicas:          1,
 			AvailableReplicas: 0,
@@ -250,6 +312,58 @@ func getFluentOperatorDeployment(name string, labels map[string]string, notReady
 	return deployment
 }
 
+// getTestPod returns FluentOperator pod for the Unit tests.
+func getTestPod(name, namespace, labelApp string) *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name + "-95d8c5d97-m6mbr",
+			Labels: map[string]string{
+				"pod-template-hash": "95d8c5d97",
+				"app":               labelApp,
+			},
+		},
+	}
+}
+
+// getTestDaemonSetPod returns Fluentbit DaemonSet pod for the Unit tests.
+func getTestDaemonSetPod(name, namespace, labelApp string) *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name + "-95d8c5d97-m6mbr",
+			Labels: map[string]string{
+				"controller-revision-hash": "95d8c5d97",
+				"app":                      labelApp,
+			},
+		},
+	}
+}
+
+// getTestReplicaSet returns FluentOperator ReplicaSet for the Unit tests.
+func getTestReplicaSet(name, namespace string) *appsv1.ReplicaSet {
+	return &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   namespace,
+			Name:        name + "-95d8c5d97",
+			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+		},
+	}
+}
+
+// getTestControllerRevision returns Fluentbit ControllerRevision for the Unit tests.
+func getTestControllerRevision(name, namespace string) *appsv1.ControllerRevision {
+	return &appsv1.ControllerRevision{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   namespace,
+			Name:        name + "-95d8c5d97",
+			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+		},
+		Revision: 1,
+	}
+}
+
+// getFluentbitDaemonset returns Fluentbit DaemonSet for the Unit tests.
 func getFluentbitDaemonset(name string, labels map[string]string, notReady bool) *appsv1.DaemonSet {
 	deployment := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -267,55 +381,11 @@ func getFluentbitDaemonset(name string, labels map[string]string, notReady bool)
 			UpdatedNumberScheduled: 1,
 		},
 	}
-	if !notReady {
+	if notReady {
 		deployment.Status = appsv1.DaemonSetStatus{
 			NumberAvailable:        0,
 			UpdatedNumberScheduled: 1,
 		}
 	}
 	return deployment
-}
-
-func TestIsFluentOperatorReady(t *testing.T) {
-	type args struct {
-		context spi.ComponentContext
-	}
-	testCR := v1alpha1.Verrazzano{}
-	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		getFluentOperatorDeployment("testFluentOperator", map[string]string{"app": "fluent-operator"}, false),
-		getFluentbitDaemonset("testFluentbit", map[string]string{"app": "fluent-bit"}, false),
-	).Build()
-	fakeClientWithNotReadyStatus := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		getFluentOperatorDeployment("testFluentOperator", map[string]string{"app": "fluent-operator"}, true),
-		getFluentbitDaemonset("testFluentbit", map[string]string{"app": "fluent-bit"}, true),
-	).Build()
-	fakeContext := spi.NewFakeContext(fakeClient, &testCR, nil, false)
-	fakeCtxWithNotReadyStatus := spi.NewFakeContext(fakeClientWithNotReadyStatus, &testCR, nil, false)
-	tests := []struct {
-		name string
-		args args
-		want bool
-	}{
-		{
-			"When fluentOperator is ready",
-			args{
-				fakeContext,
-			},
-			false,
-		},
-		{
-			"When fluentOperator is not ready",
-			args{
-				fakeCtxWithNotReadyStatus,
-			},
-			false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := isFluentOperatorReady(tt.args.context); got != tt.want {
-				t.Errorf("isFluentOperatorReady() = %v, want %v", got, tt.want)
-			}
-		})
-	}
 }
